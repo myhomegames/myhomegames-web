@@ -28,6 +28,4 @@ dist-ssr
 # - master branch: production configuration
 # - 0-X-SNAPSHOT branch: development configuration
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*.local
