@@ -27,5 +27,6 @@ dist-ssr
 # Note: .env is now committed to the repository
 # - master branch: production configuration
 # - 0-X-SNAPSHOT branch: development configuration
+.env
 .env.local
 .env.*.local
