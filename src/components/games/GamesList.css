@@ -1,0 +1,35 @@
+.games-list-container {
+  max-width: 100%;
+  margin: 0 auto;
+  display: grid;
+  gap: 40px;
+  justify-content: center;
+}
+
+.games-list-item {
+  flex-shrink: 0;
+}
+
+.games-list-item-draggable {
+  cursor: grab;
+}
+
+.games-list-item-draggable:active {
+  cursor: grabbing;
+}
+
+.games-list-item-drag-over {
+  opacity: 0.5;
+  transform: scale(1.05);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.collection-detail-games-list .games-list-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Title and year styles moved to Cover.css */
+
+/* Cover styles moved to Cover.css */

@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #1a1a1a;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Heading 1 font variables */
+  --font-heading-1-font-family: 'IBM Mhg Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  --font-heading-1-font-size: 2.25rem;
+  --font-heading-1-line-height: 1.2;
+
+  /* Heading 2 font variables */
+  --font-heading-2-font-family: 'IBM Mhg Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  --font-heading-2-font-size: 1.25rem;
+  --font-heading-2-line-height: 1.3;
+
+  /* Body 2 font variables */
+  --font-body-2-font-family: 'IBM Mhg Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  --font-body-2-font-size: 0.875rem;
+  --font-body-2-line-height: 1.5;
+}
+
+/* Common cover hover effects (darken overlay + yellow border) */
+.cover-hover-effect {
+  position: relative;
+  cursor: pointer;
+  outline: 3px solid transparent;
+  outline-offset: -3px;
+  transition: outline-color 0.2s ease;
+  overflow: hidden;
+}
+
+.cover-hover-effect::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0);
+  z-index: 2;
+  transition: background-color 0.2s ease;
+  pointer-events: none;
+}
+
+.cover-hover-effect:hover,
+*:hover > .cover-hover-effect {
+  outline-color: #E5A00D;
+  border-radius: 4px;
+}
+
+.cover-hover-effect:hover::before,
+*:hover > .cover-hover-effect::before {
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  min-width: 320px;
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}

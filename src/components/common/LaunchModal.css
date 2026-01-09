@@ -1,0 +1,58 @@
+.launch-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  pointer-events: auto;
+  overflow: hidden;
+}
+
+.launch-modal-container {
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  border: 1px solid #2a2a2a;
+  width: 40%;
+  max-width: 500px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.launch-modal-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #2a2a2a;
+  border-top: 4px solid #E5A00D;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.launch-modal-error-title {
+  font-size: 24px;
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.launch-modal-error-message {
+  color: #ffffff;
+  font-size: 16px;
+  text-align: center;
+  line-height: 1.5;
+}
+

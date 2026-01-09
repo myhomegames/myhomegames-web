@@ -1,0 +1,76 @@
+.home-page-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  margin-top: 20px;
+  padding-top: 128px;
+}
+
+.home-page-layout {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+
+.home-page-content-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.home-page-content-wrapper.has-toolbar {
+  margin-top: -8px;
+}
+
+.home-page-content-wrapper.has-toolbar .home-page-scroll-container.table-view {
+  padding-top: 0;
+  margin-top: -3px;
+}
+
+.home-page-scroll-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) #1a1a1a;
+}
+
+.home-page-scroll-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.home-page-scroll-container::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+.home-page-scroll-container::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.home-page-scroll-container::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.home-page-scroll-container::-webkit-scrollbar-thumb:active {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.home-page-scroll-container.table-view {
+  padding-bottom: 0;
+  overflow: hidden;
+}
+
+.home-page-scroll-container:not(.table-view) {
+  padding-bottom: 32px;
+}
+
+.home-page-main-container {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}

@@ -1,0 +1,478 @@
+.games-table-header-section {
+  max-width: 100%;
+  margin: 0 auto;
+  margin-bottom: 0;
+  padding: 0 24px;
+  background-color: #1a1a1a;
+  border-bottom: 2px solid #1a1a1a;
+}
+
+.games-table-header-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.games-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.games-table-header-table thead {
+  background-color: #1a1a1a;
+}
+
+.games-table-header-table th {
+  padding: 12px 16px;
+  text-align: left;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s ease, background-color 0.2s ease;
+  position: relative;
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.games-table-header-table th.first-visible-cell {
+  padding: 12px 16px 12px 60px !important;
+}
+
+.games-table-header-table th:hover {
+  color: #ffffff !important;
+  background-color: rgba(59, 130, 246, 0.2);
+}
+
+.games-table-header-table th.sorted,
+.games-table-header-table th.title-cell.sorted,
+.games-table-header-table th.date-cell.sorted,
+.games-table-header-table th.stars-cell.sorted,
+.games-table-header-table th.year-cell.sorted,
+.games-table-header-table th.critic-rating-cell.sorted,
+.games-table-header-table th.age-rating-cell.sorted {
+  color: #ffffff !important;
+}
+
+.games-table-header-table th.column-menu {
+  padding: 12px 4px;
+  text-align: left;
+  width: 40px;
+  border-right: 2px solid #1a1a1a;
+}
+
+.games-table-header-table th.has-border-right {
+  border-right: 2px solid #1a1a1a;
+}
+
+.games-table-header-table .sort-indicator {
+  position: absolute;
+  right: 16px;
+  bottom: 12px;
+}
+
+/* Apply same cell styles to header for alignment */
+.games-table-header-table th.title-cell {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  min-width: 220px;
+  width: 30%;
+}
+
+.games-table-header-table th.date-cell {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.games-table-header-table th.stars-cell {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  width: 120px;
+  max-width: 120px;
+}
+
+.games-table-header-table th.year-cell {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  width: 80px;
+  max-width: 80px;
+}
+
+.games-table-header-table th.critic-rating-cell {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.games-table-header-table th.age-rating-cell {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  width: 140px;
+  max-width: 140px;
+}
+
+.games-table-container {
+  max-width: 100%;
+  margin: 0 auto;
+  margin-top: 0;
+  margin-bottom: 70px;
+  padding: 0 24px;
+  height: calc(100vh - 114px - 22px - 50px - 70px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.games-table-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+
+.games-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-color: #1a1a1a;
+}
+
+.games-table th {
+  padding: 12px 16px;
+  text-align: left;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s ease;
+  position: relative;
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.games-table th.first-visible-cell {
+  padding: 12px 16px 12px 60px !important;
+}
+
+.games-table th:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.games-table th.column-menu {
+  padding: 12px 4px;
+  text-align: left;
+  width: 40px;
+  border-right: 2px solid #1a1a1a;
+}
+
+.games-table th.has-border-right {
+  border-right: 2px solid #1a1a1a;
+}
+
+.games-table .sort-indicator {
+  position: absolute;
+  right: 16px;
+  bottom: 12px;
+}
+
+.games-table-column-menu-wrapper {
+  position: relative;
+  z-index: 1001;
+}
+
+.games-table-column-menu-button {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  padding: 4px 2px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.games-table-column-menu-button:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.games-table-column-menu-arrow {
+  transition: transform 0.2s ease;
+}
+
+.games-table-column-menu-arrow.open {
+  transform: rotate(180deg);
+}
+
+.games-table-column-menu-popup {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  background-color: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  min-width: 180px;
+  padding: 8px 0;
+}
+
+.games-table-column-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.9);
+  transition: background-color 0.15s ease, color 0.15s ease;
+  text-align: left;
+}
+
+.games-table-column-menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.games-table-column-menu-item.selected {
+  color: #E5A00D;
+}
+
+.games-table-column-menu-check {
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.games-table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.games-table tbody tr:hover td.column-menu-cell {
+  background-color: transparent;
+}
+
+.games-table tbody tr:hover td:not(.column-menu-cell) {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.games-table td {
+  padding: 12px 16px;
+  transition: background-color 0.2s ease;
+}
+
+.games-table td.column-menu-cell {
+  padding: 12px 4px;
+  width: 40px;
+  background-color: transparent !important;
+}
+
+.games-table td.even-row {
+  background-color: transparent;
+}
+
+.games-table td.odd-row {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.games-table td.has-border-right {
+  border-right: none;
+}
+
+.games-table td.title-cell {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #f8f8f8;
+  min-width: 220px;
+  width: 30%;
+}
+
+.games-table td.title-cell .first-cell-text,
+.games-table td.title-cell .title-cell-text {
+  cursor: pointer;
+  transition: text-decoration 0.2s ease;
+}
+
+.games-table td.title-cell .first-cell-text:hover,
+.games-table td.title-cell .title-cell-text:hover {
+  text-decoration: underline;
+}
+
+.games-table td.first-visible-cell {
+  padding: 12px 16px 12px 60px !important;
+  position: relative;
+}
+
+.first-cell-play-button {
+  position: absolute;
+  left: 24px;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background-color: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+  z-index: 1;
+  padding: 0;
+}
+
+.first-cell-play-button:hover {
+  background-color: rgba(229, 160, 13, 0.9);
+  border-color: rgba(229, 160, 13, 0.9);
+}
+
+.games-table tbody tr:hover .first-cell-play-button {
+  opacity: 1;
+}
+
+.first-cell-play-button svg {
+  width: 18px;
+  height: 18px;
+  color: #ffffff;
+  margin-left: 2px;
+}
+
+.first-cell-text {
+  display: inline-block;
+}
+
+.title-cell-text {
+  display: inline-block;
+}
+
+.games-table td.date-cell {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.games-table td.stars-cell {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  width: 120px;
+  max-width: 120px;
+}
+
+.games-table td.year-cell {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  width: 80px;
+  max-width: 80px;
+}
+
+.games-table td.critic-rating-cell {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.games-table td.age-rating-cell {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  width: 140px;
+  max-width: 140px;
+}
+
+.games-table-edit-header {
+  padding: 12px 16px;
+  text-align: center;
+  width: 80px;
+  cursor: default !important;
+}
+
+.games-table-edit-header:hover {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.games-table-edit-cell {
+  padding: 12px 16px;
+  text-align: center;
+  width: 80px;
+}
+
+.games-table-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.games-table tbody tr:hover .games-table-actions {
+  opacity: 1;
+}
+
+.games-table-edit-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.games-table-edit-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.games-table-edit-button svg {
+  width: 16px;
+  height: 16px;
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 0.2s ease;
+}
+
+.games-table-edit-button:hover svg {
+  color: #ffffff;
+}
+
+.games-table-dropdown-menu {
+  position: relative;
+}
+
+.games-table-actions .dropdown-menu-wrapper {
+  display: inline-block;
+}
+
+.games-table-actions .dropdown-menu-button {
+  opacity: 1 !important;
+}
+
+.games-table-actions .add-to-collection-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.games-table-actions .add-to-collection-dropdown-menu {
+  z-index: 1002;
+}
+
+/* Extend the dropdown popup area to bridge the gap to submenu */
+.games-table-dropdown-menu .dropdown-menu-popup::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  top: 0;
+  width: 4px;
+  height: 100%;
+  background: transparent;
+  pointer-events: auto;
+}

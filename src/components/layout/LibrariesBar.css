@@ -1,0 +1,103 @@
+.mhg-libraries-menu-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  z-index: 200;
+  padding: 0 24px;
+  height: 100%;
+}
+
+.mhg-libraries-menu-dropdown .dropdown-menu-button {
+  opacity: 1;
+}
+
+.mhg-libraries-menu-dropdown .dropdown-menu-popup {
+  left: 0;
+  right: auto;
+  top: 100%;
+  bottom: auto;
+  margin-top: 4px;
+}
+
+.mhg-libraries-actions {
+  transform: translateY(-2px);
+  position: relative;
+  z-index: 201;
+}
+
+.mhg-libraries-actions-slider-container {
+  visibility: visible;
+  width: 60px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  transform: translateY(2px);
+  position: relative;
+  z-index: 202;
+  pointer-events: auto;
+}
+
+.mhg-libraries-actions-slider-container.hidden {
+  visibility: hidden;
+}
+
+.mhg-libraries-actions-background-toggle-container {
+  display: flex;
+  align-items: center;
+  margin-right: 3px;
+  transform: translateY(3px);
+}
+
+.mhg-libraries-actions-view-mode-container {
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 998;
+}
+
+.mhg-libraries-combobox-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: calc(100% - 200px);
+}
+
+.mhg-libraries-combobox {
+  padding: 12px 24px 12px 0;
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  min-width: auto;
+  width: auto;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 9L1 4h10L6 9z' fill='%23ffffff'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right center;
+  padding-right: 20px;
+  transition: color 0.2s ease;
+}
+
+.mhg-libraries-combobox:hover {
+  color: rgba(255, 255, 255, 1);
+}
+
+.mhg-libraries-combobox:focus {
+  outline: none;
+  color: #E5A00D;
+}
+
+.mhg-libraries-combobox option {
+  background-color: #2a2a2a;
+  color: rgba(255, 255, 255, 0.9);
+  padding: 8px;
+}

@@ -1,0 +1,39 @@
+.recommended-section-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.recommended-section-nav-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background-color: transparent;
+  border: none;
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: color 0.2s ease;
+  padding: 0;
+}
+
+.recommended-section-nav-button:hover {
+  color: rgba(255, 255, 255, 1);
+}
+
+.recommended-section-nav-button:active {
+  color: rgba(255, 255, 255, 1);
+}
+
+.recommended-section-nav-button-hidden {
+  opacity: 0;
+  pointer-events: none;
+  cursor: default;
+}
+

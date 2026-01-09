@@ -1,0 +1,4 @@
+# Git attributes for merge strategy
+# Keep local .env version during merges (prevents overwriting production .env when merging from dev branch)
+.env merge=ours
+

@@ -1,0 +1,126 @@
+.games-list-detail-container {
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.games-list-detail-item {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  padding: 16px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.games-list-detail-item.even {
+  background-color: transparent;
+}
+
+.games-list-detail-item.odd {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.games-list-detail-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.games-list-detail-item .games-list-cover {
+  flex-shrink: 0;
+}
+
+.games-list-detail-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  cursor: pointer;
+  padding-right: 80px;
+  min-width: 0;
+}
+
+.games-list-detail-title {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #f8f8f8;
+  cursor: pointer;
+}
+
+.games-list-detail-actions {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 3;
+}
+
+.games-list-detail-item:hover .games-list-detail-actions {
+  opacity: 1;
+}
+
+.games-list-detail-edit-button {
+  border: none;
+  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background-color: transparent;
+}
+
+.games-list-detail-edit-button:hover {
+  background-color: transparent;
+}
+
+.games-list-detail-edit-button svg {
+  width: 16px;
+  height: 16px;
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 0.2s ease;
+}
+
+.games-list-detail-edit-button:hover svg {
+  color: #ffffff;
+}
+
+.games-list-detail-dropdown-menu {
+  position: relative;
+}
+
+.games-list-detail-actions .dropdown-menu-wrapper {
+  display: inline-block;
+}
+
+.games-list-detail-actions .dropdown-menu-button {
+  opacity: 1 !important;
+}
+
+.games-list-detail-actions .add-to-collection-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.games-list-detail-actions .add-to-collection-dropdown-menu {
+  z-index: 1002;
+}
+
+/* Extend the dropdown popup area to bridge the gap to submenu */
+.games-list-detail-dropdown-menu .dropdown-menu-popup::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  top: 0;
+  width: 4px;
+  height: 100%;
+  background: transparent;
+  pointer-events: auto;
+}

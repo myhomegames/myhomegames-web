@@ -1,0 +1,20 @@
+.age-ratings-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.age-rating-item {
+  color: rgba(255, 255, 255, 0.8);
+  font-family: var(--font-body-2-font-family);
+  font-size: var(--font-body-2-font-size);
+  line-height: var(--font-body-2-line-height);
+}
+
+.age-rating-separator {
+  color: rgba(255, 255, 255, 0.8);
+  font-family: var(--font-body-2-font-family);
+  font-size: var(--font-body-2-font-size);
+  line-height: var(--font-body-2-line-height);
+}
+

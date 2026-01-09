@@ -1,0 +1,30 @@
+.tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+  overflow: visible;
+}
+
+.tooltip {
+  background-color: #2a2a2a;
+  color: #ffffff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: normal;
+  word-wrap: break-word;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  max-width: 200px;
+  min-width: 100px;
+}
+
+.tooltip-portal {
+  position: fixed;
+  z-index: 99999;
+  opacity: 1;
+  animation: tooltipFadeIn 0.2s ease;
+}
+
+

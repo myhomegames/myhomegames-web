@@ -1,0 +1,408 @@
+.games-list-cover {
+  margin-bottom: 8px;
+  position: relative;
+}
+
+/* Ensure play button stays within bounds when border is disabled */
+.games-list-cover:not(.cover-hover-effect) {
+  padding: 4px;
+  box-sizing: border-box;
+}
+
+.games-list-cover:not(.cover-hover-effect) > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+.games-list-cover:not(.cover-hover-effect) > div:first-child {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.collection-detail-games-list .games-list-cover {
+  margin-bottom: 12px;
+}
+
+/* Placeholder styles are inline in Cover component */
+
+/* Play button styles */
+.games-list-play-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border: none;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+  z-index: 3;
+}
+
+/* detail mode: transparent button that becomes visible on cover hover, yellow on button hover */
+.games-list-play-button-detail {
+  background-color: rgba(0, 0, 0, 0.7);
+  opacity: 0;
+}
+
+.games-list-cover:hover .games-list-play-button-detail {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.games-list-play-button-detail:hover {
+  background-color: rgba(229, 160, 13, 0.9) !important;
+}
+
+/* play-only mode (no detail): invisible button that becomes yellow on hover */
+.games-list-play-button-play-only {
+  background-color: rgba(229, 160, 13, 0.9);
+  opacity: 0;
+}
+
+.games-list-cover-play:hover .games-list-play-button-play-only {
+  opacity: 1;
+  background-color: rgba(229, 160, 13, 0.9);
+}
+
+.games-list-play-button-play-only:hover {
+  background-color: rgba(229, 160, 13, 0.9);
+}
+
+/* Override global cover-hover-effect rule - disable parent hover effect */
+.games-list-item:hover > .games-list-cover.cover-hover-effect {
+  outline-color: transparent;
+  box-shadow: none;
+}
+
+.games-list-item:hover > .games-list-cover.cover-hover-effect::before {
+  background-color: rgba(0, 0, 0, 0);
+}
+
+/* Only apply hover effect when directly hovering the cover */
+.games-list-cover.cover-hover-effect:hover {
+  outline-color: #E5A00D !important;
+  border-radius: 4px;
+  box-shadow: 0 10px 20px rgba(229, 160, 13, 0.2) !important;
+}
+
+.games-list-cover.cover-hover-effect:hover::before {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Maintain hover effect when dropdown is open */
+.games-list-cover.cover-hover-effect.cover-dropdown-open {
+  outline-color: #E5A00D !important;
+  border-radius: 4px;
+  box-shadow: 0 10px 20px rgba(229, 160, 13, 0.2) !important;
+}
+
+.games-list-cover.cover-hover-effect.cover-dropdown-open::before {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Maintain play button visibility when dropdown is open */
+.games-list-cover.cover-dropdown-open .games-list-play-button-detail {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.games-list-cover-play.cover-dropdown-open .games-list-play-button-play-only {
+  opacity: 1;
+  background-color: rgba(229, 160, 13, 0.9);
+}
+
+/* Maintain upload button visibility when dropdown is open */
+.games-list-cover.cover-dropdown-open .games-list-upload-button-detail {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.games-list-cover-upload.cover-dropdown-open .games-list-upload-button-upload-only {
+  opacity: 1;
+  background-color: rgba(229, 160, 13, 0.9);
+}
+
+/* Maintain edit button visibility when dropdown is open */
+.games-list-cover.cover-dropdown-open .games-list-edit-button {
+  opacity: 1;
+}
+
+/* Maintain dropdown menu button visibility when dropdown is open */
+.games-list-cover.cover-dropdown-open .games-list-dropdown-wrapper .dropdown-menu-button {
+  opacity: 1;
+}
+
+/* Hide cover buttons when a popup or menu covers them */
+.games-list-cover.cover-popup-overlay .games-list-play-button,
+.games-list-cover.cover-popup-overlay .games-list-upload-button,
+.games-list-cover.cover-popup-overlay .games-list-edit-button {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* no-click mode (no detail, no play, and no upload): disable hover effects */
+.games-list-cover:not(.games-list-cover-detail):not(.games-list-cover-play):not(.games-list-cover-upload).cover-hover-effect:hover {
+  outline-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.games-list-cover:not(.games-list-cover-detail):not(.games-list-cover-play):not(.games-list-cover-upload).cover-hover-effect:hover::before {
+  background-color: rgba(0, 0, 0, 0) !important;
+}
+
+.games-list-play-button svg {
+  width: 24px;
+  height: 24px;
+  color: #ffffff;
+  margin-left: 3px;
+}
+
+/* Upload button styles - similar to play button */
+.games-list-upload-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border: none;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+  z-index: 3;
+}
+
+/* detail mode: transparent button that becomes visible on cover hover, yellow on button hover */
+.games-list-upload-button-detail {
+  background-color: rgba(0, 0, 0, 0.7);
+  opacity: 0;
+}
+
+.games-list-cover:hover .games-list-upload-button-detail {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.games-list-upload-button-detail:hover {
+  background-color: rgba(229, 160, 13, 0.9) !important;
+}
+
+/* upload-only mode: invisible button that becomes yellow on hover */
+.games-list-upload-button-upload-only {
+  background-color: rgba(229, 160, 13, 0.9);
+  opacity: 0;
+}
+
+.games-list-cover-upload:hover .games-list-upload-button-upload-only {
+  opacity: 1;
+  background-color: rgba(229, 160, 13, 0.9);
+}
+
+.games-list-upload-button-upload-only:hover {
+  background-color: rgba(245, 176, 65, 0.95);
+}
+
+.games-list-upload-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.games-list-upload-button svg {
+  width: 24px;
+  height: 24px;
+  color: #ffffff;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.games-list-upload-button .spinning {
+  animation: spin 1s linear infinite;
+}
+
+/* Edit button styles */
+.games-list-edit-button {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  border: none;
+  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background-color: transparent;
+  opacity: 0;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+  z-index: 3;
+}
+
+.games-list-edit-button-bottom-right {
+  left: auto;
+  right: 8px;
+}
+
+.games-list-cover:hover .games-list-edit-button {
+  opacity: 1;
+}
+
+.games-list-edit-button:hover {
+  background-color: transparent;
+}
+
+.games-list-edit-button svg {
+  width: 16px;
+  height: 16px;
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 0.2s ease;
+}
+
+.games-list-edit-button:hover svg {
+  color: #ffffff;
+}
+
+/* Dropdown menu wrapper styles */
+.games-list-dropdown-wrapper {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  z-index: 3;
+}
+
+.games-list-dropdown-wrapper-bottom-right {
+  left: auto;
+  right: 8px;
+}
+
+.games-list-cover:hover .games-list-dropdown-wrapper .dropdown-menu-button {
+  opacity: 1;
+}
+
+.games-list-dropdown-menu .dropdown-menu-button {
+  width: 32px;
+  height: 32px;
+  background-color: transparent;
+}
+
+.games-list-dropdown-menu .dropdown-menu-popup {
+  bottom: 100%;
+  top: auto;
+  margin-bottom: 4px;
+  margin-top: 0;
+}
+
+/* Title and year styles */
+.games-list-title-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  overflow: visible;
+}
+
+.games-list-title {
+  position: relative;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #f8f8f8;
+  background-color: transparent;
+  padding: 0;
+  transition: text-decoration 0.2s ease;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.games-list-title-clickable {
+  cursor: pointer;
+}
+
+.games-list-title-clickable:hover {
+  text-decoration: underline;
+}
+
+.games-list-year {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 0;
+}
+
+/* Overlay content styles */
+.cover-overlay-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Remove media button (for modal use) */
+.cover-remove-media-button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  background-color: rgba(220, 38, 38, 0.9);
+  border: none;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  z-index: 100;
+  padding: 0;
+  margin: 0;
+  line-height: 24px;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+.cover-remove-media-button::before {
+  content: "×";
+  display: block;
+  line-height: 1;
+  transform: translateY(0px);
+}
+
+.cover-remove-media-button:hover:not(:disabled) {
+  background-color: rgba(220, 38, 38, 1);
+  transform: scale(1.1);
+}
+
+.cover-remove-media-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+

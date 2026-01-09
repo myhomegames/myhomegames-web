@@ -1,0 +1,195 @@
+.add-to-collection-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+  pointer-events: auto;
+}
+
+.add-to-collection-modal {
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  height: 600px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.add-to-collection-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.add-to-collection-modal-header h2 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 1.5rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.add-to-collection-modal-close {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 2rem;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.add-to-collection-modal-close:hover {
+  background-color: transparent;
+  color: #ffffff;
+}
+
+.add-to-collection-modal-search {
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.add-to-collection-modal-search input {
+  width: 100%;
+  padding: 10px 12px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: white;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.add-to-collection-modal-search input::selection {
+  background-color: #87CEEB;
+  color: #000000;
+}
+
+.add-to-collection-modal-search input:focus {
+  border-color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 1);
+  color: #000000;
+}
+
+.add-to-collection-modal-search input:focus::placeholder {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.add-to-collection-modal-search input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.add-to-collection-modal-collections {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+  min-height: 350px;
+}
+
+.add-to-collection-modal-collection-item {
+  padding: 12px 24px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.add-to-collection-modal-collection-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.add-to-collection-modal-collection-title {
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.add-to-collection-modal-collection-count {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+}
+
+.add-to-collection-modal-empty {
+  padding: 40px 24px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.875rem;
+}
+
+.add-to-collection-modal-create {
+  padding: 12px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.add-to-collection-modal-create input {
+  flex: 1;
+  padding: 10px 12px;
+  background-color: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: white;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.add-to-collection-modal-create input::selection {
+  background-color: #87CEEB;
+  color: #000000;
+}
+
+.add-to-collection-modal-create input:focus {
+  border-color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 1);
+  color: #000000;
+}
+
+.add-to-collection-modal-create input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.add-to-collection-modal-create-button {
+  padding: 10px 20px;
+  background-color: #E5A00D;
+  border: none;
+  border-radius: 4px;
+  color: #000000;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.add-to-collection-modal-create-button:hover:not(:disabled) {
+  background-color: #F5B041;
+}
+
+.add-to-collection-modal-create-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
