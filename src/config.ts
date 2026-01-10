@@ -4,16 +4,21 @@ if (!envApiBase) {
 }
 export const API_BASE = envApiBase;
 
-// Get API token - prefer Twitch token, fallback to dev token
+// Get API token - prefer dev token if available, otherwise use Twitch token
 export function getApiToken(): string {
-  // Check for Twitch token in localStorage
+  // If VITE_API_TOKEN is set, prefer it (for development mode)
+  const devToken = import.meta.env.VITE_API_TOKEN;
+  if (devToken && devToken !== "") {
+    return devToken;
+  }
+  
+  // Fallback to Twitch token in localStorage
   const twitchToken = localStorage.getItem("twitch_token");
   if (twitchToken) {
     return twitchToken;
   }
   
-  // Fallback to development token
-  return import.meta.env.VITE_API_TOKEN || "";
+  return "";
 }
 
 // Get Twitch Client ID from localStorage (saved during login)
