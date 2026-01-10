@@ -136,7 +136,17 @@
     "french": "フランス語",
     "german": "ドイツ語",
     "chinese": "中国語",
-    "japanese": "日本語"
+    "japanese": "日本語",
+    "twitch": {
+      "title": "Twitch OAuth",
+      "description": "Twitch OAuthアプリケーションの認証情報を設定してください。これらはTwitch Developer Consoleから取得できます。",
+      "clientId": "クライアントID",
+      "clientSecret": "クライアントシークレット",
+      "clientIdPlaceholder": "TwitchクライアントIDを入力してください",
+      "clientSecretPlaceholder": "Twitchクライアントシークレットを入力してください",
+      "clientIdHelp": "TwitchアプリケーションのクライアントID",
+      "clientSecretHelp": "Twitchアプリケーションのクライアントシークレット（安全に保管してください）"
+    }
   },
   "header": {
     "home": "ホーム",
@@ -162,7 +172,10 @@
   "login": {
     "title": "MyHomeGamesへようこそ",
     "subtitle": "続行するにはログインしてください",
-    "button": "Twitchでログイン"
+    "button": "Twitchでログイン",
+    "credentialsNeeded": "ログインにはTwitch OAuth認証情報が必要です。まず設定で設定してください。",
+    "configureFirst": "Twitch Client IDとClient Secretは、Twitch Developer Consoleから取得できます。",
+    "goToSettings": "設定に移動"
   },
   "search": {
     "noResults": "用語 \"{{query}}\" の結果が見つかりません",

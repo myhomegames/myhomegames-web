@@ -136,7 +136,17 @@
     "french": "Francés",
     "german": "Alemán",
     "chinese": "Chino",
-    "japanese": "Japonés"
+    "japanese": "Japonés",
+    "twitch": {
+      "title": "Twitch OAuth",
+      "description": "Configura las credenciales de tu aplicación Twitch OAuth. Puedes obtenerlas desde la Consola de Desarrolladores de Twitch.",
+      "clientId": "Client ID",
+      "clientSecret": "Client Secret",
+      "clientIdPlaceholder": "Ingresa tu Twitch Client ID",
+      "clientSecretPlaceholder": "Ingresa tu Twitch Client Secret",
+      "clientIdHelp": "Tu Client ID de la aplicación Twitch",
+      "clientSecretHelp": "Tu Client Secret de la aplicación Twitch (mantén esto seguro)"
+    }
   },
   "header": {
     "home": "Inicio",
@@ -162,7 +172,10 @@
   "login": {
     "title": "Bienvenido a MyHomeGames",
     "subtitle": "Por favor inicia sesión para continuar",
-    "button": "Iniciar sesión con Twitch"
+    "button": "Iniciar sesión con Twitch",
+    "credentialsNeeded": "Las credenciales Twitch OAuth son necesarias para iniciar sesión. Por favor, configúralas primero en Configuración.",
+    "configureFirst": "Puedes obtener tu Twitch Client ID y Client Secret desde la Consola de Desarrolladores de Twitch.",
+    "goToSettings": "Ir a Configuración"
   },
   "search": {
     "noResults": "No se encontraron resultados para el término \"{{query}}\"",
