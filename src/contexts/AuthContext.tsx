@@ -88,11 +88,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Fetch user info from server
   const fetchUserInfo = async (authToken: string) => {
+    // Get clientId from localStorage for Twitch token validation
+    const clientId = localStorage.getItem("twitch_client_id");
+    
     try {
+      const headers: Record<string, string> = {
+        "X-Auth-Token": authToken,
+      };
+      
+      // Add clientId header if available (required for Twitch token validation)
+      if (clientId) {
+        headers["X-Twitch-Client-Id"] = clientId;
+      }
+      
       const response = await fetch(`${API_BASE}/auth/me`, {
-        headers: {
-          "X-Auth-Token": authToken,
-        },
+        headers,
       });
 
       if (response.ok) {
@@ -115,17 +125,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Initiate Twitch login
   const login = async () => {
+    // Get credentials from localStorage
+    const clientId = localStorage.getItem("twitch_client_id");
+    const clientSecret = localStorage.getItem("twitch_client_secret");
+    
+    if (!clientId || !clientSecret) {
+      alert("Credenziali Twitch non trovate. Assicurati di averle configurate in localStorage:\n- twitch_client_id\n- twitch_client_secret");
+      return;
+    }
+    
     try {
-      const response = await fetch(`${API_BASE}/auth/twitch`);
+      const response = await fetch(`${API_BASE}/auth/twitch`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          clientId,
+          clientSecret,
+        }),
+      });
+      
       if (response.ok) {
         const data = await response.json();
         // Redirect to Twitch OAuth
         window.location.href = data.authUrl;
       } else {
-        console.error("Failed to initiate login");
+        const errorText = await response.text().catch(() => "Unknown error");
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText };
+        }
+        alert(`Errore durante il login: ${errorData.error || response.statusText}`);
       }
     } catch (error) {
       console.error("Login error:", error);
+      if (error instanceof Error) {
+        alert(`Errore durante il login: ${error.message}`);
+      }
     }
   };
 

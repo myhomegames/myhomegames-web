@@ -50,7 +50,7 @@ function AppContent() {
   const navigate = useNavigate();
   const { i18n } = useTranslation();
   const { setLoading } = useLoading();
-  const { isLoading: authLoading } = useAuth();
+  const { isLoading: authLoading, token: authToken } = useAuth();
 
   const handleCloseLaunchModal = () => {
     setLaunchError(null);
@@ -64,6 +64,12 @@ function AppContent() {
       return;
     }
     
+    // Get token from auth context or fallback to getApiToken()
+    const apiToken = authToken || getApiToken();
+    if (!apiToken) {
+      return;
+    }
+    
     async function loadGames() {
       setLoading(true);
       try {
@@ -73,7 +79,7 @@ function AppContent() {
         const res = await fetch(url, {
           headers: {
             Accept: "application/json",
-            "X-Auth-Token": getApiToken(),
+            "X-Auth-Token": apiToken,
           },
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -117,12 +123,18 @@ function AppContent() {
       }
     }
     loadGames();
-  }, [authLoading, setLoading]);
+  }, [authLoading, authToken, setLoading]);
 
   // Load collections on app startup
   useEffect(() => {
     // Wait for authentication to complete before making API requests
     if (authLoading) {
+      return;
+    }
+    
+    // Get token from auth context or fallback to getApiToken()
+    const apiToken = authToken || getApiToken();
+    if (!apiToken) {
       return;
     }
     
@@ -133,7 +145,7 @@ function AppContent() {
         const res = await fetch(url, {
           headers: {
             Accept: "application/json",
-            "X-Auth-Token": getApiToken(),
+            "X-Auth-Token": apiToken,
           },
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -155,7 +167,7 @@ function AppContent() {
       }
     }
     loadCollections();
-  }, [authLoading, setLoading]);
+  }, [authLoading, authToken, setLoading]);
 
   // Function to reload all metadata without full page reload
   async function handleReloadAllMetadata() {
