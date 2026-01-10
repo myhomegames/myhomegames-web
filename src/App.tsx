@@ -584,7 +584,7 @@ function AppContent() {
           <Route
             path="/settings"
             element={
-              <ProtectedRoute>
+              <>
                 <Header
                   onPlay={openLauncher}
                   allGames={allGames}
@@ -595,7 +595,7 @@ function AppContent() {
                   onAddGameClick={() => setAddGameOpen(true)}
                 />
                 <SettingsPage />
-              </ProtectedRoute>
+              </>
             }
           />
           <Route
