@@ -77,8 +77,13 @@ export default function ProfileDropdown({
     if (onChangeUser) {
       onChangeUser();
     } else {
-      // Default: initiate login
-      login();
+      // Default: logout first, then initiate login with force_verify
+      // This ensures we can select a different user
+      logout();
+      // Small delay to ensure logout completes before starting new login
+      setTimeout(() => {
+        login(true); // forceVerify = true to force account selection
+      }, 100);
     }
   };
 

@@ -64,8 +64,8 @@ function AppContent() {
       return;
     }
     
-    // Get token from auth context or fallback to getApiToken()
-    const apiToken = authToken || getApiToken();
+    // Get token - prefer getApiToken() which prioritizes VITE_API_TOKEN when available
+    const apiToken = getApiToken() || authToken;
     if (!apiToken) {
       return;
     }
@@ -132,8 +132,8 @@ function AppContent() {
       return;
     }
     
-    // Get token from auth context or fallback to getApiToken()
-    const apiToken = authToken || getApiToken();
+    // Get token - prefer getApiToken() which prioritizes VITE_API_TOKEN when available
+    const apiToken = getApiToken() || authToken;
     if (!apiToken) {
       return;
     }
