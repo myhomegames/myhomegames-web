@@ -10,29 +10,11 @@ export default function SettingsPage() {
   const [language, setLanguage] = useState("en");
   const [initialLanguage, setInitialLanguage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  
-  // Twitch OAuth credentials
-  const [twitchClientId, setTwitchClientId] = useState("");
-  const [twitchClientSecret, setTwitchClientSecret] = useState("");
-  const [initialTwitchClientId, setInitialTwitchClientId] = useState<string | null>(null);
-  const [initialTwitchClientSecret, setInitialTwitchClientSecret] = useState<string | null>(null);
-  const [savingTwitch, setSavingTwitch] = useState(false);
 
   // Check if there are unsaved changes
   const hasChanges = initialLanguage !== null && language !== initialLanguage;
-  const hasTwitchChanges = 
-    (initialTwitchClientId !== null && twitchClientId !== initialTwitchClientId) ||
-    (initialTwitchClientSecret !== null && twitchClientSecret !== initialTwitchClientSecret);
 
   useEffect(() => {
-    // Load Twitch credentials from localStorage
-    const storedClientId = localStorage.getItem("twitch_client_id") || "";
-    const storedClientSecret = localStorage.getItem("twitch_client_secret") || "";
-    setTwitchClientId(storedClientId);
-    setTwitchClientSecret(storedClientSecret);
-    setInitialTwitchClientId(storedClientId);
-    setInitialTwitchClientSecret(storedClientSecret);
-    
     // Load settings from server
     async function loadSettings() {
       setLoading(true);
@@ -69,7 +51,7 @@ export default function SettingsPage() {
       }
     }
     loadSettings();
-  }, [setLoading]);
+  }, [setLoading, i18n]);
 
   async function handleSave() {
     setSaving(true);
@@ -107,27 +89,6 @@ export default function SettingsPage() {
       setInitialLanguage(language);
     } finally {
       setSaving(false);
-    }
-  }
-
-  function handleSaveTwitchCredentials() {
-    if (!twitchClientId.trim() || !twitchClientSecret.trim()) {
-      return;
-    }
-    
-    setSavingTwitch(true);
-    try {
-      // Save to localStorage
-      localStorage.setItem("twitch_client_id", twitchClientId.trim());
-      localStorage.setItem("twitch_client_secret", twitchClientSecret.trim());
-      
-      // Update initial values to reflect saved state
-      setInitialTwitchClientId(twitchClientId.trim());
-      setInitialTwitchClientSecret(twitchClientSecret.trim());
-    } catch (err) {
-      console.error("Failed to save Twitch credentials:", err);
-    } finally {
-      setSavingTwitch(false);
     }
   }
 
@@ -183,65 +144,6 @@ export default function SettingsPage() {
                 disabled={isLoading || saving || !hasChanges}
               >
                 {saving ? t("settings.saving") : t("settings.save")}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Twitch OAuth Settings */}
-        <div className="bg-[#1a1a1a] settings-card" style={{ marginTop: "24px" }}>
-          <div className="settings-card-header">
-            <h2 className="settings-card-title">{t("settings.twitch.title", "Twitch OAuth")}</h2>
-          </div>
-
-          <div className="settings-card-content">
-            <p className="settings-help-text" style={{ marginBottom: "24px" }}>
-              {t("settings.twitch.description", "Configure your Twitch OAuth application credentials. You can get these from the Twitch Developer Console.")}
-            </p>
-
-            <div className="settings-field">
-              <label className="settings-label" htmlFor="twitch-client-id">
-                {t("settings.twitch.clientId", "Client ID")}
-              </label>
-              <input
-                id="twitch-client-id"
-                type="text"
-                value={twitchClientId}
-                onChange={(e) => setTwitchClientId(e.target.value)}
-                className="settings-input"
-                placeholder={t("settings.twitch.clientIdPlaceholder", "Enter your Twitch Client ID")}
-                style={{ marginTop: "8px" }}
-              />
-              <p className="settings-help-text">
-                {t("settings.twitch.clientIdHelp", "Your Twitch application Client ID")}
-              </p>
-            </div>
-
-            <div className="settings-field">
-              <label className="settings-label" htmlFor="twitch-client-secret">
-                {t("settings.twitch.clientSecret", "Client Secret")}
-              </label>
-              <input
-                id="twitch-client-secret"
-                type="password"
-                value={twitchClientSecret}
-                onChange={(e) => setTwitchClientSecret(e.target.value)}
-                className="settings-input"
-                placeholder={t("settings.twitch.clientSecretPlaceholder", "Enter your Twitch Client Secret")}
-                style={{ marginTop: "8px" }}
-              />
-              <p className="settings-help-text">
-                {t("settings.twitch.clientSecretHelp", "Your Twitch application Client Secret (keep this secure)")}
-              </p>
-            </div>
-
-            <div className="settings-actions">
-              <button
-                onClick={handleSaveTwitchCredentials}
-                className={`settings-button ${hasTwitchChanges ? "settings-button-active" : ""}`}
-                disabled={!twitchClientId.trim() || !twitchClientSecret.trim() || savingTwitch || !hasTwitchChanges}
-              >
-                {savingTwitch ? t("settings.saving") : t("settings.save")}
               </button>
             </div>
           </div>
