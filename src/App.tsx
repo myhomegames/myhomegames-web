@@ -79,7 +79,7 @@ function AppContent() {
         const res = await fetch(url, {
           headers: {
             Accept: "application/json",
-            "X-Auth-Token": apiToken,
+            "X-Auth-Token": apiToken as string,
           },
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -145,7 +145,7 @@ function AppContent() {
         const res = await fetch(url, {
           headers: {
             Accept: "application/json",
-            "X-Auth-Token": apiToken,
+            "X-Auth-Token": apiToken as string,
           },
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
