@@ -136,7 +136,17 @@
     "french": "法语",
     "german": "德语",
     "chinese": "中文",
-    "japanese": "日语"
+    "japanese": "日语",
+    "twitch": {
+      "title": "Twitch OAuth",
+      "description": "配置您的Twitch OAuth应用程序凭据。您可以从Twitch开发者控制台获取这些信息。",
+      "clientId": "客户端ID",
+      "clientSecret": "客户端密钥",
+      "clientIdPlaceholder": "输入您的Twitch客户端ID",
+      "clientSecretPlaceholder": "输入您的Twitch客户端密钥",
+      "clientIdHelp": "您的Twitch应用程序客户端ID",
+      "clientSecretHelp": "您的Twitch应用程序客户端密钥（请妥善保管）"
+    }
   },
   "header": {
     "home": "首页",
@@ -162,7 +172,10 @@
   "login": {
     "title": "欢迎使用 MyHomeGames",
     "subtitle": "请登录以继续",
-    "button": "使用 Twitch 登录"
+    "button": "使用 Twitch 登录",
+    "credentialsNeeded": "登录需要Twitch OAuth凭据。请先在设置中配置。",
+    "configureFirst": "您可以从Twitch开发者控制台获取您的Twitch客户端ID和客户端密钥。",
+    "goToSettings": "前往设置"
   },
   "search": {
     "noResults": "未找到术语 \"{{query}}\" 的结果",
