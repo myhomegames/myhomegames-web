@@ -17,6 +17,7 @@ export default defineConfig(({ mode }) => {
   
   return {
     base: '/app/',
+    appType: 'spa',
     plugins: [react()],
     define: {
       __APP_VERSION__: JSON.stringify(packageJson.version),
