@@ -129,13 +129,9 @@ export default function CategoriesPage({
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      const items = (json.categories || []) as string[];
-      const parsed = items.map((title) => ({
-        id: title,
-        title: title,
-        cover: `/category-covers/${encodeURIComponent(title)}`,
-      }));
-      setAllCategories(parsed);
+      const items = (json.categories || []) as CategoryItem[];
+      // Server now returns objects with id, title, and optional cover
+      setAllCategories(items);
     } catch (err: any) {
       const errorMessage = String(err.message || err);
       console.error("Error fetching categories:", errorMessage);
