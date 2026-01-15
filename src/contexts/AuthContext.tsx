@@ -59,14 +59,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Check localStorage for Twitch token
       const storedToken = localStorage.getItem("twitch_token");
       if (storedToken) {
-        const success = await fetchUserInfo(storedToken);
-        // If validation succeeded, return
-        if (success) {
-          return;
+        // Check if we have client_id (required for Twitch token validation)
+        const clientId = localStorage.getItem("twitch_client_id");
+        if (!clientId) {
+          // No client_id means we can't validate the Twitch token
+          // Clear it and continue to check dev token
+          localStorage.removeItem("twitch_token");
+          localStorage.removeItem("twitch_user_id");
+        } else {
+          const success = await fetchUserInfo(storedToken);
+          // If validation succeeded, return
+          if (success) {
+            return;
+          }
+          // If validation failed, clear it and continue to check dev token
+          localStorage.removeItem("twitch_token");
+          localStorage.removeItem("twitch_user_id");
         }
-        // If validation failed, clear it and continue to check dev token
-        localStorage.removeItem("twitch_token");
-        localStorage.removeItem("twitch_user_id");
       }
 
       // Fallback to development token if available
@@ -234,8 +243,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Logout
   const logout = () => {
+    // Remove all Twitch-related data
     localStorage.removeItem("twitch_token");
     localStorage.removeItem("twitch_user_id");
+    localStorage.removeItem("twitch_client_id");
+    localStorage.removeItem("twitch_client_secret");
     setUser(null);
     setToken(null);
     updateApiToken();
