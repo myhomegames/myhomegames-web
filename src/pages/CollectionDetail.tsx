@@ -83,6 +83,28 @@ export default function CollectionDetail({
 
   async function fetchCollectionInfo(collectionId: string) {
     try {
+      // Try to fetch directly from the single collection endpoint first
+      const singleUrl = buildApiUrl(API_BASE, `/collections/${collectionId}`);
+      const singleRes = await fetch(singleUrl, {
+        headers: {
+          Accept: "application/json",
+          "X-Auth-Token": getApiToken(),
+        },
+      });
+      
+      if (singleRes.ok) {
+        const found = await singleRes.json();
+        setCollection({
+          id: String(found.id),
+          title: found.title,
+          summary: found.summary,
+          cover: found.cover,
+          background: found.background,
+        });
+        return;
+      }
+      
+      // Fallback: fetch from list and find by ID (normalize comparison)
       const url = buildApiUrl(API_BASE, "/collections");
       const res = await fetch(url, {
         headers: {
@@ -93,10 +115,11 @@ export default function CollectionDetail({
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       const collections = (json.collections || []) as any[];
-      const found = collections.find((c) => c.id === collectionId);
+      // Normalize both IDs to string for comparison
+      const found = collections.find((c) => String(c.id) === String(collectionId));
       if (found) {
         setCollection({
-          id: found.id,
+          id: String(found.id),
           title: found.title,
           summary: found.summary,
           cover: found.cover,
