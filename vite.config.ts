@@ -1,10 +1,56 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
-import { readFileSync } from 'fs'
+import { readFileSync, writeFileSync } from 'fs'
 import path from 'path'
 
 // Read package.json to get version
 const packageJson = JSON.parse(readFileSync('./package.json', 'utf-8'))
+
+// Plugin to generate 404.html for GitHub Pages SPA routing
+const githubPages404Plugin = () => {
+  return {
+    name: 'github-pages-404',
+    closeBundle() {
+      // After build, copy index.html to 404.html in the docs root
+      // This allows GitHub Pages to serve the SPA for all routes
+      const indexPath = path.resolve(__dirname, 'docs/app/index.html')
+      const notFoundPath = path.resolve(__dirname, 'docs/404.html')
+      
+      try {
+        // Read the built index.html
+        let indexContent = readFileSync(indexPath, 'utf-8')
+        
+        // Add a script before closing body tag to handle SPA routing
+        // This script redirects to /app/ with the current path preserved
+        const redirectScript = `
+  <script>
+    // GitHub Pages 404 redirect for SPA routing
+    (function() {
+      var path = window.location.pathname;
+      // If we're not already at /app/, redirect to /app/ with the path
+      if (!path.startsWith('/app/')) {
+        // Extract the path after the domain
+        var redirectPath = '/app/' + path.replace(/^\\//, '').replace(/^app\\//, '');
+        // Preserve query string and hash
+        var query = window.location.search;
+        var hash = window.location.hash;
+        window.location.replace(redirectPath + query + hash);
+      }
+    })();
+  </script>`
+        
+        // Insert the script before the closing </body> tag
+        indexContent = indexContent.replace('</body>', redirectScript + '\n</body>')
+        
+        // Write the modified content to 404.html
+        writeFileSync(notFoundPath, indexContent, 'utf-8')
+        console.log('✓ Generated 404.html for GitHub Pages SPA routing')
+      } catch (error) {
+        console.error('Error generating 404.html:', error)
+      }
+    },
+  }
+}
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -18,7 +64,7 @@ export default defineConfig(({ mode }) => {
   return {
     base: '/app/',
     appType: 'spa',
-    plugins: [react()],
+    plugins: [react(), githubPages404Plugin()],
     define: {
       __APP_VERSION__: JSON.stringify(packageJson.version),
     },
