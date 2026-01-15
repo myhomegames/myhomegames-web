@@ -69,6 +69,10 @@ export default function CategoriesPage({
         category.id === updatedCategory.id ? updatedCategory : category
       )
     );
+    // Update editingCategory if it's the same category
+    if (editingCategory && editingCategory.id === updatedCategory.id) {
+      setEditingCategory(updatedCategory);
+    }
   };
 
   const handleCategoryEdit = (category: CategoryItem) => {
@@ -106,6 +110,16 @@ export default function CategoriesPage({
 
     setCategories(filteredCategories);
   }, [games, allCategories]);
+
+  // Update editingCategory when allCategories changes (to reflect cover removal)
+  useEffect(() => {
+    if (editingCategory) {
+      const updatedCategory = allCategories.find(cat => cat.id === editingCategory.id);
+      if (updatedCategory) {
+        setEditingCategory(updatedCategory);
+      }
+    }
+  }, [allCategories]);
 
   // Hide content until fully rendered
   useLayoutEffect(() => {

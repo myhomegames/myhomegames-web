@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { API_BASE } from "../../config";
+import { API_BASE, getApiToken } from "../../config";
 import { useLoading } from "../../contexts/LoadingContext";
 import Cover from "../games/Cover";
 import type { CategoryItem } from "../../types";
@@ -62,15 +62,15 @@ export default function EditCategoryModal({
 
   // Update removed state when category is updated (e.g., after image removal)
   useEffect(() => {
-    if (category) {
-      if (!category.cover && !coverRemoved && !coverFile) {
+    if (isOpen && category) {
+      if ((!category.cover || category.cover.trim() === "") && !coverRemoved && !coverFile) {
         // Cover was removed externally
         setCoverRemoved(true);
         setCoverPreview(null);
         setImageTimestamp(Date.now());
       }
     }
-  }, [category?.cover]);
+  }, [isOpen, category?.cover]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -133,7 +133,34 @@ export default function EditCategoryModal({
     setError(null);
 
     try {
-      // Upload cover if a file was selected
+      // First, handle cover removal if marked for removal
+      let updatedCover: string | null = null;
+
+      if (coverRemoved && !coverFile) {
+        try {
+          const url = buildApiUrl(API_BASE, `/categories/${encodeURIComponent(category.title)}/delete-cover`);
+          const response = await fetch(url, {
+            method: 'DELETE',
+            headers: {
+              'X-Auth-Token': getApiToken() || '',
+            },
+          });
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Failed to remove cover' }));
+            throw new Error(errorData.error || 'Failed to remove cover');
+          }
+          const result = await response.json();
+          if (result.category) {
+            updatedCover = result.category.cover || null;
+          }
+        } catch (err: any) {
+          setError(String(err.message || err));
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Then, upload images if any
       if (coverFile) {
         setUploadingCover(true);
         try {
@@ -152,17 +179,12 @@ export default function EditCategoryModal({
             throw new Error(errorData.error || 'Failed to upload cover');
           }
 
-          // Get updated category from response
+          // Get updated cover from response
           const coverResult = await coverResponse.json();
           if (coverResult.category) {
-            const updatedCategory: CategoryItem = {
-              id: category.id,
-              title: category.title,
-              cover: coverResult.category.cover || category.cover,
-            };
-            onCategoryUpdate(updatedCategory);
-            // Emit event to notify other components
-            window.dispatchEvent(new CustomEvent("categoryUpdated", { detail: { category: updatedCategory } }));
+            if (coverResult.category.cover) {
+              updatedCover = coverResult.category.cover;
+            }
           }
         } catch (err: any) {
           setUploadingCover(false);
@@ -174,12 +196,36 @@ export default function EditCategoryModal({
         }
       }
 
-      // If cover was removed, we don't have an endpoint for that yet
-      // For now, we'll just close the modal
-      if (coverRemoved && !coverFile) {
-        // TODO: Implement cover removal endpoint if needed
-        onClose();
-        return;
+      // Update category with new cover (add timestamp to force browser reload)
+      if (coverFile || coverRemoved) {
+        let finalCover: string | undefined = undefined;
+        
+        if (coverRemoved) {
+          // Cover was removed, set to undefined
+          finalCover = undefined;
+        } else if (updatedCover !== null) {
+          // Cover was uploaded, use the new cover URL
+          finalCover = updatedCover;
+          // Add timestamp to force browser reload
+          if (finalCover) {
+            const separator = finalCover.includes('?') ? '&' : '?';
+            finalCover = `${finalCover}${separator}t=${Date.now()}`;
+          }
+        } else if (category.cover) {
+          // No changes, keep existing cover but add timestamp
+          const separator = category.cover.includes('?') ? '&' : '?';
+          finalCover = `${category.cover}${separator}t=${Date.now()}`;
+        }
+        
+        const updatedCategory: CategoryItem = {
+          id: category.id,
+          title: category.title,
+          cover: finalCover,
+        };
+        
+        // Dispatch event to update allCategories in CategoriesPage
+        window.dispatchEvent(new CustomEvent("categoryUpdated", { detail: { category: updatedCategory } }));
+        onCategoryUpdate(updatedCategory);
       }
 
       onClose();
