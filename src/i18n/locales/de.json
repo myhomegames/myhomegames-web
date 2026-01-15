@@ -400,6 +400,10 @@
     "title": "Titel",
     "summary": "Zusammenfassung"
   },
+  "category": {
+    "editCategory": "Kategorie bearbeiten",
+    "coverFormat": "Empfohlenes Verhältnis: 16:9 (z.B. 1280x720px)"
+  },
   "igdbInfo": {
     "gameId": "ID",
     "themes": "Themen",

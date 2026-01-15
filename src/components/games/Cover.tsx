@@ -42,7 +42,7 @@ type CoverProps = {
   showRemoveButton?: boolean; // Show remove button (for modal use)
   removeMediaType?: "cover" | "background"; // Type of media to remove
   removeResourceId?: string | number; // Resource ID for removal
-  removeResourceType?: "games" | "collections"; // Resource type for removal
+  removeResourceType?: "games" | "collections" | "categories"; // Resource type for removal
   onRemoveSuccess?: () => void; // Callback when removal succeeds
   removeDisabled?: boolean; // Disable remove button
 };
@@ -400,7 +400,7 @@ export default function Cover({
             />
           </div>
         )}
-        {onEdit && (
+        {onEdit && (gameId || collectionId) && (
           <div className="games-list-dropdown-wrapper games-list-dropdown-wrapper-bottom-right">
             <DropdownMenu
               onDelete={onDelete}

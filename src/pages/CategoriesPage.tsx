@@ -2,9 +2,10 @@ import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useLoading } from "../contexts/LoadingContext";
 import CategoriesList from "../components/lists/CategoriesList";
+import EditCategoryModal from "../components/categories/EditCategoryModal";
 import type { CategoryItem, GameItem } from "../types";
-import { API_BASE, getApiToken } from "../config";
-import { buildApiUrl } from "../utils/api";
+import { API_BASE } from "../config";
+import { buildApiUrl, buildApiHeaders } from "../utils/api";
 
 type CategoriesPageProps = {
   coverSize: number;
@@ -18,6 +19,7 @@ export default function CategoriesPage({
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [games, setGames] = useState<GameItem[]>([]);
   const [isReady, setIsReady] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
   
@@ -40,6 +42,42 @@ export default function CategoriesPage({
       window.removeEventListener("metadataReloaded", handleMetadataReloaded);
     };
   }, []);
+
+  // Listen for category update events
+  useEffect(() => {
+    const handleCategoryUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ category: CategoryItem }>;
+      const updatedCategory = customEvent.detail?.category;
+      if (updatedCategory) {
+        setAllCategories((prevCategories) =>
+          prevCategories.map((category) =>
+            category.id === updatedCategory.id ? updatedCategory : category
+          )
+        );
+      }
+    };
+
+    window.addEventListener("categoryUpdated", handleCategoryUpdated as EventListener);
+    return () => {
+      window.removeEventListener("categoryUpdated", handleCategoryUpdated as EventListener);
+    };
+  }, []);
+
+  const handleCategoryUpdate = (updatedCategory: CategoryItem) => {
+    setAllCategories((prevCategories) =>
+      prevCategories.map((category) =>
+        category.id === updatedCategory.id ? updatedCategory : category
+      )
+    );
+  };
+
+  const handleCategoryEdit = (category: CategoryItem) => {
+    setEditingCategory(category);
+  };
+
+  const handleCloseModal = () => {
+    setEditingCategory(null);
+  };
 
   // Filter categories to only those with games available
   useEffect(() => {
@@ -87,10 +125,7 @@ export default function CategoriesPage({
     try {
       const url = buildApiUrl(API_BASE, "/categories");
       const res = await fetch(url, {
-        headers: {
-          Accept: "application/json",
-          "X-Auth-Token": getApiToken(),
-        },
+        headers: buildApiHeaders({ Accept: "application/json" }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
@@ -114,10 +149,7 @@ export default function CategoriesPage({
         sort: "title",
       });
       const res = await fetch(url, {
-        headers: {
-          Accept: "application/json",
-          "X-Auth-Token": getApiToken(),
-        },
+        headers: buildApiHeaders({ Accept: "application/json" }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
@@ -158,11 +190,21 @@ export default function CategoriesPage({
               categories={categories}
               coverSize={coverSize * 2}
               itemRefs={itemRefs}
+              onCategoryUpdate={handleCategoryUpdate}
+              onCategoryEdit={handleCategoryEdit}
             />
           )}
         </div>
       </div>
       </div>
+      {editingCategory && (
+        <EditCategoryModal
+          isOpen={!!editingCategory}
+          onClose={handleCloseModal}
+          category={editingCategory}
+          onCategoryUpdate={handleCategoryUpdate}
+        />
+      )}
     </main>
   );
 }

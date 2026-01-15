@@ -400,6 +400,10 @@
     "title": "标题",
     "summary": "摘要"
   },
+  "category": {
+    "editCategory": "编辑类别",
+    "coverFormat": "推荐比例：16:9（例如 1280x720px）"
+  },
   "igdbInfo": {
     "gameId": "ID",
     "themes": "主题",

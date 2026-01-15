@@ -400,6 +400,10 @@
     "title": "タイトル",
     "summary": "概要"
   },
+  "category": {
+    "editCategory": "カテゴリを編集",
+    "coverFormat": "推奨比率：16:9（例：1280x720px）"
+  },
   "igdbInfo": {
     "gameId": "ID",
     "themes": "テーマ",

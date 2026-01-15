@@ -400,6 +400,10 @@
     "title": "Titre",
     "summary": "Résumé"
   },
+  "category": {
+    "editCategory": "Modifier la catégorie",
+    "coverFormat": "Ratio recommandé : 16:9 (ex. 1280x720px)"
+  },
   "igdbInfo": {
     "gameId": "ID",
     "themes": "Thèmes",

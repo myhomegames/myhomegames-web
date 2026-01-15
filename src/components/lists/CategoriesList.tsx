@@ -10,18 +10,22 @@ type CategoriesListProps = {
   categories: CategoryItem[];
   coverSize?: number;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
+  onCategoryUpdate?: (updatedCategory: CategoryItem) => void;
+  onCategoryEdit?: (category: CategoryItem) => void;
 };
 
 type CategoryListItemProps = {
   category: CategoryItem;
   coverSize: number;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
+  onCategoryEdit?: (category: CategoryItem) => void;
 };
 
 function CategoryListItem({
   category,
   coverSize,
   itemRefs,
+  onCategoryEdit,
 }: CategoryListItemProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -29,6 +33,12 @@ function CategoryListItem({
 
   const handleClick = () => {
     navigate(`/category/${category.id}`);
+  };
+
+  const handleEdit = () => {
+    if (onCategoryEdit) {
+      onCategoryEdit(category);
+    }
   };
 
   return (
@@ -49,6 +59,7 @@ function CategoryListItem({
         width={coverSize}
         height={coverHeight}
         onClick={handleClick}
+        onEdit={onCategoryEdit ? handleEdit : undefined}
         showTitle={true}
         titlePosition="overlay"
         detail={true}
@@ -64,6 +75,8 @@ export default function CategoriesList({
   categories,
   coverSize = 150,
   itemRefs,
+  onCategoryUpdate,
+  onCategoryEdit,
 }: CategoriesListProps) {
   const { t } = useTranslation();
   
@@ -82,6 +95,7 @@ export default function CategoriesList({
           category={category}
           coverSize={coverSize}
           itemRefs={itemRefs}
+          onCategoryEdit={onCategoryEdit}
         />
       ))}
     </div>
