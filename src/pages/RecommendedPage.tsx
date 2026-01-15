@@ -3,8 +3,8 @@ import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useLoading } from "../contexts/LoadingContext";
 import RecommendedSection from "../components/recommended/RecommendedSection";
 import type { GameItem, CollectionItem } from "../types";
-import { API_BASE, getApiToken } from "../config";
-import { buildApiUrl } from "../utils/api";
+import { API_BASE } from "../config";
+import { buildApiUrl, buildApiHeaders } from "../utils/api";
 
 type RecommendedSection = {
   id: string;
@@ -106,10 +106,7 @@ export default function RecommendedPage({
     try {
       const url = buildApiUrl(API_BASE, `/recommended`);
       const res = await fetch(url, {
-        headers: {
-          Accept: "application/json",
-          "X-Auth-Token": getApiToken(),
-        },
+        headers: buildApiHeaders({ Accept: "application/json" }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();

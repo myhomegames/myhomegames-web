@@ -27,7 +27,7 @@ import LoginPage from "./pages/LoginPage";
 import IGDBGameDetailPage from "./pages/IGDBGameDetailPage";
 
 import type { GameItem, CollectionItem } from "./types";
-import { buildApiUrl, buildCoverUrl } from "./utils/api";
+import { buildApiUrl, buildCoverUrl, buildApiHeaders } from "./utils/api";
 import { API_BASE, getApiToken } from "./config";
 import { useLoading } from "./contexts/LoadingContext";
 import { useAuth } from "./contexts/AuthContext";
@@ -77,10 +77,7 @@ function AppContent() {
           sort: "title",
         });
         const res = await fetch(url, {
-          headers: {
-            Accept: "application/json",
-            "X-Auth-Token": apiToken as string,
-          },
+          headers: buildApiHeaders({ Accept: "application/json" }),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
@@ -143,10 +140,7 @@ function AppContent() {
       try {
         const url = buildApiUrlWithBase("/collections");
         const res = await fetch(url, {
-          headers: {
-            Accept: "application/json",
-            "X-Auth-Token": apiToken as string,
-          },
+          headers: buildApiHeaders({ Accept: "application/json" }),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
@@ -180,9 +174,7 @@ function AppContent() {
       const url = buildApiUrlWithBase("/reload-games");
       const response = await fetch(url, {
         method: "POST",
-        headers: {
-          "X-Auth-Token": apiToken,
-        },
+        headers: buildApiHeaders(),
       });
 
       if (response.ok) {
@@ -191,10 +183,7 @@ function AppContent() {
           sort: "title",
         });
         const gamesRes = await fetch(gamesUrl, {
-          headers: {
-            Accept: "application/json",
-            "X-Auth-Token": apiToken,
-          },
+          headers: buildApiHeaders({ Accept: "application/json" }),
         });
         if (gamesRes.ok) {
           const gamesJson = await gamesRes.json();
@@ -217,10 +206,7 @@ function AppContent() {
         // Reload collections
         const collectionsUrl = buildApiUrlWithBase("/collections");
         const collectionsRes = await fetch(collectionsUrl, {
-          headers: {
-            Accept: "application/json",
-            "X-Auth-Token": apiToken,
-          },
+          headers: buildApiHeaders({ Accept: "application/json" }),
         });
         if (collectionsRes.ok) {
           const collectionsJson = await collectionsRes.json();
@@ -262,10 +248,7 @@ function AppContent() {
       try {
         const url = new URL("/settings", API_BASE);
         const res = await fetch(url.toString(), {
-          headers: {
-            Accept: "application/json",
-            "X-Auth-Token": apiToken,
-          },
+          headers: buildApiHeaders({ Accept: "application/json" }),
         });
         if (res.ok) {
           const data = await res.json();
@@ -377,10 +360,7 @@ function AppContent() {
         try {
             const gamesUrl = buildApiUrlWithBase(`/collections/${item.id}/games`);
           const gamesRes = await fetch(gamesUrl, {
-            headers: {
-              Accept: "application/json",
-              "X-Auth-Token": getApiToken(),
-            },
+            headers: buildApiHeaders({ Accept: "application/json" }),
           });
           if (gamesRes.ok) {
             const gamesJson = await gamesRes.json();
@@ -411,10 +391,7 @@ function AppContent() {
         token: getApiToken(),
       });
       const res = await fetch(launchUrl, {
-        headers: {
-          Accept: "application/json",
-          "X-Auth-Token": getApiToken(),
-        },
+        headers: buildApiHeaders({ Accept: "application/json" }),
       });
       
       if (!res.ok) {
@@ -741,10 +718,7 @@ function GameDetailPage({
       // Fetch single game from dedicated endpoint
         const url = buildApiUrlWithBase(`/games/${gameId}`);
       const res = await fetch(url, {
-        headers: {
-          Accept: "application/json",
-          "X-Auth-Token": getApiToken(),
-        },
+        headers: buildApiHeaders({ Accept: "application/json" }),
       });
       
       if (!res.ok) {

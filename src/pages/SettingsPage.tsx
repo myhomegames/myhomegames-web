@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useLoading } from "../contexts/LoadingContext";
-import { API_BASE, getApiToken } from "../config";
+import { API_BASE } from "../config";
+import { buildApiHeaders } from "../utils/api";
 import "./SettingsPage.css";
 
 export default function SettingsPage() {
@@ -39,10 +40,7 @@ export default function SettingsPage() {
       try {
         const url = new URL("/settings", API_BASE);
         const res = await fetch(url.toString(), {
-          headers: {
-            Accept: "application/json",
-            "X-Auth-Token": getApiToken(),
-          },
+          headers: buildApiHeaders({ Accept: "application/json" }),
         });
         if (res.ok) {
           const data = await res.json();
@@ -78,10 +76,7 @@ export default function SettingsPage() {
       const url = new URL("/settings", API_BASE);
       const res = await fetch(url.toString(), {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Auth-Token": getApiToken(),
-        },
+        headers: buildApiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           language: language,
         }),
