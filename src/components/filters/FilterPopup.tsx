@@ -285,14 +285,15 @@ export default function FilterPopup({
   };
 
   const handleCollectionSelect = (value: number | string | null) => {
-    const collectionId = typeof value === "string" ? value : null;
-    if (collectionId === null) {
+    if (value === null) {
       onFilterChange?.("all");
       onCollectionFilterChange?.(null);
       setOpenSubmenu(null);
       lastOpenSubmenuRef.current = null;
       onClose();
     } else {
+      // Convert to string if it's a number
+      const collectionId = typeof value === "string" ? value : String(value);
       onFilterChange?.("collection");
       onCollectionFilterChange?.(collectionId);
       // Reset other filters

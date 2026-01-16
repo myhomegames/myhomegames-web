@@ -409,6 +409,8 @@ export default function EditGameModal({
           const removedGenres = oldGenres.filter((g) => !newGenres.includes(g));
           
           // Try to delete each removed genre if it's not used by other games
+          // Note: This is a best-effort cleanup. If a category is still in use (409),
+          // that's expected and not an error - we just skip deletion silently.
           for (const removedGenre of removedGenres) {
             try {
               const deleteUrl = buildApiUrl(API_BASE, `/categories/${encodeURIComponent(removedGenre)}`);
@@ -421,15 +423,31 @@ export default function EditGameModal({
               });
               
               if (deleteRes.ok) {
-                // Category was deleted successfully
-                console.log(`Category ${removedGenre} was deleted as it's no longer in use`);
+                // Category was deleted successfully - only log in debug mode
+                if (process.env.NODE_ENV === 'development') {
+                  console.debug(`Category "${removedGenre}" was deleted as it's no longer in use`);
+                }
               } else if (deleteRes.status === 409) {
-                // Category is still in use, that's fine
-                console.log(`Category ${removedGenre} is still in use by other games`);
+                // Category is still in use - this is expected and normal behavior
+                // Silently consume the response body to avoid unhandled promise rejection
+                await deleteRes.json().catch(() => {});
+                // No logging - this is expected behavior, not an error
+              } else {
+                // Other error status - only log in development
+                if (process.env.NODE_ENV === 'development') {
+                  const errorData = await deleteRes.json().catch(() => ({}));
+                  console.debug(`Category "${removedGenre}" could not be deleted: HTTP ${deleteRes.status}`, errorData);
+                } else {
+                  // Consume response body in production to avoid unhandled promise rejection
+                  await deleteRes.json().catch(() => {});
+                }
               }
             } catch (err: any) {
-              // Silently fail - category removal is not critical
-              console.warn(`Error deleting category ${removedGenre}:`, err);
+              // Network or other errors - silently fail - category removal is not critical
+              // Only log in development mode
+              if (process.env.NODE_ENV === 'development' && (err.name !== 'TypeError' || !err.message.includes('fetch'))) {
+                console.debug(`Error deleting category "${removedGenre}":`, err);
+              }
             }
           }
         }

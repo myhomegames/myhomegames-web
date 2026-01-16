@@ -68,11 +68,11 @@ export default function GamesListToolbar({
       return `${selectedDecade}s`;
     }
     if (currentFilter === "collection" && selectedCollection !== null) {
-      const collection = availableCollections?.find((c: { id: string; title: string }) => c.id === selectedCollection);
-      return collection ? collection.title : selectedCollection;
+      const collection = availableCollections?.find((c: { id: string; title: string }) => String(c.id) === String(selectedCollection));
+      return collection ? collection.title : String(selectedCollection);
     }
     if (currentFilter === "genre" && selectedGenre !== null) {
-      const genre = availableGenres.find((g) => g.id === selectedGenre);
+      const genre = availableGenres.find((g) => g.title === selectedGenre);
       return genre ? t(`genre.${genre.title}`, genre.title) : selectedGenre;
     }
     if (currentFilter === "ageRating" && selectedAgeRating !== null) {

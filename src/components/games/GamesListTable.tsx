@@ -102,7 +102,11 @@ export default function GamesListTable({
   const { t, i18n } = useTranslation();
 
   if (games.length === 0) {
-    return <div className="text-gray-400 text-center">{t("table.noGames")}</div>;
+    return (
+      <div className="flex items-center justify-center h-full min-h-[400px]">
+        <div className="text-gray-400 text-center">{t("table.noGames")}</div>
+      </div>
+    );
   }
 
   // Helper function to format rating value (0-10 float)

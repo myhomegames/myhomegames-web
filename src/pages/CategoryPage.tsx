@@ -170,8 +170,9 @@ export default function CategoryPage({
   // Set genre filter when categoryId changes
   useEffect(() => {
     if (categoryId && allGenres.length > 0) {
-      // Find the genre by title (categoryId is the title)
-      const genre = allGenres.find((g) => g.title === categoryId);
+      // Find category by ID only (categoryId is always numeric)
+      const genre = allGenres.find((g) => String(g.id) === categoryId);
+      
       if (genre) {
         setSelectedGenre(genre.title);
         setFilterField("genre");
@@ -190,10 +191,11 @@ export default function CategoryPage({
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      const items = (json.categories || []) as string[];
-      const parsed = items.map((title) => ({
-        id: title,
-        title: title,
+      const items = (json.categories || []) as any[];
+      // Server returns objects with numeric id and title (like collections)
+      const parsed = items.map((item) => ({
+        id: String(item.id),
+        title: item.title,
       }));
       setAllGenres(parsed);
     } catch (err: any) {

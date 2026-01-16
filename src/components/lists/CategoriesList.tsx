@@ -32,6 +32,7 @@ function CategoryListItem({
   const coverHeight = coverSize * (9 / 16); // 16:9 aspect ratio (1280x720px)
 
   const handleClick = () => {
+    // Use category.id for navigation (numeric ID, no encoding needed)
     navigate(`/category/${category.id}`);
   };
 
