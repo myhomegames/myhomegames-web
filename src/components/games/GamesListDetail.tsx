@@ -176,7 +176,7 @@ export default function GamesListDetail({
   
   if (games.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full min-h-[400px]">
+      <div className="centered-content h-full min-h-[400px]">
         <div className="text-gray-400 text-center">{t("table.noGames")}</div>
       </div>
     );

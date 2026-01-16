@@ -607,7 +607,7 @@ export default function LibraryPage({
           ref={scrollContainerRef}
           className={`home-page-scroll-container ${
             viewMode === "table" ? "table-view" : ""
-          }`}
+          } ${!isLoading && filteredAndSortedGames.length === 0 ? "centered-content min-h-[400px]" : ""}`}
         >
           {!isLoading && (
             <>

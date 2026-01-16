@@ -217,7 +217,7 @@ export default function CategoryPage({
       const json = await res.json();
       const items = (json.collections || []) as any[];
       const parsed = items.map((v) => ({
-        id: v.id,
+        id: String(v.id),
         title: v.title,
       }));
       setAvailableCollections(parsed);
@@ -235,8 +235,8 @@ export default function CategoryPage({
           });
           if (gamesRes.ok) {
             const gamesJson = await gamesRes.json();
-            const gameIds = (gamesJson.games || []).map((g: any) => g.id);
-            gameIdsMap.set(collection.id, gameIds);
+            const gameIds = (gamesJson.games || []).map((g: any) => String(g.id));
+            gameIdsMap.set(String(collection.id), gameIds);
           }
         } catch (err: any) {
           console.error(`Error fetching games for collection ${collection.id}:`, err.message);
@@ -379,8 +379,13 @@ export default function CategoryPage({
             return false;
           case "collection":
             if (selectedCollection !== null) {
-              const gameIds = collectionGameIds.get(selectedCollection);
-              return gameIds ? gameIds.includes(game.id) : false;
+              const gameIds = collectionGameIds.get(String(selectedCollection));
+              if (!gameIds) {
+                return false;
+              }
+              // Normalize both IDs to strings for comparison
+              const gameIdStr = String(game.id);
+              return gameIds.some((id) => String(id) === gameIdStr);
             }
             return false;
           case "ageRating":
@@ -560,7 +565,7 @@ export default function CategoryPage({
           ref={scrollContainerRef}
           className={`home-page-scroll-container ${
             viewMode === "table" ? "table-view" : ""
-          }`}
+          } ${!isLoading && filteredAndSortedGames.length === 0 ? "centered-content min-h-[400px]" : ""}`}
         >
           {!isLoading && (
             <>

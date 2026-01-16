@@ -87,3 +87,10 @@ body {
   height: 100%;
   overflow: hidden;
 }
+
+/* Centered content utility class */
+.centered-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
