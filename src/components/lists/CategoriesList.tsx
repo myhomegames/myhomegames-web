@@ -10,7 +10,6 @@ type CategoriesListProps = {
   categories: CategoryItem[];
   coverSize?: number;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
-  onCategoryUpdate?: (updatedCategory: CategoryItem) => void;
   onCategoryEdit?: (category: CategoryItem) => void;
 };
 
@@ -76,7 +75,6 @@ export default function CategoriesList({
   categories,
   coverSize = 150,
   itemRefs,
-  onCategoryUpdate,
   onCategoryEdit,
 }: CategoriesListProps) {
   const { t } = useTranslation();

@@ -200,7 +200,6 @@ export default function CategoriesPage({
               categories={categories}
               coverSize={coverSize * 2}
               itemRefs={itemRefs}
-              onCategoryUpdate={handleCategoryUpdate}
               onCategoryEdit={handleCategoryEdit}
             />
           )}

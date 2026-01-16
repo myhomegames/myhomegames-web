@@ -424,7 +424,7 @@ export default function EditGameModal({
               
               if (deleteRes.ok) {
                 // Category was deleted successfully - only log in debug mode
-                if (process.env.NODE_ENV === 'development') {
+                if (import.meta.env.MODE === 'development') {
                   console.debug(`Category "${removedGenre}" was deleted as it's no longer in use`);
                 }
               } else if (deleteRes.status === 409) {
@@ -434,7 +434,7 @@ export default function EditGameModal({
                 // No logging - this is expected behavior, not an error
               } else {
                 // Other error status - only log in development
-                if (process.env.NODE_ENV === 'development') {
+                if (import.meta.env.MODE === 'development') {
                   const errorData = await deleteRes.json().catch(() => ({}));
                   console.debug(`Category "${removedGenre}" could not be deleted: HTTP ${deleteRes.status}`, errorData);
                 } else {
@@ -445,7 +445,7 @@ export default function EditGameModal({
             } catch (err: any) {
               // Network or other errors - silently fail - category removal is not critical
               // Only log in development mode
-              if (process.env.NODE_ENV === 'development' && (err.name !== 'TypeError' || !err.message.includes('fetch'))) {
+              if (import.meta.env.MODE === 'development' && (err.name !== 'TypeError' || !err.message.includes('fetch'))) {
                 console.debug(`Error deleting category "${removedGenre}":`, err);
               }
             }
