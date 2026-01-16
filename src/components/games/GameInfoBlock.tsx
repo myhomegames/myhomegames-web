@@ -37,17 +37,6 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
 
   return (
     <div className="game-info-block">
-      {/* Game ID */}
-      {gameId && (
-        <div className="game-info-field">
-          <div className="text-white game-info-label">
-            {t("igdbInfo.gameId", "ID")}
-          </div>
-          <div className="game-info-value">
-            {gameId}
-          </div>
-        </div>
-      )}
 
       {/* Themes */}
       {game.themes && game.themes.length > 0 && (
