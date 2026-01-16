@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { CollectionItem, GameItem } from "../../types";
 import AddToCollectionModal from "./AddToCollectionModal";
 import { useAddGameToCollection } from "../common/actions";
+import { useCollections } from "../../contexts/CollectionsContext";
 import "./AddToCollectionDropdown.css";
 
 type AddToCollectionDropdownProps = {
@@ -22,6 +23,7 @@ export default function AddToCollectionDropdown({
   const [recentCollections, setRecentCollections] = useState<CollectionItem[]>([]);
   const [isPositionReady, setIsPositionReady] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { collectionGameIds } = useCollections();
   const addGameToCollection = useAddGameToCollection({
     onSuccess: () => {
       onCollectionAdded?.();
@@ -58,19 +60,28 @@ export default function AddToCollectionDropdown({
     };
   }, [game.id, isModalOpen]);
 
+  // Filter out collections that already contain this game
+  const availableCollections = useMemo(() => {
+    return allCollections.filter((collection) => {
+      const gameIds = collectionGameIds.get(String(collection.id));
+      return !gameIds || !gameIds.includes(String(game.id));
+    });
+  }, [allCollections, collectionGameIds, game.id]);
+
   useEffect(() => {
     // Load recent collections from localStorage
     const recentIds = JSON.parse(
       localStorage.getItem("recentCollections") || "[]"
     ) as string[];
     
+    // Only include recent collections that don't already contain this game
     const recent = recentIds
-      .map((id) => allCollections.find((c) => c.id === id))
+      .map((id) => availableCollections.find((c) => c.id === id))
       .filter((c): c is CollectionItem => c !== undefined)
       .slice(0, 5); // Show max 5 recent collections
     
     setRecentCollections(recent);
-  }, [allCollections]);
+  }, [availableCollections]);
 
   // Calculate position for submenu and handle mouse leave
   useEffect(() => {

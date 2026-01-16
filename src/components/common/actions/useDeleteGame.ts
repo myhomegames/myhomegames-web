@@ -48,9 +48,49 @@ export function useDeleteGame({
 
     try {
       let url: string;
+      let affectedCollectionIds: string[] = [];
 
       // Determine if we're deleting a game or a collection
       if (gameId) {
+        // Find all collections that contain this game BEFORE deleting it
+        try {
+          const collectionsUrl = buildApiUrl(API_BASE, "/collections");
+          const collectionsResponse = await fetch(collectionsUrl, {
+            headers: {
+              Accept: "application/json",
+              "X-Auth-Token": apiToken,
+            },
+          });
+          
+          if (collectionsResponse.ok) {
+            const collectionsData = await collectionsResponse.json();
+            const collections = collectionsData.collections || [];
+            
+            // For each collection, check if it contains the game we're about to delete
+            for (const collection of collections) {
+              const gamesUrl = buildApiUrl(API_BASE, `/collections/${collection.id}/games`);
+              const gamesResponse = await fetch(gamesUrl, {
+                headers: {
+                  Accept: "application/json",
+                  "X-Auth-Token": apiToken,
+                },
+              });
+              
+              if (gamesResponse.ok) {
+                const gamesData = await gamesResponse.json();
+                const gameIds = (gamesData.games || []).map((g: any) => String(g.id));
+                
+                // If this collection contains the game, save its ID
+                if (gameIds.includes(String(gameId))) {
+                  affectedCollectionIds.push(String(collection.id));
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error finding collections for game before deletion:", error);
+        }
+
         url = buildApiUrl(API_BASE, `/games/${gameId}`);
       } else if (collectionId) {
         url = buildApiUrl(API_BASE, `/collections/${collectionId}`);
@@ -75,6 +115,13 @@ export function useDeleteGame({
         // Emit custom event to notify App.tsx and other components
         if (gameId) {
           window.dispatchEvent(new CustomEvent("gameDeleted", { detail: { gameId } }));
+          
+          // Emit collectionUpdated for all collections that contained the deleted game
+          affectedCollectionIds.forEach((collectionId) => {
+            window.dispatchEvent(new CustomEvent("collectionUpdated", { 
+              detail: { collectionId } 
+            }));
+          });
         } else if (collectionId) {
           window.dispatchEvent(new CustomEvent("collectionDeleted", { detail: { collectionId } }));
         }

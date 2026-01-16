@@ -1,5 +1,4 @@
-import { useEffect, useCallback } from "react";
-import { useAuth } from "../contexts/AuthContext";
+import { useCallback } from "react";
 import { useLoading } from "../contexts/LoadingContext";
 import { useGamesListPage } from "../hooks/useGamesListPage";
 import GamesListPageContent from "../components/games/GamesListPageContent";
@@ -26,7 +25,6 @@ export default function LibraryPage({
   allCollections = [],
 }: LibraryPageProps) {
   const { isLoading } = useLoading();
-  const { isLoading: authLoading } = useAuth();
 
   const hook = useGamesListPage({
     localStoragePrefix: "library",
@@ -38,14 +36,7 @@ export default function LibraryPage({
   });
 
   // Initialize data fetching when auth is ready
-  useEffect(() => {
-    if (!authLoading) {
-      hook.fetchLibraryGames();
-      hook.fetchCategories();
-      hook.fetchCollections();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading]);
+  // Categories, collections, and library games are now loaded automatically via context, no need to fetch them manually
 
   // Memoize onGamesLoaded to prevent infinite loop
   const handleGamesLoaded = useCallback((games: GameItem[]) => {

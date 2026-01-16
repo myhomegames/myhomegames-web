@@ -74,6 +74,11 @@ export function useAddGameToCollection({
         throw new Error(errorData.error || `Failed to add game to collection: ${response.status}`);
       }
 
+      // Emit event to notify that collection was updated (gameCount changed)
+      window.dispatchEvent(new CustomEvent("collectionUpdated", { 
+        detail: { collectionId } 
+      }));
+
       // Save to recent collections
       const recentCollections = JSON.parse(
         localStorage.getItem("recentCollections") || "[]"

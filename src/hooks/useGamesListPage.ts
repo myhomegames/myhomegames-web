@@ -2,11 +2,12 @@ import { useState, useEffect, useRef, useMemo, useLayoutEffect } from "react";
 import { useScrollRestoration } from "./useScrollRestoration";
 import { useGameEvents } from "./useGameEvents";
 import { useLoading } from "../contexts/LoadingContext";
+import { useCategories } from "../contexts/CategoriesContext";
+import { useCollections } from "../contexts/CollectionsContext";
+import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import type { ViewMode, GameItem, SortField } from "../types";
 import type { FilterField } from "../components/filters/types";
 import { compareTitles } from "../utils/stringUtils";
-import { API_BASE, getApiToken } from "../config";
-import { buildApiUrl } from "../utils/api";
 
 type GameEventType = "gameUpdated" | "gameDeleted" | "gameAdded";
 
@@ -80,10 +81,7 @@ export type UseGamesListPageReturn = {
   handleGameUpdate: (updatedGame: GameItem) => void;
   handleGameDelete: (deletedGame: GameItem) => void;
   
-  // Fetch functions
-  fetchLibraryGames: () => Promise<void>;
-  fetchCategories: () => Promise<void>;
-  fetchCollections: () => Promise<void>;
+  // Fetch functions (collections and library games are now loaded via context)
 };
 
 export function useGamesListPage(
@@ -102,7 +100,7 @@ export function useGamesListPage(
     scrollRestorationMode,
   } = options;
 
-  const { setLoading, isLoading } = useLoading();
+  const { isLoading } = useLoading();
   const [games, setGames] = useState<GameItem[]>([]);
   const [isReady, setIsReady] = useState(false);
   const [filterField, setFilterField] = useState<FilterField>(() => {
@@ -147,10 +145,22 @@ export function useGamesListPage(
     }
     return null;
   });
-  const [allGenres, setAllGenres] = useState<Array<{ id: string; title: string }>>([]);
+  const { categories } = useCategories();
+  // Convert categories to allGenres format (id as string)
+  const allGenres = useMemo(() => 
+    categories.map((cat) => ({ id: String(cat.id), title: cat.title })),
+    [categories]
+  );
+  const { collections, collectionGameIds: contextCollectionGameIds } = useCollections();
+  const { games: libraryGames } = useLibraryGames();
+  
+  // Convert collections to availableCollections format
+  const availableCollections = useMemo(() => 
+    collections.map((col) => ({ id: String(col.id), title: col.title || "" })),
+    [collections]
+  );
+  
   const [availableGenres, setAvailableGenres] = useState<Array<{ id: string; title: string }>>([]);
-  const [availableCollections, setAvailableCollections] = useState<Array<{ id: string; title: string }>>([]);
-  const [collectionGameIds, setCollectionGameIds] = useState<Map<string, string[]>>(new Map());
   const [sortField, setSortField] = useState<SortField>(() => {
     if (localStoragePrefix) {
       const saved = localStorage.getItem(`${localStoragePrefix}SortField`);
@@ -257,6 +267,7 @@ export function useGamesListPage(
   useScrollRestoration(activeScrollRef, scrollRestorationMode);
 
   // Initialize data fetching
+  // Collections and library games are now loaded via context, no need to fetch them here
   useEffect(() => {
     if (waitForAuth) {
       // This will be handled by the component using the hook
@@ -264,21 +275,16 @@ export function useGamesListPage(
     }
     if (onInit) {
       onInit();
-    } else {
-      fetchLibraryGames();
-      fetchCategories();
-      fetchCollections();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Listen for metadata reload event
+  // Collections and library games are refreshed automatically by their contexts
   useEffect(() => {
     if (!listenToMetadataReload) return;
     const handleMetadataReloaded = () => {
-      fetchLibraryGames();
-      fetchCategories();
-      fetchCollections();
+      // Contexts will handle the refresh automatically
     };
     window.addEventListener("metadataReloaded", handleMetadataReloaded);
     return () => {
@@ -334,128 +340,13 @@ export function useGamesListPage(
     }
   }, [categoryId, allGenres, onCategoryIdChange]);
 
-  // Fetch functions
-  async function fetchCategories() {
-    try {
-      const url = buildApiUrl(API_BASE, "/categories");
-      const res = await fetch(url, {
-        headers: {
-          Accept: "application/json",
-          "X-Auth-Token": getApiToken(),
-        },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      const items = (json.categories || []) as any[];
-      const parsed = items.map((item) => ({
-        id: String(item.id),
-        title: item.title,
-      }));
-      setAllGenres(parsed);
-    } catch (err: any) {
-      const errorMessage = String(err.message || err);
-      console.error("Error fetching categories:", errorMessage);
+  // Fetch functions (collections and library games are now loaded via context)
+  // Use libraryGames from context as the base games list
+  useEffect(() => {
+    if (libraryGames.length > 0) {
+      setGames(libraryGames);
     }
-  }
-
-  async function fetchCollections() {
-    try {
-      const url = buildApiUrl(API_BASE, "/collections");
-      const res = await fetch(url, {
-        headers: {
-          Accept: "application/json",
-          "X-Auth-Token": getApiToken(),
-        },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      const items = (json.collections || []) as any[];
-      const parsed = items.map((v) => ({
-        id: String(v.id),
-        title: v.title,
-      }));
-      setAvailableCollections(parsed);
-
-      // Fetch game IDs for each collection
-      const gameIdsMap = new Map<string, string[]>();
-      for (const collection of parsed) {
-        try {
-          const gamesUrl = buildApiUrl(API_BASE, `/collections/${collection.id}/games`);
-          const gamesRes = await fetch(gamesUrl, {
-            headers: {
-              Accept: "application/json",
-              "X-Auth-Token": getApiToken(),
-            },
-          });
-          if (gamesRes.ok) {
-            const gamesJson = await gamesRes.json();
-            const gameIds = (gamesJson.games || []).map((g: any) => String(g.id));
-            gameIdsMap.set(String(collection.id), gameIds);
-          }
-        } catch (err: any) {
-          console.error(`Error fetching games for collection ${collection.id}:`, err.message);
-        }
-      }
-      setCollectionGameIds(gameIdsMap);
-    } catch (err: any) {
-      const errorMessage = String(err.message || err);
-      console.error("Error fetching collections:", errorMessage);
-    }
-  }
-
-  async function fetchLibraryGames() {
-    setLoading(true);
-    try {
-      const url = buildApiUrl(API_BASE, `/libraries/library/games`, {
-        sort: "title",
-      });
-      const res = await fetch(url, {
-        headers: {
-          Accept: "application/json",
-          "X-Auth-Token": getApiToken(),
-        },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      const items = (json.games || []) as any[];
-      const parsed = items.map((v) => ({
-        id: String(v.id),
-        title: v.title,
-        summary: v.summary,
-        cover: v.cover,
-        day: v.day,
-        month: v.month,
-        year: v.year,
-        stars: v.stars,
-        genre: v.genre,
-        criticratings: v.criticratings,
-        userratings: v.userratings,
-        command: v.command || null,
-        themes: v.themes || null,
-        platforms: v.platforms || null,
-        gameModes: v.gameModes || null,
-        playerPerspectives: v.playerPerspectives || null,
-        websites: v.websites || null,
-        ageRatings: v.ageRatings || null,
-        developers: v.developers || null,
-        publishers: v.publishers || null,
-        franchise: v.franchise || null,
-        collection: v.collection || null,
-        screenshots: v.screenshots || null,
-        videos: v.videos || null,
-        gameEngines: v.gameEngines || null,
-        keywords: v.keywords || null,
-        alternativeNames: v.alternativeNames || null,
-        similarGames: v.similarGames || null,
-      }));
-      setGames(parsed);
-    } catch (err: any) {
-      const errorMessage = String(err.message || err);
-      console.error("Error fetching library games:", errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }
+  }, [libraryGames]);
 
   // Update available genres based on games in the library
   useEffect(() => {
@@ -528,7 +419,7 @@ export function useGamesListPage(
             return false;
           case "collection":
             if (selectedCollection !== null) {
-              const gameIds = collectionGameIds.get(String(selectedCollection));
+              const gameIds = contextCollectionGameIds.get(String(selectedCollection));
               if (!gameIds) {
                 return false;
               }
@@ -629,7 +520,7 @@ export function useGamesListPage(
     });
 
     return filtered;
-  }, [games, filterField, selectedYear, selectedDecade, selectedGenre, selectedCollection, selectedAgeRating, sortField, sortAscending, collectionGameIds]);
+  }, [games, filterField, selectedYear, selectedDecade, selectedGenre, selectedCollection, selectedAgeRating, sortField, sortAscending, contextCollectionGameIds]);
 
   const handleTableSort = (field: "title" | "year" | "stars" | "releaseDate" | "criticRating" | "userRating" | "ageRating") => {
     if (sortField === field) {
@@ -695,8 +586,5 @@ export function useGamesListPage(
     toggleColumn,
     handleGameUpdate,
     handleGameDelete,
-    fetchLibraryGames,
-    fetchCategories,
-    fetchCollections,
   };
 }

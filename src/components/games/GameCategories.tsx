@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import type { GameItem } from "../../types";
-import { API_BASE, getApiToken } from "../../config";
-import { buildApiUrl } from "../../utils/api";
+import { useCategories } from "../../contexts/CategoriesContext";
 
 type GameCategoriesProps = {
   game: GameItem;
@@ -13,34 +12,7 @@ export default function GameCategories({ game }: GameCategoriesProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [categories, setCategories] = useState<Array<{ id: string | number; title: string }>>([]);
-
-  // Load categories on mount
-  useEffect(() => {
-    async function fetchCategories() {
-      try {
-        const url = buildApiUrl(API_BASE, "/categories");
-        const res = await fetch(url, {
-          headers: {
-            Accept: "application/json",
-            "X-Auth-Token": getApiToken(),
-          },
-        });
-        if (!res.ok) return;
-        const json = await res.json();
-        const items = (json.categories || []) as any[];
-        // Server returns objects with numeric id and title (like collections)
-        const parsed = items.map((item) => ({
-          id: item.id,
-          title: item.title,
-        }));
-        setCategories(parsed);
-      } catch (err) {
-        // Silently fail - categories are optional
-      }
-    }
-    fetchCategories();
-  }, []);
+  const { categories } = useCategories();
 
   if (!game.genre) {
     return null;
@@ -53,35 +25,9 @@ export default function GameCategories({ game }: GameCategoriesProps) {
     return null;
   }
 
-  const handleGenreClick = async (genreTitle: string) => {
+  const handleGenreClick = (genreTitle: string) => {
     // Find category by title and use its ID
-    let category = categories.find((c) => c.title === genreTitle);
-    
-    // If categories not loaded yet, fetch them now
-    if (!category && categories.length === 0) {
-      try {
-        const url = buildApiUrl(API_BASE, "/categories");
-        const res = await fetch(url, {
-          headers: {
-            Accept: "application/json",
-            "X-Auth-Token": getApiToken(),
-          },
-        });
-        if (res.ok) {
-          const json = await res.json();
-          const items = (json.categories || []) as any[];
-          // Server returns objects with numeric id and title (like collections)
-          const parsed = items.map((item) => ({
-            id: item.id,
-            title: item.title,
-          }));
-          setCategories(parsed);
-          category = parsed.find((c) => c.title === genreTitle);
-        }
-      } catch (err) {
-        // Silently fail
-      }
-    }
+    const category = categories.find((c) => c.title === genreTitle);
     
     if (category) {
       // Always use numeric ID for navigation

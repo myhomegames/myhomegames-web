@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useLoading } from "../contexts/LoadingContext";
+import { useCategories } from "../contexts/CategoriesContext";
+import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import CategoriesList from "../components/lists/CategoriesList";
 import EditCategoryModal from "../components/categories/EditCategoryModal";
-import type { CategoryItem, GameItem } from "../types";
-import { API_BASE } from "../config";
-import { buildApiUrl, buildApiHeaders } from "../utils/api";
+import type { CategoryItem } from "../types";
 
 type CategoriesPageProps = {
   coverSize: number;
@@ -14,10 +14,10 @@ type CategoriesPageProps = {
 export default function CategoriesPage({
   coverSize,
 }: CategoriesPageProps) {
-  const { setLoading, isLoading } = useLoading();
-  const [allCategories, setAllCategories] = useState<CategoryItem[]>([]);
+  const { isLoading } = useLoading();
+  const { categories: allCategories, refreshCategories, updateCategory } = useCategories();
+  const { games } = useLibraryGames();
   const [categories, setCategories] = useState<CategoryItem[]>([]);
-  const [games, setGames] = useState<GameItem[]>([]);
   const [isReady, setIsReady] = useState(false);
   const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -26,51 +26,22 @@ export default function CategoriesPage({
   // Restore scroll position
   useScrollRestoration(scrollContainerRef);
 
-  useEffect(() => {
-    fetchCategories();
-    fetchLibraryGames();
-  }, []);
-
   // Listen for metadata reload event
   useEffect(() => {
     const handleMetadataReloaded = () => {
-      fetchCategories();
-      fetchLibraryGames();
+      refreshCategories();
     };
     window.addEventListener("metadataReloaded", handleMetadataReloaded);
     return () => {
       window.removeEventListener("metadataReloaded", handleMetadataReloaded);
     };
-  }, []);
-
-  // Listen for category update events
-  useEffect(() => {
-    const handleCategoryUpdated = (event: Event) => {
-      const customEvent = event as CustomEvent<{ category: CategoryItem }>;
-      const updatedCategory = customEvent.detail?.category;
-      if (updatedCategory) {
-        setAllCategories((prevCategories) =>
-          prevCategories.map((category) =>
-            category.id === updatedCategory.id ? updatedCategory : category
-          )
-        );
-      }
-    };
-
-    window.addEventListener("categoryUpdated", handleCategoryUpdated as EventListener);
-    return () => {
-      window.removeEventListener("categoryUpdated", handleCategoryUpdated as EventListener);
-    };
-  }, []);
+  }, [refreshCategories]);
 
   const handleCategoryUpdate = (updatedCategory: CategoryItem) => {
-    setAllCategories((prevCategories) =>
-      prevCategories.map((category) =>
-        category.id === updatedCategory.id ? updatedCategory : category
-      )
-    );
+    // Update category in context
+    updateCategory(updatedCategory);
     // Update editingCategory if it's the same category
-    if (editingCategory && editingCategory.id === updatedCategory.id) {
+    if (editingCategory && String(editingCategory.id) === String(updatedCategory.id)) {
       setEditingCategory(updatedCategory);
     }
   };
@@ -103,10 +74,17 @@ export default function CategoriesPage({
     });
 
     // Filter categories to only those present in games
-    const filteredCategories = allCategories.filter((category) => {
-      // Check if the category title matches any genre in games
-      return genresInGames.has(category.title);
-    });
+    // Convert context CategoryItem (id: string | number) to types CategoryItem (id: string)
+    const filteredCategories = allCategories
+      .filter((category) => {
+        // Check if the category title matches any genre in games
+        return genresInGames.has(category.title);
+      })
+      .map((category) => ({
+        id: String(category.id),
+        title: category.title,
+        cover: category.cover,
+      }));
 
     setCategories(filteredCategories);
   }, [games, allCategories]);
@@ -114,12 +92,16 @@ export default function CategoriesPage({
   // Update editingCategory when allCategories changes (to reflect cover removal)
   useEffect(() => {
     if (editingCategory) {
-      const updatedCategory = allCategories.find(cat => cat.id === editingCategory.id);
+      const updatedCategory = allCategories.find(cat => String(cat.id) === String(editingCategory.id));
       if (updatedCategory) {
-        setEditingCategory(updatedCategory);
+        setEditingCategory({
+          id: String(updatedCategory.id),
+          title: updatedCategory.title,
+          cover: updatedCategory.cover,
+        });
       }
     }
-  }, [allCategories]);
+  }, [allCategories, editingCategory]);
 
   // Hide content until fully rendered
   useLayoutEffect(() => {
@@ -135,54 +117,7 @@ export default function CategoriesPage({
     }
   }, [isLoading, categories.length, allCategories.length, games.length]);
 
-  async function fetchCategories() {
-    try {
-      const url = buildApiUrl(API_BASE, "/categories");
-      const res = await fetch(url, {
-        headers: buildApiHeaders({ Accept: "application/json" }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      const items = (json.categories || []) as CategoryItem[];
-      // Server now returns objects with id, title, and optional cover
-      setAllCategories(items);
-    } catch (err: any) {
-      const errorMessage = String(err.message || err);
-      console.error("Error fetching categories:", errorMessage);
-    }
-  }
-
-  async function fetchLibraryGames() {
-    setLoading(true);
-    try {
-      const url = buildApiUrl(API_BASE, "/libraries/library/games", {
-        sort: "title",
-      });
-      const res = await fetch(url, {
-        headers: buildApiHeaders({ Accept: "application/json" }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      const items = (json.games || []) as any[];
-      const parsed = items.map((v) => ({
-        id: v.id,
-        title: v.title,
-        summary: v.summary,
-        cover: v.cover,
-        day: v.day,
-        month: v.month,
-        year: v.year,
-        stars: v.stars,
-        genre: v.genre,
-      }));
-      setGames(parsed);
-    } catch (err: any) {
-      const errorMessage = String(err.message || err);
-      console.error("Error fetching library games:", errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }
+  // Categories and games are now loaded via context, no need for fetch functions
 
   return (
     <main className="flex-1 home-page-content">

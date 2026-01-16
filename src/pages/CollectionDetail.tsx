@@ -69,7 +69,7 @@ export default function CollectionDetail({
 
   // Hide content until fully rendered
   useLayoutEffect(() => {
-    if (!isLoading && collection && games.length > 0) {
+    if (!isLoading && collection) {
       // Wait for next frame to ensure DOM is ready
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
@@ -79,7 +79,7 @@ export default function CollectionDetail({
     } else if (isLoading) {
       setIsReady(false);
     }
-  }, [isLoading, collection, games.length]);
+  }, [isLoading, collection]);
 
   async function fetchCollectionInfo(collectionId: string) {
     try {

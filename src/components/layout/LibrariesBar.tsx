@@ -47,6 +47,12 @@ export default function LibrariesBar({
   const actionsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Only check width if activeLibrary is present (LibrariesBar is actually being used)
+    if (!activeLibrary) {
+      setIsNarrow(false);
+      return;
+    }
+
     const checkWidth = () => {
       // Use window width as primary check
       const windowWidth = window.innerWidth;
@@ -81,7 +87,7 @@ export default function LibrariesBar({
       clearTimeout(timeoutId);
       window.removeEventListener("resize", checkWidth);
     };
-  }, [libraries, viewMode, coverSize]);
+  }, [libraries, viewMode, coverSize, activeLibrary]);
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedLibrary = libraries.find((lib) => lib.key === e.target.value);
