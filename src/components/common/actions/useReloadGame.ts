@@ -80,7 +80,7 @@ export function useReloadGame({
               year: data.game.year || null,
               stars: data.game.stars || null,
               genre: data.game.genre || null,
-              command: data.game.command || null,
+              executables: data.game.executables || null,
               criticratings: data.game.criticratings || null,
               userratings: data.game.userratings || null,
               themes: data.game.themes || null,

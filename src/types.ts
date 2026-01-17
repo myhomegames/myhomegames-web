@@ -13,7 +13,7 @@ export type GameItem = {
   genre?: string | string[];
   criticratings?: number | null;
   userratings?: number | null;
-  command?: string | null;
+  executables?: string[] | null; // Array of executable names (without extension)
   themes?: string[];
   platforms?: string[];
   gameModes?: string[];

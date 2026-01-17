@@ -382,7 +382,7 @@ export default function EditGameModal({
           genre: result.game.genre,
           criticratings: result.game.criticratings || null,
           userratings: result.game.userratings || null,
-          command: result.game.command || null,
+          executables: result.game.executables || null,
           // Preserve all other fields from the original game or from the result
           themes: result.game.themes ?? game.themes ?? null,
           platforms: result.game.platforms ?? game.platforms ?? null,

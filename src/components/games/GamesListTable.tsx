@@ -150,8 +150,8 @@ export default function GamesListTable({
                 : null;
 
               const PlayIcon = () => {
-                // Only show play button if game has command
-                if (!it.command) {
+                // Only show play button if game has executables
+                if (!it.executables || it.executables.length === 0) {
                   return null;
                 }
 

@@ -37,22 +37,14 @@ export default function ManageInstallationModal({
   const { t } = useTranslation();
   const { setLoading } = useLoading();
   
-  // Initialize executables from game.executables or convert from game.command for backward compatibility
+  // Initialize executables from game.executables
   const getInitialExecutables = (): ExecutableState[] => {
     if (game.executables && game.executables.length > 0) {
       return game.executables.map(exec => ({
-        label: exec.label || "script",
+        label: exec || "script",
         file: null,
-        existingPath: exec.path || null,
+        existingPath: null, // executables is just an array of names, not paths
       }));
-    }
-    // Backward compatibility: if command exists, convert it to first executable
-    if (game.command) {
-      return [{ 
-        label: "script", 
-        file: null, 
-        existingPath: game.command 
-      }];
     }
     return [];
   };

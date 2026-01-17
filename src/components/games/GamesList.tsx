@@ -161,7 +161,7 @@ function GameListItem({
         showTitle={true}
         subtitle={game.year}
         detail={true}
-        play={!!game.command}
+        play={!!(game.executables && game.executables.length > 0)}
         showBorder={viewMode !== "detail"}
         allCollections={allCollections}
       />

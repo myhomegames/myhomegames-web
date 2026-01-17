@@ -14,7 +14,7 @@ type DropdownMenuProps = {
   onRemoveFromCollection?: () => void;
   gameId?: string;
   gameTitle?: string;
-  gameCommand?: string | null;
+  gameExecutables?: string[] | null;
   onGameDelete?: (gameId: string) => void;
   onGameUpdate?: (game: any) => void;
   collectionId?: string;
@@ -36,7 +36,7 @@ export default function DropdownMenu({
   onRemoveFromCollection,
   gameId,
   gameTitle,
-  gameCommand,
+  gameExecutables,
   onGameDelete,
   onGameUpdate,
   collectionId,
@@ -397,7 +397,7 @@ export default function DropdownMenu({
                     <polyline points="9 18 15 12 9 6" />
                   </svg>
                 </div>
-                {!(onRemoveFromCollection && gameId && collectionId) && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !onEdit && !onDelete)) || (gameId && gameCommand && onGameUpdate) || (onDelete || (getApiToken() && (gameId || collectionId)))) && (
+                {!(onRemoveFromCollection && gameId && collectionId) && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !onEdit && !onDelete)) || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (getApiToken() && (gameId || collectionId)))) && (
                   <div 
                     className="dropdown-menu-divider"
                     onMouseEnter={handleOtherMenuItemMouseEnter}
@@ -425,7 +425,7 @@ export default function DropdownMenu({
                 </span>
               </button>
             )}
-            {onRemoveFromCollection && gameId && collectionId && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !onEdit && !onDelete)) || (gameId && gameCommand && onGameUpdate) || (onDelete || (getApiToken() && (gameId || collectionId)))) && (
+            {onRemoveFromCollection && gameId && collectionId && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !onEdit && !onDelete)) || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (getApiToken() && (gameId || collectionId)))) && (
               <div className="dropdown-menu-divider" />
             )}
             
@@ -452,7 +452,7 @@ export default function DropdownMenu({
                 </span>
               </button>
             )}
-            {gameId && gameCommand && onGameUpdate && (
+            {gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate && (
               <button
                 onClick={handleUnlinkExecutableClick}
                 className="dropdown-menu-item"

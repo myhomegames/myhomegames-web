@@ -155,7 +155,7 @@ export default function CollectionDetail({
         month: v.month,
         year: v.year,
         stars: v.stars,
-        command: v.command || null,
+        executables: v.executables || null,
         themes: v.themes || null,
         platforms: v.platforms || null,
         gameModes: v.gameModes || null,
@@ -532,14 +532,14 @@ function CollectionDetailContent({
                     width={collectionCoverWidth}
                     height={collectionCoverHeight}
                     onPlay={onPlay && sortedGames.length > 0 ? () => {
-                      const gameWithCommand = sortedGames.find((g) => !!g.command);
-                      if (gameWithCommand) {
-                        onPlay(gameWithCommand);
+                      const gameWithExecutables = sortedGames.find((g) => g.executables && g.executables.length > 0);
+                      if (gameWithExecutables) {
+                        onPlay(gameWithExecutables);
                       }
                     } : undefined}
                     showTitle={false}
                     detail={false}
-                    play={sortedGames.some((g) => !!g.command)}
+                    play={sortedGames.some((g) => g.executables && g.executables.length > 0)}
                     showBorder={true}
                   />
                 </div>
@@ -576,13 +576,13 @@ function CollectionDetailContent({
                     )}
                     {(onPlay && sortedGames.length > 0) || collection ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px' }}>
-                        {onPlay && sortedGames.length > 0 && sortedGames.some((g) => !!g.command) && (
+                        {onPlay && sortedGames.length > 0 && sortedGames.some((g) => g.executables && g.executables.length > 0) && (
                           <button
                             onClick={() => {
-                              // Play first game with command in collection
-                              const gameWithCommand = sortedGames.find((g) => !!g.command);
-                              if (gameWithCommand) {
-                                onPlay(gameWithCommand);
+                              // Play first game with executables in collection
+                              const gameWithExecutables = sortedGames.find((g) => g.executables && g.executables.length > 0);
+                              if (gameWithExecutables) {
+                                onPlay(gameWithExecutables);
                               }
                             }}
                             style={{

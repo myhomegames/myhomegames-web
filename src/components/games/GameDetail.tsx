@@ -270,7 +270,7 @@ function GameDetailContent({
               showTitle={false}
               titlePosition="overlay"
               detail={false}
-              play={!!game.command}
+              play={!!(game.executables && game.executables.length > 0)}
               showBorder={false}
             />
           </div>
@@ -355,7 +355,7 @@ function GameDetailContent({
                 />
               </div>
               <div className="game-detail-actions">
-                {game.command ? (
+                {(game.executables && game.executables.length > 0) ? (
                   <button
                     onClick={() => onPlay(game)}
                     className="game-detail-play-button"
@@ -442,7 +442,7 @@ function GameDetailContent({
                   onAddToCollection={() => {}}
                   gameId={game.id}
                   gameTitle={game.title}
-                  gameCommand={game.command}
+                  gameExecutables={game.executables}
                   onGameDelete={onGameDelete ? (gameId: string) => {
                     if (game.id === gameId && onGameDelete) {
                       onGameDelete(game);

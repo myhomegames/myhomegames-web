@@ -143,7 +143,7 @@ function AppContent() {
     try {
       let gameId = item.id;
       
-      // If it's a collection, get the first game with command from the collection
+      // If it's a collection, get the first game with executables from the collection
       const isCollection = allCollections.some(c => c.id === item.id);
       if (isCollection) {
         try {
@@ -154,10 +154,10 @@ function AppContent() {
           if (gamesRes.ok) {
             const gamesJson = await gamesRes.json();
             const games = gamesJson.games || [];
-            // Find the first game that has a command
-            const gameWithCommand = games.find((g: any) => !!g.command);
-            if (gameWithCommand) {
-              gameId = gameWithCommand.id;
+            // Find the first game that has executables
+            const gameWithExecutables = games.find((g: any) => g.executables && g.executables.length > 0);
+            if (gameWithExecutables) {
+              gameId = gameWithExecutables.id;
             } else {
               setIsLaunching(false);
               setLaunchError("No game with executable found in collection");
@@ -496,7 +496,7 @@ function GameDetailPage({
         genre: found.genre,
         criticratings: found.criticratings,
         userratings: found.userratings,
-        command: found.command || null,
+        executables: found.executables || null,
         themes: found.themes || null,
         platforms: found.platforms || null,
         gameModes: found.gameModes || null,

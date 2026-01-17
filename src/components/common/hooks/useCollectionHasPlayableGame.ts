@@ -8,8 +8,8 @@ type UseCollectionHasPlayableGameReturn = {
 };
 
 /**
- * Hook to check if any game in a collection has a command field.
- * Returns null while loading, true if at least one game has command, false otherwise.
+ * Hook to check if any game in a collection has executables.
+ * Returns null while loading, true if at least one game has executables, false otherwise.
  */
 export function useCollectionHasPlayableGame(
   collectionId: string | undefined,
@@ -38,9 +38,9 @@ export function useCollectionHasPlayableGame(
         if (res.ok) {
           const json = await res.json();
           const games = json.games || [];
-          // Check if any game has a command
-          const hasCommand = games.some((g: any) => !!g.command);
-          setHasPlayableGame(hasCommand);
+          // Check if any game has executables
+          const hasExecutables = games.some((g: any) => g.executables && g.executables.length > 0);
+          setHasPlayableGame(hasExecutables);
         } else {
           setHasPlayableGame(false);
         }
