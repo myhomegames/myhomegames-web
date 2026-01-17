@@ -94,14 +94,20 @@ export default function CategoriesPage({
     if (editingCategory) {
       const updatedCategory = allCategories.find(cat => String(cat.id) === String(editingCategory.id));
       if (updatedCategory) {
-        setEditingCategory({
-          id: String(updatedCategory.id),
-          title: updatedCategory.title,
-          cover: updatedCategory.cover,
-        });
+        // Only update if cover actually changed to avoid infinite loops
+        const newCover = updatedCategory.cover || undefined;
+        const currentCover = editingCategory.cover || undefined;
+        if (newCover !== currentCover) {
+          setEditingCategory({
+            id: String(updatedCategory.id),
+            title: updatedCategory.title,
+            cover: updatedCategory.cover,
+          });
+        }
       }
     }
-  }, [allCategories, editingCategory]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allCategories]);
 
   // Hide content until fully rendered
   useLayoutEffect(() => {

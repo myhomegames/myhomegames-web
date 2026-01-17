@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useLayoutEffect } from "react";
+import { useState, useEffect, useRef, useMemo, useLayoutEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useLoading } from "../contexts/LoadingContext";
@@ -31,41 +31,7 @@ export default function CollectionsPage({
   // Restore scroll position
   useScrollRestoration(scrollContainerRef);
 
-  useEffect(() => {
-    // Wait for authentication to complete before making API requests
-    if (authLoading) {
-      return;
-    }
-    fetchCollections();
-  }, [authLoading]);
-
-  // Listen for metadata reload event
-  useEffect(() => {
-    const handleMetadataReloaded = () => {
-      fetchCollections();
-    };
-    window.addEventListener("metadataReloaded", handleMetadataReloaded);
-    return () => {
-      window.removeEventListener("metadataReloaded", handleMetadataReloaded);
-    };
-  }, []);
-
-  // Hide content until fully rendered
-  useLayoutEffect(() => {
-    if (!isLoading && collections.length > 0) {
-      // Wait for next frame to ensure DOM is ready
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setIsReady(true);
-        });
-      });
-    } else if (isLoading) {
-      setIsReady(false);
-    }
-  }, [isLoading, collections.length]);
-
-
-  async function fetchCollections() {
+  const fetchCollections = useCallback(async () => {
     setLoading(true);
     try {
       const url = buildApiUrl(API_BASE, "/collections");
@@ -90,7 +56,40 @@ export default function CollectionsPage({
     } finally {
       setLoading(false);
     }
-  }
+  }, [setLoading]);
+
+  useEffect(() => {
+    // Wait for authentication to complete before making API requests
+    if (authLoading) {
+      return;
+    }
+    fetchCollections();
+  }, [authLoading, fetchCollections]);
+
+  // Listen for metadata reload event
+  useEffect(() => {
+    const handleMetadataReloaded = () => {
+      fetchCollections();
+    };
+    window.addEventListener("metadataReloaded", handleMetadataReloaded);
+    return () => {
+      window.removeEventListener("metadataReloaded", handleMetadataReloaded);
+    };
+  }, [fetchCollections]);
+
+  // Hide content until fully rendered
+  useLayoutEffect(() => {
+    if (!isLoading && collections.length > 0) {
+      // Wait for next frame to ensure DOM is ready
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setIsReady(true);
+        });
+      });
+    } else if (isLoading) {
+      setIsReady(false);
+    }
+  }, [isLoading, collections.length]);
 
   function handleCollectionClick(collection: CollectionItem) {
     navigate(`/collections/${collection.id}`);
