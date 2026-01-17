@@ -240,6 +240,7 @@
     "linkExecutable": "Vincular Executável",
     "unlinkExecutable": "Desvincular Executável",
     "unlinkAllExecutables": "Desvincular todos os executáveis",
+    "additionalExecutables": "Executáveis adicionais",
     "unlinkingExecutable": "Desvinculando...",
     "invalidFileType": "Apenas arquivos .sh e .bat são permitidos",
     "info": "INFO",

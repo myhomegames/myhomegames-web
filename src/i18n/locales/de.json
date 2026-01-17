@@ -240,6 +240,7 @@
     "linkExecutable": "Ausführbare Datei verknüpfen",
     "unlinkExecutable": "Ausführbare Datei trennen",
     "unlinkAllExecutables": "Alle ausführbaren Dateien trennen",
+    "additionalExecutables": "Weitere ausführbare Dateien",
     "unlinkingExecutable": "Trennen...",
     "invalidFileType": "Nur .sh- und .bat-Dateien sind erlaubt",
     "info": "INFO",

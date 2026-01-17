@@ -136,7 +136,7 @@ function AppContent() {
 
   // Game and collection events are now handled by their respective contexts, no need to listen here
 
-  async function openLauncher(item: GameItem | CollectionItem) {
+  async function openLauncher(item: GameItem | CollectionItem, executableName?: string) {
     setIsLaunching(true);
     setLaunchError(null);
     
@@ -175,10 +175,14 @@ function AppContent() {
         }
       }
       
-      const launchUrl = buildApiUrlWithBase(`/launcher`, {
+      const launchParams: Record<string, string | number | boolean> = {
         gameId: gameId,
         token: getApiToken(),
-      });
+      };
+      if (executableName) {
+        launchParams.executableName = executableName;
+      }
+      const launchUrl = buildApiUrlWithBase(`/launcher`, launchParams);
       const res = await fetch(launchUrl, {
         headers: buildApiHeaders({ Accept: "application/json" }),
       });

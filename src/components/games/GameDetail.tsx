@@ -11,6 +11,7 @@ import EditGameModal from "./EditGameModal";
 import ManageInstallationModal from "./ManageInstallationModal";
 import DropdownMenu from "../common/DropdownMenu";
 import AddToCollectionDropdown from "./AddToCollectionDropdown";
+import AdditionalExecutablesDropdown from "./AdditionalExecutablesDropdown";
 import Tooltip from "../common/Tooltip";
 import BackgroundManager, { useBackground } from "../common/BackgroundManager";
 import LibrariesBar from "../layout/LibrariesBar";
@@ -446,6 +447,19 @@ function GameDetailContent({
                   game={game}
                   allCollections={allCollections}
                 />
+                {game.executables && game.executables.length > 1 && (
+                  <AdditionalExecutablesDropdown
+                    gameId={game.id}
+                    gameExecutables={game.executables}
+                  onPlayExecutable={(executableName: string) => {
+                    // Call onPlay with game and executableName
+                    // onPlay is openLauncher which accepts executableName as second parameter
+                    if (typeof onPlay === 'function') {
+                      (onPlay as any)(game, executableName);
+                    }
+                  }}
+                  />
+                )}
                 <DropdownMenu
                   onAddToCollection={() => {}}
                   onManageInstallation={() => setIsManageInstallationModalOpen(true)}

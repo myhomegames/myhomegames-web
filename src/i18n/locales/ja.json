@@ -240,6 +240,7 @@
     "linkExecutable": "実行ファイルをリンク",
     "unlinkExecutable": "実行ファイルのリンクを解除",
     "unlinkAllExecutables": "すべての実行ファイルのリンクを解除",
+    "additionalExecutables": "追加の実行ファイル",
     "unlinkingExecutable": "解除中...",
     "invalidFileType": ".sh と .bat ファイルのみが許可されています",
     "info": "情報",

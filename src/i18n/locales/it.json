@@ -240,6 +240,7 @@
     "linkExecutable": "Collega Eseguibile",
     "unlinkExecutable": "Scollega Eseguibile",
     "unlinkAllExecutables": "Scollega tutti gli eseguibili",
+    "additionalExecutables": "Eseguibili aggiuntivi",
     "unlinkingExecutable": "Scollegamento...",
     "invalidFileType": "Sono consentiti solo file .sh e .bat",
     "info": "INFO",

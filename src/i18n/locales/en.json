@@ -240,6 +240,7 @@
     "linkExecutable": "Link Executable",
     "unlinkExecutable": "Unlink Executable",
     "unlinkAllExecutables": "Unlink All Executables",
+    "additionalExecutables": "Additional executables",
     "unlinkingExecutable": "Unlinking...",
     "invalidFileType": "Only .sh and .bat files are allowed",
     "info": "INFO",

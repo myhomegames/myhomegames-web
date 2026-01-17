@@ -240,6 +240,7 @@
     "linkExecutable": "Lier l'Exécutable",
     "unlinkExecutable": "Délier l'Exécutable",
     "unlinkAllExecutables": "Délier tous les exécutables",
+    "additionalExecutables": "Exécutables supplémentaires",
     "unlinkingExecutable": "Déliaison...",
     "invalidFileType": "Seuls les fichiers .sh et .bat sont autorisés",
     "info": "INFO",

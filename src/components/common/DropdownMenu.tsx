@@ -103,6 +103,9 @@ export default function DropdownMenu({
       window.dispatchEvent(new CustomEvent('closeAddToCollectionDropdown', {
         detail: { gameId: gameId }
       }));
+      window.dispatchEvent(new CustomEvent('closeAdditionalExecutablesDropdown', {
+        detail: { gameId: gameId }
+      }));
       // Dispatch event to notify cover that dropdown is closed
       window.dispatchEvent(new CustomEvent('dropdownMenuClosed', {
         detail: { gameId: gameId }
@@ -138,6 +141,11 @@ export default function DropdownMenu({
       
       // Don't close if click is on the add-to-collection dropdown menu
       if (target.closest('.add-to-collection-dropdown-menu')) {
+        return;
+      }
+      
+      // Don't close if click is on the additional-executables dropdown menu
+      if (target.closest('.additional-executables-dropdown-menu')) {
         return;
       }
       
@@ -252,6 +260,26 @@ export default function DropdownMenu({
     window.dispatchEvent(new CustomEvent('closeAddToCollectionDropdown', {
       detail: { gameId: gameId }
     }));
+    window.dispatchEvent(new CustomEvent('closeAdditionalExecutablesDropdown', {
+      detail: { gameId: gameId }
+    }));
+  };
+
+  const handleAdditionalExecutablesMouseEnter = () => {
+    // Dispatch event to open AdditionalExecutablesDropdown on hover with gameId
+    window.dispatchEvent(new CustomEvent('openAdditionalExecutablesDropdown', {
+      detail: { gameId: gameId }
+    }));
+  };
+
+  const handleAdditionalExecutablesMouseLeave = (e: React.MouseEvent) => {
+    // Check if mouse is moving to the submenu
+    const target = e.relatedTarget as HTMLElement;
+    if (target && !target.closest('.additional-executables-dropdown-menu')) {
+      window.dispatchEvent(new CustomEvent('closeAdditionalExecutablesDropdown', {
+        detail: { gameId: gameId }
+      }));
+    }
   };
 
   const handlePopupMouseLeave = (e: React.MouseEvent) => {
@@ -377,6 +405,29 @@ export default function DropdownMenu({
               };
             })() : undefined}
           >
+            {/* Additional Executables (only for games with multiple executables) */}
+            {gameId && gameExecutables && gameExecutables.length > 1 && (
+              <div
+                className="dropdown-menu-item dropdown-menu-item-with-submenu additional-executables-menu-item"
+                onMouseEnter={handleAdditionalExecutablesMouseEnter}
+                onMouseLeave={handleAdditionalExecutablesMouseLeave}
+              >
+                <span>{t("gameDetail.additionalExecutables", "Additional executables")}</span>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </div>
+            )}
+
             {/* First Section: Add to Collection */}
             {onAddToCollection && (
               <>
@@ -418,8 +469,8 @@ export default function DropdownMenu({
               </button>
             )}
             
-            {/* Divider after Add to Collection / Manage Installation */}
-            {(onAddToCollection || (gameId && onManageInstallation)) && !(onRemoveFromCollection && gameId && collectionId) && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !onEdit && !onDelete)) || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (getApiToken() && (gameId || collectionId)))) && (
+            {/* Divider after Additional Executables / Add to Collection / Manage Installation */}
+            {((gameId && gameExecutables && gameExecutables.length > 1) || onAddToCollection || (gameId && onManageInstallation)) && !(onRemoveFromCollection && gameId && collectionId) && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !onEdit && !onDelete)) || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (getApiToken() && (gameId || collectionId)))) && (
               <div 
                 className="dropdown-menu-divider"
                 onMouseEnter={handleOtherMenuItemMouseEnter}

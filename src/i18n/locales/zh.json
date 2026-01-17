@@ -240,6 +240,7 @@
     "linkExecutable": "链接可执行文件",
     "unlinkExecutable": "取消链接可执行文件",
     "unlinkAllExecutables": "取消链接所有可执行文件",
+    "additionalExecutables": "其他可执行文件",
     "unlinkingExecutable": "取消链接中...",
     "invalidFileType": "仅允许 .sh 和 .bat 文件",
     "info": "信息",
