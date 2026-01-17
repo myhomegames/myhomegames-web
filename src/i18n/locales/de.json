@@ -264,7 +264,9 @@
     "pathRequired": "Alle ausführbaren Dateien müssen eine Datei haben",
     "labelRequired": "Alle ausführbaren Dateien müssen eine Bezeichnung haben",
     "addExecutable": "Ausführbare Datei hinzufügen",
-    "cannotRemoveLast": "Die letzte ausführbare Datei kann nicht entfernt werden"
+    "cannotRemoveLast": "Die letzte ausführbare Datei kann nicht entfernt werden",
+    "moveUp": "Nach oben verschieben",
+    "moveDown": "Nach unten verschieben"
   },
   "igdbGameDetail": {
     "notFound": "Spiel nicht gefunden",

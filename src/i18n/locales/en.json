@@ -264,7 +264,9 @@
     "pathRequired": "All executables must have a file",
     "labelRequired": "All executables must have a label",
     "addExecutable": "Add Executable",
-    "cannotRemoveLast": "Cannot remove the last executable"
+    "cannotRemoveLast": "Cannot remove the last executable",
+    "moveUp": "Move up",
+    "moveDown": "Move down"
   },
   "igdbGameDetail": {
     "notFound": "Game not found",

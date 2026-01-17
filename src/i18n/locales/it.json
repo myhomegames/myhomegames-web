@@ -264,7 +264,9 @@
     "pathRequired": "Tutti gli eseguibili devono avere un file",
     "labelRequired": "Tutti gli eseguibili devono avere un'etichetta",
     "addExecutable": "Aggiungi Eseguibile",
-    "cannotRemoveLast": "Impossibile rimuovere l'ultimo eseguibile"
+    "cannotRemoveLast": "Impossibile rimuovere l'ultimo eseguibile",
+    "moveUp": "Sposta su",
+    "moveDown": "Sposta giù"
   },
   "igdbGameDetail": {
     "notFound": "Gioco non trovato",

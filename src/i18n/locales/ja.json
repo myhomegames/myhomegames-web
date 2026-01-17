@@ -264,7 +264,9 @@
     "pathRequired": "すべての実行可能ファイルにはファイルが必要です",
     "labelRequired": "すべての実行可能ファイルにはラベルが必要です",
     "addExecutable": "実行可能ファイルを追加",
-    "cannotRemoveLast": "最後の実行可能ファイルを削除することはできません"
+    "cannotRemoveLast": "最後の実行可能ファイルを削除することはできません",
+    "moveUp": "上に移動",
+    "moveDown": "下に移動"
   },
   "igdbGameDetail": {
     "notFound": "ゲームが見つかりません",

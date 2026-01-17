@@ -70,7 +70,7 @@ export default function ManageInstallationModal({
       return true;
     }
 
-    // Check if any executable has been modified
+    // Check if order changed
     for (let i = 0; i < executables.length; i++) {
       const current = executables[i];
       const initial = initialExecutables[i];
@@ -86,6 +86,13 @@ export default function ManageInstallationModal({
       }
     }
 
+    // Check if order changed by comparing labels at each position
+    for (let i = 0; i < executables.length; i++) {
+      if (executables[i].label.trim() !== initialExecutables[i]?.label.trim()) {
+        return true;
+      }
+    }
+
     return false;
   };
 
@@ -95,6 +102,20 @@ export default function ManageInstallationModal({
 
   const handleRemoveExecutable = (index: number) => {
     setExecutables(executables.filter((_, i) => i !== index));
+  };
+
+  const handleMoveUp = (index: number) => {
+    if (index === 0) return;
+    const updated = [...executables];
+    [updated[index - 1], updated[index]] = [updated[index], updated[index - 1]];
+    setExecutables(updated);
+  };
+
+  const handleMoveDown = (index: number) => {
+    if (index === executables.length - 1) return;
+    const updated = [...executables];
+    [updated[index], updated[index + 1]] = [updated[index + 1], updated[index]];
+    setExecutables(updated);
   };
 
   const handleUpdateLabel = (index: number, label: string) => {
@@ -248,7 +269,33 @@ export default function ManageInstallationModal({
           <div className="manage-installation-executables-list">
             {executables.map((executable, index) => (
               <div key={index} className="manage-installation-executable-item">
-                <div className="manage-installation-executable-number">{index + 1}</div>
+                <div className="manage-installation-executable-order-controls">
+                  <div className="manage-installation-executable-number">{index + 1}</div>
+                  <div className="manage-installation-order-buttons">
+                    <button
+                      type="button"
+                      onClick={() => handleMoveUp(index)}
+                      disabled={index === 0}
+                      className="manage-installation-order-button"
+                      title={t("manageInstallation.moveUp", "Move up")}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M18 15l-6-6-6 6"/>
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleMoveDown(index)}
+                      disabled={index === executables.length - 1}
+                      className="manage-installation-order-button"
+                      title={t("manageInstallation.moveDown", "Move down")}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M6 9l6 6 6-6"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
                 <div className="manage-installation-executable-fields">
                   <div className="manage-installation-field-group">
                     <label>{t("manageInstallation.label", "Label")}</label>

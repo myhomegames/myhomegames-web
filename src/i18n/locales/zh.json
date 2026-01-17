@@ -264,7 +264,9 @@
     "pathRequired": "所有可执行文件必须有一个文件",
     "labelRequired": "所有可执行文件必须有一个标签",
     "addExecutable": "添加可执行文件",
-    "cannotRemoveLast": "无法删除最后一个可执行文件"
+    "cannotRemoveLast": "无法删除最后一个可执行文件",
+    "moveUp": "上移",
+    "moveDown": "下移"
   },
   "igdbGameDetail": {
     "notFound": "未找到",
