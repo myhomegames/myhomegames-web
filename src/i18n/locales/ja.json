@@ -253,6 +253,18 @@
     "coverFormat": "推奨比率：3:4（例：400x533px）",
     "backgroundFormat": "推奨比率：16:9（例：1920x1080px）"
   },
+  "manageInstallation": {
+    "title": "インストール管理",
+    "description": "このゲームの複数の実行可能スクリプトを設定します。最初のスクリプトは Play ボタンで使用されます。",
+    "label": "ラベル",
+    "labelPlaceholder": "例：Play、起動、インストール",
+    "path": "ファイル",
+    "pathPlaceholder": "ファイルが選択されていません",
+    "pathRequired": "すべての実行可能ファイルにはファイルが必要です",
+    "labelRequired": "すべての実行可能ファイルにはラベルが必要です",
+    "addExecutable": "実行可能ファイルを追加",
+    "cannotRemoveLast": "最後の実行可能ファイルを削除することはできません"
+  },
   "igdbGameDetail": {
     "notFound": "ゲームが見つかりません",
     "add": "追加",

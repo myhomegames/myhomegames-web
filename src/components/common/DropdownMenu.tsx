@@ -12,6 +12,7 @@ type DropdownMenuProps = {
   onReload?: () => void;
   onAddToCollection?: () => void;
   onRemoveFromCollection?: () => void;
+  onManageInstallation?: () => void;
   gameId?: string;
   gameTitle?: string;
   gameExecutables?: string[] | null;
@@ -34,6 +35,7 @@ export default function DropdownMenu({
   onReload,
   onAddToCollection,
   onRemoveFromCollection,
+  onManageInstallation,
   gameId,
   gameTitle,
   gameExecutables,
@@ -397,13 +399,31 @@ export default function DropdownMenu({
                     <polyline points="9 18 15 12 9 6" />
                   </svg>
                 </div>
-                {!(onRemoveFromCollection && gameId && collectionId) && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !onEdit && !onDelete)) || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (getApiToken() && (gameId || collectionId)))) && (
-                  <div 
-                    className="dropdown-menu-divider"
-                    onMouseEnter={handleOtherMenuItemMouseEnter}
-                  />
-                )}
               </>
+            )}
+            
+            {/* Manage Installation (only for games) */}
+            {gameId && onManageInstallation && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOpen(false);
+                  if (onManageInstallation) {
+                    onManageInstallation();
+                  }
+                }}
+                className="dropdown-menu-item"
+              >
+                <span>{t("manageInstallation.title", "Manage Installation")}</span>
+              </button>
+            )}
+            
+            {/* Divider after Add to Collection / Manage Installation */}
+            {(onAddToCollection || (gameId && onManageInstallation)) && !(onRemoveFromCollection && gameId && collectionId) && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !onEdit && !onDelete)) || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (getApiToken() && (gameId || collectionId)))) && (
+              <div 
+                className="dropdown-menu-divider"
+                onMouseEnter={handleOtherMenuItemMouseEnter}
+              />
             )}
             
             {/* Second Section: Remove from Collection (only in collection detail) */}

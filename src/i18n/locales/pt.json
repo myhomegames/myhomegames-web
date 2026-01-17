@@ -253,6 +253,18 @@
     "coverFormat": "Proporção recomendada: 3:4 (ex: 400x533px)",
     "backgroundFormat": "Proporção recomendada: 16:9 (ex: 1920x1080px)"
   },
+  "manageInstallation": {
+    "title": "Gerenciar Instalação",
+    "description": "Configure múltiplos scripts executáveis para este jogo. O primeiro script será usado pelo botão Play.",
+    "label": "Rótulo",
+    "labelPlaceholder": "ex: Play, Iniciar, Instalar",
+    "path": "Arquivo",
+    "pathPlaceholder": "Nenhum arquivo selecionado",
+    "pathRequired": "Todos os executáveis devem ter um arquivo",
+    "labelRequired": "Todos os executáveis devem ter um rótulo",
+    "addExecutable": "Adicionar Executável",
+    "cannotRemoveLast": "Não é possível remover o último executável"
+  },
   "igdbGameDetail": {
     "notFound": "Jogo não encontrado",
     "add": "Adicionar",

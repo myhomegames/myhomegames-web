@@ -253,6 +253,18 @@
     "coverFormat": "推荐比例：3:4（例如 400x533px）",
     "backgroundFormat": "推荐比例：16:9（例如 1920x1080px）"
   },
+  "manageInstallation": {
+    "title": "管理安装",
+    "description": "配置此游戏的多个可执行脚本。第一个脚本将被 Play 按钮使用。",
+    "label": "标签",
+    "labelPlaceholder": "例如：Play、启动、安装",
+    "path": "文件",
+    "pathPlaceholder": "未选择文件",
+    "pathRequired": "所有可执行文件必须有一个文件",
+    "labelRequired": "所有可执行文件必须有一个标签",
+    "addExecutable": "添加可执行文件",
+    "cannotRemoveLast": "无法删除最后一个可执行文件"
+  },
   "igdbGameDetail": {
     "notFound": "未找到",
     "add": "添加",

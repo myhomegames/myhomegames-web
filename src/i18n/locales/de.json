@@ -253,6 +253,18 @@
     "coverFormat": "Empfohlenes Verhältnis: 3:4 (z.B. 400x533px)",
     "backgroundFormat": "Empfohlenes Verhältnis: 16:9 (z.B. 1920x1080px)"
   },
+  "manageInstallation": {
+    "title": "Installation verwalten",
+    "description": "Konfigurieren Sie mehrere ausführbare Skripte für dieses Spiel. Das erste Skript wird vom Play-Button verwendet.",
+    "label": "Bezeichnung",
+    "labelPlaceholder": "z.B. Play, Starten, Installieren",
+    "path": "Datei",
+    "pathPlaceholder": "Keine Datei ausgewählt",
+    "pathRequired": "Alle ausführbaren Dateien müssen eine Datei haben",
+    "labelRequired": "Alle ausführbaren Dateien müssen eine Bezeichnung haben",
+    "addExecutable": "Ausführbare Datei hinzufügen",
+    "cannotRemoveLast": "Die letzte ausführbare Datei kann nicht entfernt werden"
+  },
   "igdbGameDetail": {
     "notFound": "Spiel nicht gefunden",
     "add": "Hinzufügen",

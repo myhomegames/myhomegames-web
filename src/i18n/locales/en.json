@@ -253,6 +253,18 @@
     "coverFormat": "Recommended ratio: 3:4 (e.g., 400x533px)",
     "backgroundFormat": "Recommended ratio: 16:9 (e.g., 1920x1080px)"
   },
+  "manageInstallation": {
+    "title": "Manage Installation",
+    "description": "Configure multiple executable scripts for this game. The first script will be used by the Play button.",
+    "label": "Label",
+    "labelPlaceholder": "e.g., Play, Launch, Install",
+    "path": "File",
+    "pathPlaceholder": "No file selected",
+    "pathRequired": "All executables must have a file",
+    "labelRequired": "All executables must have a label",
+    "addExecutable": "Add Executable",
+    "cannotRemoveLast": "Cannot remove the last executable"
+  },
   "igdbGameDetail": {
     "notFound": "Game not found",
     "add": "Add",
