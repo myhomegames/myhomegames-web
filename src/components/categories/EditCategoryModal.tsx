@@ -5,7 +5,7 @@ import { API_BASE, getApiToken } from "../../config";
 import { useLoading } from "../../contexts/LoadingContext";
 import Cover from "../games/Cover";
 import type { CategoryItem } from "../../types";
-import { buildApiUrl, buildApiHeaders, buildCategoryCoverUrl } from "../../utils/api";
+import { buildApiUrl, buildApiHeaders } from "../../utils/api";
 import "./EditCategoryModal.css";
 
 type EditCategoryModalProps = {
@@ -32,15 +32,20 @@ export default function EditCategoryModal({
   const [imageTimestamp, setImageTimestamp] = useState<number>(Date.now());
 
   // Memoize cover URL with timestamp when modal opens
-  // For categories, always use buildCategoryCoverUrl which handles remote covers (aligned with EditGameModal)
+  // NEVER show remote category covers in edit modal - only show local covers (aligned with EditGameModal)
   const coverUrlWithTimestamp = useMemo(() => {
-    if (!category) return "";
+    if (!category?.cover) return "";
     // Remove any existing timestamp from the URL to get base path
-    const baseCover = category.cover ? category.cover.split('?')[0].split('&')[0] : undefined;
-    // Use buildCategoryCoverUrl which handles both local covers and remote /categories/$ID/cover.webp fallback
-    // Always show category cover (unlike games which hide IGDB covers in edit modal)
-    return buildCategoryCoverUrl(API_BASE, category.id, baseCover, true);
-  }, [category?.id, category?.cover]);
+    const baseCover = category.cover.split('?')[0].split('&')[0];
+    // Don't show remote covers (/categories/$ID/cover.webp) in edit modal - return empty string
+    if (baseCover.startsWith('/categories/') && baseCover.endsWith('/cover.webp')) {
+      return "";
+    }
+    // Only show local covers (/category-covers/...)
+    const url = buildApiUrl(API_BASE, baseCover);
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}t=${imageTimestamp}`;
+  }, [category?.cover, imageTimestamp]);
 
   useEffect(() => {
     if (isOpen && category) {
@@ -277,8 +282,11 @@ export default function EditCategoryModal({
               <div className="edit-collection-modal-media-image-container">
                 {(() => {
                   const currentCoverUrl = coverRemoved ? "" : (coverPreview || coverUrlWithTimestamp);
-                  // Check if cover is local (starts with /category-covers/) not remote (/categories/)
-                  const isLocalCover = category.cover && category.cover.startsWith('/category-covers/');
+                  // Check if cover is local:
+                  // - If there's a coverPreview or coverFile, it's a local upload in progress
+                  // - If category.cover starts with /category-covers/, it's a local cover
+                  // - Remote covers (/categories/...) are not shown in modal
+                  const isLocalCover = (coverPreview || coverFile) || (category.cover && category.cover.startsWith('/category-covers/'));
                   const hasCover = isLocalCover && currentCoverUrl && currentCoverUrl.trim() !== "";
                   return (
                     <>
