@@ -53,6 +53,8 @@ export default function ManageInstallationModal({
   const [initialExecutables, setInitialExecutables] = useState<ExecutableState[]>(getInitialExecutables());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -104,18 +106,51 @@ export default function ManageInstallationModal({
     setExecutables(executables.filter((_, i) => i !== index));
   };
 
-  const handleMoveUp = (index: number) => {
-    if (index === 0) return;
-    const updated = [...executables];
-    [updated[index - 1], updated[index]] = [updated[index], updated[index - 1]];
-    setExecutables(updated);
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    // Prevent drag when clicking on inputs or buttons
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.closest('input') || target.closest('button')) {
+      e.preventDefault();
+      return;
+    }
+    setDraggedIndex(index);
+    // Set drag image to empty image for better visual feedback
+    const dragImage = document.createElement('div');
+    dragImage.style.position = 'absolute';
+    dragImage.style.top = '-1000px';
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, 0, 0);
+    setTimeout(() => document.body.removeChild(dragImage), 0);
   };
 
-  const handleMoveDown = (index: number) => {
-    if (index === executables.length - 1) return;
-    const updated = [...executables];
-    [updated[index], updated[index + 1]] = [updated[index + 1], updated[index]];
-    setExecutables(updated);
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+    setDragOverIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    if (draggedIndex !== null && dragOverIndex !== null && draggedIndex !== dragOverIndex) {
+      const updated = [...executables];
+      const [draggedItem] = updated.splice(draggedIndex, 1);
+      updated.splice(dragOverIndex, 0, draggedItem);
+      setExecutables(updated);
+    }
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only clear dragOver if we're actually leaving the element
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      const index = parseInt(e.currentTarget.getAttribute('data-index') || '-1', 10);
+      if (index >= 0 && dragOverIndex === index) {
+        setDragOverIndex(null);
+      }
+    }
   };
 
   const handleUpdateLabel = (index: number, label: string) => {
@@ -267,35 +302,29 @@ export default function ManageInstallationModal({
           )}
 
           <div className="manage-installation-executables-list">
-            {executables.map((executable, index) => (
-              <div key={index} className="manage-installation-executable-item">
-                <div className="manage-installation-executable-order-controls">
-                  <div className="manage-installation-executable-number">{index + 1}</div>
-                  <div className="manage-installation-order-buttons">
-                    <button
-                      type="button"
-                      onClick={() => handleMoveUp(index)}
-                      disabled={index === 0}
-                      className="manage-installation-order-button"
-                      title={t("manageInstallation.moveUp", "Move up")}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M18 15l-6-6-6 6"/>
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleMoveDown(index)}
-                      disabled={index === executables.length - 1}
-                      className="manage-installation-order-button"
-                      title={t("manageInstallation.moveDown", "Move down")}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M6 9l6 6 6-6"/>
-                      </svg>
-                    </button>
+            {executables.map((executable, index) => {
+              const isDragOver = dragOverIndex === index && draggedIndex !== null;
+              return (
+                <div
+                  key={index}
+                  data-index={index}
+                  className={`manage-installation-executable-item ${isDragOver ? 'manage-installation-executable-item-drag-over' : ''}`}
+                  draggable={true}
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragEnd={handleDragEnd}
+                  onDragLeave={handleDragLeave}
+                  onMouseDown={(e) => {
+                    // Prevent drag when clicking on inputs or buttons
+                    const target = e.target as HTMLElement;
+                    if (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.closest('input') || target.closest('button')) {
+                      e.stopPropagation();
+                    }
+                  }}
+                >
+                  <div className="manage-installation-executable-order-controls">
+                    <div className="manage-installation-executable-number">{index + 1}</div>
                   </div>
-                </div>
                 <div className="manage-installation-executable-fields">
                   <div className="manage-installation-field-group">
                     <label>{t("manageInstallation.label", "Label")}</label>
@@ -342,7 +371,8 @@ export default function ManageInstallationModal({
                   ×
                 </button>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           <button

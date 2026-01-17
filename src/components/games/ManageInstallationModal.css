@@ -93,6 +93,18 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 4px;
   margin-bottom: 12px;
+  cursor: grab;
+  transition: opacity 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+.manage-installation-executable-item:active {
+  cursor: grabbing;
+}
+
+.manage-installation-executable-item-drag-over {
+  opacity: 0.5;
+  transform: scale(1.02);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .manage-installation-executable-order-controls {
@@ -116,37 +128,6 @@
   font-size: 0.875rem;
 }
 
-.manage-installation-order-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.manage-installation-order-button {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  color: rgba(255, 255, 255, 0.7);
-  cursor: pointer;
-  padding: 0;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-}
-
-.manage-installation-order-button:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-}
-
-.manage-installation-order-button:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
 
 .manage-installation-executable-fields {
   flex: 1;
@@ -177,6 +158,19 @@
   font-size: 1rem;
   font-family: inherit;
   transition: border-color 0.2s ease, background-color 0.2s ease;
+  cursor: text;
+}
+
+.manage-installation-field-group input *,
+.manage-installation-browse-button *,
+.manage-installation-remove-button * {
+  cursor: default;
+  pointer-events: none;
+}
+
+.manage-installation-browse-button,
+.manage-installation-remove-button {
+  cursor: pointer;
 }
 
 .manage-installation-field-group input:focus {
