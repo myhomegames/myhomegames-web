@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Cover from "../games/Cover";
 import type { CategoryItem } from "../../types";
-import { buildCoverUrl } from "../../utils/api";
+import { buildCategoryCoverUrl } from "../../utils/api";
 import { API_BASE } from "../../config";
 import "./CategoriesList.css";
 
@@ -55,7 +55,7 @@ function CategoryListItem({
     >
       <Cover
         title={t(`genre.${category.title}`, category.title)}
-        coverUrl={buildCoverUrl(API_BASE, category.cover)}
+        coverUrl={buildCategoryCoverUrl(API_BASE, category.id, category.cover)}
         width={coverSize}
         height={coverHeight}
         onClick={handleClick}
