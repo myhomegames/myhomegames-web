@@ -50,15 +50,44 @@ export default function ManageInstallationModal({
   };
 
   const [executables, setExecutables] = useState<ExecutableState[]>(getInitialExecutables());
+  const [initialExecutables, setInitialExecutables] = useState<ExecutableState[]>(getInitialExecutables());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      setExecutables(getInitialExecutables());
+      const initial = getInitialExecutables();
+      setExecutables(initial);
+      setInitialExecutables(initial);
       setError(null);
     }
   }, [isOpen, game]);
+
+  // Check if there are any changes compared to initial state
+  const hasChanges = (): boolean => {
+    // Check if number of executables changed
+    if (executables.length !== initialExecutables.length) {
+      return true;
+    }
+
+    // Check if any executable has been modified
+    for (let i = 0; i < executables.length; i++) {
+      const current = executables[i];
+      const initial = initialExecutables[i];
+
+      // Check if label changed
+      if (current.label.trim() !== (initial?.label.trim() || "")) {
+        return true;
+      }
+
+      // Check if a new file was selected
+      if (current.file !== null && initial?.file === null) {
+        return true;
+      }
+    }
+
+    return false;
+  };
 
   const handleAddExecutable = () => {
     setExecutables([...executables, { label: "", file: null, existingPath: null }]);
@@ -100,12 +129,8 @@ export default function ManageInstallationModal({
   };
 
   const handleSave = async () => {
-    // Validate all executables have file and label (only if there are executables)
+    // Validate all executables have label
     for (let i = 0; i < executables.length; i++) {
-      if (!executables[i].file) {
-        setError(t("manageInstallation.pathRequired", "All executables must have a file"));
-        return;
-      }
       if (!executables[i].label || !executables[i].label.trim()) {
         setError(t("manageInstallation.labelRequired", "All executables must have a label"));
         return;
@@ -117,26 +142,14 @@ export default function ManageInstallationModal({
     setError(null);
 
     try {
-      // First, delete all existing executables
-      const deleteUrl = buildApiUrl(API_BASE, `/games/${game.id}`);
-      const deleteResponse = await fetch(deleteUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Auth-Token': getApiToken() || '',
-        },
-        body: JSON.stringify({ executables: null }),
-      });
-
-      if (!deleteResponse.ok) {
-        const errorData = await deleteResponse.json().catch(() => ({ error: 'Failed to delete existing executables' }));
-        throw new Error(errorData.error || 'Failed to delete existing executables');
-      }
-
-      // Then, upload each file one by one using upload-executable endpoint (if any)
-      let lastGame: GameItem | null = null;
+      // Upload only files that have been selected (ignore executables without file)
       for (const exec of executables) {
+        // Skip executables without a file selected (existing executables that are not being modified)
         if (!exec.file) continue;
+
+        if (!exec.label || !exec.label.trim()) {
+          continue; // Skip if no label
+        }
 
         const formData = new FormData();
         formData.append('file', exec.file);
@@ -156,19 +169,37 @@ export default function ManageInstallationModal({
           const errorData = await uploadResponse.json().catch(() => ({ error: 'Failed to upload executable' }));
           throw new Error(errorData.error || 'Failed to upload executable');
         }
-
-        const uploadResult = await uploadResponse.json();
-        if (uploadResult.game) {
-          lastGame = uploadResult.game;
-        }
       }
 
-      // Use the last game response (which should have all executables)
-      if (lastGame) {
-        onGameUpdate(lastGame);
+      // Build final executables array with all labels (preserving existing ones without file)
+      const finalExecutables = executables
+        .map(exec => exec.label.trim())
+        .filter(label => label.length > 0);
+
+      // Update executables array in game (this will sync files on server)
+      const updateUrl = buildApiUrl(API_BASE, `/games/${game.id}`);
+      const updateResponse = await fetch(updateUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Auth-Token': getApiToken() || '',
+        },
+        body: JSON.stringify({ 
+          executables: finalExecutables.length > 0 ? finalExecutables : null 
+        }),
+      });
+
+      if (!updateResponse.ok) {
+        const errorData = await updateResponse.json().catch(() => ({ error: 'Failed to update executables' }));
+        throw new Error(errorData.error || 'Failed to update executables');
+      }
+
+      const updateResult = await updateResponse.json();
+      if (updateResult.game) {
+        onGameUpdate(updateResult.game);
         onClose();
       } else {
-        // If no files were uploaded, fetch the game to get updated state (all executables removed)
+        // Fetch the game to get updated state
         const fetchUrl = buildApiUrl(API_BASE, `/games/${game.id}`);
         const fetchResponse = await fetch(fetchUrl, {
           headers: {
@@ -233,7 +264,15 @@ export default function ManageInstallationModal({
                     <div className="manage-installation-path-input-group">
                       <input
                         type="text"
-                        value={executable.file ? executable.file.name : (executable.existingPath ? path.basename(executable.existingPath) : "")}
+                        value={
+                          executable.file 
+                            ? executable.file.name 
+                            : executable.existingPath 
+                              ? path.basename(executable.existingPath)
+                              : executable.label
+                                ? `${executable.label}.sh`
+                                : ""
+                        }
                         readOnly
                         placeholder={t("manageInstallation.pathPlaceholder", "No file selected")}
                       />
@@ -278,7 +317,7 @@ export default function ManageInstallationModal({
           <button
             className="manage-installation-modal-save"
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || !hasChanges()}
           >
             {saving ? t("common.saving", "Saving...") : t("common.save", "Save")}
           </button>

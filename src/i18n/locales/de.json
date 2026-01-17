@@ -239,6 +239,7 @@
     "userRating": "Publikumsbewertung",
     "linkExecutable": "Ausführbare Datei verknüpfen",
     "unlinkExecutable": "Ausführbare Datei trennen",
+    "unlinkAllExecutables": "Alle ausführbaren Dateien trennen",
     "unlinkingExecutable": "Trennen...",
     "invalidFileType": "Nur .sh- und .bat-Dateien sind erlaubt",
     "info": "INFO",

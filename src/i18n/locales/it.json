@@ -239,6 +239,7 @@
     "userRating": "Valutazione del pubblico",
     "linkExecutable": "Collega Eseguibile",
     "unlinkExecutable": "Scollega Eseguibile",
+    "unlinkAllExecutables": "Scollega tutti gli eseguibili",
     "unlinkingExecutable": "Scollegamento...",
     "invalidFileType": "Sono consentiti solo file .sh e .bat",
     "info": "INFO",

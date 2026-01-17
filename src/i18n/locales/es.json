@@ -239,6 +239,7 @@
     "userRating": "Valoración del Público",
     "linkExecutable": "Vincular Ejecutable",
     "unlinkExecutable": "Desvincular Ejecutable",
+    "unlinkAllExecutables": "Desvincular todos los ejecutables",
     "unlinkingExecutable": "Desvinculando...",
     "invalidFileType": "Solo se permiten archivos .sh y .bat",
     "info": "INFO",

@@ -479,7 +479,9 @@ export default function DropdownMenu({
                 disabled={unlinkExecutable.isUnlinking}
               >
                 <span>
-                  {t("gameDetail.unlinkExecutable", "Unlink Executable")}
+                  {gameExecutables.length > 1
+                    ? t("gameDetail.unlinkAllExecutables", "Unlink All Executables")
+                    : t("gameDetail.unlinkExecutable", "Unlink Executable")}
                 </span>
               </button>
             )}
