@@ -1,0 +1,263 @@
+.manage-installation-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.manage-installation-modal-container {
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 700px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.manage-installation-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.manage-installation-modal-header h2 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.manage-installation-modal-close {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 2rem;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.manage-installation-modal-close:hover {
+  background-color: transparent;
+  color: #ffffff;
+}
+
+.manage-installation-modal-content {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.manage-installation-modal-description {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.875rem;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.manage-installation-modal-error {
+  background-color: rgba(220, 38, 38, 0.1);
+  color: #ef4444;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+}
+
+.manage-installation-executables-list {
+  margin-bottom: 20px;
+}
+
+.manage-installation-executable-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.manage-installation-executable-number {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.manage-installation-executable-fields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.manage-installation-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.manage-installation-field-group label {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.manage-installation-field-group input {
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 10px 12px;
+  color: #ffffff;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.manage-installation-field-group input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.manage-installation-path-input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.manage-installation-path-input-group input {
+  flex: 1;
+}
+
+.manage-installation-browse-button {
+  flex-shrink: 0;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 10px 16px;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.manage-installation-browse-button:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.manage-installation-remove-button {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  background-color: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: 4px;
+  color: #ef4444;
+  font-size: 1.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  padding: 0;
+}
+
+.manage-installation-remove-button:hover:not(:disabled) {
+  background-color: rgba(220, 38, 38, 0.2);
+  border-color: rgba(220, 38, 38, 0.5);
+}
+
+.manage-installation-remove-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.manage-installation-add-button {
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.manage-installation-add-button:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+.manage-installation-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.manage-installation-modal-cancel,
+.manage-installation-modal-save {
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+  border: none;
+}
+
+.manage-installation-modal-cancel {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.manage-installation-modal-cancel:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.manage-installation-modal-save {
+  background-color: #E5A00D;
+  color: #000000;
+}
+
+.manage-installation-modal-save:hover:not(:disabled) {
+  background-color: #F5B041;
+}
+
+.manage-installation-modal-cancel:disabled,
+.manage-installation-modal-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

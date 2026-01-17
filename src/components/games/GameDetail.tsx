@@ -439,7 +439,6 @@ function GameDetailContent({
                   allCollections={allCollections}
                 />
                 <DropdownMenu
-                  onEdit={() => editGame.openEditModal(game)}
                   onAddToCollection={() => {}}
                   gameId={game.id}
                   gameTitle={game.title}

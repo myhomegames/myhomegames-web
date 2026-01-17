@@ -648,7 +648,6 @@ function CollectionDetailContent({
                         )}
                         {collection && (
                           <DropdownMenu
-                            onEdit={onEditModalOpen}
                             collectionId={collection.id}
                             collectionTitle={collection.title}
                             onCollectionDelete={(collectionId: string) => {
