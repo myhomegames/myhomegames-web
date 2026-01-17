@@ -5,7 +5,7 @@ import { API_BASE, getApiToken } from "../../config";
 import { useLoading } from "../../contexts/LoadingContext";
 import Cover from "../games/Cover";
 import type { CategoryItem } from "../../types";
-import { buildApiUrl, buildApiHeaders } from "../../utils/api";
+import { buildApiUrl, buildApiHeaders, buildCategoryCoverUrl } from "../../utils/api";
 import "./EditCategoryModal.css";
 
 type EditCategoryModalProps = {
@@ -32,17 +32,15 @@ export default function EditCategoryModal({
   const [imageTimestamp, setImageTimestamp] = useState<number>(Date.now());
 
   // Memoize cover URL with timestamp when modal opens
+  // For categories, always use buildCategoryCoverUrl which handles remote covers (aligned with EditGameModal)
   const coverUrlWithTimestamp = useMemo(() => {
-    if (!category?.cover) return "";
-    // Remove any existing timestamp from the URL
-    const baseUrl = category.cover.split('?')[0].split('&')[0];
-    if (baseUrl.startsWith("http")) {
-      return `${baseUrl}?t=${imageTimestamp}`;
-    }
-    const url = buildApiUrl(API_BASE, baseUrl);
-    const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}t=${imageTimestamp}`;
-  }, [category?.cover, imageTimestamp]);
+    if (!category) return "";
+    // Remove any existing timestamp from the URL to get base path
+    const baseCover = category.cover ? category.cover.split('?')[0].split('&')[0] : undefined;
+    // Use buildCategoryCoverUrl which handles both local covers and remote /categories/$ID/cover.webp fallback
+    // Always show category cover (unlike games which hide IGDB covers in edit modal)
+    return buildCategoryCoverUrl(API_BASE, category.id, baseCover, true);
+  }, [category?.id, category?.cover]);
 
   useEffect(() => {
     if (isOpen && category) {
@@ -279,7 +277,9 @@ export default function EditCategoryModal({
               <div className="edit-collection-modal-media-image-container">
                 {(() => {
                   const currentCoverUrl = coverRemoved ? "" : (coverPreview || coverUrlWithTimestamp);
-                  const hasCover = currentCoverUrl && currentCoverUrl.trim() !== "";
+                  // Check if cover is local (starts with /category-covers/) not remote (/categories/)
+                  const isLocalCover = category.cover && category.cover.startsWith('/category-covers/');
+                  const hasCover = isLocalCover && currentCoverUrl && currentCoverUrl.trim() !== "";
                   return (
                     <>
                       <Cover
