@@ -103,18 +103,24 @@ export default function Cover({
     
     const handleDropdownOpened = (event: Event) => {
       const customEvent = event as CustomEvent<{ gameId?: string; collectionId?: string }>;
+      // Only react to dropdown events for this specific game/collection Cover
+      // Don't react to collection dropdown if this is a game Cover (games shouldn't highlight when collection dropdown opens)
       if (gameId && customEvent.detail?.gameId === gameId) {
         setIsDropdownOpen(true);
-      } else if (collectionId && customEvent.detail?.collectionId === collectionId) {
+      } else if (collectionId && !gameId && customEvent.detail?.collectionId === collectionId) {
+        // Only react to collection dropdown if this Cover represents a collection, not a game
         setIsDropdownOpen(true);
       }
     };
     
     const handleDropdownClosed = (event: Event) => {
       const customEvent = event as CustomEvent<{ gameId?: string; collectionId?: string }>;
+      // Only react to dropdown events for this specific game/collection Cover
+      // Don't react to collection dropdown if this is a game Cover
       if (gameId && customEvent.detail?.gameId === gameId) {
         setIsDropdownOpen(false);
-      } else if (collectionId && customEvent.detail?.collectionId === collectionId) {
+      } else if (collectionId && !gameId && customEvent.detail?.collectionId === collectionId) {
+        // Only react to collection dropdown if this Cover represents a collection, not a game
         setIsDropdownOpen(false);
       }
     };
