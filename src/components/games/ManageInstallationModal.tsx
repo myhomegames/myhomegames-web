@@ -100,9 +100,9 @@ export default function ManageInstallationModal({
   };
 
   const handleSave = async () => {
-    // Validate all executables have file or existingPath and label
+    // Validate all executables have file and label (only if there are executables)
     for (let i = 0; i < executables.length; i++) {
-      if (!executables[i].file && !executables[i].existingPath) {
+      if (!executables[i].file) {
         setError(t("manageInstallation.pathRequired", "All executables must have a file"));
         return;
       }
@@ -117,51 +117,68 @@ export default function ManageInstallationModal({
     setError(null);
 
     try {
-      const formData = new FormData();
-      
-      // Add files to FormData and track indices
-      const executablesData: Array<{label: string, fileIndex?: number, path?: string}> = [];
-      let fileIndex = 0;
-      
-      executables.forEach((exec) => {
-        if (exec.file) {
-          // New file upload
-          formData.append('files', exec.file);
-          executablesData.push({
-            label: exec.label,
-            fileIndex: fileIndex
-          });
-          fileIndex++;
-        } else if (exec.existingPath) {
-          // Existing file
-          executablesData.push({
-            label: exec.label,
-            path: exec.existingPath
-          });
-        }
-      });
-      
-      // Add executables metadata as JSON
-      formData.append('executables', JSON.stringify(executablesData));
-      
-      const url = buildApiUrl(API_BASE, `/games/${game.id}/executables`);
-      const response = await fetch(url, {
+      // First, delete all existing executables
+      const deleteUrl = buildApiUrl(API_BASE, `/games/${game.id}`);
+      const deleteResponse = await fetch(deleteUrl, {
         method: 'PUT',
         headers: {
+          'Content-Type': 'application/json',
           'X-Auth-Token': getApiToken() || '',
-          // Don't set Content-Type - let browser set it with boundary for FormData
         },
-        body: formData,
+        body: JSON.stringify({ executables: null }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to update executables' }));
-        throw new Error(errorData.error || 'Failed to update executables');
+      if (!deleteResponse.ok) {
+        const errorData = await deleteResponse.json().catch(() => ({ error: 'Failed to delete existing executables' }));
+        throw new Error(errorData.error || 'Failed to delete existing executables');
       }
 
-      const result = await response.json();
-      if (result.game) {
-        onGameUpdate(result.game);
+      // Then, upload each file one by one using upload-executable endpoint (if any)
+      let lastGame: GameItem | null = null;
+      for (const exec of executables) {
+        if (!exec.file) continue;
+
+        const formData = new FormData();
+        formData.append('file', exec.file);
+        formData.append('label', exec.label.trim());
+
+        const uploadUrl = buildApiUrl(API_BASE, `/games/${game.id}/upload-executable`);
+        const uploadResponse = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: {
+            'X-Auth-Token': getApiToken() || '',
+            // Don't set Content-Type - let browser set it with boundary for FormData
+          },
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json().catch(() => ({ error: 'Failed to upload executable' }));
+          throw new Error(errorData.error || 'Failed to upload executable');
+        }
+
+        const uploadResult = await uploadResponse.json();
+        if (uploadResult.game) {
+          lastGame = uploadResult.game;
+        }
+      }
+
+      // Use the last game response (which should have all executables)
+      if (lastGame) {
+        onGameUpdate(lastGame);
+        onClose();
+      } else {
+        // If no files were uploaded, fetch the game to get updated state (all executables removed)
+        const fetchUrl = buildApiUrl(API_BASE, `/games/${game.id}`);
+        const fetchResponse = await fetch(fetchUrl, {
+          headers: {
+            'X-Auth-Token': getApiToken() || '',
+          },
+        });
+        if (fetchResponse.ok) {
+          const gameData = await fetchResponse.json();
+          onGameUpdate(gameData);
+        }
         onClose();
       }
     } catch (err: any) {
@@ -234,8 +251,7 @@ export default function ManageInstallationModal({
                   type="button"
                   onClick={() => handleRemoveExecutable(index)}
                   className="manage-installation-remove-button"
-                  disabled={executables.length === 1}
-                  title={executables.length === 1 ? t("manageInstallation.cannotRemoveLast", "Cannot remove the last executable") : t("common.remove", "Remove")}
+                  title={t("common.remove", "Remove")}
                 >
                   ×
                 </button>
@@ -262,7 +278,7 @@ export default function ManageInstallationModal({
           <button
             className="manage-installation-modal-save"
             onClick={handleSave}
-            disabled={saving || executables.length === 0}
+            disabled={saving}
           >
             {saving ? t("common.saving", "Saving...") : t("common.save", "Save")}
           </button>
