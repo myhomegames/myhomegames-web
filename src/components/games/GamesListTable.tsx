@@ -5,6 +5,7 @@ import StarRating from "../common/StarRating";
 import EditGameModal from "./EditGameModal";
 import DropdownMenu from "../common/DropdownMenu";
 import AddToCollectionDropdown from "./AddToCollectionDropdown";
+import AdditionalExecutablesDropdown from "./AdditionalExecutablesDropdown";
 import Tooltip from "../common/Tooltip";
 import AgeRatings from "./AgeRatings";
 import { useEditGame } from "../common/actions";
@@ -370,9 +371,21 @@ export default function GamesListTable({
                         game={it}
                         allCollections={allCollections}
                       />
+                      {it.executables && it.executables.length > 1 && onPlay && (
+                        <AdditionalExecutablesDropdown
+                          gameId={it.id}
+                          gameExecutables={it.executables}
+                          onPlayExecutable={(executableName: string) => {
+                            if (onPlay) {
+                              (onPlay as any)(it, executableName);
+                            }
+                          }}
+                        />
+                      )}
                       <DropdownMenu
                         gameId={it.id}
                         gameTitle={it.title}
+                        gameExecutables={it.executables}
                         onAddToCollection={() => {}}
                         onGameDelete={onGameDelete ? (gameId: string) => {
                           const deletedGame = it.id === gameId ? it : null;

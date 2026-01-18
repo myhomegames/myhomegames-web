@@ -5,6 +5,7 @@ import Cover from "./Cover";
 import EditGameModal from "./EditGameModal";
 import DropdownMenu from "../common/DropdownMenu";
 import AddToCollectionDropdown from "./AddToCollectionDropdown";
+import AdditionalExecutablesDropdown from "./AdditionalExecutablesDropdown";
 import StarRating from "../common/StarRating";
 import Summary from "../common/Summary";
 import { useEditGame } from "../common/actions";
@@ -140,9 +141,21 @@ function GameDetailItem({
           game={game}
           allCollections={allCollections}
         />
+        {game.executables && game.executables.length > 1 && onPlay && (
+          <AdditionalExecutablesDropdown
+            gameId={game.id}
+            gameExecutables={game.executables}
+            onPlayExecutable={(executableName: string) => {
+              if (onPlay) {
+                (onPlay as any)(game, executableName);
+              }
+            }}
+          />
+        )}
         <DropdownMenu
           gameId={game.id}
           gameTitle={game.title}
+          gameExecutables={game.executables}
           onAddToCollection={() => {}}
           onGameDelete={onGameDelete ? (gameId: string) => {
             if (game.id === gameId) {

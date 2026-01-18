@@ -4,6 +4,7 @@ import { API_BASE, getApiToken } from "../../config";
 import { buildApiUrl, buildCoverUrl } from "../../utils/api";
 import Cover from "../games/Cover";
 import DropdownMenu from "../common/DropdownMenu";
+import AdditionalExecutablesDropdown from "../games/AdditionalExecutablesDropdown";
 import EditGameModal from "../games/EditGameModal";
 import EditCollectionModal from "../collections/EditCollectionModal";
 import { useEditGame } from "../common/actions";
@@ -195,10 +196,22 @@ function SearchResultItem({
           )}
           {onEditClick && (
             <div className="search-result-actions">
+              {isGame && (item as GameItem).executables && (item as GameItem).executables!.length > 1 && onPlay && (
+                <AdditionalExecutablesDropdown
+                  gameId={item.id}
+                  gameExecutables={(item as GameItem).executables!}
+                  onPlayExecutable={(executableName: string) => {
+                    if (onPlay) {
+                      (onPlay as any)(item, executableName);
+                    }
+                  }}
+                />
+              )}
               <DropdownMenu
                 onEdit={() => onEditClick(item)}
                 gameId={isGame ? item.id : undefined}
                 gameTitle={isGame ? item.title : undefined}
+                gameExecutables={isGame ? (item as GameItem).executables : undefined}
                 onGameDelete={isGame && onGameDelete ? (gameId: string) => {
                   if (item.id === gameId) {
                     onGameDelete(item);

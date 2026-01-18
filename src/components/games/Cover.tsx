@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type React from "react";
 import DropdownMenu from "../common/DropdownMenu";
 import AddToCollectionDropdown from "./AddToCollectionDropdown";
+import AdditionalExecutablesDropdown from "./AdditionalExecutablesDropdown";
 import Tooltip from "../common/Tooltip";
 import type { CollectionItem, GameItem } from "../../types";
 import "./Cover.css";
@@ -408,10 +409,22 @@ export default function Cover({
         )}
         {onEdit && (gameId || collectionId) && (
           <div className="games-list-dropdown-wrapper games-list-dropdown-wrapper-bottom-right">
+            {gameId && game && game.executables && game.executables.length > 1 && onPlay && (
+              <AdditionalExecutablesDropdown
+                gameId={gameId}
+                gameExecutables={game.executables}
+                onPlayExecutable={(executableName: string) => {
+                  if (onPlay) {
+                    (onPlay as any)(game, executableName);
+                  }
+                }}
+              />
+            )}
             <DropdownMenu
               onDelete={onDelete}
               gameId={gameId}
               gameTitle={gameTitle}
+              gameExecutables={game?.executables}
               onAddToCollection={gameId && game ? () => {} : undefined}
               onRemoveFromCollection={onRemoveFromCollection}
               onGameDelete={onGameDelete}
