@@ -30,6 +30,7 @@ export default function RecommendedPage({
   const [sections, setSections] = useState<RecommendedSection[]>([]);
   const [isReady, setIsReady] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const fetchingRef = useRef<boolean>(false);
   
   // Restore scroll position
   useScrollRestoration(scrollContainerRef);
@@ -102,6 +103,10 @@ export default function RecommendedPage({
   }, [isLoading, sections.length]);
 
   async function fetchRecommendedSections() {
+    if (fetchingRef.current) {
+      return;
+    }
+    fetchingRef.current = true;
     setLoading(true);
     try {
       const url = buildApiUrl(API_BASE, `/recommended`);
@@ -139,6 +144,7 @@ export default function RecommendedPage({
       console.error("Error fetching recommended sections:", errorMessage);
     } finally {
       setLoading(false);
+      fetchingRef.current = false;
     }
   }
 
