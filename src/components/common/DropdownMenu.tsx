@@ -95,6 +95,19 @@ export default function DropdownMenu({
   
   // Check if we're in a cover (grid list) to use portal
   const isInCover = className.includes('games-list-dropdown-menu');
+  
+  // Check if we're inside search-dropdown-scroll to use portal
+  const [isInSearchDropdown, setIsInSearchDropdown] = useState(false);
+  
+  useEffect(() => {
+    if (isOpen && menuRef.current) {
+      // Check if menu is inside search-dropdown-scroll
+      const searchDropdownScroll = menuRef.current.closest('.search-dropdown-scroll');
+      setIsInSearchDropdown(!!searchDropdownScroll);
+    } else {
+      setIsInSearchDropdown(false);
+    }
+  }, [isOpen]);
 
   // Close submenu when main dropdown closes
   useEffect(() => {
@@ -395,17 +408,35 @@ export default function DropdownMenu({
         const popupContent = (
           <div 
             ref={popupRef} 
-            className="dropdown-menu-popup"
+            className={`dropdown-menu-popup ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''}`}
             onMouseLeave={handlePopupMouseLeave}
-            style={isInCover && menuRef.current ? (() => {
-              const rect = menuRef.current!.getBoundingClientRect();
-              return {
-                position: 'fixed',
-                bottom: `${window.innerHeight - rect.top + 4}px`,
-                right: `${window.innerWidth - rect.right}px`,
-                top: 'auto',
-              };
-            })() : undefined}
+            style={(() => {
+              if (!menuRef.current) return undefined;
+              
+              // Only apply fixed positioning for cover or search dropdown
+              if (isInCover) {
+                const rect = menuRef.current.getBoundingClientRect();
+                return {
+                  position: 'fixed',
+                  bottom: `${window.innerHeight - rect.top + 4}px`,
+                  right: `${window.innerWidth - rect.right}px`,
+                  top: 'auto',
+                };
+              }
+              
+              if (isInSearchDropdown) {
+                const rect = menuRef.current.getBoundingClientRect();
+                return {
+                  position: 'fixed',
+                  top: `${rect.bottom + 4}px`,
+                  right: `${window.innerWidth - rect.right}px`,
+                  zIndex: 10007,
+                };
+              }
+              
+              // Normal positioning (absolute) for other cases
+              return undefined;
+            })()}
           >
             {/* Additional Executables (only for games with multiple executables) */}
             {gameId && gameExecutables && gameExecutables.length > 1 && (
@@ -549,7 +580,8 @@ export default function DropdownMenu({
           </div>
         );
         
-        return isInCover ? createPortal(popupContent, document.body) : popupContent;
+        // Use portal only for search dropdown (to escape overflow:hidden) or cover (existing behavior)
+        return (isInSearchDropdown || isInCover) ? createPortal(popupContent, document.body) : popupContent;
       })()}
 
       {/* Reload Confirmation Modal */}

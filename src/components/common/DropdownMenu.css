@@ -46,6 +46,11 @@
   z-index: 10004;
 }
 
+/* Increase z-index when dropdown menu popup is rendered via portal in search dropdown */
+.dropdown-menu-popup-in-search {
+  z-index: 10007 !important;
+}
+
 .dropdown-menu-item {
   display: flex;
   align-items: center;
