@@ -23,6 +23,7 @@ export default function AddToCollectionDropdown({
   const [recentCollections, setRecentCollections] = useState<CollectionItem[]>([]);
   const [isPositionReady, setIsPositionReady] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuItemRef = useRef<HTMLElement | null>(null);
   const { collectionGameIds } = useCollections();
   const addGameToCollection = useAddGameToCollection({
     onSuccess: () => {
@@ -34,9 +35,26 @@ export default function AddToCollectionDropdown({
   // Expose method to open/close dropdown from parent
   useEffect(() => {
     const handleOpenDropdown = (event: Event) => {
-      const customEvent = event as CustomEvent<{ gameId?: string }>;
+      const customEvent = event as CustomEvent<{ gameId?: string; menuItem?: HTMLElement }>;
       // Only open if the event is for this specific game and modal is not open
       if (customEvent.detail?.gameId === game.id && !isModalOpen) {
+        // Store the menu item reference if provided
+        if (customEvent.detail.menuItem) {
+          menuItemRef.current = customEvent.detail.menuItem;
+        } else {
+          // Fallback: try to find the menu item
+          const menuItems = document.querySelectorAll('.dropdown-menu-item-with-submenu');
+          for (const item of menuItems) {
+            const popup = item.closest('.dropdown-menu-popup');
+            if (popup) {
+              const style = window.getComputedStyle(popup as HTMLElement);
+              if (style.display !== 'none' && style.visibility !== 'hidden') {
+                menuItemRef.current = item as HTMLElement;
+                break;
+              }
+            }
+          }
+        }
         setIsOpen(true);
       }
     };
@@ -93,7 +111,33 @@ export default function AddToCollectionDropdown({
     setIsPositionReady(false); // Reset when opening
 
     const updatePosition = () => {
-      const menuItem = document.querySelector('.dropdown-menu-item-with-submenu');
+      // Use the stored menu item reference first
+      let menuItem: HTMLElement | null = menuItemRef.current;
+      
+      // If not stored or the stored item is no longer valid, find it
+      if (!menuItem || !document.contains(menuItem)) {
+        // Find all menu items with submenu
+        const menuItems = document.querySelectorAll('.dropdown-menu-item-with-submenu');
+        
+        // Find the one within a visible popup (should only be one visible at a time)
+        for (const item of menuItems) {
+          const popup = item.closest('.dropdown-menu-popup');
+          if (popup) {
+            const style = window.getComputedStyle(popup as HTMLElement);
+            if (style.display !== 'none' && style.visibility !== 'hidden') {
+              menuItem = item as HTMLElement;
+              menuItemRef.current = menuItem; // Store for next time
+              break;
+            }
+          }
+        }
+      }
+      
+      // Final fallback
+      if (!menuItem) {
+        menuItem = document.querySelector('.dropdown-menu-item-with-submenu') as HTMLElement;
+      }
+      
       if (!menuItem) return;
 
       const menu = dropdownRef.current?.querySelector('.add-to-collection-dropdown-menu') as HTMLElement;
@@ -125,9 +169,9 @@ export default function AddToCollectionDropdown({
         left = padding;
       }
 
-      // Calculate vertical position (align top of submenu with bottom of menu item)
-      // This positions the submenu lower, starting from the bottom of the menu item
-      let top = rect.bottom;
+      // Calculate vertical position (align top of submenu with top of menu item)
+      // This positions the submenu at the same row as the parent menu item
+      let top = rect.top;
       
       // Check if menu would overflow on the bottom
       if (top + menuHeight + padding > viewportHeight) {

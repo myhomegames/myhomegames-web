@@ -237,10 +237,12 @@ export default function DropdownMenu({
     }
   };
 
-  const handleAddToCollectionMouseEnter = () => {
-    // Dispatch event to open AddToCollectionDropdown on hover with gameId
+  const handleAddToCollectionMouseEnter = (e: React.MouseEvent) => {
+    // Find the menu item element
+    const menuItem = e.currentTarget as HTMLElement;
+    // Dispatch event to open AddToCollectionDropdown on hover with gameId and menu item reference
     window.dispatchEvent(new CustomEvent('openAddToCollectionDropdown', {
-      detail: { gameId: gameId }
+      detail: { gameId: gameId, menuItem: menuItem }
     }));
   };
 
