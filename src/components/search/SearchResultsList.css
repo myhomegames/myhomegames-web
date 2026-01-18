@@ -153,6 +153,12 @@
   z-index: 10005 !important;
 }
 
+/* Increase z-index for Additional Executables dropdown when inside search popup */
+.search-result-actions .additional-executables-dropdown-menu,
+.search-dropdown-item .additional-executables-dropdown-menu {
+  z-index: 10006 !important;
+}
+
 /* Common play button styles */
 .search-result-play-button {
   flex-shrink: 0;

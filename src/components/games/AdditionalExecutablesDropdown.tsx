@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import "./AdditionalExecutablesDropdown.css";
 
 type AdditionalExecutablesDropdownProps = {
@@ -14,10 +15,28 @@ export default function AdditionalExecutablesDropdown({
 }: AdditionalExecutablesDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPositionReady, setIsPositionReady] = useState(false);
+  const [isInSearchPopup, setIsInSearchPopup] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   // Exclude the first executable (it's used by the Play button)
   const additionalExecutables = gameExecutables.slice(1);
+
+  // Check if we're inside a search dropdown (popup context)
+  useEffect(() => {
+    const checkPopup = () => {
+      if (dropdownRef.current) {
+        const inPopup = dropdownRef.current.closest('.search-dropdown-item') !== null;
+        setIsInSearchPopup(inPopup);
+      }
+    };
+    
+    checkPopup();
+    // Check again when menu opens
+    if (isOpen) {
+      checkPopup();
+    }
+  }, [isOpen]);
 
   // Expose method to open/close dropdown from parent
   useEffect(() => {
@@ -64,7 +83,11 @@ export default function AdditionalExecutablesDropdown({
         return;
       }
 
-      const menu = dropdownRef.current?.querySelector('.additional-executables-dropdown-menu') as HTMLElement;
+      // Try to get menu from ref first, then fallback to querySelector
+      let menu = menuRef.current as HTMLElement;
+      if (!menu && dropdownRef.current) {
+        menu = dropdownRef.current.querySelector('.additional-executables-dropdown-menu') as HTMLElement;
+      }
       if (!menu) {
         // Retry if menu not found yet
         requestAnimationFrame(updatePosition);
@@ -151,38 +174,42 @@ export default function AdditionalExecutablesDropdown({
     e.stopPropagation();
     e.preventDefault();
     
-    // Call onPlayExecutable immediately before closing menu
+    // Call onPlayExecutable immediately - don't delay it
     if (onPlayExecutable) {
-      // Use setTimeout with 0 to ensure it runs in the next tick after state updates
-      setTimeout(() => {
-        onPlayExecutable(executableName);
-      }, 0);
+      onPlayExecutable(executableName);
     }
     
-    // Close menu immediately to avoid interference
-    setIsOpen(false);
+    // Close menu after calling onPlayExecutable
+    // Use a small delay to ensure onPlayExecutable is processed before closing
+    setTimeout(() => {
+      setIsOpen(false);
+    }, 50);
   };
 
   if (additionalExecutables.length === 0) {
     return null;
   }
 
-  return (
-    <div className="additional-executables-dropdown" ref={dropdownRef}>
-      {isOpen && (
-        <div
-          className="additional-executables-dropdown-menu"
-          style={{
-            visibility: isPositionReady ? 'visible' : 'hidden',
-            pointerEvents: isPositionReady ? 'auto' : 'none',
-          }}
+  const menuContent = isOpen ? (
+    <div
+      ref={menuRef}
+      className={`additional-executables-dropdown-menu ${isInSearchPopup ? 'additional-executables-dropdown-menu-in-popup' : ''}`}
+      style={{
+        visibility: isPositionReady ? 'visible' : 'hidden',
+        pointerEvents: isPositionReady ? 'auto' : 'none',
+      }}
           onMouseLeave={(e) => {
             // Use setTimeout to delay closing to allow moving to menu item
             setTimeout(() => {
               const menuItem = document.querySelector('.dropdown-menu-item-with-submenu.additional-executables-menu-item');
               if (menuItem) {
                 const menuRect = menuItem.getBoundingClientRect();
-                const submenuRect = dropdownRef.current?.querySelector('.additional-executables-dropdown-menu')?.getBoundingClientRect();
+                // Try menuRef first, then fallback to querySelector
+                let submenu: HTMLElement | null = menuRef.current;
+                if (!submenu && dropdownRef.current) {
+                  submenu = dropdownRef.current.querySelector('.additional-executables-dropdown-menu') as HTMLElement;
+                }
+                const submenuRect = submenu?.getBoundingClientRect();
 
                 if (submenuRect) {
                   const mouseX = e.clientX;
@@ -224,7 +251,14 @@ export default function AdditionalExecutablesDropdown({
             </button>
           ))}
         </div>
-      )}
+  ) : null;
+
+  return (
+    <div className="additional-executables-dropdown" ref={dropdownRef}>
+      {isInSearchPopup && typeof document !== 'undefined' 
+        ? createPortal(menuContent, document.body)
+        : menuContent
+      }
     </div>
   );
 }

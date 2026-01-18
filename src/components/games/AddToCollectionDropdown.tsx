@@ -125,9 +125,9 @@ export default function AddToCollectionDropdown({
         left = padding;
       }
 
-      // Calculate vertical position (align top of submenu with top of menu item)
-      // This allows mouse to move horizontally without vertical movement
-      let top = rect.top;
+      // Calculate vertical position (align top of submenu with bottom of menu item)
+      // This positions the submenu lower, starting from the bottom of the menu item
+      let top = rect.bottom;
       
       // Check if menu would overflow on the bottom
       if (top + menuHeight + padding > viewportHeight) {

@@ -15,6 +15,15 @@
   pointer-events: auto;
 }
 
+/* Increase z-index when inside search popup - use body selector to ensure it applies even with portal */
+.additional-executables-dropdown-menu-in-popup,
+body .search-result-actions ~ .additional-executables-dropdown-menu,
+body .search-dropdown-item .additional-executables-dropdown-menu,
+.search-result-actions .additional-executables-dropdown-menu,
+.search-dropdown-item .additional-executables-dropdown-menu {
+  z-index: 10006 !important;
+}
+
 .additional-executables-dropdown-item {
   display: flex;
   align-items: center;

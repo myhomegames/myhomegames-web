@@ -139,6 +139,16 @@ export default function SearchBar({ games, collections, onGameSelect, onPlay }: 
         return;
       }
       
+      // Don't close if clicking on the additional-executables dropdown menu (portal)
+      if (target.closest('.additional-executables-dropdown-menu')) {
+        return;
+      }
+      
+      // Don't close if clicking on the add-to-collection dropdown menu
+      if (target.closest('.add-to-collection-dropdown-menu')) {
+        return;
+      }
+      
       if (
         searchRef.current &&
         !searchRef.current.contains(target)
