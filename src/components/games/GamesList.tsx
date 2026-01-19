@@ -4,8 +4,11 @@ import { API_BASE, API_TOKEN } from "../../config";
 import Cover from "./Cover";
 import EditGameModal from "./EditGameModal";
 import { useEditGame } from "../common/actions";
+import VirtualizedGamesList from "./VirtualizedGamesList";
 import type { GameItem } from "../../types";
 import "./GamesList.css";
+
+const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are more than this many items
 
 type GamesListProps = {
   games: GameItem[];
@@ -23,6 +26,7 @@ type GamesListProps = {
   allCollections?: import("../../types").CollectionItem[];
   collectionId?: string;
   onRemoveFromCollection?: (gameId: string) => void;
+  scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
 };
 
 
@@ -49,7 +53,7 @@ type GameListItemProps = {
   onRemoveFromCollection?: (gameId: string) => void;
 };
 
-function GameListItem({
+export function GameListItem({
   game,
   onGameClick,
   onPlay,
@@ -184,6 +188,7 @@ export default function GamesList({
   allCollections = [],
   collectionId,
   onRemoveFromCollection,
+  scrollContainerRef,
 }: GamesListProps) {
   const { t } = useTranslation();
   const editGame = useEditGame();
@@ -214,7 +219,10 @@ export default function GamesList({
     editGame.closeEditModal();
   };
 
-  
+  // Use virtual scrolling for large lists
+  const useVirtualization = games.length > VIRTUALIZATION_THRESHOLD && !draggable; // Don't use virtualization when dragging is enabled
+  const containerRef = useRef<HTMLDivElement>(null);
+
   if (games.length === 0) {
     return (
       <div className="centered-content h-full min-h-[400px]">
@@ -226,34 +234,57 @@ export default function GamesList({
   return (
     <>
       <div
+        ref={containerRef}
         className="games-list-container"
-        style={{ gridTemplateColumns: `repeat(auto-fill, ${coverSize}px)`, ...style }}
+        style={{
+          gridTemplateColumns: useVirtualization ? undefined : `repeat(auto-fill, ${coverSize}px)`,
+          height: useVirtualization ? "100%" : undefined,
+          ...style,
+        }}
       >
-        {games.map((game, index) => (
-          <GameListItem
-            key={game.id}
-            game={game}
+        {useVirtualization ? (
+          <VirtualizedGamesList
+            games={games}
+            coverSize={coverSize}
+            containerRef={scrollContainerRef || containerRef}
+            itemRefs={itemRefs}
             onGameClick={onGameClick}
             onPlay={onPlay}
             onEditClick={editGame.openEditModal}
             onGameDelete={onGameDelete}
             onGameUpdate={onGameUpdate}
             buildCoverUrl={buildCoverUrl}
-            coverSize={coverSize}
-            itemRefs={itemRefs}
-            draggable={draggable}
-            index={index}
-            onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
-            onDragEnd={handleDragEnd}
-            isDragging={draggedIndex !== null}
-            dragOverIndex={dragOverIndex}
-            viewMode={viewMode}
             allCollections={allCollections}
             collectionId={collectionId}
             onRemoveFromCollection={onRemoveFromCollection}
           />
-        ))}
+        ) : (
+          games.map((game, index) => (
+            <GameListItem
+              key={game.id}
+              game={game}
+              onGameClick={onGameClick}
+              onPlay={onPlay}
+              onEditClick={editGame.openEditModal}
+              onGameDelete={onGameDelete}
+              onGameUpdate={onGameUpdate}
+              buildCoverUrl={buildCoverUrl}
+              coverSize={coverSize}
+              itemRefs={itemRefs}
+              draggable={draggable}
+              index={index}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragEnd={handleDragEnd}
+              isDragging={draggedIndex !== null}
+              dragOverIndex={dragOverIndex}
+              viewMode={viewMode}
+              allCollections={allCollections}
+              collectionId={collectionId}
+              onRemoveFromCollection={onRemoveFromCollection}
+            />
+          ))
+        )}
       </div>
       {editGame.selectedGame && API_TOKEN && (
         <EditGameModal

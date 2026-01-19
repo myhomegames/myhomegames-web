@@ -147,6 +147,7 @@ export default function GamesListPageContent({
                 itemRefs={itemRefs}
                 viewMode={viewMode}
                 allCollections={allCollections}
+                scrollContainerRef={scrollContainerRef}
               />
             )}
             {viewMode === "detail" && (
@@ -159,6 +160,7 @@ export default function GamesListPageContent({
                 buildCoverUrl={coverUrlBuilder}
                 itemRefs={itemRefs}
                 allCollections={allCollections}
+                scrollContainerRef={scrollContainerRef}
               />
             )}
             {viewMode === "table" && (

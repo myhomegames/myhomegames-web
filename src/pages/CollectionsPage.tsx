@@ -102,6 +102,7 @@ export default function CollectionsPage({
               buildCoverUrl={buildCoverUrl}
               coverSize={coverSize}
               itemRefs={itemRefs}
+              scrollContainerRef={scrollContainerRef}
             />
           )}
         </div>
@@ -113,6 +114,13 @@ export default function CollectionsPage({
           scrollContainerRef={scrollContainerRef}
           itemRefs={itemRefs}
           ascending={sortAscending}
+          virtualizedGridRef={
+            scrollContainerRef.current
+              ? (scrollContainerRef.current as any).__virtualizedGridRef
+              : undefined
+          }
+          viewMode="grid"
+          coverSize={coverSize}
         />
       )}
       </div>

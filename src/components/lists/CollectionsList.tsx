@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { API_BASE, getApiToken } from "../../config";
 import { buildApiUrl } from "../../utils/api";
 import Cover from "../games/Cover";
 import EditCollectionModal from "../collections/EditCollectionModal";
 import { useCollectionHasPlayableGame } from "../common/hooks/useCollectionHasPlayableGame";
+import VirtualizedCollectionsList from "./VirtualizedCollectionsList";
 import type { CollectionItem, CollectionInfo, GameItem } from "../../types";
 import "./CollectionsList.css";
+
+const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are more than this many items
 
 type CollectionsListProps = {
   collections: CollectionItem[];
@@ -17,6 +20,7 @@ type CollectionsListProps = {
   buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean) => string;
   coverSize?: number;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
+  scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
 };
 
 type CollectionListItemProps = {
@@ -31,7 +35,7 @@ type CollectionListItemProps = {
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
 };
 
-function CollectionListItem({
+export function CollectionListItem({
   collection,
   onCollectionClick,
   onPlay,
@@ -147,6 +151,7 @@ export default function CollectionsList({
   buildCoverUrl,
   coverSize = 150,
   itemRefs,
+  scrollContainerRef,
 }: CollectionsListProps) {
   const { t } = useTranslation();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -188,26 +193,49 @@ export default function CollectionsList({
     handleEditModalClose();
   };
 
+  // Use virtual scrolling for large lists
+  const useVirtualization = collections.length > VIRTUALIZATION_THRESHOLD;
+  const containerRef = useRef<HTMLDivElement>(null);
+
   return (
     <>
       <div
+        ref={containerRef}
         className="collections-list-container"
-        style={{ gridTemplateColumns: `repeat(auto-fill, ${coverSize}px)` }}
+        style={{
+          gridTemplateColumns: useVirtualization ? undefined : `repeat(auto-fill, ${coverSize}px)`,
+          height: useVirtualization ? "100%" : undefined,
+        }}
       >
-        {collections.map((collection) => (
-          <CollectionListItem
-            key={String(collection.id)}
-            collection={collection}
+        {useVirtualization ? (
+          <VirtualizedCollectionsList
+            collections={collections}
+            coverSize={coverSize}
+            containerRef={scrollContainerRef || containerRef}
+            itemRefs={itemRefs}
             onCollectionClick={onCollectionClick}
             onPlay={onPlay}
             onEditClick={handleEditClick}
             onCollectionDelete={onCollectionDelete}
             onCollectionUpdate={onCollectionUpdate}
             buildCoverUrl={buildCoverUrl}
-            coverSize={coverSize}
-            itemRefs={itemRefs}
           />
-        ))}
+        ) : (
+          collections.map((collection) => (
+            <CollectionListItem
+              key={String(collection.id)}
+              collection={collection}
+              onCollectionClick={onCollectionClick}
+              onPlay={onPlay}
+              onEditClick={handleEditClick}
+              onCollectionDelete={onCollectionDelete}
+              onCollectionUpdate={onCollectionUpdate}
+              buildCoverUrl={buildCoverUrl}
+              coverSize={coverSize}
+              itemRefs={itemRefs}
+            />
+          ))
+        )}
       </div>
       {selectedCollection && (
         <EditCollectionModal

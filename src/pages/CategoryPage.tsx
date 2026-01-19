@@ -90,6 +90,18 @@ export default function CategoryPage({
                 }
                 itemRefs={hook.itemRefs}
                 ascending={hook.sortAscending}
+                virtualizedGridRef={
+                  viewMode === "grid" && hook.scrollContainerRef.current
+                    ? (hook.scrollContainerRef.current as any).__virtualizedGridRef
+                    : undefined
+                }
+                virtualizedListRef={
+                  viewMode === "detail" && hook.scrollContainerRef.current
+                    ? (hook.scrollContainerRef.current as any).__virtualizedListRef
+                    : undefined
+                }
+                viewMode={viewMode}
+                coverSize={coverSize}
               />
             )}
           </div>
