@@ -83,7 +83,7 @@ export default function VirtualizedCollectionsList({
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
         setDimensions({
-          width: rect.width,
+          width: rect.width - 40,
           height: rect.height || window.innerHeight - 200, // Fallback height
         });
       }
