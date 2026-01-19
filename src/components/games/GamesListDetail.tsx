@@ -74,7 +74,6 @@ function GameDetailItem({
 
   return (
     <div
-      key={`${game.id}-${game.title}`}
       ref={(el) => {
         if (el && itemRefs?.current) {
           itemRefs.current.set(game.id, el);
@@ -207,7 +206,7 @@ export default function GamesListDetail({
       <div className="games-list-detail-container">
         {games.map((game, index) => (
           <GameDetailItem
-            key={`${game.id}-${game.title}`}
+            key={game.id}
             game={game}
             onGameClick={onGameClick}
             onPlay={onPlay}

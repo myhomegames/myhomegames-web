@@ -91,9 +91,17 @@ export default function RecommendedPage({
   // Hide content until fully rendered
   useLayoutEffect(() => {
     if (!isLoading && sections.length > 0) {
+      const renderStartTime = performance.now();
+      const totalSections = sections.length;
+      const totalGames = sections.reduce((sum, section) => sum + section.games.length, 0);
+      console.log(`[RecommendedPage] Rendering started: ${totalSections} sections, ${totalGames} games`);
+      
       // Wait for next frame to ensure DOM is ready
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
+          const renderEndTime = performance.now();
+          const renderDuration = (renderEndTime - renderStartTime).toFixed(2);
+          console.log(`[RecommendedPage] Rendering completed: ${totalSections} sections, ${totalGames} games in ${renderDuration}ms`);
           setIsReady(true);
         });
       });
@@ -101,6 +109,11 @@ export default function RecommendedPage({
       setIsReady(false);
     }
   }, [isLoading, sections.length]);
+
+  // Sync rendering state with global loading context
+  useEffect(() => {
+    setLoading(isLoading || !isReady);
+  }, [isLoading, isReady, setLoading]);
 
   async function fetchRecommendedSections() {
     if (fetchingRef.current) {
@@ -143,7 +156,7 @@ export default function RecommendedPage({
       const errorMessage = String(err.message || err);
       console.error("Error fetching recommended sections:", errorMessage);
     } finally {
-      setLoading(false);
+      // Don't set loading to false here - let isReady handle it
       fetchingRef.current = false;
     }
   }

@@ -439,6 +439,8 @@ function GameDetailPage({
   const { gameId } = useParams<{ gameId: string }>();
   const [game, setGame] = useState<GameItem | null>(null);
   const isDeletingLocallyRef = useRef(false);
+  const fetchingGameRef = useRef<boolean>(false);
+  const lastGameIdRef = useRef<string | undefined>(undefined);
 
   // Listen for game deletion events - if the current game is deleted from elsewhere, navigate back
   useEffect(() => {
@@ -463,13 +465,21 @@ function GameDetailPage({
   }, [game]);
 
   useEffect(() => {
-    if (gameId) {
+    if (gameId && gameId !== lastGameIdRef.current) {
+      lastGameIdRef.current = gameId;
+      fetchingGameRef.current = false; // Reset flag when gameId changes
       // Always fetch from API to get background field
       fetchGame(gameId);
     }
   }, [gameId]);
 
   async function fetchGame(gameId: string) {
+    // Prevent multiple simultaneous calls for the same game
+    if (fetchingGameRef.current) {
+      return;
+    }
+    
+    fetchingGameRef.current = true;
     setLoading(true);
     try {
       // Fetch single game from dedicated endpoint
@@ -525,6 +535,7 @@ function GameDetailPage({
       setGame(null);
     } finally {
       setLoading(false);
+      fetchingGameRef.current = false; // Reset flag when done
     }
   }
 

@@ -56,25 +56,9 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
         gameCount: v.gameCount,
       }));
       setCollections(parsed);
-
-      // Fetch game IDs for each collection
-      const gameIdsMap = new Map<string, string[]>();
-      for (const collection of parsed) {
-        try {
-          const gamesUrl = buildApiUrl(API_BASE, `/collections/${collection.id}/games`);
-          const gamesRes = await fetch(gamesUrl, {
-            headers: buildApiHeaders({ Accept: "application/json" }),
-          });
-          if (gamesRes.ok) {
-            const gamesJson = await gamesRes.json();
-            const gameIds = (gamesJson.games || []).map((g: any) => String(g.id));
-            gameIdsMap.set(String(collection.id), gameIds);
-          }
-        } catch (err: any) {
-          console.error(`Error fetching games for collection ${collection.id}:`, err.message);
-        }
-      }
-      setCollectionGameIds(gameIdsMap);
+      
+      // Don't pre-fetch game IDs for all collections - load them on demand via getCollectionGameIds
+      // This avoids unnecessary API calls when user is on library page or other pages that don't need this data
     } catch (err: any) {
       const errorMessage = String(err.message || err);
       console.error("Error fetching collections:", errorMessage);

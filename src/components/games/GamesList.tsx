@@ -108,7 +108,6 @@ function GameListItem({
 
   return (
     <div
-      key={`${game.id}-${game.title}`}
       ref={(el) => {
         if (el && itemRefs?.current) {
           itemRefs.current.set(game.id, el);
@@ -232,7 +231,7 @@ export default function GamesList({
       >
         {games.map((game, index) => (
           <GameListItem
-            key={`${game.id}-${game.title}`}
+            key={game.id}
             game={game}
             onGameClick={onGameClick}
             onPlay={onPlay}

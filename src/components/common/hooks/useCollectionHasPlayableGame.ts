@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { API_BASE, getApiToken } from "../../../config";
-import { buildApiUrl } from "../../../utils/api";
+import { useMemo, useEffect, useState } from "react";
+import { useCollections } from "../../../contexts/CollectionsContext";
+import { useLibraryGames } from "../../../contexts/LibraryGamesContext";
 
 type UseCollectionHasPlayableGameReturn = {
   hasPlayableGame: boolean | null;
@@ -9,53 +9,69 @@ type UseCollectionHasPlayableGameReturn = {
 
 /**
  * Hook to check if any game in a collection has executables.
+ * Uses data from CollectionsContext and LibraryGamesContext to avoid API calls.
+ * Loads game IDs on-demand if not already in context.
  * Returns null while loading, true if at least one game has executables, false otherwise.
  */
 export function useCollectionHasPlayableGame(
   collectionId: string | undefined,
   enabled: boolean = true
 ): UseCollectionHasPlayableGameReturn {
-  const [hasPlayableGame, setHasPlayableGame] = useState<boolean | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const { collectionGameIds, isLoading: collectionsLoading, getCollectionGameIds } = useCollections();
+  const { games: allGames, isLoading: gamesLoading } = useLibraryGames();
+  const [isLoadingGameIds, setIsLoadingGameIds] = useState(false);
 
+  // Load game IDs on-demand if not in context
   useEffect(() => {
-    if (!enabled || !collectionId) {
-      setHasPlayableGame(null);
-      setIsLoading(false);
+    if (!enabled || !collectionId || collectionsLoading || gamesLoading) {
       return;
     }
 
-    setIsLoading(true);
-    const fetchGames = async () => {
-      try {
-        const url = buildApiUrl(API_BASE, `/collections/${collectionId}/games`);
-        const res = await fetch(url, {
-          headers: {
-            Accept: "application/json",
-            "X-Auth-Token": getApiToken(),
-          },
-        });
-        if (res.ok) {
-          const json = await res.json();
-          const games = json.games || [];
-          // Check if any game has executables
-          const hasExecutables = games.some((g: any) => g.executables && g.executables.length > 0);
-          setHasPlayableGame(hasExecutables);
-        } else {
-          setHasPlayableGame(false);
-        }
-      } catch (err) {
-        setHasPlayableGame(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchGames();
-  }, [collectionId, enabled]);
+    const cached = collectionGameIds.get(String(collectionId));
+    if (cached) {
+      // Already loaded, no need to fetch
+      return;
+    }
 
-  return {
-    hasPlayableGame,
-    isLoading,
-  };
+    // Load game IDs on-demand
+    setIsLoadingGameIds(true);
+    getCollectionGameIds(collectionId)
+      .then(() => {
+        setIsLoadingGameIds(false);
+      })
+      .catch(() => {
+        setIsLoadingGameIds(false);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collectionId, enabled, collectionsLoading, gamesLoading]);
+
+  const result = useMemo(() => {
+    if (!enabled || !collectionId) {
+      return { hasPlayableGame: null, isLoading: false };
+    }
+
+    // If contexts are still loading, return loading state
+    if (collectionsLoading || gamesLoading || isLoadingGameIds) {
+      return { hasPlayableGame: null, isLoading: true };
+    }
+
+    // Get game IDs for this collection from CollectionsContext
+    const gameIds = collectionGameIds.get(String(collectionId));
+    
+    if (!gameIds || gameIds.length === 0) {
+      // Collection has no games or game IDs not yet loaded
+      return { hasPlayableGame: false, isLoading: false };
+    }
+
+    // Check if any of these games have executables using LibraryGamesContext
+    const hasExecutables = gameIds.some((gameId) => {
+      const game = allGames.find((g) => String(g.id) === String(gameId));
+      return game && game.executables && game.executables.length > 0;
+    });
+
+    return { hasPlayableGame: hasExecutables, isLoading: false };
+  }, [collectionId, enabled, collectionGameIds, allGames, collectionsLoading, gamesLoading, isLoadingGameIds]);
+
+  return result;
 }
 

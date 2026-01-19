@@ -91,10 +91,9 @@ function CollectionListItem({
 
   return (
     <div
-      key={collection.id}
       ref={(el) => {
         if (el && itemRefs?.current) {
-          itemRefs.current.set(collection.id, el);
+          itemRefs.current.set(String(collection.id), el);
         }
       }}
       className="group cursor-pointer collections-list-item"
@@ -197,7 +196,7 @@ export default function CollectionsList({
       >
         {collections.map((collection) => (
           <CollectionListItem
-            key={collection.id}
+            key={String(collection.id)}
             collection={collection}
             onCollectionClick={onCollectionClick}
             onPlay={onPlay}

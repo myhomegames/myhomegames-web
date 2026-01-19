@@ -1,5 +1,6 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useLayoutEffect } from "react";
 import { useLoading } from "../contexts/LoadingContext";
+import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import { useGamesListPage } from "../hooks/useGamesListPage";
 import GamesListPageContent from "../components/games/GamesListPageContent";
 import AlphabetNavigator from "../components/ui/AlphabetNavigator";
@@ -24,7 +25,8 @@ export default function LibraryPage({
   viewMode,
   allCollections = [],
 }: LibraryPageProps) {
-  const { isLoading } = useLoading();
+  const { isLoading, setLoading } = useLoading();
+  const { isLoading: libraryGamesLoading } = useLibraryGames();
 
   const hook = useGamesListPage({
     localStoragePrefix: "library",
@@ -34,6 +36,18 @@ export default function LibraryPage({
     gameEvents: ["gameUpdated"],
     scrollRestorationMode: viewMode === "table" ? undefined : viewMode,
   });
+
+  // Sync library games loading state and rendering state with global loading context
+  useEffect(() => {
+    setLoading(libraryGamesLoading || !hook.isReady);
+  }, [libraryGamesLoading, hook.isReady, setLoading]);
+
+  // Log rendering state changes
+  useLayoutEffect(() => {
+    if (hook.isReady && hook.filteredAndSortedGames.length > 0) {
+      console.log(`[LibraryPage] Ready: ${hook.filteredAndSortedGames.length} games displayed`);
+    }
+  }, [hook.isReady, hook.filteredAndSortedGames.length]);
 
   // Initialize data fetching when auth is ready
   // Categories, collections, and library games are now loaded automatically via context, no need to fetch them manually

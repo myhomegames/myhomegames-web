@@ -14,14 +14,19 @@ type CategoriesPageProps = {
 export default function CategoriesPage({
   coverSize,
 }: CategoriesPageProps) {
-  const { isLoading } = useLoading();
-  const { categories: allCategories, refreshCategories, updateCategory } = useCategories();
-  const { games } = useLibraryGames();
+  const { isLoading, setLoading } = useLoading();
+  const { categories: allCategories, isLoading: categoriesLoading, refreshCategories, updateCategory } = useCategories();
+  const { games, isLoading: gamesLoading } = useLibraryGames();
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [isReady, setIsReady] = useState(false);
   const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
+  
+  // Sync categories and games loading state and rendering state with global loading context
+  useEffect(() => {
+    setLoading(categoriesLoading || gamesLoading || !isReady);
+  }, [categoriesLoading, gamesLoading, isReady, setLoading]);
   
   // Restore scroll position
   useScrollRestoration(scrollContainerRef);
@@ -112,9 +117,16 @@ export default function CategoriesPage({
   // Hide content until fully rendered
   useLayoutEffect(() => {
     if (!isLoading && (categories.length > 0 || (allCategories.length > 0 && games.length > 0))) {
+      const renderStartTime = performance.now();
+      const totalItems = categories.length;
+      console.log(`[CategoriesPage] Rendering started: ${totalItems} categories`);
+      
       // Wait for next frame to ensure DOM is ready
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
+          const renderEndTime = performance.now();
+          const renderDuration = (renderEndTime - renderStartTime).toFixed(2);
+          console.log(`[CategoriesPage] Rendering completed: ${totalItems} categories in ${renderDuration}ms`);
           setIsReady(true);
         });
       });

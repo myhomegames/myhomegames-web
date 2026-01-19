@@ -152,7 +152,7 @@ export function useGamesListPage(
     [categories]
   );
   const { collections, collectionGameIds: contextCollectionGameIds } = useCollections();
-  const { games: libraryGames } = useLibraryGames();
+  const { games: libraryGames, isLoading: libraryGamesLoading } = useLibraryGames();
   
   // Convert collections to availableCollections format
   const availableCollections = useMemo(() => 
@@ -313,78 +313,6 @@ export function useGamesListPage(
   // Listen for game events
   useGameEvents({ setGames, enabledEvents: gameEvents });
 
-  // Hide content until fully rendered
-  useLayoutEffect(() => {
-    if (!isLoading && games.length > 0) {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setIsReady(true);
-        });
-      });
-    } else if (isLoading) {
-      setIsReady(false);
-    }
-  }, [isLoading, games.length]);
-
-  // Set genre filter when categoryId changes (for CategoryPage)
-  useEffect(() => {
-    if (categoryId && allGenres.length > 0) {
-      const genre = allGenres.find((g) => String(g.id) === categoryId);
-      if (genre) {
-        setSelectedGenre(genre.title);
-        setFilterField("genre");
-      }
-      if (onCategoryIdChange) {
-        onCategoryIdChange(categoryId);
-      }
-    }
-  }, [categoryId, allGenres, onCategoryIdChange]);
-
-  // Fetch functions (collections and library games are now loaded via context)
-  // Use libraryGames from context as the base games list
-  useEffect(() => {
-    if (libraryGames.length > 0) {
-      setGames(libraryGames);
-    }
-  }, [libraryGames]);
-
-  // Update available genres based on games in the library
-  useEffect(() => {
-    if (games.length === 0 || allGenres.length === 0) return;
-
-    const genresInGames = new Set<string>();
-    games.forEach((game) => {
-      if (game.genre) {
-        if (Array.isArray(game.genre)) {
-          game.genre.forEach((g) => {
-            if (typeof g === "string") {
-              genresInGames.add(g);
-            } else {
-              genresInGames.add(String(g));
-            }
-          });
-        } else if (typeof game.genre === "string") {
-          genresInGames.add(game.genre);
-        }
-      }
-    });
-
-    const filteredGenres = allGenres.filter((genre) => {
-      return genresInGames.has(genre.title);
-    });
-
-    setAvailableGenres(filteredGenres);
-
-    // Validate selected genre - if it's no longer available, reset it
-    if (selectedGenre !== null && filterField === "genre") {
-      const genreExists = filteredGenres.some((g) => g.title === selectedGenre);
-      if (!genreExists) {
-        setSelectedGenre(null);
-        setFilterField("all");
-      }
-    }
-  }, [games, allGenres, selectedGenre, filterField]);
-
   // Filter and sort games
   const filteredAndSortedGames = useMemo(() => {
     let filtered = [...games];
@@ -498,29 +426,121 @@ export function useGamesListPage(
           } else if (ageRatingsB.length === 0) {
             compareResult = -1;
           } else {
-            const maxA = ageRatingsA.reduce((max, ar) => {
-              const value = ar.category * 1000 + ar.rating;
-              return value > max ? value : max;
-            }, 0);
-            const maxB = ageRatingsB.reduce((max, ar) => {
-              const value = ar.category * 1000 + ar.rating;
-              return value > max ? value : max;
-            }, 0);
-            compareResult = maxB - maxA;
+            // Sort by first age rating's category, then rating
+            const firstA = ageRatingsA[0];
+            const firstB = ageRatingsB[0];
+            if (firstA.category !== firstB.category) {
+              compareResult = firstA.category - firstB.category;
+            } else {
+              compareResult = firstB.rating - firstA.rating;
+            }
           }
           break;
         default:
-          return 0;
+          compareResult = 0;
       }
-      if (sortField === "title") {
-        return sortAscending ? compareResult : -compareResult;
-      } else {
-        return sortAscending ? -compareResult : compareResult;
-      }
+      return sortAscending ? compareResult : -compareResult;
     });
 
     return filtered;
-  }, [games, filterField, selectedYear, selectedDecade, selectedGenre, selectedCollection, selectedAgeRating, sortField, sortAscending, contextCollectionGameIds]);
+  }, [
+    games,
+    filterField,
+    selectedGenre,
+    selectedYear,
+    selectedDecade,
+    selectedCollection,
+    selectedAgeRating,
+    contextCollectionGameIds,
+    sortField,
+    sortAscending,
+  ]);
+
+  // Hide content until fully rendered
+  useLayoutEffect(() => {
+    // Use libraryGamesLoading for more accurate state - don't wait for global isLoading
+    const actualLoading = libraryGamesLoading || libraryGames.length === 0;
+    
+    if (!actualLoading && games.length > 0) {
+      const renderStartTime = performance.now();
+      const totalItems = filteredAndSortedGames.length;
+      console.log(`[useGamesListPage] Rendering started: ${totalItems} games (from ${games.length} total)`);
+      
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const renderEndTime = performance.now();
+          const renderDuration = (renderEndTime - renderStartTime).toFixed(2);
+          console.log(`[useGamesListPage] Rendering completed: ${totalItems} games in ${renderDuration}ms`);
+          setIsReady(true);
+        });
+      });
+    } else if (actualLoading) {
+      setIsReady(false);
+      // Debug log to understand why rendering hasn't started
+      if (games.length > 0) {
+        console.log(`[useGamesListPage] Rendering delayed: libraryGamesLoading=${libraryGamesLoading}, libraryGames.length=${libraryGames.length}, games.length=${games.length}`);
+      }
+    }
+  }, [libraryGamesLoading, libraryGames.length, games.length, filteredAndSortedGames.length]);
+
+  // Set genre filter when categoryId changes (for CategoryPage)
+  useEffect(() => {
+    if (categoryId && allGenres.length > 0) {
+      const genre = allGenres.find((g) => String(g.id) === categoryId);
+      if (genre) {
+        setSelectedGenre(genre.title);
+        setFilterField("genre");
+      }
+      if (onCategoryIdChange) {
+        onCategoryIdChange(categoryId);
+      }
+    }
+  }, [categoryId, allGenres, onCategoryIdChange]);
+
+  // Fetch functions (collections and library games are now loaded via context)
+  // Use libraryGames from context as the base games list
+  useEffect(() => {
+    if (libraryGames.length > 0) {
+      setGames(libraryGames);
+    }
+  }, [libraryGames]);
+
+  // Update available genres based on games in the library
+  useEffect(() => {
+    if (games.length === 0 || allGenres.length === 0) return;
+
+    const genresInGames = new Set<string>();
+    games.forEach((game) => {
+      if (game.genre) {
+        if (Array.isArray(game.genre)) {
+          game.genre.forEach((g) => {
+            if (typeof g === "string") {
+              genresInGames.add(g);
+            } else {
+              genresInGames.add(String(g));
+            }
+          });
+        } else if (typeof game.genre === "string") {
+          genresInGames.add(game.genre);
+        }
+      }
+    });
+
+    const filteredGenres = allGenres.filter((genre) => {
+      return genresInGames.has(genre.title);
+    });
+
+    setAvailableGenres(filteredGenres);
+
+    // Validate selected genre - if it's no longer available, reset it
+    if (selectedGenre !== null && filterField === "genre") {
+      const genreExists = filteredGenres.some((g) => g.title === selectedGenre);
+      if (!genreExists) {
+        setSelectedGenre(null);
+        setFilterField("all");
+      }
+    }
+  }, [games, allGenres, selectedGenre, filterField]);
 
   const handleTableSort = (field: "title" | "year" | "stars" | "releaseDate" | "criticRating" | "userRating" | "ageRating") => {
     if (sortField === field) {
