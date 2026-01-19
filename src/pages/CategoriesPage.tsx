@@ -116,17 +116,17 @@ export default function CategoriesPage({
 
   // Hide content until fully rendered
   useLayoutEffect(() => {
-    if (!isLoading && (categories.length > 0 || (allCategories.length > 0 && games.length > 0))) {
+    if (!categoriesLoading && !gamesLoading) {
       // Wait for next frame to ensure DOM is ready
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setIsReady(true);
         });
       });
-    } else if (isLoading) {
+    } else if (categoriesLoading || gamesLoading) {
       setIsReady(false);
     }
-  }, [isLoading, categories.length, allCategories.length, games.length]);
+  }, [categoriesLoading, gamesLoading, categories.length]);
 
   // Categories and games are now loaded via context, no need for fetch functions
 

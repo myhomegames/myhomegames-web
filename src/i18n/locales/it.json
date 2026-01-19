@@ -320,6 +320,9 @@
     "removeFromCollection": "Rimuovere dalla raccolta",
     "titleRequired": "Il titolo della collezione è obbligatorio"
   },
+  "categories": {
+    "noCategoriesFound": "Nessuna categoria trovata"
+  },
   "launch": {
     "launching": "Avvio gioco...",
     "error": "Errore di Avvio"

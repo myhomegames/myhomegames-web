@@ -308,6 +308,9 @@
     "removing": "Removing...",
     "unauthorized": "Unauthorized"
   },
+  "categories": {
+    "noCategoriesFound": "No categories found"
+  },
   "collections": {
     "addTo": "Add to",
     "addToCollection": "Add to Collection",

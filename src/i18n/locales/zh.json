@@ -308,6 +308,9 @@
     "removing": "移除中...",
     "unauthorized": "未授权"
   },
+  "categories": {
+    "noCategoriesFound": "未找到类别"
+  },
   "collections": {
     "addTo": "添加到",
     "addToCollection": "添加到收藏",

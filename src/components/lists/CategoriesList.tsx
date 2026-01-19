@@ -80,7 +80,19 @@ export default function CategoriesList({
   const { t } = useTranslation();
   
   if (categories.length === 0) {
-    return <div className="text-gray-400 text-center">{t("table.noGames")}</div>;
+    return (
+      <div 
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          minHeight: '400px',
+        }}
+      >
+        <div className="text-gray-400 text-center">{t("categories.noCategoriesFound")}</div>
+      </div>
+    );
   }
 
   return (
