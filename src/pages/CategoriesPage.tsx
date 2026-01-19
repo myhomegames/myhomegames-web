@@ -117,16 +117,9 @@ export default function CategoriesPage({
   // Hide content until fully rendered
   useLayoutEffect(() => {
     if (!isLoading && (categories.length > 0 || (allCategories.length > 0 && games.length > 0))) {
-      const renderStartTime = performance.now();
-      const totalItems = categories.length;
-      console.log(`[CategoriesPage] Rendering started: ${totalItems} categories`);
-      
       // Wait for next frame to ensure DOM is ready
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          const renderEndTime = performance.now();
-          const renderDuration = (renderEndTime - renderStartTime).toFixed(2);
-          console.log(`[CategoriesPage] Rendering completed: ${totalItems} categories in ${renderDuration}ms`);
           setIsReady(true);
         });
       });

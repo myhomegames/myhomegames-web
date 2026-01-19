@@ -91,17 +91,9 @@ export default function RecommendedPage({
   // Hide content until fully rendered
   useLayoutEffect(() => {
     if (!isLoading && sections.length > 0) {
-      const renderStartTime = performance.now();
-      const totalSections = sections.length;
-      const totalGames = sections.reduce((sum, section) => sum + section.games.length, 0);
-      console.log(`[RecommendedPage] Rendering started: ${totalSections} sections, ${totalGames} games`);
-      
       // Wait for next frame to ensure DOM is ready
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          const renderEndTime = performance.now();
-          const renderDuration = (renderEndTime - renderStartTime).toFixed(2);
-          console.log(`[RecommendedPage] Rendering completed: ${totalSections} sections, ${totalGames} games in ${renderDuration}ms`);
           setIsReady(true);
         });
       });

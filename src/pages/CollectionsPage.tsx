@@ -66,16 +66,9 @@ export default function CollectionsPage({
   // Hide content until fully rendered
   useLayoutEffect(() => {
     if (!collectionsLoading && collections.length > 0) {
-      const renderStartTime = performance.now();
-      const totalItems = sortedCollections.length;
-      console.log(`[CollectionsPage] Rendering started: ${totalItems} collections`);
-      
       // Wait for next frame to ensure DOM is ready
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          const renderEndTime = performance.now();
-          const renderDuration = (renderEndTime - renderStartTime).toFixed(2);
-          console.log(`[CollectionsPage] Rendering completed: ${totalItems} collections in ${renderDuration}ms`);
           setIsReady(true);
         });
       });

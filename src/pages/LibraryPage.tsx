@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useLoading } from "../contexts/LoadingContext";
 import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import { useGamesListPage } from "../hooks/useGamesListPage";
@@ -42,12 +42,6 @@ export default function LibraryPage({
     setLoading(libraryGamesLoading || !hook.isReady);
   }, [libraryGamesLoading, hook.isReady, setLoading]);
 
-  // Log rendering state changes
-  useLayoutEffect(() => {
-    if (hook.isReady && hook.filteredAndSortedGames.length > 0) {
-      console.log(`[LibraryPage] Ready: ${hook.filteredAndSortedGames.length} games displayed`);
-    }
-  }, [hook.isReady, hook.filteredAndSortedGames.length]);
 
   // Initialize data fetching when auth is ready
   // Categories, collections, and library games are now loaded automatically via context, no need to fetch them manually

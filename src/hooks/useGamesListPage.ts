@@ -462,24 +462,13 @@ export function useGamesListPage(
     const actualLoading = libraryGamesLoading || libraryGames.length === 0;
     
     if (!actualLoading && games.length > 0) {
-      const renderStartTime = performance.now();
-      const totalItems = filteredAndSortedGames.length;
-      console.log(`[useGamesListPage] Rendering started: ${totalItems} games (from ${games.length} total)`);
-      
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          const renderEndTime = performance.now();
-          const renderDuration = (renderEndTime - renderStartTime).toFixed(2);
-          console.log(`[useGamesListPage] Rendering completed: ${totalItems} games in ${renderDuration}ms`);
           setIsReady(true);
         });
       });
     } else if (actualLoading) {
       setIsReady(false);
-      // Debug log to understand why rendering hasn't started
-      if (games.length > 0) {
-        console.log(`[useGamesListPage] Rendering delayed: libraryGamesLoading=${libraryGamesLoading}, libraryGames.length=${libraryGames.length}, games.length=${games.length}`);
-      }
     }
   }, [libraryGamesLoading, libraryGames.length, games.length, filteredAndSortedGames.length]);
 
