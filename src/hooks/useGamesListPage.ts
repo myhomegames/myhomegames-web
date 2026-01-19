@@ -457,18 +457,17 @@ export function useGamesListPage(
   // Hide content until fully rendered
   useLayoutEffect(() => {
     // Use libraryGamesLoading for more accurate state - don't wait for global isLoading
-    const actualLoading = libraryGamesLoading || libraryGames.length === 0;
-    
-    if (!actualLoading && games.length > 0) {
+    // Don't wait for games.length > 0 - isReady should be true even if there are no games
+    if (!libraryGamesLoading) {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setIsReady(true);
         });
       });
-    } else if (actualLoading) {
+    } else if (libraryGamesLoading) {
       setIsReady(false);
     }
-  }, [libraryGamesLoading, libraryGames.length, games.length, filteredAndSortedGames.length]);
+  }, [libraryGamesLoading, filteredAndSortedGames.length]);
 
   // Set genre filter when categoryId changes (for CategoryPage)
   useEffect(() => {

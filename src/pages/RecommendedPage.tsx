@@ -26,9 +26,10 @@ export default function RecommendedPage({
   coverSize,
   allCollections = [],
 }: RecommendedPageProps) {
-  const { setLoading, isLoading } = useLoading();
+  const { setLoading } = useLoading();
   const [sections, setSections] = useState<RecommendedSection[]>([]);
   const [isReady, setIsReady] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const fetchingRef = useRef<boolean>(false);
   
@@ -90,28 +91,30 @@ export default function RecommendedPage({
 
   // Hide content until fully rendered
   useLayoutEffect(() => {
-    if (!isLoading && sections.length > 0) {
+    if (!isFetching) {
       // Wait for next frame to ensure DOM is ready
+      // isReady should be true even if there are no sections
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setIsReady(true);
         });
       });
-    } else if (isLoading) {
+    } else if (isFetching) {
       setIsReady(false);
     }
-  }, [isLoading, sections.length]);
+  }, [isFetching, sections.length]);
 
   // Sync rendering state with global loading context
   useEffect(() => {
-    setLoading(isLoading || !isReady);
-  }, [isLoading, isReady, setLoading]);
+    setLoading(isFetching || !isReady);
+  }, [isFetching, isReady, setLoading]);
 
   async function fetchRecommendedSections() {
     if (fetchingRef.current) {
       return;
     }
     fetchingRef.current = true;
+    setIsFetching(true);
     setLoading(true);
     try {
       const url = buildApiUrl(API_BASE, `/recommended`);
@@ -148,7 +151,7 @@ export default function RecommendedPage({
       const errorMessage = String(err.message || err);
       console.error("Error fetching recommended sections:", errorMessage);
     } finally {
-      // Don't set loading to false here - let isReady handle it
+      setIsFetching(false);
       fetchingRef.current = false;
     }
   }
@@ -168,7 +171,7 @@ export default function RecommendedPage({
           className="home-page-scroll-container"
           style={{ paddingTop: '16px', paddingBottom: '32px' }}
         >
-          {!isLoading && sections.map((section) => (
+          {!isFetching && sections.map((section) => (
             <RecommendedSection
               key={section.id}
               sectionId={section.id}

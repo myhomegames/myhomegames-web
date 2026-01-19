@@ -16,6 +16,7 @@ export default function AdditionalExecutablesDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const [isPositionReady, setIsPositionReady] = useState(false);
   const [isInSearchPopup, setIsInSearchPopup] = useState(false);
+  const [shouldUsePortal, setShouldUsePortal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -24,18 +25,17 @@ export default function AdditionalExecutablesDropdown({
 
   // Check if we're inside a search dropdown (popup context)
   useEffect(() => {
-    const checkPopup = () => {
-      if (dropdownRef.current) {
-        const inPopup = dropdownRef.current.closest('.search-dropdown-item') !== null;
-        setIsInSearchPopup(inPopup);
-      }
-    };
-    
-    checkPopup();
-    // Check again when menu opens
-    if (isOpen) {
-      checkPopup();
+    if (dropdownRef.current) {
+      const inPopup = dropdownRef.current.closest('.search-dropdown-item') !== null;
+      setIsInSearchPopup(inPopup);
     }
+  }, []);
+
+  // Always use portal for submenus to avoid issues with virtualized lists
+  // The submenu needs to be outside the virtualized container to work correctly
+  useEffect(() => {
+    // Always use portal when submenu is open (except for search popup which already uses portal)
+    setShouldUsePortal(isOpen);
   }, [isOpen]);
 
   // Expose method to open/close dropdown from parent
@@ -83,9 +83,11 @@ export default function AdditionalExecutablesDropdown({
         return;
       }
 
-      // Try to get menu from ref first, then fallback to querySelector
-      let menu = menuRef.current as HTMLElement;
-      if (!menu && dropdownRef.current) {
+      // When using portal, the menu is in document.body, not in dropdownRef
+      let menu = shouldUsePortal
+        ? (document.querySelector('.additional-executables-dropdown-menu') as HTMLElement)
+        : (menuRef.current as HTMLElement);
+      if (!menu && dropdownRef.current && !shouldUsePortal) {
         menu = dropdownRef.current.querySelector('.additional-executables-dropdown-menu') as HTMLElement;
       }
       if (!menu) {
@@ -255,7 +257,7 @@ export default function AdditionalExecutablesDropdown({
 
   return (
     <div className="additional-executables-dropdown" ref={dropdownRef}>
-      {isInSearchPopup && typeof document !== 'undefined' 
+      {shouldUsePortal && typeof document !== 'undefined' 
         ? createPortal(menuContent, document.body)
         : menuContent
       }

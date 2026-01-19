@@ -65,7 +65,7 @@ export default function CollectionsPage({
 
   // Hide content until fully rendered
   useLayoutEffect(() => {
-    if (!collectionsLoading && collections.length > 0) {
+    if (!collectionsLoading) {
       // Wait for next frame to ensure DOM is ready
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
@@ -75,7 +75,7 @@ export default function CollectionsPage({
     } else if (collectionsLoading) {
       setIsReady(false);
     }
-  }, [collectionsLoading, collections.length, sortedCollections.length]);
+  }, [collectionsLoading, sortedCollections.length]);
 
 
   return (

@@ -113,6 +113,7 @@ export default function CollectionDetail({
   useLayoutEffect(() => {
     if (!isLoading && collection) {
       // Wait for next frame to ensure DOM is ready
+      // isReady should be true even if there are no games
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setIsReady(true);
@@ -121,7 +122,7 @@ export default function CollectionDetail({
     } else if (isLoading) {
       setIsReady(false);
     }
-  }, [isLoading, collection]);
+  }, [isLoading, collection, games.length]);
 
   async function fetchCollectionInfo(collectionId: string) {
     try {

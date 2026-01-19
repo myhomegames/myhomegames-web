@@ -158,7 +158,19 @@ export default function CollectionsList({
   const [selectedCollection, setSelectedCollection] = useState<CollectionInfo | null>(null);
   
   if (collections.length === 0) {
-    return <div className="text-gray-400 text-center">{t("table.noGames")}</div>;
+    return (
+      <div 
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          minHeight: '400px',
+        }}
+      >
+        <div className="text-gray-400 text-center">{t("collections.noCollectionsFound")}</div>
+      </div>
+    );
   }
 
   const handleEditClick = (collection: CollectionItem) => {
