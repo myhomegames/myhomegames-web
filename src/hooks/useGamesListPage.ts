@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useLayoutEffect } from "react";
 import { useScrollRestoration } from "./useScrollRestoration";
 import { useGameEvents } from "./useGameEvents";
-import { useLoading } from "../contexts/LoadingContext";
 import { useCategories } from "../contexts/CategoriesContext";
 import { useCollections } from "../contexts/CollectionsContext";
 import { useLibraryGames } from "../contexts/LibraryGamesContext";
@@ -100,7 +99,6 @@ export function useGamesListPage(
     scrollRestorationMode,
   } = options;
 
-  const { isLoading } = useLoading();
   const [games, setGames] = useState<GameItem[]>([]);
   const [isReady, setIsReady] = useState(false);
   const [filterField, setFilterField] = useState<FilterField>(() => {
