@@ -279,6 +279,18 @@ export default function AddGame({
         const json = await res.json();
         setResults(json.games || []);
         setError(null);
+        
+        // Close browser autocomplete popup when results arrive
+        // Do a brief blur/focus cycle to dismiss the autocomplete dropdown
+        if (inputRef.current && json.games && json.games.length > 0) {
+          inputRef.current.blur();
+          // Re-focus after a very short delay to allow user to continue typing
+          setTimeout(() => {
+            if (inputRef.current && isOpenRef.current) {
+              inputRef.current.focus();
+            }
+          }, 50);
+        }
       } catch (err: any) {
         console.error('Search error:', err);
         setError(String(err.message || err));
