@@ -15,6 +15,8 @@ interface CollectionsContextType {
   removeCollection: (collectionId: string | number) => void;
   getCollectionGameIds: (collectionId: string | number) => Promise<string[]>;
   collectionGameIds: Map<string, string[]>;
+  addGameToCollectionCache: (collectionId: string | number, gameId: string) => void;
+  removeGameFromCollectionCache: (collectionId: string | number, gameId: string) => void;
 }
 
 const CollectionsContext = createContext<CollectionsContextType | undefined>(undefined);
@@ -92,6 +94,33 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
       } else if (collectionId) {
         // Collection was modified (e.g., game added/removed/deleted), refresh from server to get updated gameCount
         fetchCollections();
+        // Reload game IDs for this collection immediately to keep cache up to date
+        const reloadGameIds = async () => {
+          try {
+            const gamesUrl = buildApiUrl(API_BASE, `/collections/${collectionId}/games`);
+            const gamesRes = await fetch(gamesUrl, {
+              headers: buildApiHeaders({ Accept: "application/json" }),
+            });
+            if (gamesRes.ok) {
+              const gamesJson = await gamesRes.json();
+              const gameIds = (gamesJson.games || []).map((g: any) => String(g.id));
+              setCollectionGameIds((prev) => {
+                const updated = new Map(prev);
+                updated.set(String(collectionId), gameIds);
+                return updated;
+              });
+            }
+          } catch (err: any) {
+            console.error(`Error reloading games for collection ${collectionId}:`, err.message);
+            // If reload fails, clear cache so it will be reloaded on next access
+            setCollectionGameIds((prev) => {
+              const updated = new Map(prev);
+              updated.delete(String(collectionId));
+              return updated;
+            });
+          }
+        };
+        reloadGameIds();
       }
     };
 
@@ -159,6 +188,28 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const addGameToCollectionCache = useCallback((collectionId: string | number, gameId: string) => {
+    setCollectionGameIds((prev) => {
+      const updated = new Map(prev);
+      const collectionKey = String(collectionId);
+      const currentGameIds = updated.get(collectionKey) || [];
+      if (!currentGameIds.includes(gameId)) {
+        updated.set(collectionKey, [...currentGameIds, gameId]);
+      }
+      return updated;
+    });
+  }, []);
+
+  const removeGameFromCollectionCache = useCallback((collectionId: string | number, gameId: string) => {
+    setCollectionGameIds((prev) => {
+      const updated = new Map(prev);
+      const collectionKey = String(collectionId);
+      const currentGameIds = updated.get(collectionKey) || [];
+      updated.set(collectionKey, currentGameIds.filter(id => id !== gameId));
+      return updated;
+    });
+  }, []);
+
   const getCollectionGameIds = useCallback(async (collectionId: string | number): Promise<string[]> => {
     const cached = collectionGameIds.get(String(collectionId));
     if (cached) {
@@ -197,8 +248,10 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
       removeCollection,
       getCollectionGameIds,
       collectionGameIds,
+      addGameToCollectionCache,
+      removeGameFromCollectionCache,
     }),
-    [collections, isLoading, error, refreshCollections, addCollection, updateCollection, removeCollection, getCollectionGameIds, collectionGameIds]
+    [collections, isLoading, error, refreshCollections, addCollection, updateCollection, removeCollection, getCollectionGameIds, collectionGameIds, addGameToCollectionCache, removeGameFromCollectionCache]
   );
 
   return <CollectionsContext.Provider value={value}>{children}</CollectionsContext.Provider>;
