@@ -377,7 +377,7 @@
     "Music": "Musique",
     "Pinball": "Flipper",
     "Platform": "Plateforme",
-    "Point-and-click": "Point-and-click",
+    "Point-and-click": "Point-and-Click",
     "Puzzle": "Puzzle",
     "Quiz/Trivia": "Quiz/Trivia",
     "Racing": "Course",
@@ -389,7 +389,7 @@
     "Strategy": "Stratégie",
     "Tactical": "Tactique",
     "Turn-based strategy (TBS)": "Stratégie au Tour par Tour (TBS)",
-    "Visual Novel": "Visual Novel"
+    "Visual Novel": "Roman Visuel"
   },
   "themes": {
     "Action": "Action",
