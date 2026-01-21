@@ -27,7 +27,6 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
     game.collection ||
     (game.screenshots && game.screenshots.length > 0) ||
     (game.gameEngines && game.gameEngines.length > 0) ||
-    (game.alternativeNames && game.alternativeNames.length > 0) ||
     (game.similarGames && game.similarGames.length > 0);
 
   if (!hasInfo) {
@@ -223,29 +222,6 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
                   {engine}
                 </span>
                 {index < game.gameEngines!.length - 1 && (
-                  <span className="game-info-list-separator">
-                    ,{" "}
-                  </span>
-                )}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Alternative Names */}
-      {game.alternativeNames && game.alternativeNames.length > 0 && (
-        <div className="game-info-field">
-          <div className="text-white game-info-label">
-            {t("igdbInfo.alternativeNames", "Alternative Names")}
-          </div>
-          <div className="game-info-list">
-            {game.alternativeNames.map((name, index) => (
-              <span key={index}>
-                <span className="game-info-list-item">
-                  {name}
-                </span>
-                {index < game.alternativeNames!.length - 1 && (
                   <span className="game-info-list-separator">
                     ,{" "}
                   </span>
