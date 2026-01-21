@@ -5,6 +5,7 @@ import GamesList from "../games/GamesList";
 import RecommendedSectionNav from "./RecommendedSectionNav";
 import type { GameItem, CollectionItem } from "../../types";
 import { buildCoverUrl } from "../../utils/api";
+import { useAutoTranslate } from "../../hooks/useAutoTranslate";
 import "./RecommendedSection.css";
 
 // Helper per sessionStorage
@@ -44,7 +45,7 @@ export default function RecommendedSection({
   coverSize,
   allCollections = [],
 }: RecommendedSectionProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const location = useLocation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const storageKey = `${location.pathname}:${sectionId}`;
@@ -53,7 +54,8 @@ export default function RecommendedSection({
   const [isRestoring, setIsRestoring] = useState(true);
 
   const titleKey = `recommended.${sectionId}`;
-  const title = t(titleKey, { defaultValue: sectionId });
+  // Usa traduzione automatica se non esiste nei file di localizzazione
+  const title = useAutoTranslate(sectionId, titleKey);
 
   const updateScrollButtons = () => {
     const container = scrollRef.current;
