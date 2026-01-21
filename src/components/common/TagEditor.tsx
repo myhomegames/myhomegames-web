@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { API_BASE, getApiToken } from "../../config";
 import { buildApiUrl } from "../../utils/api";
 import { useLoading } from "../../contexts/LoadingContext";
+import { useCategories } from "../../contexts/CategoriesContext";
 import "./TagEditor.css";
 
 type TagEditorProps = {
@@ -20,31 +21,9 @@ export default function TagEditor({
 }: TagEditorProps) {
   const { t } = useTranslation();
   const { setLoading } = useLoading();
-  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const { categories: availableCategories, addCategory } = useCategories();
   const [tagSearch, setTagSearch] = useState("");
   const [isCreating, setIsCreating] = useState(false);
-
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  async function fetchCategories() {
-    try {
-      const url = buildApiUrl(API_BASE, "/categories");
-      const res = await fetch(url, {
-        headers: {
-          Accept: "application/json",
-          "X-Auth-Token": getApiToken(),
-        },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      const items = (json.categories || []) as string[];
-      setAvailableCategories(items);
-    } catch (err: any) {
-      console.error("Error fetching categories:", err);
-    }
-  }
 
   async function createCategory(title: string): Promise<string | null> {
     try {
@@ -67,16 +46,15 @@ export default function TagEditor({
       }
       
       const json = await res.json();
-      const newCategory = json.category as string;
+      const newCategory = json.category;
+      // Handle both old format (string) and new format (object)
+      const categoryTitle = typeof newCategory === "string" ? newCategory : newCategory.title;
+      const categoryId = typeof newCategory === "string" ? newCategory : newCategory.id;
       
-      // Add to available categories
-      setAvailableCategories((prev) => {
-        const updated = [...prev, newCategory];
-        updated.sort((a, b) => a.localeCompare(b));
-        return updated;
-      });
+      // Add to context
+      addCategory({ id: categoryId, title: categoryTitle });
       
-      return newCategory;
+      return categoryTitle;
     } catch (err: any) {
       console.error("Error creating category:", err);
       return null;
@@ -105,17 +83,18 @@ export default function TagEditor({
       // First, try to find existing category
       const category = availableCategories.find(
         (c) => {
-          const translatedName = t(`genre.${c}`, c).toLowerCase();
+          const categoryTitle = c.title.toLowerCase();
+          const translatedName = t(`genre.${c.title}`, c.title).toLowerCase();
           return (
-            c.toLowerCase() === searchTerm ||
+            categoryTitle === searchTerm ||
             translatedName === searchTerm ||
             translatedName.includes(searchTerm)
           );
         }
       );
       
-      if (category && !selectedTags.includes(category)) {
-        handleAddTag(category);
+      if (category && !selectedTags.includes(category.title)) {
+        handleAddTag(category.title);
         return;
       }
       
@@ -129,11 +108,12 @@ export default function TagEditor({
 
   const filteredSuggestions = availableCategories.filter(
     (c) => {
-      if (selectedTags.includes(c)) return false;
+      if (selectedTags.includes(c.title)) return false;
       const searchTerm = tagSearch.toLowerCase();
-      const translatedName = t(`genre.${c}`, c).toLowerCase();
+      const categoryTitle = c.title.toLowerCase();
+      const translatedName = t(`genre.${c.title}`, c.title).toLowerCase();
       return (
-        c.toLowerCase().includes(searchTerm) ||
+        categoryTitle.includes(searchTerm) ||
         translatedName.includes(searchTerm)
       );
     }
@@ -143,9 +123,9 @@ export default function TagEditor({
     <div className="tag-editor-container">
       <div className="tag-editor-tags">
         {selectedTags.map((tagId) => {
-          const category = availableCategories.find((c) => c === tagId);
+          const category = availableCategories.find((c) => c.title === tagId);
           const displayName = category
-            ? t(`genre.${category}`, category)
+            ? t(`genre.${category.title}`, category.title)
             : tagId;
           return (
             <span key={tagId} className="tag-editor-tag">
@@ -177,13 +157,13 @@ export default function TagEditor({
         <div className="tag-editor-suggestions">
           {filteredSuggestions.slice(0, 5).map((category) => (
             <button
-              key={category}
+              key={category.id}
               type="button"
               className="tag-editor-suggestion"
-              onClick={() => handleAddTag(category)}
+              onClick={() => handleAddTag(category.title)}
               disabled={disabled}
             >
-              {t(`genre.${category}`, category)}
+              {t(`genre.${category.title}`, category.title)}
             </button>
           ))}
         </div>

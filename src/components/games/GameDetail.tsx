@@ -8,8 +8,10 @@ import GameInfoBlock from "./GameInfoBlock";
 import MediaGallery from "./MediaGallery";
 import AgeRatings, { filterAgeRatingsByLocale } from "./AgeRatings";
 import EditGameModal from "./EditGameModal";
+import ManageInstallationModal from "./ManageInstallationModal";
 import DropdownMenu from "../common/DropdownMenu";
 import AddToCollectionDropdown from "./AddToCollectionDropdown";
+import AdditionalExecutablesDropdown from "./AdditionalExecutablesDropdown";
 import Tooltip from "../common/Tooltip";
 import BackgroundManager, { useBackground } from "../common/BackgroundManager";
 import LibrariesBar from "../layout/LibrariesBar";
@@ -41,6 +43,7 @@ export default function GameDetail({
   const { t, i18n } = useTranslation();
   const { setLoading } = useLoading();
   const [localGame, setLocalGame] = useState<GameItem>(game);
+  const [isManageInstallationModalOpen, setIsManageInstallationModalOpen] = useState(false);
   const editGame = useEditGame();
   
   // Use executable hook (handles both upload and unlink)
@@ -158,6 +161,8 @@ export default function GameDetail({
         onGameDelete={onGameDelete}
         executable={executable}
         allCollections={allCollections}
+        isManageInstallationModalOpen={isManageInstallationModalOpen}
+        setIsManageInstallationModalOpen={setIsManageInstallationModalOpen}
         t={t as any}
         i18n={i18n}
       />
@@ -182,6 +187,8 @@ function GameDetailContent({
   onGameDelete,
   executable,
   allCollections,
+  isManageInstallationModalOpen,
+  setIsManageInstallationModalOpen,
   t,
   i18n,
 }: {
@@ -201,6 +208,8 @@ function GameDetailContent({
   onGameDelete?: (game: GameItem) => void;
   executable: ReturnType<typeof useExecutable>;
   allCollections: CollectionItem[];
+  isManageInstallationModalOpen: boolean;
+  setIsManageInstallationModalOpen: (open: boolean) => void;
   t: (key: string, defaultValue?: string) => string;
   i18n: { language: string };
 }) {
@@ -270,7 +279,7 @@ function GameDetailContent({
               showTitle={false}
               titlePosition="overlay"
               detail={false}
-              play={!!game.command}
+              play={!!(game.executables && game.executables.length > 0)}
               showBorder={false}
             />
           </div>
@@ -355,7 +364,7 @@ function GameDetailContent({
                 />
               </div>
               <div className="game-detail-actions">
-                {game.command ? (
+                {(game.executables && game.executables.length > 0) ? (
                   <button
                     onClick={() => onPlay(game)}
                     className="game-detail-play-button"
@@ -438,12 +447,25 @@ function GameDetailContent({
                   game={game}
                   allCollections={allCollections}
                 />
+                {game.executables && game.executables.length > 1 && (
+                  <AdditionalExecutablesDropdown
+                    gameId={game.id}
+                    gameExecutables={game.executables}
+                  onPlayExecutable={(executableName: string) => {
+                    // Call onPlay with game and executableName
+                    // onPlay is openLauncher which accepts executableName as second parameter
+                    if (typeof onPlay === 'function') {
+                      (onPlay as any)(game, executableName);
+                    }
+                  }}
+                  />
+                )}
                 <DropdownMenu
-                  onEdit={() => editGame.openEditModal(game)}
                   onAddToCollection={() => {}}
+                  onManageInstallation={() => setIsManageInstallationModalOpen(true)}
                   gameId={game.id}
                   gameTitle={game.title}
-                  gameCommand={game.command}
+                  gameExecutables={game.executables}
                   onGameDelete={onGameDelete ? (gameId: string) => {
                     if (game.id === gameId && onGameDelete) {
                       onGameDelete(game);
@@ -468,6 +490,16 @@ function GameDetailContent({
                   }}
                 />
               )}
+              <ManageInstallationModal
+                isOpen={isManageInstallationModalOpen}
+                onClose={() => setIsManageInstallationModalOpen(false)}
+                game={game}
+                onGameUpdate={(updatedGame) => {
+                  // Dispatch event to update allGames in App.tsx
+                  window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
+                  onGameUpdate(updatedGame);
+                }}
+              />
               {game.summary && <Summary summary={game.summary} maxLines={summaryMaxLines} />}
             </div>
           </div>

@@ -29,8 +29,8 @@ export default function CollectionFilter({
       }));
     },
     formatValue: (value: FilterValue): string => {
-      if (typeof value !== "string") return "";
-      const collection = availableCollections.find((c) => c.id === value);
+      if (value === null || value === undefined) return "";
+      const collection = availableCollections.find((c) => String(c.id) === String(value));
       return collection ? collection.title : "";
     },
     isScrollable: true,

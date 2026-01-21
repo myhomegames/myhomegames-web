@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type React from "react";
 import DropdownMenu from "../common/DropdownMenu";
 import AddToCollectionDropdown from "./AddToCollectionDropdown";
+import AdditionalExecutablesDropdown from "./AdditionalExecutablesDropdown";
 import Tooltip from "../common/Tooltip";
 import type { CollectionItem, GameItem } from "../../types";
 import "./Cover.css";
@@ -42,7 +43,7 @@ type CoverProps = {
   showRemoveButton?: boolean; // Show remove button (for modal use)
   removeMediaType?: "cover" | "background"; // Type of media to remove
   removeResourceId?: string | number; // Resource ID for removal
-  removeResourceType?: "games" | "collections"; // Resource type for removal
+  removeResourceType?: "games" | "collections" | "categories"; // Resource type for removal
   onRemoveSuccess?: () => void; // Callback when removal succeeds
   removeDisabled?: boolean; // Disable remove button
 };
@@ -103,18 +104,24 @@ export default function Cover({
     
     const handleDropdownOpened = (event: Event) => {
       const customEvent = event as CustomEvent<{ gameId?: string; collectionId?: string }>;
+      // Only react to dropdown events for this specific game/collection Cover
+      // Don't react to collection dropdown if this is a game Cover (games shouldn't highlight when collection dropdown opens)
       if (gameId && customEvent.detail?.gameId === gameId) {
         setIsDropdownOpen(true);
-      } else if (collectionId && customEvent.detail?.collectionId === collectionId) {
+      } else if (collectionId && !gameId && customEvent.detail?.collectionId === collectionId) {
+        // Only react to collection dropdown if this Cover represents a collection, not a game
         setIsDropdownOpen(true);
       }
     };
     
     const handleDropdownClosed = (event: Event) => {
       const customEvent = event as CustomEvent<{ gameId?: string; collectionId?: string }>;
+      // Only react to dropdown events for this specific game/collection Cover
+      // Don't react to collection dropdown if this is a game Cover
       if (gameId && customEvent.detail?.gameId === gameId) {
         setIsDropdownOpen(false);
-      } else if (collectionId && customEvent.detail?.collectionId === collectionId) {
+      } else if (collectionId && !gameId && customEvent.detail?.collectionId === collectionId) {
+        // Only react to collection dropdown if this Cover represents a collection, not a game
         setIsDropdownOpen(false);
       }
     };
@@ -400,12 +407,24 @@ export default function Cover({
             />
           </div>
         )}
-        {onEdit && (
+        {onEdit && (gameId || collectionId) && (
           <div className="games-list-dropdown-wrapper games-list-dropdown-wrapper-bottom-right">
+            {gameId && game && game.executables && game.executables.length > 1 && onPlay && (
+              <AdditionalExecutablesDropdown
+                gameId={gameId}
+                gameExecutables={game.executables}
+                onPlayExecutable={(executableName: string) => {
+                  if (onPlay) {
+                    (onPlay as any)(game, executableName);
+                  }
+                }}
+              />
+            )}
             <DropdownMenu
               onDelete={onDelete}
               gameId={gameId}
               gameTitle={gameTitle}
+              gameExecutables={game?.executables}
               onAddToCollection={gameId && game ? () => {} : undefined}
               onRemoveFromCollection={onRemoveFromCollection}
               onGameDelete={onGameDelete}

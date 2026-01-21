@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import type { CollectionItem, GameItem } from "../../types";
 import { useAddGameToCollection, useCreateCollection } from "../common/actions";
+import { useCollections } from "../../contexts/CollectionsContext";
 import "./AddToCollectionModal.css";
 
 type AddToCollectionModalProps = {
@@ -23,8 +24,18 @@ export default function AddToCollectionModal({
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [newCollectionTitle, setNewCollectionTitle] = useState(game.title);
-  const [filteredCollections, setFilteredCollections] = useState<CollectionItem[]>(allCollections);
   const createInputRef = useRef<HTMLInputElement>(null);
+  const { collectionGameIds } = useCollections();
+  
+  // Filter out collections that already contain this game
+  const availableCollections = useMemo(() => {
+    return allCollections.filter((collection) => {
+      const gameIds = collectionGameIds.get(String(collection.id));
+      return !gameIds || !gameIds.includes(String(game.id));
+    });
+  }, [allCollections, collectionGameIds, game.id]);
+  
+  const [filteredCollections, setFilteredCollections] = useState<CollectionItem[]>(availableCollections);
   const addGameToCollection = useAddGameToCollection({
     onSuccess: () => {
       onCollectionAdded?.();
@@ -61,16 +72,16 @@ export default function AddToCollectionModal({
 
   useEffect(() => {
     if (!searchQuery.trim()) {
-      setFilteredCollections(allCollections);
+      setFilteredCollections(availableCollections);
     } else {
       const query = searchQuery.toLowerCase();
       setFilteredCollections(
-        allCollections.filter((collection) =>
+        availableCollections.filter((collection) =>
           collection.title.toLowerCase().includes(query)
         )
       );
     }
-  }, [searchQuery, allCollections]);
+  }, [searchQuery, availableCollections]);
 
   const handleCollectionClick = async (collectionId: string) => {
     await addGameToCollection.addGameToCollection(game.id, collectionId);

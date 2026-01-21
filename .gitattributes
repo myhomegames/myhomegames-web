@@ -2,3 +2,5 @@
 # Keep local .env version during merges (prevents overwriting production .env when merging from dev branch)
 .env merge=ours
 
+# Keep local .gitignore version during merges (prevents overwriting .gitignore when merging from main)
+.gitignore merge=ours

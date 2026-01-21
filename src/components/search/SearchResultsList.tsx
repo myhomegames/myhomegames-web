@@ -4,6 +4,7 @@ import { API_BASE, getApiToken } from "../../config";
 import { buildApiUrl, buildCoverUrl } from "../../utils/api";
 import Cover from "../games/Cover";
 import DropdownMenu from "../common/DropdownMenu";
+import AdditionalExecutablesDropdown from "../games/AdditionalExecutablesDropdown";
 import EditGameModal from "../games/EditGameModal";
 import EditCollectionModal from "../collections/EditCollectionModal";
 import { useEditGame } from "../common/actions";
@@ -74,7 +75,7 @@ function SearchResultItem({
   const coverHeight = actualCoverSize * 1.5;
   const isPopup = variant === "popup";
   
-  // Check if any game in collection has command
+  // Check if any game in collection has executables
   // Always enable the hook for collections, not just when onPlay is defined
   const { hasPlayableGame } = useCollectionHasPlayableGame(
     !isGame ? item.id : undefined,
@@ -100,7 +101,7 @@ function SearchResultItem({
     if (isGame) {
       onPlay(item);
     } else {
-      // For collections, fetch and play the first game that has a command
+      // For collections, fetch and play the first game that has executables
       try {
         const url = buildApiUrl(API_BASE, `/collections/${item.id}/games`);
         const res = await fetch(url, {
@@ -112,20 +113,20 @@ function SearchResultItem({
         if (res.ok) {
           const json = await res.json();
           const games = json.games || [];
-          // Find the first game that has a command (for playing)
-          const gameWithCommand = games.find((g: any) => !!g.command);
-          if (gameWithCommand) {
+          // Find the first game that has executables (for playing)
+          const gameWithExecutables = games.find((g: any) => g.executables && g.executables.length > 0);
+          if (gameWithExecutables) {
             const gameItem: GameItem = {
-              id: gameWithCommand.id,
-              title: gameWithCommand.title,
-              summary: gameWithCommand.summary || "",
-              cover: gameWithCommand.cover,
-              day: gameWithCommand.day || null,
-              month: gameWithCommand.month || null,
-              year: gameWithCommand.year || null,
-              stars: gameWithCommand.stars || null,
-              genre: gameWithCommand.genre || null,
-              command: gameWithCommand.command || null,
+              id: gameWithExecutables.id,
+              title: gameWithExecutables.title,
+              summary: gameWithExecutables.summary || "",
+              cover: gameWithExecutables.cover,
+              day: gameWithExecutables.day || null,
+              month: gameWithExecutables.month || null,
+              year: gameWithExecutables.year || null,
+              stars: gameWithExecutables.stars || null,
+              genre: gameWithExecutables.genre || null,
+              executables: gameWithExecutables.executables || null,
             };
             onPlay(gameItem);
           }
@@ -173,7 +174,7 @@ function SearchResultItem({
       />
       {(onPlay || onEditClick) && (
         <div className="search-result-right-actions">
-          {onPlay && (isGame ? item.command : hasPlayableGame === true) && (
+          {onPlay && (isGame ? (item.executables && item.executables.length > 0) : hasPlayableGame === true) && (
             <button
               className="search-result-play-button"
               onClick={handlePlayClick}
@@ -195,10 +196,22 @@ function SearchResultItem({
           )}
           {onEditClick && (
             <div className="search-result-actions">
+              {isGame && (item as GameItem).executables && (item as GameItem).executables!.length > 1 && onPlay && (
+                <AdditionalExecutablesDropdown
+                  gameId={item.id}
+                  gameExecutables={(item as GameItem).executables!}
+                  onPlayExecutable={(executableName: string) => {
+                    if (onPlay) {
+                      (onPlay as any)(item, executableName);
+                    }
+                  }}
+                />
+              )}
               <DropdownMenu
                 onEdit={() => onEditClick(item)}
                 gameId={isGame ? item.id : undefined}
                 gameTitle={isGame ? item.title : undefined}
+                gameExecutables={isGame ? (item as GameItem).executables : undefined}
                 onGameDelete={isGame && onGameDelete ? (gameId: string) => {
                   if (item.id === gameId) {
                     onGameDelete(item);

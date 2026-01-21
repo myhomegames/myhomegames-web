@@ -1,0 +1,42 @@
+.virtualized-table-scroll {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+.virtualized-games-table-wrapper {
+  width: 100%;
+  height: 100%;
+}
+
+.virtualized-games-table-wrapper .games-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.virtualized-games-table-tbody {
+  display: block;
+  height: 100%;
+}
+
+.virtualized-games-table-list {
+  width: 100%;
+  height: 100%;
+}
+
+.virtualized-games-table-list > div {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.virtualized-table-row-wrapper {
+  display: table-row;
+}
+
+.virtualized-table-row-wrapper tr {
+  display: table-row;
+}

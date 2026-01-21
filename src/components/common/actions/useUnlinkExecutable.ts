@@ -33,13 +33,13 @@ export function useUnlinkExecutable({
           "Content-Type": "application/json",
           "X-Auth-Token": getApiToken(),
         },
-        body: JSON.stringify({ command: null }),
+        body: JSON.stringify({ executables: null }),
       });
 
       if (response.ok) {
         const result = await response.json();
         // Get the current game from allGames cache or use result.game as base
-        // We need to preserve all fields except command
+        // We need to preserve all fields except executables
         const updatedGame: GameItem = {
           id: result.game.id,
           title: result.game.title,
@@ -53,7 +53,7 @@ export function useUnlinkExecutable({
           genre: result.game.genre ?? null,
           criticratings: result.game.criticratings ?? null,
           userratings: result.game.userratings ?? null,
-          // command field is removed, not set to null
+          // executables field is removed, not set to null
           themes: result.game.themes ?? null,
           platforms: result.game.platforms ?? null,
           gameModes: result.game.gameModes ?? null,
@@ -71,9 +71,9 @@ export function useUnlinkExecutable({
           alternativeNames: result.game.alternativeNames ?? null,
           similarGames: result.game.similarGames ?? null,
         };
-        // Explicitly remove command if it exists
-        if ('command' in updatedGame) {
-          delete (updatedGame as any).command;
+        // Explicitly remove executables if it exists
+        if ('executables' in updatedGame) {
+          delete (updatedGame as any).executables;
         }
         onGameUpdate(updatedGame);
       } else {

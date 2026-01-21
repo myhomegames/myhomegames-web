@@ -77,7 +77,7 @@ export function useExecutable({
           genre: result.game.genre ?? game.genre ?? null,
           criticratings: result.game.criticratings ?? game.criticratings ?? null,
           userratings: result.game.userratings ?? game.userratings ?? null,
-          command: result.game.command ?? game.command ?? null, // Extension saved by server
+          executables: result.game.executables ?? game.executables ?? null, // Array of executable names
           // Preserve all other fields from original game
           themes: result.game.themes ?? game.themes ?? null,
           platforms: result.game.platforms ?? game.platforms ?? null,
@@ -123,7 +123,7 @@ export function useExecutable({
           "Content-Type": "application/json",
           "X-Auth-Token": getApiToken(),
         },
-        body: JSON.stringify({ command: null }),
+        body: JSON.stringify({ executables: null }),
       });
 
       if (response.ok) {
@@ -160,9 +160,9 @@ export function useExecutable({
           alternativeNames: result.game.alternativeNames ?? game.alternativeNames ?? null,
           similarGames: result.game.similarGames ?? game.similarGames ?? null,
         };
-        // Explicitly remove command if it exists
-        if ('command' in updatedGame) {
-          delete (updatedGame as any).command;
+        // Explicitly remove executables if it exists
+        if ('executables' in updatedGame) {
+          delete (updatedGame as any).executables;
         }
         onGameUpdate(updatedGame);
       } else {

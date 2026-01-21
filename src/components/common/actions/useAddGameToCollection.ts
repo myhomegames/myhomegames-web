@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { buildApiUrl } from "../../../utils/api";
 import { API_BASE, getApiToken } from "../../../config";
 import { useLoading } from "../../../contexts/LoadingContext";
+import { useCollections } from "../../../contexts/CollectionsContext";
 
 type UseAddGameToCollectionParams = {
   onSuccess?: () => void;
@@ -20,6 +21,7 @@ export function useAddGameToCollection({
 }: UseAddGameToCollectionParams = {}): UseAddGameToCollectionReturn {
   const { t } = useTranslation();
   const { setLoading } = useLoading();
+  const { addGameToCollectionCache } = useCollections();
   const [isAdding, setIsAdding] = useState(false);
 
   const addGameToCollection = async (gameId: string, collectionId: string) => {
@@ -73,6 +75,14 @@ export function useAddGameToCollection({
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || `Failed to add game to collection: ${response.status}`);
       }
+
+      // Update cache immediately so the filter works right away
+      addGameToCollectionCache(collectionId, String(gameId));
+
+      // Emit event to notify that collection was updated (gameCount changed)
+      window.dispatchEvent(new CustomEvent("collectionUpdated", { 
+        detail: { collectionId } 
+      }));
 
       // Save to recent collections
       const recentCollections = JSON.parse(

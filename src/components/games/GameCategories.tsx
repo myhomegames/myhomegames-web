@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import type { GameItem } from "../../types";
+import { useCategories } from "../../contexts/CategoriesContext";
 
 type GameCategoriesProps = {
   game: GameItem;
@@ -11,6 +12,7 @@ export default function GameCategories({ game }: GameCategoriesProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
+  const { categories } = useCategories();
 
   if (!game.genre) {
     return null;
@@ -23,8 +25,15 @@ export default function GameCategories({ game }: GameCategoriesProps) {
     return null;
   }
 
-  const handleGenreClick = (genre: string) => {
-    navigate(`/category/${genre}`);
+  const handleGenreClick = (genreTitle: string) => {
+    // Find category by title and use its ID
+    const category = categories.find((c) => c.title === genreTitle);
+    
+    if (category) {
+      // Always use numeric ID for navigation
+      navigate(`/category/${category.id}`);
+    }
+    // If category not found, do nothing (shouldn't happen in normal usage)
   };
 
   const handleExpandClick = (e: React.MouseEvent) => {

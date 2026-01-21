@@ -1,0 +1,47 @@
+.additional-executables-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.additional-executables-dropdown-menu {
+  position: fixed;
+  background-color: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 1001;
+  min-width: 200px;
+  padding: 4px 0;
+  pointer-events: auto;
+}
+
+/* Increase z-index when inside search popup - use body selector to ensure it applies even with portal */
+.additional-executables-dropdown-menu-in-popup,
+body .search-result-actions ~ .additional-executables-dropdown-menu,
+body .search-dropdown-item .additional-executables-dropdown-menu,
+.search-result-actions .additional-executables-dropdown-menu,
+.search-dropdown-item .additional-executables-dropdown-menu {
+  z-index: 10006 !important;
+}
+
+.additional-executables-dropdown-item {
+  display: flex;
+  align-items: center;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen-Sans, Ubuntu, Cantarell, Helvetica Neue, sans-serif;
+  font-size: 13px;
+  padding: 8px 24px;
+  margin: 2px 0;
+  text-align: left;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.7);
+  transition: background-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.additional-executables-dropdown-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 1);
+}

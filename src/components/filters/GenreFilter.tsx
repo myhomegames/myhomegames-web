@@ -27,13 +27,13 @@ export default function GenreFilter({
     getAvailableValues: (_games: GameItem[], additionalData?: any): Array<{ value: FilterValue; label: string }> => {
       const genres = additionalData?.availableGenres || availableGenres;
       return genres.map((genre: { id: string; title: string }) => ({
-        value: genre.id,
+        value: genre.title, // Use title as value since games use title for genre
         label: t(`genre.${genre.title}`, genre.title),
       }));
     },
     formatValue: (value: FilterValue): string => {
       if (typeof value !== "string") return "";
-      const genre = availableGenres.find((g) => g.id === value);
+      const genre = availableGenres.find((g) => g.title === value);
       return genre ? t(`genre.${genre.title}`, genre.title) : "";
     },
     isScrollable: true,

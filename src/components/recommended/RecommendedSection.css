@@ -53,7 +53,6 @@
   display: -webkit-box !important;
   flex-direction: row !important;
   gap: 24px;
-  width: max-content;
   padding-bottom: 8px;
   padding-left: 0;
   grid-template-columns: none !important;
@@ -73,5 +72,7 @@
 .recommended-section-scroll:not(.restoring) {
   opacity: 1;
   transition: opacity 0.1s;
+  margin-left: 20px;
+  margin-right: 20px;
 }
 

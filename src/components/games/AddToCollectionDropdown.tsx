@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { createPortal } from "react-dom";
 import type { CollectionItem, GameItem } from "../../types";
 import AddToCollectionModal from "./AddToCollectionModal";
 import { useAddGameToCollection } from "../common/actions";
+import { useCollections } from "../../contexts/CollectionsContext";
 import "./AddToCollectionDropdown.css";
 
 type AddToCollectionDropdownProps = {
@@ -21,7 +23,10 @@ export default function AddToCollectionDropdown({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [recentCollections, setRecentCollections] = useState<CollectionItem[]>([]);
   const [isPositionReady, setIsPositionReady] = useState(false);
+  const [shouldUsePortal, setShouldUsePortal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuItemRef = useRef<HTMLElement | null>(null);
+  const { collectionGameIds } = useCollections();
   const addGameToCollection = useAddGameToCollection({
     onSuccess: () => {
       onCollectionAdded?.();
@@ -32,9 +37,26 @@ export default function AddToCollectionDropdown({
   // Expose method to open/close dropdown from parent
   useEffect(() => {
     const handleOpenDropdown = (event: Event) => {
-      const customEvent = event as CustomEvent<{ gameId?: string }>;
+      const customEvent = event as CustomEvent<{ gameId?: string; menuItem?: HTMLElement }>;
       // Only open if the event is for this specific game and modal is not open
       if (customEvent.detail?.gameId === game.id && !isModalOpen) {
+        // Store the menu item reference if provided
+        if (customEvent.detail.menuItem) {
+          menuItemRef.current = customEvent.detail.menuItem;
+        } else {
+          // Fallback: try to find the menu item
+          const menuItems = document.querySelectorAll('.dropdown-menu-item-with-submenu');
+          for (const item of menuItems) {
+            const popup = item.closest('.dropdown-menu-popup');
+            if (popup) {
+              const style = window.getComputedStyle(popup as HTMLElement);
+              if (style.display !== 'none' && style.visibility !== 'hidden') {
+                menuItemRef.current = item as HTMLElement;
+                break;
+              }
+            }
+          }
+        }
         setIsOpen(true);
       }
     };
@@ -58,19 +80,35 @@ export default function AddToCollectionDropdown({
     };
   }, [game.id, isModalOpen]);
 
+  // Filter out collections that already contain this game
+  const availableCollections = useMemo(() => {
+    return allCollections.filter((collection) => {
+      const gameIds = collectionGameIds.get(String(collection.id));
+      return !gameIds || !gameIds.includes(String(game.id));
+    });
+  }, [allCollections, collectionGameIds, game.id]);
+
   useEffect(() => {
     // Load recent collections from localStorage
     const recentIds = JSON.parse(
       localStorage.getItem("recentCollections") || "[]"
     ) as string[];
     
+    // Only include recent collections that don't already contain this game
     const recent = recentIds
-      .map((id) => allCollections.find((c) => c.id === id))
+      .map((id) => availableCollections.find((c) => c.id === id))
       .filter((c): c is CollectionItem => c !== undefined)
       .slice(0, 5); // Show max 5 recent collections
     
     setRecentCollections(recent);
-  }, [allCollections]);
+  }, [availableCollections]);
+
+  // Always use portal for submenus to avoid issues with virtualized lists
+  // The submenu needs to be outside the virtualized container to work correctly
+  useEffect(() => {
+    // Always use portal when submenu is open
+    setShouldUsePortal(isOpen);
+  }, [isOpen]);
 
   // Calculate position for submenu and handle mouse leave
   useEffect(() => {
@@ -82,11 +120,46 @@ export default function AddToCollectionDropdown({
     setIsPositionReady(false); // Reset when opening
 
     const updatePosition = () => {
-      const menuItem = document.querySelector('.dropdown-menu-item-with-submenu');
+      // Use the stored menu item reference first
+      let menuItem: HTMLElement | null = menuItemRef.current;
+      
+      // If not stored or the stored item is no longer valid, find it
+      if (!menuItem || !document.contains(menuItem)) {
+        // Find all menu items with submenu
+        const menuItems = document.querySelectorAll('.dropdown-menu-item-with-submenu');
+        
+        // Find the one within a visible popup (should only be one visible at a time)
+        for (const item of menuItems) {
+          const popup = item.closest('.dropdown-menu-popup');
+          if (popup) {
+            const style = window.getComputedStyle(popup as HTMLElement);
+            if (style.display !== 'none' && style.visibility !== 'hidden') {
+              menuItem = item as HTMLElement;
+              menuItemRef.current = menuItem; // Store for next time
+              break;
+            }
+          }
+        }
+      }
+      
+      // Final fallback
+      if (!menuItem) {
+        menuItem = document.querySelector('.dropdown-menu-item-with-submenu') as HTMLElement;
+      }
+      
       if (!menuItem) return;
 
-      const menu = dropdownRef.current?.querySelector('.add-to-collection-dropdown-menu') as HTMLElement;
-      if (!menu) return;
+      // When using portal, the menu is in document.body, not in dropdownRef
+      let menu = shouldUsePortal 
+        ? (document.querySelector('.add-to-collection-dropdown-menu') as HTMLElement)
+        : (dropdownRef.current?.querySelector('.add-to-collection-dropdown-menu') as HTMLElement);
+      if (!menu) {
+        // Retry if menu not found yet (it might not be rendered yet when using portal)
+        if (shouldUsePortal) {
+          requestAnimationFrame(updatePosition);
+        }
+        return;
+      }
 
       const rect = menuItem.getBoundingClientRect();
       const spacing = 0; // No spacing to prevent gap that causes mouse leave
@@ -115,7 +188,7 @@ export default function AddToCollectionDropdown({
       }
 
       // Calculate vertical position (align top of submenu with top of menu item)
-      // This allows mouse to move horizontally without vertical movement
+      // This positions the submenu at the same row as the parent menu item
       let top = rect.top;
       
       // Check if menu would overflow on the bottom
@@ -133,6 +206,12 @@ export default function AddToCollectionDropdown({
         top = padding;
       }
 
+      // When using portal, explicitly set position fixed
+      if (shouldUsePortal) {
+        menu.style.position = 'fixed';
+        menu.style.right = 'auto';
+        menu.style.bottom = 'auto';
+      }
       menu.style.top = `${top}px`;
       menu.style.left = `${left}px`;
       
@@ -141,9 +220,20 @@ export default function AddToCollectionDropdown({
     };
 
     // Initial position calculation - use requestAnimationFrame to ensure menu is rendered
-    requestAnimationFrame(() => {
-      requestAnimationFrame(updatePosition);
-    });
+    // When using portal, need more delay to ensure the menu is in the DOM
+    if (shouldUsePortal) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            updatePosition();
+          }, 50); // Extra delay for portal rendering
+        });
+      });
+    } else {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(updatePosition);
+      });
+    }
 
     // Update position on resize and scroll (but don't reset isPositionReady)
     const handleResize = () => {
@@ -180,7 +270,7 @@ export default function AddToCollectionDropdown({
         dropdownRef.current.removeEventListener("mouseleave", handleMouseLeave);
       }
     };
-  }, [isOpen]);
+  }, [isOpen, shouldUsePortal]);
 
   const handleCollectionClick = async (e: React.MouseEvent, collectionId: string) => {
     e.stopPropagation();
@@ -202,72 +292,74 @@ export default function AddToCollectionDropdown({
     }, 50);
   };
 
+  const submenuContent = isOpen ? (
+    <div 
+      className="add-to-collection-dropdown-menu"
+      style={{ opacity: isPositionReady ? 1 : 0, pointerEvents: isPositionReady ? 'auto' : 'none' }}
+      onMouseEnter={() => setIsOpen(true)}
+      onMouseLeave={(e) => {
+        // Don't close if mouse is moving to another menu item or the main dropdown
+        const relatedTarget = e.relatedTarget as HTMLElement;
+        if (!relatedTarget || (!relatedTarget.closest('.add-to-collection-dropdown-menu') && !relatedTarget.closest('.dropdown-menu-item-with-submenu') && !relatedTarget.closest('.dropdown-menu-popup'))) {
+          // Use a delay to allow mouse to reach submenu
+          setTimeout(() => {
+            // Check if mouse is still over menu item or submenu
+            const menuItem = document.querySelector('.dropdown-menu-item-with-submenu');
+            const submenu = document.querySelector('.add-to-collection-dropdown-menu');
+            if (menuItem && submenu) {
+              const menuRect = menuItem.getBoundingClientRect();
+              const submenuRect = submenu.getBoundingClientRect();
+              const mouseX = e.clientX;
+              const mouseY = e.clientY;
+              const isOverMenuItem = mouseX >= menuRect.left && mouseX <= menuRect.right &&
+                                    mouseY >= menuRect.top && mouseY <= menuRect.bottom;
+              const isOverSubmenu = mouseX >= submenuRect.left && mouseX <= submenuRect.right &&
+                                  mouseY >= submenuRect.top && mouseY <= submenuRect.bottom;
+              if (!isOverMenuItem && !isOverSubmenu) {
+                setIsOpen(false);
+              }
+            } else {
+              setIsOpen(false);
+            }
+          }, 200);
+        }
+      }}
+      onClick={(e) => {
+        // Prevent click from propagating to close the main dropdown
+        e.stopPropagation();
+      }}
+    >
+      <div
+        className="add-to-collection-dropdown-item"
+        onClick={handleAddToCollectionClick}
+      >
+        {t("collections.addToCollection", "Add to Collection...")}
+      </div>
+
+      {recentCollections.length > 0 && (
+        <>
+          <div className="add-to-collection-dropdown-divider" />
+          <div className="add-to-collection-dropdown-section-title">
+            {t("collections.recent", "RECENT")}
+          </div>
+          {recentCollections.map((collection) => (
+            <div
+              key={collection.id}
+              className="add-to-collection-dropdown-item"
+              onClick={(e) => handleCollectionClick(e, collection.id)}
+            >
+              {collection.title}
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  ) : null;
+
   return (
     <>
       <div className="add-to-collection-dropdown" ref={dropdownRef}>
-        {isOpen && (
-          <div 
-            className="add-to-collection-dropdown-menu"
-            style={{ opacity: isPositionReady ? 1 : 0, pointerEvents: isPositionReady ? 'auto' : 'none' }}
-            onMouseEnter={() => setIsOpen(true)}
-            onMouseLeave={(e) => {
-              // Don't close if mouse is moving to another menu item or the main dropdown
-              const relatedTarget = e.relatedTarget as HTMLElement;
-              if (!relatedTarget || (!relatedTarget.closest('.add-to-collection-dropdown-menu') && !relatedTarget.closest('.dropdown-menu-item-with-submenu') && !relatedTarget.closest('.dropdown-menu-popup'))) {
-                // Use a delay to allow mouse to reach submenu
-                setTimeout(() => {
-                  // Check if mouse is still over menu item or submenu
-                  const menuItem = document.querySelector('.dropdown-menu-item-with-submenu');
-                  const submenu = dropdownRef.current?.querySelector('.add-to-collection-dropdown-menu');
-                  if (menuItem && submenu) {
-                    const menuRect = menuItem.getBoundingClientRect();
-                    const submenuRect = submenu.getBoundingClientRect();
-                    const mouseX = e.clientX;
-                    const mouseY = e.clientY;
-                    const isOverMenuItem = mouseX >= menuRect.left && mouseX <= menuRect.right &&
-                                          mouseY >= menuRect.top && mouseY <= menuRect.bottom;
-                    const isOverSubmenu = mouseX >= submenuRect.left && mouseX <= submenuRect.right &&
-                                        mouseY >= submenuRect.top && mouseY <= submenuRect.bottom;
-                    if (!isOverMenuItem && !isOverSubmenu) {
-                      setIsOpen(false);
-                    }
-                  } else {
-                    setIsOpen(false);
-                  }
-                }, 200);
-              }
-            }}
-            onClick={(e) => {
-              // Prevent click from propagating to close the main dropdown
-              e.stopPropagation();
-            }}
-          >
-            <div
-              className="add-to-collection-dropdown-item"
-              onClick={handleAddToCollectionClick}
-            >
-              {t("collections.addToCollection", "Add to Collection...")}
-            </div>
-
-            {recentCollections.length > 0 && (
-              <>
-                <div className="add-to-collection-dropdown-divider" />
-                <div className="add-to-collection-dropdown-section-title">
-                  {t("collections.recent", "RECENT")}
-                </div>
-                {recentCollections.map((collection) => (
-                  <div
-                    key={collection.id}
-                    className="add-to-collection-dropdown-item"
-                    onClick={(e) => handleCollectionClick(e, collection.id)}
-                  >
-                    {collection.title}
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-        )}
+        {shouldUsePortal && submenuContent ? createPortal(submenuContent, document.body) : submenuContent}
       </div>
 
       <AddToCollectionModal

@@ -90,6 +90,56 @@ export function buildCoverUrl(apiBase: string, cover?: string, addTimestamp?: bo
 }
 
 /**
+ * Builds a category cover image URL (managed entirely on client side)
+ * @param apiBase - The base URL for the API
+ * @param categoryId - The category ID
+ * @param cover - Optional local cover path from the server (should be /category-covers/:title if local cover exists)
+ * @param addTimestamp - Whether to add a timestamp query parameter
+ * @returns The complete category cover URL string
+ */
+export function buildCategoryCoverUrl(apiBase: string, categoryId: string | number, cover?: string, addTimestamp?: boolean): string {
+  let coverPath: string;
+  
+  if (cover && cover.trim() !== "") {
+    // If cover is already a full URL (starts with http:// or https://), return it directly
+    if (cover.startsWith('http://') || cover.startsWith('https://')) {
+      return cover;
+    }
+    // Use the local cover path (/category-covers/...) or remote path (/categories/$ID/cover.webp)
+    coverPath = cover;
+  } else {
+    // If no cover provided, use remote cover URL: /categories/$ID/cover.webp
+    coverPath = `/categories/${categoryId}/cover.webp`;
+  }
+  
+  // Check if it already has a timestamp (align with buildCoverUrl logic)
+  const hasTimestamp = coverPath.includes('?t=') || coverPath.includes('&t=');
+  
+  // If it already has a timestamp, preserve it when building the URL
+  if (hasTimestamp) {
+    const basePath = coverPath.split('?')[0];
+    const queryString = coverPath.includes('?') ? coverPath.substring(coverPath.indexOf('?')) : '';
+    const u = new URL(basePath, apiBase);
+    // Parse existing query string and add to URL
+    if (queryString) {
+      const params = new URLSearchParams(queryString);
+      params.forEach((value, key) => {
+        u.searchParams.set(key, value);
+      });
+    }
+    return u.toString();
+  }
+  
+  // No timestamp, build URL normally
+  const u = new URL(coverPath, apiBase);
+  // Add timestamp to force browser reload if requested
+  if (addTimestamp) {
+    u.searchParams.set('t', Date.now().toString());
+  }
+  return u.toString();
+}
+
+/**
  * Builds a background image URL
  * @param apiBase - The base URL for the API
  * @param background - The background path from the server (e.g., /backgrounds/gameId or /collection-backgrounds/collectionId) or full IGDB URL

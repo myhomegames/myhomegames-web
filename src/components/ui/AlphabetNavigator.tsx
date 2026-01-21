@@ -7,6 +7,10 @@ type AlphabetNavigatorProps = {
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
   ascending?: boolean;
+  virtualizedGridRef?: React.RefObject<any>; // Ref to react-window Grid
+  virtualizedListRef?: React.RefObject<any>; // Ref to react-window List
+  viewMode?: "grid" | "detail" | "table";
+  coverSize?: number; // For grid view to calculate column count
 };
 
 export default function AlphabetNavigator({
@@ -14,6 +18,10 @@ export default function AlphabetNavigator({
   scrollContainerRef,
   itemRefs,
   ascending = true,
+  virtualizedGridRef,
+  virtualizedListRef,
+  viewMode,
+  coverSize,
 }: AlphabetNavigatorProps) {
   const [needsScroll, setNeedsScroll] = useState(false);
 
@@ -32,6 +40,20 @@ export default function AlphabetNavigator({
           setNeedsScroll(false);
           return;
         }
+        
+        // Check if virtual scrolling is being used by checking the container for the ref
+        // This handles cases where the component is remounted (e.g., when navigating back)
+        const containerAny = container as any;
+        const hasVirtualizedGrid = containerAny.__virtualizedGridRef?.current;
+        const hasVirtualizedList = containerAny.__virtualizedListRef?.current;
+        const hasVirtualizedRef = virtualizedGridRef?.current || virtualizedListRef?.current || hasVirtualizedGrid || hasVirtualizedList;
+        
+        // If using virtual scrolling, always show navigator if there are many games
+        if (hasVirtualizedRef) {
+          setNeedsScroll(games.length > 10); // Show if more than 10 games
+          return;
+        }
+        
         // Check if content height exceeds container height
         const hasScroll = container.scrollHeight > container.clientHeight;
         setNeedsScroll(hasScroll);
@@ -43,6 +65,7 @@ export default function AlphabetNavigator({
     const timeoutId1 = setTimeout(checkScrollNeeded, 100);
     const timeoutId2 = setTimeout(checkScrollNeeded, 300);
     const timeoutId3 = setTimeout(checkScrollNeeded, 500);
+    const timeoutId4 = setTimeout(checkScrollNeeded, 1000); // Additional check for when returning to page
 
     // Also check on window resize
     window.addEventListener("resize", checkScrollNeeded);
@@ -72,6 +95,7 @@ export default function AlphabetNavigator({
         clearTimeout(timeoutId1);
         clearTimeout(timeoutId2);
         clearTimeout(timeoutId3);
+        clearTimeout(timeoutId4);
         window.removeEventListener("resize", checkScrollNeeded);
         resizeObserver.disconnect();
         mutationObserver.disconnect();
@@ -82,9 +106,10 @@ export default function AlphabetNavigator({
       clearTimeout(timeoutId1);
       clearTimeout(timeoutId2);
       clearTimeout(timeoutId3);
+      clearTimeout(timeoutId4);
       window.removeEventListener("resize", checkScrollNeeded);
     };
-  }, [games, scrollContainerRef]);
+  }, [games, scrollContainerRef, virtualizedGridRef, virtualizedListRef]);
 
   const alphabet = ascending
     ? ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")]
@@ -122,7 +147,49 @@ export default function AlphabetNavigator({
 
     const game = games[firstGameIndex];
 
-    // Try to find element using itemRefs
+    // Check if virtual scrolling is being used by checking the container for the ref
+    // This handles cases where the component is remounted (e.g., when navigating back)
+    const containerAny = container as any;
+    const gridRefFromContainer = containerAny.__virtualizedGridRef?.current;
+    const listRefFromContainer = containerAny.__virtualizedListRef?.current;
+    const actualGridRef = virtualizedGridRef?.current || gridRefFromContainer;
+    const actualListRef = virtualizedListRef?.current || listRefFromContainer;
+
+    // If using virtualized grid (grid view with virtualization)
+    if (actualGridRef && viewMode === "grid") {
+      const grid = actualGridRef;
+      if (grid && typeof grid.scrollToCell === 'function') {
+        // Calculate row and column from index
+        const containerWidth = container.clientWidth;
+        const itemWidth = (coverSize || 150) + 40; // coverSize + gap
+        const columnCount = Math.max(1, Math.floor((containerWidth + 40) / itemWidth));
+        const rowIndex = Math.floor(firstGameIndex / columnCount);
+        const columnIndex = firstGameIndex % columnCount;
+        
+        grid.scrollToCell({
+          rowIndex,
+          columnIndex,
+          align: "start",
+          behavior: "smooth",
+        });
+        return;
+      }
+    }
+
+    // If using virtualized list (detail view with virtualization)
+    if (actualListRef && viewMode === "detail") {
+      const list = actualListRef;
+      if (list && typeof list.scrollToRow === 'function') {
+        list.scrollToRow({
+          index: firstGameIndex,
+          align: "start",
+          behavior: "smooth",
+        });
+        return;
+      }
+    }
+
+    // Try to find element using itemRefs (for non-virtualized or table view)
     if (itemRefs?.current) {
       const element = itemRefs.current.get(game.id);
       if (element) {

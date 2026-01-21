@@ -27,7 +27,6 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
     game.collection ||
     (game.screenshots && game.screenshots.length > 0) ||
     (game.gameEngines && game.gameEngines.length > 0) ||
-    (game.keywords && game.keywords.length > 0) ||
     (game.alternativeNames && game.alternativeNames.length > 0) ||
     (game.similarGames && game.similarGames.length > 0);
 
@@ -37,17 +36,6 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
 
   return (
     <div className="game-info-block">
-      {/* Game ID */}
-      {gameId && (
-        <div className="game-info-field">
-          <div className="text-white game-info-label">
-            {t("igdbInfo.gameId", "ID")}
-          </div>
-          <div className="game-info-value">
-            {gameId}
-          </div>
-        </div>
-      )}
 
       {/* Themes */}
       {game.themes && game.themes.length > 0 && (
@@ -235,29 +223,6 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
                   {engine}
                 </span>
                 {index < game.gameEngines!.length - 1 && (
-                  <span className="game-info-list-separator">
-                    ,{" "}
-                  </span>
-                )}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Keywords */}
-      {game.keywords && game.keywords.length > 0 && (
-        <div className="game-info-field">
-          <div className="text-white game-info-label">
-            {t("igdbInfo.keywords", "Keywords")}
-          </div>
-          <div className="game-info-list">
-            {game.keywords.map((keyword, index) => (
-              <span key={index}>
-                <span className="game-info-list-item">
-                  {keyword}
-                </span>
-                {index < game.keywords!.length - 1 && (
                   <span className="game-info-list-separator">
                     ,{" "}
                   </span>

@@ -31,7 +31,8 @@ import { buildApiUrl, buildCoverUrl, buildApiHeaders } from "./utils/api";
 import { API_BASE, getApiToken } from "./config";
 import { useLoading } from "./contexts/LoadingContext";
 import { useAuth } from "./contexts/AuthContext";
-import { useGameEvents } from "./hooks/useGameEvents";
+import { useCollections } from "./contexts/CollectionsContext";
+import { useLibraryGames } from "./contexts/LibraryGamesContext";
 
 // Wrapper function for buildApiUrl that uses API_BASE
 function buildApiUrlWithBase(
@@ -42,126 +43,25 @@ function buildApiUrlWithBase(
 }
 
 function AppContent() {
-  const [allGames, setAllGames] = useState<GameItem[]>([]);
-  const [allCollections, setAllCollections] = useState<CollectionItem[]>([]);
+  const { collections: allCollections } = useCollections();
+  const { games: allGames } = useLibraryGames();
   const [launchError, setLaunchError] = useState<string | null>(null);
   const [isLaunching, setIsLaunching] = useState(false);
   const [addGameOpen, setAddGameOpen] = useState(false);
   const navigate = useNavigate();
   const { i18n } = useTranslation();
   const { setLoading } = useLoading();
-  const { isLoading: authLoading, token: authToken } = useAuth();
+  const { isLoading: authLoading } = useAuth();
 
   const handleCloseLaunchModal = () => {
     setLaunchError(null);
     setIsLaunching(false);
   };
 
-  // Load games on app startup for search
-  useEffect(() => {
-    // Wait for authentication to complete before making API requests
-    if (authLoading) {
-      return;
-    }
-    
-    // Get token - prefer getApiToken() which prioritizes VITE_API_TOKEN when available
-    const apiToken = getApiToken() || authToken;
-    if (!apiToken) {
-      return;
-    }
-    
-    async function loadGames() {
-      setLoading(true);
-      try {
-        const url = buildApiUrlWithBase("/libraries/library/games", {
-          sort: "title",
-        });
-        const res = await fetch(url, {
-          headers: buildApiHeaders({ Accept: "application/json" }),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        const items = (json.games || []) as any[];
-        const parsed = items.map((v) => ({
-          id: String(v.id), // Ensure id is always a string
-          title: v.title,
-          summary: v.summary,
-          cover: v.cover,
-          background: v.background,
-          day: v.day,
-          month: v.month,
-          year: v.year,
-          stars: v.stars,
-          genre: v.genre,
-          command: v.command || null,
-          themes: v.themes || null,
-          platforms: v.platforms || null,
-          gameModes: v.gameModes || null,
-          playerPerspectives: v.playerPerspectives || null,
-          websites: v.websites || null,
-          ageRatings: v.ageRatings || null,
-          developers: v.developers || null,
-          publishers: v.publishers || null,
-          franchise: v.franchise || null,
-          collection: v.collection || null,
-          screenshots: v.screenshots || null,
-          videos: v.videos || null,
-          gameEngines: v.gameEngines || null,
-          keywords: v.keywords || null,
-          alternativeNames: v.alternativeNames || null,
-          similarGames: v.similarGames || null,
-        }));
-        setAllGames(parsed);
-      } catch (err: any) {
-        const errorMessage = String(err.message || err);
-        console.error("Error loading games for search:", errorMessage);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadGames();
-  }, [authLoading, authToken, setLoading]);
+  // Games and collections are now loaded automatically via context, no need to fetch them here
 
-  // Load collections on app startup
-  useEffect(() => {
-    // Wait for authentication to complete before making API requests
-    if (authLoading) {
-      return;
-    }
-    
-    // Get token - prefer getApiToken() which prioritizes VITE_API_TOKEN when available
-    const apiToken = getApiToken() || authToken;
-    if (!apiToken) {
-      return;
-    }
-    
-    async function loadCollections() {
-      setLoading(true);
-      try {
-        const url = buildApiUrlWithBase("/collections");
-        const res = await fetch(url, {
-          headers: buildApiHeaders({ Accept: "application/json" }),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        const items = (json.collections || []) as any[];
-        const parsed = items.map((v) => ({
-          id: String(v.id),
-          title: v.title,
-          summary: v.summary,
-          cover: v.cover,
-          background: v.background,
-        }));
-        setAllCollections(parsed);
-      } catch (err: any) {
-        const errorMessage = String(err.message || err);
-        console.error("Error loading collections:", errorMessage);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadCollections();
-  }, [authLoading, authToken, setLoading]);
+  const { refreshCollections } = useCollections();
+  const { refreshGames: refreshLibraryGames } = useLibraryGames();
 
   // Function to reload all metadata without full page reload
   async function handleReloadAllMetadata() {
@@ -178,46 +78,11 @@ function AppContent() {
       });
 
       if (response.ok) {
-        // Reload games
-        const gamesUrl = buildApiUrlWithBase("/libraries/library/games", {
-          sort: "title",
-        });
-        const gamesRes = await fetch(gamesUrl, {
-          headers: buildApiHeaders({ Accept: "application/json" }),
-        });
-        if (gamesRes.ok) {
-          const gamesJson = await gamesRes.json();
-          const items = (gamesJson.games || []) as any[];
-          const parsed = items.map((v) => ({
-            id: String(v.id),
-            title: v.title,
-            summary: v.summary,
-            cover: v.cover,
-            day: v.day,
-            month: v.month,
-            year: v.year,
-            stars: v.stars,
-            genre: v.genre,
-            command: v.command || null,
-          }));
-          setAllGames(parsed);
-        }
-
-        // Reload collections
-        const collectionsUrl = buildApiUrlWithBase("/collections");
-        const collectionsRes = await fetch(collectionsUrl, {
-          headers: buildApiHeaders({ Accept: "application/json" }),
-        });
-        if (collectionsRes.ok) {
-          const collectionsJson = await collectionsRes.json();
-          const items = (collectionsJson.collections || []) as any[];
-          const parsed = items.map((v) => ({
-            id: String(v.id),
-            title: v.title,
-            cover: v.cover,
-          }));
-          setAllCollections(parsed);
-        }
+        // Refresh games and collections via context
+        await Promise.all([
+          refreshLibraryGames(),
+          refreshCollections(),
+        ]);
 
         // Emit custom event to notify pages to reload their data
         window.dispatchEvent(new CustomEvent("metadataReloaded"));
@@ -269,92 +134,16 @@ function AppContent() {
     loadSettings();
   }, [authLoading, i18n]);
 
-  // Listen for game events to update allGames
-  useGameEvents({ 
-    setGames: setAllGames as React.Dispatch<React.SetStateAction<GameItem[]>>,
-    enabledEvents: ["gameUpdated", "gameDeleted", "gameAdded"]
-  });
+  // Game and collection events are now handled by their respective contexts, no need to listen here
 
-  // Listen for collection addition events to update allCollections
-  useEffect(() => {
-    const handleCollectionAdded = (event: Event) => {
-      const customEvent = event as CustomEvent<{ collection: CollectionItem }>;
-      const addedCollection = customEvent.detail?.collection;
-      if (addedCollection) {
-        setAllCollections((prev: CollectionItem[]) => {
-          // Ensure id is a string
-          const collectionToAdd: CollectionItem = {
-            ...addedCollection,
-            id: String(addedCollection.id),
-          };
-          
-          // Check if collection already exists (avoid duplicates)
-          const existingIndex = prev.findIndex((c) => String(c.id) === String(collectionToAdd.id));
-          if (existingIndex >= 0) {
-            // Update existing collection
-            const updated = [...prev];
-            updated[existingIndex] = collectionToAdd;
-            return updated;
-          } else {
-            // Add new collection
-            return [...prev, collectionToAdd];
-          }
-        });
-      }
-    };
-
-    window.addEventListener("collectionAdded", handleCollectionAdded as EventListener);
-    return () => {
-      window.removeEventListener("collectionAdded", handleCollectionAdded as EventListener);
-    };
-  }, []);
-
-  // Listen for collection update events to update allCollections
-  useEffect(() => {
-    const handleCollectionUpdated = (event: Event) => {
-      const customEvent = event as CustomEvent<{ collection: CollectionItem }>;
-      const updatedCollection = customEvent.detail?.collection;
-      if (updatedCollection) {
-        setAllCollections((prev: CollectionItem[]) =>
-          prev.map((collection: CollectionItem) =>
-            String(collection.id) === String(updatedCollection.id) ? updatedCollection : collection
-          )
-        );
-      }
-    };
-
-    window.addEventListener("collectionUpdated", handleCollectionUpdated as EventListener);
-    return () => {
-      window.removeEventListener("collectionUpdated", handleCollectionUpdated as EventListener);
-    };
-  }, []);
-
-  // Listen for collection deletion events to update allCollections
-  useEffect(() => {
-    const handleCollectionDeleted = (event: Event) => {
-      const customEvent = event as CustomEvent<{ collectionId: string }>;
-      const deletedCollectionId = customEvent.detail?.collectionId;
-      if (deletedCollectionId) {
-        setAllCollections((prev: CollectionItem[]) =>
-          prev.filter((collection: CollectionItem) => String(collection.id) !== String(deletedCollectionId))
-        );
-      }
-    };
-
-    window.addEventListener("collectionDeleted", handleCollectionDeleted as EventListener);
-    return () => {
-      window.removeEventListener("collectionDeleted", handleCollectionDeleted as EventListener);
-    };
-  }, []);
-
-  async function openLauncher(item: GameItem | CollectionItem) {
+  async function openLauncher(item: GameItem | CollectionItem, executableName?: string) {
     setIsLaunching(true);
     setLaunchError(null);
     
     try {
       let gameId = item.id;
       
-      // If it's a collection, get the first game with command from the collection
+      // If it's a collection, get the first game with executables from the collection
       const isCollection = allCollections.some(c => c.id === item.id);
       if (isCollection) {
         try {
@@ -365,10 +154,10 @@ function AppContent() {
           if (gamesRes.ok) {
             const gamesJson = await gamesRes.json();
             const games = gamesJson.games || [];
-            // Find the first game that has a command
-            const gameWithCommand = games.find((g: any) => !!g.command);
-            if (gameWithCommand) {
-              gameId = gameWithCommand.id;
+            // Find the first game that has executables
+            const gameWithExecutables = games.find((g: any) => g.executables && g.executables.length > 0);
+            if (gameWithExecutables) {
+              gameId = gameWithExecutables.id;
             } else {
               setIsLaunching(false);
               setLaunchError("No game with executable found in collection");
@@ -386,10 +175,14 @@ function AppContent() {
         }
       }
       
-      const launchUrl = buildApiUrlWithBase(`/launcher`, {
+      const launchParams: Record<string, string | number | boolean> = {
         gameId: gameId,
         token: getApiToken(),
-      });
+      };
+      if (executableName) {
+        launchParams.executableName = executableName;
+      }
+      const launchUrl = buildApiUrlWithBase(`/launcher`, launchParams);
       const res = await fetch(launchUrl, {
         headers: buildApiHeaders({ Accept: "application/json" }),
       });
@@ -448,20 +241,8 @@ function AppContent() {
                 <HomePage
                   onGameClick={handleGameClick}
                   onPlay={openLauncher}
-                  onGamesLoaded={(games) => {
-                    setAllGames((prev: GameItem[]) => {
-                      // Deduplicate games array first
-                      const uniqueGames = Array.from(
-                        new Map(games.map((g) => [String(g.id), g])).values()
-                      );
-                      const existingIds = new Set(
-                        prev.map((g: GameItem) => String(g.id))
-                      );
-                      const newGames = uniqueGames.filter(
-                        (g: GameItem) => !existingIds.has(String(g.id))
-                      );
-                      return [...prev, ...newGames];
-                    });
+                  onGamesLoaded={() => {
+                    // Games are now managed by LibraryGamesContext, no need to update here
                   }}
                   onReloadMetadata={handleReloadAllMetadata}
                   allCollections={allCollections}
@@ -501,20 +282,8 @@ function AppContent() {
                 />
                 <CollectionDetail
                   onGameClick={handleGameClick}
-                  onGamesLoaded={(games) => {
-                    setAllGames((prev: GameItem[]) => {
-                      // Deduplicate games array first
-                      const uniqueGames = Array.from(
-                        new Map(games.map((g) => [String(g.id), g])).values()
-                      );
-                      const existingIds = new Set(
-                        prev.map((g: GameItem) => String(g.id))
-                      );
-                      const newGames = uniqueGames.filter(
-                        (g: GameItem) => !existingIds.has(String(g.id))
-                      );
-                      return [...prev, ...newGames];
-                    });
+                  onGamesLoaded={() => {
+                    // Games are now managed by LibraryGamesContext, no need to update here
                   }}
                   onPlay={openLauncher}
                   allCollections={allCollections}
@@ -537,20 +306,8 @@ function AppContent() {
                 />
                 <CategoryPage
                   onGameClick={handleGameClick}
-                  onGamesLoaded={(games) => {
-                    setAllGames((prev: GameItem[]) => {
-                      // Deduplicate games array first
-                      const uniqueGames = Array.from(
-                        new Map(games.map((g) => [String(g.id), g])).values()
-                      );
-                      const existingIds = new Set(
-                        prev.map((g: GameItem) => String(g.id))
-                      );
-                      const newGames = uniqueGames.filter(
-                        (g: GameItem) => !existingIds.has(String(g.id))
-                      );
-                      return [...prev, ...newGames];
-                    });
+                  onGamesLoaded={() => {
+                    // Games are now managed by LibraryGamesContext, no need to update here
                   }}
                   onPlay={openLauncher}
                   allCollections={allCollections}
@@ -682,6 +439,8 @@ function GameDetailPage({
   const { gameId } = useParams<{ gameId: string }>();
   const [game, setGame] = useState<GameItem | null>(null);
   const isDeletingLocallyRef = useRef(false);
+  const fetchingGameRef = useRef<boolean>(false);
+  const lastGameIdRef = useRef<string | undefined>(undefined);
 
   // Listen for game deletion events - if the current game is deleted from elsewhere, navigate back
   useEffect(() => {
@@ -706,13 +465,21 @@ function GameDetailPage({
   }, [game]);
 
   useEffect(() => {
-    if (gameId) {
+    if (gameId && gameId !== lastGameIdRef.current) {
+      lastGameIdRef.current = gameId;
+      fetchingGameRef.current = false; // Reset flag when gameId changes
       // Always fetch from API to get background field
       fetchGame(gameId);
     }
   }, [gameId]);
 
   async function fetchGame(gameId: string) {
+    // Prevent multiple simultaneous calls for the same game
+    if (fetchingGameRef.current) {
+      return;
+    }
+    
+    fetchingGameRef.current = true;
     setLoading(true);
     try {
       // Fetch single game from dedicated endpoint
@@ -743,7 +510,7 @@ function GameDetailPage({
         genre: found.genre,
         criticratings: found.criticratings,
         userratings: found.userratings,
-        command: found.command || null,
+        executables: found.executables || null,
         themes: found.themes || null,
         platforms: found.platforms || null,
         gameModes: found.gameModes || null,
@@ -768,6 +535,7 @@ function GameDetailPage({
       setGame(null);
     } finally {
       setLoading(false);
+      fetchingGameRef.current = false; // Reset flag when done
     }
   }
 

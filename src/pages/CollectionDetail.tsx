@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useGameEvents } from "../hooks/useGameEvents";
 import { useLoading } from "../contexts/LoadingContext";
+import { useCollections } from "../contexts/CollectionsContext";
 import GamesList from "../components/games/GamesList";
 import Cover from "../components/games/Cover";
 import LibrariesBar from "../components/layout/LibrariesBar";
@@ -34,6 +35,7 @@ export default function CollectionDetail({
 }: CollectionDetailProps) {
   const { t } = useTranslation();
   const { setLoading, isLoading } = useLoading();
+  const { collections: allCollectionsFromContext } = useCollections();
   const { collectionId } = useParams<{ collectionId: string }>();
   const [collection, setCollection] = useState<CollectionInfo | null>(null);
   const [games, setGames] = useState<GameItem[]>([]);
@@ -47,6 +49,8 @@ export default function CollectionDetail({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const fetchingGamesRef = useRef<boolean>(false);
+  const lastCollectionIdRef = useRef<string | undefined>(undefined);
   
   // Restore scroll position
   useScrollRestoration(scrollContainerRef);
@@ -57,20 +61,59 @@ export default function CollectionDetail({
     localStorage.setItem("coverSize", size.toString());
   };
 
+  // Load collection info when collectionId changes
   useEffect(() => {
-    if (collectionId) {
-      fetchCollectionInfo(collectionId);
-      fetchCollectionGames(collectionId);
+    if (collectionId && collectionId !== lastCollectionIdRef.current) {
+      lastCollectionIdRef.current = collectionId;
+      fetchingGamesRef.current = false; // Reset flag when collectionId changes
+      
+      // First check if collection is already in context
+      const foundInContext = allCollectionsFromContext.find((c) => String(c.id) === String(collectionId));
+      if (foundInContext) {
+        // Use data from context (no API call needed)
+        setCollection({
+          id: String(foundInContext.id),
+          title: foundInContext.title,
+          summary: foundInContext.summary,
+          cover: foundInContext.cover,
+          background: foundInContext.background,
+        });
+      } else {
+        // Not in context, fetch from API
+        fetchCollectionInfo(collectionId);
+      }
+      
+      // Only fetch games if not already fetching
+      if (!fetchingGamesRef.current) {
+        fetchCollectionGames(collectionId);
+      }
     }
-  }, [collectionId]);
+  }, [collectionId]); // Only depend on collectionId to avoid re-triggering when context updates
+
+  // Update collection from context when it becomes available (if not already set)
+  useEffect(() => {
+    if (collectionId && !collection) {
+      const foundInContext = allCollectionsFromContext.find((c) => String(c.id) === String(collectionId));
+      if (foundInContext) {
+        setCollection({
+          id: String(foundInContext.id),
+          title: foundInContext.title,
+          summary: foundInContext.summary,
+          cover: foundInContext.cover,
+          background: foundInContext.background,
+        });
+      }
+    }
+  }, [allCollectionsFromContext, collectionId, collection]);
 
   // Listen for game events to update local games list
   useGameEvents({ setGames, enabledEvents: ["gameUpdated", "gameDeleted"] });
 
   // Hide content until fully rendered
   useLayoutEffect(() => {
-    if (!isLoading && collection && games.length > 0) {
+    if (!isLoading && collection) {
       // Wait for next frame to ensure DOM is ready
+      // isReady should be true even if there are no games
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setIsReady(true);
@@ -104,19 +147,8 @@ export default function CollectionDetail({
         return;
       }
       
-      // Fallback: fetch from list and find by ID (normalize comparison)
-      const url = buildApiUrl(API_BASE, "/collections");
-      const res = await fetch(url, {
-        headers: {
-          Accept: "application/json",
-          "X-Auth-Token": getApiToken(),
-        },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      const collections = (json.collections || []) as any[];
-      // Normalize both IDs to string for comparison
-      const found = collections.find((c) => String(c.id) === String(collectionId));
+      // Fallback: search in CollectionsContext
+      const found = allCollectionsFromContext.find((c) => String(c.id) === String(collectionId));
       if (found) {
         setCollection({
           id: String(found.id),
@@ -133,6 +165,12 @@ export default function CollectionDetail({
   }
 
   async function fetchCollectionGames(collectionId: string) {
+    // Prevent multiple simultaneous calls for the same collection
+    if (fetchingGamesRef.current) {
+      return;
+    }
+    
+    fetchingGamesRef.current = true;
     setLoading(true);
     try {
       const url = buildApiUrl(API_BASE, `/collections/${collectionId}/games`);
@@ -155,7 +193,7 @@ export default function CollectionDetail({
         month: v.month,
         year: v.year,
         stars: v.stars,
-        command: v.command || null,
+        executables: v.executables || null,
         themes: v.themes || null,
         platforms: v.platforms || null,
         gameModes: v.gameModes || null,
@@ -206,6 +244,7 @@ export default function CollectionDetail({
       console.error("Error fetching collection games:", errorMessage);
     } finally {
       setLoading(false);
+      fetchingGamesRef.current = false; // Reset flag when done
     }
   }
 
@@ -532,14 +571,14 @@ function CollectionDetailContent({
                     width={collectionCoverWidth}
                     height={collectionCoverHeight}
                     onPlay={onPlay && sortedGames.length > 0 ? () => {
-                      const gameWithCommand = sortedGames.find((g) => !!g.command);
-                      if (gameWithCommand) {
-                        onPlay(gameWithCommand);
+                      const gameWithExecutables = sortedGames.find((g) => g.executables && g.executables.length > 0);
+                      if (gameWithExecutables) {
+                        onPlay(gameWithExecutables);
                       }
                     } : undefined}
                     showTitle={false}
                     detail={false}
-                    play={sortedGames.some((g) => !!g.command)}
+                    play={sortedGames.some((g) => g.executables && g.executables.length > 0)}
                     showBorder={true}
                   />
                 </div>
@@ -576,13 +615,13 @@ function CollectionDetailContent({
                     )}
                     {(onPlay && sortedGames.length > 0) || collection ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px' }}>
-                        {onPlay && sortedGames.length > 0 && sortedGames.some((g) => !!g.command) && (
+                        {onPlay && sortedGames.length > 0 && sortedGames.some((g) => g.executables && g.executables.length > 0) && (
                           <button
                             onClick={() => {
-                              // Play first game with command in collection
-                              const gameWithCommand = sortedGames.find((g) => !!g.command);
-                              if (gameWithCommand) {
-                                onPlay(gameWithCommand);
+                              // Play first game with executables in collection
+                              const gameWithExecutables = sortedGames.find((g) => g.executables && g.executables.length > 0);
+                              if (gameWithExecutables) {
+                                onPlay(gameWithExecutables);
                               }
                             }}
                             style={{
@@ -648,7 +687,6 @@ function CollectionDetailContent({
                         )}
                         {collection && (
                           <DropdownMenu
-                            onEdit={onEditModalOpen}
                             collectionId={collection.id}
                             collectionTitle={collection.title}
                             onCollectionDelete={(collectionId: string) => {

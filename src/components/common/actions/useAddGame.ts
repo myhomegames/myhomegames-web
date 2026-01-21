@@ -103,7 +103,7 @@ export function useAddGame({
         genre: json.game?.genre || igdbGame.genres || null,
         criticratings: json.game?.criticratings || (igdbGame.criticRating ? igdbGame.criticRating / 10 : null),
         userratings: json.game?.userratings || (igdbGame.userRating ? igdbGame.userRating / 10 : null),
-        command: json.game?.command || null,
+        executables: json.game?.executables || null,
         themes: json.game?.themes || igdbGame.themes || null,
         platforms: json.game?.platforms || igdbGame.platforms || null,
         gameModes: json.game?.gameModes || igdbGame.gameModes || null,

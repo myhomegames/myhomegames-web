@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { API_BASE, getApiToken } from "../../../config";
 import { buildApiUrl } from "../../../utils/api";
 import { useLoading } from "../../../contexts/LoadingContext";
+import { useCollections } from "../../../contexts/CollectionsContext";
 
 type UseRemoveGameFromCollectionParams = {
   onSuccess?: () => void;
@@ -20,6 +21,7 @@ export function useRemoveGameFromCollection({
 }: UseRemoveGameFromCollectionParams = {}): UseRemoveGameFromCollectionReturn {
   const { t } = useTranslation();
   const { setLoading } = useLoading();
+  const { removeGameFromCollectionCache } = useCollections();
   const [isRemoving, setIsRemoving] = useState(false);
 
   const removeGameFromCollection = async (gameId: string, collectionId: string) => {
@@ -67,6 +69,14 @@ export function useRemoveGameFromCollection({
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || `Failed to remove game from collection: ${response.status}`);
       }
+
+      // Update cache immediately so the filter works right away
+      removeGameFromCollectionCache(collectionId, String(gameId));
+
+      // Emit event to notify that collection was updated (gameCount changed)
+      window.dispatchEvent(new CustomEvent("collectionUpdated", { 
+        detail: { collectionId } 
+      }));
 
       onSuccess?.();
     } catch (error: any) {

@@ -216,7 +216,7 @@ function IGDBGameDetailContent({
         genre: validGenres,
         criticratings: game.criticRating || null,
         userratings: game.userRating || null,
-        command: null,
+        executables: null,
       }
     : null;
 

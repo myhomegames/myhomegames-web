@@ -119,9 +119,13 @@ export default function SettingsPage() {
       // Update initial values to reflect saved state
       setInitialTwitchClientId(twitchClientId.trim());
       setInitialTwitchClientSecret(twitchClientSecret.trim());
+      
+      // Redirect to server URL which will redirect to frontend
+      // This allows the browser to accept the certificate during the redirect
+      const serverUrl = API_BASE.replace(/\/$/, ''); // Remove trailing slash
+      window.location.href = serverUrl;
     } catch (err) {
       console.error("Failed to save Twitch credentials:", err);
-    } finally {
       setSavingTwitch(false);
     }
   }

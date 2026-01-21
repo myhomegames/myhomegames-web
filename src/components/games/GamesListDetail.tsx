@@ -5,12 +5,16 @@ import Cover from "./Cover";
 import EditGameModal from "./EditGameModal";
 import DropdownMenu from "../common/DropdownMenu";
 import AddToCollectionDropdown from "./AddToCollectionDropdown";
+import AdditionalExecutablesDropdown from "./AdditionalExecutablesDropdown";
 import StarRating from "../common/StarRating";
 import Summary from "../common/Summary";
 import { useEditGame } from "../common/actions";
+import VirtualizedGamesListDetail from "./VirtualizedGamesListDetail";
 import type { GameItem, CollectionItem } from "../../types";
 import { formatGameDate } from "../../utils/date";
 import "./GamesListDetail.css";
+
+const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are more than this many items
 
 type GamesListDetailProps = {
   games: GameItem[];
@@ -21,6 +25,7 @@ type GamesListDetailProps = {
   buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean) => string;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
   allCollections?: CollectionItem[];
+  scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
 };
 
 const FIXED_COVER_SIZE = 100; // Fixed size corresponding to minimum slider position
@@ -38,7 +43,7 @@ type GameDetailItemProps = {
   allCollections?: CollectionItem[];
 };
 
-function GameDetailItem({
+export function GameDetailItem({
   game,
   onGameClick,
   onPlay,
@@ -73,7 +78,6 @@ function GameDetailItem({
 
   return (
     <div
-      key={`${game.id}-${game.title}`}
       ref={(el) => {
         if (el && itemRefs?.current) {
           itemRefs.current.set(game.id, el);
@@ -93,7 +97,7 @@ function GameDetailItem({
         onPlay={onPlay ? () => onPlay(game) : undefined}
         showTitle={false}
         detail={false}
-        play={!!game.command}
+        play={!!(game.executables && game.executables.length > 0)}
         showBorder={false}
       />
       <div className="games-list-detail-content">
@@ -140,9 +144,21 @@ function GameDetailItem({
           game={game}
           allCollections={allCollections}
         />
+        {game.executables && game.executables.length > 1 && onPlay && (
+          <AdditionalExecutablesDropdown
+            gameId={game.id}
+            gameExecutables={game.executables}
+            onPlayExecutable={(executableName: string) => {
+              if (onPlay) {
+                (onPlay as any)(game, executableName);
+              }
+            }}
+          />
+        )}
         <DropdownMenu
           gameId={game.id}
           gameTitle={game.title}
+          gameExecutables={game.executables}
           onAddToCollection={() => {}}
           onGameDelete={onGameDelete ? (gameId: string) => {
             if (game.id === gameId) {
@@ -170,12 +186,17 @@ export default function GamesListDetail({
   buildCoverUrl,
   itemRefs,
   allCollections = [],
+  scrollContainerRef,
 }: GamesListDetailProps) {
   const { t } = useTranslation();
   const editGame = useEditGame();
   
   if (games.length === 0) {
-    return <div className="text-gray-400 text-center">{t("table.noGames")}</div>;
+    return (
+      <div className="centered-content h-full min-h-[400px]">
+        <div className="text-gray-400 text-center">{t("table.noGames")}</div>
+      </div>
+    );
   }
 
   const handleGameUpdate = (updatedGame: GameItem) => {
@@ -185,24 +206,49 @@ export default function GamesListDetail({
     editGame.closeEditModal();
   };
 
+  // Use virtual scrolling for large lists
+  const useVirtualization = games.length > VIRTUALIZATION_THRESHOLD;
+  const containerRef = useRef<HTMLDivElement>(null);
+
   return (
     <>
-      <div className="games-list-detail-container">
-        {games.map((game, index) => (
-          <GameDetailItem
-            key={`${game.id}-${game.title}`}
-            game={game}
+      <div 
+        ref={containerRef}
+        className="games-list-detail-container"
+        style={{
+          height: useVirtualization ? "100%" : undefined,
+        }}
+      >
+        {useVirtualization ? (
+          <VirtualizedGamesListDetail
+            games={games}
+            containerRef={scrollContainerRef || containerRef}
+            itemRefs={itemRefs}
             onGameClick={onGameClick}
             onPlay={onPlay}
             onEditClick={editGame.openEditModal}
             onGameDelete={onGameDelete}
             onGameUpdate={onGameUpdate}
             buildCoverUrl={buildCoverUrl}
-            itemRefs={itemRefs}
-            index={index}
             allCollections={allCollections}
           />
-        ))}
+        ) : (
+          games.map((game, index) => (
+            <GameDetailItem
+              key={game.id}
+              game={game}
+              onGameClick={onGameClick}
+              onPlay={onPlay}
+              onEditClick={editGame.openEditModal}
+              onGameDelete={onGameDelete}
+              onGameUpdate={onGameUpdate}
+              buildCoverUrl={buildCoverUrl}
+              itemRefs={itemRefs}
+              index={index}
+              allCollections={allCollections}
+            />
+          ))
+        )}
       </div>
       {editGame.selectedGame && (
         <EditGameModal

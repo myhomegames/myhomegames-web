@@ -42,7 +42,7 @@ export default function EditCollectionModal({
 
   // Memoize cover and background URLs with timestamp when modal opens
   const coverUrlWithTimestamp = useMemo(() => {
-    if (!collection?.cover) return "";
+    if (!collection?.cover || collection.cover.trim() === "") return "";
     // Remove any existing timestamp from the URL
     const baseUrl = collection.cover.split('?')[0].split('&')[0];
     if (baseUrl.startsWith("http")) {
@@ -54,7 +54,7 @@ export default function EditCollectionModal({
   }, [collection?.cover, imageTimestamp]);
 
   const backgroundUrlWithTimestamp = useMemo(() => {
-    if (!collection?.background) return "";
+    if (!collection?.background || collection.background.trim() === "") return "";
     // Remove any existing timestamp from the URL
     const baseUrl = collection.background.split('?')[0].split('&')[0];
     if (baseUrl.startsWith("http")) {
