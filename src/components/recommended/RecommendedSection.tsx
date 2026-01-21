@@ -1,5 +1,4 @@
 import { useRef, useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
 import GamesList from "../games/GamesList";
 import RecommendedSectionNav from "./RecommendedSectionNav";
@@ -45,7 +44,6 @@ export default function RecommendedSection({
   coverSize,
   allCollections = [],
 }: RecommendedSectionProps) {
-  const { t, i18n } = useTranslation();
   const location = useLocation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const storageKey = `${location.pathname}:${sectionId}`;
