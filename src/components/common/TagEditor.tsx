@@ -11,6 +11,10 @@ type TagEditorProps = {
   onTagsChange: (tags: string[]) => void;
   disabled?: boolean;
   placeholder?: string;
+  mode?: "categories" | "freeform";
+  availableTags?: string[];
+  getDisplayName?: (tag: string) => string;
+  allowCreate?: boolean;
 };
 
 export default function TagEditor({
@@ -18,14 +22,20 @@ export default function TagEditor({
   onTagsChange,
   disabled = false,
   placeholder,
+  mode = "categories",
+  availableTags,
+  getDisplayName,
+  allowCreate = true,
 }: TagEditorProps) {
   const { t } = useTranslation();
   const { setLoading } = useLoading();
   const { categories: availableCategories, addCategory } = useCategories();
   const [tagSearch, setTagSearch] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const isCategoryMode = mode === "categories";
 
   async function createCategory(title: string): Promise<string | null> {
+    if (!isCategoryMode) return null;
     try {
       setLoading(true);
       setIsCreating(true);
@@ -78,11 +88,12 @@ export default function TagEditor({
   const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && tagSearch.trim() && !isCreating) {
       e.preventDefault();
-      const searchTerm = tagSearch.trim().toLowerCase();
-      
-      // First, try to find existing category
-      const category = availableCategories.find(
-        (c) => {
+      const rawSearch = tagSearch.trim();
+      const searchTerm = rawSearch.toLowerCase();
+
+      if (isCategoryMode) {
+        // First, try to find existing category
+        const category = availableCategories.find((c) => {
           const categoryTitle = c.title.toLowerCase();
           const translatedName = t(`genre.${c.title}`, c.title).toLowerCase();
           return (
@@ -90,57 +101,70 @@ export default function TagEditor({
             translatedName === searchTerm ||
             translatedName.includes(searchTerm)
           );
+        });
+
+        if (category && !selectedTags.includes(category.title)) {
+          handleAddTag(category.title);
+          return;
         }
-      );
-      
-      if (category && !selectedTags.includes(category.title)) {
-        handleAddTag(category.title);
-        return;
-      }
-      
-      // If not found, create new category
-      const newCategory = await createCategory(tagSearch.trim());
-      if (newCategory && !selectedTags.includes(newCategory)) {
-        handleAddTag(newCategory);
+
+        // If not found, create new category
+        const newCategory = await createCategory(rawSearch);
+        if (newCategory && !selectedTags.includes(newCategory)) {
+          handleAddTag(newCategory);
+        }
+      } else {
+        const tagOptions = availableTags || [];
+        const matchingTag = tagOptions.find((tag) => tag.toLowerCase() === searchTerm);
+        if (matchingTag && !selectedTags.includes(matchingTag)) {
+          handleAddTag(matchingTag);
+          return;
+        }
+
+        if (allowCreate) {
+          handleAddTag(rawSearch);
+        }
       }
     }
   };
 
-  const filteredSuggestions = availableCategories.filter(
-    (c) => {
-      if (selectedTags.includes(c.title)) return false;
-      const searchTerm = tagSearch.toLowerCase();
-      const categoryTitle = c.title.toLowerCase();
-      const translatedName = t(`genre.${c.title}`, c.title).toLowerCase();
-      return (
-        categoryTitle.includes(searchTerm) ||
-        translatedName.includes(searchTerm)
-      );
+  const tagOptions = isCategoryMode
+    ? availableCategories.map((category) => category.title)
+    : availableTags || [];
+  const getTagDisplayName = (tag: string) => {
+    if (isCategoryMode) {
+      return t(`genre.${tag}`, tag);
     }
-  );
+    return getDisplayName ? getDisplayName(tag) : tag;
+  };
+  const filteredSuggestions = tagOptions.filter((tag) => {
+    if (selectedTags.includes(tag)) return false;
+    const searchTerm = tagSearch.toLowerCase();
+    if (!searchTerm) return false;
+    if (isCategoryMode) {
+      const translatedName = t(`genre.${tag}`, tag).toLowerCase();
+      return tag.toLowerCase().includes(searchTerm) || translatedName.includes(searchTerm);
+    }
+    const displayName = getTagDisplayName(tag).toLowerCase();
+    return tag.toLowerCase().includes(searchTerm) || displayName.includes(searchTerm);
+  });
 
   return (
     <div className="tag-editor-container">
       <div className="tag-editor-tags">
-        {selectedTags.map((tagId) => {
-          const category = availableCategories.find((c) => c.title === tagId);
-          const displayName = category
-            ? t(`genre.${category.title}`, category.title)
-            : tagId;
-          return (
-            <span key={tagId} className="tag-editor-tag">
-              {displayName}
-              <button
-                type="button"
-                className="tag-editor-tag-remove"
-                onClick={() => handleRemoveTag(tagId)}
-                disabled={disabled}
-              >
-                ×
-              </button>
-            </span>
-          );
-        })}
+        {selectedTags.map((tagId) => (
+          <span key={tagId} className="tag-editor-tag">
+            {getTagDisplayName(tagId)}
+            <button
+              type="button"
+              className="tag-editor-tag-remove"
+              onClick={() => handleRemoveTag(tagId)}
+              disabled={disabled}
+            >
+              ×
+            </button>
+          </span>
+        ))}
         <input
           id="tag-editor-input"
           name="tag"
@@ -149,21 +173,21 @@ export default function TagEditor({
           onChange={(e) => setTagSearch(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={disabled}
-          placeholder={placeholder || t("gameDetail.addGenre", "Add genre...")}
+          placeholder={placeholder || t("gameDetail.addTag", "Add tag...")}
           className="tag-editor-input"
         />
       </div>
       {tagSearch && filteredSuggestions.length > 0 && (
         <div className="tag-editor-suggestions">
-          {filteredSuggestions.slice(0, 5).map((category) => (
+          {filteredSuggestions.slice(0, 5).map((tag) => (
             <button
-              key={category.id}
+              key={tag}
               type="button"
               className="tag-editor-suggestion"
-              onClick={() => handleAddTag(category.title)}
+              onClick={() => handleAddTag(tag)}
               disabled={disabled}
             >
-              {t(`genre.${category.title}`, category.title)}
+              {getTagDisplayName(tag)}
             </button>
           ))}
         </div>

@@ -3,8 +3,7 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { API_BASE, API_TOKEN, getApiToken } from "../../config";
 import { useLoading } from "../../contexts/LoadingContext";
-import TagEditor from "../common/TagEditor";
-import Cover from "./Cover";
+import { EditGameInfoTab, EditGameMediaTab, EditGameTagsTab } from "./edit";
 import type { GameItem } from "../../types";
 import { buildApiUrl } from "../../utils/api";
 import "./EditGameModal.css";
@@ -32,13 +31,37 @@ export default function EditGameModal({
   const [selectedGenres, setSelectedGenres] = useState<string[]>(
     Array.isArray(game.genre) ? game.genre : game.genre ? [game.genre] : []
   );
+  const [selectedThemes, setSelectedThemes] = useState<string[]>(
+    Array.isArray(game.themes) ? game.themes : []
+  );
+  const [selectedKeywords, setSelectedKeywords] = useState<string[]>(
+    Array.isArray(game.keywords) ? game.keywords : []
+  );
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(
+    Array.isArray(game.platforms) ? game.platforms : []
+  );
+  const [selectedGameModes, setSelectedGameModes] = useState<string[]>(
+    Array.isArray(game.gameModes) ? game.gameModes : []
+  );
+  const [selectedPublishers, setSelectedPublishers] = useState<string[]>(
+    Array.isArray(game.publishers) ? game.publishers : []
+  );
+  const [selectedDevelopers, setSelectedDevelopers] = useState<string[]>(
+    Array.isArray(game.developers) ? game.developers : []
+  );
+  const [selectedPlayerPerspectives, setSelectedPlayerPerspectives] = useState<string[]>(
+    Array.isArray(game.playerPerspectives) ? game.playerPerspectives : []
+  );
+  const [selectedGameEngines, setSelectedGameEngines] = useState<string[]>(
+    Array.isArray(game.gameEngines) ? game.gameEngines : []
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"INFO" | "MEDIA">("INFO");
+  const [activeTab, setActiveTab] = useState<"INFO" | "TAGS" | "MEDIA">("INFO");
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingBackground, setUploadingBackground] = useState(false);
-  const coverInputRef = useRef<HTMLInputElement>(null);
-  const backgroundInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement | null>(null);
+  const backgroundInputRef = useRef<HTMLInputElement | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [backgroundPreview, setBackgroundPreview] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -85,6 +108,16 @@ export default function EditGameModal({
       setSelectedGenres(
         Array.isArray(game.genre) ? game.genre : game.genre ? [game.genre] : []
       );
+      setSelectedThemes(Array.isArray(game.themes) ? game.themes : []);
+      setSelectedKeywords(Array.isArray(game.keywords) ? game.keywords : []);
+      setSelectedPlatforms(Array.isArray(game.platforms) ? game.platforms : []);
+      setSelectedGameModes(Array.isArray(game.gameModes) ? game.gameModes : []);
+      setSelectedPublishers(Array.isArray(game.publishers) ? game.publishers : []);
+      setSelectedDevelopers(Array.isArray(game.developers) ? game.developers : []);
+      setSelectedPlayerPerspectives(
+        Array.isArray(game.playerPerspectives) ? game.playerPerspectives : []
+      );
+      setSelectedGameEngines(Array.isArray(game.gameEngines) ? game.gameEngines : []);
       setError(null);
       setActiveTab("INFO");
       setCoverPreview(null);
@@ -135,6 +168,16 @@ export default function EditGameModal({
     };
   }, [isOpen, onClose]);
 
+  const areTagsEqual = (left: string[], right: string[]) => {
+    if (left.length !== right.length) return false;
+    const sortedLeft = [...left].sort();
+    const sortedRight = [...right].sort();
+    return sortedLeft.every((tag, index) => tag === sortedRight[index]);
+  };
+
+  const normalizeTagArray = (tags?: string[] | null) =>
+    Array.isArray(tags) ? tags : [];
+
   // Check if there are any changes
   const hasChanges = () => {
     if (title !== game.title) return true;
@@ -149,10 +192,31 @@ export default function EditGameModal({
       : game.genre
       ? [game.genre]
       : [];
-    if (
-      JSON.stringify(selectedGenres.sort()) !==
-      JSON.stringify(currentGenre.sort())
-    ) {
+    if (!areTagsEqual(selectedGenres, currentGenre)) {
+      return true;
+    }
+    if (!areTagsEqual(selectedThemes, normalizeTagArray(game.themes))) {
+      return true;
+    }
+    if (!areTagsEqual(selectedKeywords, normalizeTagArray(game.keywords))) {
+      return true;
+    }
+    if (!areTagsEqual(selectedPlatforms, normalizeTagArray(game.platforms))) {
+      return true;
+    }
+    if (!areTagsEqual(selectedGameModes, normalizeTagArray(game.gameModes))) {
+      return true;
+    }
+    if (!areTagsEqual(selectedPublishers, normalizeTagArray(game.publishers))) {
+      return true;
+    }
+    if (!areTagsEqual(selectedDevelopers, normalizeTagArray(game.developers))) {
+      return true;
+    }
+    if (!areTagsEqual(selectedPlayerPerspectives, normalizeTagArray(game.playerPerspectives))) {
+      return true;
+    }
+    if (!areTagsEqual(selectedGameEngines, normalizeTagArray(game.gameEngines))) {
       return true;
     }
 
@@ -331,11 +395,32 @@ export default function EditGameModal({
         : game.genre
         ? [game.genre]
         : [];
-      if (
-        JSON.stringify(selectedGenres.sort()) !==
-        JSON.stringify(currentGenre.sort())
-      ) {
+      if (!areTagsEqual(selectedGenres, currentGenre)) {
         updates.genre = selectedGenres.length === 1 ? selectedGenres[0] : selectedGenres;
+      }
+      if (!areTagsEqual(selectedThemes, normalizeTagArray(game.themes))) {
+        updates.themes = selectedThemes.length > 0 ? selectedThemes : [];
+      }
+      if (!areTagsEqual(selectedKeywords, normalizeTagArray(game.keywords))) {
+        updates.keywords = selectedKeywords.length > 0 ? selectedKeywords : [];
+      }
+      if (!areTagsEqual(selectedPlatforms, normalizeTagArray(game.platforms))) {
+        updates.platforms = selectedPlatforms.length > 0 ? selectedPlatforms : [];
+      }
+      if (!areTagsEqual(selectedGameModes, normalizeTagArray(game.gameModes))) {
+        updates.gameModes = selectedGameModes.length > 0 ? selectedGameModes : [];
+      }
+      if (!areTagsEqual(selectedPublishers, normalizeTagArray(game.publishers))) {
+        updates.publishers = selectedPublishers.length > 0 ? selectedPublishers : [];
+      }
+      if (!areTagsEqual(selectedDevelopers, normalizeTagArray(game.developers))) {
+        updates.developers = selectedDevelopers.length > 0 ? selectedDevelopers : [];
+      }
+      if (!areTagsEqual(selectedPlayerPerspectives, normalizeTagArray(game.playerPerspectives))) {
+        updates.playerPerspectives = selectedPlayerPerspectives.length > 0 ? selectedPlayerPerspectives : [];
+      }
+      if (!areTagsEqual(selectedGameEngines, normalizeTagArray(game.gameEngines))) {
+        updates.gameEngines = selectedGameEngines.length > 0 ? selectedGameEngines : [];
       }
 
       // Only make PUT request if there are updates (images were already uploaded)
@@ -625,6 +710,13 @@ export default function EditGameModal({
               {t("gameDetail.info", "INFO")}
             </button>
             <button
+              className={`edit-game-modal-tab ${activeTab === "TAGS" ? "active" : ""}`}
+              onClick={() => setActiveTab("TAGS")}
+              disabled={saving}
+            >
+              {t("gameDetail.tags", "TAGS")}
+            </button>
+            <button
               className={`edit-game-modal-tab ${activeTab === "MEDIA" ? "active" : ""}`}
               onClick={() => setActiveTab("MEDIA")}
               disabled={saving}
@@ -635,201 +727,72 @@ export default function EditGameModal({
 
           {/* INFO Tab */}
           {activeTab === "INFO" && (
-            <>
-              <div className="edit-game-modal-field">
-            <label htmlFor="edit-game-title">{t("gameDetail.title", "Title")}</label>
-            <input
-              id="edit-game-title"
-              name="title"
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              disabled={saving}
+            <EditGameInfoTab
+              t={t}
+              title={title}
+              summary={summary}
+              year={year}
+              month={month}
+              day={day}
+              saving={saving}
+              setTitle={setTitle}
+              setSummary={setSummary}
+              setYear={setYear}
+              setMonth={setMonth}
+              setDay={setDay}
             />
-          </div>
+          )}
 
-          <div className="edit-game-modal-field">
-            <label htmlFor="edit-game-summary">{t("gameDetail.summary", "Summary")}</label>
-            <textarea
-              id="edit-game-summary"
-              name="summary"
-              value={summary}
-              onChange={(e) => setSummary(e.target.value)}
-              disabled={saving}
-              rows={5}
+          {/* TAGS Tab */}
+          {activeTab === "TAGS" && (
+            <EditGameTagsTab
+              t={t}
+              isOpen={isOpen}
+              gameId={game.id}
+              selectedGenres={selectedGenres}
+              selectedThemes={selectedThemes}
+              selectedKeywords={selectedKeywords}
+              selectedPlatforms={selectedPlatforms}
+              selectedGameModes={selectedGameModes}
+              selectedPublishers={selectedPublishers}
+              selectedDevelopers={selectedDevelopers}
+              selectedPlayerPerspectives={selectedPlayerPerspectives}
+              selectedGameEngines={selectedGameEngines}
+              saving={saving}
+              setSelectedGenres={setSelectedGenres}
+              setSelectedThemes={setSelectedThemes}
+              setSelectedKeywords={setSelectedKeywords}
+              setSelectedPlatforms={setSelectedPlatforms}
+              setSelectedGameModes={setSelectedGameModes}
+              setSelectedPublishers={setSelectedPublishers}
+              setSelectedDevelopers={setSelectedDevelopers}
+              setSelectedPlayerPerspectives={setSelectedPlayerPerspectives}
+              setSelectedGameEngines={setSelectedGameEngines}
             />
-          </div>
-
-          <div className="edit-game-modal-row">
-            <div className="edit-game-modal-field">
-              <label htmlFor="edit-game-year">{t("gameDetail.year", "Year")}</label>
-              <input
-                id="edit-game-year"
-                name="year"
-                type="number"
-                value={year}
-                onChange={(e) => setYear(e.target.value)}
-                disabled={saving}
-                placeholder="YYYY"
-              />
-            </div>
-
-            <div className="edit-game-modal-field">
-              <label htmlFor="edit-game-month">{t("gameDetail.month", "Month")}</label>
-              <input
-                id="edit-game-month"
-                name="month"
-                type="number"
-                value={month}
-                onChange={(e) => setMonth(e.target.value)}
-                disabled={saving}
-                placeholder="MM"
-                min="1"
-                max="12"
-              />
-            </div>
-
-            <div className="edit-game-modal-field">
-              <label htmlFor="edit-game-day">{t("gameDetail.day", "Day")}</label>
-              <input
-                id="edit-game-day"
-                name="day"
-                type="number"
-                value={day}
-                onChange={(e) => setDay(e.target.value)}
-                disabled={saving}
-                placeholder="DD"
-                min="1"
-                max="31"
-              />
-            </div>
-          </div>
-
-          <div className="edit-game-modal-field">
-            <div className="edit-game-modal-label">{t("gameDetail.genre", "Genre")}</div>
-            {isOpen && (
-              <TagEditor
-                key={`tag-editor-${game.id}-${isOpen}`}
-                selectedTags={selectedGenres}
-                onTagsChange={setSelectedGenres}
-                disabled={saving}
-              />
-            )}
-          </div>
-            </>
           )}
 
           {/* MEDIA Tab */}
           {activeTab === "MEDIA" && (
-            <div className="edit-game-modal-media">
-              {/* Cover Section - First Row */}
-              <div className="edit-game-modal-media-row">
-                <div className="edit-game-modal-media-info">
-                  <div className="edit-game-modal-label">{t("gameDetail.cover", "Cover")}</div>
-                  <div className="edit-game-modal-media-description">
-                    {t("gameDetail.coverFormat", "Recommended format: WebP, ratio 2:3 (e.g., 400x600px)")}
-                  </div>
-                </div>
-                <div className="edit-game-modal-media-image-container">
-                  {(() => {
-                    // NEVER show IGDB images in edit modal - coverUrlWithTimestamp already filters them out
-                    const currentCoverUrl = coverRemoved ? "" : (coverPreview || coverUrlWithTimestamp);
-                    const hasCover = currentCoverUrl && currentCoverUrl.trim() !== "";
-                    // Check if cover is from IGDB (external URL) - don't show remove button for external images
-                    // Since we never show IGDB images, this is always false
-                    const isCoverFromIgdb = false;
-                    return (
-                      <>
-                        <Cover
-                          key={`cover-${coverRemoved ? 'removed' : coverPreview ? 'preview' : coverUrlWithTimestamp}`}
-                          title={game.title}
-                          coverUrl={currentCoverUrl}
-                          width={150}
-                          height={200}
-                          showTitle={false}
-                          detail={false}
-                          play={false}
-                          showBorder={true}
-                          aspectRatio="3/4"
-                          onUpload={() => !uploadingCover && !saving && coverInputRef.current?.click()}
-                          uploading={uploadingCover}
-                          showRemoveButton={!!hasCover && !coverRemoved && !isCoverFromIgdb}
-                          removeMediaType="cover"
-                          removeResourceId={game.id}
-                          removeResourceType="games"
-                          onGameUpdate={onGameUpdate}
-                          onRemoveSuccess={handleCoverRemoveSuccess}
-                          removeDisabled={saving || uploadingCover}
-                        />
-                        <input
-                          ref={coverInputRef}
-                          id="edit-game-cover-input"
-                          name="cover"
-                          type="file"
-                          accept="image/*"
-                          style={{ display: "none" }}
-                          onChange={handleCoverFileSelect}
-                        />
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-
-              {/* Background Section - Second Row */}
-              <div className="edit-game-modal-media-row">
-                <div className="edit-game-modal-media-info">
-                  <div className="edit-game-modal-label">{t("gameDetail.background", "Background")}</div>
-                  <div className="edit-game-modal-media-description">
-                    {t("gameDetail.backgroundFormat", "Recommended format: WebP, ratio 16:9 (e.g., 1920x1080px)")}
-                  </div>
-                </div>
-                <div className="edit-game-modal-media-image-container">
-                  {(() => {
-                    // NEVER show IGDB images in edit modal - backgroundUrlWithTimestamp already filters them out
-                    const currentBackgroundUrl = backgroundRemoved ? "" : (backgroundPreview || backgroundUrlWithTimestamp);
-                    const hasBackground = currentBackgroundUrl && currentBackgroundUrl.trim() !== "";
-                    // Check if background is from IGDB (external URL) - don't show remove button for external images
-                    // Since we never show IGDB images, this is always false
-                    const isBackgroundFromIgdb = false;
-                    return (
-                      <>
-                        <Cover
-                          key={`background-${backgroundRemoved ? 'removed' : backgroundPreview ? 'preview' : backgroundUrlWithTimestamp}`}
-                          title={game.title}
-                          coverUrl={currentBackgroundUrl}
-                          width={300}
-                          height={169}
-                          showTitle={false}
-                          detail={false}
-                          play={false}
-                          showBorder={true}
-                          aspectRatio="16/9"
-                          onUpload={() => !uploadingBackground && !saving && backgroundInputRef.current?.click()}
-                          uploading={uploadingBackground}
-                          showRemoveButton={!!hasBackground && !backgroundRemoved && !isBackgroundFromIgdb}
-                          removeMediaType="background"
-                          removeResourceId={game.id}
-                          removeResourceType="games"
-                          onGameUpdate={onGameUpdate}
-                          onRemoveSuccess={handleBackgroundRemoveSuccess}
-                          removeDisabled={saving || uploadingBackground}
-                        />
-                        <input
-                          ref={backgroundInputRef}
-                          id="edit-game-background-input"
-                          name="background"
-                          type="file"
-                          accept="image/*"
-                          style={{ display: "none" }}
-                          onChange={handleBackgroundFileSelect}
-                        />
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-            </div>
+            <EditGameMediaTab
+              t={t}
+              game={game}
+              saving={saving}
+              coverRemoved={coverRemoved}
+              coverPreview={coverPreview}
+              coverUrlWithTimestamp={coverUrlWithTimestamp}
+              uploadingCover={uploadingCover}
+              coverInputRef={coverInputRef}
+              handleCoverFileSelect={handleCoverFileSelect}
+              onGameUpdate={onGameUpdate}
+              handleCoverRemoveSuccess={handleCoverRemoveSuccess}
+              backgroundRemoved={backgroundRemoved}
+              backgroundPreview={backgroundPreview}
+              backgroundUrlWithTimestamp={backgroundUrlWithTimestamp}
+              uploadingBackground={uploadingBackground}
+              backgroundInputRef={backgroundInputRef}
+              handleBackgroundFileSelect={handleBackgroundFileSelect}
+              handleBackgroundRemoveSuccess={handleBackgroundRemoveSuccess}
+            />
           )}
         </div>
 
