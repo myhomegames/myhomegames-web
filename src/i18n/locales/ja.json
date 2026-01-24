@@ -234,12 +234,28 @@
     "filter": {
       "all": "すべて",
       "genre": "ジャンル",
+      "themes": "テーマ",
+      "keywords": "キーワード",
+      "platforms": "プラットフォーム",
+      "gameModes": "ゲームモード",
+      "publishers": "パブリッシャー",
+      "developers": "開発者",
+      "playerPerspectives": "視点",
+      "gameEngines": "ゲームエンジン",
       "year": "年",
       "decade": "年代",
       "collection": "コレクション",
       "ageRating": "コンテンツレーティング",
       "searchYear": "フィルター年",
       "searchGenre": "フィルタージャンル",
+      "searchThemes": "フィルターテーマ",
+      "searchKeywords": "フィルターキーワード",
+      "searchPlatforms": "フィルタープラットフォーム",
+      "searchGameModes": "フィルターゲームモード",
+      "searchPublishers": "フィルターパブリッシャー",
+      "searchDevelopers": "フィルター開発者",
+      "searchPlayerPerspectives": "フィルター視点",
+      "searchGameEngines": "フィルターゲームエンジン",
       "searchDecade": "フィルター年代",
       "searchCollection": "フィルターコレクション",
       "searchAgeRating": "レーティングを検索..."
@@ -317,6 +333,23 @@
     "Erotic": "エロティック",
     "Mystery": "ミステリー",
     "Romance": "ロマンス"
+  },
+  "gameModes": {
+    "Single player": "シングルプレイ",
+    "Multiplayer": "マルチプレイ",
+    "Co-operative": "協力",
+    "Split screen": "画面分割",
+    "Massively Multiplayer Online (MMO)": "大規模マルチプレイ（MMO）",
+    "Battle Royale": "バトルロイヤル"
+  },
+  "playerPerspectives": {
+    "First person": "一人称視点",
+    "Third person": "三人称視点",
+    "Bird view / Isometric": "俯瞰／アイソメトリック",
+    "Side view": "横視点",
+    "Text": "テキスト",
+    "Virtual Reality": "バーチャルリアリティ",
+    "Auditory": "聴覚"
   },
   "collectionDetail": {
     "editCollection": "コレクションを編集",

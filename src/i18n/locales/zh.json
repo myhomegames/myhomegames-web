@@ -234,12 +234,28 @@
     "filter": {
       "all": "全部",
       "genre": "类型",
+      "themes": "主题",
+      "keywords": "关键词",
+      "platforms": "平台",
+      "gameModes": "游戏模式",
+      "publishers": "发行商",
+      "developers": "开发者",
+      "playerPerspectives": "视角",
+      "gameEngines": "游戏引擎",
       "year": "年份",
       "decade": "年代",
       "collection": "收藏",
       "ageRating": "内容分级",
       "searchYear": "筛选年份",
       "searchGenre": "筛选类型",
+      "searchThemes": "筛选主题",
+      "searchKeywords": "筛选关键词",
+      "searchPlatforms": "筛选平台",
+      "searchGameModes": "筛选游戏模式",
+      "searchPublishers": "筛选发行商",
+      "searchDevelopers": "筛选开发者",
+      "searchPlayerPerspectives": "筛选视角",
+      "searchGameEngines": "筛选游戏引擎",
       "searchDecade": "筛选年代",
       "searchCollection": "筛选收藏",
       "searchAgeRating": "搜索分级..."
@@ -317,6 +333,23 @@
     "Erotic": "情色",
     "Mystery": "悬疑",
     "Romance": "浪漫"
+  },
+  "gameModes": {
+    "Single player": "单人",
+    "Multiplayer": "多人",
+    "Co-operative": "合作",
+    "Split screen": "分屏",
+    "Massively Multiplayer Online (MMO)": "大型多人在线（MMO）",
+    "Battle Royale": "大逃杀"
+  },
+  "playerPerspectives": {
+    "First person": "第一人称",
+    "Third person": "第三人称",
+    "Bird view / Isometric": "俯视 / 等距",
+    "Side view": "侧视",
+    "Text": "文本",
+    "Virtual Reality": "虚拟现实",
+    "Auditory": "听觉"
   },
   "collectionDetail": {
     "editCollection": "编辑收藏",

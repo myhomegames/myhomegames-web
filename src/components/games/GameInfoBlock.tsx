@@ -93,7 +93,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
             {game.gameModes.map((mode, index) => (
               <span key={index}>
                 <span className="game-info-list-item">
-                  {mode}
+                  {t(`gameModes.${mode}`, mode)}
                 </span>
                 {index < game.gameModes!.length - 1 && (
                   <span className="game-info-list-separator">
@@ -116,7 +116,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
             {game.playerPerspectives.map((perspective, index) => (
               <span key={index}>
                 <span className="game-info-list-item">
-                  {perspective}
+                  {t(`playerPerspectives.${perspective}`, perspective)}
                 </span>
                 {index < game.playerPerspectives!.length - 1 && (
                   <span className="game-info-list-separator">

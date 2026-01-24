@@ -234,12 +234,28 @@
     "filter": {
       "all": "All",
       "genre": "Genre",
+      "themes": "Themes",
+      "keywords": "Keywords",
+      "platforms": "Platforms",
+      "gameModes": "Game Modes",
+      "publishers": "Publishers",
+      "developers": "Developers",
+      "playerPerspectives": "Player Perspectives",
+      "gameEngines": "Game Engines",
       "year": "Year",
       "decade": "Decade",
       "collection": "Collection",
       "ageRating": "Content Rating",
       "searchYear": "Filter Year",
       "searchGenre": "Filter Genre",
+      "searchThemes": "Filter Themes",
+      "searchKeywords": "Filter Keywords",
+      "searchPlatforms": "Filter Platforms",
+      "searchGameModes": "Filter Game Modes",
+      "searchPublishers": "Filter Publishers",
+      "searchDevelopers": "Filter Developers",
+      "searchPlayerPerspectives": "Filter Player Perspectives",
+      "searchGameEngines": "Filter Game Engines",
       "searchDecade": "Filter Decade",
       "searchCollection": "Filter Collection",
       "searchAgeRating": "Search age rating..."
@@ -317,6 +333,23 @@
     "Erotic": "Erotic",
     "Mystery": "Mystery",
     "Romance": "Romance"
+  },
+  "gameModes": {
+    "Single player": "Single player",
+    "Multiplayer": "Multiplayer",
+    "Co-operative": "Co-operative",
+    "Split screen": "Split screen",
+    "Massively Multiplayer Online (MMO)": "Massively Multiplayer Online (MMO)",
+    "Battle Royale": "Battle Royale"
+  },
+  "playerPerspectives": {
+    "First person": "First person",
+    "Third person": "Third person",
+    "Bird view / Isometric": "Bird view / Isometric",
+    "Side view": "Side view",
+    "Text": "Text",
+    "Virtual Reality": "Virtual Reality",
+    "Auditory": "Auditory"
   },
   "collectionDetail": {
     "editCollection": "Edit Collection",

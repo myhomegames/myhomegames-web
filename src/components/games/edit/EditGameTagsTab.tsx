@@ -113,6 +113,7 @@ export default function EditGameTagsTab({
             onTagsChange={setSelectedGameModes}
             disabled={saving}
             placeholder={t("gameDetail.addGameMode", "Add game mode...")}
+            getDisplayName={(value) => t(`gameModes.${value}`, value)}
           />
         )}
       </div>
@@ -154,6 +155,7 @@ export default function EditGameTagsTab({
             onTagsChange={setSelectedPlayerPerspectives}
             disabled={saving}
             placeholder={t("gameDetail.addPlayerPerspective", "Add player perspective...")}
+            getDisplayName={(value) => t(`playerPerspectives.${value}`, value)}
           />
         )}
       </div>

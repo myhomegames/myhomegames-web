@@ -13,6 +13,14 @@ type GamesListToolbarProps = {
   onFilterChange?: (field: FilterField) => void;
   onYearFilterChange?: (year: number | null) => void;
   onGenreFilterChange?: (genre: string | null) => void;
+  onThemesFilterChange?: (theme: string | null) => void;
+  onKeywordsFilterChange?: (keyword: string | null) => void;
+  onPlatformsFilterChange?: (platform: string | null) => void;
+  onGameModesFilterChange?: (mode: string | null) => void;
+  onPublishersFilterChange?: (publisher: string | null) => void;
+  onDevelopersFilterChange?: (developer: string | null) => void;
+  onPlayerPerspectivesFilterChange?: (perspective: string | null) => void;
+  onGameEnginesFilterChange?: (engine: string | null) => void;
   onDecadeFilterChange?: (decade: number | null) => void;
   onCollectionFilterChange?: (collection: string | null) => void;
   onAgeRatingFilterChange?: (ageRating: string | null) => void;
@@ -21,6 +29,14 @@ type GamesListToolbarProps = {
   currentFilter?: FilterField;
   selectedYear?: number | null;
   selectedGenre?: string | null;
+  selectedThemes?: string | null;
+  selectedKeywords?: string | null;
+  selectedPlatforms?: string | null;
+  selectedGameModes?: string | null;
+  selectedPublishers?: string | null;
+  selectedDevelopers?: string | null;
+  selectedPlayerPerspectives?: string | null;
+  selectedGameEngines?: string | null;
   selectedDecade?: number | null;
   selectedCollection?: string | null;
   selectedAgeRating?: string | null;
@@ -37,6 +53,14 @@ export default function GamesListToolbar({
   onFilterChange,
   onYearFilterChange,
   onGenreFilterChange,
+  onThemesFilterChange,
+  onKeywordsFilterChange,
+  onPlatformsFilterChange,
+  onGameModesFilterChange,
+  onPublishersFilterChange,
+  onDevelopersFilterChange,
+  onPlayerPerspectivesFilterChange,
+  onGameEnginesFilterChange,
   onDecadeFilterChange,
   onCollectionFilterChange,
   onAgeRatingFilterChange,
@@ -45,6 +69,14 @@ export default function GamesListToolbar({
   currentFilter = "all",
   selectedYear = null,
   selectedGenre = null,
+  selectedThemes = null,
+  selectedKeywords = null,
+  selectedPlatforms = null,
+  selectedGameModes = null,
+  selectedPublishers = null,
+  selectedDevelopers = null,
+  selectedPlayerPerspectives = null,
+  selectedGameEngines = null,
   selectedDecade = null,
   selectedCollection = null,
   selectedAgeRating = null,
@@ -75,6 +107,30 @@ export default function GamesListToolbar({
       const genre = availableGenres.find((g) => g.title === selectedGenre);
       return genre ? t(`genre.${genre.title}`, genre.title) : selectedGenre;
     }
+    if (currentFilter === "themes" && selectedThemes !== null) {
+      return t(`themes.${selectedThemes}`, selectedThemes);
+    }
+    if (currentFilter === "keywords" && selectedKeywords !== null) {
+      return selectedKeywords;
+    }
+    if (currentFilter === "platforms" && selectedPlatforms !== null) {
+      return selectedPlatforms;
+    }
+    if (currentFilter === "gameModes" && selectedGameModes !== null) {
+      return t(`gameModes.${selectedGameModes}`, selectedGameModes);
+    }
+    if (currentFilter === "publishers" && selectedPublishers !== null) {
+      return selectedPublishers;
+    }
+    if (currentFilter === "developers" && selectedDevelopers !== null) {
+      return selectedDevelopers;
+    }
+    if (currentFilter === "playerPerspectives" && selectedPlayerPerspectives !== null) {
+      return t(`playerPerspectives.${selectedPlayerPerspectives}`, selectedPlayerPerspectives);
+    }
+    if (currentFilter === "gameEngines" && selectedGameEngines !== null) {
+      return selectedGameEngines;
+    }
     if (currentFilter === "ageRating" && selectedAgeRating !== null) {
       // Format age rating: selectedAgeRating is "category-rating"
       const [category, rating] = selectedAgeRating.split('-').map(Number);
@@ -83,6 +139,14 @@ export default function GamesListToolbar({
     const filterOptions = [
       { value: "all" as FilterField, label: t("gamesListToolbar.filter.all") },
       { value: "genre" as FilterField, label: t("gamesListToolbar.filter.genre") },
+      { value: "themes" as FilterField, label: t("gamesListToolbar.filter.themes") },
+      { value: "keywords" as FilterField, label: t("gamesListToolbar.filter.keywords") },
+      { value: "platforms" as FilterField, label: t("gamesListToolbar.filter.platforms") },
+      { value: "gameModes" as FilterField, label: t("gamesListToolbar.filter.gameModes") },
+      { value: "publishers" as FilterField, label: t("gamesListToolbar.filter.publishers") },
+      { value: "developers" as FilterField, label: t("gamesListToolbar.filter.developers") },
+      { value: "playerPerspectives" as FilterField, label: t("gamesListToolbar.filter.playerPerspectives") },
+      { value: "gameEngines" as FilterField, label: t("gamesListToolbar.filter.gameEngines") },
       { value: "year" as FilterField, label: t("gamesListToolbar.filter.year") },
       { value: "decade" as FilterField, label: t("gamesListToolbar.filter.decade") },
       { value: "collection" as FilterField, label: t("gamesListToolbar.filter.collection") },
@@ -126,6 +190,30 @@ export default function GamesListToolbar({
                   if (onGenreFilterChange) {
                     onGenreFilterChange(null);
                   }
+                  if (onThemesFilterChange) {
+                    onThemesFilterChange(null);
+                  }
+                  if (onKeywordsFilterChange) {
+                    onKeywordsFilterChange(null);
+                  }
+                  if (onPlatformsFilterChange) {
+                    onPlatformsFilterChange(null);
+                  }
+                  if (onGameModesFilterChange) {
+                    onGameModesFilterChange(null);
+                  }
+                  if (onPublishersFilterChange) {
+                    onPublishersFilterChange(null);
+                  }
+                  if (onDevelopersFilterChange) {
+                    onDevelopersFilterChange(null);
+                  }
+                  if (onPlayerPerspectivesFilterChange) {
+                    onPlayerPerspectivesFilterChange(null);
+                  }
+                  if (onGameEnginesFilterChange) {
+                    onGameEnginesFilterChange(null);
+                  }
                   if (onDecadeFilterChange) {
                     onDecadeFilterChange(null);
                   }
@@ -149,6 +237,30 @@ export default function GamesListToolbar({
                     }
                     if (onGenreFilterChange) {
                       onGenreFilterChange(null);
+                    }
+                    if (onThemesFilterChange) {
+                      onThemesFilterChange(null);
+                    }
+                    if (onKeywordsFilterChange) {
+                      onKeywordsFilterChange(null);
+                    }
+                    if (onPlatformsFilterChange) {
+                      onPlatformsFilterChange(null);
+                    }
+                    if (onGameModesFilterChange) {
+                      onGameModesFilterChange(null);
+                    }
+                    if (onPublishersFilterChange) {
+                      onPublishersFilterChange(null);
+                    }
+                    if (onDevelopersFilterChange) {
+                      onDevelopersFilterChange(null);
+                    }
+                    if (onPlayerPerspectivesFilterChange) {
+                      onPlayerPerspectivesFilterChange(null);
+                    }
+                    if (onGameEnginesFilterChange) {
+                      onGameEnginesFilterChange(null);
                     }
                     if (onDecadeFilterChange) {
                       onDecadeFilterChange(null);
@@ -201,12 +313,28 @@ export default function GamesListToolbar({
             currentFilter={currentFilter}
             selectedYear={selectedYear}
             selectedGenre={selectedGenre}
+            selectedThemes={selectedThemes}
+            selectedKeywords={selectedKeywords}
+            selectedPlatforms={selectedPlatforms}
+            selectedGameModes={selectedGameModes}
+            selectedPublishers={selectedPublishers}
+            selectedDevelopers={selectedDevelopers}
+            selectedPlayerPerspectives={selectedPlayerPerspectives}
+            selectedGameEngines={selectedGameEngines}
             selectedDecade={selectedDecade}
             selectedCollection={selectedCollection}
             selectedAgeRating={selectedAgeRating}
             onFilterChange={onFilterChange}
             onYearFilterChange={onYearFilterChange}
             onGenreFilterChange={onGenreFilterChange}
+            onThemesFilterChange={onThemesFilterChange}
+            onKeywordsFilterChange={onKeywordsFilterChange}
+            onPlatformsFilterChange={onPlatformsFilterChange}
+            onGameModesFilterChange={onGameModesFilterChange}
+            onPublishersFilterChange={onPublishersFilterChange}
+            onDevelopersFilterChange={onDevelopersFilterChange}
+            onPlayerPerspectivesFilterChange={onPlayerPerspectivesFilterChange}
+            onGameEnginesFilterChange={onGameEnginesFilterChange}
             onDecadeFilterChange={onDecadeFilterChange}
             onCollectionFilterChange={onCollectionFilterChange}
             onAgeRatingFilterChange={onAgeRatingFilterChange}

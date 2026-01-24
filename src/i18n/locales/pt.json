@@ -234,12 +234,28 @@
     "filter": {
       "all": "Todo",
       "genre": "Gênero",
+      "themes": "Temas",
+      "keywords": "Palavras-chave",
+      "platforms": "Plataformas",
+      "gameModes": "Modos de jogo",
+      "publishers": "Editoras",
+      "developers": "Desenvolvedores",
+      "playerPerspectives": "Perspectivas",
+      "gameEngines": "Motores de jogo",
       "year": "Ano",
       "decade": "Década",
       "collection": "Coleção",
       "ageRating": "Classificação de conteúdo",
       "searchYear": "Filtro Ano",
       "searchGenre": "Filtro Gênero",
+      "searchThemes": "Filtro Temas",
+      "searchKeywords": "Filtro Palavras-chave",
+      "searchPlatforms": "Filtro Plataformas",
+      "searchGameModes": "Filtro Modos de jogo",
+      "searchPublishers": "Filtro Editoras",
+      "searchDevelopers": "Filtro Desenvolvedores",
+      "searchPlayerPerspectives": "Filtro Perspectivas",
+      "searchGameEngines": "Filtro Motores de jogo",
       "searchDecade": "Filtro Década",
       "searchCollection": "Filtro Coleção",
       "searchAgeRating": "Buscar classificação..."
@@ -317,6 +333,23 @@
     "Erotic": "Erótico",
     "Mystery": "Mistério",
     "Romance": "Romance"
+  },
+  "gameModes": {
+    "Single player": "Um jogador",
+    "Multiplayer": "Multijogador",
+    "Co-operative": "Cooperativo",
+    "Split screen": "Tela dividida",
+    "Massively Multiplayer Online (MMO)": "Multijogador massivo online (MMO)",
+    "Battle Royale": "Battle Royale"
+  },
+  "playerPerspectives": {
+    "First person": "Primeira pessoa",
+    "Third person": "Terceira pessoa",
+    "Bird view / Isometric": "Visão superior / Isométrica",
+    "Side view": "Visão lateral",
+    "Text": "Texto",
+    "Virtual Reality": "Realidade virtual",
+    "Auditory": "Auditivo"
   },
   "collectionDetail": {
     "editCollection": "Editar Coleção",
