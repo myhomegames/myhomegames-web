@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Cover from "./Cover";
 import StarRating from "../common/StarRating";
@@ -18,9 +19,12 @@ import LibrariesBar from "../layout/LibrariesBar";
 import { useEditGame, useExecutable } from "../common/actions";
 import type { GameItem, CollectionItem } from "../../types";
 import { formatGameDate } from "../../utils/date";
-import { buildApiUrl, buildBackgroundUrl } from "../../utils/api";
+import { buildApiUrl, buildBackgroundUrl, buildCoverUrl } from "../../utils/api";
 import { API_BASE, getApiToken } from "../../config";
 import { useLoading } from "../../contexts/LoadingContext";
+import { useCollections } from "../../contexts/CollectionsContext";
+import { useLibraryGames } from "../../contexts/LibraryGamesContext";
+import GamesList from "./GamesList";
 import "./GameDetail.css";
 
 type GameDetailProps = {
@@ -213,7 +217,13 @@ function GameDetailContent({
   t: (key: string, defaultValue?: string) => string;
   i18n: { language: string };
 }) {
+  const navigate = useNavigate();
   const { hasBackground, isBackgroundVisible } = useBackground();
+  const { getCollectionGameIds } = useCollections();
+  const { games: libraryGames, updateGame, removeGame } = useLibraryGames();
+  const [collectionsWithGames, setCollectionsWithGames] = useState<
+    Array<{ collection: CollectionItem; games: GameItem[] }>
+  >([]);
   
   // Helper function to format rating value (0-10 float)
   const formatRating = (value: number | null | undefined): string | null => {
@@ -245,6 +255,71 @@ function GameDetailContent({
   };
   
   const summaryMaxLines = calculateSummaryMaxLines();
+
+  useEffect(() => {
+    let isActive = true;
+    const loadCollectionsForGame = async () => {
+      if (!allCollections.length) {
+        if (isActive) {
+          setCollectionsWithGames([]);
+        }
+        return;
+      }
+
+      const results = await Promise.all(
+        allCollections.map(async (collection) => {
+          try {
+            const gameIds = await getCollectionGameIds(collection.id);
+            if (!gameIds.includes(String(game.id))) {
+              return null;
+            }
+            const games = gameIds
+              .map((id) => libraryGames.find((g) => String(g.id) === String(id)))
+              .filter((g): g is GameItem => Boolean(g));
+            if (games.length === 0) {
+              return null;
+            }
+            return { collection, games };
+          } catch (error) {
+            return null;
+          }
+        })
+      );
+
+      if (isActive) {
+        setCollectionsWithGames(
+          results.filter((entry): entry is { collection: CollectionItem; games: GameItem[] } => Boolean(entry))
+        );
+      }
+    };
+
+    loadCollectionsForGame();
+    return () => {
+      isActive = false;
+    };
+  }, [allCollections, getCollectionGameIds, game.id, libraryGames]);
+
+  const similarGamesInLibrary = useMemo(() => {
+    const similarIds = new Set(
+      (game.similarGames || []).map((similar) => String(similar.id))
+    );
+    return libraryGames.filter((libraryGame) => similarIds.has(String(libraryGame.id)));
+  }, [game.similarGames, libraryGames]);
+  const handleRelatedGameClick = (selectedGame: GameItem) => {
+    navigate(`/game/${selectedGame.id}`);
+  };
+  const handleRelatedGameUpdate = (updatedGame: GameItem) => {
+    updateGame(updatedGame);
+    if (String(updatedGame.id) === String(game.id)) {
+      onGameUpdate(updatedGame);
+    }
+  };
+  const handleRelatedGameDelete = (deletedGame: GameItem) => {
+    removeGame(deletedGame.id);
+    if (String(deletedGame.id) === String(game.id) && onGameDelete) {
+      onGameDelete(deletedGame);
+    }
+  };
   
   return (
     <>
@@ -516,6 +591,49 @@ function GameDetailContent({
         <div className="game-detail-info-section">
           <GameInfoBlock game={game} />
         </div>
+        {collectionsWithGames.length > 0 && (
+          <div className="game-detail-collections-section">
+            <h3 className="game-detail-section-title">
+              {t("libraries.collections", "Collections")}
+            </h3>
+            <div className="game-detail-collections-list">
+              {collectionsWithGames.map(({ collection, games }) => (
+                <div key={collection.id} className="game-detail-collection-group">
+                  <div className="game-detail-collection-title">{collection.title}</div>
+                  <GamesList
+                    games={games}
+                    onGameClick={handleRelatedGameClick}
+                    onPlay={onPlay}
+                    onGameUpdate={handleRelatedGameUpdate}
+                    onGameDelete={handleRelatedGameDelete}
+                    buildCoverUrl={buildCoverUrl}
+                    coverSize={140}
+                    viewMode="grid"
+                    allCollections={allCollections}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {similarGamesInLibrary.length > 0 && (
+          <div className="game-detail-similar-section">
+            <h3 className="game-detail-section-title">
+              {t("igdbInfo.similarGames", "Similar Games")}
+            </h3>
+            <GamesList
+              games={similarGamesInLibrary}
+              onGameClick={handleRelatedGameClick}
+              onPlay={onPlay}
+              onGameUpdate={handleRelatedGameUpdate}
+              onGameDelete={handleRelatedGameDelete}
+              buildCoverUrl={buildCoverUrl}
+              coverSize={140}
+              viewMode="grid"
+              allCollections={allCollections}
+            />
+          </div>
+        )}
       </div>
             </div>
           </div>
