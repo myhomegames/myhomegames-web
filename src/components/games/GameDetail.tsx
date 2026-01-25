@@ -614,19 +614,21 @@ function GameDetailContent({
         )}
         {similarGamesInLibrary.length > 0 && (
           <div className="game-detail-similar-section">
-            <div className="game-detail-related-group">
-              <ScrollableGamesSection
-                sectionId="similar-games"
-                titleOverride={t("igdbInfo.similarGames", "Similar Games")}
-                disableAutoTranslate
-                games={similarGamesInLibrary}
-                onGameClick={handleRelatedGameClick}
-                onPlay={onPlay}
-                onGameUpdate={handleRelatedGameUpdate}
-                coverSize={140}
-                allCollections={allCollections}
-              />
-            </div>
+            <h3 className="game-detail-section-title">
+              {t("igdbInfo.similarGames", "Similar Games")}
+            </h3>
+            <ScrollableGamesSection
+              sectionId="similar-games"
+              titleOverride={t("igdbInfo.similarGames", "Similar Games")}
+              disableAutoTranslate
+              showTitle={false}
+              games={similarGamesInLibrary}
+              onGameClick={handleRelatedGameClick}
+              onPlay={onPlay}
+              onGameUpdate={handleRelatedGameUpdate}
+              coverSize={140}
+              allCollections={allCollections}
+            />
           </div>
         )}
       </div>

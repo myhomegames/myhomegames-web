@@ -4,6 +4,14 @@
   flex-direction: column;
 }
 
+.scrollable-section > .scrollable-section-nav {
+  align-self: flex-end;
+  margin-right: 64px;
+  margin-bottom: 12px;
+  position: static;
+  transform: none;
+}
+
 .scrollable-section-header {
   padding-left: 64px;
   padding-right: 64px;

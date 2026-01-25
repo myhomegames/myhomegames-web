@@ -268,8 +268,7 @@
   gap: 16px;
 }
 
-.game-detail-collection-group,
-.game-detail-related-group {
+.game-detail-collection-group {
   background-color: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 6px;
@@ -277,19 +276,19 @@
 }
 
 .game-detail-collection-group .scrollable-section,
-.game-detail-related-group .scrollable-section {
+.game-detail-similar-section .scrollable-section {
   margin-bottom: 0;
 }
 
 .game-detail-collection-group .scrollable-section-header,
-.game-detail-related-group .scrollable-section-header {
+.game-detail-similar-section .scrollable-section-header {
   padding-left: 0;
   padding-right: 0;
   margin-bottom: 12px;
 }
 
 .game-detail-collection-group .scrollable-section-title,
-.game-detail-related-group .scrollable-section-title {
+.game-detail-similar-section .scrollable-section-title {
   font-family: var(--font-body-2-font-family);
   font-size: var(--font-body-2-font-size);
   line-height: var(--font-body-2-line-height);
@@ -299,12 +298,12 @@
 }
 
 .game-detail-collection-group .scrollable-section-scroll,
-.game-detail-related-group .scrollable-section-scroll {
+.game-detail-similar-section .scrollable-section-scroll {
   padding-right: 0;
 }
 
 .game-detail-collection-group .scrollable-section-scroll:not(.restoring),
-.game-detail-related-group .scrollable-section-scroll:not(.restoring) {
+.game-detail-similar-section .scrollable-section-scroll:not(.restoring) {
   margin-left: 0;
   margin-right: 0;
 }

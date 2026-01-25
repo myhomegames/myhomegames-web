@@ -36,6 +36,7 @@ type ScrollableGamesSectionProps = {
   titleOverride?: string;
   disableAutoTranslate?: boolean;
   enableVirtualization?: boolean;
+  showTitle?: boolean;
 };
 
 export default function ScrollableGamesSection({
@@ -49,6 +50,7 @@ export default function ScrollableGamesSection({
   titleOverride,
   disableAutoTranslate = false,
   enableVirtualization = true,
+  showTitle = true,
 }: ScrollableGamesSectionProps) {
   const location = useLocation();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -205,15 +207,25 @@ export default function ScrollableGamesSection({
 
   return (
     <div className="scrollable-section">
-      <div className="scrollable-section-header">
-        <h2 className="scrollable-section-title">{title}</h2>
+      {showTitle && (
+        <div className="scrollable-section-header">
+          <h2 className="scrollable-section-title">{title}</h2>
+          <ScrollableGamesSectionNav
+            canScrollLeft={canScrollLeft}
+            canScrollRight={canScrollRight}
+            onScrollToFirst={scrollToFirst}
+            onScrollToLast={scrollToLast}
+          />
+        </div>
+      )}
+      {!showTitle && (
         <ScrollableGamesSectionNav
           canScrollLeft={canScrollLeft}
           canScrollRight={canScrollRight}
           onScrollToFirst={scrollToFirst}
           onScrollToLast={scrollToLast}
         />
-      </div>
+      )}
       <div
         ref={scrollRef}
         className={`scrollable-section-scroll ${isRestoring ? 'restoring' : ''}`}
