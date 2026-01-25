@@ -124,20 +124,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           <div className="text-white game-info-label">
             {t("igdbInfo.developers", "Developers")}
           </div>
-          <div className="game-info-list">
-            {game.developers.map((dev, index) => (
-              <span key={index}>
-                <span className="game-info-list-item">
-                  {dev}
-                </span>
-                {index < game.developers!.length - 1 && (
-                  <span className="game-info-list-separator">
-                    ,{" "}
-                  </span>
-                )}
-              </span>
-            ))}
-          </div>
+          {renderTagList(game.developers, "/developers", (value) => value)}
         </div>
       )}
 
@@ -147,20 +134,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           <div className="text-white game-info-label">
             {t("igdbInfo.publishers", "Publishers")}
           </div>
-          <div className="game-info-list">
-            {game.publishers.map((pub, index) => (
-              <span key={index}>
-                <span className="game-info-list-item">
-                  {pub}
-                </span>
-                {index < game.publishers!.length - 1 && (
-                  <span className="game-info-list-separator">
-                    ,{" "}
-                  </span>
-                )}
-              </span>
-            ))}
-          </div>
+          {renderTagList(game.publishers, "/publishers", (value) => value)}
         </div>
       )}
 

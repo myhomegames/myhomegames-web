@@ -373,6 +373,56 @@ function AppContent() {
             }
           />
           <Route
+            path="/developers/:developerId"
+            element={
+              <ProtectedRoute>
+                <Header
+                  onPlay={openLauncher}
+                  allGames={allGames}
+                  allCollections={allCollections}
+                  onGameSelect={handleGameSelect}
+                  onHomeClick={() => navigate("/")}
+                  onSettingsClick={() => navigate("/settings")}
+                  onAddGameClick={() => setAddGameOpen(true)}
+                />
+                <TagGamesRoutePage
+                  onGameClick={handleGameClick}
+                  onGamesLoaded={() => {
+                    // Games are now managed by LibraryGamesContext, no need to update here
+                  }}
+                  onPlay={openLauncher}
+                  allCollections={allCollections}
+                  tagKey="developers"
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/publishers/:publisherId"
+            element={
+              <ProtectedRoute>
+                <Header
+                  onPlay={openLauncher}
+                  allGames={allGames}
+                  allCollections={allCollections}
+                  onGameSelect={handleGameSelect}
+                  onHomeClick={() => navigate("/")}
+                  onSettingsClick={() => navigate("/settings")}
+                  onAddGameClick={() => setAddGameOpen(true)}
+                />
+                <TagGamesRoutePage
+                  onGameClick={handleGameClick}
+                  onGamesLoaded={() => {
+                    // Games are now managed by LibraryGamesContext, no need to update here
+                  }}
+                  onPlay={openLauncher}
+                  allCollections={allCollections}
+                  tagKey="publishers"
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/game-engines/:gameEngineId"
             element={
               <ProtectedRoute>

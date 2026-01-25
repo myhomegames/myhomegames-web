@@ -11,6 +11,19 @@ export default function TagListRoutePage({ coverSize, tagKey }: TagListRoutePage
   const { t } = useTranslation();
   const config = TAG_PAGE_CONFIGS[tagKey];
   const listConfig = config.list;
+  const editConfig =
+    config.supportsEdit === false || !listConfig.removeResourceType
+      ? undefined
+      : {
+          title: config.getEditTitle(t),
+          coverDescription: config.getCoverDescription(t),
+          routeBase: listConfig.editRouteBase,
+          responseKey: listConfig.responseKey,
+          localCoverPrefix: listConfig.localCoverPrefix,
+          removeResourceType: listConfig.removeResourceType,
+          updateEventName: listConfig.updateEventName,
+          updateEventPayloadKey: listConfig.updateEventPayloadKey,
+        };
 
   return (
     <TagListPage
@@ -21,16 +34,7 @@ export default function TagListRoutePage({ coverSize, tagKey }: TagListRoutePage
       emptyMessage={config.getEmptyMessage(t)}
       listEndpoint={listConfig.listEndpoint}
       listResponseKey={listConfig.listResponseKey}
-      editConfig={{
-        title: config.getEditTitle(t),
-        coverDescription: config.getCoverDescription(t),
-        routeBase: listConfig.editRouteBase,
-        responseKey: listConfig.responseKey,
-        localCoverPrefix: listConfig.localCoverPrefix,
-        removeResourceType: listConfig.removeResourceType,
-        updateEventName: listConfig.updateEventName,
-        updateEventPayloadKey: listConfig.updateEventPayloadKey,
-      }}
+      editConfig={editConfig}
     />
   );
 }

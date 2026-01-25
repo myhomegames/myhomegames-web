@@ -6,6 +6,8 @@ export type TagKey =
   | "categories"
   | "platforms"
   | "themes"
+  | "developers"
+  | "publishers"
   | "gameEngines"
   | "gameModes"
   | "playerPerspectives";
@@ -25,7 +27,7 @@ type TagListConfig = {
   valueExtractor: (game: GameItem) => string[] | null | undefined;
   localCoverPrefix: string;
   responseKey: string;
-  removeResourceType:
+  removeResourceType?:
     | "games"
     | "collections"
     | "categories"
@@ -42,6 +44,7 @@ type TagListConfig = {
 type TagPageConfig = {
   list: TagListConfig;
   detail: TagDetailConfig;
+  supportsEdit?: boolean;
   getDisplayName: (t: TranslationFn) => (value: string) => string;
   getEmptyMessage: (t: TranslationFn) => string;
   getEditTitle: (t: TranslationFn) => string;
@@ -121,6 +124,50 @@ export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
     getEmptyMessage: (t) =>
       t("tags.noItemsFound", { type: t("libraries.themes") }),
     getEditTitle: (t) => `${t("common.edit", "Edit")} ${t("libraries.themes")}`,
+    getCoverDescription: (t) =>
+      t("category.coverFormat", "Recommended ratio: 16:9 (e.g., 1280x720px)"),
+  },
+  developers: {
+    list: {
+      routeBase: "/developers",
+      listEndpoint: "/developers",
+      listResponseKey: "developers",
+      valueExtractor: (game) => getArrayOrNull(game.developers),
+      localCoverPrefix: "/developer-covers/",
+      responseKey: "developer",
+    },
+    detail: {
+      tagField: "developers",
+      paramName: "developerId",
+      storageKey: "developers",
+    },
+    supportsEdit: false,
+    getDisplayName: () => (value) => value,
+    getEmptyMessage: (t) =>
+      t("tags.noItemsFound", { type: t("igdbInfo.developers", "Developers") }),
+    getEditTitle: (t) => `${t("common.edit", "Edit")} ${t("igdbInfo.developers", "Developers")}`,
+    getCoverDescription: (t) =>
+      t("category.coverFormat", "Recommended ratio: 16:9 (e.g., 1280x720px)"),
+  },
+  publishers: {
+    list: {
+      routeBase: "/publishers",
+      listEndpoint: "/publishers",
+      listResponseKey: "publishers",
+      valueExtractor: (game) => getArrayOrNull(game.publishers),
+      localCoverPrefix: "/publisher-covers/",
+      responseKey: "publisher",
+    },
+    detail: {
+      tagField: "publishers",
+      paramName: "publisherId",
+      storageKey: "publishers",
+    },
+    supportsEdit: false,
+    getDisplayName: () => (value) => value,
+    getEmptyMessage: (t) =>
+      t("tags.noItemsFound", { type: t("igdbInfo.publishers", "Publishers") }),
+    getEditTitle: (t) => `${t("common.edit", "Edit")} ${t("igdbInfo.publishers", "Publishers")}`,
     getCoverDescription: (t) =>
       t("category.coverFormat", "Recommended ratio: 16:9 (e.g., 1280x720px)"),
   },
