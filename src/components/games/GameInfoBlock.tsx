@@ -1,6 +1,8 @@
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import type { IGDBGame, GameItem } from "../../types";
+import { useLibraryGames } from "../../contexts/LibraryGamesContext";
 import WebsitesList from "./WebsitesList";
 import "./GameInfoBlock.css";
 
@@ -11,6 +13,7 @@ type GameInfoBlockProps = {
 export default function GameInfoBlock({ game }: GameInfoBlockProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { games: libraryGames } = useLibraryGames();
 
   // Get game ID (for GameItem it's id, for IGDBGame it's id as number)
   const gameId = 'id' in game ? String(game.id) : undefined;
@@ -58,6 +61,14 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
       ))}
     </div>
   );
+
+  const similarGamesInLibrary = useMemo(() => {
+    const map = new Map<string, GameItem>();
+    for (const item of libraryGames) {
+      map.set(String(item.id), item);
+    }
+    return map;
+  }, [libraryGames]);
 
   return (
     <div className="game-info-block">
@@ -205,9 +216,19 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           <div className="game-info-list">
             {game.similarGames.slice(0, 5).map((sg, index) => (
               <span key={index}>
-                <span className="game-info-list-item">
-                  {sg.name}
-                </span>
+                {similarGamesInLibrary.has(String(sg.id)) ? (
+                  <button
+                    type="button"
+                    className="game-info-list-item game-info-list-link"
+                    onClick={() => navigate(`/game/${sg.id}`)}
+                  >
+                    {sg.name}
+                  </button>
+                ) : (
+                  <span className="game-info-list-item">
+                    {sg.name}
+                  </span>
+                )}
                 {index < Math.min(game.similarGames!.length, 5) - 1 && (
                   <span className="game-info-list-separator">
                     ,{" "}

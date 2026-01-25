@@ -47,13 +47,13 @@
   border: none;
   padding: 0;
   cursor: pointer;
-  text-decoration: underline;
-  text-decoration-color: rgba(255, 255, 255, 0.35);
+  text-decoration: none;
   text-underline-offset: 3px;
 }
 
 .game-info-list-link:hover {
   color: #ffffff;
+  text-decoration: underline;
   text-decoration-color: rgba(255, 255, 255, 0.7);
 }
 
