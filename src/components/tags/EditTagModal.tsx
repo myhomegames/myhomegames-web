@@ -344,6 +344,7 @@ export default function EditTagModal({
                           accept="image/*"
                           style={{ display: "none" }}
                           onChange={handleCoverFileSelect}
+                          aria-label={coverDescription}
                         />
                       </>
                     );

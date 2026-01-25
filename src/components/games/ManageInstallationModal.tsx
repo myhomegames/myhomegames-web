@@ -327,8 +327,12 @@ export default function ManageInstallationModal({
                   </div>
                 <div className="manage-installation-executable-fields">
                   <div className="manage-installation-field-group">
-                    <label>{t("manageInstallation.label", "Label")}</label>
+                    <label htmlFor={`manage-installation-label-${index}`}>
+                      {t("manageInstallation.label", "Label")}
+                    </label>
                     <input
+                      id={`manage-installation-label-${index}`}
+                      name={`executableLabel-${index}`}
                       type="text"
                       value={executable.label}
                       onChange={(e) => handleUpdateLabel(index, e.target.value)}
@@ -336,9 +340,13 @@ export default function ManageInstallationModal({
                     />
                   </div>
                   <div className="manage-installation-field-group">
-                    <label>{t("manageInstallation.path", "File")}</label>
+                    <label htmlFor={`manage-installation-path-${index}`}>
+                      {t("manageInstallation.path", "File")}
+                    </label>
                     <div className="manage-installation-path-input-group">
                       <input
+                        id={`manage-installation-path-${index}`}
+                        name={`executablePath-${index}`}
                         type="text"
                         value={
                           executable.file 

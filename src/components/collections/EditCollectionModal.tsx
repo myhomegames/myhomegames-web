@@ -575,6 +575,7 @@ export default function EditCollectionModal({
                           accept="image/*"
                           style={{ display: "none" }}
                           onChange={handleCoverFileSelect}
+                          aria-label={t("gameDetail.cover", "Cover")}
                         />
                       </>
                     );
@@ -625,6 +626,7 @@ export default function EditCollectionModal({
                           accept="image/*"
                           style={{ display: "none" }}
                           onChange={handleBackgroundFileSelect}
+                          aria-label={t("gameDetail.background", "Background")}
                         />
                       </>
                     );

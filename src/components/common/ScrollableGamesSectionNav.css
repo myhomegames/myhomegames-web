@@ -1,4 +1,4 @@
-.recommended-section-nav {
+.scrollable-section-nav {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -8,7 +8,7 @@
   transform: translateY(-50%);
 }
 
-.recommended-section-nav-button {
+.scrollable-section-nav-button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -23,15 +23,15 @@
   padding: 0;
 }
 
-.recommended-section-nav-button:hover {
+.scrollable-section-nav-button:hover {
   color: rgba(255, 255, 255, 1);
 }
 
-.recommended-section-nav-button:active {
+.scrollable-section-nav-button:active {
   color: rgba(255, 255, 255, 1);
 }
 
-.recommended-section-nav-button-hidden {
+.scrollable-section-nav-button-hidden {
   opacity: 0;
   pointer-events: none;
   cursor: default;

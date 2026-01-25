@@ -1,10 +1,10 @@
-.recommended-section {
+.scrollable-section {
   margin-bottom: 48px;
   display: flex;
   flex-direction: column;
 }
 
-.recommended-section-header {
+.scrollable-section-header {
   padding-left: 64px;
   padding-right: 64px;
   margin-bottom: 24px;
@@ -14,7 +14,7 @@
   position: relative;
 }
 
-.recommended-section-title {
+.scrollable-section-title {
   font-family: var(--font-heading-2-font-family);
   font-size: var(--font-heading-2-font-size);
   line-height: var(--font-heading-2-line-height);
@@ -23,7 +23,7 @@
   margin: 0;
 }
 
-.recommended-section-scroll {
+.scrollable-section-scroll {
   overflow-x: auto;
   overflow-y: hidden;
   padding-right: 64px;
@@ -32,24 +32,24 @@
   -webkit-overflow-scrolling: touch;
 }
 
-.recommended-section-scroll::-webkit-scrollbar {
+.scrollable-section-scroll::-webkit-scrollbar {
   height: 8px;
 }
 
-.recommended-section-scroll::-webkit-scrollbar-track {
+.scrollable-section-scroll::-webkit-scrollbar-track {
   background: #1a1a1a;
 }
 
-.recommended-section-scroll::-webkit-scrollbar-thumb {
+.scrollable-section-scroll::-webkit-scrollbar-thumb {
   background-color: rgba(255, 255, 255, 0.2);
   border-radius: 4px;
 }
 
-.recommended-section-scroll::-webkit-scrollbar-thumb:hover {
+.scrollable-section-scroll::-webkit-scrollbar-thumb:hover {
   background-color: rgba(255, 255, 255, 0.3);
 }
 
-.recommended-section-scroll .games-list-container {
+.scrollable-section-scroll .games-list-container {
   display: -webkit-box !important;
   flex-direction: row !important;
   gap: 24px;
@@ -58,18 +58,18 @@
   grid-template-columns: none !important;
 }
 
-.recommended-section-scroll .games-list-title {
+.scrollable-section-scroll .games-list-title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.recommended-section-scroll.restoring {
+.scrollable-section-scroll.restoring {
   opacity: 0;
   transition: opacity 0.1s;
 }
 
-.recommended-section-scroll:not(.restoring) {
+.scrollable-section-scroll:not(.restoring) {
   opacity: 1;
   transition: opacity 0.1s;
   margin-left: 20px;

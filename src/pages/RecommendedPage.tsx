@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useLoading } from "../contexts/LoadingContext";
-import RecommendedSection from "../components/recommended/RecommendedSection";
+import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
 import type { GameItem, CollectionItem } from "../types";
 import { API_BASE } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
@@ -172,7 +172,7 @@ export default function RecommendedPage({
           style={{ paddingTop: '16px', paddingBottom: '32px' }}
         >
           {!isFetching && sections.map((section) => (
-            <RecommendedSection
+            <ScrollableGamesSection
               key={section.id}
               sectionId={section.id}
               games={section.games}

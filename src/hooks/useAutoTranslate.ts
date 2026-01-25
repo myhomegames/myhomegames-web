@@ -34,12 +34,25 @@ const LANGUAGE_MAP: Record<string, string> = {
  * @param translationKey - Chiave di traduzione da controllare
  * @returns Testo tradotto o originale
  */
-export function useAutoTranslate(text: string, translationKey: string): string {
+type AutoTranslateOptions = {
+  disabled?: boolean;
+};
+
+export function useAutoTranslate(
+  text: string,
+  translationKey: string,
+  options: AutoTranslateOptions = {}
+): string {
   const { t, i18n } = useTranslation();
   const [translatedText, setTranslatedText] = useState<string>(text);
   const isTranslatingRef = useRef(false);
 
   useEffect(() => {
+    if (options.disabled) {
+      setTranslatedText(text);
+      return;
+    }
+
     // Controlla se esiste già una traduzione nei file di localizzazione
     // Se la chiave non esiste, t() restituisce la chiave stessa
     const existingTranslation = t(translationKey, { defaultValue: '$$$$MISSING$$$$' });
@@ -95,7 +108,7 @@ export function useAutoTranslate(text: string, translationKey: string): string {
         setTranslatedText(text);
         isTranslatingRef.current = false;
       });
-  }, [text, translationKey, t, i18n.language]);
+  }, [text, translationKey, t, i18n.language, options.disabled]);
 
   return translatedText;
 }

@@ -359,6 +359,7 @@ export default function SearchBar({ games, collections, onGameSelect, onPlay }: 
           autoComplete="off"
           role="searchbox"
           aria-autocomplete="list"
+          aria-label={t("search.placeholder")}
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}

@@ -24,6 +24,7 @@ export default function CoverSizeSlider({
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         className="cover-size-slider"
+        aria-label="Cover size"
       />
     </div>
   );

@@ -145,6 +145,11 @@ export default function Cover({
   
   // Check if any popup or menu covers the cover buttons
   useEffect(() => {
+    if (!isDropdownOpen) {
+      setIsPopupOverlay(false);
+      return;
+    }
+
     const checkPopupOverlay = () => {
       if (!coverRef.current) return;
       
@@ -187,7 +192,7 @@ export default function Cover({
         });
       });
       
-      setIsPopupOverlay(hasOverlay);
+      setIsPopupOverlay((prev) => (prev === hasOverlay ? prev : hasOverlay));
     };
     
     // Check initially and on any changes

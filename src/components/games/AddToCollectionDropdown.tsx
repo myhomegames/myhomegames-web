@@ -21,7 +21,6 @@ export default function AddToCollectionDropdown({
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [recentCollections, setRecentCollections] = useState<CollectionItem[]>([]);
   const [isPositionReady, setIsPositionReady] = useState(false);
   const [shouldUsePortal, setShouldUsePortal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -88,19 +87,17 @@ export default function AddToCollectionDropdown({
     });
   }, [allCollections, collectionGameIds, game.id]);
 
-  useEffect(() => {
+  const recentCollections = useMemo(() => {
     // Load recent collections from localStorage
     const recentIds = JSON.parse(
       localStorage.getItem("recentCollections") || "[]"
     ) as string[];
-    
+
     // Only include recent collections that don't already contain this game
-    const recent = recentIds
+    return recentIds
       .map((id) => availableCollections.find((c) => c.id === id))
       .filter((c): c is CollectionItem => c !== undefined)
       .slice(0, 5); // Show max 5 recent collections
-    
-    setRecentCollections(recent);
   }, [availableCollections]);
 
   // Always use portal for submenus to avoid issues with virtualized lists

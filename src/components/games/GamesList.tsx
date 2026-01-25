@@ -27,6 +27,7 @@ type GamesListProps = {
   collectionId?: string;
   onRemoveFromCollection?: (gameId: string) => void;
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
+  enableVirtualization?: boolean;
 };
 
 
@@ -189,6 +190,7 @@ export default function GamesList({
   collectionId,
   onRemoveFromCollection,
   scrollContainerRef,
+  enableVirtualization = true,
 }: GamesListProps) {
   const { t } = useTranslation();
   const editGame = useEditGame();
@@ -220,7 +222,8 @@ export default function GamesList({
   };
 
   // Use virtual scrolling for large lists
-  const useVirtualization = games.length > VIRTUALIZATION_THRESHOLD && !draggable; // Don't use virtualization when dragging is enabled
+  const useVirtualization =
+    enableVirtualization && games.length > VIRTUALIZATION_THRESHOLD && !draggable; // Don't use virtualization when dragging is enabled
   const containerRef = useRef<HTMLDivElement>(null);
 
   if (games.length === 0) {

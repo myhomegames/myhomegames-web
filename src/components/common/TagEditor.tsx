@@ -175,6 +175,7 @@ export default function TagEditor({
           disabled={disabled}
           placeholder={placeholder || t("gameDetail.addTag", "Add tag...")}
           className="tag-editor-input"
+          aria-label={placeholder || t("gameDetail.addTag", "Add tag...")}
         />
       </div>
       {tagSearch && filteredSuggestions.length > 0 && (

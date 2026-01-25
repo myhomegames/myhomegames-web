@@ -19,12 +19,12 @@ import LibrariesBar from "../layout/LibrariesBar";
 import { useEditGame, useExecutable } from "../common/actions";
 import type { GameItem, CollectionItem } from "../../types";
 import { formatGameDate } from "../../utils/date";
-import { buildApiUrl, buildBackgroundUrl, buildCoverUrl } from "../../utils/api";
+import { buildApiUrl, buildBackgroundUrl } from "../../utils/api";
 import { API_BASE, getApiToken } from "../../config";
 import { useLoading } from "../../contexts/LoadingContext";
 import { useCollections } from "../../contexts/CollectionsContext";
 import { useLibraryGames } from "../../contexts/LibraryGamesContext";
-import GamesList from "./GamesList";
+import ScrollableGamesSection from "../common/ScrollableGamesSection";
 import "./GameDetail.css";
 
 type GameDetailProps = {
@@ -220,7 +220,7 @@ function GameDetailContent({
   const navigate = useNavigate();
   const { hasBackground, isBackgroundVisible } = useBackground();
   const { getCollectionGameIds } = useCollections();
-  const { games: libraryGames, updateGame, removeGame } = useLibraryGames();
+  const { games: libraryGames, updateGame } = useLibraryGames();
   const [collectionsWithGames, setCollectionsWithGames] = useState<
     Array<{ collection: CollectionItem; games: GameItem[] }>
   >([]);
@@ -266,25 +266,26 @@ function GameDetailContent({
         return;
       }
 
-      const results = await Promise.all(
-        allCollections.map(async (collection) => {
-          try {
-            const gameIds = await getCollectionGameIds(collection.id);
-            if (!gameIds.includes(String(game.id))) {
-              return null;
-            }
-            const games = gameIds
-              .map((id) => libraryGames.find((g) => String(g.id) === String(id)))
-              .filter((g): g is GameItem => Boolean(g));
-            if (games.length === 0) {
-              return null;
-            }
-            return { collection, games };
-          } catch (error) {
-            return null;
+      const results: Array<{ collection: CollectionItem; games: GameItem[] } | null> = [];
+      for (const collection of allCollections) {
+        try {
+          const gameIds = await getCollectionGameIds(collection.id);
+          if (!gameIds.includes(String(game.id))) {
+            results.push(null);
+            continue;
           }
-        })
-      );
+          const games = gameIds
+            .map((id) => libraryGames.find((g) => String(g.id) === String(id)))
+            .filter((g): g is GameItem => Boolean(g));
+          if (games.length === 0) {
+            results.push(null);
+            continue;
+          }
+          results.push({ collection, games });
+        } catch (error) {
+          results.push(null);
+        }
+      }
 
       if (isActive) {
         setCollectionsWithGames(
@@ -312,12 +313,6 @@ function GameDetailContent({
     updateGame(updatedGame);
     if (String(updatedGame.id) === String(game.id)) {
       onGameUpdate(updatedGame);
-    }
-  };
-  const handleRelatedGameDelete = (deletedGame: GameItem) => {
-    removeGame(deletedGame.id);
-    if (String(deletedGame.id) === String(game.id) && onGameDelete) {
-      onGameDelete(deletedGame);
     }
   };
   
@@ -485,6 +480,7 @@ function GameDetailContent({
                       id="game-executable-input"
                       name="executable"
                       type="file"
+                      aria-label={t("gameDetail.executableFile", "Executable file")}
                       className="game-detail-executable-input"
                       accept=".sh,.bat"
                       onChange={async (e) => {
@@ -599,16 +595,16 @@ function GameDetailContent({
             <div className="game-detail-collections-list">
               {collectionsWithGames.map(({ collection, games }) => (
                 <div key={collection.id} className="game-detail-collection-group">
-                  <div className="game-detail-collection-title">{collection.title}</div>
-                  <GamesList
+                  <ScrollableGamesSection
+                    sectionId={`collection-${collection.id}`}
+                    titleOverride={collection.title}
+                    disableAutoTranslate
+                    enableVirtualization={false}
                     games={games}
                     onGameClick={handleRelatedGameClick}
                     onPlay={onPlay}
                     onGameUpdate={handleRelatedGameUpdate}
-                    onGameDelete={handleRelatedGameDelete}
-                    buildCoverUrl={buildCoverUrl}
                     coverSize={140}
-                    viewMode="grid"
                     allCollections={allCollections}
                   />
                 </div>
@@ -618,20 +614,19 @@ function GameDetailContent({
         )}
         {similarGamesInLibrary.length > 0 && (
           <div className="game-detail-similar-section">
-            <h3 className="game-detail-section-title">
-              {t("igdbInfo.similarGames", "Similar Games")}
-            </h3>
-            <GamesList
-              games={similarGamesInLibrary}
-              onGameClick={handleRelatedGameClick}
-              onPlay={onPlay}
-              onGameUpdate={handleRelatedGameUpdate}
-              onGameDelete={handleRelatedGameDelete}
-              buildCoverUrl={buildCoverUrl}
-              coverSize={140}
-              viewMode="grid"
-              allCollections={allCollections}
-            />
+            <div className="game-detail-related-group">
+              <ScrollableGamesSection
+                sectionId="similar-games"
+                titleOverride={t("igdbInfo.similarGames", "Similar Games")}
+                disableAutoTranslate
+                games={similarGamesInLibrary}
+                onGameClick={handleRelatedGameClick}
+                onPlay={onPlay}
+                onGameUpdate={handleRelatedGameUpdate}
+                coverSize={140}
+                allCollections={allCollections}
+              />
+            </div>
           </div>
         )}
       </div>
