@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 
 type MediaGalleryProps = {
@@ -14,6 +14,7 @@ type MediaItem = {
 
 export default function MediaGallery({ screenshots, videos }: MediaGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   // Combine screenshots and videos into a single array
   const screenshotsCount = screenshots?.length || 0;
@@ -66,11 +67,52 @@ export default function MediaGallery({ screenshots, videos }: MediaGalleryProps)
     };
   }, [selectedIndex, navigateMedia]);
 
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      const rect = container.getBoundingClientRect();
+      const isOverContainer =
+        e.clientX >= rect.left &&
+        e.clientX <= rect.right &&
+        e.clientY >= rect.top &&
+        e.clientY <= rect.bottom;
+
+      if (!isOverContainer) return;
+
+      const hasHorizontalScroll = container.scrollWidth > container.clientWidth;
+      if (!hasHorizontalScroll) return;
+
+      const isPrimarilyHorizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+      if (isPrimarilyHorizontal || Math.abs(e.deltaX) > 0) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const currentScrollLeft = container.scrollLeft;
+        const maxScrollLeft = container.scrollWidth - container.clientWidth;
+        const canScrollLeft = currentScrollLeft > 0 && e.deltaX < 0;
+        const canScrollRight = currentScrollLeft < maxScrollLeft && e.deltaX > 0;
+
+        if (canScrollLeft || canScrollRight) {
+          container.scrollLeft += e.deltaX;
+        }
+      }
+    };
+
+    container.addEventListener("wheel", handleWheel, { passive: false, capture: true });
+    return () => {
+      container.removeEventListener("wheel", handleWheel);
+    };
+  }, []);
+
   const selectedMedia = selectedIndex !== null ? mediaItems[selectedIndex] : null;
 
   return (
     <>
-      <div style={{ 
+      <div
+        ref={scrollRef}
+        style={{ 
           display: 'flex', 
           flexDirection: 'row',
           gap: '12px',
