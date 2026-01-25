@@ -606,7 +606,6 @@ function GameDetailContent({
                     sectionId={`collection-${collection.id}`}
                     titleOverride={collection.title}
                     disableAutoTranslate
-                    enableVirtualization={false}
                     games={games}
                     onGameClick={handleRelatedGameClick}
                     onPlay={onPlay}

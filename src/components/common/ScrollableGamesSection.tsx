@@ -35,7 +35,6 @@ type ScrollableGamesSectionProps = {
   allCollections?: CollectionItem[];
   titleOverride?: string;
   disableAutoTranslate?: boolean;
-  enableVirtualization?: boolean;
   showTitle?: boolean;
 };
 
@@ -49,7 +48,6 @@ export default function ScrollableGamesSection({
   allCollections = [],
   titleOverride,
   disableAutoTranslate = false,
-  enableVirtualization = true,
   showTitle = true,
 }: ScrollableGamesSectionProps) {
   const location = useLocation();
@@ -238,7 +236,7 @@ export default function ScrollableGamesSection({
           buildCoverUrl={buildCoverUrl}
           coverSize={coverSize}
           allCollections={allCollections}
-          enableVirtualization={enableVirtualization}
+          enableVirtualization={false}
         />
       </div>
     </div>
