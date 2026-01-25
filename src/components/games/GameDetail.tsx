@@ -301,10 +301,17 @@ function GameDetailContent({
   }, [allCollections, getCollectionGameIds, game.id, libraryGames]);
 
   const similarGamesInLibrary = useMemo(() => {
-    const similarIds = new Set(
-      (game.similarGames || []).map((similar) => String(similar.id))
-    );
-    return libraryGames.filter((libraryGame) => similarIds.has(String(libraryGame.id)));
+    if (!game.similarGames || game.similarGames.length === 0) {
+      return [];
+    }
+    const libraryMap = new Map<string, GameItem>();
+    for (const item of libraryGames) {
+      libraryMap.set(String(item.id), item);
+    }
+    return game.similarGames
+      .slice(0, 5)
+      .map((similar) => libraryMap.get(String(similar.id)))
+      .filter((item): item is GameItem => Boolean(item));
   }, [game.similarGames, libraryGames]);
   const handleRelatedGameClick = (selectedGame: GameItem) => {
     navigate(`/game/${selectedGame.id}`);
