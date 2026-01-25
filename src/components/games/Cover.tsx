@@ -43,7 +43,15 @@ type CoverProps = {
   showRemoveButton?: boolean; // Show remove button (for modal use)
   removeMediaType?: "cover" | "background"; // Type of media to remove
   removeResourceId?: string | number; // Resource ID for removal
-  removeResourceType?: "games" | "collections" | "categories"; // Resource type for removal
+  removeResourceType?:
+    | "games"
+    | "collections"
+    | "categories"
+    | "themes"
+    | "platforms"
+    | "game-engines"
+    | "game-modes"
+    | "player-perspectives"; // Resource type for removal
   onRemoveSuccess?: () => void; // Callback when removal succeeds
   removeDisabled?: boolean; // Disable remove button
 };

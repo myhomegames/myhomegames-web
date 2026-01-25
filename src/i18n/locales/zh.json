@@ -3,7 +3,12 @@
     "recommended": "推荐",
     "library": "库",
     "collections": "收藏",
-    "categories": "分类"
+    "categories": "分类",
+    "platforms": "平台",
+    "themes": "主题",
+    "gameEngines": "游戏引擎",
+    "gameModes": "游戏模式",
+    "playerPerspectives": "视角"
   },
   "settings": {
     "title": "设置",
@@ -11,6 +16,8 @@
     "general": "常规",
     "version": "版本",
     "language": "语言",
+    "pages": "页面",
+    "pagesHelp": "选择主菜单中显示的栏目。",
     "selectLanguage": "选择应用程序语言",
     "save": "保存",
     "saving": "保存中...",
@@ -32,6 +39,9 @@
       "clientIdHelp": "您的Twitch应用程序客户端ID",
       "clientSecretHelp": "您的Twitch应用程序客户端密钥（请妥善保管）"
     }
+  },
+  "tags": {
+    "noItemsFound": "未找到{{type}}"
   },
   "header": {
     "home": "首页",

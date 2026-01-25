@@ -3,7 +3,12 @@
     "recommended": "Recomendados",
     "library": "Biblioteca",
     "collections": "Coleções",
-    "categories": "Categorias"
+    "categories": "Categorias",
+    "platforms": "Plataformas",
+    "themes": "Temas",
+    "gameEngines": "Motores de jogo",
+    "gameModes": "Modos de jogo",
+    "playerPerspectives": "Perspectivas de jogo"
   },
   "settings": {
     "title": "Configurações",
@@ -11,6 +16,8 @@
     "general": "Geral",
     "version": "Versão",
     "language": "Idioma",
+    "pages": "Páginas",
+    "pagesHelp": "Escolha quais seções aparecem no menu principal.",
     "selectLanguage": "Selecione o idioma do aplicativo",
     "save": "Salvar",
     "saving": "Salvando...",
@@ -32,6 +39,9 @@
       "clientIdHelp": "Seu Client ID da aplicação Twitch",
       "clientSecretHelp": "Seu Client Secret da aplicação Twitch (mantenha isso seguro)"
     }
+  },
+  "tags": {
+    "noItemsFound": "Nenhum {{type}} encontrado"
   },
   "header": {
     "home": "Início",

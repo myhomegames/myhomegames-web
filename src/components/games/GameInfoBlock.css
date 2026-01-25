@@ -42,6 +42,21 @@
   line-height: var(--font-body-2-line-height);
 }
 
+.game-info-list-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.35);
+  text-underline-offset: 3px;
+}
+
+.game-info-list-link:hover {
+  color: #ffffff;
+  text-decoration-color: rgba(255, 255, 255, 0.7);
+}
+
 .game-info-list-separator {
   color: rgba(255, 255, 255, 0.8);
   font-family: var(--font-body-2-font-family);

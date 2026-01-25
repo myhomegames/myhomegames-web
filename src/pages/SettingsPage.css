@@ -123,6 +123,31 @@
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+.settings-library-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.settings-library-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.settings-library-option-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.settings-checkbox {
+  accent-color: #E5A00D;
+}
+
 .settings-actions {
   display: flex;
   justify-content: flex-end;

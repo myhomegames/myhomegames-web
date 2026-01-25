@@ -22,7 +22,7 @@ import ProfilePage from "./pages/ProfilePage";
 import AddGamePage from "./pages/AddGamePage";
 import SearchResultsPage from "./pages/SearchResultsPage";
 import CollectionDetail from "./pages/CollectionDetail";
-import CategoryPage from "./pages/CategoryPage";
+import TagGamesRoutePage from "./pages/TagGamesRoutePage";
 import LoginPage from "./pages/LoginPage";
 import IGDBGameDetailPage from "./pages/IGDBGameDetailPage";
 
@@ -124,6 +124,12 @@ function AppContent() {
           }
           // Also update localStorage
           localStorage.setItem("language", loadedLanguage);
+          if (Array.isArray(data.visibleLibraries)) {
+            localStorage.setItem(
+              "visibleLibraries",
+              JSON.stringify(data.visibleLibraries)
+            );
+          }
         } else {
           console.error("Failed to load settings:", res.status);
         }
@@ -304,13 +310,139 @@ function AppContent() {
                   onSettingsClick={() => navigate("/settings")}
                   onAddGameClick={() => setAddGameOpen(true)}
                 />
-                <CategoryPage
+                <TagGamesRoutePage
                   onGameClick={handleGameClick}
                   onGamesLoaded={() => {
                     // Games are now managed by LibraryGamesContext, no need to update here
                   }}
                   onPlay={openLauncher}
                   allCollections={allCollections}
+                  tagKey="categories"
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/platforms/:platformId"
+            element={
+              <ProtectedRoute>
+                <Header
+                  onPlay={openLauncher}
+                  allGames={allGames}
+                  allCollections={allCollections}
+                  onGameSelect={handleGameSelect}
+                  onHomeClick={() => navigate("/")}
+                  onSettingsClick={() => navigate("/settings")}
+                  onAddGameClick={() => setAddGameOpen(true)}
+                />
+                <TagGamesRoutePage
+                  onGameClick={handleGameClick}
+                  onGamesLoaded={() => {
+                    // Games are now managed by LibraryGamesContext, no need to update here
+                  }}
+                  onPlay={openLauncher}
+                  allCollections={allCollections}
+                  tagKey="platforms"
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/themes/:themeId"
+            element={
+              <ProtectedRoute>
+                <Header
+                  onPlay={openLauncher}
+                  allGames={allGames}
+                  allCollections={allCollections}
+                  onGameSelect={handleGameSelect}
+                  onHomeClick={() => navigate("/")}
+                  onSettingsClick={() => navigate("/settings")}
+                  onAddGameClick={() => setAddGameOpen(true)}
+                />
+                <TagGamesRoutePage
+                  onGameClick={handleGameClick}
+                  onGamesLoaded={() => {
+                    // Games are now managed by LibraryGamesContext, no need to update here
+                  }}
+                  onPlay={openLauncher}
+                  allCollections={allCollections}
+                  tagKey="themes"
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/game-engines/:gameEngineId"
+            element={
+              <ProtectedRoute>
+                <Header
+                  onPlay={openLauncher}
+                  allGames={allGames}
+                  allCollections={allCollections}
+                  onGameSelect={handleGameSelect}
+                  onHomeClick={() => navigate("/")}
+                  onSettingsClick={() => navigate("/settings")}
+                  onAddGameClick={() => setAddGameOpen(true)}
+                />
+                <TagGamesRoutePage
+                  onGameClick={handleGameClick}
+                  onGamesLoaded={() => {
+                    // Games are now managed by LibraryGamesContext, no need to update here
+                  }}
+                  onPlay={openLauncher}
+                  allCollections={allCollections}
+                  tagKey="gameEngines"
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/game-modes/:gameModeId"
+            element={
+              <ProtectedRoute>
+                <Header
+                  onPlay={openLauncher}
+                  allGames={allGames}
+                  allCollections={allCollections}
+                  onGameSelect={handleGameSelect}
+                  onHomeClick={() => navigate("/")}
+                  onSettingsClick={() => navigate("/settings")}
+                  onAddGameClick={() => setAddGameOpen(true)}
+                />
+                <TagGamesRoutePage
+                  onGameClick={handleGameClick}
+                  onGamesLoaded={() => {
+                    // Games are now managed by LibraryGamesContext, no need to update here
+                  }}
+                  onPlay={openLauncher}
+                  allCollections={allCollections}
+                  tagKey="gameModes"
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/player-perspectives/:playerPerspectiveId"
+            element={
+              <ProtectedRoute>
+                <Header
+                  onPlay={openLauncher}
+                  allGames={allGames}
+                  allCollections={allCollections}
+                  onGameSelect={handleGameSelect}
+                  onHomeClick={() => navigate("/")}
+                  onSettingsClick={() => navigate("/settings")}
+                  onAddGameClick={() => setAddGameOpen(true)}
+                />
+                <TagGamesRoutePage
+                  onGameClick={handleGameClick}
+                  onGamesLoaded={() => {
+                    // Games are now managed by LibraryGamesContext, no need to update here
+                  }}
+                  onPlay={openLauncher}
+                  allCollections={allCollections}
+                  tagKey="playerPerspectives"
                 />
               </ProtectedRoute>
             }

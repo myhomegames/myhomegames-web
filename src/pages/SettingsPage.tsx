@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useLoading } from "../contexts/LoadingContext";
 import { API_BASE } from "../config";
 import { buildApiHeaders } from "../utils/api";
+import { CORE_LIBRARY_KEYS, OPTIONAL_LIBRARY_KEYS, normalizeVisibleLibraries } from "../utils/librarySections";
 import "./SettingsPage.css";
 
 export default function SettingsPage() {
@@ -11,6 +12,8 @@ export default function SettingsPage() {
   const [language, setLanguage] = useState("en");
   const [initialLanguage, setInitialLanguage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [visibleLibraries, setVisibleLibraries] = useState<string[]>([...CORE_LIBRARY_KEYS]);
+  const [initialVisibleLibraries, setInitialVisibleLibraries] = useState<string[] | null>(null);
   
   // Twitch OAuth credentials
   const [twitchClientId, setTwitchClientId] = useState("");
@@ -20,7 +23,12 @@ export default function SettingsPage() {
   const [savingTwitch, setSavingTwitch] = useState(false);
 
   // Check if there are unsaved changes
-  const hasChanges = initialLanguage !== null && language !== initialLanguage;
+  const hasLibraryChanges =
+    initialVisibleLibraries !== null &&
+    (visibleLibraries.length !== initialVisibleLibraries.length ||
+      visibleLibraries.some((key, index) => key !== initialVisibleLibraries[index]));
+  const hasChanges =
+    (initialLanguage !== null && language !== initialLanguage) || hasLibraryChanges;
   const hasTwitchChanges = 
     (initialTwitchClientId !== null && twitchClientId !== initialTwitchClientId) ||
     (initialTwitchClientSecret !== null && twitchClientSecret !== initialTwitchClientSecret);
@@ -35,6 +43,18 @@ export default function SettingsPage() {
     setInitialTwitchClientSecret(storedClientSecret);
     
     // Load settings from server
+    const parseStoredLibraries = () => {
+      const storedLibraries = localStorage.getItem("visibleLibraries");
+      if (!storedLibraries) {
+        return null;
+      }
+      try {
+        return JSON.parse(storedLibraries);
+      } catch {
+        return null;
+      }
+    };
+
     async function loadSettings() {
       setLoading(true);
       try {
@@ -48,12 +68,19 @@ export default function SettingsPage() {
           setLanguage(loadedLanguage);
           setInitialLanguage(loadedLanguage);
           i18n.changeLanguage(loadedLanguage);
+          const loadedVisibleLibraries = normalizeVisibleLibraries(data.visibleLibraries);
+          setVisibleLibraries(loadedVisibleLibraries);
+          setInitialVisibleLibraries(loadedVisibleLibraries);
+          localStorage.setItem("visibleLibraries", JSON.stringify(loadedVisibleLibraries));
         } else {
           // Fallback to localStorage
           const saved = localStorage.getItem("language") || "en";
           setLanguage(saved);
           setInitialLanguage(saved);
           i18n.changeLanguage(saved);
+          const normalized = normalizeVisibleLibraries(parseStoredLibraries());
+          setVisibleLibraries(normalized);
+          setInitialVisibleLibraries(normalized);
         }
       } catch (err) {
         console.error("Failed to load settings:", err);
@@ -62,6 +89,9 @@ export default function SettingsPage() {
         setLanguage(saved);
         setInitialLanguage(saved);
         i18n.changeLanguage(saved);
+        const normalized = normalizeVisibleLibraries(parseStoredLibraries());
+        setVisibleLibraries(normalized);
+        setInitialVisibleLibraries(normalized);
       } finally {
         setLoading(false);
       }
@@ -79,6 +109,7 @@ export default function SettingsPage() {
         headers: buildApiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           language: language,
+          visibleLibraries: visibleLibraries,
         }),
       });
 
@@ -88,22 +119,38 @@ export default function SettingsPage() {
 
       // Also save to localStorage as fallback
       localStorage.setItem("language", language);
+      localStorage.setItem("visibleLibraries", JSON.stringify(visibleLibraries));
       // Change i18n language
       i18n.changeLanguage(language);
       // Update initial language to reflect saved state
       setInitialLanguage(language);
+      setInitialVisibleLibraries(visibleLibraries);
     } catch (err) {
       console.error("Failed to save settings:", err);
       // Fallback to localStorage
       localStorage.setItem("language", language);
+      localStorage.setItem("visibleLibraries", JSON.stringify(visibleLibraries));
       // Change i18n language
       i18n.changeLanguage(language);
       // Update initial language to reflect saved state
       setInitialLanguage(language);
+      setInitialVisibleLibraries(visibleLibraries);
     } finally {
       setSaving(false);
     }
   }
+
+  const toggleLibraryVisibility = (key: string) => {
+    setVisibleLibraries((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return normalizeVisibleLibraries(Array.from(next));
+    });
+  };
 
   function handleSaveTwitchCredentials() {
     if (!twitchClientId.trim() || !twitchClientSecret.trim()) {
@@ -172,6 +219,37 @@ export default function SettingsPage() {
               </div>
               <p className="settings-help-text">
                 {t("settings.selectLanguage")}
+              </p>
+            </div>
+
+            <div className="settings-field">
+              <div className="settings-label">{t("settings.pages")}</div>
+              <div className="settings-library-options">
+                {CORE_LIBRARY_KEYS.map((key) => (
+                  <label key={key} className="settings-library-option settings-library-option-disabled">
+                    <input
+                      type="checkbox"
+                      checked={true}
+                      disabled={true}
+                      className="settings-checkbox"
+                    />
+                    <span>{t(`libraries.${key}`)}</span>
+                  </label>
+                ))}
+                {OPTIONAL_LIBRARY_KEYS.map((key) => (
+                  <label key={key} className="settings-library-option">
+                    <input
+                      type="checkbox"
+                      checked={visibleLibraries.includes(key)}
+                      onChange={() => toggleLibraryVisibility(key)}
+                      className="settings-checkbox"
+                    />
+                    <span>{t(`libraries.${key}`)}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="settings-help-text">
+                {t("settings.pagesHelp")}
               </p>
             </div>
 

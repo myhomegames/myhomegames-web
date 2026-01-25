@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import type { IGDBGame, GameItem } from "../../types";
 import WebsitesList from "./WebsitesList";
 import "./GameInfoBlock.css";
@@ -9,6 +10,7 @@ type GameInfoBlockProps = {
 
 export default function GameInfoBlock({ game }: GameInfoBlockProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   // Get game ID (for GameItem it's id, for IGDBGame it's id as number)
   const gameId = 'id' in game ? String(game.id) : undefined;
@@ -34,6 +36,29 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
     return null;
   }
 
+  const renderTagList = (
+    items: string[],
+    routeBase: string,
+    display: (value: string) => string
+  ) => (
+    <div className="game-info-list">
+      {items.map((value, index) => (
+        <span key={`${routeBase}-${value}-${index}`}>
+          <button
+            type="button"
+            className="game-info-list-item game-info-list-link"
+            onClick={() => navigate(`${routeBase}/${encodeURIComponent(value)}`)}
+          >
+            {display(value)}
+          </button>
+          {index < items.length - 1 && (
+            <span className="game-info-list-separator">,{" "}</span>
+          )}
+        </span>
+      ))}
+    </div>
+  );
+
   return (
     <div className="game-info-block">
 
@@ -43,20 +68,9 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           <div className="text-white game-info-label">
             {t("igdbInfo.themes", "Themes")}
           </div>
-          <div className="game-info-list">
-            {game.themes.map((theme, index) => (
-              <span key={index}>
-                <span className="game-info-list-item">
-                  {t(`themes.${theme}`, theme)}
-                </span>
-                {index < game.themes!.length - 1 && (
-                  <span className="game-info-list-separator">
-                    ,{" "}
-                  </span>
-                )}
-              </span>
-            ))}
-          </div>
+          {renderTagList(game.themes, "/themes", (value) =>
+            t(`themes.${value}`, value)
+          )}
         </div>
       )}
 
@@ -66,20 +80,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           <div className="text-white game-info-label">
             {t("igdbInfo.platforms", "Platforms")}
           </div>
-          <div className="game-info-list">
-            {game.platforms.map((platform, index) => (
-              <span key={index}>
-                <span className="game-info-list-item">
-                  {platform}
-                </span>
-                {index < game.platforms!.length - 1 && (
-                  <span className="game-info-list-separator">
-                    ,{" "}
-                  </span>
-                )}
-              </span>
-            ))}
-          </div>
+          {renderTagList(game.platforms, "/platforms", (value) => value)}
         </div>
       )}
 
@@ -89,20 +90,9 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           <div className="text-white game-info-label">
             {t("igdbInfo.gameModes", "Game Modes")}
           </div>
-          <div className="game-info-list">
-            {game.gameModes.map((mode, index) => (
-              <span key={index}>
-                <span className="game-info-list-item">
-                  {t(`gameModes.${mode}`, mode)}
-                </span>
-                {index < game.gameModes!.length - 1 && (
-                  <span className="game-info-list-separator">
-                    ,{" "}
-                  </span>
-                )}
-              </span>
-            ))}
-          </div>
+          {renderTagList(game.gameModes, "/game-modes", (value) =>
+            t(`gameModes.${value}`, value)
+          )}
         </div>
       )}
 
@@ -112,20 +102,9 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           <div className="text-white game-info-label">
             {t("igdbInfo.playerPerspectives", "Player Perspectives")}
           </div>
-          <div className="game-info-list">
-            {game.playerPerspectives.map((perspective, index) => (
-              <span key={index}>
-                <span className="game-info-list-item">
-                  {t(`playerPerspectives.${perspective}`, perspective)}
-                </span>
-                {index < game.playerPerspectives!.length - 1 && (
-                  <span className="game-info-list-separator">
-                    ,{" "}
-                  </span>
-                )}
-              </span>
-            ))}
-          </div>
+          {renderTagList(game.playerPerspectives, "/player-perspectives", (value) =>
+            t(`playerPerspectives.${value}`, value)
+          )}
         </div>
       )}
 
@@ -216,20 +195,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           <div className="text-white game-info-label">
             {t("igdbInfo.gameEngines", "Game Engines")}
           </div>
-          <div className="game-info-list">
-            {game.gameEngines.map((engine, index) => (
-              <span key={index}>
-                <span className="game-info-list-item">
-                  {engine}
-                </span>
-                {index < game.gameEngines!.length - 1 && (
-                  <span className="game-info-list-separator">
-                    ,{" "}
-                  </span>
-                )}
-              </span>
-            ))}
-          </div>
+          {renderTagList(game.gameEngines, "/game-engines", (value) => value)}
         </div>
       )}
 

@@ -3,7 +3,12 @@
     "recommended": "おすすめ",
     "library": "ライブラリ",
     "collections": "コレクション",
-    "categories": "カテゴリ"
+    "categories": "カテゴリ",
+    "platforms": "プラットフォーム",
+    "themes": "テーマ",
+    "gameEngines": "ゲームエンジン",
+    "gameModes": "ゲームモード",
+    "playerPerspectives": "視点"
   },
   "settings": {
     "title": "設定",
@@ -11,6 +16,8 @@
     "general": "一般",
     "version": "バージョン",
     "language": "言語",
+    "pages": "ページ",
+    "pagesHelp": "メインメニューに表示するセクションを選択します。",
     "selectLanguage": "アプリケーションの言語を選択",
     "save": "保存",
     "saving": "保存中...",
@@ -32,6 +39,9 @@
       "clientIdHelp": "TwitchアプリケーションのクライアントID",
       "clientSecretHelp": "Twitchアプリケーションのクライアントシークレット（安全に保管してください）"
     }
+  },
+  "tags": {
+    "noItemsFound": "{{type}}が見つかりません"
   },
   "header": {
     "home": "ホーム",
