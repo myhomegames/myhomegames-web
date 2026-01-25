@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import type { IGDBGame, GameItem } from "../../types";
 import { useLibraryGames } from "../../contexts/LibraryGamesContext";
 import WebsitesList from "./WebsitesList";
+import InlineTagList from "../common/InlineTagList";
 import "./GameInfoBlock.css";
 
 type GameInfoBlockProps = {
@@ -44,22 +45,14 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
     routeBase: string,
     display: (value: string) => string
   ) => (
-    <div className="game-info-list">
-      {items.map((value, index) => (
-        <span key={`${routeBase}-${value}-${index}`}>
-          <button
-            type="button"
-            className="game-info-list-item game-info-list-link"
-            onClick={() => navigate(`${routeBase}/${encodeURIComponent(value)}`)}
-          >
-            {display(value)}
-          </button>
-          {index < items.length - 1 && (
-            <span className="game-info-list-separator">,{" "}</span>
-          )}
-        </span>
-      ))}
-    </div>
+    <InlineTagList
+      items={items}
+      getLabel={display}
+      onItemClick={(value) => navigate(`${routeBase}/${encodeURIComponent(value)}`)}
+      useInfoStyles
+      showMoreMinCount={5}
+      showMoreLabel={t("gameDetail.andMore", ", and more")}
+    />
   );
 
   const similarGamesInLibrary = useMemo(() => {
@@ -190,20 +183,13 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           <div className="text-white game-info-label">
             {t("igdbInfo.alternativeNames", "Alternative Names")}
           </div>
-          <div className="game-info-list">
-            {game.alternativeNames.map((name, index) => (
-              <span key={index}>
-                <span className="game-info-list-item">
-                  {name}
-                </span>
-                {index < game.alternativeNames!.length - 1 && (
-                  <span className="game-info-list-separator">
-                    ,{" "}
-                  </span>
-                )}
-              </span>
-            ))}
-          </div>
+          <InlineTagList
+            items={game.alternativeNames}
+            getLabel={(name) => name}
+            useInfoStyles
+            showMoreMinCount={5}
+            showMoreLabel={t("gameDetail.andMore", ", and more")}
+          />
         </div>
       )}
 
@@ -213,30 +199,16 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           <div className="text-white game-info-label">
             {t("igdbInfo.similarGames", "Similar Games")}
           </div>
-          <div className="game-info-list">
-            {game.similarGames.slice(0, 5).map((sg, index) => (
-              <span key={index}>
-                {similarGamesInLibrary.has(String(sg.id)) ? (
-                  <button
-                    type="button"
-                    className="game-info-list-item game-info-list-link"
-                    onClick={() => navigate(`/game/${sg.id}`)}
-                  >
-                    {sg.name}
-                  </button>
-                ) : (
-                  <span className="game-info-list-item">
-                    {sg.name}
-                  </span>
-                )}
-                {index < Math.min(game.similarGames!.length, 5) - 1 && (
-                  <span className="game-info-list-separator">
-                    ,{" "}
-                  </span>
-                )}
-              </span>
-            ))}
-          </div>
+          <InlineTagList
+            items={game.similarGames}
+            getLabel={(sg) => sg.name}
+            getKey={(sg) => String(sg.id)}
+            onItemClick={(sg) => navigate(`/game/${sg.id}`)}
+            isClickable={(sg) => similarGamesInLibrary.has(String(sg.id))}
+            useInfoStyles
+            showMoreMinCount={5}
+            showMoreLabel={t("gameDetail.andMore", ", and more")}
+          />
         </div>
       )}
     </div>

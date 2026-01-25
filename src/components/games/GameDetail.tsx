@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import Cover from "./Cover";
 import StarRating from "../common/StarRating";
 import Summary from "../common/Summary";
-import GameCategories from "./GameCategories";
+import InlineTagList from "../common/InlineTagList";
 import GameInfoBlock from "./GameInfoBlock";
 import MediaGallery from "./MediaGallery";
 import AgeRatings, { filterAgeRatingsByLocale } from "./AgeRatings";
@@ -23,6 +23,7 @@ import { buildApiUrl, buildBackgroundUrl } from "../../utils/api";
 import { API_BASE, getApiToken } from "../../config";
 import { useLoading } from "../../contexts/LoadingContext";
 import { useCollections } from "../../contexts/CollectionsContext";
+import { useCategories } from "../../contexts/CategoriesContext";
 import { useLibraryGames } from "../../contexts/LibraryGamesContext";
 import ScrollableGamesSection from "../common/ScrollableGamesSection";
 import "./GameDetail.css";
@@ -218,6 +219,7 @@ function GameDetailContent({
   i18n: { language: string };
 }) {
   const navigate = useNavigate();
+  const { categories } = useCategories();
   const { hasBackground, isBackgroundVisible } = useBackground();
   const { getCollectionGameIds } = useCollections();
   const { games: libraryGames, updateGame } = useLibraryGames();
@@ -321,6 +323,13 @@ function GameDetailContent({
       onGameUpdate(updatedGame);
     }
   };
+
+  const handleGenreClick = (genreTitle: string) => {
+    const category = categories.find((c) => c.title === genreTitle);
+    if (category) {
+      navigate(`/category/${category.id}`);
+    }
+  };
   
   return (
     <>
@@ -384,7 +393,12 @@ function GameDetailContent({
                   </div>
                 );
               })()}
-              <GameCategories game={game} />
+              <InlineTagList
+                items={Array.isArray(game.genre) ? game.genre : game.genre ? [game.genre] : []}
+                getLabel={(genre) => t(`genre.${genre}`, genre)}
+                onItemClick={handleGenreClick}
+                showMoreLabel={t("gameDetail.andMore", ", and more")}
+              />
               <div className="game-detail-ratings">
                 {(criticRating !== null) || (userRating !== null) ? (
                   <>
