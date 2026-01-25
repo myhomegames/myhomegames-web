@@ -309,7 +309,6 @@ function GameDetailContent({
       libraryMap.set(String(item.id), item);
     }
     return game.similarGames
-      .slice(0, 5)
       .map((similar) => libraryMap.get(String(similar.id)))
       .filter((item): item is GameItem => Boolean(item));
   }, [game.similarGames, libraryGames]);
