@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useLoading } from "../contexts/LoadingContext";
 import { useGamesListPage } from "../hooks/useGamesListPage";
@@ -7,25 +7,37 @@ import AlphabetNavigator from "../components/ui/AlphabetNavigator";
 import LibrariesBar from "../components/layout/LibrariesBar";
 import type { ViewMode } from "../types";
 import type { GameItem, CollectionItem } from "../types";
+import type { FilterField } from "../components/filters/types";
 import { buildCoverUrl } from "../utils/api";
 
-type CategoryPageProps = {
+type TagGamesPageProps = {
   onGameClick: (game: GameItem) => void;
   onGamesLoaded: (games: GameItem[]) => void;
   onPlay?: (game: GameItem) => void;
   allCollections?: CollectionItem[];
+  tagField: FilterField;
+  paramName: string;
+  storageKey: string;
 };
 
-export default function CategoryPage({
+export default function TagGamesPage({
   onGameClick,
   onGamesLoaded,
   onPlay,
   allCollections = [],
-}: CategoryPageProps) {
+  tagField,
+  paramName,
+  storageKey,
+}: TagGamesPageProps) {
   const { isLoading } = useLoading();
-  const { categoryId } = useParams<{ categoryId: string }>();
+  const params = useParams<Record<string, string>>();
+  const rawParam = params[paramName];
+  const tagValue = useMemo(
+    () => (rawParam ? decodeURIComponent(rawParam) : null),
+    [rawParam]
+  );
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    const saved = localStorage.getItem("viewMode_category");
+    const saved = localStorage.getItem(`viewMode_${storageKey}`);
     return (saved as ViewMode) || "grid";
   });
   const coverSize = (() => {
@@ -33,28 +45,92 @@ export default function CategoryPage({
     return saved ? parseInt(saved, 10) : 150;
   })();
 
-  // Save view mode to localStorage
   useEffect(() => {
-    localStorage.setItem("viewMode_category", viewMode);
-  }, [viewMode]);
+    localStorage.setItem(`viewMode_${storageKey}`, viewMode);
+  }, [viewMode, storageKey]);
 
   const hook = useGamesListPage({
-    defaultFilterField: "genre",
-    categoryId: categoryId || null,
+    defaultFilterField: tagField,
     listenToGameDeleted: true,
     gameEvents: ["gameUpdated", "gameDeleted"],
     scrollRestorationMode: viewMode === "table" ? undefined : viewMode,
   });
 
-  // Custom buildCoverUrl with timestamp for CategoryPage
-  const buildCoverUrlFn = useCallback((apiBase: string, cover?: string, addTimestamp?: boolean) => {
-    return buildCoverUrl(apiBase, cover, addTimestamp ?? true);
-  }, []);
+  const {
+    setFilterField,
+    setSelectedThemes,
+    setSelectedKeywords,
+    setSelectedPlatforms,
+    setSelectedGameModes,
+    setSelectedPublishers,
+    setSelectedDevelopers,
+    setSelectedPlayerPerspectives,
+    setSelectedGameEngines,
+    setSelectedGenre,
+  } = hook;
 
-  // Memoize onGamesLoaded to prevent infinite loop
-  const handleGamesLoaded = useCallback((games: GameItem[]) => {
-    onGamesLoaded(games);
-  }, [onGamesLoaded]);
+  useEffect(() => {
+    if (!tagValue) return;
+    setFilterField(tagField);
+    switch (tagField) {
+      case "themes":
+        setSelectedThemes(tagValue);
+        break;
+      case "keywords":
+        setSelectedKeywords(tagValue);
+        break;
+      case "platforms":
+        setSelectedPlatforms(tagValue);
+        break;
+      case "gameModes":
+        setSelectedGameModes(tagValue);
+        break;
+      case "publishers":
+        setSelectedPublishers(tagValue);
+        break;
+      case "developers":
+        setSelectedDevelopers(tagValue);
+        break;
+      case "playerPerspectives":
+        setSelectedPlayerPerspectives(tagValue);
+        break;
+      case "gameEngines":
+        setSelectedGameEngines(tagValue);
+        break;
+      case "genre":
+        setSelectedGenre(tagValue);
+        break;
+      default:
+        break;
+    }
+  }, [
+    tagValue,
+    tagField,
+    setFilterField,
+    setSelectedThemes,
+    setSelectedKeywords,
+    setSelectedPlatforms,
+    setSelectedGameModes,
+    setSelectedPublishers,
+    setSelectedDevelopers,
+    setSelectedPlayerPerspectives,
+    setSelectedGameEngines,
+    setSelectedGenre,
+  ]);
+
+  const buildCoverUrlFn = useCallback(
+    (apiBase: string, cover?: string, addTimestamp?: boolean) => {
+      return buildCoverUrl(apiBase, cover, addTimestamp ?? true);
+    },
+    []
+  );
+
+  const handleGamesLoaded = useCallback(
+    (games: GameItem[]) => {
+      onGamesLoaded(games);
+    },
+    [onGamesLoaded]
+  );
 
   return (
     <>

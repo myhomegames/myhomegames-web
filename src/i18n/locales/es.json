@@ -3,7 +3,12 @@
     "recommended": "Recomendados",
     "library": "Biblioteca",
     "collections": "Colecciones",
-    "categories": "Categorías"
+    "categories": "Categorías",
+    "platforms": "Plataformas",
+    "themes": "Temas",
+    "gameEngines": "Motores de juego",
+    "gameModes": "Modos de juego",
+    "playerPerspectives": "Perspectivas de juego"
   },
   "settings": {
     "title": "Configuración",
@@ -11,6 +16,8 @@
     "general": "General",
     "version": "Versión",
     "language": "Idioma",
+    "pages": "Páginas",
+    "pagesHelp": "Elige qué secciones aparecen en el menú principal.",
     "selectLanguage": "Seleccione el idioma de la aplicación",
     "save": "Guardar",
     "saving": "Guardando...",
@@ -32,6 +39,9 @@
       "clientIdHelp": "Tu Client ID de la aplicación Twitch",
       "clientSecretHelp": "Tu Client Secret de la aplicación Twitch (mantén esto seguro)"
     }
+  },
+  "tags": {
+    "noItemsFound": "No se encontraron {{type}}"
   },
   "header": {
     "home": "Inicio",
@@ -120,6 +130,23 @@
     "day": "Día",
     "genre": "Género",
     "addGenre": "Añadir género...",
+    "themes": "Temas",
+    "keywords": "Palabras clave",
+    "platforms": "Plataformas",
+    "gameModes": "Modos de juego",
+    "publishers": "Editores",
+    "developers": "Desarrolladores",
+    "playerPerspectives": "Perspectivas",
+    "gameEngines": "Motores de juego",
+    "addTag": "Añadir etiqueta...",
+    "addTheme": "Añadir tema...",
+    "addKeyword": "Añadir palabra clave...",
+    "addPlatform": "Añadir plataforma...",
+    "addGameMode": "Añadir modo de juego...",
+    "addPublisher": "Añadir editor...",
+    "addDeveloper": "Añadir desarrollador...",
+    "addPlayerPerspective": "Añadir perspectiva...",
+    "addGameEngine": "Añadir motor de juego...",
     "criticRating": "Valoración de la Crítica",
     "userRating": "Valoración del Público",
     "linkExecutable": "Vincular Ejecutable",
@@ -129,6 +156,7 @@
     "unlinkingExecutable": "Desvinculando...",
     "invalidFileType": "Solo se permiten archivos .sh y .bat",
     "info": "INFO",
+    "tags": "ETIQUETAS",
     "media": "MEDIOS",
     "cover": "Portada",
     "background": "Fondo",
@@ -216,12 +244,28 @@
     "filter": {
       "all": "Todo",
       "genre": "Género",
+      "themes": "Temas",
+      "keywords": "Palabras clave",
+      "platforms": "Plataformas",
+      "gameModes": "Modos de juego",
+      "publishers": "Editores",
+      "developers": "Desarrolladores",
+      "playerPerspectives": "Perspectivas",
+      "gameEngines": "Motores de juego",
       "year": "Año",
       "decade": "Década",
       "collection": "Colección",
       "ageRating": "Clasificación de contenidos",
       "searchYear": "Filtro Año",
       "searchGenre": "Filtro Género",
+      "searchThemes": "Filtro Temas",
+      "searchKeywords": "Filtro Palabras clave",
+      "searchPlatforms": "Filtro Plataformas",
+      "searchGameModes": "Filtro Modos de juego",
+      "searchPublishers": "Filtro Editores",
+      "searchDevelopers": "Filtro Desarrolladores",
+      "searchPlayerPerspectives": "Filtro Perspectivas",
+      "searchGameEngines": "Filtro Motores de juego",
       "searchDecade": "Filtro Década",
       "searchCollection": "Filtro Colección",
       "searchAgeRating": "Buscar clasificación..."
@@ -299,6 +343,23 @@
     "Erotic": "Erótico",
     "Mystery": "Misterio",
     "Romance": "Romance"
+  },
+  "gameModes": {
+    "Single player": "Un jugador",
+    "Multiplayer": "Multijugador",
+    "Co-operative": "Cooperativo",
+    "Split screen": "Pantalla dividida",
+    "Massively Multiplayer Online (MMO)": "Multijugador masivo en línea (MMO)",
+    "Battle Royale": "Battle Royale"
+  },
+  "playerPerspectives": {
+    "First person": "Primera persona",
+    "Third person": "Tercera persona",
+    "Bird view / Isometric": "Vista superior / Isométrica",
+    "Side view": "Vista lateral",
+    "Text": "Texto",
+    "Virtual Reality": "Realidad virtual",
+    "Auditory": "Auditivo"
   },
   "collectionDetail": {
     "editCollection": "Editar Colección",

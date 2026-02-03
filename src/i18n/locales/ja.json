@@ -3,7 +3,12 @@
     "recommended": "おすすめ",
     "library": "ライブラリ",
     "collections": "コレクション",
-    "categories": "カテゴリ"
+    "categories": "カテゴリ",
+    "platforms": "プラットフォーム",
+    "themes": "テーマ",
+    "gameEngines": "ゲームエンジン",
+    "gameModes": "ゲームモード",
+    "playerPerspectives": "視点"
   },
   "settings": {
     "title": "設定",
@@ -11,6 +16,8 @@
     "general": "一般",
     "version": "バージョン",
     "language": "言語",
+    "pages": "ページ",
+    "pagesHelp": "メインメニューに表示するセクションを選択します。",
     "selectLanguage": "アプリケーションの言語を選択",
     "save": "保存",
     "saving": "保存中...",
@@ -32,6 +39,9 @@
       "clientIdHelp": "TwitchアプリケーションのクライアントID",
       "clientSecretHelp": "Twitchアプリケーションのクライアントシークレット（安全に保管してください）"
     }
+  },
+  "tags": {
+    "noItemsFound": "{{type}}が見つかりません"
   },
   "header": {
     "home": "ホーム",
@@ -120,6 +130,23 @@
     "day": "日",
     "genre": "ジャンル",
     "addGenre": "ジャンルを追加...",
+    "themes": "テーマ",
+    "keywords": "キーワード",
+    "platforms": "プラットフォーム",
+    "gameModes": "ゲームモード",
+    "publishers": "パブリッシャー",
+    "developers": "開発者",
+    "playerPerspectives": "視点",
+    "gameEngines": "ゲームエンジン",
+    "addTag": "タグを追加...",
+    "addTheme": "テーマを追加...",
+    "addKeyword": "キーワードを追加...",
+    "addPlatform": "プラットフォームを追加...",
+    "addGameMode": "ゲームモードを追加...",
+    "addPublisher": "パブリッシャーを追加...",
+    "addDeveloper": "開発者を追加...",
+    "addPlayerPerspective": "視点を追加...",
+    "addGameEngine": "ゲームエンジンを追加...",
     "criticRating": "批評家評価",
     "userRating": "ユーザー評価",
     "linkExecutable": "実行ファイルをリンク",
@@ -129,6 +156,7 @@
     "unlinkingExecutable": "解除中...",
     "invalidFileType": ".sh と .bat ファイルのみが許可されています",
     "info": "情報",
+    "tags": "タグ",
     "media": "メディア",
     "cover": "カバー",
     "background": "背景",
@@ -216,12 +244,28 @@
     "filter": {
       "all": "すべて",
       "genre": "ジャンル",
+      "themes": "テーマ",
+      "keywords": "キーワード",
+      "platforms": "プラットフォーム",
+      "gameModes": "ゲームモード",
+      "publishers": "パブリッシャー",
+      "developers": "開発者",
+      "playerPerspectives": "視点",
+      "gameEngines": "ゲームエンジン",
       "year": "年",
       "decade": "年代",
       "collection": "コレクション",
       "ageRating": "コンテンツレーティング",
       "searchYear": "フィルター年",
       "searchGenre": "フィルタージャンル",
+      "searchThemes": "フィルターテーマ",
+      "searchKeywords": "フィルターキーワード",
+      "searchPlatforms": "フィルタープラットフォーム",
+      "searchGameModes": "フィルターゲームモード",
+      "searchPublishers": "フィルターパブリッシャー",
+      "searchDevelopers": "フィルター開発者",
+      "searchPlayerPerspectives": "フィルター視点",
+      "searchGameEngines": "フィルターゲームエンジン",
       "searchDecade": "フィルター年代",
       "searchCollection": "フィルターコレクション",
       "searchAgeRating": "レーティングを検索..."
@@ -299,6 +343,23 @@
     "Erotic": "エロティック",
     "Mystery": "ミステリー",
     "Romance": "ロマンス"
+  },
+  "gameModes": {
+    "Single player": "シングルプレイ",
+    "Multiplayer": "マルチプレイ",
+    "Co-operative": "協力",
+    "Split screen": "画面分割",
+    "Massively Multiplayer Online (MMO)": "大規模マルチプレイ（MMO）",
+    "Battle Royale": "バトルロイヤル"
+  },
+  "playerPerspectives": {
+    "First person": "一人称視点",
+    "Third person": "三人称視点",
+    "Bird view / Isometric": "俯瞰／アイソメトリック",
+    "Side view": "横視点",
+    "Text": "テキスト",
+    "Virtual Reality": "バーチャルリアリティ",
+    "Auditory": "聴覚"
   },
   "collectionDetail": {
     "editCollection": "コレクションを編集",

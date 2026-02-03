@@ -1,4 +1,4 @@
-.categories-list-container {
+.tag-list-container {
   max-width: 100%;
   margin: 0 auto;
   display: grid;
@@ -6,7 +6,7 @@
   justify-content: center;
 }
 
-.categories-list-item {
+.tag-list-item {
   flex-shrink: 0;
 }
 

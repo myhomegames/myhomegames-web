@@ -1,8 +1,35 @@
 import type { GameItem } from "../../types";
 
-export type FilterField = "all" | "genre" | "year" | "decade" | "collection" | "ageRating";
+export type FilterField =
+  | "all"
+  | "genre"
+  | "themes"
+  | "keywords"
+  | "platforms"
+  | "gameModes"
+  | "publishers"
+  | "developers"
+  | "playerPerspectives"
+  | "gameEngines"
+  | "year"
+  | "decade"
+  | "collection"
+  | "ageRating";
 
-export type FilterType = "year" | "genre" | "decade" | "collection" | "ageRating";
+export type FilterType =
+  | "year"
+  | "genre"
+  | "themes"
+  | "keywords"
+  | "platforms"
+  | "gameModes"
+  | "publishers"
+  | "developers"
+  | "playerPerspectives"
+  | "gameEngines"
+  | "decade"
+  | "collection"
+  | "ageRating";
 
 export type { GameItem };
 

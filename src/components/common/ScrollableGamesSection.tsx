@@ -1,11 +1,11 @@
 import { useRef, useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import GamesList from "../games/GamesList";
-import RecommendedSectionNav from "./RecommendedSectionNav";
+import ScrollableGamesSectionNav from "./ScrollableGamesSectionNav";
 import type { GameItem, CollectionItem } from "../../types";
 import { buildCoverUrl } from "../../utils/api";
 import { useAutoTranslate } from "../../hooks/useAutoTranslate";
-import "./RecommendedSection.css";
+import "./ScrollableGamesSection.css";
 
 // Helper per sessionStorage
 function getScrollPosition(key: string): number {
@@ -25,7 +25,7 @@ function setScrollPosition(key: string, position: number): void {
   }
 }
 
-type RecommendedSectionProps = {
+type ScrollableGamesSectionProps = {
   sectionId: string;
   games: GameItem[];
   onGameClick: (game: GameItem) => void;
@@ -33,9 +33,12 @@ type RecommendedSectionProps = {
   onGameUpdate?: (updatedGame: GameItem) => void;
   coverSize: number;
   allCollections?: CollectionItem[];
+  titleOverride?: string;
+  disableAutoTranslate?: boolean;
+  showTitle?: boolean;
 };
 
-export default function RecommendedSection({
+export default function ScrollableGamesSection({
   sectionId,
   games,
   onGameClick,
@@ -43,7 +46,10 @@ export default function RecommendedSection({
   onGameUpdate,
   coverSize,
   allCollections = [],
-}: RecommendedSectionProps) {
+  titleOverride,
+  disableAutoTranslate = false,
+  showTitle = true,
+}: ScrollableGamesSectionProps) {
   const location = useLocation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const storageKey = `${location.pathname}:${sectionId}`;
@@ -53,7 +59,10 @@ export default function RecommendedSection({
 
   const titleKey = `recommended.${sectionId}`;
   // Usa traduzione automatica se non esiste nei file di localizzazione
-  const title = useAutoTranslate(sectionId, titleKey);
+  const autoTitle = useAutoTranslate(sectionId, titleKey, {
+    disabled: disableAutoTranslate,
+  });
+  const title = titleOverride || (disableAutoTranslate ? sectionId : autoTitle);
 
   const updateScrollButtons = () => {
     const container = scrollRef.current;
@@ -194,21 +203,30 @@ export default function RecommendedSection({
     return null;
   }
 
-
   return (
-    <div className="recommended-section">
-      <div className="recommended-section-header">
-        <h2 className="recommended-section-title">{title}</h2>
-        <RecommendedSectionNav
+    <div className="scrollable-section">
+      {showTitle && (
+        <div className="scrollable-section-header">
+          <h2 className="scrollable-section-title">{title}</h2>
+          <ScrollableGamesSectionNav
+            canScrollLeft={canScrollLeft}
+            canScrollRight={canScrollRight}
+            onScrollToFirst={scrollToFirst}
+            onScrollToLast={scrollToLast}
+          />
+        </div>
+      )}
+      {!showTitle && (
+        <ScrollableGamesSectionNav
           canScrollLeft={canScrollLeft}
           canScrollRight={canScrollRight}
           onScrollToFirst={scrollToFirst}
           onScrollToLast={scrollToLast}
         />
-      </div>
+      )}
       <div
         ref={scrollRef}
-        className={`recommended-section-scroll ${isRestoring ? 'restoring' : ''}`}
+        className={`scrollable-section-scroll ${isRestoring ? 'restoring' : ''}`}
       >
         <GamesList
           games={games}
@@ -218,6 +236,7 @@ export default function RecommendedSection({
           buildCoverUrl={buildCoverUrl}
           coverSize={coverSize}
           allCollections={allCollections}
+          enableVirtualization={false}
         />
       </div>
     </div>

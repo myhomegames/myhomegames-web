@@ -5,8 +5,11 @@ import type { ViewMode } from "../types";
 import LibraryPage from "./LibraryPage";
 import RecommendedPage from "./RecommendedPage";
 import CollectionsPage from "./CollectionsPage";
-import CategoriesPage from "./CategoriesPage";
+import TagListRoutePage from "./TagListRoutePage";
 import type { GameItem, CategoryItem, GameLibrarySection, CollectionItem } from "../types";
+import { API_BASE, getApiToken } from "../config";
+import { buildApiHeaders } from "../utils/api";
+import { buildLibrarySections, normalizeVisibleLibraries } from "../utils/librarySections";
 import "./HomePage.css";
 
 export type { GameItem, CategoryItem };
@@ -69,32 +72,78 @@ export default function HomePage({
 
   // Restore last selected library or auto-select first library when libraries are loaded
   useEffect(() => {
-    if (libraries.length > 0 && !activeLibrary) {
-      const savedLibraryKey = localStorage.getItem("lastSelectedLibrary");
-      const libraryToSelect = savedLibraryKey
-        ? libraries.find((lib) => lib.key === savedLibraryKey) || libraries[0]
-        : libraries[0];
-
-      setActiveLibrary(libraryToSelect);
-      if (libraryToSelect.key === "library") {
-        const savedViewMode = loadViewModeForLibrary(libraryToSelect.key);
-        setViewMode(savedViewMode);
-      } else {
-        setViewMode("grid");
-      }
+    if (libraries.length === 0) {
+      return;
     }
-  }, [libraries]);
+
+    const savedLibraryKey = localStorage.getItem("lastSelectedLibrary");
+    const currentIsValid = activeLibrary
+      ? libraries.some((lib) => lib.key === activeLibrary.key)
+      : false;
+    const libraryToSelect = currentIsValid
+      ? activeLibrary
+      : savedLibraryKey
+      ? libraries.find((lib) => lib.key === savedLibraryKey) || libraries[0]
+      : libraries[0];
+
+    if (!activeLibrary || activeLibrary.key !== libraryToSelect?.key) {
+      setActiveLibrary(libraryToSelect);
+    }
+    if (libraryToSelect?.key) {
+      localStorage.setItem("lastSelectedLibrary", libraryToSelect.key);
+    }
+
+    if (libraryToSelect?.key === "library") {
+      const savedViewMode = loadViewModeForLibrary(libraryToSelect.key);
+      setViewMode(savedViewMode);
+    } else {
+      setViewMode("grid");
+    }
+  }, [libraries, activeLibrary]);
 
   async function fetchLibraries() {
     setError(null);
     try {
-      // Libraries are now hardcoded, no need to fetch from server
-      const libs: GameLibrarySection[] = [
-        { key: "recommended", type: "games" },
-        { key: "library", type: "games" },
-        { key: "collections", type: "collections" },
-        { key: "categories", type: "games" },
-      ];
+      let visibleLibraries: string[] | null = null;
+      const apiToken = getApiToken();
+
+      if (API_BASE && apiToken) {
+        try {
+          const url = new URL("/settings", API_BASE);
+          const res = await fetch(url.toString(), {
+            headers: buildApiHeaders({ Accept: "application/json" }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data.visibleLibraries)) {
+              visibleLibraries = data.visibleLibraries;
+              localStorage.setItem(
+                "visibleLibraries",
+                JSON.stringify(data.visibleLibraries)
+              );
+            }
+          }
+        } catch (err) {
+          console.warn("Failed to load visible libraries from settings:", err);
+        }
+      }
+
+      if (!visibleLibraries) {
+        const stored = localStorage.getItem("visibleLibraries");
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed)) {
+              visibleLibraries = parsed;
+            }
+          } catch {
+            visibleLibraries = null;
+          }
+        }
+      }
+
+      const normalized = normalizeVisibleLibraries(visibleLibraries || []);
+      const libs: GameLibrarySection[] = buildLibrarySections(normalized);
       setLibraries(libs);
     } catch (err: any) {
       const errorMessage = String(err.message || err);
@@ -169,9 +218,22 @@ export default function HomePage({
               />
             )}
             {activeLibrary.key === "categories" && (
-              <CategoriesPage
-                coverSize={coverSize}
-              />
+              <TagListRoutePage coverSize={coverSize} tagKey="categories" />
+            )}
+            {activeLibrary.key === "platforms" && (
+              <TagListRoutePage coverSize={coverSize} tagKey="platforms" />
+            )}
+            {activeLibrary.key === "themes" && (
+              <TagListRoutePage coverSize={coverSize} tagKey="themes" />
+            )}
+            {activeLibrary.key === "gameEngines" && (
+              <TagListRoutePage coverSize={coverSize} tagKey="gameEngines" />
+            )}
+            {activeLibrary.key === "gameModes" && (
+              <TagListRoutePage coverSize={coverSize} tagKey="gameModes" />
+            )}
+            {activeLibrary.key === "playerPerspectives" && (
+              <TagListRoutePage coverSize={coverSize} tagKey="playerPerspectives" />
             )}
           </>
         )}

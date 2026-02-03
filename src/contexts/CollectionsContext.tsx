@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useMemo, useEffect } from "react";
+import { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import type { CollectionItem } from "../types";
 import { API_BASE, getApiToken } from "../config";
@@ -26,6 +26,7 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [collectionGameIds, setCollectionGameIds] = useState<Map<string, string[]>>(new Map());
+  const collectionGameIdsRef = useRef(collectionGameIds);
   const { isLoading: authLoading, token: authToken } = useAuth();
 
   const fetchCollections = useCallback(async () => {
@@ -76,6 +77,10 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
       fetchCollections();
     }
   }, [authLoading, fetchCollections]);
+
+  useEffect(() => {
+    collectionGameIdsRef.current = collectionGameIds;
+  }, [collectionGameIds]);
 
   // Listen for collection update events
   useEffect(() => {
@@ -211,7 +216,7 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const getCollectionGameIds = useCallback(async (collectionId: string | number): Promise<string[]> => {
-    const cached = collectionGameIds.get(String(collectionId));
+    const cached = collectionGameIdsRef.current.get(String(collectionId));
     if (cached) {
       return cached;
     }
@@ -225,8 +230,13 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
         const gamesJson = await gamesRes.json();
         const gameIds = (gamesJson.games || []).map((g: any) => String(g.id));
         setCollectionGameIds((prev) => {
+          const collectionKey = String(collectionId);
+          const existing = prev.get(collectionKey) || [];
+          if (existing.length === gameIds.length && existing.every((id, index) => id === gameIds[index])) {
+            return prev;
+          }
           const updated = new Map(prev);
-          updated.set(String(collectionId), gameIds);
+          updated.set(collectionKey, gameIds);
           return updated;
         });
         return gameIds;
@@ -235,7 +245,7 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
       console.error(`Error fetching games for collection ${collectionId}:`, err.message);
     }
     return [];
-  }, [collectionGameIds]);
+  }, []);
 
   const value: CollectionsContextType = useMemo(
     () => ({

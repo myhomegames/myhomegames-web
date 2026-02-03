@@ -3,7 +3,12 @@
     "recommended": "Recomendados",
     "library": "Biblioteca",
     "collections": "Coleções",
-    "categories": "Categorias"
+    "categories": "Categorias",
+    "platforms": "Plataformas",
+    "themes": "Temas",
+    "gameEngines": "Motores de jogo",
+    "gameModes": "Modos de jogo",
+    "playerPerspectives": "Perspectivas de jogo"
   },
   "settings": {
     "title": "Configurações",
@@ -11,6 +16,8 @@
     "general": "Geral",
     "version": "Versão",
     "language": "Idioma",
+    "pages": "Páginas",
+    "pagesHelp": "Escolha quais seções aparecem no menu principal.",
     "selectLanguage": "Selecione o idioma do aplicativo",
     "save": "Salvar",
     "saving": "Salvando...",
@@ -32,6 +39,9 @@
       "clientIdHelp": "Seu Client ID da aplicação Twitch",
       "clientSecretHelp": "Seu Client Secret da aplicação Twitch (mantenha isso seguro)"
     }
+  },
+  "tags": {
+    "noItemsFound": "Nenhum {{type}} encontrado"
   },
   "header": {
     "home": "Início",
@@ -120,6 +130,23 @@
     "day": "Dia",
     "genre": "Gênero",
     "addGenre": "Adicionar gênero...",
+    "themes": "Temas",
+    "keywords": "Palavras-chave",
+    "platforms": "Plataformas",
+    "gameModes": "Modos de jogo",
+    "publishers": "Editoras",
+    "developers": "Desenvolvedores",
+    "playerPerspectives": "Perspectivas",
+    "gameEngines": "Motores de jogo",
+    "addTag": "Adicionar tag...",
+    "addTheme": "Adicionar tema...",
+    "addKeyword": "Adicionar palavra-chave...",
+    "addPlatform": "Adicionar plataforma...",
+    "addGameMode": "Adicionar modo de jogo...",
+    "addPublisher": "Adicionar editora...",
+    "addDeveloper": "Adicionar desenvolvedor...",
+    "addPlayerPerspective": "Adicionar perspectiva...",
+    "addGameEngine": "Adicionar motor de jogo...",
     "criticRating": "Avaliação da Crítica",
     "userRating": "Avaliação do Público",
     "linkExecutable": "Vincular Executável",
@@ -129,6 +156,7 @@
     "unlinkingExecutable": "Desvinculando...",
     "invalidFileType": "Apenas arquivos .sh e .bat são permitidos",
     "info": "INFO",
+    "tags": "TAGS",
     "media": "MÍDIA",
     "cover": "Capa",
     "background": "Plano de Fundo",
@@ -216,12 +244,28 @@
     "filter": {
       "all": "Todo",
       "genre": "Gênero",
+      "themes": "Temas",
+      "keywords": "Palavras-chave",
+      "platforms": "Plataformas",
+      "gameModes": "Modos de jogo",
+      "publishers": "Editoras",
+      "developers": "Desenvolvedores",
+      "playerPerspectives": "Perspectivas",
+      "gameEngines": "Motores de jogo",
       "year": "Ano",
       "decade": "Década",
       "collection": "Coleção",
       "ageRating": "Classificação de conteúdo",
       "searchYear": "Filtro Ano",
       "searchGenre": "Filtro Gênero",
+      "searchThemes": "Filtro Temas",
+      "searchKeywords": "Filtro Palavras-chave",
+      "searchPlatforms": "Filtro Plataformas",
+      "searchGameModes": "Filtro Modos de jogo",
+      "searchPublishers": "Filtro Editoras",
+      "searchDevelopers": "Filtro Desenvolvedores",
+      "searchPlayerPerspectives": "Filtro Perspectivas",
+      "searchGameEngines": "Filtro Motores de jogo",
       "searchDecade": "Filtro Década",
       "searchCollection": "Filtro Coleção",
       "searchAgeRating": "Buscar classificação..."
@@ -299,6 +343,23 @@
     "Erotic": "Erótico",
     "Mystery": "Mistério",
     "Romance": "Romance"
+  },
+  "gameModes": {
+    "Single player": "Um jogador",
+    "Multiplayer": "Multijogador",
+    "Co-operative": "Cooperativo",
+    "Split screen": "Tela dividida",
+    "Massively Multiplayer Online (MMO)": "Multijogador massivo online (MMO)",
+    "Battle Royale": "Battle Royale"
+  },
+  "playerPerspectives": {
+    "First person": "Primeira pessoa",
+    "Third person": "Terceira pessoa",
+    "Bird view / Isometric": "Visão superior / Isométrica",
+    "Side view": "Visão lateral",
+    "Text": "Texto",
+    "Virtual Reality": "Realidade virtual",
+    "Auditory": "Auditivo"
   },
   "collectionDetail": {
     "editCollection": "Editar Coleção",

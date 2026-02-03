@@ -12,12 +12,20 @@
   line-height: var(--font-body-2-line-height);
   text-decoration: none;
   cursor: pointer;
-  display: inline;
+  display: inline-flex;
+  align-items: center;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   word-break: break-all;
+}
+
+.websites-list-favicon {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  flex-shrink: 0;
 }
 
 .websites-list-item:hover {

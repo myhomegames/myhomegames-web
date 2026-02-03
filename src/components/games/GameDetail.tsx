@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Cover from "./Cover";
 import StarRating from "../common/StarRating";
 import Summary from "../common/Summary";
-import GameCategories from "./GameCategories";
+import InlineTagList from "../common/InlineTagList";
 import GameInfoBlock from "./GameInfoBlock";
 import MediaGallery from "./MediaGallery";
 import AgeRatings, { filterAgeRatingsByLocale } from "./AgeRatings";
@@ -21,6 +22,10 @@ import { formatGameDate } from "../../utils/date";
 import { buildApiUrl, buildBackgroundUrl } from "../../utils/api";
 import { API_BASE, getApiToken } from "../../config";
 import { useLoading } from "../../contexts/LoadingContext";
+import { useCollections } from "../../contexts/CollectionsContext";
+import { useCategories } from "../../contexts/CategoriesContext";
+import { useLibraryGames } from "../../contexts/LibraryGamesContext";
+import ScrollableGamesSection from "../common/ScrollableGamesSection";
 import "./GameDetail.css";
 
 type GameDetailProps = {
@@ -213,7 +218,14 @@ function GameDetailContent({
   t: (key: string, defaultValue?: string) => string;
   i18n: { language: string };
 }) {
+  const navigate = useNavigate();
+  const { categories } = useCategories();
   const { hasBackground, isBackgroundVisible } = useBackground();
+  const { getCollectionGameIds } = useCollections();
+  const { games: libraryGames, updateGame } = useLibraryGames();
+  const [collectionsWithGames, setCollectionsWithGames] = useState<
+    Array<{ collection: CollectionItem; games: GameItem[] }>
+  >([]);
   
   // Helper function to format rating value (0-10 float)
   const formatRating = (value: number | null | undefined): string | null => {
@@ -245,6 +257,79 @@ function GameDetailContent({
   };
   
   const summaryMaxLines = calculateSummaryMaxLines();
+
+  useEffect(() => {
+    let isActive = true;
+    const loadCollectionsForGame = async () => {
+      if (!allCollections.length) {
+        if (isActive) {
+          setCollectionsWithGames([]);
+        }
+        return;
+      }
+
+      const results: Array<{ collection: CollectionItem; games: GameItem[] } | null> = [];
+      for (const collection of allCollections) {
+        try {
+          const gameIds = await getCollectionGameIds(collection.id);
+          if (!gameIds.includes(String(game.id))) {
+            results.push(null);
+            continue;
+          }
+          const games = gameIds
+            .map((id) => libraryGames.find((g) => String(g.id) === String(id)))
+            .filter((g): g is GameItem => Boolean(g));
+          if (games.length === 0) {
+            results.push(null);
+            continue;
+          }
+          results.push({ collection, games });
+        } catch (error) {
+          results.push(null);
+        }
+      }
+
+      if (isActive) {
+        setCollectionsWithGames(
+          results.filter((entry): entry is { collection: CollectionItem; games: GameItem[] } => Boolean(entry))
+        );
+      }
+    };
+
+    loadCollectionsForGame();
+    return () => {
+      isActive = false;
+    };
+  }, [allCollections, getCollectionGameIds, game.id, libraryGames]);
+
+  const similarGamesInLibrary = useMemo(() => {
+    if (!game.similarGames || game.similarGames.length === 0) {
+      return [];
+    }
+    const libraryMap = new Map<string, GameItem>();
+    for (const item of libraryGames) {
+      libraryMap.set(String(item.id), item);
+    }
+    return game.similarGames
+      .map((similar) => libraryMap.get(String(similar.id)))
+      .filter((item): item is GameItem => Boolean(item));
+  }, [game.similarGames, libraryGames]);
+  const handleRelatedGameClick = (selectedGame: GameItem) => {
+    navigate(`/game/${selectedGame.id}`);
+  };
+  const handleRelatedGameUpdate = (updatedGame: GameItem) => {
+    updateGame(updatedGame);
+    if (String(updatedGame.id) === String(game.id)) {
+      onGameUpdate(updatedGame);
+    }
+  };
+
+  const handleGenreClick = (genreTitle: string) => {
+    const category = categories.find((c) => c.title === genreTitle);
+    if (category) {
+      navigate(`/category/${category.id}`);
+    }
+  };
   
   return (
     <>
@@ -308,7 +393,12 @@ function GameDetailContent({
                   </div>
                 );
               })()}
-              <GameCategories game={game} />
+              <InlineTagList
+                items={Array.isArray(game.genre) ? game.genre : game.genre ? [game.genre] : []}
+                getLabel={(genre) => t(`genre.${genre}`, genre)}
+                onItemClick={handleGenreClick}
+                showMoreLabel={t("gameDetail.andMore", ", and more")}
+              />
               <div className="game-detail-ratings">
                 {(criticRating !== null) || (userRating !== null) ? (
                   <>
@@ -410,6 +500,7 @@ function GameDetailContent({
                       id="game-executable-input"
                       name="executable"
                       type="file"
+                      aria-label={t("gameDetail.executableFile", "Executable file")}
                       className="game-detail-executable-input"
                       accept=".sh,.bat"
                       onChange={async (e) => {
@@ -516,6 +607,49 @@ function GameDetailContent({
         <div className="game-detail-info-section">
           <GameInfoBlock game={game} />
         </div>
+        {collectionsWithGames.length > 0 && (
+          <div className="game-detail-collections-section">
+            <h3 className="game-detail-section-title">
+              {t("libraries.collections", "Collections")}
+            </h3>
+            <div className="game-detail-collections-list">
+              {collectionsWithGames.map(({ collection, games }) => (
+                <div key={collection.id} className="game-detail-collection-group">
+                  <ScrollableGamesSection
+                    sectionId={`collection-${collection.id}`}
+                    titleOverride={collection.title}
+                    disableAutoTranslate
+                    games={games}
+                    onGameClick={handleRelatedGameClick}
+                    onPlay={onPlay}
+                    onGameUpdate={handleRelatedGameUpdate}
+                    coverSize={140}
+                    allCollections={allCollections}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {similarGamesInLibrary.length > 0 && (
+          <div className="game-detail-similar-section">
+            <h3 className="game-detail-section-title">
+              {t("igdbInfo.similarGames", "Similar Games")}
+            </h3>
+            <ScrollableGamesSection
+              sectionId="similar-games"
+              titleOverride={t("igdbInfo.similarGames", "Similar Games")}
+              disableAutoTranslate
+              showTitle={false}
+              games={similarGamesInLibrary}
+              onGameClick={handleRelatedGameClick}
+              onPlay={onPlay}
+              onGameUpdate={handleRelatedGameUpdate}
+              coverSize={140}
+              allCollections={allCollections}
+            />
+          </div>
+        )}
       </div>
             </div>
           </div>

@@ -10,12 +10,28 @@ type FilterPopupProps = {
   currentFilter: FilterField;
   selectedYear: number | null;
   selectedGenre: string | null;
+  selectedThemes: string | null;
+  selectedKeywords: string | null;
+  selectedPlatforms: string | null;
+  selectedGameModes: string | null;
+  selectedPublishers: string | null;
+  selectedDevelopers: string | null;
+  selectedPlayerPerspectives: string | null;
+  selectedGameEngines: string | null;
   selectedDecade: number | null;
   selectedCollection: string | null;
   selectedAgeRating: string | null;
   onFilterChange?: (field: FilterField) => void;
   onYearFilterChange?: (year: number | null) => void;
   onGenreFilterChange?: (genre: string | null) => void;
+  onThemesFilterChange?: (theme: string | null) => void;
+  onKeywordsFilterChange?: (keyword: string | null) => void;
+  onPlatformsFilterChange?: (platform: string | null) => void;
+  onGameModesFilterChange?: (mode: string | null) => void;
+  onPublishersFilterChange?: (publisher: string | null) => void;
+  onDevelopersFilterChange?: (developer: string | null) => void;
+  onPlayerPerspectivesFilterChange?: (perspective: string | null) => void;
+  onGameEnginesFilterChange?: (engine: string | null) => void;
   onDecadeFilterChange?: (decade: number | null) => void;
   onCollectionFilterChange?: (collection: string | null) => void;
   onAgeRatingFilterChange?: (ageRating: string | null) => void;
@@ -30,12 +46,28 @@ export default function FilterPopup({
   currentFilter,
   selectedYear,
   selectedGenre,
+  selectedThemes,
+  selectedKeywords,
+  selectedPlatforms,
+  selectedGameModes,
+  selectedPublishers,
+  selectedDevelopers,
+  selectedPlayerPerspectives,
+  selectedGameEngines,
   selectedDecade,
   selectedCollection,
   selectedAgeRating,
   onFilterChange,
   onYearFilterChange,
   onGenreFilterChange,
+  onThemesFilterChange,
+  onKeywordsFilterChange,
+  onPlatformsFilterChange,
+  onGameModesFilterChange,
+  onPublishersFilterChange,
+  onDevelopersFilterChange,
+  onPlayerPerspectivesFilterChange,
+  onGameEnginesFilterChange,
   onDecadeFilterChange,
   onCollectionFilterChange,
   onAgeRatingFilterChange,
@@ -62,8 +94,28 @@ export default function FilterPopup({
           lastOpenSubmenuRef.current = "year";
         } else if (currentFilter === "genre") {
           lastOpenSubmenuRef.current = "genre";
+        } else if (currentFilter === "themes") {
+          lastOpenSubmenuRef.current = "themes";
+        } else if (currentFilter === "keywords") {
+          lastOpenSubmenuRef.current = "keywords";
+        } else if (currentFilter === "platforms") {
+          lastOpenSubmenuRef.current = "platforms";
+        } else if (currentFilter === "gameModes") {
+          lastOpenSubmenuRef.current = "gameModes";
+        } else if (currentFilter === "publishers") {
+          lastOpenSubmenuRef.current = "publishers";
+        } else if (currentFilter === "developers") {
+          lastOpenSubmenuRef.current = "developers";
+        } else if (currentFilter === "playerPerspectives") {
+          lastOpenSubmenuRef.current = "playerPerspectives";
+        } else if (currentFilter === "gameEngines") {
+          lastOpenSubmenuRef.current = "gameEngines";
         } else if (currentFilter === "decade") {
           lastOpenSubmenuRef.current = "decade";
+        } else if (currentFilter === "collection") {
+          lastOpenSubmenuRef.current = "collection";
+        } else if (currentFilter === "ageRating") {
+          lastOpenSubmenuRef.current = "ageRating";
         } else {
           lastOpenSubmenuRef.current = null;
         }
@@ -78,19 +130,59 @@ export default function FilterPopup({
             lastOpenSubmenuRef.current = "year";
           } else if (currentFilter === "genre") {
             lastOpenSubmenuRef.current = "genre";
+          } else if (currentFilter === "themes") {
+            lastOpenSubmenuRef.current = "themes";
+          } else if (currentFilter === "keywords") {
+            lastOpenSubmenuRef.current = "keywords";
+          } else if (currentFilter === "platforms") {
+            lastOpenSubmenuRef.current = "platforms";
+          } else if (currentFilter === "gameModes") {
+            lastOpenSubmenuRef.current = "gameModes";
+          } else if (currentFilter === "publishers") {
+            lastOpenSubmenuRef.current = "publishers";
+          } else if (currentFilter === "developers") {
+            lastOpenSubmenuRef.current = "developers";
+          } else if (currentFilter === "playerPerspectives") {
+            lastOpenSubmenuRef.current = "playerPerspectives";
+          } else if (currentFilter === "gameEngines") {
+            lastOpenSubmenuRef.current = "gameEngines";
           } else if (currentFilter === "decade") {
             lastOpenSubmenuRef.current = "decade";
-        } else if (currentFilter === "collection") {
-          lastOpenSubmenuRef.current = "collection";
-        } else if (currentFilter === "ageRating") {
-          lastOpenSubmenuRef.current = "ageRating";
-        }
+          } else if (currentFilter === "collection") {
+            lastOpenSubmenuRef.current = "collection";
+          } else if (currentFilter === "ageRating") {
+            lastOpenSubmenuRef.current = "ageRating";
+          }
         } else if (currentFilter === "year") {
           setOpenSubmenu("year");
           lastOpenSubmenuRef.current = "year";
         } else if (currentFilter === "genre") {
           setOpenSubmenu("genre");
           lastOpenSubmenuRef.current = "genre";
+        } else if (currentFilter === "themes") {
+          setOpenSubmenu("themes");
+          lastOpenSubmenuRef.current = "themes";
+        } else if (currentFilter === "keywords") {
+          setOpenSubmenu("keywords");
+          lastOpenSubmenuRef.current = "keywords";
+        } else if (currentFilter === "platforms") {
+          setOpenSubmenu("platforms");
+          lastOpenSubmenuRef.current = "platforms";
+        } else if (currentFilter === "gameModes") {
+          setOpenSubmenu("gameModes");
+          lastOpenSubmenuRef.current = "gameModes";
+        } else if (currentFilter === "publishers") {
+          setOpenSubmenu("publishers");
+          lastOpenSubmenuRef.current = "publishers";
+        } else if (currentFilter === "developers") {
+          setOpenSubmenu("developers");
+          lastOpenSubmenuRef.current = "developers";
+        } else if (currentFilter === "playerPerspectives") {
+          setOpenSubmenu("playerPerspectives");
+          lastOpenSubmenuRef.current = "playerPerspectives";
+        } else if (currentFilter === "gameEngines") {
+          setOpenSubmenu("gameEngines");
+          lastOpenSubmenuRef.current = "gameEngines";
         } else if (currentFilter === "decade") {
           setOpenSubmenu("decade");
           lastOpenSubmenuRef.current = "decade";
@@ -172,6 +264,38 @@ export default function FilterPopup({
       setOpenSubmenu("genre");
       lastOpenSubmenuRef.current = "genre";
       wentBackRef.current = false; // Reset went back flag when selecting a filter
+    } else if (field === "themes") {
+      setOpenSubmenu("themes");
+      lastOpenSubmenuRef.current = "themes";
+      wentBackRef.current = false;
+    } else if (field === "keywords") {
+      setOpenSubmenu("keywords");
+      lastOpenSubmenuRef.current = "keywords";
+      wentBackRef.current = false;
+    } else if (field === "platforms") {
+      setOpenSubmenu("platforms");
+      lastOpenSubmenuRef.current = "platforms";
+      wentBackRef.current = false;
+    } else if (field === "gameModes") {
+      setOpenSubmenu("gameModes");
+      lastOpenSubmenuRef.current = "gameModes";
+      wentBackRef.current = false;
+    } else if (field === "publishers") {
+      setOpenSubmenu("publishers");
+      lastOpenSubmenuRef.current = "publishers";
+      wentBackRef.current = false;
+    } else if (field === "developers") {
+      setOpenSubmenu("developers");
+      lastOpenSubmenuRef.current = "developers";
+      wentBackRef.current = false;
+    } else if (field === "playerPerspectives") {
+      setOpenSubmenu("playerPerspectives");
+      lastOpenSubmenuRef.current = "playerPerspectives";
+      wentBackRef.current = false;
+    } else if (field === "gameEngines") {
+      setOpenSubmenu("gameEngines");
+      lastOpenSubmenuRef.current = "gameEngines";
+      wentBackRef.current = false;
     } else if (field === "decade") {
       setOpenSubmenu("decade");
       lastOpenSubmenuRef.current = "decade";
@@ -191,6 +315,30 @@ export default function FilterPopup({
       }
       if (onGenreFilterChange) {
         onGenreFilterChange(null);
+      }
+      if (onThemesFilterChange) {
+        onThemesFilterChange(null);
+      }
+      if (onKeywordsFilterChange) {
+        onKeywordsFilterChange(null);
+      }
+      if (onPlatformsFilterChange) {
+        onPlatformsFilterChange(null);
+      }
+      if (onGameModesFilterChange) {
+        onGameModesFilterChange(null);
+      }
+      if (onPublishersFilterChange) {
+        onPublishersFilterChange(null);
+      }
+      if (onDevelopersFilterChange) {
+        onDevelopersFilterChange(null);
+      }
+      if (onPlayerPerspectivesFilterChange) {
+        onPlayerPerspectivesFilterChange(null);
+      }
+      if (onGameEnginesFilterChange) {
+        onGameEnginesFilterChange(null);
       }
       if (onDecadeFilterChange) {
         onDecadeFilterChange(null);
@@ -224,6 +372,48 @@ export default function FilterPopup({
     }
   };
 
+  const resetOtherFilters = (exclude: FilterField) => {
+    if (exclude !== "year") {
+      onYearFilterChange?.(null);
+    }
+    if (exclude !== "genre") {
+      onGenreFilterChange?.(null);
+    }
+    if (exclude !== "themes") {
+      onThemesFilterChange?.(null);
+    }
+    if (exclude !== "keywords") {
+      onKeywordsFilterChange?.(null);
+    }
+    if (exclude !== "platforms") {
+      onPlatformsFilterChange?.(null);
+    }
+    if (exclude !== "gameModes") {
+      onGameModesFilterChange?.(null);
+    }
+    if (exclude !== "publishers") {
+      onPublishersFilterChange?.(null);
+    }
+    if (exclude !== "developers") {
+      onDevelopersFilterChange?.(null);
+    }
+    if (exclude !== "playerPerspectives") {
+      onPlayerPerspectivesFilterChange?.(null);
+    }
+    if (exclude !== "gameEngines") {
+      onGameEnginesFilterChange?.(null);
+    }
+    if (exclude !== "decade") {
+      onDecadeFilterChange?.(null);
+    }
+    if (exclude !== "collection") {
+      onCollectionFilterChange?.(null);
+    }
+    if (exclude !== "ageRating") {
+      onAgeRatingFilterChange?.(null);
+    }
+  };
+
   const handleGenreSelect = (value: number | string | null) => {
     const genreId = typeof value === "string" ? value : null;
     if (genreId === null) {
@@ -235,21 +425,145 @@ export default function FilterPopup({
     } else {
       onFilterChange?.("genre");
       onGenreFilterChange?.(genreId);
-      // Reset other filters
-      if (onYearFilterChange) {
-        onYearFilterChange(null);
-      }
-      if (onDecadeFilterChange) {
-        onDecadeFilterChange(null);
-      }
-      if (onCollectionFilterChange) {
-        onCollectionFilterChange(null);
-      }
-      if (onAgeRatingFilterChange) {
-        onAgeRatingFilterChange(null);
-      }
+      resetOtherFilters("genre");
       // Keep the genre submenu state, just close the popup
       lastOpenSubmenuRef.current = "genre";
+      onClose();
+    }
+  };
+
+  const handleThemesSelect = (value: number | string | null) => {
+    const themeId = typeof value === "string" ? value : null;
+    if (themeId === null) {
+      onFilterChange?.("all");
+      onThemesFilterChange?.(null);
+      setOpenSubmenu(null);
+      lastOpenSubmenuRef.current = null;
+      onClose();
+    } else {
+      onFilterChange?.("themes");
+      onThemesFilterChange?.(themeId);
+      resetOtherFilters("themes");
+      lastOpenSubmenuRef.current = "themes";
+      onClose();
+    }
+  };
+
+  const handleKeywordsSelect = (value: number | string | null) => {
+    const keyword = typeof value === "string" ? value : null;
+    if (keyword === null) {
+      onFilterChange?.("all");
+      onKeywordsFilterChange?.(null);
+      setOpenSubmenu(null);
+      lastOpenSubmenuRef.current = null;
+      onClose();
+    } else {
+      onFilterChange?.("keywords");
+      onKeywordsFilterChange?.(keyword);
+      resetOtherFilters("keywords");
+      lastOpenSubmenuRef.current = "keywords";
+      onClose();
+    }
+  };
+
+  const handlePlatformsSelect = (value: number | string | null) => {
+    const platform = typeof value === "string" ? value : null;
+    if (platform === null) {
+      onFilterChange?.("all");
+      onPlatformsFilterChange?.(null);
+      setOpenSubmenu(null);
+      lastOpenSubmenuRef.current = null;
+      onClose();
+    } else {
+      onFilterChange?.("platforms");
+      onPlatformsFilterChange?.(platform);
+      resetOtherFilters("platforms");
+      lastOpenSubmenuRef.current = "platforms";
+      onClose();
+    }
+  };
+
+  const handleGameModesSelect = (value: number | string | null) => {
+    const mode = typeof value === "string" ? value : null;
+    if (mode === null) {
+      onFilterChange?.("all");
+      onGameModesFilterChange?.(null);
+      setOpenSubmenu(null);
+      lastOpenSubmenuRef.current = null;
+      onClose();
+    } else {
+      onFilterChange?.("gameModes");
+      onGameModesFilterChange?.(mode);
+      resetOtherFilters("gameModes");
+      lastOpenSubmenuRef.current = "gameModes";
+      onClose();
+    }
+  };
+
+  const handlePublishersSelect = (value: number | string | null) => {
+    const publisher = typeof value === "string" ? value : null;
+    if (publisher === null) {
+      onFilterChange?.("all");
+      onPublishersFilterChange?.(null);
+      setOpenSubmenu(null);
+      lastOpenSubmenuRef.current = null;
+      onClose();
+    } else {
+      onFilterChange?.("publishers");
+      onPublishersFilterChange?.(publisher);
+      resetOtherFilters("publishers");
+      lastOpenSubmenuRef.current = "publishers";
+      onClose();
+    }
+  };
+
+  const handleDevelopersSelect = (value: number | string | null) => {
+    const developer = typeof value === "string" ? value : null;
+    if (developer === null) {
+      onFilterChange?.("all");
+      onDevelopersFilterChange?.(null);
+      setOpenSubmenu(null);
+      lastOpenSubmenuRef.current = null;
+      onClose();
+    } else {
+      onFilterChange?.("developers");
+      onDevelopersFilterChange?.(developer);
+      resetOtherFilters("developers");
+      lastOpenSubmenuRef.current = "developers";
+      onClose();
+    }
+  };
+
+  const handlePlayerPerspectivesSelect = (value: number | string | null) => {
+    const perspective = typeof value === "string" ? value : null;
+    if (perspective === null) {
+      onFilterChange?.("all");
+      onPlayerPerspectivesFilterChange?.(null);
+      setOpenSubmenu(null);
+      lastOpenSubmenuRef.current = null;
+      onClose();
+    } else {
+      onFilterChange?.("playerPerspectives");
+      onPlayerPerspectivesFilterChange?.(perspective);
+      resetOtherFilters("playerPerspectives");
+      lastOpenSubmenuRef.current = "playerPerspectives";
+      onClose();
+    }
+  };
+
+  const handleGameEnginesSelect = (value: number | string | null) => {
+    const engine = typeof value === "string" ? value : null;
+    if (engine === null) {
+      onFilterChange?.("all");
+      onGameEnginesFilterChange?.(null);
+      setOpenSubmenu(null);
+      lastOpenSubmenuRef.current = null;
+      onClose();
+    } else {
+      onFilterChange?.("gameEngines");
+      onGameEnginesFilterChange?.(engine);
+      resetOtherFilters("gameEngines");
+      lastOpenSubmenuRef.current = "gameEngines";
       onClose();
     }
   };
@@ -265,19 +579,7 @@ export default function FilterPopup({
     } else {
       onFilterChange?.("decade");
       onDecadeFilterChange?.(decade);
-      // Reset other filters
-      if (onYearFilterChange) {
-        onYearFilterChange(null);
-      }
-      if (onGenreFilterChange) {
-        onGenreFilterChange(null);
-      }
-      if (onCollectionFilterChange) {
-        onCollectionFilterChange(null);
-      }
-      if (onAgeRatingFilterChange) {
-        onAgeRatingFilterChange(null);
-      }
+      resetOtherFilters("decade");
       // Keep the decade submenu state, just close the popup
       lastOpenSubmenuRef.current = "decade";
       onClose();
@@ -296,19 +598,7 @@ export default function FilterPopup({
       const collectionId = typeof value === "string" ? value : String(value);
       onFilterChange?.("collection");
       onCollectionFilterChange?.(collectionId);
-      // Reset other filters
-      if (onYearFilterChange) {
-        onYearFilterChange(null);
-      }
-      if (onGenreFilterChange) {
-        onGenreFilterChange(null);
-      }
-      if (onDecadeFilterChange) {
-        onDecadeFilterChange(null);
-      }
-      if (onAgeRatingFilterChange) {
-        onAgeRatingFilterChange(null);
-      }
+      resetOtherFilters("collection");
       // Keep the collection submenu state, just close the popup
       lastOpenSubmenuRef.current = "collection";
       onClose();
@@ -326,19 +616,7 @@ export default function FilterPopup({
     } else {
       onFilterChange?.("ageRating");
       onAgeRatingFilterChange?.(ageRating);
-      // Reset other filters
-      if (onYearFilterChange) {
-        onYearFilterChange(null);
-      }
-      if (onGenreFilterChange) {
-        onGenreFilterChange(null);
-      }
-      if (onDecadeFilterChange) {
-        onDecadeFilterChange(null);
-      }
-      if (onCollectionFilterChange) {
-        onCollectionFilterChange(null);
-      }
+      resetOtherFilters("ageRating");
       // Keep the ageRating submenu state, just close the popup
       lastOpenSubmenuRef.current = "ageRating";
       onClose();
@@ -386,6 +664,118 @@ export default function FilterPopup({
         onSelect={handleGenreSelect}
         games={games}
         availableGenres={availableGenres}
+      />
+    );
+  }
+
+  if (isOpen && openSubmenu === "themes") {
+    return (
+      <FilterSubmenu
+        type="themes"
+        isOpen={true}
+        onClose={handleSubmenuClose}
+        onCloseCompletely={handleSubmenuCloseCompletely}
+        selectedValue={selectedThemes}
+        onSelect={handleThemesSelect}
+        games={games}
+      />
+    );
+  }
+
+  if (isOpen && openSubmenu === "keywords") {
+    return (
+      <FilterSubmenu
+        type="keywords"
+        isOpen={true}
+        onClose={handleSubmenuClose}
+        onCloseCompletely={handleSubmenuCloseCompletely}
+        selectedValue={selectedKeywords}
+        onSelect={handleKeywordsSelect}
+        games={games}
+      />
+    );
+  }
+
+  if (isOpen && openSubmenu === "platforms") {
+    return (
+      <FilterSubmenu
+        type="platforms"
+        isOpen={true}
+        onClose={handleSubmenuClose}
+        onCloseCompletely={handleSubmenuCloseCompletely}
+        selectedValue={selectedPlatforms}
+        onSelect={handlePlatformsSelect}
+        games={games}
+      />
+    );
+  }
+
+  if (isOpen && openSubmenu === "gameModes") {
+    return (
+      <FilterSubmenu
+        type="gameModes"
+        isOpen={true}
+        onClose={handleSubmenuClose}
+        onCloseCompletely={handleSubmenuCloseCompletely}
+        selectedValue={selectedGameModes}
+        onSelect={handleGameModesSelect}
+        games={games}
+      />
+    );
+  }
+
+  if (isOpen && openSubmenu === "publishers") {
+    return (
+      <FilterSubmenu
+        type="publishers"
+        isOpen={true}
+        onClose={handleSubmenuClose}
+        onCloseCompletely={handleSubmenuCloseCompletely}
+        selectedValue={selectedPublishers}
+        onSelect={handlePublishersSelect}
+        games={games}
+      />
+    );
+  }
+
+  if (isOpen && openSubmenu === "developers") {
+    return (
+      <FilterSubmenu
+        type="developers"
+        isOpen={true}
+        onClose={handleSubmenuClose}
+        onCloseCompletely={handleSubmenuCloseCompletely}
+        selectedValue={selectedDevelopers}
+        onSelect={handleDevelopersSelect}
+        games={games}
+      />
+    );
+  }
+
+  if (isOpen && openSubmenu === "playerPerspectives") {
+    return (
+      <FilterSubmenu
+        type="playerPerspectives"
+        isOpen={true}
+        onClose={handleSubmenuClose}
+        onCloseCompletely={handleSubmenuCloseCompletely}
+        selectedValue={selectedPlayerPerspectives}
+        onSelect={handlePlayerPerspectivesSelect}
+        games={games}
+      />
+    );
+  }
+
+  if (isOpen && openSubmenu === "gameEngines") {
+    return (
+      <FilterSubmenu
+        type="gameEngines"
+        isOpen={true}
+        onClose={handleSubmenuClose}
+        onCloseCompletely={handleSubmenuCloseCompletely}
+        selectedValue={selectedGameEngines}
+        onSelect={handleGameEnginesSelect}
+        games={games}
       />
     );
   }
@@ -471,6 +861,190 @@ export default function FilterPopup({
       >
         <span>{t("gamesListToolbar.filter.genre")}</span>
         {currentFilter === "genre" && (
+          <svg
+            className="filter-popup-check"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"
+              fill="#E5A00D"
+            />
+          </svg>
+        )}
+      </button>
+      <button
+        className={`filter-popup-item ${
+          currentFilter === "themes" ? "selected" : ""
+        }`}
+        onClick={() => handleFilterSelect("themes")}
+      >
+        <span>{t("gamesListToolbar.filter.themes")}</span>
+        {currentFilter === "themes" && (
+          <svg
+            className="filter-popup-check"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"
+              fill="#E5A00D"
+            />
+          </svg>
+        )}
+      </button>
+      <button
+        className={`filter-popup-item ${
+          currentFilter === "keywords" ? "selected" : ""
+        }`}
+        onClick={() => handleFilterSelect("keywords")}
+      >
+        <span>{t("gamesListToolbar.filter.keywords")}</span>
+        {currentFilter === "keywords" && (
+          <svg
+            className="filter-popup-check"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"
+              fill="#E5A00D"
+            />
+          </svg>
+        )}
+      </button>
+      <button
+        className={`filter-popup-item ${
+          currentFilter === "platforms" ? "selected" : ""
+        }`}
+        onClick={() => handleFilterSelect("platforms")}
+      >
+        <span>{t("gamesListToolbar.filter.platforms")}</span>
+        {currentFilter === "platforms" && (
+          <svg
+            className="filter-popup-check"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"
+              fill="#E5A00D"
+            />
+          </svg>
+        )}
+      </button>
+      <button
+        className={`filter-popup-item ${
+          currentFilter === "gameModes" ? "selected" : ""
+        }`}
+        onClick={() => handleFilterSelect("gameModes")}
+      >
+        <span>{t("gamesListToolbar.filter.gameModes")}</span>
+        {currentFilter === "gameModes" && (
+          <svg
+            className="filter-popup-check"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"
+              fill="#E5A00D"
+            />
+          </svg>
+        )}
+      </button>
+      <button
+        className={`filter-popup-item ${
+          currentFilter === "publishers" ? "selected" : ""
+        }`}
+        onClick={() => handleFilterSelect("publishers")}
+      >
+        <span>{t("gamesListToolbar.filter.publishers")}</span>
+        {currentFilter === "publishers" && (
+          <svg
+            className="filter-popup-check"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"
+              fill="#E5A00D"
+            />
+          </svg>
+        )}
+      </button>
+      <button
+        className={`filter-popup-item ${
+          currentFilter === "developers" ? "selected" : ""
+        }`}
+        onClick={() => handleFilterSelect("developers")}
+      >
+        <span>{t("gamesListToolbar.filter.developers")}</span>
+        {currentFilter === "developers" && (
+          <svg
+            className="filter-popup-check"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"
+              fill="#E5A00D"
+            />
+          </svg>
+        )}
+      </button>
+      <button
+        className={`filter-popup-item ${
+          currentFilter === "playerPerspectives" ? "selected" : ""
+        }`}
+        onClick={() => handleFilterSelect("playerPerspectives")}
+      >
+        <span>{t("gamesListToolbar.filter.playerPerspectives")}</span>
+        {currentFilter === "playerPerspectives" && (
+          <svg
+            className="filter-popup-check"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"
+              fill="#E5A00D"
+            />
+          </svg>
+        )}
+      </button>
+      <button
+        className={`filter-popup-item ${
+          currentFilter === "gameEngines" ? "selected" : ""
+        }`}
+        onClick={() => handleFilterSelect("gameEngines")}
+      >
+        <span>{t("gamesListToolbar.filter.gameEngines")}</span>
+        {currentFilter === "gameEngines" && (
           <svg
             className="filter-popup-check"
             width="16"

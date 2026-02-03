@@ -87,8 +87,19 @@ function getSiteName(url: string): string {
   }
 }
 
+function getFaviconUrl(url: string): string | null {
+  try {
+    const hostname = new URL(url).hostname;
+    if (!hostname) return null;
+    return `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
+  } catch (e) {
+    return null;
+  }
+}
+
 function SingleWebsiteLink({ url }: { url: string; category?: number }) {
   const siteName = getSiteName(url);
+  const faviconUrl = getFaviconUrl(url);
 
   return (
     <a
@@ -96,9 +107,17 @@ function SingleWebsiteLink({ url }: { url: string; category?: number }) {
       target="_blank"
       rel="noopener noreferrer"
       className="websites-list-item"
-      title={url}
+      title={siteName}
     >
-      {siteName}
+      {faviconUrl && (
+        <img
+          src={faviconUrl}
+          alt=""
+          aria-hidden="true"
+          className="websites-list-favicon"
+          loading="lazy"
+        />
+      )}
     </a>
   );
 }
@@ -117,9 +136,7 @@ export default function WebsitesList({ websites }: WebsitesListProps) {
             category={website.category}
           />
           {index < websites.length - 1 && (
-            <span className="game-info-list-separator">
-              ,{" "}
-            </span>
+            <span className="game-info-list-separator"> </span>
           )}
         </span>
       ))}

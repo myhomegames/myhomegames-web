@@ -138,6 +138,7 @@ export default function BaseFilter({
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onClick={(e) => e.stopPropagation()}
+          aria-label={t(config.searchPlaceholderKey)}
         />
       </div>
       <div className={`filter-popup-content ${config.isScrollable ? "filter-popup-scrollable" : ""}`}>

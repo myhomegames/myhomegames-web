@@ -248,6 +248,98 @@
   margin-top: 48px;
 }
 
+.game-detail-collections-section,
+.game-detail-similar-section {
+  width: 100%;
+  margin-top: 48px;
+}
+
+.game-detail-section-title {
+  font-family: var(--font-heading-2-font-family);
+  font-size: var(--font-heading-2-font-size);
+  line-height: var(--font-heading-2-line-height);
+  color: #ffffff;
+  margin-bottom: 16px;
+}
+
+.game-detail-collections-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.game-detail-collection-group {
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.game-detail-collection-group .scrollable-section,
+.game-detail-similar-section .scrollable-section {
+  margin-bottom: 0;
+}
+
+.game-detail-collection-group .scrollable-section-header,
+.game-detail-similar-section .scrollable-section-header {
+  padding-left: 0;
+  padding-right: 0;
+  margin-bottom: 12px;
+}
+
+.game-detail-collection-group .scrollable-section-title,
+.game-detail-similar-section .scrollable-section-title {
+  font-family: var(--font-body-2-font-family);
+  font-size: var(--font-body-2-font-size);
+  line-height: var(--font-body-2-line-height);
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+.game-detail-collection-group .scrollable-section-scroll,
+.game-detail-similar-section .scrollable-section-scroll {
+  padding-right: 0;
+}
+
+.game-detail-collection-group .scrollable-section-scroll:not(.restoring),
+.game-detail-similar-section .scrollable-section-scroll:not(.restoring) {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.game-detail-collection-games {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.8);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 6px 16px;
+}
+
+.game-detail-collection-games li {
+  font-size: 0.9rem;
+}
+
+.game-detail-similar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 16px;
+}
+
+.game-detail-similar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.game-detail-similar-title {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.85rem;
+}
+
 .button-spinner {
   width: 20px;
   height: 20px;

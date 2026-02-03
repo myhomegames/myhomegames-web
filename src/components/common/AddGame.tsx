@@ -351,6 +351,7 @@ export default function AddGame({
               placeholder={t("addGame.searchPlaceholder")}
               className="add-game-search-input"
               autoFocus
+              aria-label={t("addGame.searchPlaceholder")}
             />
           </div>
 

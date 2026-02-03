@@ -35,7 +35,6 @@ export default function AddToCollectionModal({
     });
   }, [allCollections, collectionGameIds, game.id]);
   
-  const [filteredCollections, setFilteredCollections] = useState<CollectionItem[]>(availableCollections);
   const addGameToCollection = useAddGameToCollection({
     onSuccess: () => {
       onCollectionAdded?.();
@@ -70,17 +69,14 @@ export default function AddToCollectionModal({
     };
   }, [isOpen, game.title]);
 
-  useEffect(() => {
+  const filteredCollections = useMemo(() => {
     if (!searchQuery.trim()) {
-      setFilteredCollections(availableCollections);
-    } else {
-      const query = searchQuery.toLowerCase();
-      setFilteredCollections(
-        availableCollections.filter((collection) =>
-          collection.title.toLowerCase().includes(query)
-        )
-      );
+      return availableCollections;
     }
+    const query = searchQuery.toLowerCase();
+    return availableCollections.filter((collection) =>
+      collection.title.toLowerCase().includes(query)
+    );
   }, [searchQuery, availableCollections]);
 
   const handleCollectionClick = async (collectionId: string) => {
@@ -107,11 +103,14 @@ export default function AddToCollectionModal({
 
         <div className="add-to-collection-modal-search">
           <input
+            id="add-to-collection-search"
+            name="collectionSearch"
             type="text"
             placeholder={t("collections.searchCollections", "Search collections...")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             autoFocus
+            aria-label={t("collections.searchCollections", "Search collections...")}
           />
         </div>
 
@@ -143,6 +142,8 @@ export default function AddToCollectionModal({
         <div className="add-to-collection-modal-create">
           <input
             ref={createInputRef}
+            id="add-to-collection-create-title"
+            name="newCollectionTitle"
             type="text"
             placeholder={t("collections.newCollectionTitle", "New collection title")}
             value={newCollectionTitle}
@@ -157,6 +158,7 @@ export default function AddToCollectionModal({
                 handleCreateCollection();
               }
             }}
+            aria-label={t("collections.newCollectionTitle", "New collection title")}
           />
           <button
             onClick={handleCreateCollection}

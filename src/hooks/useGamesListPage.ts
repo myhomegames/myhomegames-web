@@ -58,6 +58,22 @@ export type UseGamesListPageReturn = {
   setSelectedAgeRating: React.Dispatch<React.SetStateAction<string | null>>;
   selectedGenre: string | null;
   setSelectedGenre: React.Dispatch<React.SetStateAction<string | null>>;
+  selectedThemes: string | null;
+  setSelectedThemes: React.Dispatch<React.SetStateAction<string | null>>;
+  selectedKeywords: string | null;
+  setSelectedKeywords: React.Dispatch<React.SetStateAction<string | null>>;
+  selectedPlatforms: string | null;
+  setSelectedPlatforms: React.Dispatch<React.SetStateAction<string | null>>;
+  selectedGameModes: string | null;
+  setSelectedGameModes: React.Dispatch<React.SetStateAction<string | null>>;
+  selectedPublishers: string | null;
+  setSelectedPublishers: React.Dispatch<React.SetStateAction<string | null>>;
+  selectedDevelopers: string | null;
+  setSelectedDevelopers: React.Dispatch<React.SetStateAction<string | null>>;
+  selectedPlayerPerspectives: string | null;
+  setSelectedPlayerPerspectives: React.Dispatch<React.SetStateAction<string | null>>;
+  selectedGameEngines: string | null;
+  setSelectedGameEngines: React.Dispatch<React.SetStateAction<string | null>>;
   allGenres: Array<{ id: string; title: string }>;
   availableGenres: Array<{ id: string; title: string }>;
   availableCollections: Array<{ id: string; title: string }>;
@@ -143,6 +159,62 @@ export function useGamesListPage(
     }
     return null;
   });
+  const [selectedThemes, setSelectedThemes] = useState<string | null>(() => {
+    if (localStoragePrefix) {
+      const saved = localStorage.getItem(`${localStoragePrefix}SelectedThemes`);
+      return saved || null;
+    }
+    return null;
+  });
+  const [selectedKeywords, setSelectedKeywords] = useState<string | null>(() => {
+    if (localStoragePrefix) {
+      const saved = localStorage.getItem(`${localStoragePrefix}SelectedKeywords`);
+      return saved || null;
+    }
+    return null;
+  });
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string | null>(() => {
+    if (localStoragePrefix) {
+      const saved = localStorage.getItem(`${localStoragePrefix}SelectedPlatforms`);
+      return saved || null;
+    }
+    return null;
+  });
+  const [selectedGameModes, setSelectedGameModes] = useState<string | null>(() => {
+    if (localStoragePrefix) {
+      const saved = localStorage.getItem(`${localStoragePrefix}SelectedGameModes`);
+      return saved || null;
+    }
+    return null;
+  });
+  const [selectedPublishers, setSelectedPublishers] = useState<string | null>(() => {
+    if (localStoragePrefix) {
+      const saved = localStorage.getItem(`${localStoragePrefix}SelectedPublishers`);
+      return saved || null;
+    }
+    return null;
+  });
+  const [selectedDevelopers, setSelectedDevelopers] = useState<string | null>(() => {
+    if (localStoragePrefix) {
+      const saved = localStorage.getItem(`${localStoragePrefix}SelectedDevelopers`);
+      return saved || null;
+    }
+    return null;
+  });
+  const [selectedPlayerPerspectives, setSelectedPlayerPerspectives] = useState<string | null>(() => {
+    if (localStoragePrefix) {
+      const saved = localStorage.getItem(`${localStoragePrefix}SelectedPlayerPerspectives`);
+      return saved || null;
+    }
+    return null;
+  });
+  const [selectedGameEngines, setSelectedGameEngines] = useState<string | null>(() => {
+    if (localStoragePrefix) {
+      const saved = localStorage.getItem(`${localStoragePrefix}SelectedGameEngines`);
+      return saved || null;
+    }
+    return null;
+  });
   const { categories } = useCategories();
   // Convert categories to allGenres format (id as string)
   const allGenres = useMemo(() => 
@@ -196,6 +268,13 @@ export function useGamesListPage(
     return { title: true, releaseDate: true, criticRating: false, ageRating: false };
   });
 
+  const hasTag = (values: string[] | null | undefined, selected: string | null) => {
+    if (!selected || !values || values.length === 0) {
+      return false;
+    }
+    return values.some((value) => String(value) === selected);
+  };
+
   // Save column visibility to localStorage when it changes
   useEffect(() => {
     localStorage.setItem("tableColumnVisibility", JSON.stringify(columnVisibility));
@@ -223,6 +302,70 @@ export function useGamesListPage(
       localStorage.removeItem(`${localStoragePrefix}SelectedGenre`);
     }
   }, [selectedGenre, localStoragePrefix]);
+
+  useEffect(() => {
+    if (localStoragePrefix && selectedThemes !== null) {
+      localStorage.setItem(`${localStoragePrefix}SelectedThemes`, selectedThemes);
+    } else if (localStoragePrefix) {
+      localStorage.removeItem(`${localStoragePrefix}SelectedThemes`);
+    }
+  }, [selectedThemes, localStoragePrefix]);
+
+  useEffect(() => {
+    if (localStoragePrefix && selectedKeywords !== null) {
+      localStorage.setItem(`${localStoragePrefix}SelectedKeywords`, selectedKeywords);
+    } else if (localStoragePrefix) {
+      localStorage.removeItem(`${localStoragePrefix}SelectedKeywords`);
+    }
+  }, [selectedKeywords, localStoragePrefix]);
+
+  useEffect(() => {
+    if (localStoragePrefix && selectedPlatforms !== null) {
+      localStorage.setItem(`${localStoragePrefix}SelectedPlatforms`, selectedPlatforms);
+    } else if (localStoragePrefix) {
+      localStorage.removeItem(`${localStoragePrefix}SelectedPlatforms`);
+    }
+  }, [selectedPlatforms, localStoragePrefix]);
+
+  useEffect(() => {
+    if (localStoragePrefix && selectedGameModes !== null) {
+      localStorage.setItem(`${localStoragePrefix}SelectedGameModes`, selectedGameModes);
+    } else if (localStoragePrefix) {
+      localStorage.removeItem(`${localStoragePrefix}SelectedGameModes`);
+    }
+  }, [selectedGameModes, localStoragePrefix]);
+
+  useEffect(() => {
+    if (localStoragePrefix && selectedPublishers !== null) {
+      localStorage.setItem(`${localStoragePrefix}SelectedPublishers`, selectedPublishers);
+    } else if (localStoragePrefix) {
+      localStorage.removeItem(`${localStoragePrefix}SelectedPublishers`);
+    }
+  }, [selectedPublishers, localStoragePrefix]);
+
+  useEffect(() => {
+    if (localStoragePrefix && selectedDevelopers !== null) {
+      localStorage.setItem(`${localStoragePrefix}SelectedDevelopers`, selectedDevelopers);
+    } else if (localStoragePrefix) {
+      localStorage.removeItem(`${localStoragePrefix}SelectedDevelopers`);
+    }
+  }, [selectedDevelopers, localStoragePrefix]);
+
+  useEffect(() => {
+    if (localStoragePrefix && selectedPlayerPerspectives !== null) {
+      localStorage.setItem(`${localStoragePrefix}SelectedPlayerPerspectives`, selectedPlayerPerspectives);
+    } else if (localStoragePrefix) {
+      localStorage.removeItem(`${localStoragePrefix}SelectedPlayerPerspectives`);
+    }
+  }, [selectedPlayerPerspectives, localStoragePrefix]);
+
+  useEffect(() => {
+    if (localStoragePrefix && selectedGameEngines !== null) {
+      localStorage.setItem(`${localStoragePrefix}SelectedGameEngines`, selectedGameEngines);
+    } else if (localStoragePrefix) {
+      localStorage.removeItem(`${localStoragePrefix}SelectedGameEngines`);
+    }
+  }, [selectedGameEngines, localStoragePrefix]);
 
   useEffect(() => {
     if (localStoragePrefix && selectedDecade !== null) {
@@ -332,6 +475,30 @@ export function useGamesListPage(
               return false;
             }
             return true;
+          case "themes":
+            if (selectedThemes === null) return true;
+            return hasTag(game.themes || null, selectedThemes);
+          case "keywords":
+            if (selectedKeywords === null) return true;
+            return hasTag(game.keywords || null, selectedKeywords);
+          case "platforms":
+            if (selectedPlatforms === null) return true;
+            return hasTag(game.platforms || null, selectedPlatforms);
+          case "gameModes":
+            if (selectedGameModes === null) return true;
+            return hasTag(game.gameModes || null, selectedGameModes);
+          case "publishers":
+            if (selectedPublishers === null) return true;
+            return hasTag(game.publishers || null, selectedPublishers);
+          case "developers":
+            if (selectedDevelopers === null) return true;
+            return hasTag(game.developers || null, selectedDevelopers);
+          case "playerPerspectives":
+            if (selectedPlayerPerspectives === null) return true;
+            return hasTag(game.playerPerspectives || null, selectedPlayerPerspectives);
+          case "gameEngines":
+            if (selectedGameEngines === null) return true;
+            return hasTag(game.gameEngines || null, selectedGameEngines);
           case "year":
             if (selectedYear !== null) {
               return game.year === selectedYear;
@@ -445,6 +612,14 @@ export function useGamesListPage(
     games,
     filterField,
     selectedGenre,
+    selectedThemes,
+    selectedKeywords,
+    selectedPlatforms,
+    selectedGameModes,
+    selectedPublishers,
+    selectedDevelopers,
+    selectedPlayerPerspectives,
+    selectedGameEngines,
     selectedYear,
     selectedDecade,
     selectedCollection,
@@ -575,6 +750,22 @@ export function useGamesListPage(
     setSelectedAgeRating,
     selectedGenre,
     setSelectedGenre,
+    selectedThemes,
+    setSelectedThemes,
+    selectedKeywords,
+    setSelectedKeywords,
+    selectedPlatforms,
+    setSelectedPlatforms,
+    selectedGameModes,
+    setSelectedGameModes,
+    selectedPublishers,
+    setSelectedPublishers,
+    selectedDevelopers,
+    setSelectedDevelopers,
+    selectedPlayerPerspectives,
+    setSelectedPlayerPerspectives,
+    selectedGameEngines,
+    setSelectedGameEngines,
     allGenres,
     availableGenres,
     availableCollections,

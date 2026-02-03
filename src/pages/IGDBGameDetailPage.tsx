@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Cover from "../components/games/Cover";
 import Summary from "../components/common/Summary";
-import GameCategories from "../components/games/GameCategories";
+import InlineTagList from "../components/common/InlineTagList";
 import GameInfoBlock from "../components/games/GameInfoBlock";
 import MediaGallery from "../components/games/MediaGallery";
 import AgeRatings, { filterAgeRatingsByLocale } from "../components/games/AgeRatings";
@@ -14,7 +14,8 @@ import { useAddGame } from "../components/common/actions";
 import { buildApiUrl } from "../utils/api";
 import { API_BASE, getApiToken, getTwitchClientId, getTwitchClientSecret } from "../config";
 import { useLoading } from "../contexts/LoadingContext";
-import type { GameItem, IGDBGame } from "../types";
+import { useCategories } from "../contexts/CategoriesContext";
+import type { IGDBGame } from "../types";
 import { formatIGDBGameDate } from "../utils/date";
 import type { TFunction } from "i18next";
 import "./IGDBGameDetailPage.css";
@@ -201,35 +202,25 @@ function IGDBGameDetailContent({
         .map((g) => g.trim())
     : null;
 
-  // Create a temporary GameItem for GameCategories component
-  const gameItemForCategories: GameItem | null = validGenres && validGenres.length > 0
-    ? {
-        id: `igdb-${game.id}`,
-        title: game.name,
-        summary: game.summary,
-        cover: game.cover || "",
-        background: undefined,
-        day: game.releaseDateFull?.day || null,
-        month: game.releaseDateFull?.month || null,
-        year: game.releaseDateFull?.year || game.releaseDate || null,
-        stars: null,
-        genre: validGenres,
-        criticratings: game.criticRating || null,
-        userratings: game.userRating || null,
-        executables: null,
-      }
-    : null;
-
   const criticRatingFormatted = formatRating(game.criticRating);
   const userRatingFormatted = formatRating(game.userRating);
   const { hasBackground, isBackgroundVisible } = useBackground();
+  const navigate = useNavigate();
+  const { categories } = useCategories();
+
+  const handleGenreClick = (genreTitle: string) => {
+    const category = categories.find((c) => c.title === genreTitle);
+    if (category) {
+      navigate(`/category/${category.id}`);
+    }
+  };
   
   // Calculate dynamic maxLines for summary based on number of fields present
   const calculateSummaryMaxLines = (): number => {
     let fieldCount = 1; // Title is always present
     
     if (formatReleaseDate(game)) fieldCount++;
-    if (gameItemForCategories) fieldCount++;
+    if (validGenres && validGenres.length > 0) fieldCount++;
     if (criticRatingFormatted !== null || userRatingFormatted !== null) fieldCount++;
     fieldCount++; // Actions are always present
     
@@ -303,7 +294,14 @@ function IGDBGameDetailContent({
                   </div>
                 );
               })()}
-              {gameItemForCategories && <GameCategories game={gameItemForCategories} />}
+            {validGenres && validGenres.length > 0 && (
+              <InlineTagList
+                items={validGenres}
+                getLabel={(genre) => t(`genre.${genre}`, genre)}
+                onItemClick={handleGenreClick}
+                showMoreLabel={t("gameDetail.andMore", ", and more")}
+              />
+            )}
               {(criticRatingFormatted !== null) || (userRatingFormatted !== null) ? (
                   <div className="igdb-game-detail-ratings">
                     {criticRatingFormatted !== null && (

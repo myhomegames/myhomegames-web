@@ -3,7 +3,12 @@
     "recommended": "推荐",
     "library": "库",
     "collections": "收藏",
-    "categories": "分类"
+    "categories": "分类",
+    "platforms": "平台",
+    "themes": "主题",
+    "gameEngines": "游戏引擎",
+    "gameModes": "游戏模式",
+    "playerPerspectives": "视角"
   },
   "settings": {
     "title": "设置",
@@ -11,6 +16,8 @@
     "general": "常规",
     "version": "版本",
     "language": "语言",
+    "pages": "页面",
+    "pagesHelp": "选择主菜单中显示的栏目。",
     "selectLanguage": "选择应用程序语言",
     "save": "保存",
     "saving": "保存中...",
@@ -32,6 +39,9 @@
       "clientIdHelp": "您的Twitch应用程序客户端ID",
       "clientSecretHelp": "您的Twitch应用程序客户端密钥（请妥善保管）"
     }
+  },
+  "tags": {
+    "noItemsFound": "未找到{{type}}"
   },
   "header": {
     "home": "首页",
@@ -120,6 +130,23 @@
     "day": "日",
     "genre": "类型",
     "addGenre": "添加类型...",
+    "themes": "主题",
+    "keywords": "关键词",
+    "platforms": "平台",
+    "gameModes": "游戏模式",
+    "publishers": "发行商",
+    "developers": "开发者",
+    "playerPerspectives": "视角",
+    "gameEngines": "游戏引擎",
+    "addTag": "添加标签...",
+    "addTheme": "添加主题...",
+    "addKeyword": "添加关键词...",
+    "addPlatform": "添加平台...",
+    "addGameMode": "添加游戏模式...",
+    "addPublisher": "添加发行商...",
+    "addDeveloper": "添加开发者...",
+    "addPlayerPerspective": "添加视角...",
+    "addGameEngine": "添加游戏引擎...",
     "criticRating": "评论家评分",
     "userRating": "用户评分",
     "linkExecutable": "链接可执行文件",
@@ -129,6 +156,7 @@
     "unlinkingExecutable": "取消链接中...",
     "invalidFileType": "仅允许 .sh 和 .bat 文件",
     "info": "信息",
+    "tags": "标签",
     "media": "媒体",
     "cover": "封面",
     "background": "背景",
@@ -216,12 +244,28 @@
     "filter": {
       "all": "全部",
       "genre": "类型",
+      "themes": "主题",
+      "keywords": "关键词",
+      "platforms": "平台",
+      "gameModes": "游戏模式",
+      "publishers": "发行商",
+      "developers": "开发者",
+      "playerPerspectives": "视角",
+      "gameEngines": "游戏引擎",
       "year": "年份",
       "decade": "年代",
       "collection": "收藏",
       "ageRating": "内容分级",
       "searchYear": "筛选年份",
       "searchGenre": "筛选类型",
+      "searchThemes": "筛选主题",
+      "searchKeywords": "筛选关键词",
+      "searchPlatforms": "筛选平台",
+      "searchGameModes": "筛选游戏模式",
+      "searchPublishers": "筛选发行商",
+      "searchDevelopers": "筛选开发者",
+      "searchPlayerPerspectives": "筛选视角",
+      "searchGameEngines": "筛选游戏引擎",
       "searchDecade": "筛选年代",
       "searchCollection": "筛选收藏",
       "searchAgeRating": "搜索分级..."
@@ -299,6 +343,23 @@
     "Erotic": "情色",
     "Mystery": "悬疑",
     "Romance": "浪漫"
+  },
+  "gameModes": {
+    "Single player": "单人",
+    "Multiplayer": "多人",
+    "Co-operative": "合作",
+    "Split screen": "分屏",
+    "Massively Multiplayer Online (MMO)": "大型多人在线（MMO）",
+    "Battle Royale": "大逃杀"
+  },
+  "playerPerspectives": {
+    "First person": "第一人称",
+    "Third person": "第三人称",
+    "Bird view / Isometric": "俯视 / 等距",
+    "Side view": "侧视",
+    "Text": "文本",
+    "Virtual Reality": "虚拟现实",
+    "Auditory": "听觉"
   },
   "collectionDetail": {
     "editCollection": "编辑收藏",

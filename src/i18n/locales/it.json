@@ -3,7 +3,12 @@
     "recommended": "Consigliati",
     "library": "Libreria",
     "collections": "Raccolte",
-    "categories": "Categorie"
+    "categories": "Categorie",
+    "platforms": "Piattaforme",
+    "themes": "Temi",
+    "gameEngines": "Motori di gioco",
+    "gameModes": "Modalità di gioco",
+    "playerPerspectives": "Prospettive di gioco"
   },
   "settings": {
     "title": "Impostazioni",
@@ -11,6 +16,8 @@
     "general": "Generale",
     "version": "Versione",
     "language": "Lingua",
+    "pages": "Pagine",
+    "pagesHelp": "Scegli quali sezioni mostrare nel menu principale.",
     "selectLanguage": "Seleziona la lingua dell'applicazione",
     "save": "Salva",
     "saving": "Salvataggio...",
@@ -32,6 +39,9 @@
       "clientIdHelp": "Il Client ID della tua applicazione Twitch",
       "clientSecretHelp": "Il Client Secret della tua applicazione Twitch (mantieni questo segreto)"
     }
+  },
+  "tags": {
+    "noItemsFound": "Nessun {{type}} trovato"
   },
   "header": {
     "home": "Home",
@@ -120,6 +130,23 @@
     "day": "Giorno",
     "genre": "Genere",
     "addGenre": "Aggiungi genere...",
+    "themes": "Temi",
+    "keywords": "Parole chiave",
+    "platforms": "Piattaforme",
+    "gameModes": "Modalità di gioco",
+    "publishers": "Produttori",
+    "developers": "Sviluppatori",
+    "playerPerspectives": "Prospettive di gioco",
+    "gameEngines": "Motori di gioco",
+    "addTag": "Aggiungi tag...",
+    "addTheme": "Aggiungi tema...",
+    "addKeyword": "Aggiungi parola chiave...",
+    "addPlatform": "Aggiungi piattaforma...",
+    "addGameMode": "Aggiungi modalità di gioco...",
+    "addPublisher": "Aggiungi produttore...",
+    "addDeveloper": "Aggiungi sviluppatore...",
+    "addPlayerPerspective": "Aggiungi prospettiva di gioco...",
+    "addGameEngine": "Aggiungi motore di gioco...",
     "criticRating": "Valutazione della critica",
     "userRating": "Valutazione del pubblico",
     "linkExecutable": "Collega Eseguibile",
@@ -129,6 +156,7 @@
     "unlinkingExecutable": "Scollegamento...",
     "invalidFileType": "Sono consentiti solo file .sh e .bat",
     "info": "INFO",
+    "tags": "TAG",
     "media": "MEDIA",
     "cover": "Locandina",
     "background": "Sfondo",
@@ -216,12 +244,28 @@
     "filter": {
       "all": "Tutto",
       "genre": "Genere",
+      "themes": "Temi",
+      "keywords": "Parole chiave",
+      "platforms": "Piattaforme",
+      "gameModes": "Modalità di gioco",
+      "publishers": "Produttori",
+      "developers": "Sviluppatori",
+      "playerPerspectives": "Prospettive di gioco",
+      "gameEngines": "Motori di gioco",
       "year": "Anno",
       "decade": "Decade",
       "collection": "Raccolta",
       "ageRating": "Classificazione dei contenuti",
       "searchYear": "Filtro Anno",
       "searchGenre": "Filtro Genere",
+      "searchThemes": "Filtro Temi",
+      "searchKeywords": "Filtro Parole chiave",
+      "searchPlatforms": "Filtro Piattaforme",
+      "searchGameModes": "Filtro Modalità di gioco",
+      "searchPublishers": "Filtro Produttore",
+      "searchDevelopers": "Filtro Sviluppatori",
+      "searchPlayerPerspectives": "Filtro Prospettive di gioco",
+      "searchGameEngines": "Filtro Motori di gioco",
       "searchDecade": "Filtro Decade",
       "searchCollection": "Filtro Raccolta",
       "searchAgeRating": "Cerca classificazione..."
@@ -299,6 +343,23 @@
     "Erotic": "Erotico",
     "Mystery": "Mistero",
     "Romance": "Romantico"
+  },
+  "gameModes": {
+    "Single player": "Giocatore singolo",
+    "Multiplayer": "Multigiocatore",
+    "Co-operative": "Cooperativa",
+    "Split screen": "Schermo diviso",
+    "Massively Multiplayer Online (MMO)": "Multigiocatore online di massa (MMO)",
+    "Battle Royale": "Battle Royale"
+  },
+  "playerPerspectives": {
+    "First person": "Prima persona",
+    "Third person": "Terza persona",
+    "Bird view / Isometric": "Vista dall'alto / Isometrica",
+    "Side view": "Vista laterale",
+    "Text": "Testo",
+    "Virtual Reality": "Realtà virtuale",
+    "Auditory": "Uditivo"
   },
   "collectionDetail": {
     "editCollection": "Modifica Raccolta",

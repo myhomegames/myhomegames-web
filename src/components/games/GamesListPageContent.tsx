@@ -54,6 +54,22 @@ export default function GamesListPageContent({
     setSelectedAgeRating,
     selectedGenre,
     setSelectedGenre,
+    selectedThemes,
+    setSelectedThemes,
+    selectedKeywords,
+    setSelectedKeywords,
+    selectedPlatforms,
+    setSelectedPlatforms,
+    selectedGameModes,
+    setSelectedGameModes,
+    selectedPublishers,
+    setSelectedPublishers,
+    selectedDevelopers,
+    setSelectedDevelopers,
+    selectedPlayerPerspectives,
+    setSelectedPlayerPerspectives,
+    selectedGameEngines,
+    setSelectedGameEngines,
     sortField,
     setSortField,
     sortAscending,
@@ -98,6 +114,14 @@ export default function GamesListPageContent({
           onFilterChange={setFilterField}
           onYearFilterChange={setSelectedYear}
           onGenreFilterChange={setSelectedGenre}
+          onThemesFilterChange={setSelectedThemes}
+          onKeywordsFilterChange={setSelectedKeywords}
+          onPlatformsFilterChange={setSelectedPlatforms}
+          onGameModesFilterChange={setSelectedGameModes}
+          onPublishersFilterChange={setSelectedPublishers}
+          onDevelopersFilterChange={setSelectedDevelopers}
+          onPlayerPerspectivesFilterChange={setSelectedPlayerPerspectives}
+          onGameEnginesFilterChange={setSelectedGameEngines}
           onDecadeFilterChange={setSelectedDecade}
           onSortChange={setSortField}
           onSortDirectionChange={setSortAscending}
@@ -109,6 +133,14 @@ export default function GamesListPageContent({
           onCollectionFilterChange={setSelectedCollection}
           selectedAgeRating={selectedAgeRating}
           onAgeRatingFilterChange={setSelectedAgeRating}
+          selectedThemes={selectedThemes}
+          selectedKeywords={selectedKeywords}
+          selectedPlatforms={selectedPlatforms}
+          selectedGameModes={selectedGameModes}
+          selectedPublishers={selectedPublishers}
+          selectedDevelopers={selectedDevelopers}
+          selectedPlayerPerspectives={selectedPlayerPerspectives}
+          selectedGameEngines={selectedGameEngines}
           currentSort={sortField}
           sortAscending={sortAscending}
           viewMode={viewMode}

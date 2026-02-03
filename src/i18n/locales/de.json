@@ -3,7 +3,12 @@
     "recommended": "Empfohlen",
     "library": "Bibliothek",
     "collections": "Sammlungen",
-    "categories": "Kategorien"
+    "categories": "Kategorien",
+    "platforms": "Plattformen",
+    "themes": "Themen",
+    "gameEngines": "Spiel-Engines",
+    "gameModes": "Spielmodi",
+    "playerPerspectives": "Spielperspektiven"
   },
   "settings": {
     "title": "Einstellungen",
@@ -11,6 +16,8 @@
     "general": "Allgemein",
     "version": "Version",
     "language": "Sprache",
+    "pages": "Seiten",
+    "pagesHelp": "Wähle, welche Bereiche im Hauptmenü angezeigt werden.",
     "selectLanguage": "Wählen Sie die Anwendungssprache",
     "save": "Speichern",
     "saving": "Speichern...",
@@ -32,6 +39,9 @@
       "clientIdHelp": "Ihre Twitch-Anwendungs-Client-ID",
       "clientSecretHelp": "Ihr Twitch-Anwendungs-Client-Secret (halten Sie dies sicher)"
     }
+  },
+  "tags": {
+    "noItemsFound": "Keine {{type}} gefunden"
   },
   "header": {
     "home": "Startseite",
@@ -120,6 +130,23 @@
     "day": "Tag",
     "genre": "Genre",
     "addGenre": "Genre hinzufügen...",
+    "themes": "Themen",
+    "keywords": "Schlüsselwörter",
+    "platforms": "Plattformen",
+    "gameModes": "Spielmodi",
+    "publishers": "Publisher",
+    "developers": "Entwickler",
+    "playerPerspectives": "Perspektiven",
+    "gameEngines": "Game Engines",
+    "addTag": "Tag hinzufügen...",
+    "addTheme": "Thema hinzufügen...",
+    "addKeyword": "Schlüsselwort hinzufügen...",
+    "addPlatform": "Plattform hinzufügen...",
+    "addGameMode": "Spielmodus hinzufügen...",
+    "addPublisher": "Publisher hinzufügen...",
+    "addDeveloper": "Entwickler hinzufügen...",
+    "addPlayerPerspective": "Perspektive hinzufügen...",
+    "addGameEngine": "Game Engine hinzufügen...",
     "criticRating": "Kritikerbewertung",
     "userRating": "Publikumsbewertung",
     "linkExecutable": "Ausführbare Datei verknüpfen",
@@ -129,6 +156,7 @@
     "unlinkingExecutable": "Trennen...",
     "invalidFileType": "Nur .sh- und .bat-Dateien sind erlaubt",
     "info": "INFO",
+    "tags": "TAGS",
     "media": "MEDIEN",
     "cover": "Cover",
     "background": "Hintergrund",
@@ -216,12 +244,28 @@
     "filter": {
       "all": "Alle",
       "genre": "Genre",
+      "themes": "Themen",
+      "keywords": "Schlüsselwörter",
+      "platforms": "Plattformen",
+      "gameModes": "Spielmodi",
+      "publishers": "Publisher",
+      "developers": "Entwickler",
+      "playerPerspectives": "Perspektiven",
+      "gameEngines": "Game Engines",
       "year": "Jahr",
       "decade": "Jahrzehnt",
       "collection": "Sammlung",
       "ageRating": "Inhaltsbewertung",
       "searchYear": "Filter Jahr",
       "searchGenre": "Filter Genre",
+      "searchThemes": "Filter Themen",
+      "searchKeywords": "Filter Schlüsselwörter",
+      "searchPlatforms": "Filter Plattformen",
+      "searchGameModes": "Filter Spielmodi",
+      "searchPublishers": "Filter Publisher",
+      "searchDevelopers": "Filter Entwickler",
+      "searchPlayerPerspectives": "Filter Perspektiven",
+      "searchGameEngines": "Filter Game Engines",
       "searchDecade": "Filter Jahrzehnt",
       "searchCollection": "Filter Sammlung",
       "searchAgeRating": "Altersfreigabe suchen..."
@@ -299,6 +343,23 @@
     "Erotic": "Erotisch",
     "Mystery": "Mystery",
     "Romance": "Romantik"
+  },
+  "gameModes": {
+    "Single player": "Einzelspieler",
+    "Multiplayer": "Mehrspieler",
+    "Co-operative": "Kooperativ",
+    "Split screen": "Geteilter Bildschirm",
+    "Massively Multiplayer Online (MMO)": "Massiv-Mehrspieler-Online (MMO)",
+    "Battle Royale": "Battle Royale"
+  },
+  "playerPerspectives": {
+    "First person": "Egoperspektive",
+    "Third person": "Dritte Person",
+    "Bird view / Isometric": "Vogelperspektive / Isometrisch",
+    "Side view": "Seitenansicht",
+    "Text": "Text",
+    "Virtual Reality": "Virtuelle Realität",
+    "Auditory": "Auditiv"
   },
   "collectionDetail": {
     "editCollection": "Sammlung bearbeiten",
