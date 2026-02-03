@@ -15,7 +15,7 @@ import { buildApiUrl } from "../utils/api";
 import { API_BASE, getApiToken, getTwitchClientId, getTwitchClientSecret } from "../config";
 import { useLoading } from "../contexts/LoadingContext";
 import { useCategories } from "../contexts/CategoriesContext";
-import type { GameItem, IGDBGame } from "../types";
+import type { IGDBGame } from "../types";
 import { formatIGDBGameDate } from "../utils/date";
 import type { TFunction } from "i18next";
 import "./IGDBGameDetailPage.css";
