@@ -81,7 +81,7 @@
   font-weight: 600;
   color: rgba(255, 255, 255, 0.7);
   min-width: 220px;
-  width: 40%;
+  width: 30%;
 }
 
 .games-table-header-table th.date-cell {
@@ -107,7 +107,7 @@
 .games-table-header-table th.critic-rating-cell {
   font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.6);
-  width: 15%;
+  width: 16%;
 }
 
 .games-table-header-table th.age-rating-cell {
@@ -294,7 +294,10 @@
   font-weight: 600;
   color: #f8f8f8;
   min-width: 220px;
-  width: 40%;
+  width: 30%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .games-table td.title-cell .first-cell-text,
@@ -380,7 +383,7 @@
 .games-table td.critic-rating-cell {
   font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.6);
-  width: 15%;
+  width: 16%;
 }
 
 .games-table td.age-rating-cell {
