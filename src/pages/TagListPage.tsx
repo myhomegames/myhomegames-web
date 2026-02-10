@@ -56,6 +56,7 @@ export default function TagListPage({
   const [editingItem, setEditingItem] = useState<CategoryItem | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const pendingScrollRestoreRef = useRef<number | null>(null);
 
   useEffect(() => {
     setLoading(gamesLoading || listLoading || !isReady);
@@ -187,6 +188,11 @@ export default function TagListPage({
   };
 
   const handleItemEdit = (item: CategoryItem) => {
+    // Save scroll position before opening modal
+    const container = scrollContainerRef.current;
+    if (container) {
+      pendingScrollRestoreRef.current = container.scrollTop;
+    }
     setEditingItem(item);
   };
 
@@ -205,6 +211,39 @@ export default function TagListPage({
       setIsReady(false);
     }
   }, [gamesLoading, listLoading, items.length]);
+
+  // Restore scroll position when modal closes and items have been updated
+  // This ensures the user stays at the same position after editing (like collections)
+  useEffect(() => {
+    if (!editingItem && pendingScrollRestoreRef.current !== null && scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      const saved = pendingScrollRestoreRef.current;
+      pendingScrollRestoreRef.current = null;
+      
+      // Wait for DOM to be ready after modal closes and items update
+      const restoreScroll = () => {
+        if (container && container.scrollHeight > 0) {
+          container.scrollTop = saved;
+          // Also update sessionStorage so useScrollRestoration doesn't override it
+          try {
+            const storageKey = window.location.pathname;
+            sessionStorage.setItem(storageKey, saved.toString());
+          } catch {
+            // Ignore
+          }
+        }
+      };
+      
+      // Use multiple delays to ensure everything is ready
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            restoreScroll();
+          }, 100);
+        });
+      });
+    }
+  }, [editingItem]);
 
   return (
     <main className="flex-1 home-page-content">
@@ -248,6 +287,7 @@ export default function TagListPage({
           removeResourceType={editConfig.removeResourceType}
           updateEventName={editConfig.updateEventName}
           updateEventPayloadKey={editConfig.updateEventPayloadKey}
+          coverSize={coverSize * 2}
         />
       )}
     </main>

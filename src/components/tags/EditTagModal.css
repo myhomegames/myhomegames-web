@@ -210,6 +210,27 @@
   padding-bottom: 6px;
 }
 
+.edit-collection-modal-media-options {
+  margin-bottom: -16px;
+}
+
+.edit-collection-modal-media-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.875rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.edit-collection-modal-media-checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #E5A00D;
+  cursor: pointer;
+}
+
 .edit-collection-modal-media-row {
   display: flex;
   flex-direction: row;
