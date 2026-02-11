@@ -32,13 +32,15 @@ const LIBRARY_TYPES: Record<string, GameLibrarySection["type"]> = {
   playerPerspectives: "games",
 };
 
+const VALID_KEYS = new Set<string>(LIBRARY_ORDER);
+
 export function normalizeVisibleLibraries(value?: string[] | null): string[] {
   const order = [...LIBRARY_ORDER];
   if (!Array.isArray(value) || value.length === 0) {
     return order;
   }
   const filtered = value.filter(
-    (key) => typeof key === "string" && key.trim() && order.includes(key)
+    (key) => typeof key === "string" && key.trim() && VALID_KEYS.has(key)
   );
   if (filtered.length === 0) {
     return order;
