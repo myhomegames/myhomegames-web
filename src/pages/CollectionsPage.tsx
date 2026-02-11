@@ -38,9 +38,9 @@ export default function CollectionsPage({
     navigate(`/collections/${collection.id}`);
   }
 
-  const handleCollectionUpdate = (updatedCollection: CollectionItem) => {
-    // Update via context (which will also dispatch the event)
-    updateCollection(updatedCollection);
+  const handleCollectionUpdate = (updated: CollectionItem) => {
+    // Preserve gameCount and spread all properties from updated (like DevelopersPage)
+    updateCollection({ ...updated, gameCount: collections.find((c) => String(c.id) === String(updated.id))?.gameCount });
   };
 
   const handleCollectionDelete = (deletedCollection: CollectionItem) => {

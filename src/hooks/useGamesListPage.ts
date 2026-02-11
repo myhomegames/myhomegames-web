@@ -489,10 +489,16 @@ export function useGamesListPage(
             return hasTag(game.gameModes || null, selectedGameModes);
           case "publishers":
             if (selectedPublishers === null) return true;
-            return hasTag(game.publishers || null, selectedPublishers);
+            return hasTag(
+              game.publishers?.map((p) => String(p.id)) ?? null,
+              selectedPublishers
+            );
           case "developers":
             if (selectedDevelopers === null) return true;
-            return hasTag(game.developers || null, selectedDevelopers);
+            return hasTag(
+              game.developers?.map((d) => String(d.id)) ?? null,
+              selectedDevelopers
+            );
           case "playerPerspectives":
             if (selectedPlayerPerspectives === null) return true;
             return hasTag(game.playerPerspectives || null, selectedPlayerPerspectives);

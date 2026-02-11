@@ -7,6 +7,8 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { LoadingProvider } from "./contexts/LoadingContext";
 import { CategoriesProvider } from "./contexts/CategoriesContext";
 import { CollectionsProvider } from "./contexts/CollectionsContext";
+import { DevelopersProvider } from "./contexts/DevelopersContext";
+import { PublishersProvider } from "./contexts/PublishersContext";
 import { LibraryGamesProvider } from "./contexts/LibraryGamesContext";
 
 createRoot(document.getElementById("root")!).render(
@@ -15,9 +17,13 @@ createRoot(document.getElementById("root")!).render(
       <LoadingProvider>
         <CategoriesProvider>
           <CollectionsProvider>
-            <LibraryGamesProvider>
-              <App />
-            </LibraryGamesProvider>
+            <DevelopersProvider>
+              <PublishersProvider>
+                <LibraryGamesProvider>
+                  <App />
+                </LibraryGamesProvider>
+              </PublishersProvider>
+            </DevelopersProvider>
           </CollectionsProvider>
         </CategoriesProvider>
       </LoadingProvider>

@@ -1,5 +1,6 @@
 import TagValueFilter from "./TagValueFilter";
 import type { FilterValue, GameItem } from "./types";
+import { toDevPubIds } from "../../utils/devPubUtils";
 
 type DevelopersFilterProps = {
   isOpen: boolean;
@@ -17,7 +18,7 @@ export default function DevelopersFilter(props: DevelopersFilterProps) {
       type="developers"
       labelKey="gamesListToolbar.filter.developers"
       searchPlaceholderKey="gamesListToolbar.filter.searchDevelopers"
-      valueExtractor={(game) => game.developers}
+      valueExtractor={(game) => toDevPubIds(game.developers)}
     />
   );
 }

@@ -58,6 +58,11 @@ const getGenreValues = (game: GameItem) => {
 
 const getArrayOrNull = (values?: string[]) => values || null;
 
+const toDevPubIds = (arr: Array<{ id: number; name: string }> | undefined | null): string[] | null => {
+  if (!arr || !Array.isArray(arr)) return null;
+  return arr.map((x) => String(x.id));
+};
+
 export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
   categories: {
     list: {
@@ -132,7 +137,7 @@ export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
       routeBase: "/developers",
       listEndpoint: "/developers",
       listResponseKey: "developers",
-      valueExtractor: (game) => getArrayOrNull(game.developers),
+      valueExtractor: (game) => toDevPubIds(game.developers),
       localCoverPrefix: "/developer-covers/",
       responseKey: "developer",
     },
@@ -154,7 +159,7 @@ export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
       routeBase: "/publishers",
       listEndpoint: "/publishers",
       listResponseKey: "publishers",
-      valueExtractor: (game) => getArrayOrNull(game.publishers),
+      valueExtractor: (game) => toDevPubIds(game.publishers),
       localCoverPrefix: "/publisher-covers/",
       responseKey: "publisher",
     },

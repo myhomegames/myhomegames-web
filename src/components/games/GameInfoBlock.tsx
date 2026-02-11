@@ -144,7 +144,18 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           <div className="text-white game-info-label">
             {t("igdbInfo.developers", "Developers")}
           </div>
-          {renderTagList(game.developers, "/developers", (value) => value)}
+          <InlineTagList
+            items={game.developers.map((d) => String(d.id))}
+            getLabel={(id) =>
+              game.developers?.find((d) => String(d.id) === id)?.name ?? id
+            }
+            onItemClick={(value) =>
+              navigate(`/developers/${encodeURIComponent(value)}`)
+            }
+            useInfoStyles
+            showMoreMinCount={5}
+            showMoreLabel={t("gameDetail.andMore", ", and more")}
+          />
         </div>
       )}
 
@@ -154,7 +165,18 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           <div className="text-white game-info-label">
             {t("igdbInfo.publishers", "Publishers")}
           </div>
-          {renderTagList(game.publishers, "/publishers", (value) => value)}
+          <InlineTagList
+            items={game.publishers.map((p) => String(p.id))}
+            getLabel={(id) =>
+              game.publishers?.find((p) => String(p.id) === id)?.name ?? id
+            }
+            onItemClick={(value) =>
+              navigate(`/publishers/${encodeURIComponent(value)}`)
+            }
+            useInfoStyles
+            showMoreMinCount={5}
+            showMoreLabel={t("gameDetail.andMore", ", and more")}
+          />
         </div>
       )}
 

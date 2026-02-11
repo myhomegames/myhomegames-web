@@ -10,7 +10,7 @@ import Cover from "../components/games/Cover";
 import LibrariesBar from "../components/layout/LibrariesBar";
 import StarRating from "../components/common/StarRating";
 import Summary from "../components/common/Summary";
-import EditCollectionModal from "../components/collections/EditCollectionModal";
+import EditCollectionLikeModal from "../components/collections/EditCollectionLikeModal";
 import DropdownMenu from "../components/common/DropdownMenu";
 import Tooltip from "../components/common/Tooltip";
 import BackgroundManager, { useBackground } from "../components/common/BackgroundManager";
@@ -77,6 +77,7 @@ export default function CollectionDetail({
           summary: foundInContext.summary,
           cover: foundInContext.cover,
           background: foundInContext.background,
+          showTitle: (foundInContext as any).showTitle !== false,
         });
       } else {
         // Not in context, fetch from API
@@ -101,6 +102,7 @@ export default function CollectionDetail({
           summary: foundInContext.summary,
           cover: foundInContext.cover,
           background: foundInContext.background,
+          showTitle: (foundInContext as any).showTitle !== false,
         });
       }
     }
@@ -143,6 +145,7 @@ export default function CollectionDetail({
           summary: found.summary,
           cover: found.cover,
           background: found.background,
+          showTitle: found.showTitle !== false,
         });
         return;
       }
@@ -156,6 +159,7 @@ export default function CollectionDetail({
           summary: found.summary,
           cover: found.cover,
           background: found.background,
+          showTitle: (found as any).showTitle !== false,
         });
       }
     } catch (err: any) {
@@ -705,11 +709,12 @@ function CollectionDetailContent({
                       </div>
                     ) : null}
                     {collection && (
-                      <EditCollectionModal
+                      <EditCollectionLikeModal
                         isOpen={isEditModalOpen}
                         onClose={onEditModalClose}
-                        collection={collection}
-                        onCollectionUpdate={onCollectionUpdate}
+                        resourceType="collections"
+                        item={collection}
+                        onItemUpdate={onCollectionUpdate}
                       />
                     )}
                     {collection.summary && <Summary summary={collection.summary} maxLines={summaryMaxLines} />}

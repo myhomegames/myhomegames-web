@@ -6,6 +6,8 @@
     "categories": "分类",
     "platforms": "平台",
     "themes": "主题",
+    "developers": "开发商",
+    "publishers": "发行商",
     "gameEngines": "游戏引擎",
     "gameModes": "游戏模式",
     "playerPerspectives": "视角"

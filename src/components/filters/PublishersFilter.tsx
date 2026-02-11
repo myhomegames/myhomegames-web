@@ -1,5 +1,6 @@
 import TagValueFilter from "./TagValueFilter";
 import type { FilterValue, GameItem } from "./types";
+import { toDevPubIds } from "../../utils/devPubUtils";
 
 type PublishersFilterProps = {
   isOpen: boolean;
@@ -17,7 +18,7 @@ export default function PublishersFilter(props: PublishersFilterProps) {
       type="publishers"
       labelKey="gamesListToolbar.filter.publishers"
       searchPlaceholderKey="gamesListToolbar.filter.searchPublishers"
-      valueExtractor={(game) => game.publishers}
+      valueExtractor={(game) => toDevPubIds(game.publishers)}
     />
   );
 }

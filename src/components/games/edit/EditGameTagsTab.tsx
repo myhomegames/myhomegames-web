@@ -10,8 +10,6 @@ type EditGameTagsTabProps = {
   selectedKeywords: string[];
   selectedPlatforms: string[];
   selectedGameModes: string[];
-  selectedPublishers: string[];
-  selectedDevelopers: string[];
   selectedPlayerPerspectives: string[];
   selectedGameEngines: string[];
   saving: boolean;
@@ -20,8 +18,6 @@ type EditGameTagsTabProps = {
   setSelectedKeywords: (keywords: string[]) => void;
   setSelectedPlatforms: (platforms: string[]) => void;
   setSelectedGameModes: (modes: string[]) => void;
-  setSelectedPublishers: (publishers: string[]) => void;
-  setSelectedDevelopers: (developers: string[]) => void;
   setSelectedPlayerPerspectives: (perspectives: string[]) => void;
   setSelectedGameEngines: (engines: string[]) => void;
 };
@@ -35,8 +31,6 @@ export default function EditGameTagsTab({
   selectedKeywords,
   selectedPlatforms,
   selectedGameModes,
-  selectedPublishers,
-  selectedDevelopers,
   selectedPlayerPerspectives,
   selectedGameEngines,
   saving,
@@ -45,8 +39,6 @@ export default function EditGameTagsTab({
   setSelectedKeywords,
   setSelectedPlatforms,
   setSelectedGameModes,
-  setSelectedPublishers,
-  setSelectedDevelopers,
   setSelectedPlayerPerspectives,
   setSelectedGameEngines,
 }: EditGameTagsTabProps) {
@@ -114,32 +106,6 @@ export default function EditGameTagsTab({
             disabled={saving}
             placeholder={t("gameDetail.addGameMode", "Add game mode...")}
             getDisplayName={(value) => t(`gameModes.${value}`, value)}
-          />
-        )}
-      </div>
-      <div className="edit-game-modal-field">
-        <div className="edit-game-modal-label">{t("gameDetail.publishers", "Publishers")}</div>
-        {isOpen && (
-          <TagEditor
-            key={`tag-editor-publishers-${gameId}-${isOpen}`}
-            mode="freeform"
-            selectedTags={selectedPublishers}
-            onTagsChange={setSelectedPublishers}
-            disabled={saving}
-            placeholder={t("gameDetail.addPublisher", "Add publisher...")}
-          />
-        )}
-      </div>
-      <div className="edit-game-modal-field">
-        <div className="edit-game-modal-label">{t("gameDetail.developers", "Developers")}</div>
-        {isOpen && (
-          <TagEditor
-            key={`tag-editor-developers-${gameId}-${isOpen}`}
-            mode="freeform"
-            selectedTags={selectedDevelopers}
-            onTagsChange={setSelectedDevelopers}
-            disabled={saving}
-            placeholder={t("gameDetail.addDeveloper", "Add developer...")}
           />
         )}
       </div>

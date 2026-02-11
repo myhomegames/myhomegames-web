@@ -46,6 +46,8 @@ type CoverProps = {
   removeResourceType?:
     | "games"
     | "collections"
+    | "developers"
+    | "publishers"
     | "categories"
     | "themes"
     | "platforms"
@@ -499,9 +501,9 @@ export default function Cover({
           </div>
         )}
       </div>
-      {(showTitle || subtitle != null) && titlePosition === "bottom" && (
+      {((showTitle && titlePosition === "bottom") || subtitle != null) && (
         <div className="games-list-title-wrapper">
-          {showTitle && (
+          {showTitle && titlePosition === "bottom" && (
             <Tooltip text={title} position="bottom">
               <div 
                 className={`truncate games-list-title ${detail ? "games-list-title-clickable" : ""}`}

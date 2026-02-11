@@ -57,6 +57,7 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
         cover: v.cover,
         background: v.background,
         gameCount: v.gameCount,
+        showTitle: v.showTitle !== false,
       }));
       setCollections(parsed);
       

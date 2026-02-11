@@ -22,6 +22,8 @@ import ProfilePage from "./pages/ProfilePage";
 import AddGamePage from "./pages/AddGamePage";
 import SearchResultsPage from "./pages/SearchResultsPage";
 import CollectionDetail from "./pages/CollectionDetail";
+import DeveloperDetailPage from "./pages/DeveloperDetailPage";
+import PublisherDetailPage from "./pages/PublisherDetailPage";
 import TagGamesRoutePage from "./pages/TagGamesRoutePage";
 import LoginPage from "./pages/LoginPage";
 import IGDBGameDetailPage from "./pages/IGDBGameDetailPage";
@@ -385,14 +387,10 @@ function AppContent() {
                   onSettingsClick={() => navigate("/settings")}
                   onAddGameClick={() => setAddGameOpen(true)}
                 />
-                <TagGamesRoutePage
+                <DeveloperDetailPage
                   onGameClick={handleGameClick}
-                  onGamesLoaded={() => {
-                    // Games are now managed by LibraryGamesContext, no need to update here
-                  }}
+                  onGamesLoaded={() => {}}
                   onPlay={openLauncher}
-                  allCollections={allCollections}
-                  tagKey="developers"
                 />
               </ProtectedRoute>
             }
@@ -410,14 +408,10 @@ function AppContent() {
                   onSettingsClick={() => navigate("/settings")}
                   onAddGameClick={() => setAddGameOpen(true)}
                 />
-                <TagGamesRoutePage
+                <PublisherDetailPage
                   onGameClick={handleGameClick}
-                  onGamesLoaded={() => {
-                    // Games are now managed by LibraryGamesContext, no need to update here
-                  }}
+                  onGamesLoaded={() => {}}
                   onPlay={openLauncher}
-                  allCollections={allCollections}
-                  tagKey="publishers"
                 />
               </ProtectedRoute>
             }

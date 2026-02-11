@@ -21,8 +21,8 @@ export type GameItem = {
   playerPerspectives?: string[];
   websites?: Array<{ url: string; category?: number }>;
   ageRatings?: Array<{ rating: number; category: number }>;
-  developers?: string[];
-  publishers?: string[];
+  developers?: Array<{ id: number; name: string }>;
+  publishers?: Array<{ id: number; name: string }>;
   franchise?: (string | { id: number; name: string }) | (string | { id: number; name: string })[];
   collection?: (string | { id: number; name: string }) | (string | { id: number; name: string })[];
   series?: (string | { id: number; name: string }) | (string | { id: number; name: string })[];
@@ -80,8 +80,8 @@ export type IGDBGame = {
   playerPerspectives?: string[];
   websites?: Array<{ url: string; category?: number }>;
   ageRatings?: Array<{ rating: number; category: number }>;
-  developers?: string[];
-  publishers?: string[];
+  developers?: Array<{ id: number; name: string }>;
+  publishers?: Array<{ id: number; name: string }>;
   franchise?: (string | { id: number; name: string }) | (string | { id: number; name: string })[];
   collection?: (string | { id: number; name: string }) | (string | { id: number; name: string })[];
   series?: (string | { id: number; name: string }) | (string | { id: number; name: string })[];

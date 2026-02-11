@@ -10,6 +10,8 @@ export const CORE_LIBRARY_KEYS = [
 export const OPTIONAL_LIBRARY_KEYS = [
   "platforms",
   "themes",
+  "developers",
+  "publishers",
   "gameEngines",
   "gameModes",
   "playerPerspectives",
@@ -27,6 +29,8 @@ const LIBRARY_TYPES: Record<string, GameLibrarySection["type"]> = {
   categories: "games",
   platforms: "games",
   themes: "games",
+  developers: "collections",
+  publishers: "collections",
   gameEngines: "games",
   gameModes: "games",
   playerPerspectives: "games",

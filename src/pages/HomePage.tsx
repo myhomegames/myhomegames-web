@@ -5,6 +5,8 @@ import type { ViewMode } from "../types";
 import LibraryPage from "./LibraryPage";
 import RecommendedPage from "./RecommendedPage";
 import CollectionsPage from "./CollectionsPage";
+import DevelopersPage from "./DevelopersPage";
+import PublishersPage from "./PublishersPage";
 import TagListRoutePage from "./TagListRoutePage";
 import type { GameItem, CategoryItem, GameLibrarySection, CollectionItem } from "../types";
 import { API_BASE, getApiToken } from "../config";
@@ -225,6 +227,12 @@ export default function HomePage({
             )}
             {activeLibrary.key === "themes" && (
               <TagListRoutePage coverSize={coverSize} tagKey="themes" />
+            )}
+            {activeLibrary.key === "developers" && (
+              <DevelopersPage coverSize={coverSize} />
+            )}
+            {activeLibrary.key === "publishers" && (
+              <PublishersPage coverSize={coverSize} />
             )}
             {activeLibrary.key === "gameEngines" && (
               <TagListRoutePage coverSize={coverSize} tagKey="gameEngines" />

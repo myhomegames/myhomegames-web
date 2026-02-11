@@ -43,12 +43,6 @@ export default function EditGameModal({
   const [selectedGameModes, setSelectedGameModes] = useState<string[]>(
     Array.isArray(game.gameModes) ? game.gameModes : []
   );
-  const [selectedPublishers, setSelectedPublishers] = useState<string[]>(
-    Array.isArray(game.publishers) ? game.publishers : []
-  );
-  const [selectedDevelopers, setSelectedDevelopers] = useState<string[]>(
-    Array.isArray(game.developers) ? game.developers : []
-  );
   const [selectedPlayerPerspectives, setSelectedPlayerPerspectives] = useState<string[]>(
     Array.isArray(game.playerPerspectives) ? game.playerPerspectives : []
   );
@@ -113,8 +107,6 @@ export default function EditGameModal({
       setSelectedKeywords(Array.isArray(game.keywords) ? game.keywords : []);
       setSelectedPlatforms(Array.isArray(game.platforms) ? game.platforms : []);
       setSelectedGameModes(Array.isArray(game.gameModes) ? game.gameModes : []);
-      setSelectedPublishers(Array.isArray(game.publishers) ? game.publishers : []);
-      setSelectedDevelopers(Array.isArray(game.developers) ? game.developers : []);
       setSelectedPlayerPerspectives(
         Array.isArray(game.playerPerspectives) ? game.playerPerspectives : []
       );
@@ -208,12 +200,6 @@ export default function EditGameModal({
       return true;
     }
     if (!areTagsEqual(selectedGameModes, normalizeTagArray(game.gameModes))) {
-      return true;
-    }
-    if (!areTagsEqual(selectedPublishers, normalizeTagArray(game.publishers))) {
-      return true;
-    }
-    if (!areTagsEqual(selectedDevelopers, normalizeTagArray(game.developers))) {
       return true;
     }
     if (!areTagsEqual(selectedPlayerPerspectives, normalizeTagArray(game.playerPerspectives))) {
@@ -413,12 +399,6 @@ export default function EditGameModal({
       if (!areTagsEqual(selectedGameModes, normalizeTagArray(game.gameModes))) {
         updates.gameModes = selectedGameModes.length > 0 ? selectedGameModes : [];
       }
-      if (!areTagsEqual(selectedPublishers, normalizeTagArray(game.publishers))) {
-        updates.publishers = selectedPublishers.length > 0 ? selectedPublishers : [];
-      }
-      if (!areTagsEqual(selectedDevelopers, normalizeTagArray(game.developers))) {
-        updates.developers = selectedDevelopers.length > 0 ? selectedDevelopers : [];
-      }
       if (!areTagsEqual(selectedPlayerPerspectives, normalizeTagArray(game.playerPerspectives))) {
         updates.playerPerspectives = selectedPlayerPerspectives.length > 0 ? selectedPlayerPerspectives : [];
       }
@@ -547,13 +527,12 @@ export default function EditGameModal({
         onGameUpdate(updatedGame);
       } else if (coverFile || backgroundFile || coverRemoved || backgroundRemoved) {
         // If only images were uploaded or removed, update the game with the new cover/background
-        // Use values from upload/delete response if available, otherwise fetch from server
-        let finalCover = updatedCover !== null && updatedCover !== undefined ? updatedCover : game.cover;
-        let finalBackground = updatedBackground !== null && updatedBackground !== undefined ? updatedBackground : game.background;
+        // When removed, use undefined; otherwise use response or existing value
+        let finalCover = coverRemoved ? undefined : (updatedCover !== null && updatedCover !== undefined ? updatedCover : game.cover);
+        let finalBackground = backgroundRemoved ? undefined : (updatedBackground !== null && updatedBackground !== undefined ? updatedBackground : game.background);
         
-        // If we don't have the values from upload/delete response, fetch from server
-        if ((coverFile && (!finalCover || finalCover === '')) || (backgroundFile && (!finalBackground || finalBackground === '')) || 
-            (coverRemoved && finalCover === undefined) || (backgroundRemoved && finalBackground === undefined)) {
+        // If we don't have the values from upload/delete response, fetch from server (only for uploads)
+        if ((coverFile && (!finalCover || finalCover === '')) || (backgroundFile && (!finalBackground || finalBackground === ''))) {
           const url = buildApiUrl(API_BASE, `/games/${game.id}`);
           const response = await fetch(url, {
             method: "GET",
@@ -761,8 +740,6 @@ export default function EditGameModal({
               selectedKeywords={selectedKeywords}
               selectedPlatforms={selectedPlatforms}
               selectedGameModes={selectedGameModes}
-              selectedPublishers={selectedPublishers}
-              selectedDevelopers={selectedDevelopers}
               selectedPlayerPerspectives={selectedPlayerPerspectives}
               selectedGameEngines={selectedGameEngines}
               saving={saving}
@@ -771,8 +748,6 @@ export default function EditGameModal({
               setSelectedKeywords={setSelectedKeywords}
               setSelectedPlatforms={setSelectedPlatforms}
               setSelectedGameModes={setSelectedGameModes}
-              setSelectedPublishers={setSelectedPublishers}
-              setSelectedDevelopers={setSelectedDevelopers}
               setSelectedPlayerPerspectives={setSelectedPlayerPerspectives}
               setSelectedGameEngines={setSelectedGameEngines}
             />

@@ -6,7 +6,7 @@ import Cover from "../games/Cover";
 import DropdownMenu from "../common/DropdownMenu";
 import AdditionalExecutablesDropdown from "../games/AdditionalExecutablesDropdown";
 import EditGameModal from "../games/EditGameModal";
-import EditCollectionModal from "../collections/EditCollectionModal";
+import EditCollectionLikeModal from "../collections/EditCollectionLikeModal";
 import { useEditGame } from "../common/actions";
 import { useNavigate } from "react-router-dom";
 import { useCollectionHasPlayableGame } from "../common/hooks/useCollectionHasPlayableGame";
@@ -374,7 +374,7 @@ export default function SearchResultsList({
         />
       )}
       {selectedCollection && (
-        <EditCollectionModal
+        <EditCollectionLikeModal
           isOpen={isEditCollectionModalOpen}
           onClose={() => {
             setIsEditCollectionModalOpen(false);
@@ -383,8 +383,9 @@ export default function SearchResultsList({
               onModalClose();
             }
           }}
-          collection={selectedCollection}
-          onCollectionUpdate={handleCollectionUpdate}
+          resourceType="collections"
+          item={selectedCollection}
+          onItemUpdate={handleCollectionUpdate}
         />
       )}
     </>
