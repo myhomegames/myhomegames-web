@@ -69,6 +69,7 @@ export default function EditGameModal({
   const [coverRemoved, setCoverRemoved] = useState(false);
   const [backgroundRemoved, setBackgroundRemoved] = useState(false);
   const [imageTimestamp, setImageTimestamp] = useState<number>(Date.now());
+  const [showTitle, setShowTitle] = useState(true);
 
   // Memoize cover and background URLs with timestamp when modal opens
   // NEVER show IGDB images in edit modal - only show local images
@@ -126,6 +127,7 @@ export default function EditGameModal({
       setBackgroundFile(null);
       setCoverRemoved(false);
       setBackgroundRemoved(false);
+      setShowTitle(game.showTitle !== false);
       // Generate new timestamp to force image reload when modal opens
       setImageTimestamp(Date.now());
     }
@@ -185,6 +187,7 @@ export default function EditGameModal({
     if (year !== (game.year?.toString() || "")) return true;
     if (month !== (game.month?.toString() || "")) return true;
     if (day !== (game.day?.toString() || "")) return true;
+    if (showTitle !== (game.showTitle !== false)) return true;
 
     // Check if genres changed
     const currentGenre = Array.isArray(game.genre)
@@ -422,6 +425,9 @@ export default function EditGameModal({
       if (!areTagsEqual(selectedGameEngines, normalizeTagArray(game.gameEngines))) {
         updates.gameEngines = selectedGameEngines.length > 0 ? selectedGameEngines : [];
       }
+      if (showTitle !== (game.showTitle !== false)) {
+        updates.showTitle = showTitle;
+      }
 
       // Only make PUT request if there are updates (images were already uploaded)
       if (Object.keys(updates).length > 0) {
@@ -485,6 +491,7 @@ export default function EditGameModal({
           keywords: result.game.keywords ?? game.keywords ?? null,
           alternativeNames: result.game.alternativeNames ?? game.alternativeNames ?? null,
           similarGames: result.game.similarGames ?? game.similarGames ?? null,
+          showTitle: result.game.showTitle ?? game.showTitle,
         };
 
         // Check if any genres were removed and delete unused categories
@@ -777,6 +784,8 @@ export default function EditGameModal({
               t={t}
               game={game}
               saving={saving}
+              showTitle={showTitle}
+              onShowTitleChange={setShowTitle}
               coverRemoved={coverRemoved}
               coverPreview={coverPreview}
               coverUrlWithTimestamp={coverUrlWithTimestamp}

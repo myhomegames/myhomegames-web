@@ -9,6 +9,7 @@
 
 .games-table-header-table {
   width: 97.2%;
+  min-width: 520px;
   border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;
@@ -16,6 +17,7 @@
 
 .games-table {
   width: 100%;
+  min-width: 520px;
   border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;
@@ -80,8 +82,8 @@
   font-size: 0.95rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.7);
-  min-width: 220px;
-  width: 30%;
+  min-width: 180px;
+  width: 40%;
 }
 
 .games-table-header-table th.date-cell {
@@ -132,7 +134,7 @@
 .games-table-scroll {
   flex: 1;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
 }
 
 
@@ -293,8 +295,8 @@
   font-size: 0.95rem;
   font-weight: 600;
   color: #f8f8f8;
-  min-width: 220px;
-  width: 30%;
+  min-width: 180px;
+  width: 40%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

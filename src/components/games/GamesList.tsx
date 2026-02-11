@@ -162,7 +162,7 @@ export function GameListItem({
         } : undefined}
         collectionId={collectionId}
         onRemoveFromCollection={onRemoveFromCollection ? () => onRemoveFromCollection(game.id) : undefined}
-        showTitle={true}
+        showTitle={game.showTitle !== false}
         subtitle={game.year}
         detail={true}
         play={!!(game.executables && game.executables.length > 0)}

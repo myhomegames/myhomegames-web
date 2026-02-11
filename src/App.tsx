@@ -703,6 +703,7 @@ function GameDetailPage({
         publishers: found.publishers || null,
         franchise: found.franchise || null,
         collection: found.collection || null,
+        series: found.series ?? found.collection ?? null,
         screenshots: found.screenshots || null,
         videos: found.videos || null,
         gameEngines: found.gameEngines || null,

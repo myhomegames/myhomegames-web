@@ -172,9 +172,12 @@ export default function TagGamesPage({
                     : undefined
                 }
                 virtualizedListRef={
-                  viewMode === "detail" && hook.scrollContainerRef.current
+                  (viewMode === "detail" && hook.scrollContainerRef.current
                     ? (hook.scrollContainerRef.current as any).__virtualizedListRef
-                    : undefined
+                    : undefined) ||
+                  (viewMode === "table" && hook.tableScrollRef.current
+                    ? (hook.tableScrollRef.current as any).__virtualizedListRef
+                    : undefined)
                 }
                 viewMode={viewMode}
                 coverSize={coverSize}

@@ -1,6 +1,6 @@
 .virtualized-table-scroll {
   overflow-y: auto !important;
-  overflow-x: hidden !important;
+  overflow-x: auto !important;
 }
 
 .virtualized-games-table-wrapper {
@@ -10,6 +10,7 @@
 
 .virtualized-games-table-wrapper .games-table {
   width: 100%;
+  min-width: 520px;
   border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;

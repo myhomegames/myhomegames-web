@@ -166,7 +166,9 @@
     "removeBackground": "删除背景",
     "invalidImageType": "文件必须是图片",
     "coverFormat": "推荐比例：3:4（例如 400x533px）",
-    "backgroundFormat": "推荐比例：16:9（例如 1920x1080px）"
+    "backgroundFormat": "推荐比例：16:9（例如 1920x1080px）",
+    "showTitleInPreview": "在预览中显示标题",
+    "showTitle": "在封面上显示标题"
   },
   "manageInstallation": {
     "title": "管理安装",
@@ -435,6 +437,7 @@
     "publishers": "发行商",
     "franchise": "系列",
     "collection": "合集",
+    "series": "系列",
     "screenshots": "截图",
     "videos": "视频",
     "gameEngines": "引擎",

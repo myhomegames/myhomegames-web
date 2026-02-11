@@ -233,10 +233,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error("Login error:", error);
-      if (error instanceof Error) {
-        alert(`Errore durante il login: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : "Si è verificato un errore sconosciuto";
+      // "Failed to fetch" or network errors: redirect to server (same as first-time app load)
+      // This helps when frontend (e.g. Vite dev) cannot reach API due to CORS/network
+      const isFetchError = errorMessage === "Failed to fetch" ||
+        errorMessage?.toLowerCase().includes("network") ||
+        errorMessage?.toLowerCase().includes("fetch");
+      if (isFetchError) {
+        const serverUrl = API_BASE.replace(/\/$/, "");
+        window.location.href = serverUrl;
       } else {
-        alert(`Errore durante il login: Si è verificato un errore sconosciuto`);
+        if (error instanceof Error) {
+          alert(`Errore durante il login: ${errorMessage}`);
+        } else {
+          alert(`Errore durante il login: ${errorMessage}`);
+        }
       }
     }
   };

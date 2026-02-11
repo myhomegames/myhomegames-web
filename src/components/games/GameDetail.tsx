@@ -618,6 +618,7 @@ function GameDetailContent({
                   <ScrollableGamesSection
                     sectionId={`collection-${collection.id}`}
                     titleOverride={collection.title}
+                    titleHref={`/collections/${collection.id}`}
                     disableAutoTranslate
                     games={games}
                     onGameClick={handleRelatedGameClick}

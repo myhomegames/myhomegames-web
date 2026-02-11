@@ -70,6 +70,7 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
         publishers: v.publishers || null,
         franchise: v.franchise || null,
         collection: v.collection || null,
+        series: v.series ?? v.collection ?? null,
         screenshots: v.screenshots || null,
         videos: v.videos || null,
         gameEngines: v.gameEngines || null,

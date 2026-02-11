@@ -166,7 +166,9 @@
     "removeBackground": "Eliminar fondo",
     "invalidImageType": "El archivo debe ser una imagen",
     "coverFormat": "Proporción recomendada: 3:4 (ej. 400x533px)",
-    "backgroundFormat": "Proporción recomendada: 16:9 (ej. 1920x1080px)"
+    "backgroundFormat": "Proporción recomendada: 16:9 (ej. 1920x1080px)",
+    "showTitleInPreview": "Mostrar título en la vista previa",
+    "showTitle": "Mostrar título en la portada"
   },
   "manageInstallation": {
     "title": "Gestionar Instalación",
@@ -435,6 +437,7 @@
     "publishers": "Editores",
     "franchise": "Franquicia",
     "collection": "Colección",
+    "series": "Saga",
     "screenshots": "Capturas de pantalla",
     "videos": "Videos",
     "gameEngines": "Motores de juego",

@@ -19,6 +19,16 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
   // Get game ID (for GameItem it's id, for IGDBGame it's id as number)
   const gameId = 'id' in game ? String(game.id) : undefined;
 
+  type FranchiseSeriesItem = string | { id: number; name: string };
+  const toFranchiseSeriesList = (
+    value: FranchiseSeriesItem | FranchiseSeriesItem[] | undefined
+  ): FranchiseSeriesItem[] => {
+    if (value == null) return [];
+    return Array.isArray(value) ? value : [value];
+  };
+  const franchiseList = toFranchiseSeriesList(game.franchise);
+  const seriesList = toFranchiseSeriesList(game.series ?? game.collection);
+
   // Check if game has any IGDB fields
   const hasInfo =
     gameId !== undefined ||
@@ -29,8 +39,8 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
     (game.websites && game.websites.length > 0) ||
     (game.developers && game.developers.length > 0) ||
     (game.publishers && game.publishers.length > 0) ||
-    game.franchise ||
-    game.collection ||
+    franchiseList.length > 0 ||
+    seriesList.length > 0 ||
     (game.screenshots && game.screenshots.length > 0) ||
     (game.gameEngines && game.gameEngines.length > 0) ||
     (game.alternativeNames && game.alternativeNames.length > 0) ||
@@ -39,6 +49,12 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
   if (!hasInfo) {
     return null;
   }
+
+  const formatFranchiseOrSeries = (value: FranchiseSeriesItem | undefined): string => {
+    if (value == null) return "";
+    if (typeof value === "string") return value;
+    return `${value.id} - ${value.name}`;
+  };
 
   const renderTagList = (
     items: string[],
@@ -142,27 +158,37 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
         </div>
       )}
 
-      {/* Franchise */}
-      {game.franchise && (
+      {/* Franchise (list) */}
+      {franchiseList.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
             {t("igdbInfo.franchise", "Franchise")}
           </div>
-          <div className="game-info-value">
-            {game.franchise}
-          </div>
+          <InlineTagList
+            items={franchiseList}
+            getLabel={formatFranchiseOrSeries}
+            getKey={(item) => (typeof item === "string" ? item : `${item.id}-${item.name}`)}
+            useInfoStyles
+            showMoreMinCount={5}
+            showMoreLabel={t("gameDetail.andMore", ", and more")}
+          />
         </div>
       )}
 
-      {/* Collection */}
-      {game.collection && (
+      {/* Series (IGDB "collection" – list) */}
+      {seriesList.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
-            {t("igdbInfo.collection", "Collection")}
+            {t("igdbInfo.series", "Series")}
           </div>
-          <div className="game-info-value">
-            {game.collection}
-          </div>
+          <InlineTagList
+            items={seriesList}
+            getLabel={formatFranchiseOrSeries}
+            getKey={(item) => (typeof item === "string" ? item : `${item.id}-${item.name}`)}
+            useInfoStyles
+            showMoreMinCount={5}
+            showMoreLabel={t("gameDetail.andMore", ", and more")}
+          />
         </div>
       )}
 

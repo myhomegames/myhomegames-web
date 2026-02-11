@@ -39,6 +39,7 @@ export default function EditCollectionModal({
   const [coverRemoved, setCoverRemoved] = useState(false);
   const [backgroundRemoved, setBackgroundRemoved] = useState(false);
   const [imageTimestamp, setImageTimestamp] = useState<number>(Date.now());
+  const [showTitleInPreview, setShowTitleInPreview] = useState(false);
 
   // Memoize cover and background URLs with timestamp when modal opens
   const coverUrlWithTimestamp = useMemo(() => {
@@ -69,6 +70,7 @@ export default function EditCollectionModal({
     if (isOpen && collection) {
       setTitle(collection.title || "");
       setSummary(collection.summary || "");
+      setShowTitleInPreview(collection.showTitle !== false);
       setError(null);
       setActiveTab("INFO");
       // Always clear previews when opening the modal to show updated images
@@ -130,6 +132,7 @@ export default function EditCollectionModal({
     return (
       title.trim() !== collection.title.trim() ||
       summary.trim() !== (collection.summary || "").trim() ||
+      showTitleInPreview !== (collection.showTitle !== false) ||
       coverFile !== null ||
       backgroundFile !== null ||
       coverRemoved ||
@@ -344,6 +347,7 @@ export default function EditCollectionModal({
 
       if (title.trim() !== collection.title.trim()) updates.title = title.trim();
       if (summary.trim() !== (collection.summary || "").trim()) updates.summary = summary.trim();
+      if (showTitleInPreview !== (collection.showTitle !== false)) updates.showTitle = showTitleInPreview;
 
       // Only make PUT request if there are updates (images were already uploaded)
       if (Object.keys(updates).length > 0) {
@@ -382,6 +386,7 @@ export default function EditCollectionModal({
           summary: result.collection.summary,
           cover: finalCover,
           background: finalBackground,
+          showTitle: result.collection.showTitle ?? collection.showTitle,
         };
 
         // Dispatch event to update allCollections in App.tsx
@@ -420,6 +425,7 @@ export default function EditCollectionModal({
             summary: result.summary || "",
             cover: finalCover,
             background: finalBackground,
+            showTitle: result.showTitle ?? collection.showTitle,
           };
           // Dispatch event to update allCollections in App.tsx
           window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collection: reloadedCollection } }));
@@ -532,6 +538,17 @@ export default function EditCollectionModal({
           {/* MEDIA Tab */}
           {activeTab === "MEDIA" && (
             <div className="edit-collection-modal-media">
+              <div className="edit-collection-modal-media-options">
+                <label className="edit-collection-modal-media-checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={showTitleInPreview}
+                    onChange={(e) => setShowTitleInPreview(e.target.checked)}
+                    aria-label={t("gameDetail.showTitle", "Show title on cover")}
+                  />
+                  <span>{t("gameDetail.showTitle", "Show title on cover")}</span>
+                </label>
+              </div>
               {/* Cover Section - First Row */}
               <div className="edit-collection-modal-media-row">
                 <div className="edit-collection-modal-media-info">

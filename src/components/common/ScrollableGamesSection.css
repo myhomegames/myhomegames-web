@@ -31,6 +31,16 @@
   margin: 0;
 }
 
+.scrollable-section-title-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.scrollable-section-title-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .scrollable-section-scroll {
   overflow-x: auto;
   overflow-y: hidden;

@@ -165,7 +165,7 @@ function SearchResultItem({
         width={actualCoverSize}
         height={coverHeight}
         onClick={handleClick}
-        showTitle={true}
+        showTitle={(item as { showTitle?: boolean }).showTitle !== false}
         subtitle={subtitle}
         titlePosition="bottom"
         detail={true}

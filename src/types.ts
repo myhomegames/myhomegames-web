@@ -6,6 +6,7 @@ export type GameItem = {
   summary?: string;
   cover?: string;
   background?: string;
+  showTitle?: boolean;
   day?: number | null;
   month?: number | null;
   year?: number | null;
@@ -22,8 +23,9 @@ export type GameItem = {
   ageRatings?: Array<{ rating: number; category: number }>;
   developers?: string[];
   publishers?: string[];
-  franchise?: string;
-  collection?: string;
+  franchise?: (string | { id: number; name: string }) | (string | { id: number; name: string })[];
+  collection?: (string | { id: number; name: string }) | (string | { id: number; name: string })[];
+  series?: (string | { id: number; name: string }) | (string | { id: number; name: string })[];
   screenshots?: string[];
   videos?: string[];
   gameEngines?: string[];
@@ -38,6 +40,7 @@ export type CollectionItem = {
   summary?: string;
   cover?: string;
   background?: string;
+  showTitle?: boolean;
   gameCount?: number;
 };
 
@@ -45,6 +48,7 @@ export type CategoryItem = {
   id: string;
   title: string;
   cover?: string;
+  showTitle?: boolean;
 };
 
 export type CollectionInfo = {
@@ -53,6 +57,7 @@ export type CollectionInfo = {
   summary?: string;
   cover?: string;
   background?: string;
+  showTitle?: boolean;
 };
 
 export type IGDBGame = {
@@ -77,8 +82,9 @@ export type IGDBGame = {
   ageRatings?: Array<{ rating: number; category: number }>;
   developers?: string[];
   publishers?: string[];
-  franchise?: string;
-  collection?: string;
+  franchise?: (string | { id: number; name: string }) | (string | { id: number; name: string })[];
+  collection?: (string | { id: number; name: string }) | (string | { id: number; name: string })[];
+  series?: (string | { id: number; name: string }) | (string | { id: number; name: string })[];
   screenshots?: string[];
   videos?: string[];
   gameEngines?: string[];

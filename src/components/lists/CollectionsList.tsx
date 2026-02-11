@@ -132,7 +132,7 @@ export function CollectionListItem({
             onCollectionUpdate(updatedItem);
           }
         } : undefined}
-        showTitle={true}
+        showTitle={collection.showTitle !== false}
         subtitle={collection.gameCount !== undefined ? `${collection.gameCount} ${t("common.elements")}` : undefined}
         detail={true}
         play={hasPlayableGame === true}

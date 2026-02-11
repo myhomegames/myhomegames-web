@@ -32,6 +32,8 @@ type EditTagModalProps = {
   updateEventPayloadKey?: string;
   /** Same as list cover width (e.g. coverSize * 2 from page) so preview matches list. Default 300. */
   coverSize?: number;
+  /** Optional: translate/display name for the title (same as in list). Used for preview title. */
+  getDisplayName?: (value: string) => string;
 };
 
 export default function EditTagModal({
@@ -48,6 +50,7 @@ export default function EditTagModal({
   updateEventName,
   updateEventPayloadKey,
   coverSize: listCoverSize = 300,
+  getDisplayName,
 }: EditTagModalProps) {
   const { t } = useTranslation();
   const { setLoading } = useLoading();
@@ -411,11 +414,12 @@ export default function EditTagModal({
                     <>
                       <Cover
                         key={`cover-${coverRemoved ? 'removed' : coverPreview ? 'preview' : coverUrlWithTimestamp}`}
-                        title={item.title}
+                        title={getDisplayName ? getDisplayName(item.title) : item.title}
                         coverUrl={currentCoverUrl}
                         width={Math.min(listCoverSize, 320)}
                         height={Math.min(listCoverSize, 320) * (9 / 16)}
-                        showTitle={false}
+                        showTitle={showTitle}
+                        titlePosition="overlay"
                         detail={false}
                         play={false}
                         showBorder={true}

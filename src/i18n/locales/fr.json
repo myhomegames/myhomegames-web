@@ -166,7 +166,9 @@
     "removeBackground": "Supprimer l'arrière-plan",
     "invalidImageType": "Le fichier doit être une image",
     "coverFormat": "Ratio recommandé : 3:4 (ex. 400x533px)",
-    "backgroundFormat": "Ratio recommandé : 16:9 (ex. 1920x1080px)"
+    "backgroundFormat": "Ratio recommandé : 16:9 (ex. 1920x1080px)",
+    "showTitleInPreview": "Afficher le titre dans l’aperçu",
+    "showTitle": "Afficher le titre sur la couverture"
   },
   "manageInstallation": {
     "title": "Gérer l'Installation",
@@ -435,6 +437,7 @@
     "publishers": "Éditeurs",
     "franchise": "Franchise",
     "collection": "Collection",
+    "series": "Série",
     "screenshots": "Captures d'écran",
     "videos": "Vidéos",
     "gameEngines": "Moteurs de jeu",

@@ -166,7 +166,9 @@
     "removeBackground": "Rimuovi sfondo",
     "invalidImageType": "Il file deve essere un'immagine",
     "coverFormat": "Rapporto consigliato: 3:4 (es. 400x533px)",
-    "backgroundFormat": "Rapporto consigliato: 16:9 (es. 1920x1080px)"
+    "backgroundFormat": "Rapporto consigliato: 16:9 (es. 1920x1080px)",
+    "showTitleInPreview": "Mostra titolo in anteprima",
+    "showTitle": "Mostra titolo sulla copertina"
   },
   "manageInstallation": {
     "title": "Gestisci Installazione",
@@ -435,6 +437,7 @@
     "publishers": "Prodotto da",
     "franchise": "Franchise",
     "collection": "Collezione",
+    "series": "Serie",
     "screenshots": "Screenshot",
     "videos": "Video",
     "gameEngines": "Motori di gioco",

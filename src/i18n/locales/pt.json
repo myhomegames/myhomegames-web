@@ -166,7 +166,9 @@
     "removeBackground": "Remover plano de fundo",
     "invalidImageType": "O arquivo deve ser uma imagem",
     "coverFormat": "Proporção recomendada: 3:4 (ex: 400x533px)",
-    "backgroundFormat": "Proporção recomendada: 16:9 (ex: 1920x1080px)"
+    "backgroundFormat": "Proporção recomendada: 16:9 (ex: 1920x1080px)",
+    "showTitleInPreview": "Mostrar título na pré-visualização",
+    "showTitle": "Mostrar título na capa"
   },
   "manageInstallation": {
     "title": "Gerenciar Instalação",
@@ -435,6 +437,7 @@
     "publishers": "Editoras",
     "franchise": "Franquia",
     "collection": "Coleção",
+    "series": "Série",
     "screenshots": "Capturas de tela",
     "videos": "Vídeos",
     "gameEngines": "Motores de jogo",

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useLoading } from "../contexts/LoadingContext";
 import { API_BASE } from "../config";
 import { buildApiHeaders } from "../utils/api";
-import { CORE_LIBRARY_KEYS, OPTIONAL_LIBRARY_KEYS, normalizeVisibleLibraries } from "../utils/librarySections";
+import { LIBRARY_ORDER, normalizeVisibleLibraries } from "../utils/librarySections";
 import "./SettingsPage.css";
 
 export default function SettingsPage() {
@@ -12,7 +12,7 @@ export default function SettingsPage() {
   const [language, setLanguage] = useState("en");
   const [initialLanguage, setInitialLanguage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [visibleLibraries, setVisibleLibraries] = useState<string[]>([...CORE_LIBRARY_KEYS]);
+  const [visibleLibraries, setVisibleLibraries] = useState<string[]>([...LIBRARY_ORDER]);
   const [initialVisibleLibraries, setInitialVisibleLibraries] = useState<string[] | null>(null);
   
   // Twitch OAuth credentials
@@ -225,18 +225,7 @@ export default function SettingsPage() {
             <div className="settings-field">
               <div className="settings-label">{t("settings.pages")}</div>
               <div className="settings-library-options">
-                {CORE_LIBRARY_KEYS.map((key) => (
-                  <label key={key} className="settings-library-option settings-library-option-disabled">
-                    <input
-                      type="checkbox"
-                      checked={true}
-                      disabled={true}
-                      className="settings-checkbox"
-                    />
-                    <span>{t(`libraries.${key}`)}</span>
-                  </label>
-                ))}
-                {OPTIONAL_LIBRARY_KEYS.map((key) => (
+                {LIBRARY_ORDER.map((key) => (
                   <label key={key} className="settings-library-option">
                     <input
                       type="checkbox"

@@ -8,6 +8,8 @@ type EditGameMediaTabProps = {
   t: TFunction;
   game: GameItem;
   saving: boolean;
+  showTitle: boolean;
+  onShowTitleChange: (value: boolean) => void;
   coverRemoved: boolean;
   coverPreview: string | null;
   coverUrlWithTimestamp: string;
@@ -29,6 +31,8 @@ export default function EditGameMediaTab({
   t,
   game,
   saving,
+  showTitle,
+  onShowTitleChange,
   coverRemoved,
   coverPreview,
   coverUrlWithTimestamp,
@@ -47,6 +51,17 @@ export default function EditGameMediaTab({
 }: EditGameMediaTabProps) {
   return (
     <div className="edit-game-modal-media">
+      <div className="edit-game-modal-media-options">
+        <label className="edit-game-modal-media-checkbox-label">
+          <input
+            type="checkbox"
+            checked={showTitle}
+            onChange={(e) => onShowTitleChange(e.target.checked)}
+            aria-label={t("gameDetail.showTitle", "Show title on cover")}
+          />
+          <span>{t("gameDetail.showTitle", "Show title on cover")}</span>
+        </label>
+      </div>
       {/* Cover Section - First Row */}
       <div className="edit-game-modal-media-row">
         <div className="edit-game-modal-media-info">

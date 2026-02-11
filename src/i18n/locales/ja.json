@@ -166,7 +166,9 @@
     "removeBackground": "背景を削除",
     "invalidImageType": "ファイルは画像である必要があります",
     "coverFormat": "推奨比率：3:4（例：400x533px）",
-    "backgroundFormat": "推奨比率：16:9（例：1920x1080px）"
+    "backgroundFormat": "推奨比率：16:9（例：1920x1080px）",
+    "showTitleInPreview": "プレビューでタイトルを表示",
+    "showTitle": "カバーにタイトルを表示"
   },
   "manageInstallation": {
     "title": "インストール管理",
@@ -435,6 +437,7 @@
     "publishers": "パブリッシャー",
     "franchise": "フランチャイズ",
     "collection": "コレクション",
+    "series": "シリーズ",
     "screenshots": "スクリーンショット",
     "videos": "動画",
     "gameEngines": "ゲームエンジン",

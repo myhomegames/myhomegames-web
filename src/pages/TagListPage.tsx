@@ -153,6 +153,9 @@ export default function TagListPage({
       return compareTitles(left, right);
     });
 
+    // Skip redundant setItems when modal just closed: items were already updated in handleItemUpdate.
+    // This avoids an extra re-render that causes scroll flicker (like library/collections).
+    if (pendingScrollRestoreRef.current !== null) return;
     setItems(resolvedItems);
   }, [games, valueExtractor, getDisplayName, serverItems]);
 
@@ -212,36 +215,21 @@ export default function TagListPage({
     }
   }, [gamesLoading, listLoading, items.length]);
 
-  // Restore scroll position when modal closes and items have been updated
-  // This ensures the user stays at the same position after editing (like collections)
-  useEffect(() => {
+  // Restore scroll position when modal closes (items already updated in handleItemUpdate).
+  // useLayoutEffect so we restore before paint and avoid visible flicker like library/collections.
+  useLayoutEffect(() => {
     if (!editingItem && pendingScrollRestoreRef.current !== null && scrollContainerRef.current) {
       const container = scrollContainerRef.current;
       const saved = pendingScrollRestoreRef.current;
       pendingScrollRestoreRef.current = null;
-      
-      // Wait for DOM to be ready after modal closes and items update
-      const restoreScroll = () => {
-        if (container && container.scrollHeight > 0) {
-          container.scrollTop = saved;
-          // Also update sessionStorage so useScrollRestoration doesn't override it
-          try {
-            const storageKey = window.location.pathname;
-            sessionStorage.setItem(storageKey, saved.toString());
-          } catch {
-            // Ignore
-          }
+      if (container.scrollHeight > 0) {
+        container.scrollTop = saved;
+        try {
+          sessionStorage.setItem(window.location.pathname, saved.toString());
+        } catch {
+          // Ignore
         }
-      };
-      
-      // Use multiple delays to ensure everything is ready
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            restoreScroll();
-          }, 100);
-        });
-      });
+      }
     }
   }, [editingItem]);
 
@@ -288,6 +276,7 @@ export default function TagListPage({
           updateEventName={editConfig.updateEventName}
           updateEventPayloadKey={editConfig.updateEventPayloadKey}
           coverSize={coverSize * 2}
+          getDisplayName={getDisplayName}
         />
       )}
     </main>

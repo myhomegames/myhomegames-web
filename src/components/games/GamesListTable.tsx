@@ -126,15 +126,16 @@ export default function GamesListTable({
   const containerRef = useRef<HTMLDivElement>(null);
 
   if (useVirtualization) {
+    const theContainerRef = scrollContainerRef ?? containerRef;
     return (
       <div className="games-table-container">
         <div
           className="games-table-scroll virtualized-table-scroll"
-          ref={containerRef}
+          ref={theContainerRef}
         >
           <VirtualizedGamesListTable
             games={localGames}
-            containerRef={containerRef}
+            containerRef={theContainerRef}
             itemRefs={itemRefs}
             onGameClick={onGameClick}
             onPlay={onPlay}

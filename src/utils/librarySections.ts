@@ -33,15 +33,17 @@ const LIBRARY_TYPES: Record<string, GameLibrarySection["type"]> = {
 };
 
 export function normalizeVisibleLibraries(value?: string[] | null): string[] {
-  const normalized = new Set<string>(CORE_LIBRARY_KEYS);
-  if (Array.isArray(value)) {
-    value.forEach((key) => {
-      if (typeof key === "string" && key.trim()) {
-        normalized.add(key);
-      }
-    });
+  const order = [...LIBRARY_ORDER];
+  if (!Array.isArray(value) || value.length === 0) {
+    return order;
   }
-  return LIBRARY_ORDER.filter((key) => normalized.has(key));
+  const filtered = value.filter(
+    (key) => typeof key === "string" && key.trim() && order.includes(key)
+  );
+  if (filtered.length === 0) {
+    return order;
+  }
+  return order.filter((key) => filtered.includes(key));
 }
 
 export function buildLibrarySections(keys: string[]): GameLibrarySection[] {

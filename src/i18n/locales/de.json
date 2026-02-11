@@ -166,7 +166,9 @@
     "removeBackground": "Hintergrund entfernen",
     "invalidImageType": "Die Datei muss ein Bild sein",
     "coverFormat": "Empfohlenes Verhältnis: 3:4 (z.B. 400x533px)",
-    "backgroundFormat": "Empfohlenes Verhältnis: 16:9 (z.B. 1920x1080px)"
+    "backgroundFormat": "Empfohlenes Verhältnis: 16:9 (z.B. 1920x1080px)",
+    "showTitleInPreview": "Titel in Vorschau anzeigen",
+    "showTitle": "Titel auf dem Cover anzeigen"
   },
   "manageInstallation": {
     "title": "Installation verwalten",
@@ -435,6 +437,7 @@
     "publishers": "Verlage",
     "franchise": "Franchise",
     "collection": "Sammlung",
+    "series": "Reihe",
     "screenshots": "Screenshots",
     "videos": "Videos",
     "gameEngines": "Spiel-Engines",
