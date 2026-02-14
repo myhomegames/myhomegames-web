@@ -80,6 +80,8 @@
     "placeholder": "ゲームを検索...",
     "recentSearches": "最近の検索",
     "collection": "コレクション",
+    "developer": "開発元",
+    "publisher": "発売元",
     "game": "ゲーム"
   },
   "searchResults": {

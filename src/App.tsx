@@ -32,6 +32,8 @@ import { API_BASE, getApiToken } from "./config";
 import { useLoading } from "./contexts/LoadingContext";
 import { useAuth } from "./contexts/AuthContext";
 import { useCollections } from "./contexts/CollectionsContext";
+import { useDevelopers } from "./contexts/DevelopersContext";
+import { usePublishers } from "./contexts/PublishersContext";
 import { useLibraryGames } from "./contexts/LibraryGamesContext";
 
 // Wrapper function for buildApiUrl that uses API_BASE
@@ -44,6 +46,8 @@ function buildApiUrlWithBase(
 
 function AppContent() {
   const { collections: allCollections } = useCollections();
+  const { developers: allDevelopers } = useDevelopers();
+  const { publishers: allPublishers } = usePublishers();
   const { games: allGames } = useLibraryGames();
   const [launchError, setLaunchError] = useState<string | null>(null);
   const [isLaunching, setIsLaunching] = useState(false);
@@ -239,6 +243,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -264,6 +270,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -281,6 +289,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -303,6 +313,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -328,6 +340,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -353,6 +367,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -378,6 +394,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -400,6 +418,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -422,6 +442,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -447,6 +469,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -472,6 +496,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -497,6 +523,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -514,6 +542,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -531,6 +561,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -552,6 +584,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -572,6 +606,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}

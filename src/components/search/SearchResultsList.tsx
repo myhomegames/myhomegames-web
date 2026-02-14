@@ -14,15 +14,21 @@ import type { GameItem, CollectionItem, CollectionInfo } from "../../types";
 import { formatGameDate } from "../../utils/date";
 import "./SearchResultsList.css";
 
+type SearchResultType = "game" | "collection" | "developer" | "publisher";
+
 type SearchResultsListProps = {
   games: GameItem[];
   collections: CollectionItem[];
+  developers?: CollectionItem[];
+  publishers?: CollectionItem[];
   onGameClick: (game: GameItem) => void;
-  variant?: "popup" | "page"; // "popup" for dropdown, "page" for full page
-  coverSize?: number; // Cover width (default: 100 for page, 60 for popup games, 40 for popup collections)
-  onPlay?: (item: GameItem | CollectionItem) => void; // Play handler
-  onCollectionClick?: (collection: CollectionItem) => void; // Collection click handler (for popup)
-  onItemClick?: (item: GameItem | CollectionItem) => void; // Generic item click handler
+  variant?: "popup" | "page";
+  coverSize?: number;
+  onPlay?: (item: GameItem | CollectionItem) => void;
+  onCollectionClick?: (collection: CollectionItem) => void;
+  onDeveloperClick?: (developer: CollectionItem) => void;
+  onPublisherClick?: (publisher: CollectionItem) => void;
+  onItemClick?: (item: GameItem | CollectionItem) => void;
   onGameUpdate?: (updatedGame: GameItem) => void;
   onGameDelete?: (deletedGame: GameItem) => void;
   onCollectionUpdate?: (updatedCollection: CollectionItem) => void;
@@ -37,11 +43,14 @@ const POPUP_COVER_SIZE = 60;
 
 type SearchResultItemProps = {
   item: GameItem | CollectionItem;
+  resultType: SearchResultType;
   onGameClick: (game: GameItem) => void;
   variant?: "popup" | "page";
   coverSize?: number;
   onPlay?: (item: GameItem | CollectionItem) => void;
   onCollectionClick?: (collection: CollectionItem) => void;
+  onDeveloperClick?: (developer: CollectionItem) => void;
+  onPublisherClick?: (publisher: CollectionItem) => void;
   hasBorder?: boolean;
   onEditClick?: (item: GameItem | CollectionItem) => void;
   onGameDelete?: (deletedGame: GameItem) => void;
@@ -54,11 +63,14 @@ type SearchResultItemProps = {
 
 function SearchResultItem({
   item,
+  resultType,
   onGameClick,
   variant = "page",
   coverSize,
   onPlay,
   onCollectionClick,
+  onDeveloperClick,
+  onPublisherClick,
   hasBorder = false,
   onEditClick,
   onGameDelete,
@@ -70,26 +82,37 @@ function SearchResultItem({
 }: SearchResultItemProps) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const isGame = "year" in item;
+  const isGame = resultType === "game";
+  const isCollection = resultType === "collection";
   const actualCoverSize = coverSize || (variant === "popup" ? POPUP_COVER_SIZE : FIXED_COVER_SIZE);
   const coverHeight = actualCoverSize * 1.5;
   const isPopup = variant === "popup";
-  
-  // Check if any game in collection has executables
-  // Always enable the hook for collections, not just when onPlay is defined
+
   const { hasPlayableGame } = useCollectionHasPlayableGame(
-    !isGame ? item.id : undefined,
-    !isGame // Enable for collections, disable for games
+    isCollection ? item.id : undefined,
+    isCollection
   );
 
   const handleClick = () => {
-    if (isGame) {
-      onGameClick(item);
-    } else {
+    if (resultType === "game") {
+      onGameClick(item as GameItem);
+    } else if (resultType === "collection") {
       if (onCollectionClick) {
-        onCollectionClick(item);
+        onCollectionClick(item as CollectionItem);
       } else {
         navigate(`/collections/${item.id}`);
+      }
+    } else if (resultType === "developer") {
+      if (onDeveloperClick) {
+        onDeveloperClick(item as CollectionItem);
+      } else {
+        navigate(`/developers/${item.id}`);
+      }
+    } else if (resultType === "publisher") {
+      if (onPublisherClick) {
+        onPublisherClick(item as CollectionItem);
+      } else {
+        navigate(`/publishers/${item.id}`);
       }
     }
   };
@@ -97,11 +120,10 @@ function SearchResultItem({
   const handlePlayClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!onPlay) return;
-    
+
     if (isGame) {
       onPlay(item);
-    } else {
-      // For collections, fetch and play the first game that has executables
+    } else if (isCollection) {
       try {
         const url = buildApiUrl(API_BASE, `/collections/${item.id}/games`);
         const res = await fetch(url, {
@@ -146,7 +168,11 @@ function SearchResultItem({
 
   const subtitle = isGame
     ? formatGameDate(item, t, i18n)
-    : t("search.collection");
+    : resultType === "developer"
+      ? t("search.developer")
+      : resultType === "publisher"
+        ? t("search.publisher")
+        : t("search.collection");
 
   return (
     <div
@@ -174,7 +200,7 @@ function SearchResultItem({
       />
       {(onPlay || onEditClick) && (
         <div className="search-result-right-actions">
-          {onPlay && (isGame ? (item.executables && item.executables.length > 0) : hasPlayableGame === true) && (
+          {onPlay && (isGame ? ((item as GameItem).executables && (item as GameItem).executables!.length > 0) : hasPlayableGame === true) && (
             <button
               className="search-result-play-button"
               onClick={handlePlayClick}
@@ -268,13 +294,17 @@ export default function SearchResultsList({
   onCollectionDelete,
   onModalOpen,
   onModalClose,
+  developers = [],
+  publishers = [],
+  onDeveloperClick,
+  onPublisherClick,
 }: SearchResultsListProps) {
   const { t } = useTranslation();
   const editGame = useEditGame();
-  const [isEditCollectionModalOpen, setIsEditCollectionModalOpen] = useState(false);
-  const [selectedCollection, setSelectedCollection] = useState<CollectionInfo | null>(null);
-  
-  const totalResults = games.length + collections.length;
+  const [isEditCollectionLikeModalOpen, setIsEditCollectionLikeModalOpen] = useState(false);
+  const [selectedCollectionLike, setSelectedCollectionLike] = useState<{ item: CollectionInfo; resourceType: "collections" | "developers" | "publishers" } | null>(null);
+
+  const totalResults = games.length + collections.length + developers.length + publishers.length;
   if (totalResults === 0) {
     return <div className="text-gray-400 text-center">{t("table.noGames")}</div>;
   }
@@ -282,26 +312,30 @@ export default function SearchResultsList({
   const isPopup = variant === "popup";
   const containerClass = isPopup ? "" : "search-results-list-container";
 
-  const allItems: (GameItem | CollectionItem)[] = [...collections, ...games];
+  const allItemsWithType: { item: GameItem | CollectionItem; resultType: SearchResultType }[] = [
+    ...collections.map((c) => ({ item: c, resultType: "collection" as const })),
+    ...games.map((g) => ({ item: g, resultType: "game" as const })),
+    ...developers.map((d) => ({ item: d, resultType: "developer" as const })),
+    ...publishers.map((p) => ({ item: p, resultType: "publisher" as const })),
+  ];
 
-  const handleEditClick = (item: GameItem | CollectionItem) => {
+  const handleEditClick = (item: GameItem | CollectionItem, resultType: SearchResultType) => {
     if (onModalOpen) {
       onModalOpen();
     }
-    if ("year" in item) {
-      // It's a game
-      editGame.openEditModal(item);
-    } else {
-      // It's a collection
-      const collectionInfo: CollectionInfo = {
+    if (resultType === "game") {
+      editGame.openEditModal(item as GameItem);
+    } else if (resultType === "collection" || resultType === "developer" || resultType === "publisher") {
+      const info: CollectionInfo = {
         id: item.id,
         title: item.title,
         summary: item.summary,
         cover: item.cover,
         background: item.background,
       };
-      setSelectedCollection(collectionInfo);
-      setIsEditCollectionModalOpen(true);
+      const resourceType = resultType === "collection" ? "collections" : resultType === "developer" ? "developers" : "publishers";
+      setSelectedCollectionLike({ item: info, resourceType });
+      setIsEditCollectionLikeModalOpen(true);
     }
   };
 
@@ -317,40 +351,44 @@ export default function SearchResultsList({
     }
   };
 
-  const handleCollectionUpdate = (updatedCollection: CollectionInfo) => {
-    // Dispatch event to update allCollections in App.tsx
+  const handleCollectionLikeUpdate = (updated: CollectionInfo) => {
     const updatedItem: CollectionItem = {
-      id: updatedCollection.id,
-      title: updatedCollection.title,
-      summary: updatedCollection.summary,
-      cover: updatedCollection.cover,
-      background: updatedCollection.background,
+      id: updated.id,
+      title: updated.title,
+      summary: updated.summary,
+      cover: updated.cover,
+      background: updated.background,
     };
-    window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collection: updatedItem } }));
-    if (onCollectionUpdate) {
-      onCollectionUpdate(updatedItem);
+    if (selectedCollectionLike?.resourceType === "collections") {
+      window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collection: updatedItem } }));
+      if (onCollectionUpdate) onCollectionUpdate(updatedItem);
+    } else if (selectedCollectionLike?.resourceType === "developers") {
+      window.dispatchEvent(new CustomEvent("developerUpdated", { detail: { developer: updatedItem } }));
+    } else if (selectedCollectionLike?.resourceType === "publishers") {
+      window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: { publisher: updatedItem } }));
     }
-    setIsEditCollectionModalOpen(false);
-    setSelectedCollection(null);
-    if (onModalClose) {
-      onModalClose();
-    }
+    setIsEditCollectionLikeModalOpen(false);
+    setSelectedCollectionLike(null);
+    if (onModalClose) onModalClose();
   };
 
   return (
     <>
       <div className={containerClass}>
-        {allItems.map((item, index) => (
+        {allItemsWithType.map(({ item, resultType }, index) => (
           <SearchResultItem
-            key={item.id}
+            key={`${resultType}-${item.id}`}
             item={item}
+            resultType={resultType}
             onGameClick={onGameClick}
             variant={variant}
             coverSize={coverSize}
             onPlay={onPlay}
             onCollectionClick={onCollectionClick}
-            hasBorder={isPopup && index < allItems.length - 1}
-            onEditClick={handleEditClick}
+            onDeveloperClick={onDeveloperClick}
+            onPublisherClick={onPublisherClick}
+            hasBorder={isPopup && index < allItemsWithType.length - 1}
+            onEditClick={(item) => handleEditClick(item, resultType)}
             onGameDelete={onGameDelete}
             onGameUpdate={onGameUpdate}
             onCollectionDelete={onCollectionDelete}
@@ -373,19 +411,17 @@ export default function SearchResultsList({
           onGameUpdate={handleGameUpdate}
         />
       )}
-      {selectedCollection && (
+      {selectedCollectionLike && (
         <EditCollectionLikeModal
-          isOpen={isEditCollectionModalOpen}
+          isOpen={isEditCollectionLikeModalOpen}
           onClose={() => {
-            setIsEditCollectionModalOpen(false);
-            setSelectedCollection(null);
-            if (onModalClose) {
-              onModalClose();
-            }
+            setIsEditCollectionLikeModalOpen(false);
+            setSelectedCollectionLike(null);
+            if (onModalClose) onModalClose();
           }}
-          resourceType="collections"
-          item={selectedCollection}
-          onItemUpdate={handleCollectionUpdate}
+          resourceType={selectedCollectionLike.resourceType}
+          item={selectedCollectionLike.item}
+          onItemUpdate={handleCollectionLikeUpdate}
         />
       )}
     </>

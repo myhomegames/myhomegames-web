@@ -9,6 +9,8 @@ import "./SearchResultsList.css";
 type SearchBarProps = {
   games: GameItem[];
   collections: CollectionItem[];
+  developers?: CollectionItem[];
+  publishers?: CollectionItem[];
   onGameSelect: (game: GameItem) => void;
   onPlay?: (game: GameItem) => void;
 };
@@ -16,7 +18,7 @@ type SearchBarProps = {
 const RECENT_SEARCHES_KEY = "recentSearches";
 const MAX_RECENT_SEARCHES = 10;
 
-export default function SearchBar({ games, collections, onGameSelect, onPlay }: SearchBarProps) {
+export default function SearchBar({ games, collections, developers = [], publishers = [], onGameSelect, onPlay }: SearchBarProps) {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -26,8 +28,12 @@ export default function SearchBar({ games, collections, onGameSelect, onPlay }: 
   const [isFocused, setIsFocused] = useState(false);
   const [filteredGames, setFilteredGames] = useState<GameItem[]>([]);
   const [filteredCollections, setFilteredCollections] = useState<CollectionItem[]>([]);
+  const [filteredDevelopers, setFilteredDevelopers] = useState<CollectionItem[]>([]);
+  const [filteredPublishers, setFilteredPublishers] = useState<CollectionItem[]>([]);
   const [allFilteredGames, setAllFilteredGames] = useState<GameItem[]>([]);
   const [allFilteredCollections, setAllFilteredCollections] = useState<CollectionItem[]>([]);
+  const [allFilteredDevelopers, setAllFilteredDevelopers] = useState<CollectionItem[]>([]);
+  const [allFilteredPublishers, setAllFilteredPublishers] = useState<CollectionItem[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
     const saved = localStorage.getItem(RECENT_SEARCHES_KEY);
     return saved ? JSON.parse(saved) : [];
@@ -69,8 +75,12 @@ export default function SearchBar({ games, collections, onGameSelect, onPlay }: 
     if (searchQuery.trim() === "") {
       setFilteredGames([]);
       setFilteredCollections([]);
+      setFilteredDevelopers([]);
+      setFilteredPublishers([]);
       setAllFilteredGames([]);
       setAllFilteredCollections([]);
+      setAllFilteredDevelopers([]);
+      setAllFilteredPublishers([]);
       // Show recent searches when focused and query is empty
       if (isFocused) {
         setIsOpen(true);
@@ -84,8 +94,12 @@ export default function SearchBar({ games, collections, onGameSelect, onPlay }: 
     if (searchQuery.trim().length < 2) {
       setFilteredGames([]);
       setFilteredCollections([]);
+      setFilteredDevelopers([]);
+      setFilteredPublishers([]);
       setAllFilteredGames([]);
       setAllFilteredCollections([]);
+      setAllFilteredDevelopers([]);
+      setAllFilteredPublishers([]);
       // Keep dropdown open if focused to show recent searches or message
       if (isFocused && !isClosing) {
         setIsOpen(true);
@@ -100,13 +114,22 @@ export default function SearchBar({ games, collections, onGameSelect, onPlay }: 
     const filteredCols = collections.filter((collection) =>
       collection.title.toLowerCase().includes(queryLower)
     );
-    
-    setAllFilteredGames(filtered); // Save all results
-    setAllFilteredCollections(filteredCols); // Save all collection results
-    setFilteredGames(filtered.slice(0, 10)); // Limit to 10 results
-    setFilteredCollections(filteredCols.slice(0, 10)); // Limit to 10 collection results
-    
-    // If on search results page, navigate directly instead of showing popup
+    const filteredDevs = developers.filter((d) =>
+      (d.title || "").toLowerCase().includes(queryLower)
+    );
+    const filteredPubs = publishers.filter((p) =>
+      (p.title || "").toLowerCase().includes(queryLower)
+    );
+
+    setAllFilteredGames(filtered);
+    setAllFilteredCollections(filteredCols);
+    setAllFilteredDevelopers(filteredDevs);
+    setAllFilteredPublishers(filteredPubs);
+    setFilteredGames(filtered.slice(0, 10));
+    setFilteredCollections(filteredCols.slice(0, 10));
+    setFilteredDevelopers(filteredDevs.slice(0, 10));
+    setFilteredPublishers(filteredPubs.slice(0, 10));
+
     if (isOnSearchResultsPage) {
       saveRecentSearch(searchQuery);
       navigate("/search-results", {
@@ -114,8 +137,10 @@ export default function SearchBar({ games, collections, onGameSelect, onPlay }: 
           searchQuery: searchQuery,
           games: filtered,
           collections: filteredCols,
+          developers: filteredDevs,
+          publishers: filteredPubs,
         },
-        replace: true, // Replace current history entry
+        replace: true,
       });
       setIsOpen(false);
     } else {
@@ -124,7 +149,7 @@ export default function SearchBar({ games, collections, onGameSelect, onPlay }: 
         setIsOpen(true); // Always show dropdown when there's a search query (even if no results)
       }
     }
-  }, [searchQuery, games, collections, isFocused, isOnSearchResultsPage, navigate, saveRecentSearch, isClosing]);
+  }, [searchQuery, games, collections, developers, publishers, isFocused, isOnSearchResultsPage, navigate, saveRecentSearch, isClosing]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -273,10 +298,8 @@ export default function SearchBar({ games, collections, onGameSelect, onPlay }: 
 
   const handleRecentSearchClick = (query: string) => {
     setSearchQuery(query);
-    
-    // If on search results page, navigate directly
+
     if (isOnSearchResultsPage) {
-      // Filter games and collections with the selected query
       const queryLower = query.toLowerCase();
       const filtered = games.filter((game) =>
         game.title.toLowerCase().includes(queryLower)
@@ -284,14 +307,20 @@ export default function SearchBar({ games, collections, onGameSelect, onPlay }: 
       const filteredCols = collections.filter((collection) =>
         collection.title.toLowerCase().includes(queryLower)
       );
-      // Save the search
+      const filteredDevs = developers.filter((d) =>
+        (d.title || "").toLowerCase().includes(queryLower)
+      );
+      const filteredPubs = publishers.filter((p) =>
+        (p.title || "").toLowerCase().includes(queryLower)
+      );
       saveRecentSearch(query);
-      // Navigate to search results page
       navigate("/search-results", {
         state: {
           searchQuery: query,
           games: filtered,
           collections: filteredCols,
+          developers: filteredDevs,
+          publishers: filteredPubs,
         },
       });
       setIsOpen(false);
@@ -373,14 +402,15 @@ export default function SearchBar({ games, collections, onGameSelect, onPlay }: 
             if (e.key === "Escape") {
               setIsOpen(false);
               setIsFocused(false);
-            } else if (e.key === "Enter" && searchQuery.trim().length >= 2 && (allFilteredGames.length > 0 || allFilteredCollections.length > 0)) {
-              // Save search query to recent searches
+            } else if (e.key === "Enter" && searchQuery.trim().length >= 2 && (allFilteredGames.length > 0 || allFilteredCollections.length > 0 || allFilteredDevelopers.length > 0 || allFilteredPublishers.length > 0)) {
               saveRecentSearch(searchQuery);
               navigate("/search-results", {
                 state: {
                   searchQuery: searchQuery,
                   games: allFilteredGames,
                   collections: allFilteredCollections,
+                  developers: allFilteredDevelopers,
+                  publishers: allFilteredPublishers,
                 },
               });
               setSearchQuery("");
@@ -412,17 +442,31 @@ export default function SearchBar({ games, collections, onGameSelect, onPlay }: 
         )}
       </div>
 
-      {((isOpen && !isOnSearchResultsPage && searchQuery.trim().length >= 2 && (filteredGames.length > 0 || filteredCollections.length > 0)) || isModalOpen) && (
+      {((isOpen && !isOnSearchResultsPage && searchQuery.trim().length >= 2 && (filteredGames.length > 0 || filteredCollections.length > 0 || filteredDevelopers.length > 0 || filteredPublishers.length > 0)) || isModalOpen) && (
         <div className="mhg-dropdown search-dropdown" style={{ display: isModalOpen ? 'none' : 'flex' }}>
           <div className="search-dropdown-scroll">
             <SearchResultsList
               games={filteredGames}
               collections={filteredCollections}
+              developers={filteredDevelopers}
+              publishers={filteredPublishers}
               onGameClick={handleGameSelect}
               variant="popup"
               onPlay={onPlay}
               onCollectionClick={(collection) => {
                 navigate(`/collections/${collection.id}`);
+                setIsOpen(false);
+                setIsFocused(false);
+                setSearchQuery("");
+              }}
+              onDeveloperClick={(developer) => {
+                navigate(`/developers/${developer.id}`);
+                setIsOpen(false);
+                setIsFocused(false);
+                setSearchQuery("");
+              }}
+              onPublisherClick={(publisher) => {
+                navigate(`/publishers/${publisher.id}`);
                 setIsOpen(false);
                 setIsFocused(false);
                 setSearchQuery("");
@@ -461,17 +505,18 @@ export default function SearchBar({ games, collections, onGameSelect, onPlay }: 
               }}
             />
           </div>
-          {(allFilteredGames.length > 0 || allFilteredCollections.length > 0) && (
+          {(allFilteredGames.length > 0 || allFilteredCollections.length > 0 || allFilteredDevelopers.length > 0 || allFilteredPublishers.length > 0) && (
             <div className="search-dropdown-footer">
               <button
                 onClick={() => {
-                  // Save search query to recent searches
                   saveRecentSearch(searchQuery);
                   navigate("/search-results", {
                     state: {
                       searchQuery: searchQuery,
                       games: allFilteredGames,
                       collections: allFilteredCollections,
+                      developers: allFilteredDevelopers,
+                      publishers: allFilteredPublishers,
                     },
                   });
                   setSearchQuery("");
@@ -479,14 +524,14 @@ export default function SearchBar({ games, collections, onGameSelect, onPlay }: 
                 }}
                 className="search-view-all-button"
               >
-                {t("search.viewAllResults", { count: allFilteredGames.length + allFilteredCollections.length })}
+                {t("search.viewAllResults", { count: allFilteredGames.length + allFilteredCollections.length + allFilteredDevelopers.length + allFilteredPublishers.length })}
               </button>
             </div>
           )}
         </div>
       )}
 
-      {isOpen && !isOnSearchResultsPage && searchQuery.trim().length >= 2 && filteredGames.length === 0 && filteredCollections.length === 0 && (
+      {isOpen && !isOnSearchResultsPage && searchQuery.trim().length >= 2 && filteredGames.length === 0 && filteredCollections.length === 0 && filteredDevelopers.length === 0 && filteredPublishers.length === 0 && (
         <div className="mhg-dropdown search-no-results">
           {t("search.noResults", { query: searchQuery })}
         </div>

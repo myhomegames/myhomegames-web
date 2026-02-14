@@ -80,6 +80,8 @@
     "placeholder": "Buscar juegos...",
     "recentSearches": "Búsquedas Recientes",
     "collection": "Colección",
+    "developer": "Desarrollador",
+    "publisher": "Editor",
     "game": "Juego"
   },
   "searchResults": {

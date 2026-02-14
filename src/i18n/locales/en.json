@@ -80,6 +80,8 @@
     "placeholder": "Search games...",
     "recentSearches": "Recent Searches",
     "collection": "Collection",
+    "developer": "Developer",
+    "publisher": "Publisher",
     "game": "Game"
   },
   "searchResults": {
