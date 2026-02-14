@@ -23,6 +23,8 @@ type GamesListToolbarProps = {
   onGameEnginesFilterChange?: (engine: string | null) => void;
   onDecadeFilterChange?: (decade: number | null) => void;
   onCollectionFilterChange?: (collection: string | null) => void;
+  onSeriesFilterChange?: (series: string | null) => void;
+  onFranchiseFilterChange?: (franchise: string | null) => void;
   onAgeRatingFilterChange?: (ageRating: string | null) => void;
   onSortChange?: (field: SortField) => void;
   onSortDirectionChange?: (ascending: boolean) => void;
@@ -39,12 +41,18 @@ type GamesListToolbarProps = {
   selectedGameEngines?: string | null;
   selectedDecade?: number | null;
   selectedCollection?: string | null;
+  selectedSeries?: string | null;
+  selectedFranchise?: string | null;
   selectedAgeRating?: string | null;
   currentSort?: SortField;
   sortAscending?: boolean;
   viewMode?: "grid" | "detail" | "table";
   availableGenres?: Array<{ id: string; title: string }>;
   availableCollections?: Array<{ id: string; title: string }>;
+  availableSeries?: Array<{ id: string; title: string }>;
+  availableFranchises?: Array<{ id: string; title: string }>;
+  availableDevelopers?: Array<{ id: string; title: string }>;
+  availablePublishers?: Array<{ id: string; title: string }>;
 };
 
 export default function GamesListToolbar({
@@ -63,6 +71,8 @@ export default function GamesListToolbar({
   onGameEnginesFilterChange,
   onDecadeFilterChange,
   onCollectionFilterChange,
+  onSeriesFilterChange,
+  onFranchiseFilterChange,
   onAgeRatingFilterChange,
   onSortChange,
   onSortDirectionChange,
@@ -79,12 +89,18 @@ export default function GamesListToolbar({
   selectedGameEngines = null,
   selectedDecade = null,
   selectedCollection = null,
+  selectedSeries = null,
+  selectedFranchise = null,
   selectedAgeRating = null,
   currentSort = "title",
   sortAscending = true,
   viewMode = "grid",
   availableGenres = [],
   availableCollections = [],
+  availableSeries = [],
+  availableFranchises = [],
+  availableDevelopers = [],
+  availablePublishers = [],
 }: GamesListToolbarProps) {
   const { t } = useTranslation();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -103,6 +119,14 @@ export default function GamesListToolbar({
       const collection = availableCollections?.find((c: { id: string; title: string }) => String(c.id) === String(selectedCollection));
       return collection ? collection.title : String(selectedCollection);
     }
+    if (currentFilter === "series" && selectedSeries !== null) {
+      const series = availableSeries?.find((s: { id: string; title: string }) => String(s.id) === String(selectedSeries));
+      return series ? series.title : String(selectedSeries);
+    }
+    if (currentFilter === "franchise" && selectedFranchise !== null) {
+      const franchise = availableFranchises?.find((f: { id: string; title: string }) => String(f.id) === String(selectedFranchise));
+      return franchise ? franchise.title : String(selectedFranchise);
+    }
     if (currentFilter === "genre" && selectedGenre !== null) {
       const genre = availableGenres.find((g) => g.title === selectedGenre);
       return genre ? t(`genre.${genre.title}`, genre.title) : selectedGenre;
@@ -120,10 +144,12 @@ export default function GamesListToolbar({
       return t(`gameModes.${selectedGameModes}`, selectedGameModes);
     }
     if (currentFilter === "publishers" && selectedPublishers !== null) {
-      return selectedPublishers;
+      const publisher = availablePublishers?.find((p) => String(p.id) === String(selectedPublishers));
+      return publisher ? publisher.title : String(selectedPublishers);
     }
     if (currentFilter === "developers" && selectedDevelopers !== null) {
-      return selectedDevelopers;
+      const developer = availableDevelopers?.find((d) => String(d.id) === String(selectedDevelopers));
+      return developer ? developer.title : String(selectedDevelopers);
     }
     if (currentFilter === "playerPerspectives" && selectedPlayerPerspectives !== null) {
       return t(`playerPerspectives.${selectedPlayerPerspectives}`, selectedPlayerPerspectives);
@@ -150,6 +176,8 @@ export default function GamesListToolbar({
       { value: "year" as FilterField, label: t("gamesListToolbar.filter.year") },
       { value: "decade" as FilterField, label: t("gamesListToolbar.filter.decade") },
       { value: "collection" as FilterField, label: t("gamesListToolbar.filter.collection") },
+      { value: "series" as FilterField, label: t("gamesListToolbar.filter.series") },
+      { value: "franchise" as FilterField, label: t("gamesListToolbar.filter.franchise") },
       { value: "ageRating" as FilterField, label: t("gamesListToolbar.filter.ageRating") },
     ];
     return filterOptions.find((opt) => opt.value === currentFilter)?.label || "";
@@ -323,6 +351,8 @@ export default function GamesListToolbar({
             selectedGameEngines={selectedGameEngines}
             selectedDecade={selectedDecade}
             selectedCollection={selectedCollection}
+            selectedSeries={selectedSeries}
+            selectedFranchise={selectedFranchise}
             selectedAgeRating={selectedAgeRating}
             onFilterChange={onFilterChange}
             onYearFilterChange={onYearFilterChange}
@@ -337,10 +367,16 @@ export default function GamesListToolbar({
             onGameEnginesFilterChange={onGameEnginesFilterChange}
             onDecadeFilterChange={onDecadeFilterChange}
             onCollectionFilterChange={onCollectionFilterChange}
+            onSeriesFilterChange={onSeriesFilterChange}
+            onFranchiseFilterChange={onFranchiseFilterChange}
             onAgeRatingFilterChange={onAgeRatingFilterChange}
             games={games}
             availableGenres={availableGenres}
             availableCollections={availableCollections}
+            availableSeries={availableSeries}
+            availableFranchises={availableFranchises}
+            availableDevelopers={availableDevelopers}
+            availablePublishers={availablePublishers}
           />
         </div>
 

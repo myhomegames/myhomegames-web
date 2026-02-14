@@ -8,6 +8,20 @@ import type { GameItem } from "../../types";
 import { buildApiUrl } from "../../utils/api";
 import "./EditGameModal.css";
 
+function toIdNameList(
+  v: (string | { id: number; name: string })[] | (string | { id: number; name: string }) | undefined | null
+): Array<{ id: number; name: string }> {
+  if (!v) return [];
+  const arr = Array.isArray(v) ? v : [v];
+  return arr
+    .map((x) => {
+      if (typeof x === "object" && x != null && (x as { id?: number }).id != null)
+        return { id: Number((x as { id: number; name: string }).id), name: String((x as { id: number; name: string }).name || (x as { id: number }).id) };
+      return null;
+    })
+    .filter((x): x is { id: number; name: string } => x != null);
+}
+
 type EditGameModalProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -48,6 +62,12 @@ export default function EditGameModal({
   );
   const [selectedGameEngines, setSelectedGameEngines] = useState<string[]>(
     Array.isArray(game.gameEngines) ? game.gameEngines : []
+  );
+  const [selectedFranchise, setSelectedFranchise] = useState<Array<{ id: number; name: string }>>(() =>
+    toIdNameList(game.franchise)
+  );
+  const [selectedSeries, setSelectedSeries] = useState<Array<{ id: number; name: string }>>(() =>
+    toIdNameList(game.series ?? game.collection)
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -111,6 +131,8 @@ export default function EditGameModal({
         Array.isArray(game.playerPerspectives) ? game.playerPerspectives : []
       );
       setSelectedGameEngines(Array.isArray(game.gameEngines) ? game.gameEngines : []);
+      setSelectedFranchise(toIdNameList(game.franchise));
+      setSelectedSeries(toIdNameList(game.series ?? game.collection));
       setError(null);
       setActiveTab("INFO");
       setCoverPreview(null);
@@ -208,6 +230,18 @@ export default function EditGameModal({
     if (!areTagsEqual(selectedGameEngines, normalizeTagArray(game.gameEngines))) {
       return true;
     }
+    const currentFranchise = toIdNameList(game.franchise);
+    const currentSeries = toIdNameList(game.series ?? game.collection);
+    if (
+      selectedFranchise.length !== currentFranchise.length ||
+      selectedFranchise.some((f, i) => currentFranchise[i]?.id !== f.id || currentFranchise[i]?.name !== f.name)
+    )
+      return true;
+    if (
+      selectedSeries.length !== currentSeries.length ||
+      selectedSeries.some((s, i) => currentSeries[i]?.id !== s.id || currentSeries[i]?.name !== s.name)
+    )
+      return true;
 
     // Check if images were selected
     if (coverFile || backgroundFile) return true;
@@ -405,6 +439,18 @@ export default function EditGameModal({
       if (!areTagsEqual(selectedGameEngines, normalizeTagArray(game.gameEngines))) {
         updates.gameEngines = selectedGameEngines.length > 0 ? selectedGameEngines : [];
       }
+      if (
+        selectedFranchise.length !== toIdNameList(game.franchise).length ||
+        selectedFranchise.some((f, i) => toIdNameList(game.franchise)[i]?.id !== f.id)
+      ) {
+        updates.franchise = selectedFranchise.length > 0 ? selectedFranchise : null;
+      }
+      if (
+        selectedSeries.length !== toIdNameList(game.series ?? game.collection).length ||
+        selectedSeries.some((s, i) => toIdNameList(game.series ?? game.collection)[i]?.id !== s.id)
+      ) {
+        updates.collection = selectedSeries.length > 0 ? selectedSeries : null;
+      }
       if (showTitle !== (game.showTitle !== false)) {
         updates.showTitle = showTitle;
       }
@@ -465,6 +511,7 @@ export default function EditGameModal({
           publishers: result.game.publishers ?? game.publishers ?? null,
           franchise: result.game.franchise ?? game.franchise ?? null,
           collection: result.game.collection ?? game.collection ?? null,
+          series: result.game.series ?? result.game.collection ?? game.series ?? game.collection ?? null,
           screenshots: result.game.screenshots ?? game.screenshots ?? null,
           videos: result.game.videos ?? game.videos ?? null,
           gameEngines: result.game.gameEngines ?? game.gameEngines ?? null,
@@ -742,6 +789,8 @@ export default function EditGameModal({
               selectedGameModes={selectedGameModes}
               selectedPlayerPerspectives={selectedPlayerPerspectives}
               selectedGameEngines={selectedGameEngines}
+              selectedFranchise={selectedFranchise}
+              selectedSeries={selectedSeries}
               saving={saving}
               setSelectedGenres={setSelectedGenres}
               setSelectedThemes={setSelectedThemes}
@@ -750,6 +799,8 @@ export default function EditGameModal({
               setSelectedGameModes={setSelectedGameModes}
               setSelectedPlayerPerspectives={setSelectedPlayerPerspectives}
               setSelectedGameEngines={setSelectedGameEngines}
+              setSelectedFranchise={setSelectedFranchise}
+              setSelectedSeries={setSelectedSeries}
             />
           )}
 

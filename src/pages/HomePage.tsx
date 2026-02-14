@@ -222,6 +222,12 @@ export default function HomePage({
             {activeLibrary.key === "categories" && (
               <TagListRoutePage coverSize={coverSize} tagKey="categories" />
             )}
+            {activeLibrary.key === "series" && (
+              <TagListRoutePage coverSize={coverSize} tagKey="series" />
+            )}
+            {activeLibrary.key === "franchise" && (
+              <TagListRoutePage coverSize={coverSize} tagKey="franchise" />
+            )}
             {activeLibrary.key === "platforms" && (
               <TagListRoutePage coverSize={coverSize} tagKey="platforms" />
             )}

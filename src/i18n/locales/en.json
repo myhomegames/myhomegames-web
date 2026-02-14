@@ -4,6 +4,8 @@
     "library": "Library",
     "collections": "Collections",
     "categories": "Categories",
+    "series": "Series",
+    "franchise": "Franchise",
     "platforms": "Platforms",
     "themes": "Themes",
     "developers": "Developers",
@@ -261,6 +263,8 @@
       "year": "Year",
       "decade": "Decade",
       "collection": "Collection",
+      "series": "Series",
+      "franchise": "Franchise",
       "ageRating": "Content Rating",
       "searchYear": "Filter Year",
       "searchGenre": "Filter Genre",
@@ -274,6 +278,8 @@
       "searchGameEngines": "Filter Game Engines",
       "searchDecade": "Filter Decade",
       "searchCollection": "Filter Collection",
+      "searchSeries": "Filter Series",
+      "searchFranchise": "Filter Franchise",
       "searchAgeRating": "Search age rating..."
     },
     "sort": {

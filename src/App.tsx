@@ -333,6 +333,56 @@ function AppContent() {
             }
           />
           <Route
+            path="/series/:seriesId"
+            element={
+              <ProtectedRoute>
+                <Header
+                  onPlay={openLauncher}
+                  allGames={allGames}
+                  allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
+                  onGameSelect={handleGameSelect}
+                  onHomeClick={() => navigate("/")}
+                  onSettingsClick={() => navigate("/settings")}
+                  onAddGameClick={() => setAddGameOpen(true)}
+                />
+                <TagGamesRoutePage
+                  onGameClick={handleGameClick}
+                  onGamesLoaded={() => {}}
+                  onPlay={openLauncher}
+                  allCollections={allCollections}
+                  tagKey="series"
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/franchise/:franchiseId"
+            element={
+              <ProtectedRoute>
+                <Header
+                  onPlay={openLauncher}
+                  allGames={allGames}
+                  allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
+                  onGameSelect={handleGameSelect}
+                  onHomeClick={() => navigate("/")}
+                  onSettingsClick={() => navigate("/settings")}
+                  onAddGameClick={() => setAddGameOpen(true)}
+                />
+                <TagGamesRoutePage
+                  onGameClick={handleGameClick}
+                  onGamesLoaded={() => {}}
+                  onPlay={openLauncher}
+                  allCollections={allCollections}
+                  tagKey="franchise"
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/platforms/:platformId"
             element={
               <ProtectedRoute>

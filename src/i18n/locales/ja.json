@@ -4,6 +4,8 @@
     "library": "ライブラリ",
     "collections": "コレクション",
     "categories": "カテゴリ",
+    "series": "シリーズ",
+    "franchise": "フランチャイズ",
     "platforms": "プラットフォーム",
     "themes": "テーマ",
     "developers": "開発者",
@@ -261,6 +263,8 @@
       "year": "年",
       "decade": "年代",
       "collection": "コレクション",
+      "series": "シリーズ",
+      "franchise": "フランチャイズ",
       "ageRating": "コンテンツレーティング",
       "searchYear": "フィルター年",
       "searchGenre": "フィルタージャンル",
@@ -274,6 +278,8 @@
       "searchGameEngines": "フィルターゲームエンジン",
       "searchDecade": "フィルター年代",
       "searchCollection": "フィルターコレクション",
+      "searchSeries": "シリーズで絞り込み",
+      "searchFranchise": "フランチャイズで絞り込み",
       "searchAgeRating": "レーティングを検索..."
     },
     "sort": {

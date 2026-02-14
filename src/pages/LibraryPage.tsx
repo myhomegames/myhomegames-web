@@ -51,9 +51,11 @@ export default function LibraryPage({
     onGamesLoaded(games);
   }, [onGamesLoaded]);
 
+  const hasAlphabetNav = viewMode === "table" && hook.sortField === "title" && hook.isReady;
+
   return (
     <main className="flex-1 home-page-content">
-      <div className="home-page-layout">
+      <div className={`home-page-layout${hasAlphabetNav ? " has-alphabet-nav" : ""}`}>
         <GamesListPageContent
           hook={hook}
           viewMode={viewMode}
@@ -66,7 +68,7 @@ export default function LibraryPage({
           onPlay={onPlay}
           buildCoverUrlFn={buildCoverUrl}
         />
-        {hook.sortField === "title" && hook.isReady && (
+        {hasAlphabetNav && (
           <AlphabetNavigator
             games={hook.filteredAndSortedGames}
             scrollContainerRef={

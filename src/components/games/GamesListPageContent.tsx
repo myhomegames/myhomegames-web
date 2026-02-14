@@ -50,6 +50,10 @@ export default function GamesListPageContent({
     setSelectedDecade,
     selectedCollection,
     setSelectedCollection,
+    selectedSeries,
+    setSelectedSeries,
+    selectedFranchise,
+    setSelectedFranchise,
     selectedAgeRating,
     setSelectedAgeRating,
     selectedGenre,
@@ -85,6 +89,10 @@ export default function GamesListPageContent({
     handleGameDelete,
     availableGenres,
     availableCollections,
+    availableSeries,
+    availableFranchises,
+    availableDevelopers,
+    availablePublishers,
   } = hook;
 
   // Call onGamesLoaded when games change (only when games actually change, not on every render)
@@ -131,6 +139,10 @@ export default function GamesListPageContent({
           selectedDecade={selectedDecade}
           selectedCollection={selectedCollection}
           onCollectionFilterChange={setSelectedCollection}
+          selectedSeries={selectedSeries}
+          selectedFranchise={selectedFranchise}
+          onSeriesFilterChange={setSelectedSeries}
+          onFranchiseFilterChange={setSelectedFranchise}
           selectedAgeRating={selectedAgeRating}
           onAgeRatingFilterChange={setSelectedAgeRating}
           selectedThemes={selectedThemes}
@@ -146,6 +158,10 @@ export default function GamesListPageContent({
           viewMode={viewMode}
           availableGenres={availableGenres}
           availableCollections={availableCollections}
+          availableSeries={availableSeries}
+          availableFranchises={availableFranchises}
+          availableDevelopers={availableDevelopers}
+          availablePublishers={availablePublishers}
         />
       )}
       {/* Table header section */}

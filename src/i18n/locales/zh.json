@@ -4,6 +4,8 @@
     "library": "库",
     "collections": "收藏",
     "categories": "分类",
+    "series": "系列",
+    "franchise": "系列",
     "platforms": "平台",
     "themes": "主题",
     "developers": "开发商",
@@ -261,6 +263,8 @@
       "year": "年份",
       "decade": "年代",
       "collection": "收藏",
+      "series": "系列",
+      "franchise": "系列/品牌",
       "ageRating": "内容分级",
       "searchYear": "筛选年份",
       "searchGenre": "筛选类型",
@@ -274,6 +278,8 @@
       "searchGameEngines": "筛选游戏引擎",
       "searchDecade": "筛选年代",
       "searchCollection": "筛选收藏",
+      "searchSeries": "筛选系列",
+      "searchFranchise": "筛选系列/品牌",
       "searchAgeRating": "搜索分级..."
     },
     "sort": {

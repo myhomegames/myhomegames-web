@@ -27,7 +27,13 @@ type EditTagModalProps = {
     | "platforms"
     | "game-engines"
     | "game-modes"
-    | "player-perspectives";
+    | "player-perspectives"
+    | "series"
+    | "franchise";
+  /** When set, use this for API route segment instead of item.title (e.g. item.id for series/franchise) */
+  getRouteSegment?: (item: CategoryItem) => string;
+  /** When set, use this key to read the list from GET response (e.g. "series", "franchises") */
+  listResponseKey?: string;
   updateEventName?: string;
   updateEventPayloadKey?: string;
   /** Same as list cover width (e.g. coverSize * 2 from page) so preview matches list. Default 300. */
@@ -47,6 +53,8 @@ export default function EditTagModal({
   responseKey,
   localCoverPrefix: _localCoverPrefix,
   removeResourceType,
+  getRouteSegment,
+  listResponseKey,
   updateEventName,
   updateEventPayloadKey,
   coverSize: listCoverSize = 300,
@@ -65,6 +73,7 @@ export default function EditTagModal({
   const [showTitle, setShowTitle] = useState(item.showTitle !== false);
 
   const normalizedRouteBase = routeBase.startsWith("/") ? routeBase : `/${routeBase}`;
+  const routeSegment = getRouteSegment ? getRouteSegment(item) : encodeURIComponent(item.title);
 
   // Same as EditGameModal (library): only show local cover in edit; fallback (FRONTEND_URL) = not shown here
   const coverUrlWithTimestamp = useMemo(() => {
@@ -175,7 +184,7 @@ export default function EditTagModal({
 
       if (coverRemoved && item.cover) {
         try {
-          const url = buildApiUrl(API_BASE, `${normalizedRouteBase}/${encodeURIComponent(item.title)}/delete-cover`);
+          const url = buildApiUrl(API_BASE, `${normalizedRouteBase}/${routeSegment}/delete-cover`);
           const response = await fetch(url, {
             method: 'DELETE',
             headers: {
@@ -205,7 +214,7 @@ export default function EditTagModal({
           const formData = new FormData();
           formData.append('file', coverFile);
 
-          const coverUrl = buildApiUrl(API_BASE, `${normalizedRouteBase}/${encodeURIComponent(item.title)}/upload-cover`);
+          const coverUrl = buildApiUrl(API_BASE, `${normalizedRouteBase}/${routeSegment}/upload-cover`);
           const coverResponse = await fetch(coverUrl, {
             method: 'POST',
             headers: {
@@ -245,7 +254,7 @@ export default function EditTagModal({
 
       // Only make PUT request if there are updates (images were already uploaded)
       if (Object.keys(updates).length > 0) {
-        const url = buildApiUrl(API_BASE, `${normalizedRouteBase}/${encodeURIComponent(item.title)}`);
+        const url = buildApiUrl(API_BASE, `${normalizedRouteBase}/${routeSegment}`);
         const response = await fetch(url, {
           method: "PUT",
           headers: {
@@ -297,11 +306,11 @@ export default function EditTagModal({
 
         if (response.ok) {
           const result = await response.json();
-          const listKey = responseKey.endsWith('y') ? `${responseKey.slice(0, -1)}ies` : `${responseKey}s`;
+          const listKey = listResponseKey ?? (responseKey.endsWith('y') ? `${responseKey.slice(0, -1)}ies` : `${responseKey}s`);
           const items = result[listKey] || [];
-          const foundItem = items.find((i: CategoryItem) => 
-            i.title.toLowerCase() === item.title.toLowerCase()
-          );
+          const foundItem = getRouteSegment
+            ? items.find((i: CategoryItem) => String(i.id) === String(item.id))
+            : items.find((i: CategoryItem) => i.title.toLowerCase() === item.title.toLowerCase());
           
           if (foundItem) {
             let finalCover = updatedCover !== null ? updatedCover : foundItem.cover;
@@ -428,7 +437,7 @@ export default function EditTagModal({
                         uploading={uploadingCover}
                         showRemoveButton={!!hasCover && !coverRemoved}
                         removeMediaType="cover"
-                        removeResourceId={item.title}
+                        removeResourceId={getRouteSegment ? getRouteSegment(item) : item.title}
                         removeResourceType={removeResourceType}
                         onRemoveSuccess={handleCoverRemoveSuccess}
                         removeDisabled={saving || uploadingCover}

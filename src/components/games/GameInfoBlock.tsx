@@ -53,8 +53,11 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
   const formatFranchiseOrSeries = (value: FranchiseSeriesItem | undefined): string => {
     if (value == null) return "";
     if (typeof value === "string") return value;
-    return `${value.id} - ${value.name}`;
+    return value.name;
   };
+
+  const toFranchiseSeriesIds = (list: FranchiseSeriesItem[]): string[] =>
+    list.map((item) => (typeof item === "string" ? item : String(item.id)));
 
   const renderTagList = (
     items: string[],
@@ -187,9 +190,15 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
             {t("igdbInfo.franchise", "Franchise")}
           </div>
           <InlineTagList
-            items={franchiseList}
-            getLabel={formatFranchiseOrSeries}
-            getKey={(item) => (typeof item === "string" ? item : `${item.id}-${item.name}`)}
+            items={toFranchiseSeriesIds(franchiseList)}
+            getLabel={(id) =>
+              formatFranchiseOrSeries(
+                franchiseList.find((item) =>
+                  typeof item === "string" ? item === id : String(item.id) === id
+                )
+              )
+            }
+            onItemClick={(id) => navigate(`/franchise/${encodeURIComponent(id)}`)}
             useInfoStyles
             showMoreMinCount={5}
             showMoreLabel={t("gameDetail.andMore", ", and more")}
@@ -204,9 +213,15 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
             {t("igdbInfo.series", "Series")}
           </div>
           <InlineTagList
-            items={seriesList}
-            getLabel={formatFranchiseOrSeries}
-            getKey={(item) => (typeof item === "string" ? item : `${item.id}-${item.name}`)}
+            items={toFranchiseSeriesIds(seriesList)}
+            getLabel={(id) =>
+              formatFranchiseOrSeries(
+                seriesList.find((item) =>
+                  typeof item === "string" ? item === id : String(item.id) === id
+                )
+              )
+            }
+            onItemClick={(id) => navigate(`/series/${encodeURIComponent(id)}`)}
             useInfoStyles
             showMoreMinCount={5}
             showMoreLabel={t("gameDetail.andMore", ", and more")}

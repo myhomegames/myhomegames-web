@@ -67,6 +67,8 @@ export default function TagGamesPage({
     setSelectedPlayerPerspectives,
     setSelectedGameEngines,
     setSelectedGenre,
+    setSelectedSeries,
+    setSelectedFranchise,
   } = hook;
 
   useEffect(() => {
@@ -100,6 +102,12 @@ export default function TagGamesPage({
       case "genre":
         setSelectedGenre(tagValue);
         break;
+      case "series":
+        setSelectedSeries(tagValue);
+        break;
+      case "franchise":
+        setSelectedFranchise(tagValue);
+        break;
       default:
         break;
     }
@@ -116,6 +124,8 @@ export default function TagGamesPage({
     setSelectedPlayerPerspectives,
     setSelectedGameEngines,
     setSelectedGenre,
+    setSelectedSeries,
+    setSelectedFranchise,
   ]);
 
   const buildCoverUrlFn = useCallback(

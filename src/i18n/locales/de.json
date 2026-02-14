@@ -4,6 +4,8 @@
     "library": "Bibliothek",
     "collections": "Sammlungen",
     "categories": "Kategorien",
+    "series": "Serien",
+    "franchise": "Franchise",
     "platforms": "Plattformen",
     "themes": "Themen",
     "developers": "Entwickler",
@@ -261,6 +263,8 @@
       "year": "Jahr",
       "decade": "Jahrzehnt",
       "collection": "Sammlung",
+      "series": "Serie",
+      "franchise": "Franchise",
       "ageRating": "Inhaltsbewertung",
       "searchYear": "Filter Jahr",
       "searchGenre": "Filter Genre",
@@ -274,6 +278,8 @@
       "searchGameEngines": "Filter Game Engines",
       "searchDecade": "Filter Jahrzehnt",
       "searchCollection": "Filter Sammlung",
+      "searchSeries": "Serie filtern",
+      "searchFranchise": "Franchise filtern",
       "searchAgeRating": "Altersfreigabe suchen..."
     },
     "sort": {

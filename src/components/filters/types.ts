@@ -14,6 +14,8 @@ export type FilterField =
   | "year"
   | "decade"
   | "collection"
+  | "series"
+  | "franchise"
   | "ageRating";
 
 export type FilterType =
@@ -29,6 +31,8 @@ export type FilterType =
   | "gameEngines"
   | "decade"
   | "collection"
+  | "series"
+  | "franchise"
   | "ageRating";
 
 export type { GameItem };

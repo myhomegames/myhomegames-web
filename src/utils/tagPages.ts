@@ -10,7 +10,9 @@ export type TagKey =
   | "publishers"
   | "gameEngines"
   | "gameModes"
-  | "playerPerspectives";
+  | "playerPerspectives"
+  | "series"
+  | "franchise";
 
 type TranslationFn = TFunction;
 
@@ -35,7 +37,9 @@ type TagListConfig = {
     | "platforms"
     | "game-engines"
     | "game-modes"
-    | "player-perspectives";
+    | "player-perspectives"
+    | "series"
+    | "franchise";
   editRouteBase?: string;
   updateEventName?: string;
   updateEventPayloadKey?: string;
@@ -61,6 +65,13 @@ const getArrayOrNull = (values?: string[]) => values || null;
 const toDevPubIds = (arr: Array<{ id: number; name: string }> | undefined | null): string[] | null => {
   if (!arr || !Array.isArray(arr)) return null;
   return arr.map((x) => String(x.id));
+};
+
+const toSeriesFranchiseIds = (
+  arr: (string | { id: number; name: string })[] | undefined | null
+): string[] | null => {
+  if (!arr || !Array.isArray(arr)) return null;
+  return arr.map((x) => (typeof x === "object" && x?.id != null ? String(x.id) : String(x))).filter(Boolean);
 };
 
 export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
@@ -241,6 +252,56 @@ export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
       t("tags.noItemsFound", { type: t("libraries.playerPerspectives") }),
     getEditTitle: (t) =>
       `${t("common.edit", "Edit")} ${t("libraries.playerPerspectives")}`,
+    getCoverDescription: (t) =>
+      t("category.coverFormat", "Recommended ratio: 16:9 (e.g., 1280x720px)"),
+  },
+  series: {
+    list: {
+      routeBase: "/series",
+      listEndpoint: "/series",
+      listResponseKey: "series",
+      valueExtractor: (game) => toSeriesFranchiseIds(game.series ?? game.collection),
+      localCoverPrefix: "/series-covers/",
+      responseKey: "series",
+      removeResourceType: "series",
+      editRouteBase: "/series",
+      updateEventName: "seriesUpdated",
+      updateEventPayloadKey: "series",
+    },
+    detail: {
+      tagField: "series",
+      paramName: "seriesId",
+      storageKey: "series",
+    },
+    getDisplayName: () => (value) => value,
+    getEmptyMessage: (t) =>
+      t("tags.noItemsFound", { type: t("libraries.series", "Series") }),
+    getEditTitle: (t) => `${t("common.edit", "Edit")} ${t("libraries.series", "Series")}`,
+    getCoverDescription: (t) =>
+      t("category.coverFormat", "Recommended ratio: 16:9 (e.g., 1280x720px)"),
+  },
+  franchise: {
+    list: {
+      routeBase: "/franchise",
+      listEndpoint: "/franchises",
+      listResponseKey: "franchises",
+      valueExtractor: (game) => toSeriesFranchiseIds(game.franchise),
+      localCoverPrefix: "/franchise-covers/",
+      responseKey: "franchise",
+      removeResourceType: "franchise",
+      editRouteBase: "/franchises",
+      updateEventName: "franchiseUpdated",
+      updateEventPayloadKey: "franchise",
+    },
+    detail: {
+      tagField: "franchise",
+      paramName: "franchiseId",
+      storageKey: "franchise",
+    },
+    getDisplayName: () => (value) => value,
+    getEmptyMessage: (t) =>
+      t("tags.noItemsFound", { type: t("libraries.franchise", "Franchise") }),
+    getEditTitle: (t) => `${t("common.edit", "Edit")} ${t("libraries.franchise", "Franchise")}`,
     getCoverDescription: (t) =>
       t("category.coverFormat", "Recommended ratio: 16:9 (e.g., 1280x720px)"),
   },

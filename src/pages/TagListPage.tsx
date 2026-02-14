@@ -4,6 +4,7 @@ import { useLoading } from "../contexts/LoadingContext";
 import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import TagList from "../components/lists/TagList";
 import EditTagModal from "../components/tags/EditTagModal";
+import AlphabetNavigator from "../components/ui/AlphabetNavigator";
 import type { CategoryItem, GameItem } from "../types";
 import { compareTitles } from "../utils/stringUtils";
 import { API_BASE } from "../config";
@@ -17,6 +18,12 @@ type TagListPageProps = {
   emptyMessage?: string;
   listEndpoint?: string;
   listResponseKey?: string;
+  /** When true, list items are keyed by id (e.g. series/franchise); route uses item.id */
+  listKeyById?: boolean;
+  /** Override default route (routeBase/title). Used for series/franchise: routeBase/id */
+  getRoute?: (item: CategoryItem) => string;
+  /** Show alphabet navigator (e.g. for series, franchise, gameEngines) */
+  showAlphabetNavigator?: boolean;
   editConfig?: {
     title: string;
     coverDescription?: string;
@@ -31,7 +38,11 @@ type TagListPageProps = {
       | "platforms"
       | "game-engines"
       | "game-modes"
-      | "player-perspectives";
+      | "player-perspectives"
+      | "series"
+      | "franchise";
+    getRouteSegment?: (item: CategoryItem) => string;
+    listResponseKey?: string;
     updateEventName?: string;
     updateEventPayloadKey?: string;
   };
@@ -45,6 +56,9 @@ export default function TagListPage({
   emptyMessage,
   listEndpoint,
   listResponseKey,
+  listKeyById = false,
+  getRoute: getRouteOverride,
+  showAlphabetNavigator = false,
   editConfig,
 }: TagListPageProps) {
   const { isLoading, setLoading } = useLoading();
@@ -138,12 +152,16 @@ export default function TagListPage({
     const serverMap = new Map<string, CategoryItem>();
     if (serverItems) {
       serverItems.forEach((item) => {
-        serverMap.set(item.title.toLowerCase(), item);
+        if (listKeyById) {
+          serverMap.set(String(item.id), item);
+        } else {
+          serverMap.set(item.title.toLowerCase(), item);
+        }
       });
     }
 
     const resolvedItems = Array.from(valueMap.values()).map((value) => {
-      const match = serverMap.get(value.toLowerCase());
+      const match = listKeyById ? serverMap.get(value) : serverMap.get(value.toLowerCase());
       return match || { id: value, title: value };
     });
 
@@ -157,11 +175,16 @@ export default function TagListPage({
     // This avoids an extra re-render that causes scroll flicker (like library/collections).
     if (pendingScrollRestoreRef.current !== null) return;
     setItems(resolvedItems);
-  }, [games, valueExtractor, getDisplayName, serverItems]);
+  }, [games, valueExtractor, getDisplayName, serverItems, listKeyById]);
 
   const getRoute = useMemo(
-    () => (item: CategoryItem) => `${routeBase}/${encodeURIComponent(item.title)}`,
-    [routeBase]
+    () =>
+      getRouteOverride ??
+      ((item: CategoryItem) =>
+        listKeyById
+          ? `${routeBase}/${encodeURIComponent(item.id)}`
+          : `${routeBase}/${encodeURIComponent(item.title)}`),
+    [routeBase, listKeyById, getRouteOverride]
   );
 
   const getCoverUrl = useMemo(() => {
@@ -260,6 +283,16 @@ export default function TagListPage({
             )}
           </div>
         </div>
+        {showAlphabetNavigator && isReady && items.length > 0 && (
+          <AlphabetNavigator
+            games={items as { id: string; title: string }[]}
+            scrollContainerRef={scrollContainerRef}
+            itemRefs={itemRefs}
+            ascending={true}
+            viewMode="grid"
+            coverSize={coverSize * 2}
+          />
+        )}
       </div>
       {editConfig && editingItem && (
         <EditTagModal
@@ -273,6 +306,8 @@ export default function TagListPage({
           responseKey={editConfig.responseKey}
           localCoverPrefix={editConfig.localCoverPrefix}
           removeResourceType={editConfig.removeResourceType}
+          getRouteSegment={editConfig.getRouteSegment}
+          listResponseKey={editConfig.listResponseKey}
           updateEventName={editConfig.updateEventName}
           updateEventPayloadKey={editConfig.updateEventPayloadKey}
           coverSize={coverSize * 2}

@@ -5,6 +5,8 @@ export const CORE_LIBRARY_KEYS = [
   "library",
   "collections",
   "categories",
+  "series",
+  "franchise",
 ] as const;
 
 export const OPTIONAL_LIBRARY_KEYS = [
@@ -27,6 +29,8 @@ const LIBRARY_TYPES: Record<string, GameLibrarySection["type"]> = {
   library: "games",
   collections: "collections",
   categories: "games",
+  series: "games",
+  franchise: "games",
   platforms: "games",
   themes: "games",
   developers: "collections",

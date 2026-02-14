@@ -3,8 +3,11 @@
   margin: 0 auto;
   margin-bottom: 0;
   padding: 0 24px;
+  /* Allineamento con il body (body un po' più largo, scrollbar in margine) */
+  padding-right: 16px;
   background-color: #1a1a1a;
   border-bottom: 2px solid #1a1a1a;
+  box-sizing: border-box;
 }
 
 .games-table-header-table {
@@ -126,7 +129,8 @@
   margin-bottom: 70px;
   padding: 0 24px;
   height: calc(100vh - 114px - 22px - 50px - 70px);
-  overflow: hidden;
+  overflow-x: visible;
+  overflow-y: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -135,8 +139,18 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: auto;
+  /* Evita che la prima riga resti nascosta sotto l’header della tabella */
+  padding-top: 49px;
+  box-sizing: border-box;
+  width: calc(100% + 20px);
+  margin-right: -20px;
+  padding-right: 12px;
 }
 
+/* Solo quando il navigatore alfabetico è nel DOM (stesso layout ha .home-page-alphabet-container) */
+.home-page-layout:has(.home-page-alphabet-container) .games-table-scroll {
+  width: calc(100% + 49px);
+}
 
 .games-table thead {
   position: sticky;

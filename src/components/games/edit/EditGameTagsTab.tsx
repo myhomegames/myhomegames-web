@@ -1,5 +1,7 @@
 import type { TFunction } from "i18next";
 import TagEditor from "../../common/TagEditor";
+import FranchiseSeriesEditor from "./FranchiseSeriesEditor";
+import type { IdNameItem } from "./FranchiseSeriesEditor";
 
 type EditGameTagsTabProps = {
   t: TFunction;
@@ -12,6 +14,8 @@ type EditGameTagsTabProps = {
   selectedGameModes: string[];
   selectedPlayerPerspectives: string[];
   selectedGameEngines: string[];
+  selectedFranchise: IdNameItem[];
+  selectedSeries: IdNameItem[];
   saving: boolean;
   setSelectedGenres: (genres: string[]) => void;
   setSelectedThemes: (themes: string[]) => void;
@@ -20,6 +24,8 @@ type EditGameTagsTabProps = {
   setSelectedGameModes: (modes: string[]) => void;
   setSelectedPlayerPerspectives: (perspectives: string[]) => void;
   setSelectedGameEngines: (engines: string[]) => void;
+  setSelectedFranchise: (value: IdNameItem[]) => void;
+  setSelectedSeries: (value: IdNameItem[]) => void;
 };
 
 export default function EditGameTagsTab({
@@ -33,6 +39,8 @@ export default function EditGameTagsTab({
   selectedGameModes,
   selectedPlayerPerspectives,
   selectedGameEngines,
+  selectedFranchise,
+  selectedSeries,
   saving,
   setSelectedGenres,
   setSelectedThemes,
@@ -41,6 +49,8 @@ export default function EditGameTagsTab({
   setSelectedGameModes,
   setSelectedPlayerPerspectives,
   setSelectedGameEngines,
+  setSelectedFranchise,
+  setSelectedSeries,
 }: EditGameTagsTabProps) {
   return (
     <>
@@ -138,6 +148,26 @@ export default function EditGameTagsTab({
           />
         )}
       </div>
+      {isOpen && (
+        <FranchiseSeriesEditor
+          label={t("igdbInfo.franchise", "Franchise")}
+          value={selectedFranchise}
+          onChange={setSelectedFranchise}
+          disabled={saving}
+          apiEndpoint="franchises"
+          listResponseKey="franchises"
+        />
+      )}
+      {isOpen && (
+        <FranchiseSeriesEditor
+          label={t("igdbInfo.series", "Series")}
+          value={selectedSeries}
+          onChange={setSelectedSeries}
+          disabled={saving}
+          apiEndpoint="series"
+          listResponseKey="series"
+        />
+      )}
     </>
   );
 }

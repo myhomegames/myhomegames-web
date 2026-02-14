@@ -175,7 +175,7 @@ export default function LibrariesBar({
               <ViewModeSelector 
                 value={viewMode} 
                 onChange={onViewModeChange}
-                disabled={activeLibrary ? activeLibrary.key !== "library" && activeLibrary.key !== "category" : false}
+                disabled={activeLibrary ? activeLibrary.key !== "library" && activeLibrary.key !== "categories" && activeLibrary.key !== "series" && activeLibrary.key !== "franchise" : false}
               />
             </div>
           )}

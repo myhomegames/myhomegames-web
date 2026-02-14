@@ -3,10 +3,14 @@ import { useScrollRestoration } from "./useScrollRestoration";
 import { useGameEvents } from "./useGameEvents";
 import { useCategories } from "../contexts/CategoriesContext";
 import { useCollections } from "../contexts/CollectionsContext";
+import { useDevelopers } from "../contexts/DevelopersContext";
+import { usePublishers } from "../contexts/PublishersContext";
 import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import type { ViewMode, GameItem, SortField } from "../types";
 import type { FilterField } from "../components/filters/types";
 import { compareTitles } from "../utils/stringUtils";
+import { API_BASE, getApiToken } from "../config";
+import { buildApiUrl, buildApiHeaders } from "../utils/api";
 
 type GameEventType = "gameUpdated" | "gameDeleted" | "gameAdded";
 
@@ -74,9 +78,17 @@ export type UseGamesListPageReturn = {
   setSelectedPlayerPerspectives: React.Dispatch<React.SetStateAction<string | null>>;
   selectedGameEngines: string | null;
   setSelectedGameEngines: React.Dispatch<React.SetStateAction<string | null>>;
+  selectedSeries: string | null;
+  setSelectedSeries: React.Dispatch<React.SetStateAction<string | null>>;
+  selectedFranchise: string | null;
+  setSelectedFranchise: React.Dispatch<React.SetStateAction<string | null>>;
   allGenres: Array<{ id: string; title: string }>;
   availableGenres: Array<{ id: string; title: string }>;
   availableCollections: Array<{ id: string; title: string }>;
+  availableSeries: Array<{ id: string; title: string }>;
+  availableFranchises: Array<{ id: string; title: string }>;
+  availableDevelopers: Array<{ id: string; title: string }>;
+  availablePublishers: Array<{ id: string; title: string }>;
   sortField: SortField;
   setSortField: React.Dispatch<React.SetStateAction<SortField>>;
   sortAscending: boolean;
@@ -215,6 +227,20 @@ export function useGamesListPage(
     }
     return null;
   });
+  const [selectedSeries, setSelectedSeries] = useState<string | null>(() => {
+    if (localStoragePrefix) {
+      const saved = localStorage.getItem(`${localStoragePrefix}SelectedSeries`);
+      return saved || null;
+    }
+    return null;
+  });
+  const [selectedFranchise, setSelectedFranchise] = useState<string | null>(() => {
+    if (localStoragePrefix) {
+      const saved = localStorage.getItem(`${localStoragePrefix}SelectedFranchise`);
+      return saved || null;
+    }
+    return null;
+  });
   const { categories } = useCategories();
   // Convert categories to allGenres format (id as string)
   const allGenres = useMemo(() => 
@@ -222,12 +248,47 @@ export function useGamesListPage(
     [categories]
   );
   const { collections, collectionGameIds: contextCollectionGameIds } = useCollections();
+  const { developers } = useDevelopers();
+  const { publishers } = usePublishers();
   const { games: libraryGames, isLoading: libraryGamesLoading } = useLibraryGames();
   
   // Convert collections to availableCollections format
   const availableCollections = useMemo(() => 
     collections.map((col) => ({ id: String(col.id), title: col.title || "" })),
     [collections]
+  );
+
+  const [availableSeries, setAvailableSeries] = useState<Array<{ id: string; title: string }>>([]);
+  const [availableFranchises, setAvailableFranchises] = useState<Array<{ id: string; title: string }>>([]);
+  useEffect(() => {
+    let cancelled = false;
+    const token = getApiToken();
+    if (!token) return;
+    const toItems = (list: Array<{ id: number | string; title?: string; name?: string }>, key: string) =>
+      (list || []).map((x) => ({ id: String(x.id), title: String((x as any).title ?? (x as any).name ?? x.id) }));
+    Promise.all([
+      fetch(buildApiUrl(API_BASE, "/series"), { headers: buildApiHeaders({ Accept: "application/json" }) }).then((r) => (r.ok ? r.json() : { series: [] })),
+      fetch(buildApiUrl(API_BASE, "/franchises"), { headers: buildApiHeaders({ Accept: "application/json" }) }).then((r) => (r.ok ? r.json() : { franchises: [] })),
+    ]).then(([seriesRes, franchisesRes]) => {
+      if (cancelled) return;
+      setAvailableSeries(toItems(seriesRes.series || [], "series"));
+      setAvailableFranchises(toItems(franchisesRes.franchises || [], "franchises"));
+    }).catch(() => {
+      if (!cancelled) {
+        setAvailableSeries([]);
+        setAvailableFranchises([]);
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const availableDevelopers = useMemo(() =>
+    developers.map((d) => ({ id: String(d.id), title: d.title || "" })),
+    [developers]
+  );
+  const availablePublishers = useMemo(() =>
+    publishers.map((p) => ({ id: String(p.id), title: p.title || "" })),
+    [publishers]
   );
   
   const [availableGenres, setAvailableGenres] = useState<Array<{ id: string; title: string }>>([]);
@@ -384,6 +445,22 @@ export function useGamesListPage(
   }, [selectedCollection, localStoragePrefix]);
 
   useEffect(() => {
+    if (localStoragePrefix && selectedSeries !== null) {
+      localStorage.setItem(`${localStoragePrefix}SelectedSeries`, selectedSeries);
+    } else if (localStoragePrefix) {
+      localStorage.removeItem(`${localStoragePrefix}SelectedSeries`);
+    }
+  }, [selectedSeries, localStoragePrefix]);
+
+  useEffect(() => {
+    if (localStoragePrefix && selectedFranchise !== null) {
+      localStorage.setItem(`${localStoragePrefix}SelectedFranchise`, selectedFranchise);
+    } else if (localStoragePrefix) {
+      localStorage.removeItem(`${localStoragePrefix}SelectedFranchise`);
+    }
+  }, [selectedFranchise, localStoragePrefix]);
+
+  useEffect(() => {
     if (localStoragePrefix && selectedAgeRating !== null) {
       localStorage.setItem(`${localStoragePrefix}SelectedAgeRating`, selectedAgeRating);
     } else if (localStoragePrefix) {
@@ -526,6 +603,20 @@ export function useGamesListPage(
               return gameIds.some((id) => String(id) === gameIdStr);
             }
             return false;
+          case "series": {
+            if (selectedSeries === null) return true;
+            const raw = game.series ?? game.collection;
+            const arr = raw == null ? [] : Array.isArray(raw) ? raw : [raw];
+            const ids = arr.map((x) => (typeof x === "object" && x?.id != null ? String(x.id) : String(x)));
+            return ids.some((id) => String(id) === selectedSeries);
+          }
+          case "franchise": {
+            if (selectedFranchise === null) return true;
+            const raw = game.franchise;
+            const arr = raw == null ? [] : Array.isArray(raw) ? raw : [raw];
+            const ids = arr.map((x) => (typeof x === "object" && x?.id != null ? String(x.id) : String(x)));
+            return ids.some((id) => String(id) === selectedFranchise);
+          }
           case "ageRating":
             if (selectedAgeRating !== null) {
               const [category, rating] = selectedAgeRating.split('-').map(Number);
@@ -629,6 +720,8 @@ export function useGamesListPage(
     selectedYear,
     selectedDecade,
     selectedCollection,
+    selectedSeries,
+    selectedFranchise,
     selectedAgeRating,
     contextCollectionGameIds,
     sortField,
@@ -772,9 +865,17 @@ export function useGamesListPage(
     setSelectedPlayerPerspectives,
     selectedGameEngines,
     setSelectedGameEngines,
+    selectedSeries,
+    setSelectedSeries,
+    selectedFranchise,
+    setSelectedFranchise,
     allGenres,
     availableGenres,
     availableCollections,
+    availableSeries,
+    availableFranchises,
+    availableDevelopers,
+    availablePublishers,
     sortField,
     setSortField,
     sortAscending,
