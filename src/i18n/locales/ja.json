@@ -234,7 +234,7 @@
   },
   "collections": {
     "addTo": "追加",
-    "addToCollection": "コレクションに追加",
+    "addToCollection": "コレクション",
     "searchCollections": "コレクションを検索...",
     "noCollectionsFound": "コレクションが見つかりません",
     "newCollectionTitle": "新しいコレクションのタイトル",
@@ -445,6 +445,8 @@
     },
     "developers": "開発者",
     "publishers": "パブリッシャー",
+    "addToDeveloper": "開発者",
+    "addToPublisher": "パブリッシャー",
     "franchise": "フランチャイズ",
     "collection": "コレクション",
     "series": "シリーズ",

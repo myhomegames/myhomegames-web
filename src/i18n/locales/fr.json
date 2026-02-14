@@ -234,7 +234,7 @@
   },
   "collections": {
     "addTo": "Ajouter à",
-    "addToCollection": "Ajouter à la Collection",
+    "addToCollection": "Collection",
     "searchCollections": "Rechercher des collections...",
     "noCollectionsFound": "Aucune collection trouvée",
     "newCollectionTitle": "Titre de la nouvelle collection",
@@ -445,6 +445,8 @@
     },
     "developers": "Développeurs",
     "publishers": "Éditeurs",
+    "addToDeveloper": "Développeur",
+    "addToPublisher": "Éditeur",
     "franchise": "Franchise",
     "collection": "Collection",
     "series": "Série",

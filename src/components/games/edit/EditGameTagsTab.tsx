@@ -1,7 +1,10 @@
+import { useState, useEffect } from "react";
 import type { TFunction } from "i18next";
 import TagEditor from "../../common/TagEditor";
 import FranchiseSeriesEditor from "./FranchiseSeriesEditor";
 import type { IdNameItem } from "./FranchiseSeriesEditor";
+import { API_BASE, getApiToken } from "../../../config";
+import { buildApiUrl, buildApiHeaders } from "../../../utils/api";
 
 type EditGameTagsTabProps = {
   t: TFunction;
@@ -52,6 +55,36 @@ export default function EditGameTagsTab({
   setSelectedFranchise,
   setSelectedSeries,
 }: EditGameTagsTabProps) {
+  const [availableThemes, setAvailableThemes] = useState<string[]>([]);
+  const [availablePlatforms, setAvailablePlatforms] = useState<string[]>([]);
+  const [availableGameModes, setAvailableGameModes] = useState<string[]>([]);
+  const [availablePlayerPerspectives, setAvailablePlayerPerspectives] = useState<string[]>([]);
+  const [availableGameEngines, setAvailableGameEngines] = useState<string[]>([]);
+  const [availableKeywords, setAvailableKeywords] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!isOpen || !getApiToken()) return;
+    const toTitles = (list: Array<{ title?: string; name?: string }> | undefined) =>
+      (list || []).map((x) => String((x as { title?: string }).title ?? (x as { name?: string }).name ?? "")).filter(Boolean);
+    Promise.all([
+      fetch(buildApiUrl(API_BASE, "/themes"), { headers: buildApiHeaders({ Accept: "application/json" }) }).then((r) => (r.ok ? r.json() : { themes: [] })),
+      fetch(buildApiUrl(API_BASE, "/platforms"), { headers: buildApiHeaders({ Accept: "application/json" }) }).then((r) => (r.ok ? r.json() : { platforms: [] })),
+      fetch(buildApiUrl(API_BASE, "/game-modes"), { headers: buildApiHeaders({ Accept: "application/json" }) }).then((r) => (r.ok ? r.json() : { gameModes: [] })),
+      fetch(buildApiUrl(API_BASE, "/player-perspectives"), { headers: buildApiHeaders({ Accept: "application/json" }) }).then((r) => (r.ok ? r.json() : { playerPerspectives: [] })),
+      fetch(buildApiUrl(API_BASE, "/game-engines"), { headers: buildApiHeaders({ Accept: "application/json" }) }).then((r) => (r.ok ? r.json() : { gameEngines: [] })),
+      fetch(buildApiUrl(API_BASE, "/keywords"), { headers: buildApiHeaders({ Accept: "application/json" }) }).then((r) => (r.ok ? r.json() : { keywords: [] })),
+    ])
+      .then(([t, p, gm, pp, ge, kw]) => {
+        setAvailableThemes(toTitles(t.themes));
+        setAvailablePlatforms(toTitles(p.platforms));
+        setAvailableGameModes(toTitles(gm.gameModes));
+        setAvailablePlayerPerspectives(toTitles(pp.playerPerspectives));
+        setAvailableGameEngines(toTitles(ge.gameEngines));
+        setAvailableKeywords(Array.isArray(kw.keywords) ? kw.keywords : []);
+      })
+      .catch(() => {});
+  }, [isOpen]);
+
   return (
     <>
       <div className="edit-game-modal-field">
@@ -76,6 +109,7 @@ export default function EditGameTagsTab({
             onTagsChange={setSelectedThemes}
             disabled={saving}
             placeholder={t("gameDetail.addTheme", "Add theme...")}
+            availableTags={availableThemes}
           />
         )}
       </div>
@@ -89,6 +123,7 @@ export default function EditGameTagsTab({
             onTagsChange={setSelectedKeywords}
             disabled={saving}
             placeholder={t("gameDetail.addKeyword", "Add keyword...")}
+            availableTags={availableKeywords}
           />
         )}
       </div>
@@ -102,6 +137,7 @@ export default function EditGameTagsTab({
             onTagsChange={setSelectedPlatforms}
             disabled={saving}
             placeholder={t("gameDetail.addPlatform", "Add platform...")}
+            availableTags={availablePlatforms}
           />
         )}
       </div>
@@ -116,6 +152,7 @@ export default function EditGameTagsTab({
             disabled={saving}
             placeholder={t("gameDetail.addGameMode", "Add game mode...")}
             getDisplayName={(value) => t(`gameModes.${value}`, value)}
+            availableTags={availableGameModes}
           />
         )}
       </div>
@@ -132,6 +169,7 @@ export default function EditGameTagsTab({
             disabled={saving}
             placeholder={t("gameDetail.addPlayerPerspective", "Add player perspective...")}
             getDisplayName={(value) => t(`playerPerspectives.${value}`, value)}
+            availableTags={availablePlayerPerspectives}
           />
         )}
       </div>
@@ -145,6 +183,7 @@ export default function EditGameTagsTab({
             onTagsChange={setSelectedGameEngines}
             disabled={saving}
             placeholder={t("gameDetail.addGameEngine", "Add game engine...")}
+            availableTags={availableGameEngines}
           />
         )}
       </div>
