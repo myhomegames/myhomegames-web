@@ -1,20 +1,24 @@
 .virtualized-table-scroll {
   overflow-y: auto !important;
-  overflow-x: auto !important;
+  overflow-x: hidden !important;
 }
 
 .virtualized-games-table-wrapper {
   width: 100%;
   height: 100%;
+  overflow-x: hidden !important;
 }
 
 .virtualized-games-table-list {
   width: 100%;
   height: 100%;
   min-width: 520px;
+  overflow-x: hidden !important;
 }
 
+/* Elemento scrollabile interno di react-window (override overflow inline) */
 .virtualized-games-table-list > div {
+  overflow-x: hidden !important;
   display: table;
   width: 100%;
   min-width: 520px;

@@ -124,12 +124,13 @@
 
 .games-table-container {
   max-width: 100%;
+  min-width: 0;
   margin: 0 auto;
   margin-top: 0;
   margin-bottom: 70px;
   padding: 0 24px;
   height: calc(100vh - 114px - 22px - 50px - 70px);
-  overflow-x: visible;
+  overflow-x: hidden;
   overflow-y: hidden;
   display: flex;
   flex-direction: column;
@@ -137,14 +138,20 @@
 
 .games-table-scroll {
   flex: 1;
+  min-width: 0;
   overflow-y: auto;
-  overflow-x: auto;
+  overflow-x: hidden;
   /* Evita che la prima riga resti nascosta sotto l’header della tabella */
-  padding-top: 49px;
   box-sizing: border-box;
   width: calc(100% + 20px);
   margin-right: -20px;
   padding-right: 12px;
+}
+
+/* Nessuna scrollbar orizzontale sotto il body (override stili inline di react-window) */
+.games-table-container,
+.games-table-container * {
+  overflow-x: hidden !important;
 }
 
 /* Solo quando il navigatore alfabetico è nel DOM (stesso layout ha .home-page-alphabet-container) */

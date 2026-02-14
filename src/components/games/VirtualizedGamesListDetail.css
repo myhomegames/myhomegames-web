@@ -1,3 +1,6 @@
+/* Same padding as .games-list-detail-container so rows align and don't overlap */
 .virtualized-games-list-detail {
   overflow-x: hidden !important;
+  padding: 0 24px;
+  box-sizing: border-box;
 }

@@ -61,6 +61,7 @@
 .home-page-scroll-container.table-view {
   padding-bottom: 0;
   overflow: hidden;
+  overflow-x: hidden !important;
 }
 
 .home-page-scroll-container:not(.table-view) {

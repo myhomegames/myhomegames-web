@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import GamesList from "./GamesList";
 import GamesListDetail from "./GamesListDetail";
 import GamesListTable from "./GamesListTable";
@@ -95,6 +95,47 @@ export default function GamesListPageContent({
     availablePublishers,
   } = hook;
 
+  const handleFilterChange = useCallback(
+    (field: import("../filters/types").FilterField) => {
+      if (field === "all") {
+        setSelectedYear(null);
+        setSelectedDecade(null);
+        setSelectedCollection(null);
+        setSelectedSeries(null);
+        setSelectedFranchise(null);
+        setSelectedGenre(null);
+        setSelectedThemes(null);
+        setSelectedKeywords(null);
+        setSelectedPlatforms(null);
+        setSelectedGameModes(null);
+        setSelectedPublishers(null);
+        setSelectedDevelopers(null);
+        setSelectedPlayerPerspectives(null);
+        setSelectedGameEngines(null);
+        setSelectedAgeRating(null);
+      }
+      setFilterField(field);
+    },
+    [
+      setFilterField,
+      setSelectedYear,
+      setSelectedDecade,
+      setSelectedCollection,
+      setSelectedSeries,
+      setSelectedFranchise,
+      setSelectedGenre,
+      setSelectedThemes,
+      setSelectedKeywords,
+      setSelectedPlatforms,
+      setSelectedGameModes,
+      setSelectedPublishers,
+      setSelectedDevelopers,
+      setSelectedPlayerPerspectives,
+      setSelectedGameEngines,
+      setSelectedAgeRating,
+    ]
+  );
+
   // Call onGamesLoaded when games change (only when games actually change, not on every render)
   useEffect(() => {
     if (games.length > 0) {
@@ -119,7 +160,7 @@ export default function GamesListPageContent({
         <GamesListToolbar
           gamesCount={filteredAndSortedGames.length}
           games={games}
-          onFilterChange={setFilterField}
+          onFilterChange={handleFilterChange}
           onYearFilterChange={setSelectedYear}
           onGenreFilterChange={setSelectedGenre}
           onThemesFilterChange={setSelectedThemes}
