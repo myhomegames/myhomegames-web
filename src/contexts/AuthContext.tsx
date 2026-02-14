@@ -1,9 +1,10 @@
 // contexts/AuthContext.tsx
 // Authentication context for Twitch OAuth
 
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { API_BASE, updateApiToken } from "../config";
+import { setUnauthorizedHandler } from "../utils/unauthorizedInterceptor";
 
 interface User {
   userId: string;
@@ -277,6 +278,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Check auth on mount
   useEffect(() => {
     checkAuth();
+  }, []);
+
+  // Global 401 handling: invalidate session and redirect to server (login)
+  const logoutRef = useRef(logout);
+  logoutRef.current = logout;
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      logoutRef.current();
+      const serverUrl = API_BASE.replace(/\/$/, "");
+      window.location.href = serverUrl;
+    });
   }, []);
 
   const value: AuthContextType = {

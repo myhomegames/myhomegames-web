@@ -77,15 +77,15 @@ export default function LibraryPage({
             itemRefs={hook.itemRefs}
             ascending={hook.sortAscending}
             virtualizedGridRef={
-              viewMode === "grid" && hook.scrollContainerRef.current
+              (viewMode as ViewMode) === "grid" && hook.scrollContainerRef.current
                 ? (hook.scrollContainerRef.current as any).__virtualizedGridRef
                 : undefined
             }
             virtualizedListRef={
-              (viewMode === "detail" && hook.scrollContainerRef.current
+              ((viewMode as ViewMode) === "detail" && hook.scrollContainerRef.current
                 ? (hook.scrollContainerRef.current as any).__virtualizedListRef
                 : undefined) ||
-              (viewMode === "table" && hook.tableScrollRef.current
+              ((viewMode as ViewMode) === "table" && hook.tableScrollRef.current
                 ? (hook.tableScrollRef.current as any).__virtualizedListRef
                 : undefined)
             }

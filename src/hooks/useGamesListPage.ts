@@ -264,7 +264,7 @@ export function useGamesListPage(
     let cancelled = false;
     const token = getApiToken();
     if (!token) return;
-    const toItems = (list: Array<{ id: number | string; title?: string; name?: string }>, key: string) =>
+    const toItems = (list: Array<{ id: number | string; title?: string; name?: string }>, _key: string) =>
       (list || []).map((x) => ({ id: String(x.id), title: String((x as any).title ?? (x as any).name ?? x.id) }));
     Promise.all([
       fetch(buildApiUrl(API_BASE, "/series"), { headers: buildApiHeaders({ Accept: "application/json" }) }).then((r) => (r.ok ? r.json() : { series: [] })),

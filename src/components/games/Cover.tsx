@@ -57,7 +57,9 @@ type CoverProps = {
     | "platforms"
     | "game-engines"
     | "game-modes"
-    | "player-perspectives"; // Resource type for removal
+    | "player-perspectives"
+    | "series"
+    | "franchise"; // Resource type for removal
   onRemoveSuccess?: () => void; // Callback when removal succeeds
   removeDisabled?: boolean; // Disable remove button
 };

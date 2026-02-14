@@ -214,7 +214,7 @@ export default function VirtualizedGamesListTable({
     };
   }, [dimensions.height, storageKey, containerRef]);
 
-  // Row component for react-window
+  // Row component for react-window (useDiv so we don't put <tr> inside <div> — valid HTML only)
   const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => {
     const game = games[index];
     if (!game) return null;
@@ -237,6 +237,7 @@ export default function VirtualizedGamesListTable({
           t={t}
           i18n={i18n}
           editGame={editGame}
+          useDiv
         />
       </div>
     );
@@ -249,24 +250,20 @@ export default function VirtualizedGamesListTable({
   return (
     <div style={{ opacity: isScrollRestored ? 1 : 0, transition: isScrollRestored ? 'opacity 0.1s' : 'none' }}>
       <div className="virtualized-games-table-wrapper">
-        <table className="games-table">
-          <tbody className="virtualized-games-table-tbody">
-            <List
-              listRef={listRef}
-              className="virtualized-games-table-list"
-              defaultHeight={dimensions.height}
-              rowCount={games.length}
-              rowHeight={ITEM_HEIGHT}
-              overscanCount={OVERSCAN_COUNT}
-              rowComponent={Row}
-              rowProps={{} as any}
-              style={{ height: dimensions.height, width: dimensions.width }}
-              onResize={(size) => {
-                setDimensions({ width: size.width, height: size.height });
-              }}
-            />
-          </tbody>
-        </table>
+        <List
+          listRef={listRef}
+          className="virtualized-games-table-list"
+          defaultHeight={dimensions.height}
+          rowCount={games.length}
+          rowHeight={ITEM_HEIGHT}
+          overscanCount={OVERSCAN_COUNT}
+          rowComponent={Row}
+          rowProps={{} as any}
+          style={{ height: dimensions.height, width: dimensions.width }}
+          onResize={(size) => {
+            setDimensions({ width: size.width, height: size.height });
+          }}
+        />
       </div>
     </div>
   );

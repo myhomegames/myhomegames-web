@@ -74,6 +74,14 @@ const toSeriesFranchiseIds = (
   return arr.map((x) => (typeof x === "object" && x?.id != null ? String(x.id) : String(x))).filter(Boolean);
 };
 
+const toSeriesFranchiseArray = (
+  val: string | { id: number; name: string } | (string | { id: number; name: string })[] | undefined | null
+): (string | { id: number; name: string })[] | null => {
+  if (val == null) return null;
+  if (Array.isArray(val)) return val;
+  return [val];
+};
+
 export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
   categories: {
     list: {
@@ -260,7 +268,7 @@ export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
       routeBase: "/series",
       listEndpoint: "/series",
       listResponseKey: "series",
-      valueExtractor: (game) => toSeriesFranchiseIds(game.series ?? game.collection),
+      valueExtractor: (game) => toSeriesFranchiseIds(toSeriesFranchiseArray(game.series ?? game.collection)),
       localCoverPrefix: "/series-covers/",
       responseKey: "series",
       removeResourceType: "series",
@@ -285,7 +293,7 @@ export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
       routeBase: "/franchise",
       listEndpoint: "/franchises",
       listResponseKey: "franchises",
-      valueExtractor: (game) => toSeriesFranchiseIds(game.franchise),
+      valueExtractor: (game) => toSeriesFranchiseIds(toSeriesFranchiseArray(game.franchise)),
       localCoverPrefix: "/franchise-covers/",
       responseKey: "franchise",
       removeResourceType: "franchise",
