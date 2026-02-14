@@ -51,7 +51,7 @@ export default function LibraryPage({
     onGamesLoaded(games);
   }, [onGamesLoaded]);
 
-  const hasAlphabetNav = viewMode === "table" && hook.sortField === "title" && hook.isReady;
+  const hasAlphabetNav = hook.sortField === "title" && hook.isReady;
 
   return (
     <main className="flex-1 home-page-content">
