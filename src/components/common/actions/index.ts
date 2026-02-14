@@ -9,4 +9,6 @@ export { useAddGameToDeveloper } from "./useAddGameToDeveloper";
 export { useAddGameToPublisher } from "./useAddGameToPublisher";
 export { useRemoveGameFromCollection } from "./useRemoveGameFromCollection";
 export { useCreateCollection } from "./useCreateCollection";
+export { useCreateDeveloper } from "./useCreateDeveloper";
+export { useCreatePublisher } from "./useCreatePublisher";
 

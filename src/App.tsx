@@ -21,9 +21,7 @@ import SettingsPage from "./pages/SettingsPage";
 import ProfilePage from "./pages/ProfilePage";
 import AddGamePage from "./pages/AddGamePage";
 import SearchResultsPage from "./pages/SearchResultsPage";
-import CollectionDetail from "./pages/CollectionDetail";
-import DeveloperDetailPage from "./pages/DeveloperDetailPage";
-import PublisherDetailPage from "./pages/PublisherDetailPage";
+import LibraryItemDetailPage from "./pages/LibraryItemDetailPage";
 import TagGamesRoutePage from "./pages/TagGamesRoutePage";
 import LoginPage from "./pages/LoginPage";
 import IGDBGameDetailPage from "./pages/IGDBGameDetailPage";
@@ -288,11 +286,9 @@ function AppContent() {
                   onSettingsClick={() => navigate("/settings")}
                   onAddGameClick={() => setAddGameOpen(true)}
                 />
-                <CollectionDetail
+                <LibraryItemDetailPage
                   onGameClick={handleGameClick}
-                  onGamesLoaded={() => {
-                    // Games are now managed by LibraryGamesContext, no need to update here
-                  }}
+                  onGamesLoaded={() => {}}
                   onPlay={openLauncher}
                   allCollections={allCollections}
                 />
@@ -387,10 +383,11 @@ function AppContent() {
                   onSettingsClick={() => navigate("/settings")}
                   onAddGameClick={() => setAddGameOpen(true)}
                 />
-                <DeveloperDetailPage
+                <LibraryItemDetailPage
                   onGameClick={handleGameClick}
                   onGamesLoaded={() => {}}
                   onPlay={openLauncher}
+                  allCollections={allCollections}
                 />
               </ProtectedRoute>
             }
@@ -408,10 +405,11 @@ function AppContent() {
                   onSettingsClick={() => navigate("/settings")}
                   onAddGameClick={() => setAddGameOpen(true)}
                 />
-                <PublisherDetailPage
+                <LibraryItemDetailPage
                   onGameClick={handleGameClick}
                   onGamesLoaded={() => {}}
                   onPlay={openLauncher}
+                  allCollections={allCollections}
                 />
               </ProtectedRoute>
             }
@@ -639,6 +637,53 @@ function GameDetailPage({
       window.removeEventListener("gameDeleted", handleGameDeleted as EventListener);
     };
   }, [game]);
+
+  // Listen for game updates (e.g. add to developer/publisher) so the detail view reflects changes
+  useEffect(() => {
+    const handleGameUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ game: GameItem }>;
+      const updatedGame = customEvent.detail?.game;
+      if (!updatedGame || !gameId) return;
+      if (String(updatedGame.id) !== String(gameId)) return;
+      const parsed: GameItem = {
+        id: String(updatedGame.id),
+        title: updatedGame.title,
+        summary: updatedGame.summary,
+        cover: updatedGame.cover,
+        background: updatedGame.background,
+        day: updatedGame.day,
+        month: updatedGame.month,
+        year: updatedGame.year,
+        stars: updatedGame.stars,
+        genre: updatedGame.genre,
+        criticratings: updatedGame.criticratings,
+        userratings: updatedGame.userratings,
+        executables: updatedGame.executables ?? null,
+        themes: updatedGame.themes ?? undefined,
+        platforms: updatedGame.platforms ?? undefined,
+        gameModes: updatedGame.gameModes ?? undefined,
+        playerPerspectives: updatedGame.playerPerspectives ?? undefined,
+        websites: updatedGame.websites ?? undefined,
+        ageRatings: updatedGame.ageRatings ?? undefined,
+        developers: updatedGame.developers ?? undefined,
+        publishers: updatedGame.publishers ?? undefined,
+        franchise: updatedGame.franchise ?? undefined,
+        collection: updatedGame.collection ?? undefined,
+        series: updatedGame.series ?? updatedGame.collection ?? undefined,
+        screenshots: updatedGame.screenshots ?? undefined,
+        videos: updatedGame.videos ?? undefined,
+        gameEngines: updatedGame.gameEngines ?? undefined,
+        keywords: updatedGame.keywords ?? undefined,
+        alternativeNames: updatedGame.alternativeNames ?? undefined,
+        similarGames: updatedGame.similarGames ?? undefined,
+      };
+      setGame(parsed);
+    };
+    window.addEventListener("gameUpdated", handleGameUpdated as EventListener);
+    return () => {
+      window.removeEventListener("gameUpdated", handleGameUpdated as EventListener);
+    };
+  }, [gameId]);
 
   useEffect(() => {
     if (gameId && gameId !== lastGameIdRef.current) {

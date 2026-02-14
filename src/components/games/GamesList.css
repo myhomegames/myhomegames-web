@@ -24,7 +24,7 @@
   transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
-.collection-detail-games-list .games-list-title {
+.library-item-detail-games-list .games-list-title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

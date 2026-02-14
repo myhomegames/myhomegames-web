@@ -39,6 +39,10 @@ type VirtualizedGamesListProps = {
   allCollections?: import("../../types").CollectionItem[];
   collectionId?: string;
   onRemoveFromCollection?: (gameId: string) => void;
+  developerId?: string;
+  publisherId?: string;
+  onRemoveFromDeveloper?: (gameId: string) => void;
+  onRemoveFromPublisher?: (gameId: string) => void;
 };
 
 const GAP = 40; // Gap between items in grid
@@ -58,6 +62,10 @@ export default function VirtualizedGamesList({
   allCollections = [],
   collectionId,
   onRemoveFromCollection,
+  developerId,
+  publisherId,
+  onRemoveFromDeveloper,
+  onRemoveFromPublisher,
 }: VirtualizedGamesListProps) {
   const location = useLocation();
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -339,6 +347,10 @@ export default function VirtualizedGamesList({
           allCollections={allCollections}
           collectionId={collectionId}
           onRemoveFromCollection={onRemoveFromCollection}
+          developerId={developerId}
+          publisherId={publisherId}
+          onRemoveFromDeveloper={onRemoveFromDeveloper}
+          onRemoveFromPublisher={onRemoveFromPublisher}
         />
       </div>
     );

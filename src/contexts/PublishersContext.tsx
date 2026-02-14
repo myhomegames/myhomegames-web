@@ -65,10 +65,30 @@ export function PublishersProvider({ children }: { children: ReactNode }) {
         fetchPublishers();
       }
     };
+    const handleAdded = (e: Event) => {
+      const ev = e as CustomEvent<{ publisher: CollectionItem }>;
+      const publisher = ev.detail?.publisher;
+      if (publisher) {
+        setPublishers((prev) =>
+          prev.some((p) => String(p.id) === String(publisher.id)) ? prev : [...prev, publisher]
+        );
+      }
+    };
+    const handleDeleted = (e: Event) => {
+      const ev = e as CustomEvent<{ publisherId: string | number }>;
+      const id = ev.detail?.publisherId;
+      if (id != null) {
+        setPublishers((prev) => prev.filter((p) => String(p.id) !== String(id)));
+      }
+    };
     window.addEventListener("publisherUpdated", handleUpdate as EventListener);
+    window.addEventListener("publisherAdded", handleAdded as EventListener);
+    window.addEventListener("publisherDeleted", handleDeleted as EventListener);
     window.addEventListener("metadataReloaded", fetchPublishers);
     return () => {
       window.removeEventListener("publisherUpdated", handleUpdate as EventListener);
+      window.removeEventListener("publisherAdded", handleAdded as EventListener);
+      window.removeEventListener("publisherDeleted", handleDeleted as EventListener);
       window.removeEventListener("metadataReloaded", fetchPublishers);
     };
   }, [fetchPublishers]);

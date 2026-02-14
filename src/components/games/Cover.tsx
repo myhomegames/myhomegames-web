@@ -27,6 +27,10 @@ type CoverProps = {
   onCollectionDelete?: (collectionId: string) => void;
   onCollectionUpdate?: (collection: any) => void;
   onRemoveFromCollection?: () => void;
+  developerId?: string;
+  publisherId?: string;
+  onRemoveFromDeveloper?: () => void;
+  onRemoveFromPublisher?: () => void;
   showTitle?: boolean;
   subtitle?: string | number | null;
   detail?: boolean;
@@ -77,6 +81,10 @@ export default function Cover({
   onCollectionDelete,
   onCollectionUpdate,
   onRemoveFromCollection,
+  developerId,
+  publisherId,
+  onRemoveFromDeveloper,
+  onRemoveFromPublisher,
   showTitle = false,
   subtitle,
   detail = true,
@@ -422,7 +430,7 @@ export default function Cover({
             />
           </div>
         )}
-        {onEdit && (gameId || collectionId) && (
+        {onEdit && (gameId || collectionId || developerId || publisherId) && (
           <div className="games-list-dropdown-wrapper games-list-dropdown-wrapper-bottom-right">
             {gameId && game && game.executables && game.executables.length > 1 && onPlay && (
               <AdditionalExecutablesDropdown
@@ -448,6 +456,10 @@ export default function Cover({
               collectionTitle={collectionTitle}
               onCollectionDelete={onCollectionDelete}
               onCollectionUpdate={onCollectionUpdate}
+              developerId={developerId}
+              publisherId={publisherId}
+              onRemoveFromDeveloper={onRemoveFromDeveloper}
+              onRemoveFromPublisher={onRemoveFromPublisher}
               className="games-list-dropdown-menu"
             />
           </div>

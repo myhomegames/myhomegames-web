@@ -65,10 +65,30 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
         fetchDevelopers();
       }
     };
+    const handleAdded = (e: Event) => {
+      const ev = e as CustomEvent<{ developer: CollectionItem }>;
+      const developer = ev.detail?.developer;
+      if (developer) {
+        setDevelopers((prev) =>
+          prev.some((d) => String(d.id) === String(developer.id)) ? prev : [...prev, developer]
+        );
+      }
+    };
+    const handleDeleted = (e: Event) => {
+      const ev = e as CustomEvent<{ developerId: string | number }>;
+      const id = ev.detail?.developerId;
+      if (id != null) {
+        setDevelopers((prev) => prev.filter((d) => String(d.id) !== String(id)));
+      }
+    };
     window.addEventListener("developerUpdated", handleUpdate as EventListener);
+    window.addEventListener("developerAdded", handleAdded as EventListener);
+    window.addEventListener("developerDeleted", handleDeleted as EventListener);
     window.addEventListener("metadataReloaded", fetchDevelopers);
     return () => {
       window.removeEventListener("developerUpdated", handleUpdate as EventListener);
+      window.removeEventListener("developerAdded", handleAdded as EventListener);
+      window.removeEventListener("developerDeleted", handleDeleted as EventListener);
       window.removeEventListener("metadataReloaded", fetchDevelopers);
     };
   }, [fetchDevelopers]);

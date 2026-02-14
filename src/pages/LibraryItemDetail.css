@@ -3,7 +3,7 @@
   background-color: transparent !important;
 }
 
-.collection-detail-edit-button {
+.library-item-detail-edit-button {
   background-color: transparent;
   color: rgba(255, 255, 255, 0.8);
   border: none;
@@ -15,15 +15,14 @@
   transition: color 0.2s ease;
 }
 
-.collection-detail-edit-button:hover {
+.library-item-detail-edit-button:hover {
   color: rgba(255, 255, 255, 1);
 }
 
-.collection-detail-dropdown-menu {
+.library-item-detail-dropdown-menu {
   position: relative;
 }
 
-.collection-detail-dropdown-menu .dropdown-menu-button {
+.library-item-detail-dropdown-menu .dropdown-menu-button {
   opacity: 1 !important;
 }
-

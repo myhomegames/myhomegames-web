@@ -26,6 +26,10 @@ type GamesListProps = {
   allCollections?: import("../../types").CollectionItem[];
   collectionId?: string;
   onRemoveFromCollection?: (gameId: string) => void;
+  developerId?: string;
+  publisherId?: string;
+  onRemoveFromDeveloper?: (gameId: string) => void;
+  onRemoveFromPublisher?: (gameId: string) => void;
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
   enableVirtualization?: boolean;
 };
@@ -52,6 +56,10 @@ type GameListItemProps = {
   allCollections?: import("../../types").CollectionItem[];
   collectionId?: string;
   onRemoveFromCollection?: (gameId: string) => void;
+  developerId?: string;
+  publisherId?: string;
+  onRemoveFromDeveloper?: (gameId: string) => void;
+  onRemoveFromPublisher?: (gameId: string) => void;
 };
 
 export function GameListItem({
@@ -75,6 +83,10 @@ export function GameListItem({
   allCollections = [],
   collectionId,
   onRemoveFromCollection,
+  developerId,
+  publisherId,
+  onRemoveFromDeveloper,
+  onRemoveFromPublisher,
 }: GameListItemProps) {
   const coverHeight = coverSize * 1.5;
   
@@ -162,6 +174,10 @@ export function GameListItem({
         } : undefined}
         collectionId={collectionId}
         onRemoveFromCollection={onRemoveFromCollection ? () => onRemoveFromCollection(game.id) : undefined}
+        developerId={developerId}
+        publisherId={publisherId}
+        onRemoveFromDeveloper={onRemoveFromDeveloper ? () => onRemoveFromDeveloper(game.id) : undefined}
+        onRemoveFromPublisher={onRemoveFromPublisher ? () => onRemoveFromPublisher(game.id) : undefined}
         showTitle={game.showTitle !== false}
         subtitle={game.year}
         detail={true}
@@ -189,6 +205,10 @@ export default function GamesList({
   allCollections = [],
   collectionId,
   onRemoveFromCollection,
+  developerId,
+  publisherId,
+  onRemoveFromDeveloper,
+  onRemoveFromPublisher,
   scrollContainerRef,
   enableVirtualization = true,
 }: GamesListProps) {
@@ -260,6 +280,10 @@ export default function GamesList({
             allCollections={allCollections}
             collectionId={collectionId}
             onRemoveFromCollection={onRemoveFromCollection}
+            developerId={developerId}
+            publisherId={publisherId}
+            onRemoveFromDeveloper={onRemoveFromDeveloper}
+            onRemoveFromPublisher={onRemoveFromPublisher}
           />
         ) : (
           games.map((game, index) => (
@@ -285,6 +309,10 @@ export default function GamesList({
               allCollections={allCollections}
               collectionId={collectionId}
               onRemoveFromCollection={onRemoveFromCollection}
+              developerId={developerId}
+              publisherId={publisherId}
+              onRemoveFromDeveloper={onRemoveFromDeveloper}
+              onRemoveFromPublisher={onRemoveFromPublisher}
             />
           ))
         )}

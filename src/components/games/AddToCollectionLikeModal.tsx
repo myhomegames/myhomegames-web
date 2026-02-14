@@ -7,6 +7,8 @@ import {
   useAddGameToDeveloper,
   useAddGameToPublisher,
   useCreateCollection,
+  useCreateDeveloper,
+  useCreatePublisher,
 } from "../common/actions";
 import { useCollections } from "../../contexts/CollectionsContext";
 import { useDevelopers } from "../../contexts/DevelopersContext";
@@ -17,25 +19,28 @@ export type AddToResourceType = "collections" | "developers" | "publishers";
 
 const RESOURCE_CONFIG: Record<
   AddToResourceType,
-  { titleKey: string; searchKey: string; emptyKey: string; recentKey?: string }
+  { titleKey: string; searchKey: string; emptyKey: string; recentKey?: string; newTitlePlaceholderKey: string }
 > = {
   collections: {
     titleKey: "collections.addToCollection",
     searchKey: "collections.searchCollections",
     emptyKey: "collections.noCollectionsFound",
     recentKey: "recentCollections",
+    newTitlePlaceholderKey: "collections.newCollectionTitle",
   },
   developers: {
     titleKey: "igdbInfo.addToDeveloper",
     searchKey: "igdbInfo.searchDevelopers",
     emptyKey: "igdbInfo.noDevelopersFound",
     recentKey: "recentDevelopers",
+    newTitlePlaceholderKey: "igdbInfo.newDeveloperName",
   },
   publishers: {
     titleKey: "igdbInfo.addToPublisher",
     searchKey: "igdbInfo.searchPublishers",
     emptyKey: "igdbInfo.noPublishersFound",
     recentKey: "recentPublishers",
+    newTitlePlaceholderKey: "igdbInfo.newPublisherName",
   },
 };
 
@@ -56,7 +61,9 @@ export default function AddToCollectionLikeModal({
 }: AddToCollectionLikeModalProps) {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
-  const [newCollectionTitle, setNewCollectionTitle] = useState(game.title);
+  const [newItemTitle, setNewItemTitle] = useState(
+    resourceType === "collections" ? game.title : ""
+  );
   const createInputRef = useRef<HTMLInputElement>(null);
 
   const config = RESOURCE_CONFIG[resourceType];
@@ -100,6 +107,9 @@ export default function AddToCollectionLikeModal({
     },
   });
 
+  const createDeveloper = useCreateDeveloper();
+  const createPublisher = useCreatePublisher();
+
   // Filter out items that already contain this game
   const availableItems = useMemo(() => {
     if (resourceType === "collections") {
@@ -125,15 +135,15 @@ export default function AddToCollectionLikeModal({
 
   useEffect(() => {
     if (isOpen) {
-      setNewCollectionTitle(game.title);
+      setNewItemTitle(resourceType === "collections" ? game.title : "");
       setSearchQuery("");
       document.body.style.overflow = "hidden";
-      if (resourceType === "collections") {
-        setTimeout(() => {
-          createInputRef.current?.focus();
+      setTimeout(() => {
+        createInputRef.current?.focus();
+        if (resourceType === "collections" && createInputRef.current?.value) {
           createInputRef.current?.select();
-        }, 0);
-      }
+        }
+      }, 0);
     } else {
       document.body.style.overflow = "";
     }
@@ -168,9 +178,21 @@ export default function AddToCollectionLikeModal({
     }
   };
 
-  const handleCreateCollection = async () => {
-    if (resourceType === "collections" && newCollectionTitle.trim()) {
-      await createCollection.createCollection(newCollectionTitle.trim());
+  const handleCreateNew = async () => {
+    const title = newItemTitle.trim();
+    if (!title) return;
+    if (resourceType === "collections") {
+      await createCollection.createCollection(title);
+    } else if (resourceType === "developers") {
+      const developer = await createDeveloper.createDeveloper(title);
+      if (developer) {
+        await addGameToDeveloper.addGameToDeveloper(game.id, developer.id, developer.title);
+      }
+    } else if (resourceType === "publishers") {
+      const publisher = await createPublisher.createPublisher(title);
+      if (publisher) {
+        await addGameToPublisher.addGameToPublisher(game.id, publisher.id, publisher.title);
+      }
     }
   };
 
@@ -224,35 +246,43 @@ export default function AddToCollectionLikeModal({
           )}
         </div>
 
-        {resourceType === "collections" && (
-          <div className="add-to-collection-modal-create">
-            <input
-              ref={createInputRef}
-              id="add-to-collection-create-title"
-              name="newCollectionTitle"
-              type="text"
-              placeholder={t("collections.newCollectionTitle", "New collection title")}
-              value={newCollectionTitle}
-              onChange={(e) => setNewCollectionTitle(e.target.value)}
-              onFocus={(e) => {
-                if (e.target.value) e.target.select();
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleCreateCollection();
-              }}
-              aria-label={t("collections.newCollectionTitle", "New collection title")}
-            />
-            <button
-              onClick={handleCreateCollection}
-              disabled={!newCollectionTitle.trim() || createCollection.isCreating}
-              className="add-to-collection-modal-create-button"
-            >
-              {createCollection.isCreating
-                ? t("common.creating", "Creating...")
+        <div className="add-to-collection-modal-create">
+          <input
+            ref={createInputRef}
+            id="add-to-collection-create-title"
+            name="newItemTitle"
+            type="text"
+            placeholder={t(config.newTitlePlaceholderKey)}
+            value={newItemTitle}
+            onChange={(e) => setNewItemTitle(e.target.value)}
+            onFocus={(e) => {
+              if (e.target.value) e.target.select();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleCreateNew();
+            }}
+            aria-label={t(config.newTitlePlaceholderKey)}
+          />
+          <button
+            onClick={handleCreateNew}
+            disabled={
+              !newItemTitle.trim() ||
+              (resourceType === "collections" && createCollection.isCreating) ||
+              (resourceType === "developers" && (createDeveloper.isCreating || addGameToDeveloper.isAdding)) ||
+              (resourceType === "publishers" && (createPublisher.isCreating || addGameToPublisher.isAdding))
+            }
+            className="add-to-collection-modal-create-button"
+          >
+            {resourceType === "collections" && createCollection.isCreating
+              ? t("common.creating", "Creating...")
+              : (resourceType === "developers" && (createDeveloper.isCreating || addGameToDeveloper.isAdding)) ||
+                  (resourceType === "publishers" && (createPublisher.isCreating || addGameToPublisher.isAdding))
+                ? createDeveloper.isCreating || createPublisher.isCreating
+                  ? t("common.creating", "Creating...")
+                  : t("common.adding", "Adding...")
                 : t("common.create", "Create")}
-            </button>
-          </div>
-        )}
+          </button>
+        </div>
       </div>
     </div>,
     document.body

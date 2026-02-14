@@ -22,6 +22,10 @@ type DropdownMenuProps = {
   collectionTitle?: string;
   onCollectionDelete?: (collectionId: string) => void;
   onCollectionUpdate?: (collection: any) => void;
+  developerId?: string;
+  publisherId?: string;
+  onRemoveFromDeveloper?: () => void;
+  onRemoveFromPublisher?: () => void;
   className?: string;
   horizontal?: boolean;
   onModalOpen?: () => void;
@@ -45,6 +49,10 @@ export default function DropdownMenu({
   collectionTitle,
   onCollectionDelete,
   onCollectionUpdate,
+  developerId,
+  publisherId,
+  onRemoveFromDeveloper,
+  onRemoveFromPublisher,
   className = "",
   horizontal = false,
   onModalOpen,
@@ -510,7 +518,7 @@ export default function DropdownMenu({
               />
             )}
             
-            {/* Second Section: Remove from Collection (only in collection detail) */}
+            {/* Second Section: Remove from Collection / Developer / Publisher */}
             {onRemoveFromCollection && gameId && collectionId && (
               <button
                 onClick={async (e) => {
@@ -529,7 +537,31 @@ export default function DropdownMenu({
                 </span>
               </button>
             )}
-            {onRemoveFromCollection && gameId && collectionId && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !onEdit && !onDelete)) || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (getApiToken() && (gameId || collectionId)))) && (
+            {onRemoveFromDeveloper && gameId && developerId && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOpen(false);
+                  onRemoveFromDeveloper?.();
+                }}
+                className="dropdown-menu-item dropdown-menu-item-danger"
+              >
+                <span>{t("igdbInfo.removeFromDeveloper", "Remove from developer")}</span>
+              </button>
+            )}
+            {onRemoveFromPublisher && gameId && publisherId && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOpen(false);
+                  onRemoveFromPublisher?.();
+                }}
+                className="dropdown-menu-item dropdown-menu-item-danger"
+              >
+                <span>{t("igdbInfo.removeFromPublisher", "Remove from publisher")}</span>
+              </button>
+            )}
+            {((onRemoveFromCollection && gameId && collectionId) || (onRemoveFromDeveloper && gameId && developerId) || (onRemoveFromPublisher && gameId && publisherId)) && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !onEdit && !onDelete)) || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (getApiToken() && (gameId || collectionId)))) && (
               <div className="dropdown-menu-divider" />
             )}
             
