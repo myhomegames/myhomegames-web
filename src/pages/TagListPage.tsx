@@ -141,8 +141,7 @@ export default function TagListPage({
     return () => {
       isActive = false;
       if (controller) controller.abort();
-      if (timeoutId) clearTimeout(timeoutId);
-      clearTimeout(timeoutId);
+      if (timeoutId != null) clearTimeout(timeoutId);
     };
   }, [listEndpoint, listResponseKey, routeBase]);
 

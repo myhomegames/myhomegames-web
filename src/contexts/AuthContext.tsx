@@ -113,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     // Check if this is a dev token (don't require clientId for dev tokens)
     const isDevToken = DEV_TOKEN && authToken === DEV_TOKEN;
-    
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
     try {
       const headers: Record<string, string> = {
         "X-Auth-Token": authToken,
@@ -126,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 90000);
+      timeoutId = setTimeout(() => controller.abort(), 90000);
       const response = await fetch(`${API_BASE}/auth/me`, {
         headers,
         signal: controller.signal,

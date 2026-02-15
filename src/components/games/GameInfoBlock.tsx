@@ -3,6 +3,9 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import type { IGDBGame, GameItem } from "../../types";
 import { useLibraryGames } from "../../contexts/LibraryGamesContext";
+import { useDevelopers } from "../../contexts/DevelopersContext";
+import { usePublishers } from "../../contexts/PublishersContext";
+import { useTagLists } from "../../contexts/TagListsContext";
 import WebsitesList from "./WebsitesList";
 import InlineTagList from "../common/InlineTagList";
 import "./GameInfoBlock.css";
@@ -11,25 +14,27 @@ type GameInfoBlockProps = {
   game: IGDBGame | GameItem;
 };
 
+/** Normalize API field (number[] or legacy object[]) to string[] of ids. */
+function toIdStrings(value: unknown): string[] {
+  if (value == null || !Array.isArray(value)) return [];
+  return value.map((x) =>
+    typeof x === "object" && x != null && "id" in x ? String((x as { id: number }).id) : String(x)
+  );
+}
+
 export default function GameInfoBlock({ game }: GameInfoBlockProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { games: libraryGames } = useLibraryGames();
+  const { developers } = useDevelopers();
+  const { publishers } = usePublishers();
+  const { tagLabels } = useTagLists();
 
-  // Get game ID (for GameItem it's id, for IGDBGame it's id as number)
-  const gameId = 'id' in game ? String(game.id) : undefined;
+  const gameId = "id" in game ? String(game.id) : undefined;
 
-  type FranchiseSeriesItem = string | { id: number; name: string };
-  const toFranchiseSeriesList = (
-    value: FranchiseSeriesItem | FranchiseSeriesItem[] | undefined
-  ): FranchiseSeriesItem[] => {
-    if (value == null) return [];
-    return Array.isArray(value) ? value : [value];
-  };
-  const franchiseList = toFranchiseSeriesList(game.franchise);
-  const seriesList = toFranchiseSeriesList(game.series ?? game.collection);
+  const franchiseIds = toIdStrings(game.franchise);
+  const seriesIds = toIdStrings(game.series ?? game.collection);
 
-  // Check if game has any IGDB fields
   const hasInfo =
     gameId !== undefined ||
     (game.themes && game.themes.length > 0) ||
@@ -39,8 +44,8 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
     (game.websites && game.websites.length > 0) ||
     (game.developers && game.developers.length > 0) ||
     (game.publishers && game.publishers.length > 0) ||
-    franchiseList.length > 0 ||
-    seriesList.length > 0 ||
+    franchiseIds.length > 0 ||
+    seriesIds.length > 0 ||
     (game.screenshots && game.screenshots.length > 0) ||
     (game.gameEngines && game.gameEngines.length > 0) ||
     (game.alternativeNames && game.alternativeNames.length > 0) ||
@@ -50,31 +55,15 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
     return null;
   }
 
-  const formatFranchiseOrSeries = (value: FranchiseSeriesItem | undefined): string => {
-    if (value == null) return "";
-    if (typeof value === "string") return value;
-    return value.name;
-  };
-
-  const toFranchiseSeriesIds = (list: FranchiseSeriesItem[]): string[] =>
-    list.map((item) => (typeof item === "string" ? item : String(item.id)));
-
-  type TagItem = { id: number; title: string } | string;
-  const renderTagList = (
-    items: TagItem[],
+  const renderTagListByIds = (
+    ids: string[],
     routeBase: string,
-    display: (value: TagItem) => string
+    getLabel: (id: string) => string
   ) => (
     <InlineTagList
-      items={items}
-      getLabel={display}
-      onItemClick={(value) =>
-        navigate(
-          typeof value === "object" && value != null && "id" in value
-            ? `${routeBase}/${value.id}`
-            : `${routeBase}/${encodeURIComponent(String(value))}`
-        )
-      }
+      items={ids}
+      getLabel={getLabel}
+      onItemClick={(id) => navigate(`${routeBase}/${encodeURIComponent(id)}`)}
       useInfoStyles
       showMoreMinCount={5}
       showMoreLabel={t("gameDetail.andMore", ", and more")}
@@ -98,13 +87,11 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           <div className="text-white game-info-label">
             {t("igdbInfo.themes", "Themes")}
           </div>
-          {renderTagList(
-            game.themes as TagItem[],
+          {renderTagListByIds(
+            toIdStrings(game.themes),
             "/themes",
-            (value) =>
-              typeof value === "object" && value != null && "title" in value
-                ? t(`themes.${value.title}`, value.title)
-                : t(`themes.${value}`, String(value))
+            (id) =>
+              t(`themes.${tagLabels.themes.get(id) ?? id}`, tagLabels.themes.get(id) ?? id)
           )}
         </div>
       )}
@@ -115,13 +102,10 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           <div className="text-white game-info-label">
             {t("igdbInfo.platforms", "Platforms")}
           </div>
-          {renderTagList(
-            game.platforms as TagItem[],
+          {renderTagListByIds(
+            toIdStrings(game.platforms),
             "/platforms",
-            (value) =>
-              typeof value === "object" && value != null && "title" in value
-                ? value.title
-                : String(value)
+            (id) => tagLabels.platforms.get(id) ?? id
           )}
         </div>
       )}
@@ -132,13 +116,10 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           <div className="text-white game-info-label">
             {t("igdbInfo.gameModes", "Game Modes")}
           </div>
-          {renderTagList(
-            game.gameModes as TagItem[],
+          {renderTagListByIds(
+            toIdStrings(game.gameModes),
             "/game-modes",
-            (value) =>
-              typeof value === "object" && value != null && "title" in value
-                ? t(`gameModes.${value.title}`, value.title)
-                : t(`gameModes.${value}`, String(value))
+            (id) => t(`gameModes.${tagLabels.gameModes.get(id) ?? id}`, tagLabels.gameModes.get(id) ?? id)
           )}
         </div>
       )}
@@ -149,13 +130,14 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           <div className="text-white game-info-label">
             {t("igdbInfo.playerPerspectives", "Player Perspectives")}
           </div>
-          {renderTagList(
-            game.playerPerspectives as TagItem[],
+          {renderTagListByIds(
+            toIdStrings(game.playerPerspectives),
             "/player-perspectives",
-            (value) =>
-              typeof value === "object" && value != null && "title" in value
-                ? t(`playerPerspectives.${value.title}`, value.title)
-                : t(`playerPerspectives.${value}`, String(value))
+            (id) =>
+              t(
+                `playerPerspectives.${tagLabels.playerPerspectives.get(id) ?? id}`,
+                tagLabels.playerPerspectives.get(id) ?? id
+              )
           )}
         </div>
       )}
@@ -170,17 +152,15 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
         </div>
       )}
 
-      {/* Developers */}
+      {/* Developers (API returns id[]; resolve name from context) */}
       {game.developers && game.developers.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
             {t("igdbInfo.developers", "Developers")}
           </div>
           <InlineTagList
-            items={game.developers.map((d) => String(d.id))}
-            getLabel={(id) =>
-              game.developers?.find((d) => String(d.id) === id)?.name ?? id
-            }
+            items={toIdStrings(game.developers)}
+            getLabel={(id) => developers.find((d) => String(d.id) === id)?.title ?? id}
             onItemClick={(value) =>
               navigate(`/developers/${encodeURIComponent(value)}`)
             }
@@ -191,17 +171,15 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
         </div>
       )}
 
-      {/* Publishers */}
+      {/* Publishers (API returns id[]; resolve name from context) */}
       {game.publishers && game.publishers.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
             {t("igdbInfo.publishers", "Publishers")}
           </div>
           <InlineTagList
-            items={game.publishers.map((p) => String(p.id))}
-            getLabel={(id) =>
-              game.publishers?.find((p) => String(p.id) === id)?.name ?? id
-            }
+            items={toIdStrings(game.publishers)}
+            getLabel={(id) => publishers.find((p) => String(p.id) === id)?.title ?? id}
             onItemClick={(value) =>
               navigate(`/publishers/${encodeURIComponent(value)}`)
             }
@@ -212,52 +190,33 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
         </div>
       )}
 
-      {/* Franchise (list) */}
-      {franchiseList.length > 0 && (
+      {/* Franchise */}
+      {franchiseIds.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
             {t("igdbInfo.franchise", "Franchise")}
           </div>
-          <InlineTagList
-            items={toFranchiseSeriesIds(franchiseList)}
-            getLabel={(id) =>
-              formatFranchiseOrSeries(
-                franchiseList.find((item) =>
-                  typeof item === "string" ? item === id : String(item.id) === id
-                )
-              )
-            }
-            onItemClick={(id) => navigate(`/franchise/${encodeURIComponent(id)}`)}
-            useInfoStyles
-            showMoreMinCount={5}
-            showMoreLabel={t("gameDetail.andMore", ", and more")}
-          />
+          {renderTagListByIds(
+            franchiseIds,
+            "/franchise",
+            (id) => tagLabels.franchises.get(id) ?? id
+          )}
         </div>
       )}
 
-      {/* Series (IGDB "collection" – list) */}
-      {seriesList.length > 0 && (
+      {/* Series (collection) */}
+      {seriesIds.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
             {t("igdbInfo.series", "Series")}
           </div>
-          <InlineTagList
-            items={toFranchiseSeriesIds(seriesList)}
-            getLabel={(id) =>
-              formatFranchiseOrSeries(
-                seriesList.find((item) =>
-                  typeof item === "string" ? item === id : String(item.id) === id
-                )
-              )
-            }
-            onItemClick={(id) => navigate(`/series/${encodeURIComponent(id)}`)}
-            useInfoStyles
-            showMoreMinCount={5}
-            showMoreLabel={t("gameDetail.andMore", ", and more")}
-          />
+          {renderTagListByIds(
+            seriesIds,
+            "/series",
+            (id) => tagLabels.series.get(id) ?? id
+          )}
         </div>
       )}
-
 
       {/* Game Engines */}
       {game.gameEngines && game.gameEngines.length > 0 && (
@@ -265,11 +224,10 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           <div className="text-white game-info-label">
             {t("igdbInfo.gameEngines", "Game Engines")}
           </div>
-          {renderTagList(
-            game.gameEngines as TagItem[],
+          {renderTagListByIds(
+            toIdStrings(game.gameEngines),
             "/game-engines",
-            (value) =>
-              typeof value === "object" && value != null && "title" in value ? value.title : String(value)
+            (id) => tagLabels.gameEngines.get(id) ?? id
           )}
         </div>
       )}

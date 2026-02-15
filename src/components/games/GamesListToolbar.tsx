@@ -5,6 +5,7 @@ import SortPopup from "../toolbar/SortPopup";
 import type { FilterField, GameItem } from "../filters/types";
 import type { SortField } from "../../types";
 import { formatAgeRating } from "./AgeRatings";
+import { useTagLists } from "../../contexts/TagListsContext";
 import "./GamesListToolbar.css";
 
 type TagItem = { id: number; title: string } | string;
@@ -15,10 +16,12 @@ function buildTagLabelMap(
 ): Map<string, string> {
   const map = new Map<string, string>();
   games.forEach((game) => {
-    const list = (game[field] as TagItem[] | undefined) ?? [];
+    const list = (game[field] as (TagItem | number)[] | undefined) ?? [];
     list.forEach((item) => {
-      if (typeof item === "object" && item != null && "id" in item && "title" in item) {
-        map.set(String(item.id), item.title);
+      if (typeof item === "number" && !Number.isNaN(item)) {
+        map.set(String(item), String(item));
+      } else if (typeof item === "object" && item != null && "id" in item && "title" in item) {
+        map.set(String((item as { id: number }).id), (item as { title: string }).title);
       } else if (typeof item === "string" && item.trim()) {
         map.set(item.trim(), item.trim());
       }
@@ -35,9 +38,11 @@ function buildDevPubLabelMap(
   games.forEach((game) => {
     const list = game[field];
     if (!list || !Array.isArray(list)) return;
-    list.forEach((item) => {
-      if (typeof item === "object" && item != null && "id" in item && "name" in item) {
-        map.set(String(item.id), item.name);
+    list.forEach((item: number | { id: number; name?: string }) => {
+      if (typeof item === "number" && !Number.isNaN(item)) {
+        map.set(String(item), String(item));
+      } else if (typeof item === "object" && item != null && "id" in item) {
+        map.set(String(item.id), (item as { name?: string }).name ?? String(item.id));
       }
     });
   });
@@ -140,6 +145,7 @@ export default function GamesListToolbar({
   availablePublishers = [],
 }: GamesListToolbarProps) {
   const { t } = useTranslation();
+  const { tagLabels: contextTagLabels } = useTagLists();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
@@ -151,6 +157,13 @@ export default function GamesListToolbar({
     const empty = () => emptyMap;
     const tagFields = ["themes", "platforms", "gameModes", "playerPerspectives", "gameEngines"] as const;
     const needMaps = tagFields.some((f) => currentFilter === f);
+    const resolve = (fromGames: Map<string, string>, contextMap: Map<string, string>) => {
+      const out = new Map<string, string>();
+      fromGames.forEach((label, id) => {
+        out.set(id, contextMap.get(id) ?? label);
+      });
+      return out;
+    };
     if (!needMaps) {
       return {
         themes: empty(),
@@ -161,13 +174,13 @@ export default function GamesListToolbar({
       };
     }
     return {
-      themes: currentFilter === "themes" ? buildTagLabelMap(games, "themes") : empty(),
-      platforms: currentFilter === "platforms" ? buildTagLabelMap(games, "platforms") : empty(),
-      gameModes: currentFilter === "gameModes" ? buildTagLabelMap(games, "gameModes") : empty(),
-      playerPerspectives: currentFilter === "playerPerspectives" ? buildTagLabelMap(games, "playerPerspectives") : empty(),
-      gameEngines: currentFilter === "gameEngines" ? buildTagLabelMap(games, "gameEngines") : empty(),
+      themes: currentFilter === "themes" ? resolve(buildTagLabelMap(games, "themes"), contextTagLabels.themes) : empty(),
+      platforms: currentFilter === "platforms" ? resolve(buildTagLabelMap(games, "platforms"), contextTagLabels.platforms) : empty(),
+      gameModes: currentFilter === "gameModes" ? resolve(buildTagLabelMap(games, "gameModes"), contextTagLabels.gameModes) : empty(),
+      playerPerspectives: currentFilter === "playerPerspectives" ? resolve(buildTagLabelMap(games, "playerPerspectives"), contextTagLabels.playerPerspectives) : empty(),
+      gameEngines: currentFilter === "gameEngines" ? resolve(buildTagLabelMap(games, "gameEngines"), contextTagLabels.gameEngines) : empty(),
     };
-  }, [games, currentFilter, emptyMap]);
+  }, [games, currentFilter, emptyMap, contextTagLabels]);
 
   const devPubLabelMaps = useMemo(() => {
     const empty = () => emptyMap;

@@ -3,25 +3,13 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { API_BASE, API_TOKEN, getApiToken } from "../../config";
 import { useLoading } from "../../contexts/LoadingContext";
+import { useCategories } from "../../contexts/CategoriesContext";
+import { useTagLists } from "../../contexts/TagListsContext";
 import { EditGameInfoTab, EditGameMediaTab, EditGameTagsTab } from "./edit";
 import type { GameItem } from "../../types";
 import { buildApiUrl } from "../../utils/api";
 import { toTagTitles as toTagTitlesUtil } from "../filters/tagFilterUtils";
 import "./EditGameModal.css";
-
-function toIdNameList(
-  v: (string | { id: number; name: string })[] | (string | { id: number; name: string }) | undefined | null
-): Array<{ id: number; name: string }> {
-  if (!v) return [];
-  const arr = Array.isArray(v) ? v : [v];
-  return arr
-    .map((x) => {
-      if (typeof x === "object" && x != null && (x as { id?: number }).id != null)
-        return { id: Number((x as { id: number; name: string }).id), name: String((x as { id: number; name: string }).name || (x as { id: number }).id) };
-      return null;
-    })
-    .filter((x): x is { id: number; name: string } => x != null);
-}
 
 type EditGameModalProps = {
   isOpen: boolean;
@@ -38,36 +26,40 @@ export default function EditGameModal({
 }: EditGameModalProps) {
   const { t } = useTranslation();
   const { setLoading } = useLoading();
+  const { categories } = useCategories();
+  const { tagLabels } = useTagLists();
   const [title, setTitle] = useState(game.title);
   const [summary, setSummary] = useState(game.summary || "");
   const [year, setYear] = useState(game.year?.toString() || "");
   const [month, setMonth] = useState(game.month?.toString() || "");
   const [day, setDay] = useState(game.day?.toString() || "");
-  const [selectedGenres, setSelectedGenres] = useState<string[]>(() =>
-    Array.isArray(game.genre)
-      ? toTagTitlesUtil(game.genre as Array<{ id: number; title: string } | string>)
-      : game.genre
-        ? [typeof game.genre === "string" ? game.genre : String((game.genre as { title: string }).title)]
-        : []
-  );
-  const [selectedThemes, setSelectedThemes] = useState<string[]>(() => toTagTitlesUtil(game.themes));
-  const [selectedKeywords, setSelectedKeywords] = useState<string[]>(
-    Array.isArray(game.keywords) ? game.keywords : []
-  );
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(() => toTagTitlesUtil(game.platforms));
-  const [selectedGameModes, setSelectedGameModes] = useState<string[]>(() => toTagTitlesUtil(game.gameModes));
-  const [selectedPlayerPerspectives, setSelectedPlayerPerspectives] = useState<string[]>(() =>
-    toTagTitlesUtil(game.playerPerspectives)
-  );
-  const [selectedGameEngines, setSelectedGameEngines] = useState<string[]>(() =>
-    toTagTitlesUtil(game.gameEngines)
-  );
-  const [selectedFranchise, setSelectedFranchise] = useState<Array<{ id: number; name: string }>>(() =>
-    toIdNameList(game.franchise)
-  );
-  const [selectedSeries, setSelectedSeries] = useState<Array<{ id: number; name: string }>>(() =>
-    toIdNameList(game.series ?? game.collection)
-  );
+  const idsToTitles = (ids: unknown, map: Map<string, string>) =>
+    (Array.isArray(ids) ? ids : ids != null ? [ids] : []).map((x) =>
+      typeof x === "number" ? (map.get(String(x)) ?? String(x)) : typeof x === "object" && x != null && "id" in x ? (map.get(String((x as { id: number }).id)) ?? String((x as { id: number }).id)) : String(x)
+    );
+  const idsToIdName = (ids: unknown, map: Map<string, string>) =>
+    (Array.isArray(ids) ? ids : ids != null ? [ids] : []).map((x) => {
+      const id = typeof x === "number" ? x : typeof x === "object" && x != null && "id" in x ? Number((x as { id: number }).id) : null;
+      if (id == null || Number.isNaN(id)) return null;
+      return { id, name: map.get(String(id)) ?? String(id) };
+    }).filter((x): x is { id: number; name: string } => x != null);
+  const genreIdsToTitles = (ids: unknown) =>
+    (Array.isArray(ids) ? ids : ids != null ? [ids] : []).map((x) => {
+      const id = typeof x === "number" ? x : typeof x === "object" && x != null && "id" in x ? Number((x as { id: number }).id) : null;
+      if (id == null) return String(x);
+      const c = categories.find((cat) => String(cat.id) === String(id));
+      return c?.title ?? String(id);
+    });
+
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [selectedThemes, setSelectedThemes] = useState<string[]>([]);
+  const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [selectedGameModes, setSelectedGameModes] = useState<string[]>([]);
+  const [selectedPlayerPerspectives, setSelectedPlayerPerspectives] = useState<string[]>([]);
+  const [selectedGameEngines, setSelectedGameEngines] = useState<string[]>([]);
+  const [selectedFranchise, setSelectedFranchise] = useState<Array<{ id: number; name: string }>>([]);
+  const [selectedSeries, setSelectedSeries] = useState<Array<{ id: number; name: string }>>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"INFO" | "TAGS" | "MEDIA">("INFO");
@@ -119,21 +111,15 @@ export default function EditGameModal({
       setYear(game.year?.toString() || "");
       setMonth(game.month?.toString() || "");
       setDay(game.day?.toString() || "");
-      setSelectedGenres(
-        Array.isArray(game.genre)
-          ? toTagTitlesUtil(game.genre as Array<{ id: number; title: string } | string>)
-          : game.genre
-            ? [typeof game.genre === "string" ? game.genre : String((game.genre as { title: string }).title)]
-            : []
-      );
-      setSelectedThemes(toTagTitlesUtil(game.themes));
+      setSelectedGenres(genreIdsToTitles(game.genre));
+      setSelectedThemes(idsToTitles(game.themes, tagLabels.themes));
       setSelectedKeywords(Array.isArray(game.keywords) ? game.keywords : []);
-      setSelectedPlatforms(toTagTitlesUtil(game.platforms));
-      setSelectedGameModes(toTagTitlesUtil(game.gameModes));
-      setSelectedPlayerPerspectives(toTagTitlesUtil(game.playerPerspectives));
-      setSelectedGameEngines(toTagTitlesUtil(game.gameEngines));
-      setSelectedFranchise(toIdNameList(game.franchise));
-      setSelectedSeries(toIdNameList(game.series ?? game.collection));
+      setSelectedPlatforms(idsToTitles(game.platforms, tagLabels.platforms));
+      setSelectedGameModes(idsToTitles(game.gameModes, tagLabels.gameModes));
+      setSelectedPlayerPerspectives(idsToTitles(game.playerPerspectives, tagLabels.playerPerspectives));
+      setSelectedGameEngines(idsToTitles(game.gameEngines, tagLabels.gameEngines));
+      setSelectedFranchise(idsToIdName(game.franchise, tagLabels.franchises));
+      setSelectedSeries(idsToIdName(game.series ?? game.collection, tagLabels.series));
       setError(null);
       setActiveTab("INFO");
       setCoverPreview(null);
@@ -146,7 +132,7 @@ export default function EditGameModal({
       // Generate new timestamp to force image reload when modal opens
       setImageTimestamp(Date.now());
     }
-  }, [isOpen, game]);
+  }, [isOpen, game, tagLabels, categories]);
 
   // Update removed state when game is updated (e.g., after image removal)
   useEffect(() => {
@@ -203,22 +189,18 @@ export default function EditGameModal({
     if (day !== (game.day?.toString() || "")) return true;
     if (showTitle !== (game.showTitle !== false)) return true;
 
-    const currentGenre = Array.isArray(game.genre)
-      ? toTagTitlesUtil(game.genre as Array<{ id: number; title: string } | string>)
-      : game.genre
-        ? [typeof game.genre === "string" ? game.genre : String((game.genre as { title: string }).title)]
-        : [];
+    const currentGenre = genreIdsToTitles(game.genre);
     if (!areTagsEqual(selectedGenres, currentGenre)) {
       return true;
     }
-    if (!areTagsEqual(selectedThemes, toTagTitlesUtil(game.themes))) return true;
+    if (!areTagsEqual(selectedThemes, idsToTitles(game.themes, tagLabels.themes))) return true;
     if (!areTagsEqual(selectedKeywords, normalizeTagArray(game.keywords))) return true;
-    if (!areTagsEqual(selectedPlatforms, toTagTitlesUtil(game.platforms))) return true;
-    if (!areTagsEqual(selectedGameModes, toTagTitlesUtil(game.gameModes))) return true;
-    if (!areTagsEqual(selectedPlayerPerspectives, toTagTitlesUtil(game.playerPerspectives))) return true;
-    if (!areTagsEqual(selectedGameEngines, toTagTitlesUtil(game.gameEngines))) return true;
-    const currentFranchise = toIdNameList(game.franchise);
-    const currentSeries = toIdNameList(game.series ?? game.collection);
+    if (!areTagsEqual(selectedPlatforms, idsToTitles(game.platforms, tagLabels.platforms))) return true;
+    if (!areTagsEqual(selectedGameModes, idsToTitles(game.gameModes, tagLabels.gameModes))) return true;
+    if (!areTagsEqual(selectedPlayerPerspectives, idsToTitles(game.playerPerspectives, tagLabels.playerPerspectives))) return true;
+    if (!areTagsEqual(selectedGameEngines, idsToTitles(game.gameEngines, tagLabels.gameEngines))) return true;
+    const currentFranchise = idsToIdName(game.franchise, tagLabels.franchises);
+    const currentSeries = idsToIdName(game.series ?? game.collection, tagLabels.series);
     if (
       selectedFranchise.length !== currentFranchise.length ||
       selectedFranchise.some((f, i) => currentFranchise[i]?.id !== f.id || currentFranchise[i]?.name !== f.name)
@@ -400,41 +382,39 @@ export default function EditGameModal({
       }
 
       // Check if genres changed
-      const currentGenre = Array.isArray(game.genre)
-        ? toTagTitlesUtil(game.genre as Array<{ id: number; title: string } | string>)
-        : game.genre
-          ? [typeof game.genre === "string" ? game.genre : String((game.genre as { title: string }).title)]
-          : [];
+      const currentGenre = genreIdsToTitles(game.genre);
       if (!areTagsEqual(selectedGenres, currentGenre)) {
         updates.genre = selectedGenres.length === 1 ? selectedGenres[0] : selectedGenres;
       }
-      if (!areTagsEqual(selectedThemes, toTagTitlesUtil(game.themes))) {
+      if (!areTagsEqual(selectedThemes, idsToTitles(game.themes, tagLabels.themes))) {
         updates.themes = selectedThemes.length > 0 ? selectedThemes : [];
       }
       if (!areTagsEqual(selectedKeywords, normalizeTagArray(game.keywords))) {
         updates.keywords = selectedKeywords.length > 0 ? selectedKeywords : [];
       }
-      if (!areTagsEqual(selectedPlatforms, toTagTitlesUtil(game.platforms))) {
+      if (!areTagsEqual(selectedPlatforms, idsToTitles(game.platforms, tagLabels.platforms))) {
         updates.platforms = selectedPlatforms.length > 0 ? selectedPlatforms : [];
       }
-      if (!areTagsEqual(selectedGameModes, toTagTitlesUtil(game.gameModes))) {
+      if (!areTagsEqual(selectedGameModes, idsToTitles(game.gameModes, tagLabels.gameModes))) {
         updates.gameModes = selectedGameModes.length > 0 ? selectedGameModes : [];
       }
-      if (!areTagsEqual(selectedPlayerPerspectives, toTagTitlesUtil(game.playerPerspectives))) {
+      if (!areTagsEqual(selectedPlayerPerspectives, idsToTitles(game.playerPerspectives, tagLabels.playerPerspectives))) {
         updates.playerPerspectives = selectedPlayerPerspectives.length > 0 ? selectedPlayerPerspectives : [];
       }
-      if (!areTagsEqual(selectedGameEngines, toTagTitlesUtil(game.gameEngines))) {
+      if (!areTagsEqual(selectedGameEngines, idsToTitles(game.gameEngines, tagLabels.gameEngines))) {
         updates.gameEngines = selectedGameEngines.length > 0 ? selectedGameEngines : [];
       }
+      const currentFranchise = idsToIdName(game.franchise, tagLabels.franchises);
       if (
-        selectedFranchise.length !== toIdNameList(game.franchise).length ||
-        selectedFranchise.some((f, i) => toIdNameList(game.franchise)[i]?.id !== f.id)
+        selectedFranchise.length !== currentFranchise.length ||
+        selectedFranchise.some((f, i) => currentFranchise[i]?.id !== f.id)
       ) {
         updates.franchise = selectedFranchise.length > 0 ? selectedFranchise : null;
       }
+      const currentSeries = idsToIdName(game.series ?? game.collection, tagLabels.series);
       if (
-        selectedSeries.length !== toIdNameList(game.series ?? game.collection).length ||
-        selectedSeries.some((s, i) => toIdNameList(game.series ?? game.collection)[i]?.id !== s.id)
+        selectedSeries.length !== currentSeries.length ||
+        selectedSeries.some((s, i) => currentSeries[i]?.id !== s.id)
       ) {
         updates.collection = selectedSeries.length > 0 ? selectedSeries : null;
       }

@@ -11,6 +11,7 @@ import { CollectionsProvider } from "./contexts/CollectionsContext";
 import { DevelopersProvider } from "./contexts/DevelopersContext";
 import { PublishersProvider } from "./contexts/PublishersContext";
 import { LibraryGamesProvider } from "./contexts/LibraryGamesContext";
+import { TagListsProvider } from "./contexts/TagListsContext";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -21,7 +22,9 @@ createRoot(document.getElementById("root")!).render(
             <DevelopersProvider>
               <PublishersProvider>
                 <LibraryGamesProvider>
-                  <App />
+                  <TagListsProvider>
+                    <App />
+                  </TagListsProvider>
                 </LibraryGamesProvider>
               </PublishersProvider>
             </DevelopersProvider>

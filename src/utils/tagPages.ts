@@ -55,38 +55,58 @@ type TagPageConfig = {
   getCoverDescription: (t: TranslationFn) => string;
 };
 
-/** Extract tag ids from genre (array or single object). Returns only ids from objects with id. */
+/** Extract tag ids from genre. API returns number[]; legacy had { id, title }[]. */
 const getGenreIds = (game: GameItem): string[] | null => {
   if (!game.genre) return null;
   const raw = game.genre;
   const arr = Array.isArray(raw) ? raw : [raw];
   const ids = arr
-    .map((x) => (typeof x === "object" && x != null && "id" in x && (x as { id: number }).id != null ? String((x as { id: number }).id) : null))
+    .map((x) => {
+      if (typeof x === "number" && !Number.isNaN(x)) return String(x);
+      if (typeof x === "object" && x != null && "id" in x && (x as { id: number }).id != null)
+        return String((x as { id: number }).id);
+      return null;
+    })
     .filter((id): id is string => id != null);
   return ids.length > 0 ? ids : null;
 };
 
-/** Extract tag ids from array of { id, title } or string. Returns only ids from objects with id. */
-const getTagIdsOrNull = (
-  values: Array<{ id: number; title: string } | string> | string[] | undefined | null
-): string[] | null => {
+/** Extract tag ids from tag field. API returns number[]; legacy had { id, title }[] or string[]. */
+const getTagIdsOrNull = (values: unknown): string[] | null => {
   if (!values || !Array.isArray(values)) return null;
   const ids = values
-    .map((x) => (typeof x === "object" && x != null && "id" in x && (x as { id: number }).id != null ? String((x as { id: number }).id) : null))
+    .map((x) => {
+      if (typeof x === "number" && !Number.isNaN(x)) return String(x);
+      if (typeof x === "object" && x != null && "id" in x && (x as { id: number }).id != null)
+        return String((x as { id: number }).id);
+      if (typeof x === "string" && x.trim()) return x.trim();
+      return null;
+    })
     .filter((id): id is string => id != null);
   return ids.length > 0 ? ids : null;
 };
 
-const toDevPubIds = (arr: Array<{ id: number; name: string }> | undefined | null): string[] | null => {
+/** API returns number[] for developers/publishers; legacy had { id, name }[]. */
+const toDevPubIds = (
+  arr: number[] | Array<{ id: number; name?: string }> | undefined | null
+): string[] | null => {
   if (!arr || !Array.isArray(arr)) return null;
-  return arr.map((x) => String(x.id));
+  return arr
+    .map((x) => (typeof x === "number" ? String(x) : x?.id != null ? String(x.id) : null))
+    .filter((id): id is string => id != null);
 };
 
 const toSeriesFranchiseIds = (
-  arr: (string | { id: number; name: string })[] | undefined | null
+  arr: (number | string | { id: number; name?: string })[] | undefined | null
 ): string[] | null => {
   if (!arr || !Array.isArray(arr)) return null;
-  return arr.map((x) => (typeof x === "object" && x?.id != null ? String(x.id) : String(x))).filter(Boolean);
+  return arr
+    .map((x) => {
+      if (typeof x === "number" && !Number.isNaN(x)) return String(x);
+      if (typeof x === "object" && x?.id != null) return String(x.id);
+      return typeof x === "string" ? x : null;
+    })
+    .filter((id): id is string => id != null);
 };
 
 const toSeriesFranchiseArray = (

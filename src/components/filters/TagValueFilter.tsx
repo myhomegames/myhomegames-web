@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import BaseFilter from "./BaseFilter";
 import type { FilterConfig } from "./BaseFilter";
 import type { FilterType, FilterValue, GameItem } from "./types";
+import { useTagLists } from "../../contexts/TagListsContext";
 
 type TagItem = { id: number; title: string } | { id: number; name: string } | string;
 
@@ -21,6 +22,8 @@ type TagValueFilterProps = {
   games?: GameItem[];
 };
 
+const TAG_LABEL_KEYS = ["themes", "platforms", "gameModes", "playerPerspectives", "gameEngines"] as const;
+
 export default function TagValueFilter({
   type,
   labelKey,
@@ -30,6 +33,11 @@ export default function TagValueFilter({
   getLabelForValue,
   ...props
 }: TagValueFilterProps) {
+  const { tagLabels } = useTagLists();
+  const contextMap = TAG_LABEL_KEYS.includes(type as (typeof TAG_LABEL_KEYS)[number])
+    ? tagLabels[type as (typeof TAG_LABEL_KEYS)[number]]
+    : null;
+
   const filterConfig: FilterConfig = useMemo(() => ({
     type,
     labelKey,
@@ -39,12 +47,18 @@ export default function TagValueFilter({
       games.forEach((game) => {
         const list = valueExtractor(game) || [];
         list.forEach((item) => {
-          if (typeof item === "object" && item != null && "id" in item) {
+          if (typeof item === "number" && !Number.isNaN(item)) {
+            const key = String(item);
+            const label = contextMap?.get(key) ?? (formatValue ? formatValue(key) : key);
+            valueToLabel.set(key, label);
+          } else if (typeof item === "object" && item != null && "id" in item) {
             const key = String((item as { id: number }).id);
             if ("title" in item && typeof item.title === "string") {
               valueToLabel.set(key, item.title);
             } else if ("name" in item && typeof item.name === "string") {
               valueToLabel.set(key, (item as { id: number; name: string }).name);
+            } else {
+              valueToLabel.set(key, formatValue ? formatValue(key) : key);
             }
           } else if (typeof item === "string" && item.trim()) {
             const trimmed = item.trim();
@@ -62,7 +76,7 @@ export default function TagValueFilter({
       return String(value);
     },
     isScrollable: true,
-  }), [formatValue, getLabelForValue, labelKey, searchPlaceholderKey, type, valueExtractor]);
+  }), [contextMap, formatValue, getLabelForValue, labelKey, searchPlaceholderKey, type, valueExtractor]);
 
   return <BaseFilter {...props} config={filterConfig} />;
 }

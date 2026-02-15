@@ -16,14 +16,15 @@ export function getTagLabelFromGames(
   field: TagField,
   value: FilterValue
 ): string {
-  const list: Array<{ id: number; title: string } | string> = games?.flatMap((g) => {
+  const list: Array<{ id: number; title: string } | string | number> = games?.flatMap((g) => {
     const f = g[field];
-    return Array.isArray(f) ? (f as Array<{ id: number; title: string } | string>) : [];
+    return Array.isArray(f) ? (f as Array<{ id: number; title: string } | string | number>) : [];
   }) ?? [];
   const tag = list.find(
     (t: unknown) =>
       (typeof t === "object" && t != null && "id" in t && (t as { id: number }).id === Number(value)) ||
-      t === value
+      t === value ||
+      (typeof t === "number" && String(t) === String(value))
   );
   if (typeof tag === "object" && tag != null && "title" in tag) return (tag as { title: string }).title;
   if (typeof tag === "string") return tag;

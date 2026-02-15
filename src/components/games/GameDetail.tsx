@@ -18,7 +18,6 @@ import BackgroundManager, { useBackground } from "../common/BackgroundManager";
 import LibrariesBar from "../layout/LibrariesBar";
 import { useEditGame, useExecutable } from "../common/actions";
 import type { GameItem, CollectionItem } from "../../types";
-import { toTagTitles } from "../filters/tagFilterUtils";
 import { formatGameDate } from "../../utils/date";
 import { buildApiUrl, buildBackgroundUrl } from "../../utils/api";
 import { API_BASE, getApiToken } from "../../config";
@@ -331,7 +330,16 @@ function GameDetailContent({
       navigate(`/category/${category.id}`);
     }
   };
-  
+
+  // API returns genre as id[]; resolve to titles using categories
+  const genreTitles = useMemo(() => {
+    const raw = Array.isArray(game.genre) ? game.genre : game.genre != null ? [game.genre] : [];
+    return raw.map((id) => {
+      const c = categories.find((cat) => String(cat.id) === String(id));
+      return c?.title ?? String(id);
+    });
+  }, [game.genre, categories]);
+
   return (
     <>
       <div className={`game-detail-libraries-bar-wrapper ${hasBackground && isBackgroundVisible ? 'game-detail-libraries-bar-transparent' : ''}`}>
@@ -395,9 +403,7 @@ function GameDetailContent({
                 );
               })()}
               <InlineTagList
-                items={toTagTitles(
-                  Array.isArray(game.genre) ? game.genre : game.genre ? [game.genre as { id: number; title: string } | string] : []
-                )}
+                items={genreTitles}
                 getLabel={(genre) => t(`genre.${genre}`, genre)}
                 onItemClick={handleGenreClick}
                 showMoreLabel={t("gameDetail.andMore", ", and more")}

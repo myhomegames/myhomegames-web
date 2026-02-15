@@ -2,15 +2,9 @@ import { useState, useEffect } from "react";
 import type { TFunction } from "i18next";
 import TagEditor from "../../common/TagEditor";
 import type { IdNameItem } from "./FranchiseSeriesEditor";
+import { useTagLists } from "../../../contexts/TagListsContext";
 import { API_BASE, getApiToken } from "../../../config";
 import { buildApiUrl, buildApiHeaders } from "../../../utils/api";
-
-function toIdName(list: Array<{ id: number; title?: string; name?: string }> | undefined): IdNameItem[] {
-  return (list || []).map((x) => ({
-    id: Number(x.id),
-    name: String(x.title ?? x.name ?? x.id),
-  }));
-}
 
 /** Deterministic numeric id from name (same as server-side hash for franchise/series). */
 function hashStringToId(s: string): number {
@@ -73,6 +67,7 @@ export default function EditGameTagsTab({
   setSelectedFranchise,
   setSelectedSeries,
 }: EditGameTagsTabProps) {
+  const { tagLabels } = useTagLists();
   const [availableThemes, setAvailableThemes] = useState<string[]>([]);
   const [availablePlatforms, setAvailablePlatforms] = useState<string[]>([]);
   const [availableGameModes, setAvailableGameModes] = useState<string[]>([]);
@@ -82,30 +77,28 @@ export default function EditGameTagsTab({
   const [availableFranchises, setAvailableFranchises] = useState<IdNameItem[]>([]);
   const [availableSeries, setAvailableSeries] = useState<IdNameItem[]>([]);
 
+  // Suggestions from cache (TagListsContext)
+  useEffect(() => {
+    if (!isOpen) return;
+    setAvailableThemes(Array.from(tagLabels.themes.values()));
+    setAvailablePlatforms(Array.from(tagLabels.platforms.values()));
+    setAvailableGameModes(Array.from(tagLabels.gameModes.values()));
+    setAvailablePlayerPerspectives(Array.from(tagLabels.playerPerspectives.values()));
+    setAvailableGameEngines(Array.from(tagLabels.gameEngines.values()));
+    setAvailableFranchises(
+      Array.from(tagLabels.franchises.entries()).map(([id, name]) => ({ id: Number(id), name }))
+    );
+    setAvailableSeries(
+      Array.from(tagLabels.series.entries()).map(([id, name]) => ({ id: Number(id), name }))
+    );
+  }, [isOpen, tagLabels]);
+
+  // Keywords: not in TagListsContext, fetch when modal opens
   useEffect(() => {
     if (!isOpen || !getApiToken()) return;
-    const toTitles = (list: Array<{ title?: string; name?: string }> | undefined) =>
-      (list || []).map((x) => String((x as { title?: string }).title ?? (x as { name?: string }).name ?? "")).filter(Boolean);
-    Promise.all([
-      fetch(buildApiUrl(API_BASE, "/themes"), { headers: buildApiHeaders({ Accept: "application/json" }) }).then((r) => (r.ok ? r.json() : { themes: [] })),
-      fetch(buildApiUrl(API_BASE, "/platforms"), { headers: buildApiHeaders({ Accept: "application/json" }) }).then((r) => (r.ok ? r.json() : { platforms: [] })),
-      fetch(buildApiUrl(API_BASE, "/game-modes"), { headers: buildApiHeaders({ Accept: "application/json" }) }).then((r) => (r.ok ? r.json() : { gameModes: [] })),
-      fetch(buildApiUrl(API_BASE, "/player-perspectives"), { headers: buildApiHeaders({ Accept: "application/json" }) }).then((r) => (r.ok ? r.json() : { playerPerspectives: [] })),
-      fetch(buildApiUrl(API_BASE, "/game-engines"), { headers: buildApiHeaders({ Accept: "application/json" }) }).then((r) => (r.ok ? r.json() : { gameEngines: [] })),
-      fetch(buildApiUrl(API_BASE, "/keywords"), { headers: buildApiHeaders({ Accept: "application/json" }) }).then((r) => (r.ok ? r.json() : { keywords: [] })),
-      fetch(buildApiUrl(API_BASE, "/franchises"), { headers: buildApiHeaders({ Accept: "application/json" }) }).then((r) => (r.ok ? r.json() : { franchises: [] })),
-      fetch(buildApiUrl(API_BASE, "/series"), { headers: buildApiHeaders({ Accept: "application/json" }) }).then((r) => (r.ok ? r.json() : { series: [] })),
-    ])
-      .then(([t, p, gm, pp, ge, kw, fr, sr]) => {
-        setAvailableThemes(toTitles(t.themes));
-        setAvailablePlatforms(toTitles(p.platforms));
-        setAvailableGameModes(toTitles(gm.gameModes));
-        setAvailablePlayerPerspectives(toTitles(pp.playerPerspectives));
-        setAvailableGameEngines(toTitles(ge.gameEngines));
-        setAvailableKeywords(Array.isArray(kw.keywords) ? kw.keywords : []);
-        setAvailableFranchises(toIdName(fr.franchises));
-        setAvailableSeries(toIdName(sr.series));
-      })
+    fetch(buildApiUrl(API_BASE, "/keywords"), { headers: buildApiHeaders({ Accept: "application/json" }) })
+      .then((r) => (r.ok ? r.json() : { keywords: [] }))
+      .then((data) => setAvailableKeywords(Array.isArray(data.keywords) ? data.keywords : []))
       .catch(() => {});
   }, [isOpen]);
 
