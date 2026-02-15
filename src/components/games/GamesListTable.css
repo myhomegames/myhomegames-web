@@ -148,12 +148,6 @@
   padding-right: 12px;
 }
 
-/* Nessuna scrollbar orizzontale sotto il body (override stili inline di react-window) */
-.games-table-container,
-.games-table-container * {
-  overflow-x: hidden !important;
-}
-
 /* Solo quando il navigatore alfabetico è nel DOM (stesso layout ha .home-page-alphabet-container) */
 .home-page-layout:has(.home-page-alphabet-container) .games-table-scroll {
   width: calc(100% + 49px);
@@ -316,11 +310,31 @@
   font-size: 0.95rem;
   font-weight: 600;
   color: #f8f8f8;
-  min-width: 180px;
+  min-width: 0;
   width: 40%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  vertical-align: middle;
+}
+
+.games-table td.title-cell .tooltip-wrapper {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.games-table td.title-cell .tooltip-wrapper span,
+.games-table td.title-cell span,
+.games-table td.title-cell .first-cell-text,
+.games-table td.title-cell .title-cell-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .games-table td.title-cell .first-cell-text,
@@ -547,16 +561,37 @@
   opacity: 1;
 }
 
+/* Cella titolo virtualizzata: come data, ellissi sul titolo (Tooltip usa .tooltip-wrapper) */
 .virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.title-cell {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 0.95rem;
   font-weight: 600;
   color: #f8f8f8;
-  min-width: 180px;
+  min-width: 0;
   width: 40%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  vertical-align: middle;
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.title-cell .tooltip-wrapper {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.title-cell .tooltip-wrapper span,
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.title-cell span,
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.title-cell .first-cell-text,
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.title-cell .title-cell-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 /* Cella data virtualizzata: stessi stili di .games-table td.date-cell + contenuto che non esce */
