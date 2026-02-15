@@ -559,10 +559,25 @@
   white-space: nowrap;
 }
 
+/* Cella data virtualizzata: stessi stili di .games-table td.date-cell + contenuto che non esce */
 .virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.date-cell {
   font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.6);
   width: 12%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.date-cell span,
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.date-cell .first-cell-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.stars-cell {
@@ -570,6 +585,7 @@
   color: rgba(255, 255, 255, 0.6);
   width: 120px;
   max-width: 120px;
+  vertical-align: middle;
 }
 
 .virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.year-cell {
@@ -577,12 +593,14 @@
   color: rgba(255, 255, 255, 0.6);
   width: 80px;
   max-width: 80px;
+  vertical-align: middle;
 }
 
 .virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.critic-rating-cell {
   font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.6);
   width: 16%;
+  vertical-align: middle;
 }
 
 .virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.age-rating-cell {
