@@ -57,11 +57,15 @@ export default function SettingsPage() {
 
     async function loadSettings() {
       setLoading(true);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90000);
       try {
         const url = new URL("/settings", API_BASE);
         const res = await fetch(url.toString(), {
           headers: buildApiHeaders({ Accept: "application/json" }),
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
         if (res.ok) {
           const data = await res.json();
           const loadedLanguage = data.language || "en";
@@ -83,6 +87,7 @@ export default function SettingsPage() {
           setInitialVisibleLibraries(normalized);
         }
       } catch (err) {
+        clearTimeout(timeoutId);
         console.error("Failed to load settings:", err);
         // Fallback to localStorage
         const saved = localStorage.getItem("language") || "en";
@@ -101,6 +106,8 @@ export default function SettingsPage() {
 
   async function handleSave() {
     setSaving(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
     try {
       // Save settings to server
       const url = new URL("/settings", API_BASE);
@@ -111,7 +118,9 @@ export default function SettingsPage() {
           language: language,
           visibleLibraries: visibleLibraries,
         }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       if (!res.ok) {
         throw new Error("Failed to save settings");
@@ -126,6 +135,7 @@ export default function SettingsPage() {
       setInitialLanguage(language);
       setInitialVisibleLibraries(visibleLibraries);
     } catch (err) {
+      clearTimeout(timeoutId);
       console.error("Failed to save settings:", err);
       // Fallback to localStorage
       localStorage.setItem("language", language);

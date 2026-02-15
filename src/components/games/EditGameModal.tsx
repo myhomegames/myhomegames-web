@@ -6,6 +6,7 @@ import { useLoading } from "../../contexts/LoadingContext";
 import { EditGameInfoTab, EditGameMediaTab, EditGameTagsTab } from "./edit";
 import type { GameItem } from "../../types";
 import { buildApiUrl } from "../../utils/api";
+import { toTagTitles as toTagTitlesUtil } from "../filters/tagFilterUtils";
 import "./EditGameModal.css";
 
 function toIdNameList(
@@ -42,26 +43,24 @@ export default function EditGameModal({
   const [year, setYear] = useState(game.year?.toString() || "");
   const [month, setMonth] = useState(game.month?.toString() || "");
   const [day, setDay] = useState(game.day?.toString() || "");
-  const [selectedGenres, setSelectedGenres] = useState<string[]>(
-    Array.isArray(game.genre) ? game.genre : game.genre ? [game.genre] : []
+  const [selectedGenres, setSelectedGenres] = useState<string[]>(() =>
+    Array.isArray(game.genre)
+      ? toTagTitlesUtil(game.genre as Array<{ id: number; title: string } | string>)
+      : game.genre
+        ? [typeof game.genre === "string" ? game.genre : String((game.genre as { title: string }).title)]
+        : []
   );
-  const [selectedThemes, setSelectedThemes] = useState<string[]>(
-    Array.isArray(game.themes) ? game.themes : []
-  );
+  const [selectedThemes, setSelectedThemes] = useState<string[]>(() => toTagTitlesUtil(game.themes));
   const [selectedKeywords, setSelectedKeywords] = useState<string[]>(
     Array.isArray(game.keywords) ? game.keywords : []
   );
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(
-    Array.isArray(game.platforms) ? game.platforms : []
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(() => toTagTitlesUtil(game.platforms));
+  const [selectedGameModes, setSelectedGameModes] = useState<string[]>(() => toTagTitlesUtil(game.gameModes));
+  const [selectedPlayerPerspectives, setSelectedPlayerPerspectives] = useState<string[]>(() =>
+    toTagTitlesUtil(game.playerPerspectives)
   );
-  const [selectedGameModes, setSelectedGameModes] = useState<string[]>(
-    Array.isArray(game.gameModes) ? game.gameModes : []
-  );
-  const [selectedPlayerPerspectives, setSelectedPlayerPerspectives] = useState<string[]>(
-    Array.isArray(game.playerPerspectives) ? game.playerPerspectives : []
-  );
-  const [selectedGameEngines, setSelectedGameEngines] = useState<string[]>(
-    Array.isArray(game.gameEngines) ? game.gameEngines : []
+  const [selectedGameEngines, setSelectedGameEngines] = useState<string[]>(() =>
+    toTagTitlesUtil(game.gameEngines)
   );
   const [selectedFranchise, setSelectedFranchise] = useState<Array<{ id: number; name: string }>>(() =>
     toIdNameList(game.franchise)
@@ -121,16 +120,18 @@ export default function EditGameModal({
       setMonth(game.month?.toString() || "");
       setDay(game.day?.toString() || "");
       setSelectedGenres(
-        Array.isArray(game.genre) ? game.genre : game.genre ? [game.genre] : []
+        Array.isArray(game.genre)
+          ? toTagTitlesUtil(game.genre as Array<{ id: number; title: string } | string>)
+          : game.genre
+            ? [typeof game.genre === "string" ? game.genre : String((game.genre as { title: string }).title)]
+            : []
       );
-      setSelectedThemes(Array.isArray(game.themes) ? game.themes : []);
+      setSelectedThemes(toTagTitlesUtil(game.themes));
       setSelectedKeywords(Array.isArray(game.keywords) ? game.keywords : []);
-      setSelectedPlatforms(Array.isArray(game.platforms) ? game.platforms : []);
-      setSelectedGameModes(Array.isArray(game.gameModes) ? game.gameModes : []);
-      setSelectedPlayerPerspectives(
-        Array.isArray(game.playerPerspectives) ? game.playerPerspectives : []
-      );
-      setSelectedGameEngines(Array.isArray(game.gameEngines) ? game.gameEngines : []);
+      setSelectedPlatforms(toTagTitlesUtil(game.platforms));
+      setSelectedGameModes(toTagTitlesUtil(game.gameModes));
+      setSelectedPlayerPerspectives(toTagTitlesUtil(game.playerPerspectives));
+      setSelectedGameEngines(toTagTitlesUtil(game.gameEngines));
       setSelectedFranchise(toIdNameList(game.franchise));
       setSelectedSeries(toIdNameList(game.series ?? game.collection));
       setError(null);
@@ -191,8 +192,7 @@ export default function EditGameModal({
     return sortedLeft.every((tag, index) => tag === sortedRight[index]);
   };
 
-  const normalizeTagArray = (tags?: string[] | null) =>
-    Array.isArray(tags) ? tags : [];
+  const normalizeTagArray = (tags?: string[] | null) => (Array.isArray(tags) ? tags : []);
 
   // Check if there are any changes
   const hasChanges = () => {
@@ -203,33 +203,20 @@ export default function EditGameModal({
     if (day !== (game.day?.toString() || "")) return true;
     if (showTitle !== (game.showTitle !== false)) return true;
 
-    // Check if genres changed
     const currentGenre = Array.isArray(game.genre)
-      ? game.genre
+      ? toTagTitlesUtil(game.genre as Array<{ id: number; title: string } | string>)
       : game.genre
-      ? [game.genre]
-      : [];
+        ? [typeof game.genre === "string" ? game.genre : String((game.genre as { title: string }).title)]
+        : [];
     if (!areTagsEqual(selectedGenres, currentGenre)) {
       return true;
     }
-    if (!areTagsEqual(selectedThemes, normalizeTagArray(game.themes))) {
-      return true;
-    }
-    if (!areTagsEqual(selectedKeywords, normalizeTagArray(game.keywords))) {
-      return true;
-    }
-    if (!areTagsEqual(selectedPlatforms, normalizeTagArray(game.platforms))) {
-      return true;
-    }
-    if (!areTagsEqual(selectedGameModes, normalizeTagArray(game.gameModes))) {
-      return true;
-    }
-    if (!areTagsEqual(selectedPlayerPerspectives, normalizeTagArray(game.playerPerspectives))) {
-      return true;
-    }
-    if (!areTagsEqual(selectedGameEngines, normalizeTagArray(game.gameEngines))) {
-      return true;
-    }
+    if (!areTagsEqual(selectedThemes, toTagTitlesUtil(game.themes))) return true;
+    if (!areTagsEqual(selectedKeywords, normalizeTagArray(game.keywords))) return true;
+    if (!areTagsEqual(selectedPlatforms, toTagTitlesUtil(game.platforms))) return true;
+    if (!areTagsEqual(selectedGameModes, toTagTitlesUtil(game.gameModes))) return true;
+    if (!areTagsEqual(selectedPlayerPerspectives, toTagTitlesUtil(game.playerPerspectives))) return true;
+    if (!areTagsEqual(selectedGameEngines, toTagTitlesUtil(game.gameEngines))) return true;
     const currentFranchise = toIdNameList(game.franchise);
     const currentSeries = toIdNameList(game.series ?? game.collection);
     if (
@@ -414,29 +401,29 @@ export default function EditGameModal({
 
       // Check if genres changed
       const currentGenre = Array.isArray(game.genre)
-        ? game.genre
+        ? toTagTitlesUtil(game.genre as Array<{ id: number; title: string } | string>)
         : game.genre
-        ? [game.genre]
-        : [];
+          ? [typeof game.genre === "string" ? game.genre : String((game.genre as { title: string }).title)]
+          : [];
       if (!areTagsEqual(selectedGenres, currentGenre)) {
         updates.genre = selectedGenres.length === 1 ? selectedGenres[0] : selectedGenres;
       }
-      if (!areTagsEqual(selectedThemes, normalizeTagArray(game.themes))) {
+      if (!areTagsEqual(selectedThemes, toTagTitlesUtil(game.themes))) {
         updates.themes = selectedThemes.length > 0 ? selectedThemes : [];
       }
       if (!areTagsEqual(selectedKeywords, normalizeTagArray(game.keywords))) {
         updates.keywords = selectedKeywords.length > 0 ? selectedKeywords : [];
       }
-      if (!areTagsEqual(selectedPlatforms, normalizeTagArray(game.platforms))) {
+      if (!areTagsEqual(selectedPlatforms, toTagTitlesUtil(game.platforms))) {
         updates.platforms = selectedPlatforms.length > 0 ? selectedPlatforms : [];
       }
-      if (!areTagsEqual(selectedGameModes, normalizeTagArray(game.gameModes))) {
+      if (!areTagsEqual(selectedGameModes, toTagTitlesUtil(game.gameModes))) {
         updates.gameModes = selectedGameModes.length > 0 ? selectedGameModes : [];
       }
-      if (!areTagsEqual(selectedPlayerPerspectives, normalizeTagArray(game.playerPerspectives))) {
+      if (!areTagsEqual(selectedPlayerPerspectives, toTagTitlesUtil(game.playerPerspectives))) {
         updates.playerPerspectives = selectedPlayerPerspectives.length > 0 ? selectedPlayerPerspectives : [];
       }
-      if (!areTagsEqual(selectedGameEngines, normalizeTagArray(game.gameEngines))) {
+      if (!areTagsEqual(selectedGameEngines, toTagTitlesUtil(game.gameEngines))) {
         updates.gameEngines = selectedGameEngines.length > 0 ? selectedGameEngines : [];
       }
       if (
@@ -523,8 +510,12 @@ export default function EditGameModal({
 
         // Check if any genres were removed and delete unused categories
         if (updates.genre !== undefined) {
-          const oldGenres = Array.isArray(game.genre) ? game.genre : game.genre ? [game.genre] : [];
-          const newGenres = Array.isArray(updatedGame.genre) ? updatedGame.genre : updatedGame.genre ? [updatedGame.genre] : [];
+          const oldGenres = toTagTitlesUtil(
+            Array.isArray(game.genre) ? game.genre : game.genre ? [game.genre as { id: number; title: string } | string] : []
+          );
+          const newGenres = toTagTitlesUtil(
+            Array.isArray(updatedGame.genre) ? updatedGame.genre : updatedGame.genre ? [updatedGame.genre as { id: number; title: string } | string] : []
+          );
           const removedGenres = oldGenres.filter((g) => !newGenres.includes(g));
           
           // Try to delete each removed genre if it's not used by other games

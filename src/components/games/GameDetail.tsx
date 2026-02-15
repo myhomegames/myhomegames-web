@@ -18,6 +18,7 @@ import BackgroundManager, { useBackground } from "../common/BackgroundManager";
 import LibrariesBar from "../layout/LibrariesBar";
 import { useEditGame, useExecutable } from "../common/actions";
 import type { GameItem, CollectionItem } from "../../types";
+import { toTagTitles } from "../filters/tagFilterUtils";
 import { formatGameDate } from "../../utils/date";
 import { buildApiUrl, buildBackgroundUrl } from "../../utils/api";
 import { API_BASE, getApiToken } from "../../config";
@@ -394,7 +395,9 @@ function GameDetailContent({
                 );
               })()}
               <InlineTagList
-                items={Array.isArray(game.genre) ? game.genre : game.genre ? [game.genre] : []}
+                items={toTagTitles(
+                  Array.isArray(game.genre) ? game.genre : game.genre ? [game.genre as { id: number; title: string } | string] : []
+                )}
                 getLabel={(genre) => t(`genre.${genre}`, genre)}
                 onItemClick={handleGenreClick}
                 showMoreLabel={t("gameDetail.andMore", ", and more")}

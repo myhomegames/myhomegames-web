@@ -69,6 +69,8 @@ export default function TagGamesPage({
     setSelectedGenre,
     setSelectedSeries,
     setSelectedFranchise,
+    setSortField,
+    setSortAscending,
   } = hook;
 
   useEffect(() => {
@@ -104,9 +106,13 @@ export default function TagGamesPage({
         break;
       case "series":
         setSelectedSeries(tagValue);
+        setSortField("releaseDate");
+        setSortAscending(false); /* false = date più vecchia prima (ordine cronologico) */
         break;
       case "franchise":
         setSelectedFranchise(tagValue);
+        setSortField("releaseDate");
+        setSortAscending(false); /* false = date più vecchia prima (ordine cronologico) */
         break;
       default:
         break;
@@ -126,6 +132,8 @@ export default function TagGamesPage({
     setSelectedGenre,
     setSelectedSeries,
     setSelectedFranchise,
+    setSortField,
+    setSortAscending,
   ]);
 
   const buildCoverUrlFn = useCallback(

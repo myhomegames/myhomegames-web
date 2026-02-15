@@ -34,12 +34,11 @@ export default function TagListRoutePage({ coverSize, tagKey }: TagListRoutePage
         };
 
   const listKeyById = tagKey === "series" || tagKey === "franchise";
-  const getRoute =
-    listKeyById
-      ? (item: { id: string; title: string }) => `${listConfig.routeBase}/${item.id}`
-      : undefined;
+  /* Link con id per URL coerenti (es. /platforms/75757 invece di /platforms/Amiga) */
+  const getRoute = (item: { id: string; title: string }) =>
+    `${listConfig.routeBase}/${item.id}`;
   const showAlphabetNavigator =
-    tagKey === "series" || tagKey === "franchise" || tagKey === "gameEngines";
+    tagKey === "series" || tagKey === "franchise" || tagKey === "gameEngines" || tagKey === "platforms";
 
   return (
     <TagListPage

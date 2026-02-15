@@ -28,9 +28,15 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
 
     setIsLoading(true);
     setError(null);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
     try {
       const url = buildApiUrl(API_BASE, "/developers");
-      const res = await fetch(url, { headers: buildApiHeaders({ Accept: "application/json" }) });
+      const res = await fetch(url, {
+        headers: buildApiHeaders({ Accept: "application/json" }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       const items = (json.developers || []).map((v: any) => ({
@@ -44,6 +50,7 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
       }));
       setDevelopers(items);
     } catch (err: any) {
+      clearTimeout(timeoutId);
       setError(String(err.message || err));
     } finally {
       setIsLoading(false);

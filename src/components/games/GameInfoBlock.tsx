@@ -59,15 +59,22 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
   const toFranchiseSeriesIds = (list: FranchiseSeriesItem[]): string[] =>
     list.map((item) => (typeof item === "string" ? item : String(item.id)));
 
+  type TagItem = { id: number; title: string } | string;
   const renderTagList = (
-    items: string[],
+    items: TagItem[],
     routeBase: string,
-    display: (value: string) => string
+    display: (value: TagItem) => string
   ) => (
     <InlineTagList
       items={items}
       getLabel={display}
-      onItemClick={(value) => navigate(`${routeBase}/${encodeURIComponent(value)}`)}
+      onItemClick={(value) =>
+        navigate(
+          typeof value === "object" && value != null && "id" in value
+            ? `${routeBase}/${value.id}`
+            : `${routeBase}/${encodeURIComponent(String(value))}`
+        )
+      }
       useInfoStyles
       showMoreMinCount={5}
       showMoreLabel={t("gameDetail.andMore", ", and more")}
@@ -91,8 +98,13 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           <div className="text-white game-info-label">
             {t("igdbInfo.themes", "Themes")}
           </div>
-          {renderTagList(game.themes, "/themes", (value) =>
-            t(`themes.${value}`, value)
+          {renderTagList(
+            game.themes as TagItem[],
+            "/themes",
+            (value) =>
+              typeof value === "object" && value != null && "title" in value
+                ? t(`themes.${value.title}`, value.title)
+                : t(`themes.${value}`, String(value))
           )}
         </div>
       )}
@@ -103,7 +115,14 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           <div className="text-white game-info-label">
             {t("igdbInfo.platforms", "Platforms")}
           </div>
-          {renderTagList(game.platforms, "/platforms", (value) => value)}
+          {renderTagList(
+            game.platforms as TagItem[],
+            "/platforms",
+            (value) =>
+              typeof value === "object" && value != null && "title" in value
+                ? value.title
+                : String(value)
+          )}
         </div>
       )}
 
@@ -113,8 +132,13 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           <div className="text-white game-info-label">
             {t("igdbInfo.gameModes", "Game Modes")}
           </div>
-          {renderTagList(game.gameModes, "/game-modes", (value) =>
-            t(`gameModes.${value}`, value)
+          {renderTagList(
+            game.gameModes as TagItem[],
+            "/game-modes",
+            (value) =>
+              typeof value === "object" && value != null && "title" in value
+                ? t(`gameModes.${value.title}`, value.title)
+                : t(`gameModes.${value}`, String(value))
           )}
         </div>
       )}
@@ -125,8 +149,13 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           <div className="text-white game-info-label">
             {t("igdbInfo.playerPerspectives", "Player Perspectives")}
           </div>
-          {renderTagList(game.playerPerspectives, "/player-perspectives", (value) =>
-            t(`playerPerspectives.${value}`, value)
+          {renderTagList(
+            game.playerPerspectives as TagItem[],
+            "/player-perspectives",
+            (value) =>
+              typeof value === "object" && value != null && "title" in value
+                ? t(`playerPerspectives.${value.title}`, value.title)
+                : t(`playerPerspectives.${value}`, String(value))
           )}
         </div>
       )}
@@ -236,7 +265,12 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           <div className="text-white game-info-label">
             {t("igdbInfo.gameEngines", "Game Engines")}
           </div>
-          {renderTagList(game.gameEngines, "/game-engines", (value) => value)}
+          {renderTagList(
+            game.gameEngines as TagItem[],
+            "/game-engines",
+            (value) =>
+              typeof value === "object" && value != null && "title" in value ? value.title : String(value)
+          )}
         </div>
       )}
 

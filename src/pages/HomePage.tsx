@@ -32,7 +32,9 @@ export default function HomePage({
   allCollections = [],
 }: HomePageProps) {
   const { isLoading } = useLoading();
-  const [libraries, setLibraries] = useState<GameLibrarySection[]>([]);
+  const [libraries, setLibraries] = useState<GameLibrarySection[]>(() =>
+    buildLibrarySections(normalizeVisibleLibraries([]))
+  );
   const [activeLibrary, setActiveLibrary] = useState<GameLibrarySection | null>(
     null
   );
@@ -112,9 +114,13 @@ export default function HomePage({
       if (API_BASE && apiToken) {
         try {
           const url = new URL("/settings", API_BASE);
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 90000);
           const res = await fetch(url.toString(), {
             headers: buildApiHeaders({ Accept: "application/json" }),
+            signal: controller.signal,
           });
+          clearTimeout(timeoutId);
           if (res.ok) {
             const data = await res.json();
             if (Array.isArray(data.visibleLibraries)) {

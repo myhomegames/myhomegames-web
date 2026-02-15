@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import TagValueFilter from "./TagValueFilter";
 import type { FilterValue, GameItem } from "./types";
-import { toDevPubIds } from "../../utils/devPubUtils";
 
 type DevelopersFilterProps = {
   isOpen: boolean;
@@ -29,7 +28,7 @@ export default function DevelopersFilter(props: DevelopersFilterProps) {
       type="developers"
       labelKey="gamesListToolbar.filter.developers"
       searchPlaceholderKey="gamesListToolbar.filter.searchDevelopers"
-      valueExtractor={(game) => toDevPubIds(game.developers)}
+      valueExtractor={(game) => game.developers ?? []}
       formatValue={formatValue}
     />
   );

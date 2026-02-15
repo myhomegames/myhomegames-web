@@ -1,6 +1,7 @@
 import type { TFunction } from "i18next";
 import type { GameItem } from "../types";
 import type { FilterField } from "../components/filters/types";
+import { toTagTitles } from "../components/filters/tagFilterUtils";
 
 export type TagKey =
   | "categories"
@@ -55,12 +56,20 @@ type TagPageConfig = {
   getCoverDescription: (t: TranslationFn) => string;
 };
 
-const getGenreValues = (game: GameItem) => {
+const getGenreValues = (game: GameItem): string[] | null => {
   if (!game.genre) return null;
-  return Array.isArray(game.genre) ? game.genre : [game.genre];
+  const arr = Array.isArray(game.genre)
+    ? toTagTitles(game.genre as Array<{ id: number; title: string } | string>)
+    : [typeof game.genre === "string" ? game.genre : String((game.genre as { title: string }).title)];
+  return arr.length > 0 ? arr : null;
 };
 
-const getArrayOrNull = (values?: string[]) => values || null;
+const getTagTitlesOrNull = (
+  values: Array<{ id: number; title: string } | string> | string[] | undefined | null
+): string[] | null => {
+  const arr = toTagTitles(values);
+  return arr.length > 0 ? arr : null;
+};
 
 const toDevPubIds = (arr: Array<{ id: number; name: string }> | undefined | null): string[] | null => {
   if (!arr || !Array.isArray(arr)) return null;
@@ -112,7 +121,7 @@ export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
       routeBase: "/platforms",
       listEndpoint: "/platforms",
       listResponseKey: "platforms",
-      valueExtractor: (game) => getArrayOrNull(game.platforms),
+      valueExtractor: (game) => getTagTitlesOrNull(game.platforms),
       localCoverPrefix: "/platform-covers/",
       responseKey: "platform",
       removeResourceType: "platforms",
@@ -134,7 +143,7 @@ export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
       routeBase: "/themes",
       listEndpoint: "/themes",
       listResponseKey: "themes",
-      valueExtractor: (game) => getArrayOrNull(game.themes),
+      valueExtractor: (game) => getTagTitlesOrNull(game.themes),
       localCoverPrefix: "/theme-covers/",
       responseKey: "theme",
       removeResourceType: "themes",
@@ -200,7 +209,7 @@ export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
       routeBase: "/game-engines",
       listEndpoint: "/game-engines",
       listResponseKey: "gameEngines",
-      valueExtractor: (game) => getArrayOrNull(game.gameEngines),
+      valueExtractor: (game) => getTagTitlesOrNull(game.gameEngines),
       localCoverPrefix: "/game-engine-covers/",
       responseKey: "gameEngine",
       removeResourceType: "game-engines",
@@ -223,7 +232,7 @@ export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
       routeBase: "/game-modes",
       listEndpoint: "/game-modes",
       listResponseKey: "gameModes",
-      valueExtractor: (game) => getArrayOrNull(game.gameModes),
+      valueExtractor: (game) => getTagTitlesOrNull(game.gameModes),
       localCoverPrefix: "/game-mode-covers/",
       responseKey: "gameMode",
       removeResourceType: "game-modes",
@@ -245,7 +254,7 @@ export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
       routeBase: "/player-perspectives",
       listEndpoint: "/player-perspectives",
       listResponseKey: "playerPerspectives",
-      valueExtractor: (game) => getArrayOrNull(game.playerPerspectives),
+      valueExtractor: (game) => getTagTitlesOrNull(game.playerPerspectives),
       localCoverPrefix: "/player-perspective-covers/",
       responseKey: "playerPerspective",
       removeResourceType: "player-perspectives",

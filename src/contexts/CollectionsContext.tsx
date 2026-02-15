@@ -42,11 +42,15 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 
     setIsLoading(true);
     setError(null);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
     try {
       const url = buildApiUrl(API_BASE, "/collections");
       const res = await fetch(url, {
         headers: buildApiHeaders({ Accept: "application/json" }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       const items = (json.collections || []) as any[];
@@ -64,6 +68,7 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
       // Don't pre-fetch game IDs for all collections - load them on demand via getCollectionGameIds
       // This avoids unnecessary API calls when user is on library page or other pages that don't need this data
     } catch (err: any) {
+      clearTimeout(timeoutId);
       const errorMessage = String(err.message || err);
       console.error("Error fetching collections:", errorMessage);
       setError(errorMessage);

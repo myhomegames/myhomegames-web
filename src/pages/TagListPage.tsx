@@ -87,13 +87,18 @@ export default function TagListPage({
     let isActive = true;
     const endpoint = listEndpoint || routeBase;
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
+
     const fetchItems = async () => {
       setListLoading(true);
       try {
         const url = buildApiUrl(API_BASE, endpoint);
         const res = await fetch(url, {
           headers: buildApiHeaders({ Accept: "application/json" }),
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
         }
@@ -112,7 +117,12 @@ export default function TagListPage({
           setServerItems(parsed);
         }
       } catch (err: any) {
-        console.error("Error fetching tag list:", String(err.message || err));
+        clearTimeout(timeoutId);
+        if (err?.name === "AbortError") {
+          console.info("Tag list request timed out, using empty list.");
+        } else {
+          console.error("Error fetching tag list:", String(err.message || err));
+        }
         if (isActive) {
           setServerItems([]);
         }
@@ -126,6 +136,8 @@ export default function TagListPage({
     fetchItems();
     return () => {
       isActive = false;
+      controller.abort();
+      clearTimeout(timeoutId);
     };
   }, [listEndpoint, listResponseKey, routeBase]);
 
