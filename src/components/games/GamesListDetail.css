@@ -64,6 +64,15 @@
   opacity: 1;
 }
 
+/* Mantieni evidenziazione quando il dropdown o sottomenu è aperto */
+.games-list-detail-item.detail-dropdown-open {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.games-list-detail-item.detail-dropdown-open .games-list-detail-actions {
+  opacity: 1;
+}
+
 .games-list-detail-edit-button {
   border: none;
   border-radius: 4px;

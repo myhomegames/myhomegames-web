@@ -282,6 +282,23 @@
   background-color: rgba(255, 255, 255, 0.05);
 }
 
+/* Mantieni evidenziazione riga quando il dropdown (o submenu) è aperto */
+.games-table tbody tr.row-dropdown-open td.column-menu-cell {
+  background-color: transparent;
+}
+
+.games-table tbody tr.row-dropdown-open td:not(.column-menu-cell) {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.games-table tbody tr.row-dropdown-open .first-cell-play-button {
+  opacity: 1;
+}
+
+.games-table tbody tr.row-dropdown-open .games-table-actions {
+  opacity: 1;
+}
+
 .games-table td {
   transition: background-color 0.2s ease;
 }
@@ -557,6 +574,23 @@
 }
 
 .virtualized-games-table-list .virtualized-table-row-wrapper:hover .games-table-actions {
+  opacity: 1;
+}
+
+/* Mantieni evidenziazione riga virtualizzata quando il dropdown (o submenu) è aperto */
+.virtualized-games-table-list .virtualized-table-row-wrapper:has(div[role="row"].row-dropdown-open) > div[role="row"] > div.column-menu-cell {
+  background-color: transparent;
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper:has(div[role="row"].row-dropdown-open) > div[role="row"] > div:not(.column-menu-cell) {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper:has(div[role="row"].row-dropdown-open) .first-cell-play-button {
+  opacity: 1;
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper:has(div[role="row"].row-dropdown-open) .games-table-actions {
   opacity: 1;
 }
 

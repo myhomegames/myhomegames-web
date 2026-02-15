@@ -103,6 +103,8 @@ export default function DropdownMenu({
   
   // Check if we're in a cover (grid list) to use portal
   const isInCover = className.includes('games-list-dropdown-menu');
+  // Check if we're in the games table (virtualized or not) - use portal to escape overflow and stay on top
+  const isInGamesTable = className.includes('games-table-dropdown-menu');
   
   // Check if we're inside search-dropdown-scroll to use portal
   const [isInSearchDropdown, setIsInSearchDropdown] = useState(false);
@@ -416,7 +418,7 @@ export default function DropdownMenu({
         const popupContent = (
           <div 
             ref={popupRef} 
-            className={`dropdown-menu-popup ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''}`}
+            className={`dropdown-menu-popup ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''} ${isInGamesTable ? 'dropdown-menu-popup-in-games-table' : ''}`}
             onMouseLeave={handlePopupMouseLeave}
             style={(() => {
               if (!menuRef.current) return undefined;
@@ -439,6 +441,17 @@ export default function DropdownMenu({
                   top: `${rect.bottom + 4}px`,
                   right: `${window.innerWidth - rect.right}px`,
                   zIndex: 10007,
+                };
+              }
+              
+              if (isInGamesTable) {
+                const rect = menuRef.current.getBoundingClientRect();
+                return {
+                  position: 'fixed',
+                  top: `${rect.bottom + 4}px`,
+                  right: `${window.innerWidth - rect.right}px`,
+                  left: 'auto',
+                  zIndex: 10002,
                 };
               }
               
@@ -612,8 +625,8 @@ export default function DropdownMenu({
           </div>
         );
         
-        // Use portal only for search dropdown (to escape overflow:hidden) or cover (existing behavior)
-        return (isInSearchDropdown || isInCover) ? createPortal(popupContent, document.body) : popupContent;
+        // Use portal for search dropdown, cover, or games table (escape overflow and stay on top)
+        return (isInSearchDropdown || isInCover || isInGamesTable) ? createPortal(popupContent, document.body) : popupContent;
       })()}
 
       {/* Reload Confirmation Modal */}

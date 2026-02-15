@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { API_BASE } from "../../config";
 import Cover from "./Cover";
@@ -76,6 +76,24 @@ export function GameDetailItem({
     onEditClick(game);
   };
 
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  useEffect(() => {
+    const handleOpened = (e: Event) => {
+      const ev = e as CustomEvent<{ gameId?: string }>;
+      if (ev.detail?.gameId === game.id) setIsDropdownOpen(true);
+    };
+    const handleClosed = (e: Event) => {
+      const ev = e as CustomEvent<{ gameId?: string }>;
+      if (ev.detail?.gameId === game.id) setIsDropdownOpen(false);
+    };
+    window.addEventListener("dropdownMenuOpened", handleOpened);
+    window.addEventListener("dropdownMenuClosed", handleClosed);
+    return () => {
+      window.removeEventListener("dropdownMenuOpened", handleOpened);
+      window.removeEventListener("dropdownMenuClosed", handleClosed);
+    };
+  }, [game.id]);
+
   return (
     <div
       ref={(el) => {
@@ -85,7 +103,7 @@ export function GameDetailItem({
       }}
       className={`group cursor-pointer mb-6 games-list-detail-item ${
         isEven ? "even" : "odd"
-      }`}
+      }${isDropdownOpen ? " detail-dropdown-open" : ""}`}
       onClick={() => onGameClick(game)}
     >
       <Cover

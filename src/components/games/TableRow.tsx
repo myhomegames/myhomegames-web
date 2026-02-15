@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { API_BASE, API_TOKEN } from "../../config";
 import StarRating from "../common/StarRating";
 import DropdownMenu from "../common/DropdownMenu";
@@ -60,6 +61,24 @@ export default function TableRow({
   const CellTag = useDiv ? "div" : "td";
   const rowStyle = useDiv ? { display: "table-row" as const } : undefined;
   const cellStyle = useDiv ? { display: "table-cell" as const } : undefined;
+
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  useEffect(() => {
+    const handleOpened = (e: Event) => {
+      const ev = e as CustomEvent<{ gameId?: string }>;
+      if (ev.detail?.gameId === game.id) setIsDropdownOpen(true);
+    };
+    const handleClosed = (e: Event) => {
+      const ev = e as CustomEvent<{ gameId?: string }>;
+      if (ev.detail?.gameId === game.id) setIsDropdownOpen(false);
+    };
+    window.addEventListener("dropdownMenuOpened", handleOpened);
+    window.addEventListener("dropdownMenuClosed", handleClosed);
+    return () => {
+      window.removeEventListener("dropdownMenuOpened", handleOpened);
+      window.removeEventListener("dropdownMenuClosed", handleClosed);
+    };
+  }, [game.id]);
   
   // Determine the first visible column
   const firstVisibleColumn = columnVisibility.title
@@ -121,6 +140,7 @@ export default function TableRow({
       }}
       style={rowStyle}
       role={useDiv ? "row" : undefined}
+      className={isDropdownOpen ? "row-dropdown-open" : undefined}
     >
       <CellTag className="column-menu-cell" style={cellStyle} role={useDiv ? "cell" : undefined}></CellTag>
       {columnVisibility.title && (
