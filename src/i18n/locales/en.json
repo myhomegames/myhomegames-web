@@ -106,6 +106,7 @@
     "noResults": "No games found",
     "typeToSearch": "Type at least 2 characters to search",
     "error": "Error searching games",
+    "credentialsRequired": "Configure Twitch credentials in Settings to search IGDB.",
     "new": "New"
   },
   "viewMode": {

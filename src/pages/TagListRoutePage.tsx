@@ -21,22 +21,12 @@ export default function TagListRoutePage({ coverSize, tagKey }: TagListRoutePage
           responseKey: listConfig.responseKey,
           localCoverPrefix: listConfig.localCoverPrefix,
           removeResourceType: listConfig.removeResourceType,
-          getRouteSegment:
-            tagKey === "series" || tagKey === "franchise"
-              ? (item: { id: string | number; title: string }) => String(item.id)
-              : undefined,
-          listResponseKey:
-            tagKey === "series" || tagKey === "franchise"
-              ? listConfig.listResponseKey
-              : undefined,
+          getRouteSegment: (item: { id: string | number; title: string }) => String(item.id),
+          listResponseKey: listConfig.listResponseKey,
           updateEventName: listConfig.updateEventName,
           updateEventPayloadKey: listConfig.updateEventPayloadKey,
         };
 
-  const listKeyById = tagKey === "series" || tagKey === "franchise";
-  /* Link con id per URL coerenti (es. /platforms/75757 invece di /platforms/Amiga) */
-  const getRoute = (item: { id: string; title: string }) =>
-    `${listConfig.routeBase}/${item.id}`;
   const showAlphabetNavigator =
     tagKey === "series" || tagKey === "franchise" || tagKey === "gameEngines" || tagKey === "platforms";
 
@@ -49,8 +39,6 @@ export default function TagListRoutePage({ coverSize, tagKey }: TagListRoutePage
       emptyMessage={config.getEmptyMessage(t)}
       listEndpoint={listConfig.listEndpoint}
       listResponseKey={listConfig.listResponseKey}
-      listKeyById={listKeyById}
-      getRoute={getRoute}
       showAlphabetNavigator={showAlphabetNavigator}
       editConfig={editConfig}
     />

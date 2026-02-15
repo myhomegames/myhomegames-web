@@ -58,7 +58,9 @@ export function PublishersProvider({ children }: { children: ReactNode }) {
   }, [authLoading, authToken]);
 
   useEffect(() => {
-    if (!authLoading) fetchPublishers();
+    if (authLoading) return;
+    const t = setTimeout(fetchPublishers, 1200);
+    return () => clearTimeout(t);
   }, [authLoading, fetchPublishers]);
 
   useEffect(() => {

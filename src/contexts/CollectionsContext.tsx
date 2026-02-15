@@ -77,11 +77,11 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
     }
   }, [authLoading, authToken]);
 
-  // Load collections on mount and when auth is ready
+  // Load collections on mount and when auth is ready (stagger to avoid all fetches at once)
   useEffect(() => {
-    if (!authLoading) {
-      fetchCollections();
-    }
+    if (authLoading) return;
+    const t = setTimeout(fetchCollections, 400);
+    return () => clearTimeout(t);
   }, [authLoading, fetchCollections]);
 
   useEffect(() => {

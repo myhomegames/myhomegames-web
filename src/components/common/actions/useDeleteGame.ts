@@ -35,6 +35,7 @@ export function useDeleteGame({
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const handleDeleteClick = () => {
+    console.log("[Search] useDeleteGame.handleDeleteClick", { gameId, collectionId });
     setShowConfirmModal(true);
   };
 

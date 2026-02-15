@@ -483,6 +483,14 @@ export default function SearchBar({ games, collections, developers = [], publish
                   )
                 );
               }}
+              onGameDelete={(deletedGame) => {
+                setFilteredGames((prevGames) =>
+                  prevGames.filter((game) => String(game.id) !== String(deletedGame.id))
+                );
+                setAllFilteredGames((prevGames) =>
+                  prevGames.filter((game) => String(game.id) !== String(deletedGame.id))
+                );
+              }}
               onCollectionUpdate={(updatedCollection) => {
                 setFilteredCollections((prevCollections) =>
                   prevCollections.map((collection) =>

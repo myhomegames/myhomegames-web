@@ -199,7 +199,7 @@ function SearchResultItem({
         showBorder={false}
       />
       {(onPlay || onEditClick) && (
-        <div className="search-result-right-actions">
+        <div className="search-result-right-actions" onClick={(e) => e.stopPropagation()}>
           {onPlay && (isGame ? ((item as GameItem).executables && (item as GameItem).executables!.length > 0) : hasPlayableGame === true) && (
             <button
               className="search-result-play-button"
@@ -221,7 +221,7 @@ function SearchResultItem({
             </button>
           )}
           {onEditClick && (
-            <div className="search-result-actions">
+            <div className="search-result-actions" onClick={(e) => e.stopPropagation()}>
               {isGame && (item as GameItem).executables && (item as GameItem).executables!.length > 1 && onPlay && (
                 <AdditionalExecutablesDropdown
                   gameId={item.id}

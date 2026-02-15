@@ -13,6 +13,7 @@ export function useEditGame(): UseEditGameReturn {
   const [selectedGame, setSelectedGame] = useState<GameItem | null>(null);
 
   const openEditModal = (game: GameItem) => {
+    console.log("[Search] useEditGame.openEditModal", { gameId: game.id, gameTitle: game.title });
     setSelectedGame(game);
     setIsEditModalOpen(true);
   };

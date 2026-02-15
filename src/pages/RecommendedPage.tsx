@@ -128,11 +128,15 @@ export default function RecommendedPage({
     fetchingRef.current = true;
     setIsFetching(true);
     setLoading(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
     try {
       const url = buildApiUrl(API_BASE, `/recommended`);
       const res = await fetch(url, {
         headers: buildApiHeaders({ Accept: "application/json" }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       const sectionsData = (json.sections || []) as any[];
@@ -160,9 +164,11 @@ export default function RecommendedPage({
       const allGames = parsedSections.flatMap(section => section.games);
       onGamesLoaded(allGames);
     } catch (err: any) {
-      const errorMessage = String(err.message || err);
+      clearTimeout(timeoutId);
+      const errorMessage = err?.name === "AbortError" ? "Request timed out" : String(err.message || err);
       console.error("Error fetching recommended sections:", errorMessage);
     } finally {
+      clearTimeout(timeoutId);
       setIsFetching(false);
       fetchingRef.current = false;
     }

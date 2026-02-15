@@ -106,14 +106,14 @@ export default function DropdownMenu({
   // Check if we're in the games table (virtualized or not) - use portal to escape overflow and stay on top
   const isInGamesTable = className.includes('games-table-dropdown-menu');
   
-  // Check if we're inside search-dropdown-scroll to use portal
+  // Check if we're in search (popup or results page) to use portal so menu isn't clipped and clicks work
   const [isInSearchDropdown, setIsInSearchDropdown] = useState(false);
   
   useEffect(() => {
     if (isOpen && menuRef.current) {
-      // Check if menu is inside search-dropdown-scroll
-      const searchDropdownScroll = menuRef.current.closest('.search-dropdown-scroll');
-      setIsInSearchDropdown(!!searchDropdownScroll);
+      const inSearchScroll = !!menuRef.current.closest('.search-dropdown-scroll');
+      const inSearchResultsList = menuRef.current.classList.contains('search-result-dropdown-menu');
+      setIsInSearchDropdown(inSearchScroll || inSearchResultsList);
     } else {
       setIsInSearchDropdown(false);
     }

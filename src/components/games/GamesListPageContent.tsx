@@ -1,4 +1,5 @@
 import { useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import GamesList from "./GamesList";
 import GamesListDetail from "./GamesListDetail";
 import GamesListTable from "./GamesListTable";
@@ -40,6 +41,7 @@ export default function GamesListPageContent({
   onPlay,
   buildCoverUrlFn,
 }: GamesListPageContentProps) {
+  const { t } = useTranslation();
   const {
     games,
     filterField,
@@ -220,50 +222,61 @@ export default function GamesListPageContent({
         ref={scrollContainerRef}
         className={`home-page-scroll-container ${
           viewMode === "table" ? "table-view" : ""
-        } ${!isLoading && filteredAndSortedGames.length === 0 ? "centered-content min-h-[400px]" : ""}`}
+        } ${!isReady || filteredAndSortedGames.length === 0 ? "centered-content min-h-[400px]" : ""}`}
       >
-        {!isLoading && (
+        {!isReady && (
+          <div className="text-gray-400 text-center" style={{ padding: "2rem" }}>
+            {t("common.loading", "Loading...")}
+          </div>
+        )}
+        {isReady && !isLoading && (
           <>
-            {viewMode === "grid" && (
-              <GamesList
-                games={filteredAndSortedGames}
-                onGameClick={onGameClick}
-                onPlay={onPlay}
-                onGameUpdate={handleGameUpdate}
-                onGameDelete={handleGameDelete}
-                buildCoverUrl={coverUrlBuilder}
-                coverSize={coverSize}
-                itemRefs={itemRefs}
-                viewMode={viewMode}
-                allCollections={allCollections}
-                scrollContainerRef={scrollContainerRef}
-              />
-            )}
-            {viewMode === "detail" && (
-              <GamesListDetail
-                games={filteredAndSortedGames}
-                onGameClick={onGameClick}
-                onPlay={onPlay}
-                onGameUpdate={handleGameUpdate}
-                onGameDelete={handleGameDelete}
-                buildCoverUrl={coverUrlBuilder}
-                itemRefs={itemRefs}
-                allCollections={allCollections}
-                scrollContainerRef={scrollContainerRef}
-              />
-            )}
-            {viewMode === "table" && (
-              <GamesListTable
-                games={filteredAndSortedGames}
-                onGameClick={onGameClick}
-                onPlay={onPlay}
-                onGameUpdate={handleGameUpdate}
-                onGameDelete={handleGameDelete}
-                itemRefs={itemRefs}
-                scrollContainerRef={tableScrollRef}
-                allCollections={allCollections}
-                columnVisibility={columnVisibility}
-              />
+            {filteredAndSortedGames.length === 0 ? (
+              <div className="text-gray-400 text-center">{t("table.noGames")}</div>
+            ) : (
+              <>
+                {viewMode === "grid" && (
+                  <GamesList
+                    games={filteredAndSortedGames}
+                    onGameClick={onGameClick}
+                    onPlay={onPlay}
+                    onGameUpdate={handleGameUpdate}
+                    onGameDelete={handleGameDelete}
+                    buildCoverUrl={coverUrlBuilder}
+                    coverSize={coverSize}
+                    itemRefs={itemRefs}
+                    viewMode={viewMode}
+                    allCollections={allCollections}
+                    scrollContainerRef={scrollContainerRef}
+                  />
+                )}
+                {viewMode === "detail" && (
+                  <GamesListDetail
+                    games={filteredAndSortedGames}
+                    onGameClick={onGameClick}
+                    onPlay={onPlay}
+                    onGameUpdate={handleGameUpdate}
+                    onGameDelete={handleGameDelete}
+                    buildCoverUrl={coverUrlBuilder}
+                    itemRefs={itemRefs}
+                    allCollections={allCollections}
+                    scrollContainerRef={scrollContainerRef}
+                  />
+                )}
+                {viewMode === "table" && (
+                  <GamesListTable
+                    games={filteredAndSortedGames}
+                    onGameClick={onGameClick}
+                    onPlay={onPlay}
+                    onGameUpdate={handleGameUpdate}
+                    onGameDelete={handleGameDelete}
+                    itemRefs={itemRefs}
+                    scrollContainerRef={tableScrollRef}
+                    allCollections={allCollections}
+                    columnVisibility={columnVisibility}
+                  />
+                )}
+              </>
             )}
           </>
         )}

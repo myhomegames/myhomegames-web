@@ -75,19 +75,22 @@ export default function EditTagModal({
   const normalizedRouteBase = routeBase.startsWith("/") ? routeBase : `/${routeBase}`;
   const routeSegment = getRouteSegment ? getRouteSegment(item) : encodeURIComponent(item.title);
 
-  // Same as EditGameModal (library): only show local cover in edit; fallback (FRONTEND_URL) = not shown here
+  // Same as EditGameModal (library): only show local cover in edit; fallback (FRONTEND_URL) = not shown here.
+  // For series/franchise (getRouteSegment set), cover is always routeBase/id/cover.webp = real cover, not fallback.
   const coverUrlWithTimestamp = useMemo(() => {
     if (!item?.cover || item.cover.trim() === "") return "";
     const baseUrl = item.cover.split("?")[0].split("&")[0];
     if (baseUrl.startsWith("http")) return "";
     const routeBaseNorm = routeBase.replace(/^\//, "");
     const isFallbackUrl =
-      baseUrl.includes(`/${routeBaseNorm}/`) && baseUrl.endsWith("/cover.webp");
+      !getRouteSegment &&
+      baseUrl.includes(`/${routeBaseNorm}/`) &&
+      baseUrl.endsWith("/cover.webp");
     if (isFallbackUrl) return "";
     const url = buildApiUrl(API_BASE, baseUrl);
     const separator = url.includes("?") ? "&" : "?";
     return `${url}${separator}t=${imageTimestamp}`;
-  }, [item?.cover, imageTimestamp, routeBase]);
+  }, [item?.cover, imageTimestamp, routeBase, getRouteSegment]);
 
   useEffect(() => {
     if (isOpen && item) {

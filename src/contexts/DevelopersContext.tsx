@@ -58,7 +58,9 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
   }, [authLoading, authToken]);
 
   useEffect(() => {
-    if (!authLoading) fetchDevelopers();
+    if (authLoading) return;
+    const t = setTimeout(fetchDevelopers, 800);
+    return () => clearTimeout(t);
   }, [authLoading, fetchDevelopers]);
 
   useEffect(() => {

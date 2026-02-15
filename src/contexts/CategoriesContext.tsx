@@ -70,11 +70,11 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
     }
   }, [authLoading, authToken]);
 
-  // Load categories on mount and when auth is ready
+  // Load categories on mount and when auth is ready (stagger to avoid all fetches at once)
   useEffect(() => {
-    if (!authLoading) {
-      fetchCategories();
-    }
+    if (authLoading) return;
+    const t = setTimeout(fetchCategories, 0);
+    return () => clearTimeout(t);
   }, [authLoading, fetchCategories]);
 
   // Listen for category update events

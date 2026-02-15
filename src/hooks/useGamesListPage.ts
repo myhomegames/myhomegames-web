@@ -49,6 +49,7 @@ export type UseGamesListPageReturn = {
   games: GameItem[];
   setGames: React.Dispatch<React.SetStateAction<GameItem[]>>;
   isReady: boolean;
+  libraryGamesLoading: boolean;
   filterField: FilterField;
   setFilterField: React.Dispatch<React.SetStateAction<FilterField>>;
   selectedYear: number | null;
@@ -813,6 +814,7 @@ export function useGamesListPage(
     games,
     setGames: noopSetGames,
     isReady,
+    libraryGamesLoading,
     filterField,
     setFilterField,
     selectedYear,

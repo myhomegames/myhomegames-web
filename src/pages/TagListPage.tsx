@@ -18,10 +18,6 @@ type TagListPageProps = {
   emptyMessage?: string;
   listEndpoint?: string;
   listResponseKey?: string;
-  /** When true, list items are keyed by id (e.g. series/franchise); route uses item.id */
-  listKeyById?: boolean;
-  /** Override default route (routeBase/title). Used for series/franchise: routeBase/id */
-  getRoute?: (item: CategoryItem) => string;
   /** Show alphabet navigator (e.g. for series, franchise, gameEngines) */
   showAlphabetNavigator?: boolean;
   editConfig?: {
@@ -56,8 +52,6 @@ export default function TagListPage({
   emptyMessage,
   listEndpoint,
   listResponseKey,
-  listKeyById = false,
-  getRoute: getRouteOverride,
   showAlphabetNavigator = false,
   editConfig,
 }: TagListPageProps) {
@@ -87,10 +81,12 @@ export default function TagListPage({
     let isActive = true;
     const endpoint = listEndpoint || routeBase;
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000);
+    let controller: AbortController | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
-    const fetchItems = async () => {
+    const fetchItems = async (attempt = 0) => {
+      controller = new AbortController();
+      timeoutId = setTimeout(() => controller!.abort(), 90000);
       setListLoading(true);
       try {
         const url = buildApiUrl(API_BASE, endpoint);
@@ -98,7 +94,8 @@ export default function TagListPage({
           headers: buildApiHeaders({ Accept: "application/json" }),
           signal: controller.signal,
         });
-        clearTimeout(timeoutId);
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = null;
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
         }
@@ -107,19 +104,26 @@ export default function TagListPage({
           id: string | number;
           title: string;
           cover?: string;
+          showTitle?: boolean;
         }>;
         const parsed = rawItems.map((item) => ({
           id: String(item.id),
           title: item.title,
           cover: item.cover,
+          showTitle: item.showTitle,
         }));
         if (isActive) {
           setServerItems(parsed);
         }
       } catch (err: any) {
-        clearTimeout(timeoutId);
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = null;
+        if (isActive && attempt < 1) {
+          setTimeout(() => fetchItems(attempt + 1), 2000);
+          return;
+        }
         if (err?.name === "AbortError") {
-          console.info("Tag list request timed out, using empty list.");
+          console.debug("Tag list request timed out, using empty list.");
         } else {
           console.error("Error fetching tag list:", String(err.message || err));
         }
@@ -136,7 +140,8 @@ export default function TagListPage({
     fetchItems();
     return () => {
       isActive = false;
-      controller.abort();
+      if (controller) controller.abort();
+      if (timeoutId) clearTimeout(timeoutId);
       clearTimeout(timeoutId);
     };
   }, [listEndpoint, listResponseKey, routeBase]);
@@ -147,34 +152,26 @@ export default function TagListPage({
       return;
     }
 
-    const valueMap = new Map<string, string>();
+    const valueSet = new Set<string>();
     games.forEach((game) => {
       const values = valueExtractor(game);
       if (!values) return;
       values.forEach((value) => {
-        const trimmed = String(value).trim();
-        if (!trimmed) return;
-        const key = trimmed.toLowerCase();
-        if (!valueMap.has(key)) {
-          valueMap.set(key, trimmed);
-        }
+        const id = String(value).trim();
+        if (id) valueSet.add(id);
       });
     });
 
     const serverMap = new Map<string, CategoryItem>();
     if (serverItems) {
       serverItems.forEach((item) => {
-        if (listKeyById) {
-          serverMap.set(String(item.id), item);
-        } else {
-          serverMap.set(item.title.toLowerCase(), item);
-        }
+        serverMap.set(String(item.id), item);
       });
     }
 
-    const resolvedItems = Array.from(valueMap.values()).map((value) => {
-      const match = listKeyById ? serverMap.get(value) : serverMap.get(value.toLowerCase());
-      return match || { id: value, title: value };
+    const resolvedItems = Array.from(valueSet).map((id) => {
+      const match = serverMap.get(id);
+      return match || { id, title: id };
     });
 
     resolvedItems.sort((a, b) => {
@@ -187,16 +184,11 @@ export default function TagListPage({
     // This avoids an extra re-render that causes scroll flicker (like library/collections).
     if (pendingScrollRestoreRef.current !== null) return;
     setItems(resolvedItems);
-  }, [games, valueExtractor, getDisplayName, serverItems, listKeyById]);
+  }, [games, valueExtractor, getDisplayName, serverItems]);
 
   const getRoute = useMemo(
-    () =>
-      getRouteOverride ??
-      ((item: CategoryItem) =>
-        listKeyById
-          ? `${routeBase}/${encodeURIComponent(item.id)}`
-          : `${routeBase}/${encodeURIComponent(item.title)}`),
-    [routeBase, listKeyById, getRouteOverride]
+    () => (item: CategoryItem) => `${routeBase}/${encodeURIComponent(item.id)}`,
+    [routeBase]
   );
 
   const getCoverUrl = useMemo(() => {
@@ -204,23 +196,13 @@ export default function TagListPage({
   }, []);
 
   const handleItemUpdate = (updatedItem: CategoryItem) => {
-    setItems((prev) =>
-      prev.map((item) =>
-        item.title.toLowerCase() === updatedItem.title.toLowerCase()
-          ? updatedItem
-          : item
-      )
-    );
+    const isMatch = (item: CategoryItem) => String(item.id) === String(updatedItem.id);
+
+    setItems((prev) => prev.map((item) => (isMatch(item) ? updatedItem : item)));
     setServerItems((prev) =>
-      prev
-        ? prev.map((item) =>
-            item.title.toLowerCase() === updatedItem.title.toLowerCase()
-              ? updatedItem
-              : item
-          )
-        : prev
+      prev ? prev.map((item) => (isMatch(item) ? updatedItem : item)) : prev
     );
-    if (editingItem && editingItem.title.toLowerCase() === updatedItem.title.toLowerCase()) {
+    if (editingItem && isMatch(editingItem)) {
       setEditingItem(updatedItem);
     }
   };

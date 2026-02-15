@@ -686,6 +686,7 @@ export default function EditGameModal({
 
   if (!isOpen) return null;
 
+  console.log("[Search] EditGameModal rendering (isOpen=true)", { gameId: game.id, gameTitle: game.title });
   return createPortal(
     <div className="edit-game-modal-overlay" onClick={onClose}>
       <div

@@ -1,10 +1,28 @@
 import { useState, useEffect } from "react";
 import type { TFunction } from "i18next";
 import TagEditor from "../../common/TagEditor";
-import FranchiseSeriesEditor from "./FranchiseSeriesEditor";
 import type { IdNameItem } from "./FranchiseSeriesEditor";
 import { API_BASE, getApiToken } from "../../../config";
 import { buildApiUrl, buildApiHeaders } from "../../../utils/api";
+
+function toIdName(list: Array<{ id: number; title?: string; name?: string }> | undefined): IdNameItem[] {
+  return (list || []).map((x) => ({
+    id: Number(x.id),
+    name: String(x.title ?? x.name ?? x.id),
+  }));
+}
+
+/** Deterministic numeric id from name (same as server-side hash for franchise/series). */
+function hashStringToId(s: string): number {
+  if (!s || !s.trim()) return 0;
+  let h = 0;
+  const str = s.trim();
+  for (let i = 0; i < str.length; i++) {
+    h = (h << 5) - h + str.charCodeAt(i);
+    h = h | 0;
+  }
+  return h >>> 0;
+}
 
 type EditGameTagsTabProps = {
   t: TFunction;
@@ -61,6 +79,8 @@ export default function EditGameTagsTab({
   const [availablePlayerPerspectives, setAvailablePlayerPerspectives] = useState<string[]>([]);
   const [availableGameEngines, setAvailableGameEngines] = useState<string[]>([]);
   const [availableKeywords, setAvailableKeywords] = useState<string[]>([]);
+  const [availableFranchises, setAvailableFranchises] = useState<IdNameItem[]>([]);
+  const [availableSeries, setAvailableSeries] = useState<IdNameItem[]>([]);
 
   useEffect(() => {
     if (!isOpen || !getApiToken()) return;
@@ -73,14 +93,18 @@ export default function EditGameTagsTab({
       fetch(buildApiUrl(API_BASE, "/player-perspectives"), { headers: buildApiHeaders({ Accept: "application/json" }) }).then((r) => (r.ok ? r.json() : { playerPerspectives: [] })),
       fetch(buildApiUrl(API_BASE, "/game-engines"), { headers: buildApiHeaders({ Accept: "application/json" }) }).then((r) => (r.ok ? r.json() : { gameEngines: [] })),
       fetch(buildApiUrl(API_BASE, "/keywords"), { headers: buildApiHeaders({ Accept: "application/json" }) }).then((r) => (r.ok ? r.json() : { keywords: [] })),
+      fetch(buildApiUrl(API_BASE, "/franchises"), { headers: buildApiHeaders({ Accept: "application/json" }) }).then((r) => (r.ok ? r.json() : { franchises: [] })),
+      fetch(buildApiUrl(API_BASE, "/series"), { headers: buildApiHeaders({ Accept: "application/json" }) }).then((r) => (r.ok ? r.json() : { series: [] })),
     ])
-      .then(([t, p, gm, pp, ge, kw]) => {
+      .then(([t, p, gm, pp, ge, kw, fr, sr]) => {
         setAvailableThemes(toTitles(t.themes));
         setAvailablePlatforms(toTitles(p.platforms));
         setAvailableGameModes(toTitles(gm.gameModes));
         setAvailablePlayerPerspectives(toTitles(pp.playerPerspectives));
         setAvailableGameEngines(toTitles(ge.gameEngines));
         setAvailableKeywords(Array.isArray(kw.keywords) ? kw.keywords : []);
+        setAvailableFranchises(toIdName(fr.franchises));
+        setAvailableSeries(toIdName(sr.series));
       })
       .catch(() => {});
   }, [isOpen]);
@@ -187,26 +211,60 @@ export default function EditGameTagsTab({
           />
         )}
       </div>
-      {isOpen && (
-        <FranchiseSeriesEditor
-          label={t("igdbInfo.franchise", "Franchise")}
-          value={selectedFranchise}
-          onChange={setSelectedFranchise}
-          disabled={saving}
-          apiEndpoint="franchises"
-          listResponseKey="franchises"
-        />
-      )}
-      {isOpen && (
-        <FranchiseSeriesEditor
-          label={t("igdbInfo.series", "Series")}
-          value={selectedSeries}
-          onChange={setSelectedSeries}
-          disabled={saving}
-          apiEndpoint="series"
-          listResponseKey="series"
-        />
-      )}
+      <div className="edit-game-modal-field">
+        <div className="edit-game-modal-label">{t("igdbInfo.franchise", "Franchise")}</div>
+        {isOpen && (
+          <TagEditor
+            key={`tag-editor-franchise-${gameId}-${isOpen}`}
+            mode="freeform"
+            selectedTags={selectedFranchise.map((f) => f.name)}
+            onTagsChange={(names) =>
+              setSelectedFranchise(
+                names
+                  .filter((name) => name.trim())
+                  .map((name) => {
+                    const opt = availableFranchises.find((o) => o.name === name);
+                    if (opt) return opt;
+                    const current = selectedFranchise.find((o) => o.name === name);
+                    if (current) return current;
+                    return { id: hashStringToId(name), name: name.trim() };
+                  }) as IdNameItem[]
+              )
+            }
+            disabled={saving}
+            placeholder={t("gameDetail.addFranchise", "Add franchise...")}
+            availableTags={availableFranchises.map((f) => f.name)}
+            allowCreate={true}
+          />
+        )}
+      </div>
+      <div className="edit-game-modal-field">
+        <div className="edit-game-modal-label">{t("igdbInfo.series", "Series")}</div>
+        {isOpen && (
+          <TagEditor
+            key={`tag-editor-series-${gameId}-${isOpen}`}
+            mode="freeform"
+            selectedTags={selectedSeries.map((s) => s.name)}
+            onTagsChange={(names) =>
+              setSelectedSeries(
+                names
+                  .filter((name) => name.trim())
+                  .map((name) => {
+                    const opt = availableSeries.find((o) => o.name === name);
+                    if (opt) return opt;
+                    const current = selectedSeries.find((o) => o.name === name);
+                    if (current) return current;
+                    return { id: hashStringToId(name), name: name.trim() };
+                  }) as IdNameItem[]
+              )
+            }
+            disabled={saving}
+            placeholder={t("gameDetail.addSeries", "Add series...")}
+            availableTags={availableSeries.map((s) => s.name)}
+            allowCreate={true}
+          />
+        )}
+      </div>
     </>
   );
 }

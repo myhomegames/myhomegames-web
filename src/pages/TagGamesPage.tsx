@@ -29,7 +29,7 @@ export default function TagGamesPage({
   paramName,
   storageKey,
 }: TagGamesPageProps) {
-  const { isLoading } = useLoading();
+  const { isLoading, setLoading } = useLoading();
   const params = useParams<Record<string, string>>();
   const rawParam = params[paramName];
   const tagValue = useMemo(
@@ -56,9 +56,7 @@ export default function TagGamesPage({
     scrollRestorationMode: viewMode === "table" ? undefined : viewMode,
   });
 
-  const {
-    setFilterField,
-    setSelectedThemes,
+  const { libraryGamesLoading, setFilterField, setSelectedThemes,
     setSelectedKeywords,
     setSelectedPlatforms,
     setSelectedGameModes,
@@ -72,6 +70,10 @@ export default function TagGamesPage({
     setSortField,
     setSortAscending,
   } = hook;
+
+  useEffect(() => {
+    setLoading(libraryGamesLoading);
+  }, [libraryGamesLoading, setLoading]);
 
   useEffect(() => {
     if (!tagValue) return;
@@ -107,12 +109,12 @@ export default function TagGamesPage({
       case "series":
         setSelectedSeries(tagValue);
         setSortField("releaseDate");
-        setSortAscending(false); /* false = date più vecchia prima (ordine cronologico) */
+        setSortAscending(true); /* true = ascending, oldest first (chronological) */
         break;
       case "franchise":
         setSelectedFranchise(tagValue);
         setSortField("releaseDate");
-        setSortAscending(false); /* false = date più vecchia prima (ordine cronologico) */
+        setSortAscending(true); /* true = ascending, oldest first (chronological) */
         break;
       default:
         break;

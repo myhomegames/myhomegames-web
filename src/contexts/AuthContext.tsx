@@ -124,10 +124,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (clientId && !isDevToken) {
         headers["X-Twitch-Client-Id"] = clientId;
       }
-      
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90000);
       const response = await fetch(`${API_BASE}/auth/me`, {
         headers,
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         const userData = await response.json();
@@ -162,6 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error("Failed to fetch user info:", error);
       // Only clear localStorage if this is a Twitch token (not a dev token)
       if (!isDevToken) {

@@ -113,20 +113,22 @@ function AppContent() {
       return;
     }
 
-    async function loadSettings() {
+    async function loadSettings(attempt = 0) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90000);
       try {
         const url = new URL("/settings", API_BASE);
         const res = await fetch(url.toString(), {
           headers: buildApiHeaders({ Accept: "application/json" }),
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
         if (res.ok) {
           const data = await res.json();
           const loadedLanguage = data.language || "en";
-          // Update i18n language if different from current
           if (i18n.language !== loadedLanguage) {
             i18n.changeLanguage(loadedLanguage);
           }
-          // Also update localStorage
           localStorage.setItem("language", loadedLanguage);
           if (Array.isArray(data.visibleLibraries)) {
             localStorage.setItem(
@@ -137,8 +139,15 @@ function AppContent() {
         } else {
           console.error("Failed to load settings:", res.status);
         }
-      } catch (err) {
-        console.error("Failed to load settings on startup:", err);
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        if (attempt < 1) {
+          setTimeout(() => loadSettings(attempt + 1), 2000);
+          return;
+        }
+        if (err?.name !== "AbortError") {
+          console.error("Failed to load settings on startup:", err);
+        }
       }
     }
     loadSettings();
