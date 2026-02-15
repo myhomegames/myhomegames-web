@@ -283,7 +283,6 @@
 }
 
 .games-table td {
-  padding: 12px 16px;
   transition: background-color 0.2s ease;
 }
 
@@ -594,25 +593,15 @@
   min-width: 0;
 }
 
-/* Cella data virtualizzata: stessi stili di .games-table td.date-cell + contenuto che non esce */
+/* Cella data virtualizzata: come .games-table td.date-cell, wrap così la riga può crescere in altezza */
 .virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.date-cell {
   font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.6);
   width: 12%;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
   vertical-align: middle;
-}
-
-.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.date-cell span,
-.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.date-cell .first-cell-text {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
 }
 
 .virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.stars-cell {
@@ -643,6 +632,7 @@
   color: rgba(255, 255, 255, 0.6);
   width: 140px;
   max-width: 140px;
+  vertical-align: middle;
 }
 
 .virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.games-table-edit-cell {

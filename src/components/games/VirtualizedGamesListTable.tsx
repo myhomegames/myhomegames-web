@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { List } from "react-window";
+import { List, useDynamicRowHeight } from "react-window";
 import type { GameItem, CollectionItem } from "../../types";
 import TableRow from "./TableRow";
 import "./VirtualizedGamesListTable.css";
@@ -75,6 +75,7 @@ export default function VirtualizedGamesListTable({
   const lastSavedScrollRef = useRef<number | null>(null);
   const storageKey = `${location.pathname}:table`;
   const [isScrollRestored, setIsScrollRestored] = useState(false);
+  const dynamicRowHeight = useDynamicRowHeight({ defaultRowHeight: ITEM_HEIGHT });
 
   // Expose listRef to parent via containerRef if it's a ref object
   useEffect(() => {
@@ -215,12 +216,28 @@ export default function VirtualizedGamesListTable({
   }, [dimensions.height, storageKey, containerRef]);
 
   // Row component for react-window (useDiv so we don't put <tr> inside <div> — valid HTML only)
-  const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => {
+  const Row = ({
+    index,
+    style,
+    dynamicRowHeight: rowHeightObserver,
+  }: {
+    index: number;
+    style: React.CSSProperties;
+    dynamicRowHeight?: ReturnType<typeof useDynamicRowHeight>;
+  }) => {
     const game = games[index];
+    const rowRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+      if (!rowRef.current || !rowHeightObserver) return;
+      const unsub = rowHeightObserver.observeRowElements([rowRef.current]);
+      return unsub;
+    }, [index, rowHeightObserver]);
+
     if (!game) return null;
 
     return (
-      <div style={style} className="virtualized-table-row-wrapper">
+      <div ref={rowRef} style={style} className="virtualized-table-row-wrapper">
         <TableRow
           game={game}
           index={index}
@@ -255,10 +272,10 @@ export default function VirtualizedGamesListTable({
           className="virtualized-games-table-list"
           defaultHeight={dimensions.height}
           rowCount={games.length}
-          rowHeight={ITEM_HEIGHT}
+          rowHeight={dynamicRowHeight}
           overscanCount={OVERSCAN_COUNT}
           rowComponent={Row}
-          rowProps={{} as any}
+          rowProps={{ dynamicRowHeight } as any}
           style={{ height: dimensions.height, width: dimensions.width }}
           onResize={(size) => {
             setDimensions({ width: size.width, height: size.height });
