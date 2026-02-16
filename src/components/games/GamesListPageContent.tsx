@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import GamesList from "./GamesList";
 import GamesListDetail from "./GamesListDetail";
 import GamesListTable from "./GamesListTable";
@@ -40,6 +41,7 @@ export default function GamesListPageContent({
   onPlay,
   buildCoverUrlFn,
 }: GamesListPageContentProps) {
+  const { t } = useTranslation();
   const {
     games,
     filterField,
@@ -50,6 +52,10 @@ export default function GamesListPageContent({
     setSelectedDecade,
     selectedCollection,
     setSelectedCollection,
+    selectedSeries,
+    setSelectedSeries,
+    selectedFranchise,
+    setSelectedFranchise,
     selectedAgeRating,
     setSelectedAgeRating,
     selectedGenre,
@@ -85,7 +91,52 @@ export default function GamesListPageContent({
     handleGameDelete,
     availableGenres,
     availableCollections,
+    availableSeries,
+    availableFranchises,
+    availableDevelopers,
+    availablePublishers,
   } = hook;
+
+  const handleFilterChange = useCallback(
+    (field: import("../filters/types").FilterField) => {
+      if (field === "all") {
+        setSelectedYear(null);
+        setSelectedDecade(null);
+        setSelectedCollection(null);
+        setSelectedSeries(null);
+        setSelectedFranchise(null);
+        setSelectedGenre(null);
+        setSelectedThemes(null);
+        setSelectedKeywords(null);
+        setSelectedPlatforms(null);
+        setSelectedGameModes(null);
+        setSelectedPublishers(null);
+        setSelectedDevelopers(null);
+        setSelectedPlayerPerspectives(null);
+        setSelectedGameEngines(null);
+        setSelectedAgeRating(null);
+      }
+      setFilterField(field);
+    },
+    [
+      setFilterField,
+      setSelectedYear,
+      setSelectedDecade,
+      setSelectedCollection,
+      setSelectedSeries,
+      setSelectedFranchise,
+      setSelectedGenre,
+      setSelectedThemes,
+      setSelectedKeywords,
+      setSelectedPlatforms,
+      setSelectedGameModes,
+      setSelectedPublishers,
+      setSelectedDevelopers,
+      setSelectedPlayerPerspectives,
+      setSelectedGameEngines,
+      setSelectedAgeRating,
+    ]
+  );
 
   // Call onGamesLoaded when games change (only when games actually change, not on every render)
   useEffect(() => {
@@ -111,7 +162,7 @@ export default function GamesListPageContent({
         <GamesListToolbar
           gamesCount={filteredAndSortedGames.length}
           games={games}
-          onFilterChange={setFilterField}
+          onFilterChange={handleFilterChange}
           onYearFilterChange={setSelectedYear}
           onGenreFilterChange={setSelectedGenre}
           onThemesFilterChange={setSelectedThemes}
@@ -131,6 +182,10 @@ export default function GamesListPageContent({
           selectedDecade={selectedDecade}
           selectedCollection={selectedCollection}
           onCollectionFilterChange={setSelectedCollection}
+          selectedSeries={selectedSeries}
+          selectedFranchise={selectedFranchise}
+          onSeriesFilterChange={setSelectedSeries}
+          onFranchiseFilterChange={setSelectedFranchise}
           selectedAgeRating={selectedAgeRating}
           onAgeRatingFilterChange={setSelectedAgeRating}
           selectedThemes={selectedThemes}
@@ -146,6 +201,10 @@ export default function GamesListPageContent({
           viewMode={viewMode}
           availableGenres={availableGenres}
           availableCollections={availableCollections}
+          availableSeries={availableSeries}
+          availableFranchises={availableFranchises}
+          availableDevelopers={availableDevelopers}
+          availablePublishers={availablePublishers}
         />
       )}
       {/* Table header section */}
@@ -163,50 +222,61 @@ export default function GamesListPageContent({
         ref={scrollContainerRef}
         className={`home-page-scroll-container ${
           viewMode === "table" ? "table-view" : ""
-        } ${!isLoading && filteredAndSortedGames.length === 0 ? "centered-content min-h-[400px]" : ""}`}
+        } ${!isReady || filteredAndSortedGames.length === 0 ? "centered-content min-h-[400px]" : ""}`}
       >
-        {!isLoading && (
+        {!isReady && (
+          <div className="text-gray-400 text-center" style={{ padding: "2rem" }}>
+            {t("common.loading", "Loading...")}
+          </div>
+        )}
+        {isReady && !isLoading && (
           <>
-            {viewMode === "grid" && (
-              <GamesList
-                games={filteredAndSortedGames}
-                onGameClick={onGameClick}
-                onPlay={onPlay}
-                onGameUpdate={handleGameUpdate}
-                onGameDelete={handleGameDelete}
-                buildCoverUrl={coverUrlBuilder}
-                coverSize={coverSize}
-                itemRefs={itemRefs}
-                viewMode={viewMode}
-                allCollections={allCollections}
-                scrollContainerRef={scrollContainerRef}
-              />
-            )}
-            {viewMode === "detail" && (
-              <GamesListDetail
-                games={filteredAndSortedGames}
-                onGameClick={onGameClick}
-                onPlay={onPlay}
-                onGameUpdate={handleGameUpdate}
-                onGameDelete={handleGameDelete}
-                buildCoverUrl={coverUrlBuilder}
-                itemRefs={itemRefs}
-                allCollections={allCollections}
-                scrollContainerRef={scrollContainerRef}
-              />
-            )}
-            {viewMode === "table" && (
-              <GamesListTable
-                games={filteredAndSortedGames}
-                onGameClick={onGameClick}
-                onPlay={onPlay}
-                onGameUpdate={handleGameUpdate}
-                onGameDelete={handleGameDelete}
-                itemRefs={itemRefs}
-                scrollContainerRef={tableScrollRef}
-                allCollections={allCollections}
-                columnVisibility={columnVisibility}
-              />
+            {filteredAndSortedGames.length === 0 ? (
+              <div className="text-gray-400 text-center">{t("table.noGames")}</div>
+            ) : (
+              <>
+                {viewMode === "grid" && (
+                  <GamesList
+                    games={filteredAndSortedGames}
+                    onGameClick={onGameClick}
+                    onPlay={onPlay}
+                    onGameUpdate={handleGameUpdate}
+                    onGameDelete={handleGameDelete}
+                    buildCoverUrl={coverUrlBuilder}
+                    coverSize={coverSize}
+                    itemRefs={itemRefs}
+                    viewMode={viewMode}
+                    allCollections={allCollections}
+                    scrollContainerRef={scrollContainerRef}
+                  />
+                )}
+                {viewMode === "detail" && (
+                  <GamesListDetail
+                    games={filteredAndSortedGames}
+                    onGameClick={onGameClick}
+                    onPlay={onPlay}
+                    onGameUpdate={handleGameUpdate}
+                    onGameDelete={handleGameDelete}
+                    buildCoverUrl={coverUrlBuilder}
+                    itemRefs={itemRefs}
+                    allCollections={allCollections}
+                    scrollContainerRef={scrollContainerRef}
+                  />
+                )}
+                {viewMode === "table" && (
+                  <GamesListTable
+                    games={filteredAndSortedGames}
+                    onGameClick={onGameClick}
+                    onPlay={onPlay}
+                    onGameUpdate={handleGameUpdate}
+                    onGameDelete={handleGameDelete}
+                    itemRefs={itemRefs}
+                    scrollContainerRef={tableScrollRef}
+                    allCollections={allCollections}
+                    columnVisibility={columnVisibility}
+                  />
+                )}
+              </>
             )}
           </>
         )}

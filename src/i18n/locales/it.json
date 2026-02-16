@@ -4,8 +4,12 @@
     "library": "Libreria",
     "collections": "Raccolte",
     "categories": "Categorie",
+    "series": "Serie",
+    "franchise": "Franchise",
     "platforms": "Piattaforme",
     "themes": "Temi",
+    "developers": "Sviluppatori",
+    "publishers": "Produttori",
     "gameEngines": "Motori di gioco",
     "gameModes": "Modalità di gioco",
     "playerPerspectives": "Prospettive di gioco"
@@ -78,6 +82,8 @@
     "placeholder": "Cerca giochi...",
     "recentSearches": "Ricerche Recenti",
     "collection": "Raccolta",
+    "developer": "Sviluppatore",
+    "publisher": "Produttore",
     "game": "Gioco"
   },
   "searchResults": {
@@ -100,6 +106,7 @@
     "noResults": "Nessun gioco trovato",
     "typeToSearch": "Digita almeno 2 caratteri per cercare",
     "error": "Errore nella ricerca dei giochi",
+    "credentialsRequired": "Configura le credenziali Twitch nelle Impostazioni per cercare su IGDB.",
     "new": "Nuovo"
   },
   "viewMode": {
@@ -166,7 +173,9 @@
     "removeBackground": "Rimuovi sfondo",
     "invalidImageType": "Il file deve essere un'immagine",
     "coverFormat": "Rapporto consigliato: 3:4 (es. 400x533px)",
-    "backgroundFormat": "Rapporto consigliato: 16:9 (es. 1920x1080px)"
+    "backgroundFormat": "Rapporto consigliato: 16:9 (es. 1920x1080px)",
+    "showTitleInPreview": "Mostra titolo in anteprima",
+    "showTitle": "Mostra titolo sulla copertina"
   },
   "manageInstallation": {
     "title": "Gestisci Installazione",
@@ -223,7 +232,7 @@
   },
   "collections": {
     "addTo": "Aggiungi a",
-    "addToCollection": "Aggiungi alla Collezione",
+    "addToCollection": "Collezione",
     "searchCollections": "Cerca collezioni...",
     "noCollectionsFound": "Nessuna collezione trovata",
     "newCollectionTitle": "Titolo nuova collezione",
@@ -255,6 +264,8 @@
       "year": "Anno",
       "decade": "Decade",
       "collection": "Raccolta",
+      "series": "Serie",
+      "franchise": "Franchise",
       "ageRating": "Classificazione dei contenuti",
       "searchYear": "Filtro Anno",
       "searchGenre": "Filtro Genere",
@@ -268,6 +279,8 @@
       "searchGameEngines": "Filtro Motori di gioco",
       "searchDecade": "Filtro Decade",
       "searchCollection": "Filtro Raccolta",
+      "searchSeries": "Filtro Serie",
+      "searchFranchise": "Filtro Franchise",
       "searchAgeRating": "Cerca classificazione..."
     },
     "sort": {
@@ -433,8 +446,21 @@
     },
     "developers": "Sviluppato da",
     "publishers": "Prodotto da",
+    "addToDeveloper": "Sviluppatore",
+    "addToPublisher": "Produttore",
+    "searchDevelopers": "Cerca sviluppatori...",
+    "searchPublishers": "Cerca produttori...",
+    "noDevelopersFound": "Nessuno sviluppatore trovato",
+    "noPublishersFound": "Nessun produttore trovato",
+    "newDeveloperName": "Nome nuovo sviluppatore",
+    "newPublisherName": "Nome nuovo produttore",
+    "removeFromDeveloper": "Rimuovi da sviluppatore",
+    "removeFromPublisher": "Rimuovi da produttore",
+    "editDeveloper": "Modifica Sviluppatore",
+    "editPublisher": "Modifica Produttore",
     "franchise": "Franchise",
     "collection": "Collezione",
+    "series": "Serie",
     "screenshots": "Screenshot",
     "videos": "Video",
     "gameEngines": "Motori di gioco",

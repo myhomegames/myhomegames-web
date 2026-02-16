@@ -27,6 +27,10 @@ type CoverProps = {
   onCollectionDelete?: (collectionId: string) => void;
   onCollectionUpdate?: (collection: any) => void;
   onRemoveFromCollection?: () => void;
+  developerId?: string;
+  publisherId?: string;
+  onRemoveFromDeveloper?: () => void;
+  onRemoveFromPublisher?: () => void;
   showTitle?: boolean;
   subtitle?: string | number | null;
   detail?: boolean;
@@ -46,12 +50,16 @@ type CoverProps = {
   removeResourceType?:
     | "games"
     | "collections"
+    | "developers"
+    | "publishers"
     | "categories"
     | "themes"
     | "platforms"
     | "game-engines"
     | "game-modes"
-    | "player-perspectives"; // Resource type for removal
+    | "player-perspectives"
+    | "series"
+    | "franchise"; // Resource type for removal
   onRemoveSuccess?: () => void; // Callback when removal succeeds
   removeDisabled?: boolean; // Disable remove button
 };
@@ -75,6 +83,10 @@ export default function Cover({
   onCollectionDelete,
   onCollectionUpdate,
   onRemoveFromCollection,
+  developerId,
+  publisherId,
+  onRemoveFromDeveloper,
+  onRemoveFromPublisher,
   showTitle = false,
   subtitle,
   detail = true,
@@ -420,7 +432,7 @@ export default function Cover({
             />
           </div>
         )}
-        {onEdit && (gameId || collectionId) && (
+        {onEdit && (gameId || collectionId || developerId || publisherId) && (
           <div className="games-list-dropdown-wrapper games-list-dropdown-wrapper-bottom-right">
             {gameId && game && game.executables && game.executables.length > 1 && onPlay && (
               <AdditionalExecutablesDropdown
@@ -446,6 +458,10 @@ export default function Cover({
               collectionTitle={collectionTitle}
               onCollectionDelete={onCollectionDelete}
               onCollectionUpdate={onCollectionUpdate}
+              developerId={developerId}
+              publisherId={publisherId}
+              onRemoveFromDeveloper={onRemoveFromDeveloper}
+              onRemoveFromPublisher={onRemoveFromPublisher}
               className="games-list-dropdown-menu"
             />
           </div>
@@ -499,9 +515,9 @@ export default function Cover({
           </div>
         )}
       </div>
-      {(showTitle || subtitle != null) && titlePosition === "bottom" && (
+      {((showTitle && titlePosition === "bottom") || subtitle != null) && (
         <div className="games-list-title-wrapper">
-          {showTitle && (
+          {showTitle && titlePosition === "bottom" && (
             <Tooltip text={title} position="bottom">
               <div 
                 className={`truncate games-list-title ${detail ? "games-list-title-clickable" : ""}`}

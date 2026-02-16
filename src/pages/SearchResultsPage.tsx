@@ -23,23 +23,20 @@ export default function SearchResultsPage({
   const [isReady, setIsReady] = useState(false);
   const [gamesState, setGamesState] = useState<GameItem[]>([]);
   const [collectionsState, setCollectionsState] = useState<CollectionItem[]>([]);
-  
-  // Restore scroll position
+  const [developersState, setDevelopersState] = useState<CollectionItem[]>([]);
+  const [publishersState, setPublishersState] = useState<CollectionItem[]>([]);
+
   useScrollRestoration(scrollContainerRef);
 
-  // Retrieve data from location state
-  const { searchQuery, games, collections } =
-    (location.state as { searchQuery?: string; games?: GameItem[]; collections?: CollectionItem[] }) || {};
+  const { searchQuery, games, collections, developers, publishers } =
+    (location.state as { searchQuery?: string; games?: GameItem[]; collections?: CollectionItem[]; developers?: CollectionItem[]; publishers?: CollectionItem[] }) || {};
 
-  // Sync state with location state
   useLayoutEffect(() => {
-    if (games) {
-      setGamesState(games);
-    }
-    if (collections) {
-      setCollectionsState(collections);
-    }
-  }, [games, collections]);
+    if (games) setGamesState(games);
+    if (collections) setCollectionsState(collections);
+    if (developers) setDevelopersState(developers);
+    if (publishers) setPublishersState(publishers);
+  }, [games, collections, developers, publishers]);
 
   // Listen for game events to update games state
   useGameEvents({ 
@@ -129,9 +126,8 @@ export default function SearchResultsPage({
     }
   }, [searchQuery, navigate]);
 
-  // Hide content until fully rendered
   useLayoutEffect(() => {
-    if ((gamesState.length > 0) || (collectionsState.length > 0)) {
+    if (gamesState.length > 0 || collectionsState.length > 0 || developersState.length > 0 || publishersState.length > 0) {
       // Wait for next frame to ensure DOM is ready
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
@@ -141,7 +137,7 @@ export default function SearchResultsPage({
     } else {
       setIsReady(false);
     }
-  }, [gamesState, collectionsState]);
+  }, [gamesState, collectionsState, developersState, publishersState]);
 
   if (!searchQuery || searchQuery.trim().length < 2) {
     return (
@@ -158,7 +154,7 @@ export default function SearchResultsPage({
     );
   }
 
-  const totalResults = gamesState.length + collectionsState.length;
+  const totalResults = gamesState.length + collectionsState.length + developersState.length + publishersState.length;
   if (totalResults === 0) {
     return (
       <div className="bg-[#1a1a1a] text-white search-results-page">
@@ -233,6 +229,8 @@ export default function SearchResultsPage({
           <SearchResultsList
             games={gamesState}
             collections={collectionsState}
+            developers={developersState}
+            publishers={publishersState}
             onGameClick={onGameClick}
             onPlay={onPlay}
             onGameUpdate={handleGameUpdate}

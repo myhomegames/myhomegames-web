@@ -3,12 +3,16 @@
   margin: 0 auto;
   margin-bottom: 0;
   padding: 0 24px;
+  /* Allineamento con il body (body un po' più largo, scrollbar in margine) */
+  padding-right: 16px;
   background-color: #1a1a1a;
   border-bottom: 2px solid #1a1a1a;
+  box-sizing: border-box;
 }
 
 .games-table-header-table {
   width: 100%;
+  min-width: 520px;
   border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;
@@ -16,6 +20,7 @@
 
 .games-table {
   width: 100%;
+  min-width: 520px;
   border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;
@@ -80,13 +85,14 @@
   font-size: 0.95rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.7);
-  min-width: 220px;
-  width: 30%;
+  min-width: 180px;
+  width: 40%;
 }
 
 .games-table-header-table th.date-cell {
   font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.6);
+  width: 12%;
 }
 
 .games-table-header-table th.stars-cell {
@@ -106,6 +112,7 @@
 .games-table-header-table th.critic-rating-cell {
   font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.6);
+  width: 16%;
 }
 
 .games-table-header-table th.age-rating-cell {
@@ -117,22 +124,34 @@
 
 .games-table-container {
   max-width: 100%;
+  min-width: 0;
   margin: 0 auto;
   margin-top: 0;
   margin-bottom: 70px;
   padding: 0 24px;
   height: calc(100vh - 114px - 22px - 50px - 70px);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: hidden;
   display: flex;
   flex-direction: column;
 }
 
 .games-table-scroll {
   flex: 1;
+  min-width: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  /* Evita che la prima riga resti nascosta sotto l’header della tabella */
+  box-sizing: border-box;
+  width: calc(100% + 20px);
+  margin-right: -20px;
+  padding-right: 12px;
 }
 
+/* Solo quando il navigatore alfabetico è nel DOM (stesso layout ha .home-page-alphabet-container) */
+.home-page-layout:has(.home-page-alphabet-container) .games-table-scroll {
+  width: calc(100% + 49px);
+}
 
 .games-table thead {
   position: sticky;
@@ -263,8 +282,24 @@
   background-color: rgba(255, 255, 255, 0.05);
 }
 
+/* Mantieni evidenziazione riga quando il dropdown (o submenu) è aperto */
+.games-table tbody tr.row-dropdown-open td.column-menu-cell {
+  background-color: transparent;
+}
+
+.games-table tbody tr.row-dropdown-open td:not(.column-menu-cell) {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.games-table tbody tr.row-dropdown-open .first-cell-play-button {
+  opacity: 1;
+}
+
+.games-table tbody tr.row-dropdown-open .games-table-actions {
+  opacity: 1;
+}
+
 .games-table td {
-  padding: 12px 16px;
   transition: background-color 0.2s ease;
 }
 
@@ -291,8 +326,31 @@
   font-size: 0.95rem;
   font-weight: 600;
   color: #f8f8f8;
-  min-width: 220px;
-  width: 30%;
+  min-width: 0;
+  width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.games-table td.title-cell .tooltip-wrapper {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.games-table td.title-cell .tooltip-wrapper span,
+.games-table td.title-cell span,
+.games-table td.title-cell .first-cell-text,
+.games-table td.title-cell .title-cell-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .games-table td.title-cell .first-cell-text,
@@ -358,6 +416,7 @@
 .games-table td.date-cell {
   font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.6);
+  width: 12%;
 }
 
 .games-table td.stars-cell {
@@ -377,6 +436,7 @@
 .games-table td.critic-rating-cell {
   font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.6);
+  width: 16%;
 }
 
 .games-table td.age-rating-cell {
@@ -475,4 +535,147 @@
   height: 100%;
   background: transparent;
   pointer-events: auto;
+}
+
+/* Virtualized table: same row/cell styles (div-based layout) */
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] {
+  transition: background-color 0.2s ease;
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper:hover > div[role="row"] > div.column-menu-cell {
+  background-color: transparent;
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper:hover > div[role="row"] > div:not(.column-menu-cell) {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div {
+  padding: 12px 16px;
+  transition: background-color 0.2s ease;
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.column-menu-cell {
+  padding: 12px 4px;
+  width: 40px;
+  background-color: transparent !important;
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.even-row {
+  background-color: transparent;
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.odd-row {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper:hover .first-cell-play-button {
+  opacity: 1;
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper:hover .games-table-actions {
+  opacity: 1;
+}
+
+/* Mantieni evidenziazione riga virtualizzata quando il dropdown (o submenu) è aperto */
+.virtualized-games-table-list .virtualized-table-row-wrapper:has(div[role="row"].row-dropdown-open) > div[role="row"] > div.column-menu-cell {
+  background-color: transparent;
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper:has(div[role="row"].row-dropdown-open) > div[role="row"] > div:not(.column-menu-cell) {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper:has(div[role="row"].row-dropdown-open) .first-cell-play-button {
+  opacity: 1;
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper:has(div[role="row"].row-dropdown-open) .games-table-actions {
+  opacity: 1;
+}
+
+/* Cella titolo virtualizzata: come data, ellissi sul titolo (Tooltip usa .tooltip-wrapper) */
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.title-cell {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #f8f8f8;
+  min-width: 0;
+  width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.title-cell .tooltip-wrapper {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.title-cell .tooltip-wrapper span,
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.title-cell span,
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.title-cell .first-cell-text,
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.title-cell .title-cell-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* Cella data virtualizzata: come .games-table td.date-cell, wrap così la riga può crescere in altezza */
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.date-cell {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  width: 12%;
+  min-width: 0;
+  white-space: normal;
+  word-break: break-word;
+  vertical-align: middle;
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.stars-cell {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  width: 120px;
+  max-width: 120px;
+  vertical-align: middle;
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.year-cell {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  width: 80px;
+  max-width: 80px;
+  vertical-align: middle;
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.critic-rating-cell {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  width: 16%;
+  vertical-align: middle;
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.age-rating-cell {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  width: 140px;
+  max-width: 140px;
+  vertical-align: middle;
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.games-table-edit-cell {
+  padding: 12px 16px;
+  text-align: center;
+  width: 80px;
+}
+
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.first-visible-cell {
+  padding: 12px 16px 12px 60px !important;
+  position: relative;
 }

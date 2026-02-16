@@ -1,4 +1,5 @@
 import TagValueFilter from "./TagValueFilter";
+import { getTagLabelFromGames } from "./tagFilterUtils";
 import type { FilterValue, GameItem } from "./types";
 
 type GameEnginesFilterProps = {
@@ -18,6 +19,7 @@ export default function GameEnginesFilter(props: GameEnginesFilterProps) {
       labelKey="gamesListToolbar.filter.gameEngines"
       searchPlaceholderKey="gamesListToolbar.filter.searchGameEngines"
       valueExtractor={(game) => game.gameEngines}
+      getLabelForValue={(value) => getTagLabelFromGames(props.games, "gameEngines", value)}
     />
   );
 }

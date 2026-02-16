@@ -113,29 +113,128 @@ export function useAutoTranslate(
   return translatedText;
 }
 
+export type AutoTranslateBatchItem = {
+  id: string;
+  text: string;
+  translationKey: string;
+};
+
+type AutoTranslateBatchOptions = {
+  disabled?: boolean;
+};
+
 /**
- * Formatta la traduzione: capitalizza ogni parola e rimuovi trattini
+ * Traduce più titoli con una sola chiamata HTTP.
+ * Restituisce una mappa id -> titolo (tradotto o formattato).
+ */
+export function useAutoTranslateBatch(
+  items: AutoTranslateBatchItem[],
+  options: AutoTranslateBatchOptions = {}
+): Record<string, string> {
+  const { t, i18n } = useTranslation();
+  const [results, setResults] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    items.forEach((item) => {
+      initial[item.id] = formatTranslation(item.text);
+    });
+    return initial;
+  });
+  const batchKeyRef = useRef<string>('');
+
+  useEffect(() => {
+    if (options.disabled || items.length === 0) {
+      const fallback: Record<string, string> = {};
+      items.forEach((item) => {
+        fallback[item.id] = formatTranslation(item.text);
+      });
+      setResults(fallback);
+      return;
+    }
+
+    const next: Record<string, string> = {};
+    const toTranslate: AutoTranslateBatchItem[] = [];
+
+    for (const item of items) {
+      const existing = t(item.translationKey, { defaultValue: '$$$$MISSING$$$$' });
+      if (existing !== '$$$$MISSING$$$$' && existing !== item.translationKey && existing !== item.text) {
+        next[item.id] = existing;
+        continue;
+      }
+      if (i18n.language === 'en') {
+        next[item.id] = formatTranslation(item.text);
+        continue;
+      }
+      const cacheKey = `${item.text}-${i18n.language}`;
+      if (translationCache.has(cacheKey)) {
+        next[item.id] = translationCache.get(cacheKey)!;
+        continue;
+      }
+      toTranslate.push(item);
+    }
+
+    if (toTranslate.length === 0) {
+      setResults(next);
+      return;
+    }
+
+    const targetLang = LANGUAGE_MAP[i18n.language] || i18n.language;
+    if (!targetLang || targetLang === 'en') {
+      toTranslate.forEach((item) => { next[item.id] = formatTranslation(item.text); });
+      setResults(next);
+      return;
+    }
+
+    const batchKey = `${i18n.language}:${items.map((i) => i.id).sort().join(',')}`;
+    if (batchKeyRef.current === batchKey) {
+      setResults(next);
+      return;
+    }
+    batchKeyRef.current = batchKey;
+
+    // Mostra subito i titoli già risolti (i18n/cache)
+    setResults(next);
+
+    tryGoogleTranslateBatch(
+      toTranslate.map((item) => item.text),
+      targetLang
+    ).then((translatedList) => {
+      const updates: Record<string, string> = {};
+      toTranslate.forEach((item, index) => {
+        const raw = translatedList[index];
+        const formatted = raw ? formatTranslation(raw) : formatTranslation(item.text);
+        const cacheKey = `${item.text}-${i18n.language}`;
+        translationCache.set(cacheKey, formatted);
+        updates[item.id] = formatted;
+      });
+      setResults((prev) => ({ ...prev, ...updates }));
+    }).catch(() => {
+      const fallback: Record<string, string> = {};
+      toTranslate.forEach((item) => { fallback[item.id] = formatTranslation(item.text); });
+      setResults((prev) => ({ ...prev, ...fallback }));
+    });
+  }, [items, t, i18n.language, options.disabled]);
+
+  return results;
+}
+
+/**
+ * Formatta la traduzione in \"sentence case\":
+ * tutto minuscolo tranne la prima lettera della frase.
  */
 function formatTranslation(text: string): string {
   if (!text || typeof text !== 'string') {
     return text;
   }
-  
+
   // Rimuovi trattini e sostituiscili con spazi
-  let formatted = text.replace(/-/g, ' ');
-  
-  // Capitalizza ogni parola (Title Case)
-  formatted = formatted
-    .toLowerCase()
-    .split(' ')
-    .map(word => {
-      if (word.length === 0) return word;
-      return word.charAt(0).toUpperCase() + word.slice(1);
-    })
-    .join(' ');
-  
-  return formatted;
+  const normalized = text.replace(/-/g, ' ').trim();
+  if (!normalized) return normalized;
+
+  const lower = normalized.toLowerCase();
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
 }
+
+const BATCH_SEP = '\n';
 
 /**
  * Usa Google Translate API (endpoint pubblico non ufficiale)
@@ -175,6 +274,27 @@ async function tryGoogleTranslate(text: string, targetLang: string): Promise<str
     return null;
   } catch (error: any) {
     return null;
+  }
+}
+
+/**
+ * Traduce più testi con una sola chiamata HTTP (join con separatore, poi split).
+ */
+async function tryGoogleTranslateBatch(texts: string[], targetLang: string): Promise<(string | null)[]> {
+  if (texts.length === 0) return [];
+  if (texts.length === 1) {
+    const t = await tryGoogleTranslate(texts[0], targetLang);
+    return [t];
+  }
+  try {
+    const combined = texts.join(BATCH_SEP);
+    const translated = await tryGoogleTranslate(combined, targetLang);
+    if (!translated) return texts.map(() => null);
+    const parts = translated.split(BATCH_SEP).map((s) => s.trim());
+    if (parts.length !== texts.length) return texts.map(() => null);
+    return parts;
+  } catch {
+    return texts.map(() => null);
   }
 }
 

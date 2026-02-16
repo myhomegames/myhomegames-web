@@ -1,0 +1,96 @@
+.franchise-series-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.franchise-series-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.franchise-series-chip-label {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.franchise-series-chip-remove {
+  padding: 0 2px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.franchise-series-chip-remove:hover {
+  color: #fff;
+}
+
+.franchise-series-add {
+  position: relative;
+}
+
+.franchise-series-add-button {
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.franchise-series-add-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.franchise-series-add-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.franchise-series-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  background: #2a2a2a;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  z-index: 10;
+  min-width: 200px;
+}
+
+.franchise-series-dropdown-empty {
+  padding: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+}
+
+.franchise-series-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.franchise-series-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}

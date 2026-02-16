@@ -27,7 +27,6 @@
 
 .home-page-content-wrapper.has-toolbar .home-page-scroll-container.table-view {
   padding-top: 0;
-  margin-top: -3px;
 }
 
 .home-page-scroll-container {
@@ -62,6 +61,7 @@
 .home-page-scroll-container.table-view {
   padding-bottom: 0;
   overflow: hidden;
+  overflow-x: hidden !important;
 }
 
 .home-page-scroll-container:not(.table-view) {

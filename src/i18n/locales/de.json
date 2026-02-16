@@ -4,8 +4,12 @@
     "library": "Bibliothek",
     "collections": "Sammlungen",
     "categories": "Kategorien",
+    "series": "Serien",
+    "franchise": "Franchise",
     "platforms": "Plattformen",
     "themes": "Themen",
+    "developers": "Entwickler",
+    "publishers": "Publisher",
     "gameEngines": "Spiel-Engines",
     "gameModes": "Spielmodi",
     "playerPerspectives": "Spielperspektiven"
@@ -78,6 +82,8 @@
     "placeholder": "Spiele suchen...",
     "recentSearches": "Letzte Suchen",
     "collection": "Sammlung",
+    "developer": "Entwickler",
+    "publisher": "Herausgeber",
     "game": "Spiel"
   },
   "searchResults": {
@@ -166,7 +172,9 @@
     "removeBackground": "Hintergrund entfernen",
     "invalidImageType": "Die Datei muss ein Bild sein",
     "coverFormat": "Empfohlenes Verhältnis: 3:4 (z.B. 400x533px)",
-    "backgroundFormat": "Empfohlenes Verhältnis: 16:9 (z.B. 1920x1080px)"
+    "backgroundFormat": "Empfohlenes Verhältnis: 16:9 (z.B. 1920x1080px)",
+    "showTitleInPreview": "Titel in Vorschau anzeigen",
+    "showTitle": "Titel auf dem Cover anzeigen"
   },
   "manageInstallation": {
     "title": "Installation verwalten",
@@ -226,7 +234,7 @@
   },
   "collections": {
     "addTo": "Zu hinzufügen",
-    "addToCollection": "Zur Sammlung hinzufügen",
+    "addToCollection": "Sammlung",
     "searchCollections": "Sammlungen suchen...",
     "noCollectionsFound": "Keine Sammlungen gefunden",
     "newCollectionTitle": "Titel der neuen Sammlung",
@@ -255,6 +263,8 @@
       "year": "Jahr",
       "decade": "Jahrzehnt",
       "collection": "Sammlung",
+      "series": "Serie",
+      "franchise": "Franchise",
       "ageRating": "Inhaltsbewertung",
       "searchYear": "Filter Jahr",
       "searchGenre": "Filter Genre",
@@ -268,6 +278,8 @@
       "searchGameEngines": "Filter Game Engines",
       "searchDecade": "Filter Jahrzehnt",
       "searchCollection": "Filter Sammlung",
+      "searchSeries": "Serie filtern",
+      "searchFranchise": "Franchise filtern",
       "searchAgeRating": "Altersfreigabe suchen..."
     },
     "sort": {
@@ -433,8 +445,13 @@
     },
     "developers": "Entwickler",
     "publishers": "Verlage",
+    "noDevelopersFound": "Keine Entwickler gefunden",
+    "noPublishersFound": "Keine Publisher gefunden",
+    "addToDeveloper": "Entwickler",
+    "addToPublisher": "Verlag",
     "franchise": "Franchise",
     "collection": "Sammlung",
+    "series": "Reihe",
     "screenshots": "Screenshots",
     "videos": "Videos",
     "gameEngines": "Spiel-Engines",

@@ -4,8 +4,12 @@
     "library": "Biblioteca",
     "collections": "Coleções",
     "categories": "Categorias",
+    "series": "Séries",
+    "franchise": "Franquia",
     "platforms": "Plataformas",
     "themes": "Temas",
+    "developers": "Desenvolvedores",
+    "publishers": "Editoras",
     "gameEngines": "Motores de jogo",
     "gameModes": "Modos de jogo",
     "playerPerspectives": "Perspectivas de jogo"
@@ -78,6 +82,8 @@
     "placeholder": "Pesquisar jogos...",
     "recentSearches": "Pesquisas Recentes",
     "collection": "Coleção",
+    "developer": "Desenvolvedor",
+    "publisher": "Editora",
     "game": "Jogo"
   },
   "searchResults": {
@@ -166,7 +172,9 @@
     "removeBackground": "Remover plano de fundo",
     "invalidImageType": "O arquivo deve ser uma imagem",
     "coverFormat": "Proporção recomendada: 3:4 (ex: 400x533px)",
-    "backgroundFormat": "Proporção recomendada: 16:9 (ex: 1920x1080px)"
+    "backgroundFormat": "Proporção recomendada: 16:9 (ex: 1920x1080px)",
+    "showTitleInPreview": "Mostrar título na pré-visualização",
+    "showTitle": "Mostrar título na capa"
   },
   "manageInstallation": {
     "title": "Gerenciar Instalação",
@@ -226,7 +234,7 @@
   },
   "collections": {
     "addTo": "Adicionar a",
-    "addToCollection": "Adicionar à Coleção",
+    "addToCollection": "Coleção",
     "searchCollections": "Pesquisar coleções...",
     "noCollectionsFound": "Nenhuma coleção encontrada",
     "newCollectionTitle": "Título da nova coleção",
@@ -255,6 +263,8 @@
       "year": "Ano",
       "decade": "Década",
       "collection": "Coleção",
+      "series": "Série",
+      "franchise": "Franquia",
       "ageRating": "Classificação de conteúdo",
       "searchYear": "Filtro Ano",
       "searchGenre": "Filtro Gênero",
@@ -268,6 +278,8 @@
       "searchGameEngines": "Filtro Motores de jogo",
       "searchDecade": "Filtro Década",
       "searchCollection": "Filtro Coleção",
+      "searchSeries": "Filtro Série",
+      "searchFranchise": "Filtro Franquia",
       "searchAgeRating": "Buscar classificação..."
     },
     "sort": {
@@ -433,8 +445,13 @@
     },
     "developers": "Desenvolvedores",
     "publishers": "Editoras",
+    "noDevelopersFound": "Nenhum desenvolvedor encontrado",
+    "noPublishersFound": "Nenhuma editora encontrada",
+    "addToDeveloper": "Desenvolvedor",
+    "addToPublisher": "Editora",
     "franchise": "Franquia",
     "collection": "Coleção",
+    "series": "Série",
     "screenshots": "Capturas de tela",
     "videos": "Vídeos",
     "gameEngines": "Motores de jogo",

@@ -22,6 +22,10 @@ type DropdownMenuProps = {
   collectionTitle?: string;
   onCollectionDelete?: (collectionId: string) => void;
   onCollectionUpdate?: (collection: any) => void;
+  developerId?: string;
+  publisherId?: string;
+  onRemoveFromDeveloper?: () => void;
+  onRemoveFromPublisher?: () => void;
   className?: string;
   horizontal?: boolean;
   onModalOpen?: () => void;
@@ -45,6 +49,10 @@ export default function DropdownMenu({
   collectionTitle,
   onCollectionDelete,
   onCollectionUpdate,
+  developerId,
+  publisherId,
+  onRemoveFromDeveloper,
+  onRemoveFromPublisher,
   className = "",
   horizontal = false,
   onModalOpen,
@@ -60,8 +68,16 @@ export default function DropdownMenu({
   const deleteGame = useDeleteGame({
     gameId,
     collectionId,
+    developerId,
+    publisherId,
     onGameDelete,
     onCollectionDelete,
+    onDeveloperDelete: (id) => {
+      if (onCollectionDelete) onCollectionDelete(id);
+    },
+    onPublisherDelete: (id) => {
+      if (onCollectionDelete) onCollectionDelete(id);
+    },
     onModalClose,
   });
 
@@ -95,15 +111,17 @@ export default function DropdownMenu({
   
   // Check if we're in a cover (grid list) to use portal
   const isInCover = className.includes('games-list-dropdown-menu');
+  // Check if we're in the games table (virtualized or not) - use portal to escape overflow and stay on top
+  const isInGamesTable = className.includes('games-table-dropdown-menu');
   
-  // Check if we're inside search-dropdown-scroll to use portal
+  // Check if we're in search (popup or results page) to use portal so menu isn't clipped and clicks work
   const [isInSearchDropdown, setIsInSearchDropdown] = useState(false);
   
   useEffect(() => {
     if (isOpen && menuRef.current) {
-      // Check if menu is inside search-dropdown-scroll
-      const searchDropdownScroll = menuRef.current.closest('.search-dropdown-scroll');
-      setIsInSearchDropdown(!!searchDropdownScroll);
+      const inSearchScroll = !!menuRef.current.closest('.search-dropdown-scroll');
+      const inSearchResultsList = menuRef.current.classList.contains('search-result-dropdown-menu');
+      setIsInSearchDropdown(inSearchScroll || inSearchResultsList);
     } else {
       setIsInSearchDropdown(false);
     }
@@ -311,8 +329,8 @@ export default function DropdownMenu({
     e.stopPropagation();
     setIsOpen(false);
     
-    // If we have props to handle deletion internally (game or collection)
-    if ((gameId && gameTitle) || (collectionId && collectionTitle)) {
+    // If we have props to handle deletion internally (game, collection, developer, or publisher)
+    if ((gameId && gameTitle) || (collectionId && collectionTitle) || (developerId && collectionTitle) || (publisherId && collectionTitle)) {
       if (onModalOpen) {
         onModalOpen();
       }
@@ -408,7 +426,7 @@ export default function DropdownMenu({
         const popupContent = (
           <div 
             ref={popupRef} 
-            className={`dropdown-menu-popup ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''}`}
+            className={`dropdown-menu-popup ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''} ${isInGamesTable ? 'dropdown-menu-popup-in-games-table' : ''}`}
             onMouseLeave={handlePopupMouseLeave}
             style={(() => {
               if (!menuRef.current) return undefined;
@@ -431,6 +449,17 @@ export default function DropdownMenu({
                   top: `${rect.bottom + 4}px`,
                   right: `${window.innerWidth - rect.right}px`,
                   zIndex: 10007,
+                };
+              }
+              
+              if (isInGamesTable) {
+                const rect = menuRef.current.getBoundingClientRect();
+                return {
+                  position: 'fixed',
+                  top: `${rect.bottom + 4}px`,
+                  right: `${window.innerWidth - rect.right}px`,
+                  left: 'auto',
+                  zIndex: 10002,
                 };
               }
               
@@ -503,14 +532,14 @@ export default function DropdownMenu({
             )}
             
             {/* Divider after Additional Executables / Add to Collection / Manage Installation */}
-            {((gameId && gameExecutables && gameExecutables.length > 1) || onAddToCollection || (gameId && onManageInstallation)) && !(onRemoveFromCollection && gameId && collectionId) && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !onEdit && !onDelete)) || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (getApiToken() && (gameId || collectionId)))) && (
+            {((gameId && gameExecutables && gameExecutables.length > 1) || onAddToCollection || (gameId && onManageInstallation)) && !(onRemoveFromCollection && gameId && collectionId) && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !developerId && !publisherId && !onEdit && !onDelete)) || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (getApiToken() && (gameId || collectionId || developerId || publisherId)))) && (
               <div 
                 className="dropdown-menu-divider"
                 onMouseEnter={handleOtherMenuItemMouseEnter}
               />
             )}
             
-            {/* Second Section: Remove from Collection (only in collection detail) */}
+            {/* Second Section: Remove from Collection / Developer / Publisher */}
             {onRemoveFromCollection && gameId && collectionId && (
               <button
                 onClick={async (e) => {
@@ -529,7 +558,31 @@ export default function DropdownMenu({
                 </span>
               </button>
             )}
-            {onRemoveFromCollection && gameId && collectionId && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !onEdit && !onDelete)) || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (getApiToken() && (gameId || collectionId)))) && (
+            {onRemoveFromDeveloper && gameId && developerId && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOpen(false);
+                  onRemoveFromDeveloper?.();
+                }}
+                className="dropdown-menu-item dropdown-menu-item-danger"
+              >
+                <span>{t("igdbInfo.removeFromDeveloper", "Remove from developer")}</span>
+              </button>
+            )}
+            {onRemoveFromPublisher && gameId && publisherId && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOpen(false);
+                  onRemoveFromPublisher?.();
+                }}
+                className="dropdown-menu-item dropdown-menu-item-danger"
+              >
+                <span>{t("igdbInfo.removeFromPublisher", "Remove from publisher")}</span>
+              </button>
+            )}
+            {((onRemoveFromCollection && gameId && collectionId) || (onRemoveFromDeveloper && gameId && developerId) || (onRemoveFromPublisher && gameId && publisherId)) && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !developerId && !publisherId && !onEdit && !onDelete)) || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (getApiToken() && (gameId || collectionId || developerId || publisherId)))) && (
               <div className="dropdown-menu-divider" />
             )}
             
@@ -542,7 +595,7 @@ export default function DropdownMenu({
                 <span>{t("common.edit", "Edit")}</span>
               </button>
             )}
-            {(onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !onEdit && !onDelete)) && (
+            {(onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !developerId && !publisherId && !onEdit && !onDelete)) && (
               <button
                 onClick={handleReload}
                 className="dropdown-menu-item"
@@ -569,7 +622,7 @@ export default function DropdownMenu({
                 </span>
               </button>
             )}
-            {(onDelete || (getApiToken() && (gameId || collectionId))) && (
+            {(onDelete || (getApiToken() && (gameId || collectionId || developerId || publisherId))) && (
               <button
                 onClick={handleDeleteClick}
                 className="dropdown-menu-item dropdown-menu-item-danger"
@@ -580,8 +633,8 @@ export default function DropdownMenu({
           </div>
         );
         
-        // Use portal only for search dropdown (to escape overflow:hidden) or cover (existing behavior)
-        return (isInSearchDropdown || isInCover) ? createPortal(popupContent, document.body) : popupContent;
+        // Use portal for search dropdown, cover, or games table (escape overflow and stay on top)
+        return (isInSearchDropdown || isInCover || isInGamesTable) ? createPortal(popupContent, document.body) : popupContent;
       })()}
 
       {/* Reload Confirmation Modal */}

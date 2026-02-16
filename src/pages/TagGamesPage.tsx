@@ -29,7 +29,7 @@ export default function TagGamesPage({
   paramName,
   storageKey,
 }: TagGamesPageProps) {
-  const { isLoading } = useLoading();
+  const { isLoading, setLoading } = useLoading();
   const params = useParams<Record<string, string>>();
   const rawParam = params[paramName];
   const tagValue = useMemo(
@@ -56,9 +56,7 @@ export default function TagGamesPage({
     scrollRestorationMode: viewMode === "table" ? undefined : viewMode,
   });
 
-  const {
-    setFilterField,
-    setSelectedThemes,
+  const { libraryGamesLoading, setFilterField, setSelectedThemes,
     setSelectedKeywords,
     setSelectedPlatforms,
     setSelectedGameModes,
@@ -67,7 +65,15 @@ export default function TagGamesPage({
     setSelectedPlayerPerspectives,
     setSelectedGameEngines,
     setSelectedGenre,
+    setSelectedSeries,
+    setSelectedFranchise,
+    setSortField,
+    setSortAscending,
   } = hook;
+
+  useEffect(() => {
+    setLoading(libraryGamesLoading);
+  }, [libraryGamesLoading, setLoading]);
 
   useEffect(() => {
     if (!tagValue) return;
@@ -100,6 +106,16 @@ export default function TagGamesPage({
       case "genre":
         setSelectedGenre(tagValue);
         break;
+      case "series":
+        setSelectedSeries(tagValue);
+        setSortField("releaseDate");
+        setSortAscending(true); /* true = ascending, oldest first (chronological) */
+        break;
+      case "franchise":
+        setSelectedFranchise(tagValue);
+        setSortField("releaseDate");
+        setSortAscending(true); /* true = ascending, oldest first (chronological) */
+        break;
       default:
         break;
     }
@@ -116,6 +132,10 @@ export default function TagGamesPage({
     setSelectedPlayerPerspectives,
     setSelectedGameEngines,
     setSelectedGenre,
+    setSelectedSeries,
+    setSelectedFranchise,
+    setSortField,
+    setSortAscending,
   ]);
 
   const buildCoverUrlFn = useCallback(
@@ -172,9 +192,12 @@ export default function TagGamesPage({
                     : undefined
                 }
                 virtualizedListRef={
-                  viewMode === "detail" && hook.scrollContainerRef.current
+                  (viewMode === "detail" && hook.scrollContainerRef.current
                     ? (hook.scrollContainerRef.current as any).__virtualizedListRef
-                    : undefined
+                    : undefined) ||
+                  (viewMode === "table" && hook.tableScrollRef.current
+                    ? (hook.tableScrollRef.current as any).__virtualizedListRef
+                    : undefined)
                 }
                 viewMode={viewMode}
                 coverSize={coverSize}

@@ -2,7 +2,7 @@ import { useRef, useEffect, useState, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import { Grid } from "react-window";
 import type { CollectionItem, GameItem } from "../../types";
-import { CollectionListItem } from "./CollectionsList";
+import { CollectionListItem, type GamesPathType } from "./CollectionsList";
 import "./VirtualizedCollectionsList.css";
 
 // Helper functions for scroll restoration
@@ -32,9 +32,10 @@ type VirtualizedCollectionsListProps = {
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
   onCollectionClick: (collection: CollectionItem) => void;
   onPlay?: (game: GameItem) => void;
-  onEditClick: (collection: CollectionItem) => void;
+  onEditClick?: (collection: CollectionItem) => void;
   onCollectionDelete?: (deletedCollection: CollectionItem) => void;
   onCollectionUpdate?: (updatedCollection: CollectionItem) => void;
+  gamesPath?: GamesPathType;
   buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean) => string;
 };
 
@@ -51,6 +52,7 @@ export default function VirtualizedCollectionsList({
   onEditClick,
   onCollectionDelete,
   onCollectionUpdate,
+  gamesPath = "collections",
   buildCoverUrl,
 }: VirtualizedCollectionsListProps) {
   const location = useLocation();
@@ -320,6 +322,7 @@ export default function VirtualizedCollectionsList({
           onEditClick={onEditClick}
           onCollectionDelete={onCollectionDelete}
           onCollectionUpdate={onCollectionUpdate}
+          gamesPath={gamesPath}
           buildCoverUrl={buildCoverUrl}
           coverSize={coverSize}
           itemRefs={itemRefs}

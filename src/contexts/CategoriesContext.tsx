@@ -41,11 +41,15 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
 
     setIsLoading(true);
     setError(null);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
     try {
       const url = buildApiUrl(API_BASE, "/categories");
       const res = await fetch(url, {
         headers: buildApiHeaders({ Accept: "application/json" }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       const items = (json.categories || []) as any[];
@@ -57,6 +61,7 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
       }));
       setCategories(parsed);
     } catch (err: any) {
+      clearTimeout(timeoutId);
       const errorMessage = String(err.message || err);
       console.error("Error fetching categories:", errorMessage);
       setError(errorMessage);
@@ -65,11 +70,11 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
     }
   }, [authLoading, authToken]);
 
-  // Load categories on mount and when auth is ready
+  // Load categories on mount and when auth is ready (stagger to avoid all fetches at once)
   useEffect(() => {
-    if (!authLoading) {
-      fetchCategories();
-    }
+    if (authLoading) return;
+    const t = setTimeout(fetchCategories, 0);
+    return () => clearTimeout(t);
   }, [authLoading, fetchCategories]);
 
   // Listen for category update events
@@ -90,11 +95,17 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
       fetchCategories();
     };
 
+    const handleGameAdded = () => {
+      fetchCategories();
+    };
+
     window.addEventListener("categoryUpdated", handleCategoryUpdated as EventListener);
     window.addEventListener("metadataReloaded", handleMetadataReloaded);
+    window.addEventListener("gameAdded", handleGameAdded);
     return () => {
       window.removeEventListener("categoryUpdated", handleCategoryUpdated as EventListener);
       window.removeEventListener("metadataReloaded", handleMetadataReloaded);
+      window.removeEventListener("gameAdded", handleGameAdded);
     };
   }, [fetchCategories]);
 

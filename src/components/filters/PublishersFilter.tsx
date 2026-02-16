@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import TagValueFilter from "./TagValueFilter";
 import type { FilterValue, GameItem } from "./types";
 
@@ -8,16 +9,27 @@ type PublishersFilterProps = {
   selectedValue: FilterValue;
   onSelect: (value: FilterValue) => void;
   games?: GameItem[];
+  availablePublishers?: Array<{ id: string; title: string }>;
 };
 
 export default function PublishersFilter(props: PublishersFilterProps) {
+  const { availablePublishers = [], ...rest } = props;
+  const formatValue = useMemo(() => {
+    if (availablePublishers.length === 0) return undefined;
+    return (value: string) => {
+      const found = availablePublishers.find((p) => String(p.id) === String(value));
+      return found ? found.title : value;
+    };
+  }, [availablePublishers]);
+
   return (
     <TagValueFilter
-      {...props}
+      {...rest}
       type="publishers"
       labelKey="gamesListToolbar.filter.publishers"
       searchPlaceholderKey="gamesListToolbar.filter.searchPublishers"
-      valueExtractor={(game) => game.publishers}
+      valueExtractor={(game) => game.publishers ?? []}
+      formatValue={formatValue}
     />
   );
 }

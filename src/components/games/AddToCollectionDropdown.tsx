@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import type { CollectionItem, GameItem } from "../../types";
-import AddToCollectionModal from "./AddToCollectionModal";
+import AddToCollectionLikeModal, { type AddToResourceType } from "./AddToCollectionLikeModal";
 import { useAddGameToCollection } from "../common/actions";
 import { useCollections } from "../../contexts/CollectionsContext";
 import "./AddToCollectionDropdown.css";
@@ -20,12 +20,13 @@ export default function AddToCollectionDropdown({
 }: AddToCollectionDropdownProps) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalResourceType, setModalResourceType] = useState<AddToResourceType | null>(null);
   const [isPositionReady, setIsPositionReady] = useState(false);
   const [shouldUsePortal, setShouldUsePortal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const menuItemRef = useRef<HTMLElement | null>(null);
   const { collectionGameIds } = useCollections();
+  const isModalOpen = modalResourceType !== null;
   const addGameToCollection = useAddGameToCollection({
     onSuccess: () => {
       onCollectionAdded?.();
@@ -278,15 +279,11 @@ export default function AddToCollectionDropdown({
     await addGameToCollection.addGameToCollection(game.id, collectionId);
   };
 
-  const handleAddToCollectionClick = (e: React.MouseEvent) => {
+  const handleOpenModal = (resourceType: AddToResourceType) => (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    // Close submenu first
     setIsOpen(false);
-    // Use setTimeout to ensure the dropdown closes before opening the modal
-    setTimeout(() => {
-      setIsModalOpen(true);
-    }, 50);
+    setTimeout(() => setModalResourceType(resourceType), 50);
   };
 
   const submenuContent = isOpen ? (
@@ -328,9 +325,21 @@ export default function AddToCollectionDropdown({
     >
       <div
         className="add-to-collection-dropdown-item"
-        onClick={handleAddToCollectionClick}
+        onClick={handleOpenModal("collections")}
       >
         {t("collections.addToCollection", "Add to Collection...")}
+      </div>
+      <div
+        className="add-to-collection-dropdown-item"
+        onClick={handleOpenModal("developers")}
+      >
+        {t("igdbInfo.addToDeveloper", "Add to Developer...")}
+      </div>
+      <div
+        className="add-to-collection-dropdown-item"
+        onClick={handleOpenModal("publishers")}
+      >
+        {t("igdbInfo.addToPublisher", "Add to Publisher...")}
       </div>
 
       {recentCollections.length > 0 && (
@@ -359,13 +368,15 @@ export default function AddToCollectionDropdown({
         {shouldUsePortal && submenuContent ? createPortal(submenuContent, document.body) : submenuContent}
       </div>
 
-      <AddToCollectionModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        game={game}
-        allCollections={allCollections}
-        onCollectionAdded={onCollectionAdded}
-      />
+      {modalResourceType && (
+        <AddToCollectionLikeModal
+          isOpen={true}
+          onClose={() => setModalResourceType(null)}
+          game={game}
+          resourceType={modalResourceType}
+          onAdded={onCollectionAdded}
+        />
+      )}
     </>
   );
 }

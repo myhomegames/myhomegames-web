@@ -51,6 +51,17 @@
   z-index: 10007 !important;
 }
 
+/* Games table (virtualized/normal): popup in portal so it's on top and not clipped */
+.dropdown-menu-popup-in-games-table {
+  z-index: 10002 !important;
+}
+
+/* Submenus portaled to body (e.g. from table): above the main dropdown popup */
+body > .add-to-collection-dropdown-menu,
+body > .additional-executables-dropdown-menu {
+  z-index: 10003 !important;
+}
+
 .dropdown-menu-item {
   display: flex;
   align-items: center;

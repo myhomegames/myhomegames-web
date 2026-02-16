@@ -21,9 +21,14 @@ export default function TagListRoutePage({ coverSize, tagKey }: TagListRoutePage
           responseKey: listConfig.responseKey,
           localCoverPrefix: listConfig.localCoverPrefix,
           removeResourceType: listConfig.removeResourceType,
+          getRouteSegment: (item: { id: string | number; title: string }) => String(item.id),
+          listResponseKey: listConfig.listResponseKey,
           updateEventName: listConfig.updateEventName,
           updateEventPayloadKey: listConfig.updateEventPayloadKey,
         };
+
+  const showAlphabetNavigator =
+    tagKey === "series" || tagKey === "franchise" || tagKey === "gameEngines" || tagKey === "platforms";
 
   return (
     <TagListPage
@@ -34,6 +39,7 @@ export default function TagListRoutePage({ coverSize, tagKey }: TagListRoutePage
       emptyMessage={config.getEmptyMessage(t)}
       listEndpoint={listConfig.listEndpoint}
       listResponseKey={listConfig.listResponseKey}
+      showAlphabetNavigator={showAlphabetNavigator}
       editConfig={editConfig}
     />
   );

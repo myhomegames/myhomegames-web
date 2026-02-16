@@ -9,6 +9,8 @@ import type { GameItem, CollectionItem } from "../../types";
 type HeaderProps = {
   allGames: GameItem[];
   allCollections: CollectionItem[];
+  allDevelopers?: CollectionItem[];
+  allPublishers?: CollectionItem[];
   onGameSelect: (game: GameItem) => void;
   onPlay?: (game: GameItem) => void;
   onHomeClick: () => void;
@@ -19,6 +21,8 @@ type HeaderProps = {
 export default function Header({
   allGames,
   allCollections,
+  allDevelopers = [],
+  allPublishers = [],
   onGameSelect,
   onPlay,
   onHomeClick,
@@ -42,7 +46,7 @@ export default function Header({
 
         {/* SearchBar in the center */}
         <div className="mhg-search-container">
-          <SearchBar games={allGames} collections={allCollections} onGameSelect={onGameSelect} onPlay={onPlay} />
+          <SearchBar games={allGames} collections={allCollections} developers={allDevelopers} publishers={allPublishers} onGameSelect={onGameSelect} onPlay={onPlay} />
         </div>
 
         {/* Buttons on the right */}

@@ -35,7 +35,8 @@ export default function InlineTagList<TItem>({
     setIsExpanded(true);
   };
 
-  const shouldShowMore = Boolean(showMoreLabel) && items.length >= showMoreMinCount && !isExpanded;
+  const hasMoreThanMin = (showMoreMinCount ?? 0) > 0 && items.length > (showMoreMinCount ?? 0);
+  const shouldShowMore = Boolean(showMoreLabel) && hasMoreThanMin && !isExpanded;
   const displayedItems = shouldShowMore ? items.slice(0, showMoreMinCount) : items;
   const getItemKey = (item: TItem, index: number) =>
     getKey ? getKey(item, index) : `${getLabel(item)}-${index}`;

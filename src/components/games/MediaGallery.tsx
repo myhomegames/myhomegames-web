@@ -155,7 +155,7 @@ export default function MediaGallery({ screenshots, videos }: MediaGalleryProps)
                   border: 'none',
                   borderRadius: '4px',
                 }}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; compute-pressure"
                 allowFullScreen
               />
             </div>
@@ -276,7 +276,7 @@ export default function MediaGallery({ screenshots, videos }: MediaGalleryProps)
                   borderRadius: '4px',
                   border: 'none',
                 }}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; compute-pressure"
                 allowFullScreen
               />
             )}

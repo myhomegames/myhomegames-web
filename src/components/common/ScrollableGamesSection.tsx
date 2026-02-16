@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import GamesList from "../games/GamesList";
 import ScrollableGamesSectionNav from "./ScrollableGamesSectionNav";
 import type { GameItem, CollectionItem } from "../../types";
@@ -34,6 +34,7 @@ type ScrollableGamesSectionProps = {
   coverSize: number;
   allCollections?: CollectionItem[];
   titleOverride?: string;
+  titleHref?: string;
   disableAutoTranslate?: boolean;
   showTitle?: boolean;
 };
@@ -47,6 +48,7 @@ export default function ScrollableGamesSection({
   coverSize,
   allCollections = [],
   titleOverride,
+  titleHref,
   disableAutoTranslate = false,
   showTitle = true,
 }: ScrollableGamesSectionProps) {
@@ -207,7 +209,15 @@ export default function ScrollableGamesSection({
     <div className="scrollable-section">
       {showTitle && (
         <div className="scrollable-section-header">
-          <h2 className="scrollable-section-title">{title}</h2>
+          <h2 className="scrollable-section-title">
+            {titleHref ? (
+              <Link to={titleHref} className="scrollable-section-title-link">
+                {title}
+              </Link>
+            ) : (
+              title
+            )}
+          </h2>
           <ScrollableGamesSectionNav
             canScrollLeft={canScrollLeft}
             canScrollRight={canScrollRight}

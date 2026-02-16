@@ -4,8 +4,12 @@
     "library": "Bibliothèque",
     "collections": "Collections",
     "categories": "Catégories",
+    "series": "Séries",
+    "franchise": "Franchise",
     "platforms": "Plateformes",
     "themes": "Thèmes",
+    "developers": "Développeurs",
+    "publishers": "Éditeurs",
     "gameEngines": "Moteurs de jeu",
     "gameModes": "Modes de jeu",
     "playerPerspectives": "Perspectives de jeu"
@@ -78,6 +82,8 @@
     "placeholder": "Rechercher des jeux...",
     "recentSearches": "Recherches Récentes",
     "collection": "Collection",
+    "developer": "Développeur",
+    "publisher": "Éditeur",
     "game": "Jeu"
   },
   "searchResults": {
@@ -166,7 +172,9 @@
     "removeBackground": "Supprimer l'arrière-plan",
     "invalidImageType": "Le fichier doit être une image",
     "coverFormat": "Ratio recommandé : 3:4 (ex. 400x533px)",
-    "backgroundFormat": "Ratio recommandé : 16:9 (ex. 1920x1080px)"
+    "backgroundFormat": "Ratio recommandé : 16:9 (ex. 1920x1080px)",
+    "showTitleInPreview": "Afficher le titre dans l’aperçu",
+    "showTitle": "Afficher le titre sur la couverture"
   },
   "manageInstallation": {
     "title": "Gérer l'Installation",
@@ -226,7 +234,7 @@
   },
   "collections": {
     "addTo": "Ajouter à",
-    "addToCollection": "Ajouter à la Collection",
+    "addToCollection": "Collection",
     "searchCollections": "Rechercher des collections...",
     "noCollectionsFound": "Aucune collection trouvée",
     "newCollectionTitle": "Titre de la nouvelle collection",
@@ -255,6 +263,8 @@
       "year": "Année",
       "decade": "Décennie",
       "collection": "Collection",
+      "series": "Série",
+      "franchise": "Franchise",
       "ageRating": "Classification des contenus",
       "searchYear": "Filtre Année",
       "searchGenre": "Filtre Genre",
@@ -268,6 +278,8 @@
       "searchGameEngines": "Filtre Moteurs de jeu",
       "searchDecade": "Filtre Décennie",
       "searchCollection": "Filtre Collection",
+      "searchSeries": "Filtre Série",
+      "searchFranchise": "Filtre Franchise",
       "searchAgeRating": "Rechercher classification..."
     },
     "sort": {
@@ -433,8 +445,13 @@
     },
     "developers": "Développeurs",
     "publishers": "Éditeurs",
+    "noDevelopersFound": "Aucun développeur trouvé",
+    "noPublishersFound": "Aucun éditeur trouvé",
+    "addToDeveloper": "Développeur",
+    "addToPublisher": "Éditeur",
     "franchise": "Franchise",
     "collection": "Collection",
+    "series": "Série",
     "screenshots": "Captures d'écran",
     "videos": "Vidéos",
     "gameEngines": "Moteurs de jeu",

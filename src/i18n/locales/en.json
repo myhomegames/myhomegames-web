@@ -4,8 +4,12 @@
     "library": "Library",
     "collections": "Collections",
     "categories": "Categories",
+    "series": "Series",
+    "franchise": "Franchise",
     "platforms": "Platforms",
     "themes": "Themes",
+    "developers": "Developers",
+    "publishers": "Publishers",
     "gameEngines": "Game Engines",
     "gameModes": "Game Modes",
     "playerPerspectives": "Player Perspectives"
@@ -78,6 +82,8 @@
     "placeholder": "Search games...",
     "recentSearches": "Recent Searches",
     "collection": "Collection",
+    "developer": "Developer",
+    "publisher": "Publisher",
     "game": "Game"
   },
   "searchResults": {
@@ -100,6 +106,7 @@
     "noResults": "No games found",
     "typeToSearch": "Type at least 2 characters to search",
     "error": "Error searching games",
+    "credentialsRequired": "Configure Twitch credentials in Settings to search IGDB.",
     "new": "New"
   },
   "viewMode": {
@@ -166,7 +173,9 @@
     "removeBackground": "Remove background",
     "invalidImageType": "File must be an image",
     "coverFormat": "Recommended ratio: 3:4 (e.g., 400x533px)",
-    "backgroundFormat": "Recommended ratio: 16:9 (e.g., 1920x1080px)"
+    "backgroundFormat": "Recommended ratio: 16:9 (e.g., 1920x1080px)",
+    "showTitleInPreview": "Show title in preview",
+    "showTitle": "Show title on cover"
   },
   "manageInstallation": {
     "title": "Manage Installation",
@@ -226,7 +235,7 @@
   },
   "collections": {
     "addTo": "Add to",
-    "addToCollection": "Add to Collection",
+    "addToCollection": "Collection",
     "searchCollections": "Search collections...",
     "noCollectionsFound": "No collections found",
     "newCollectionTitle": "New collection title",
@@ -255,6 +264,8 @@
       "year": "Year",
       "decade": "Decade",
       "collection": "Collection",
+      "series": "Series",
+      "franchise": "Franchise",
       "ageRating": "Content Rating",
       "searchYear": "Filter Year",
       "searchGenre": "Filter Genre",
@@ -268,6 +279,8 @@
       "searchGameEngines": "Filter Game Engines",
       "searchDecade": "Filter Decade",
       "searchCollection": "Filter Collection",
+      "searchSeries": "Filter Series",
+      "searchFranchise": "Filter Franchise",
       "searchAgeRating": "Search age rating..."
     },
     "sort": {
@@ -433,8 +446,22 @@
     },
     "developers": "Developers",
     "publishers": "Publishers",
+    "addToDeveloper": "Developer",
+    "addToPublisher": "Publisher",
+    "searchDevelopers": "Search developers...",
+    "searchPublishers": "Search publishers...",
+    "noDevelopersFound": "No developers found",
+    "noPublishersFound": "No publishers found",
+    "newDeveloperName": "New developer name",
+    "newPublisherName": "New publisher name",
+    "removeFromDeveloper": "Remove from developer",
+    "removeFromPublisher": "Remove from publisher",
+    "editDeveloper": "Edit Developer",
+    "editPublisher": "Edit Publisher",
+    "name": "Name",
     "franchise": "Franchise",
     "collection": "Collection",
+    "series": "Series",
     "screenshots": "Screenshots",
     "videos": "Videos",
     "gameEngines": "Game Engines",

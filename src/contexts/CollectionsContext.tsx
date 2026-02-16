@@ -23,7 +23,7 @@ const CollectionsContext = createContext<CollectionsContextType | undefined>(und
 
 export function CollectionsProvider({ children }: { children: ReactNode }) {
   const [collections, setCollections] = useState<CollectionItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [collectionGameIds, setCollectionGameIds] = useState<Map<string, string[]>>(new Map());
   const collectionGameIdsRef = useRef(collectionGameIds);
@@ -42,11 +42,15 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 
     setIsLoading(true);
     setError(null);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
     try {
       const url = buildApiUrl(API_BASE, "/collections");
       const res = await fetch(url, {
         headers: buildApiHeaders({ Accept: "application/json" }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       const items = (json.collections || []) as any[];
@@ -57,12 +61,14 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
         cover: v.cover,
         background: v.background,
         gameCount: v.gameCount,
+        showTitle: v.showTitle !== false,
       }));
       setCollections(parsed);
       
       // Don't pre-fetch game IDs for all collections - load them on demand via getCollectionGameIds
       // This avoids unnecessary API calls when user is on library page or other pages that don't need this data
     } catch (err: any) {
+      clearTimeout(timeoutId);
       const errorMessage = String(err.message || err);
       console.error("Error fetching collections:", errorMessage);
       setError(errorMessage);
@@ -71,12 +77,16 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
     }
   }, [authLoading, authToken]);
 
-  // Load collections on mount and when auth is ready
+  // Load collections on mount and when auth is ready (stagger to avoid all fetches at once)
   useEffect(() => {
-    if (!authLoading) {
-      fetchCollections();
+    if (authLoading) return;
+    if (!getApiToken() && !authToken) {
+      setIsLoading(false);
+      return;
     }
-  }, [authLoading, fetchCollections]);
+    const t = setTimeout(fetchCollections, 400);
+    return () => clearTimeout(t);
+  }, [authLoading, authToken, fetchCollections]);
 
   useEffect(() => {
     collectionGameIdsRef.current = collectionGameIds;

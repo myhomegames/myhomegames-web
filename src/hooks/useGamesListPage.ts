@@ -1,12 +1,15 @@
-import { useState, useEffect, useRef, useMemo, useLayoutEffect } from "react";
+import { useState, useEffect, useRef, useMemo, useLayoutEffect, useCallback } from "react";
 import { useScrollRestoration } from "./useScrollRestoration";
-import { useGameEvents } from "./useGameEvents";
 import { useCategories } from "../contexts/CategoriesContext";
 import { useCollections } from "../contexts/CollectionsContext";
+import { useDevelopers } from "../contexts/DevelopersContext";
+import { usePublishers } from "../contexts/PublishersContext";
 import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import type { ViewMode, GameItem, SortField } from "../types";
-import type { FilterField } from "../components/filters/types";
+import type { FilterField, FilterValue } from "../components/filters/types";
 import { compareTitles } from "../utils/stringUtils";
+import { API_BASE, getApiToken } from "../config";
+import { buildApiUrl, buildApiHeaders } from "../utils/api";
 
 type GameEventType = "gameUpdated" | "gameDeleted" | "gameAdded";
 
@@ -46,6 +49,7 @@ export type UseGamesListPageReturn = {
   games: GameItem[];
   setGames: React.Dispatch<React.SetStateAction<GameItem[]>>;
   isReady: boolean;
+  libraryGamesLoading: boolean;
   filterField: FilterField;
   setFilterField: React.Dispatch<React.SetStateAction<FilterField>>;
   selectedYear: number | null;
@@ -74,9 +78,17 @@ export type UseGamesListPageReturn = {
   setSelectedPlayerPerspectives: React.Dispatch<React.SetStateAction<string | null>>;
   selectedGameEngines: string | null;
   setSelectedGameEngines: React.Dispatch<React.SetStateAction<string | null>>;
+  selectedSeries: string | null;
+  setSelectedSeries: React.Dispatch<React.SetStateAction<string | null>>;
+  selectedFranchise: string | null;
+  setSelectedFranchise: React.Dispatch<React.SetStateAction<string | null>>;
   allGenres: Array<{ id: string; title: string }>;
   availableGenres: Array<{ id: string; title: string }>;
   availableCollections: Array<{ id: string; title: string }>;
+  availableSeries: Array<{ id: string; title: string }>;
+  availableFranchises: Array<{ id: string; title: string }>;
+  availableDevelopers: Array<{ id: string; title: string }>;
+  availablePublishers: Array<{ id: string; title: string }>;
   sortField: SortField;
   setSortField: React.Dispatch<React.SetStateAction<SortField>>;
   sortAscending: boolean;
@@ -108,14 +120,14 @@ export function useGamesListPage(
     waitForAuth = false,
     onInit,
     listenToMetadataReload = false,
-    listenToGameDeleted = false,
-    gameEvents = ["gameUpdated"],
     categoryId = null,
     onCategoryIdChange,
     scrollRestorationMode,
   } = options;
 
-  const [games, setGames] = useState<GameItem[]>([]);
+  const { games: libraryGames, isLoading: libraryGamesLoading, updateGame: contextUpdateGame, removeGame: contextRemoveGame } = useLibraryGames();
+  const games = libraryGames;
+
   const [isReady, setIsReady] = useState(false);
   const [filterField, setFilterField] = useState<FilterField>(() => {
     if (localStoragePrefix) {
@@ -215,6 +227,20 @@ export function useGamesListPage(
     }
     return null;
   });
+  const [selectedSeries, setSelectedSeries] = useState<string | null>(() => {
+    if (localStoragePrefix) {
+      const saved = localStorage.getItem(`${localStoragePrefix}SelectedSeries`);
+      return saved || null;
+    }
+    return null;
+  });
+  const [selectedFranchise, setSelectedFranchise] = useState<string | null>(() => {
+    if (localStoragePrefix) {
+      const saved = localStorage.getItem(`${localStoragePrefix}SelectedFranchise`);
+      return saved || null;
+    }
+    return null;
+  });
   const { categories } = useCategories();
   // Convert categories to allGenres format (id as string)
   const allGenres = useMemo(() => 
@@ -222,12 +248,46 @@ export function useGamesListPage(
     [categories]
   );
   const { collections, collectionGameIds: contextCollectionGameIds } = useCollections();
-  const { games: libraryGames, isLoading: libraryGamesLoading } = useLibraryGames();
-  
+  const { developers } = useDevelopers();
+  const { publishers } = usePublishers();
+
   // Convert collections to availableCollections format
   const availableCollections = useMemo(() => 
     collections.map((col) => ({ id: String(col.id), title: col.title || "" })),
     [collections]
+  );
+
+  const [availableSeries, setAvailableSeries] = useState<Array<{ id: string; title: string }>>([]);
+  const [availableFranchises, setAvailableFranchises] = useState<Array<{ id: string; title: string }>>([]);
+  useEffect(() => {
+    let cancelled = false;
+    const token = getApiToken();
+    if (!token) return;
+    const toItems = (list: Array<{ id: number | string; title?: string; name?: string }>, _key: string) =>
+      (list || []).map((x) => ({ id: String(x.id), title: String((x as any).title ?? (x as any).name ?? x.id) }));
+    Promise.all([
+      fetch(buildApiUrl(API_BASE, "/series"), { headers: buildApiHeaders({ Accept: "application/json" }) }).then((r) => (r.ok ? r.json() : { series: [] })),
+      fetch(buildApiUrl(API_BASE, "/franchises"), { headers: buildApiHeaders({ Accept: "application/json" }) }).then((r) => (r.ok ? r.json() : { franchises: [] })),
+    ]).then(([seriesRes, franchisesRes]) => {
+      if (cancelled) return;
+      setAvailableSeries(toItems(seriesRes.series || [], "series"));
+      setAvailableFranchises(toItems(franchisesRes.franchises || [], "franchises"));
+    }).catch(() => {
+      if (!cancelled) {
+        setAvailableSeries([]);
+        setAvailableFranchises([]);
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const availableDevelopers = useMemo(() =>
+    developers.map((d) => ({ id: String(d.id), title: d.title || "" })),
+    [developers]
+  );
+  const availablePublishers = useMemo(() =>
+    publishers.map((p) => ({ id: String(p.id), title: p.title || "" })),
+    [publishers]
   );
   
   const [availableGenres, setAvailableGenres] = useState<Array<{ id: string; title: string }>>([]);
@@ -241,7 +301,7 @@ export function useGamesListPage(
   const [sortAscending, setSortAscending] = useState<boolean>(() => {
     if (localStoragePrefix) {
       const saved = localStorage.getItem(`${localStoragePrefix}SortAscending`);
-      return saved ? saved === "true" : true;
+      return saved === "false" ? false : true;
     }
     return true;
   });
@@ -268,11 +328,18 @@ export function useGamesListPage(
     return { title: true, releaseDate: true, criticRating: false, ageRating: false };
   });
 
-  const hasTag = (values: string[] | null | undefined, selected: string | null) => {
-    if (!selected || !values || values.length === 0) {
-      return false;
-    }
-    return values.some((value) => String(value) === selected);
+  /** Compare selected filter (id or legacy title) with game tag field (ids, or objects with id). */
+  const hasTag = (
+    values: Array<number | string | { id: number }> | null | undefined,
+    selected: FilterValue
+  ) => {
+    if (selected === null || selected === undefined) return false;
+    const list = Array.isArray(values) ? values : values != null ? [values] : [];
+    if (list.length === 0) return false;
+    const ids = list.map((v) =>
+      typeof v === "object" && v != null && "id" in v ? (v as { id: number }).id : v
+    );
+    return ids.some((id) => String(id) === String(selected));
   };
 
   // Save column visibility to localStorage when it changes
@@ -384,6 +451,22 @@ export function useGamesListPage(
   }, [selectedCollection, localStoragePrefix]);
 
   useEffect(() => {
+    if (localStoragePrefix && selectedSeries !== null) {
+      localStorage.setItem(`${localStoragePrefix}SelectedSeries`, selectedSeries);
+    } else if (localStoragePrefix) {
+      localStorage.removeItem(`${localStoragePrefix}SelectedSeries`);
+    }
+  }, [selectedSeries, localStoragePrefix]);
+
+  useEffect(() => {
+    if (localStoragePrefix && selectedFranchise !== null) {
+      localStorage.setItem(`${localStoragePrefix}SelectedFranchise`, selectedFranchise);
+    } else if (localStoragePrefix) {
+      localStorage.removeItem(`${localStoragePrefix}SelectedFranchise`);
+    }
+  }, [selectedFranchise, localStoragePrefix]);
+
+  useEffect(() => {
     if (localStoragePrefix && selectedAgeRating !== null) {
       localStorage.setItem(`${localStoragePrefix}SelectedAgeRating`, selectedAgeRating);
     } else if (localStoragePrefix) {
@@ -433,28 +516,7 @@ export function useGamesListPage(
     };
   }, [listenToMetadataReload]);
 
-  // Listen for game deletion events
-  useEffect(() => {
-    if (!listenToGameDeleted) return;
-    const handleGameDeleted = (event: Event) => {
-      const customEvent = event as CustomEvent<{ gameId: string }>;
-      const deletedGameId = customEvent.detail?.gameId;
-      if (deletedGameId) {
-        setGames((prevGames) =>
-          prevGames.filter((game) => String(game.id) !== String(deletedGameId))
-        );
-      }
-    };
-    window.addEventListener("gameDeleted", handleGameDeleted as EventListener);
-    return () => {
-      window.removeEventListener("gameDeleted", handleGameDeleted as EventListener);
-    };
-  }, [listenToGameDeleted]);
-
-  // Listen for game events
-  useGameEvents({ setGames, enabledEvents: gameEvents });
-
-  // Filter and sort games
+  // Filter and sort games (context listens to gameUpdated/gameDeleted and updates libraryGames)
   const filteredAndSortedGames = useMemo(() => {
     let filtered = [...games];
 
@@ -465,13 +527,12 @@ export function useGamesListPage(
           case "genre":
             if (selectedGenre !== null) {
               if (Array.isArray(game.genre)) {
-                return game.genre.some((g) => {
-                  const genreStr = typeof g === "string" ? g : String(g);
-                  return genreStr === selectedGenre;
-                });
-              } else if (typeof game.genre === "string") {
-                return game.genre === selectedGenre;
+                const ids = game.genre.map((g) =>
+                  typeof g === "object" && g != null && "id" in g ? (g as { id: number }).id : g
+                );
+                return ids.some((id) => String(id) === String(selectedGenre));
               }
+              if (typeof game.genre === "string") return game.genre === selectedGenre;
               return false;
             }
             return true;
@@ -489,10 +550,10 @@ export function useGamesListPage(
             return hasTag(game.gameModes || null, selectedGameModes);
           case "publishers":
             if (selectedPublishers === null) return true;
-            return hasTag(game.publishers || null, selectedPublishers);
+            return hasTag(game.publishers ?? null, selectedPublishers);
           case "developers":
             if (selectedDevelopers === null) return true;
-            return hasTag(game.developers || null, selectedDevelopers);
+            return hasTag(game.developers ?? null, selectedDevelopers);
           case "playerPerspectives":
             if (selectedPlayerPerspectives === null) return true;
             return hasTag(game.playerPerspectives || null, selectedPlayerPerspectives);
@@ -520,6 +581,20 @@ export function useGamesListPage(
               return gameIds.some((id) => String(id) === gameIdStr);
             }
             return false;
+          case "series": {
+            if (selectedSeries === null) return true;
+            const raw = game.series ?? game.collection;
+            const arr = raw == null ? [] : Array.isArray(raw) ? raw : [raw];
+            const ids = arr.map((x) => (typeof x === "object" && x?.id != null ? String(x.id) : String(x)));
+            return ids.some((id) => String(id) === selectedSeries);
+          }
+          case "franchise": {
+            if (selectedFranchise === null) return true;
+            const raw = game.franchise;
+            const arr = raw == null ? [] : Array.isArray(raw) ? raw : [raw];
+            const ids = arr.map((x) => (typeof x === "object" && x?.id != null ? String(x.id) : String(x)));
+            return ids.some((id) => String(id) === selectedFranchise);
+          }
           case "ageRating":
             if (selectedAgeRating !== null) {
               const [category, rating] = selectedAgeRating.split('-').map(Number);
@@ -537,49 +612,52 @@ export function useGamesListPage(
       });
     }
 
-    // Apply sort
-    filtered.sort((a, b) => {
-      let compareResult = 0;
-      switch (sortField) {
-        case "title":
-          compareResult = compareTitles(a.title || "", b.title || "");
-          break;
-        case "year":
+    // Apply sort (skip when server already returned title-asc and no filter is applied)
+    const serverOrderMatches =
+      filterField === "all" && sortField === "title" && sortAscending === true;
+    if (!serverOrderMatches) {
+      filtered.sort((a, b) => {
+        let compareResult = 0;
+        switch (sortField) {
+          case "title":
+            compareResult = compareTitles(a.title || "", b.title || "");
+            break;
+          case "year":
           const yearA = a.year ?? 0;
           const yearB = b.year ?? 0;
-          compareResult = yearB - yearA;
+          compareResult = yearA - yearB;
           break;
         case "stars":
           const starsA = a.stars ?? 0;
           const starsB = b.stars ?? 0;
-          compareResult = starsB - starsA;
+          compareResult = starsA - starsB;
           break;
         case "releaseDate":
           const dateA = a.year ?? 0;
           const dateB = b.year ?? 0;
           if (dateA !== dateB) {
-            compareResult = dateB - dateA;
+            compareResult = dateA - dateB;
           } else {
             const monthA = a.month ?? 0;
             const monthB = b.month ?? 0;
             if (monthA !== monthB) {
-              compareResult = monthB - monthA;
+              compareResult = monthA - monthB;
             } else {
               const dayA = a.day ?? 0;
               const dayB = b.day ?? 0;
-              compareResult = dayB - dayA;
+              compareResult = dayA - dayB;
             }
           }
           break;
         case "criticRating":
           const criticA = a.criticratings ?? 0;
           const criticB = b.criticratings ?? 0;
-          compareResult = criticB - criticA;
+          compareResult = criticA - criticB;
           break;
         case "userRating":
           const userA = a.userratings ?? 0;
           const userB = b.userratings ?? 0;
-          compareResult = userB - userA;
+          compareResult = userA - userB;
           break;
         case "ageRating":
           const ageRatingsA = a.ageRatings && a.ageRatings.length > 0 ? a.ageRatings : [];
@@ -591,13 +669,12 @@ export function useGamesListPage(
           } else if (ageRatingsB.length === 0) {
             compareResult = -1;
           } else {
-            // Sort by first age rating's category, then rating
             const firstA = ageRatingsA[0];
             const firstB = ageRatingsB[0];
             if (firstA.category !== firstB.category) {
               compareResult = firstA.category - firstB.category;
             } else {
-              compareResult = firstB.rating - firstA.rating;
+              compareResult = firstA.rating - firstB.rating;
             }
           }
           break;
@@ -606,6 +683,7 @@ export function useGamesListPage(
       }
       return sortAscending ? compareResult : -compareResult;
     });
+    }
 
     return filtered;
   }, [
@@ -623,6 +701,8 @@ export function useGamesListPage(
     selectedYear,
     selectedDecade,
     selectedCollection,
+    selectedSeries,
+    selectedFranchise,
     selectedAgeRating,
     contextCollectionGameIds,
     sortField,
@@ -659,43 +739,36 @@ export function useGamesListPage(
   }, [categoryId, allGenres, onCategoryIdChange]);
 
   // Fetch functions (collections and library games are now loaded via context)
-  // Use libraryGames from context as the base games list
-  useEffect(() => {
-    if (libraryGames.length > 0) {
-      setGames(libraryGames);
-    }
-  }, [libraryGames]);
-
-  // Update available genres based on games in the library
+  // Update available genres based on games in the library (uses libraryGames via games)
   useEffect(() => {
     if (games.length === 0 || allGenres.length === 0) return;
 
-    const genresInGames = new Set<string>();
+    const genreIdsOrTitles = new Set<string>();
     games.forEach((game) => {
       if (game.genre) {
         if (Array.isArray(game.genre)) {
           game.genre.forEach((g) => {
             if (typeof g === "string") {
-              genresInGames.add(g);
-            } else {
-              genresInGames.add(String(g));
+              genreIdsOrTitles.add(g);
+            } else if (typeof g === "object" && g != null && "id" in g) {
+              genreIdsOrTitles.add(String((g as { id: number }).id));
             }
           });
         } else if (typeof game.genre === "string") {
-          genresInGames.add(game.genre);
+          genreIdsOrTitles.add(game.genre);
         }
       }
     });
 
-    const filteredGenres = allGenres.filter((genre) => {
-      return genresInGames.has(genre.title);
-    });
+    const filteredGenres = allGenres.filter((genre) =>
+      genreIdsOrTitles.has(String(genre.id)) || genreIdsOrTitles.has(genre.title)
+    );
 
     setAvailableGenres(filteredGenres);
 
-    // Validate selected genre - if it's no longer available, reset it
+    // Validate selected genre (by id) - if it's no longer available, reset it
     if (selectedGenre !== null && filterField === "genre") {
-      const genreExists = filteredGenres.some((g) => g.title === selectedGenre);
+      const genreExists = filteredGenres.some((g) => String(g.id) === String(selectedGenre));
       if (!genreExists) {
         setSelectedGenre(null);
         setFilterField("all");
@@ -720,24 +793,22 @@ export function useGamesListPage(
   };
 
   const handleGameUpdate = (updatedGame: GameItem) => {
-    setGames((prevGames) =>
-      prevGames.map((game) =>
-        String(game.id) === String(updatedGame.id) ? updatedGame : game
-      )
-    );
+    contextUpdateGame(updatedGame);
     window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
   };
 
   const handleGameDelete = (deletedGame: GameItem) => {
-    setGames((prevGames) =>
-      prevGames.filter((game) => game.id !== deletedGame.id)
-    );
+    contextRemoveGame(deletedGame.id);
+    window.dispatchEvent(new CustomEvent("gameDeleted", { detail: { gameId: String(deletedGame.id) } }));
   };
+
+  const noopSetGames = useCallback((_value: React.SetStateAction<GameItem[]>) => {}, []);
 
   return {
     games,
-    setGames,
+    setGames: noopSetGames,
     isReady,
+    libraryGamesLoading,
     filterField,
     setFilterField,
     selectedYear,
@@ -766,9 +837,17 @@ export function useGamesListPage(
     setSelectedPlayerPerspectives,
     selectedGameEngines,
     setSelectedGameEngines,
+    selectedSeries,
+    setSelectedSeries,
+    selectedFranchise,
+    setSelectedFranchise,
     allGenres,
     availableGenres,
     availableCollections,
+    availableSeries,
+    availableFranchises,
+    availableDevelopers,
+    availablePublishers,
     sortField,
     setSortField,
     sortAscending,

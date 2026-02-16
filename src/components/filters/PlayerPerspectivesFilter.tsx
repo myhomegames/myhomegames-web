@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import TagValueFilter from "./TagValueFilter";
+import { getTagLabelFromGames } from "./tagFilterUtils";
 import type { FilterValue, GameItem } from "./types";
 
 type PlayerPerspectivesFilterProps = {
@@ -26,6 +27,7 @@ export default function PlayerPerspectivesFilter(props: PlayerPerspectivesFilter
       searchPlaceholderKey="gamesListToolbar.filter.searchPlayerPerspectives"
       valueExtractor={(game) => game.playerPerspectives}
       formatValue={formatValue}
+      getLabelForValue={(value) => getTagLabelFromGames(props.games, "playerPerspectives", value)}
     />
   );
 }

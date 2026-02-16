@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useLoading } from "../contexts/LoadingContext";
 import { API_BASE } from "../config";
 import { buildApiHeaders } from "../utils/api";
-import { CORE_LIBRARY_KEYS, OPTIONAL_LIBRARY_KEYS, normalizeVisibleLibraries } from "../utils/librarySections";
+import { LIBRARY_ORDER, normalizeVisibleLibraries } from "../utils/librarySections";
 import "./SettingsPage.css";
 
 export default function SettingsPage() {
@@ -12,7 +12,7 @@ export default function SettingsPage() {
   const [language, setLanguage] = useState("en");
   const [initialLanguage, setInitialLanguage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [visibleLibraries, setVisibleLibraries] = useState<string[]>([...CORE_LIBRARY_KEYS]);
+  const [visibleLibraries, setVisibleLibraries] = useState<string[]>([...LIBRARY_ORDER]);
   const [initialVisibleLibraries, setInitialVisibleLibraries] = useState<string[] | null>(null);
   
   // Twitch OAuth credentials
@@ -57,11 +57,15 @@ export default function SettingsPage() {
 
     async function loadSettings() {
       setLoading(true);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90000);
       try {
         const url = new URL("/settings", API_BASE);
         const res = await fetch(url.toString(), {
           headers: buildApiHeaders({ Accept: "application/json" }),
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
         if (res.ok) {
           const data = await res.json();
           const loadedLanguage = data.language || "en";
@@ -83,6 +87,7 @@ export default function SettingsPage() {
           setInitialVisibleLibraries(normalized);
         }
       } catch (err) {
+        clearTimeout(timeoutId);
         console.error("Failed to load settings:", err);
         // Fallback to localStorage
         const saved = localStorage.getItem("language") || "en";
@@ -101,6 +106,8 @@ export default function SettingsPage() {
 
   async function handleSave() {
     setSaving(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
     try {
       // Save settings to server
       const url = new URL("/settings", API_BASE);
@@ -111,7 +118,9 @@ export default function SettingsPage() {
           language: language,
           visibleLibraries: visibleLibraries,
         }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       if (!res.ok) {
         throw new Error("Failed to save settings");
@@ -126,6 +135,7 @@ export default function SettingsPage() {
       setInitialLanguage(language);
       setInitialVisibleLibraries(visibleLibraries);
     } catch (err) {
+      clearTimeout(timeoutId);
       console.error("Failed to save settings:", err);
       // Fallback to localStorage
       localStorage.setItem("language", language);
@@ -225,18 +235,7 @@ export default function SettingsPage() {
             <div className="settings-field">
               <div className="settings-label">{t("settings.pages")}</div>
               <div className="settings-library-options">
-                {CORE_LIBRARY_KEYS.map((key) => (
-                  <label key={key} className="settings-library-option settings-library-option-disabled">
-                    <input
-                      type="checkbox"
-                      checked={true}
-                      disabled={true}
-                      className="settings-checkbox"
-                    />
-                    <span>{t(`libraries.${key}`)}</span>
-                  </label>
-                ))}
-                {OPTIONAL_LIBRARY_KEYS.map((key) => (
+                {LIBRARY_ORDER.map((key) => (
                   <label key={key} className="settings-library-option">
                     <input
                       type="checkbox"

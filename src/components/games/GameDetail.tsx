@@ -330,7 +330,16 @@ function GameDetailContent({
       navigate(`/category/${category.id}`);
     }
   };
-  
+
+  // API returns genre as id[]; resolve to titles using categories
+  const genreTitles = useMemo(() => {
+    const raw = Array.isArray(game.genre) ? game.genre : game.genre != null ? [game.genre] : [];
+    return raw.map((id) => {
+      const c = categories.find((cat) => String(cat.id) === String(id));
+      return c?.title ?? String(id);
+    });
+  }, [game.genre, categories]);
+
   return (
     <>
       <div className={`game-detail-libraries-bar-wrapper ${hasBackground && isBackgroundVisible ? 'game-detail-libraries-bar-transparent' : ''}`}>
@@ -394,7 +403,7 @@ function GameDetailContent({
                 );
               })()}
               <InlineTagList
-                items={Array.isArray(game.genre) ? game.genre : game.genre ? [game.genre] : []}
+                items={genreTitles}
                 getLabel={(genre) => t(`genre.${genre}`, genre)}
                 onItemClick={handleGenreClick}
                 showMoreLabel={t("gameDetail.andMore", ", and more")}
@@ -618,6 +627,7 @@ function GameDetailContent({
                   <ScrollableGamesSection
                     sectionId={`collection-${collection.id}`}
                     titleOverride={collection.title}
+                    titleHref={`/collections/${collection.id}`}
                     disableAutoTranslate
                     games={games}
                     onGameClick={handleRelatedGameClick}

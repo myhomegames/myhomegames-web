@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { API_BASE, API_TOKEN } from "../../config";
 import StarRating from "../common/StarRating";
 import DropdownMenu from "../common/DropdownMenu";
@@ -32,6 +33,8 @@ type TableRowProps = {
   t: any;
   i18n: any;
   editGame: any;
+  /** When true, render as div (table-row/table-cell) for valid HTML inside virtualized list */
+  useDiv?: boolean;
 };
 
 export default function TableRow({
@@ -50,9 +53,32 @@ export default function TableRow({
   t,
   i18n,
   editGame,
+  useDiv = false,
 }: TableRowProps) {
   const isEven = index % 2 === 0;
   const rowClass = isEven ? "even-row" : "odd-row";
+  const RowTag = useDiv ? "div" : "tr";
+  const CellTag = useDiv ? "div" : "td";
+  const rowStyle = useDiv ? { display: "table-row" as const } : undefined;
+  const cellStyle = useDiv ? { display: "table-cell" as const } : undefined;
+
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  useEffect(() => {
+    const handleOpened = (e: Event) => {
+      const ev = e as CustomEvent<{ gameId?: string }>;
+      if (ev.detail?.gameId === game.id) setIsDropdownOpen(true);
+    };
+    const handleClosed = (e: Event) => {
+      const ev = e as CustomEvent<{ gameId?: string }>;
+      if (ev.detail?.gameId === game.id) setIsDropdownOpen(false);
+    };
+    window.addEventListener("dropdownMenuOpened", handleOpened);
+    window.addEventListener("dropdownMenuClosed", handleClosed);
+    return () => {
+      window.removeEventListener("dropdownMenuOpened", handleOpened);
+      window.removeEventListener("dropdownMenuClosed", handleClosed);
+    };
+  }, [game.id]);
   
   // Determine the first visible column
   const firstVisibleColumn = columnVisibility.title
@@ -105,17 +131,20 @@ export default function TableRow({
   };
 
   return (
-    <tr
+    <RowTag
       key={game.id}
       ref={(el) => {
         if (el && itemRefs?.current) {
-          itemRefs.current.set(game.id, el);
+          itemRefs.current.set(game.id, el as HTMLElement);
         }
       }}
+      style={rowStyle}
+      role={useDiv ? "row" : undefined}
+      className={isDropdownOpen ? "row-dropdown-open" : undefined}
     >
-      <td className="column-menu-cell"></td>
+      <CellTag className="column-menu-cell" style={cellStyle} role={useDiv ? "cell" : undefined}></CellTag>
       {columnVisibility.title && (
-        <td className={`title-cell ${rowClass} ${firstVisibleColumn === "title" ? "first-visible-cell" : ""}`}>
+        <CellTag className={`title-cell ${rowClass} ${firstVisibleColumn === "title" ? "first-visible-cell" : ""}`} style={cellStyle} role={useDiv ? "cell" : undefined}>
           {firstVisibleColumn === "title" && onPlay && <PlayIcon />}
           <Tooltip text={game.title} delay={1000}>
             <span 
@@ -125,24 +154,26 @@ export default function TableRow({
               {game.title}
             </span>
           </Tooltip>
-        </td>
+        </CellTag>
       )}
       {columnVisibility.releaseDate && (
-        <td
+        <CellTag
           className={`date-cell ${rowClass} ${
             columnVisibility.stars || columnVisibility.year || columnVisibility.criticRating
               ? "has-border-right"
               : ""
           } ${firstVisibleColumn === "releaseDate" ? "first-visible-cell" : ""}`}
+          style={cellStyle}
+          role={useDiv ? "cell" : undefined}
         >
           {firstVisibleColumn === "releaseDate" && onPlay && <PlayIcon />}
           <span className={firstVisibleColumn === "releaseDate" ? "first-cell-text" : ""}>
             {formatGameDate(game, t, i18n) || "-"}
           </span>
-        </td>
+        </CellTag>
       )}
       {columnVisibility.stars && (
-        <td className={`stars-cell ${rowClass} ${firstVisibleColumn === "stars" ? "first-visible-cell" : ""}`}>
+        <CellTag className={`stars-cell ${rowClass} ${firstVisibleColumn === "stars" ? "first-visible-cell" : ""}`} style={cellStyle} role={useDiv ? "cell" : undefined}>
           {firstVisibleColumn === "stars" && onPlay && <PlayIcon />}
           <div className={firstVisibleColumn === "stars" ? "first-cell-text" : ""} style={{ display: 'flex', alignItems: 'center' }}>
             <StarRating 
@@ -155,18 +186,18 @@ export default function TableRow({
               onRatingChange={API_BASE && API_TOKEN ? (newStars) => handleRatingChange(game.id, newStars) : undefined}
             />
           </div>
-        </td>
+        </CellTag>
       )}
       {columnVisibility.year && (
-        <td className={`year-cell ${rowClass} has-border-right ${firstVisibleColumn === "year" ? "first-visible-cell" : ""}`}>
+        <CellTag className={`year-cell ${rowClass} has-border-right ${firstVisibleColumn === "year" ? "first-visible-cell" : ""}`} style={cellStyle} role={useDiv ? "cell" : undefined}>
           {firstVisibleColumn === "year" && onPlay && <PlayIcon />}
           <span className={firstVisibleColumn === "year" ? "first-cell-text" : ""}>
             {game.year || "-"}
           </span>
-        </td>
+        </CellTag>
       )}
       {columnVisibility.criticRating && (
-        <td className={`critic-rating-cell ${rowClass} has-border-right ${firstVisibleColumn === "criticRating" ? "first-visible-cell" : ""}`}>
+        <CellTag className={`critic-rating-cell ${rowClass} has-border-right ${firstVisibleColumn === "criticRating" ? "first-visible-cell" : ""}`} style={cellStyle} role={useDiv ? "cell" : undefined}>
           {firstVisibleColumn === "criticRating" && onPlay && <PlayIcon />}
           <div className={firstVisibleColumn === "criticRating" ? "first-cell-text" : ""} style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             {(() => {
@@ -248,10 +279,10 @@ export default function TableRow({
               );
             })()}
           </div>
-        </td>
+        </CellTag>
       )}
       {columnVisibility.ageRating && (
-        <td className={`age-rating-cell ${rowClass} has-border-right ${firstVisibleColumn === "ageRating" ? "first-visible-cell" : ""}`}>
+        <CellTag className={`age-rating-cell ${rowClass} has-border-right ${firstVisibleColumn === "ageRating" ? "first-visible-cell" : ""}`} style={cellStyle} role={useDiv ? "cell" : undefined}>
           {firstVisibleColumn === "ageRating" && onPlay && <PlayIcon />}
           <div className={firstVisibleColumn === "ageRating" ? "first-cell-text" : ""}>
             {game.ageRatings && game.ageRatings.length > 0 ? (
@@ -260,9 +291,9 @@ export default function TableRow({
               <span>-</span>
             )}
           </div>
-        </td>
+        </CellTag>
       )}
-      <td className={`games-table-edit-cell ${rowClass}`}>
+      <CellTag className={`games-table-edit-cell ${rowClass}`} style={cellStyle} role={useDiv ? "cell" : undefined}>
         <div className="games-table-actions">
           <button
             onClick={(e) => {
@@ -320,7 +351,7 @@ export default function TableRow({
             className="games-table-dropdown-menu"
           />
         </div>
-      </td>
-    </tr>
+      </CellTag>
+    </RowTag>
   );
 }

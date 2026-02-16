@@ -4,8 +4,12 @@
     "library": "ライブラリ",
     "collections": "コレクション",
     "categories": "カテゴリ",
+    "series": "シリーズ",
+    "franchise": "フランチャイズ",
     "platforms": "プラットフォーム",
     "themes": "テーマ",
+    "developers": "開発者",
+    "publishers": "パブリッシャー",
     "gameEngines": "ゲームエンジン",
     "gameModes": "ゲームモード",
     "playerPerspectives": "視点"
@@ -78,6 +82,8 @@
     "placeholder": "ゲームを検索...",
     "recentSearches": "最近の検索",
     "collection": "コレクション",
+    "developer": "開発元",
+    "publisher": "発売元",
     "game": "ゲーム"
   },
   "searchResults": {
@@ -166,7 +172,9 @@
     "removeBackground": "背景を削除",
     "invalidImageType": "ファイルは画像である必要があります",
     "coverFormat": "推奨比率：3:4（例：400x533px）",
-    "backgroundFormat": "推奨比率：16:9（例：1920x1080px）"
+    "backgroundFormat": "推奨比率：16:9（例：1920x1080px）",
+    "showTitleInPreview": "プレビューでタイトルを表示",
+    "showTitle": "カバーにタイトルを表示"
   },
   "manageInstallation": {
     "title": "インストール管理",
@@ -226,7 +234,7 @@
   },
   "collections": {
     "addTo": "追加",
-    "addToCollection": "コレクションに追加",
+    "addToCollection": "コレクション",
     "searchCollections": "コレクションを検索...",
     "noCollectionsFound": "コレクションが見つかりません",
     "newCollectionTitle": "新しいコレクションのタイトル",
@@ -255,6 +263,8 @@
       "year": "年",
       "decade": "年代",
       "collection": "コレクション",
+      "series": "シリーズ",
+      "franchise": "フランチャイズ",
       "ageRating": "コンテンツレーティング",
       "searchYear": "フィルター年",
       "searchGenre": "フィルタージャンル",
@@ -268,6 +278,8 @@
       "searchGameEngines": "フィルターゲームエンジン",
       "searchDecade": "フィルター年代",
       "searchCollection": "フィルターコレクション",
+      "searchSeries": "シリーズで絞り込み",
+      "searchFranchise": "フランチャイズで絞り込み",
       "searchAgeRating": "レーティングを検索..."
     },
     "sort": {
@@ -433,8 +445,13 @@
     },
     "developers": "開発者",
     "publishers": "パブリッシャー",
+    "noDevelopersFound": "開発者が見つかりません",
+    "noPublishersFound": "パブリッシャーが見つかりません",
+    "addToDeveloper": "開発者",
+    "addToPublisher": "パブリッシャー",
     "franchise": "フランチャイズ",
     "collection": "コレクション",
+    "series": "シリーズ",
     "screenshots": "スクリーンショット",
     "videos": "動画",
     "gameEngines": "ゲームエンジン",

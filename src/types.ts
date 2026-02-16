@@ -6,27 +6,31 @@ export type GameItem = {
   summary?: string;
   cover?: string;
   background?: string;
+  showTitle?: boolean;
   day?: number | null;
   month?: number | null;
   year?: number | null;
   stars?: number | null;
-  genre?: string | string[];
+  /** Categories/genres: API returns [{ id, title }]; legacy may use string[]. */
+  genre?: Array<{ id: number; title: string }> | string | string[];
   criticratings?: number | null;
   userratings?: number | null;
   executables?: string[] | null; // Array of executable names (without extension)
-  themes?: string[];
-  platforms?: string[];
-  gameModes?: string[];
-  playerPerspectives?: string[];
+  /** Tag fields: API returns [{ id, title }]; legacy may use string[]. */
+  themes?: Array<{ id: number; title: string }> | string[];
+  platforms?: Array<{ id: number; title: string }> | string[];
+  gameModes?: Array<{ id: number; title: string }> | string[];
+  playerPerspectives?: Array<{ id: number; title: string }> | string[];
   websites?: Array<{ url: string; category?: number }>;
   ageRatings?: Array<{ rating: number; category: number }>;
-  developers?: string[];
-  publishers?: string[];
-  franchise?: string;
-  collection?: string;
+  developers?: Array<{ id: number; name: string }>;
+  publishers?: Array<{ id: number; name: string }>;
+  franchise?: (string | { id: number; name: string }) | (string | { id: number; name: string })[];
+  collection?: (string | { id: number; name: string }) | (string | { id: number; name: string })[];
+  series?: (string | { id: number; name: string }) | (string | { id: number; name: string })[];
   screenshots?: string[];
   videos?: string[];
-  gameEngines?: string[];
+  gameEngines?: Array<{ id: number; title: string }> | string[];
   keywords?: string[];
   alternativeNames?: string[];
   similarGames?: Array<{ id: number; name: string }>;
@@ -38,6 +42,7 @@ export type CollectionItem = {
   summary?: string;
   cover?: string;
   background?: string;
+  showTitle?: boolean;
   gameCount?: number;
 };
 
@@ -45,6 +50,7 @@ export type CategoryItem = {
   id: string;
   title: string;
   cover?: string;
+  showTitle?: boolean;
 };
 
 export type CollectionInfo = {
@@ -53,6 +59,7 @@ export type CollectionInfo = {
   summary?: string;
   cover?: string;
   background?: string;
+  showTitle?: boolean;
 };
 
 export type IGDBGame = {
@@ -75,10 +82,11 @@ export type IGDBGame = {
   playerPerspectives?: string[];
   websites?: Array<{ url: string; category?: number }>;
   ageRatings?: Array<{ rating: number; category: number }>;
-  developers?: string[];
-  publishers?: string[];
-  franchise?: string;
-  collection?: string;
+  developers?: Array<{ id: number; name: string }>;
+  publishers?: Array<{ id: number; name: string }>;
+  franchise?: (string | { id: number; name: string }) | (string | { id: number; name: string })[];
+  collection?: (string | { id: number; name: string }) | (string | { id: number; name: string })[];
+  series?: (string | { id: number; name: string }) | (string | { id: number; name: string })[];
   screenshots?: string[];
   videos?: string[];
   gameEngines?: string[];

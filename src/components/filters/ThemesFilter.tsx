@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import TagValueFilter from "./TagValueFilter";
+import { getTagLabelFromGames } from "./tagFilterUtils";
 import type { FilterValue, GameItem } from "./types";
 
 type ThemesFilterProps = {
@@ -28,6 +29,7 @@ export default function ThemesFilter(props: ThemesFilterProps) {
       searchPlaceholderKey="gamesListToolbar.filter.searchThemes"
       valueExtractor={(game) => game.themes}
       formatValue={formatValue}
+      getLabelForValue={(value) => getTagLabelFromGames(props.games, "themes", value)}
     />
   );
 }

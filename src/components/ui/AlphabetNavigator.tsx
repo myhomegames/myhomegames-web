@@ -176,8 +176,8 @@ export default function AlphabetNavigator({
       }
     }
 
-    // If using virtualized list (detail view with virtualization)
-    if (actualListRef && viewMode === "detail") {
+    // If using virtualized list (detail or table view with virtualization)
+    if (actualListRef && (viewMode === "detail" || viewMode === "table")) {
       const list = actualListRef;
       if (list && typeof list.scrollToRow === 'function') {
         list.scrollToRow({

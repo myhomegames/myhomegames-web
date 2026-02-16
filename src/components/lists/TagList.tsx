@@ -69,7 +69,7 @@ function TagListItem({
         height={coverHeight}
         onClick={handleClick}
         onEdit={onItemEdit ? handleEdit : undefined}
-        showTitle={true}
+        showTitle={item.showTitle !== false}
         titlePosition="overlay"
         detail={true}
         play={false}

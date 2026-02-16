@@ -254,26 +254,33 @@ export default function AddGame({
       // Clear the ref after execution to prevent cleanup from clearing it
       searchTimeoutRef.current = null;
       try {
+        const clientId = getTwitchClientId();
+        const clientSecret = getTwitchClientSecret();
+        if (!clientId || !clientSecret) {
+          setError(t("addGame.credentialsRequired", "Configure Twitch credentials in Settings to search IGDB."));
+          setResults([]);
+          setIsSearching(false);
+          return;
+        }
+
         const url = new URL("/igdb/search", API_BASE);
         url.searchParams.set("q", trimmedQuery);
 
         const headers: Record<string, string> = {
           Accept: "application/json",
           "X-Auth-Token": API_TOKEN,
+          "X-Twitch-Client-Id": clientId,
+          "X-Twitch-Client-Secret": clientSecret,
         };
-        
-        // Add Twitch credentials for IGDB API
-        const clientId = getTwitchClientId();
-        const clientSecret = getTwitchClientSecret();
-        if (clientId) headers["X-Twitch-Client-Id"] = clientId;
-        if (clientSecret) headers["X-Twitch-Client-Secret"] = clientSecret;
 
         const res = await fetch(url.toString(), {
           headers,
         });
 
         if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
+          const body = await res.json().catch(() => ({}));
+          const message = typeof body?.error === "string" ? body.error : `HTTP ${res.status}`;
+          throw new Error(message);
         }
 
         const json = await res.json();

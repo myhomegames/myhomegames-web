@@ -1,11 +1,53 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import FilterPopup from "../filters/FilterPopup";
 import SortPopup from "../toolbar/SortPopup";
 import type { FilterField, GameItem } from "../filters/types";
 import type { SortField } from "../../types";
 import { formatAgeRating } from "./AgeRatings";
+import { useTagLists } from "../../contexts/TagListsContext";
 import "./GamesListToolbar.css";
+
+type TagItem = { id: number; title: string } | string;
+
+function buildTagLabelMap(
+  games: GameItem[],
+  field: "themes" | "platforms" | "gameModes" | "playerPerspectives" | "gameEngines"
+): Map<string, string> {
+  const map = new Map<string, string>();
+  games.forEach((game) => {
+    const list = (game[field] as (TagItem | number)[] | undefined) ?? [];
+    list.forEach((item) => {
+      if (typeof item === "number" && !Number.isNaN(item)) {
+        map.set(String(item), String(item));
+      } else if (typeof item === "object" && item != null && "id" in item && "title" in item) {
+        map.set(String((item as { id: number }).id), (item as { title: string }).title);
+      } else if (typeof item === "string" && item.trim()) {
+        map.set(item.trim(), item.trim());
+      }
+    });
+  });
+  return map;
+}
+
+function buildDevPubLabelMap(
+  games: GameItem[],
+  field: "publishers" | "developers"
+): Map<string, string> {
+  const map = new Map<string, string>();
+  games.forEach((game) => {
+    const list = game[field];
+    if (!list || !Array.isArray(list)) return;
+    list.forEach((item: number | { id: number; name?: string }) => {
+      if (typeof item === "number" && !Number.isNaN(item)) {
+        map.set(String(item), String(item));
+      } else if (typeof item === "object" && item != null && "id" in item) {
+        map.set(String(item.id), (item as { name?: string }).name ?? String(item.id));
+      }
+    });
+  });
+  return map;
+}
 
 type GamesListToolbarProps = {
   gamesCount: number;
@@ -23,6 +65,8 @@ type GamesListToolbarProps = {
   onGameEnginesFilterChange?: (engine: string | null) => void;
   onDecadeFilterChange?: (decade: number | null) => void;
   onCollectionFilterChange?: (collection: string | null) => void;
+  onSeriesFilterChange?: (series: string | null) => void;
+  onFranchiseFilterChange?: (franchise: string | null) => void;
   onAgeRatingFilterChange?: (ageRating: string | null) => void;
   onSortChange?: (field: SortField) => void;
   onSortDirectionChange?: (ascending: boolean) => void;
@@ -39,12 +83,18 @@ type GamesListToolbarProps = {
   selectedGameEngines?: string | null;
   selectedDecade?: number | null;
   selectedCollection?: string | null;
+  selectedSeries?: string | null;
+  selectedFranchise?: string | null;
   selectedAgeRating?: string | null;
   currentSort?: SortField;
   sortAscending?: boolean;
   viewMode?: "grid" | "detail" | "table";
   availableGenres?: Array<{ id: string; title: string }>;
   availableCollections?: Array<{ id: string; title: string }>;
+  availableSeries?: Array<{ id: string; title: string }>;
+  availableFranchises?: Array<{ id: string; title: string }>;
+  availableDevelopers?: Array<{ id: string; title: string }>;
+  availablePublishers?: Array<{ id: string; title: string }>;
 };
 
 export default function GamesListToolbar({
@@ -63,6 +113,8 @@ export default function GamesListToolbar({
   onGameEnginesFilterChange,
   onDecadeFilterChange,
   onCollectionFilterChange,
+  onSeriesFilterChange,
+  onFranchiseFilterChange,
   onAgeRatingFilterChange,
   onSortChange,
   onSortDirectionChange,
@@ -79,18 +131,68 @@ export default function GamesListToolbar({
   selectedGameEngines = null,
   selectedDecade = null,
   selectedCollection = null,
+  selectedSeries = null,
+  selectedFranchise = null,
   selectedAgeRating = null,
   currentSort = "title",
   sortAscending = true,
   viewMode = "grid",
   availableGenres = [],
   availableCollections = [],
+  availableSeries = [],
+  availableFranchises = [],
+  availableDevelopers = [],
+  availablePublishers = [],
 }: GamesListToolbarProps) {
   const { t } = useTranslation();
+  const { tagLabels: contextTagLabels } = useTagLists();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
   const sortRef = useRef<HTMLDivElement>(null);
+
+  const emptyMap = useMemo(() => new Map<string, string>(), []);
+
+  const tagLabelMaps = useMemo(() => {
+    const empty = () => emptyMap;
+    const tagFields = ["themes", "platforms", "gameModes", "playerPerspectives", "gameEngines"] as const;
+    const needMaps = tagFields.some((f) => currentFilter === f);
+    const resolve = (fromGames: Map<string, string>, contextMap: Map<string, string>) => {
+      const out = new Map<string, string>();
+      fromGames.forEach((label, id) => {
+        out.set(id, contextMap.get(id) ?? label);
+      });
+      return out;
+    };
+    if (!needMaps) {
+      return {
+        themes: empty(),
+        platforms: empty(),
+        gameModes: empty(),
+        playerPerspectives: empty(),
+        gameEngines: empty(),
+      };
+    }
+    return {
+      themes: currentFilter === "themes" ? resolve(buildTagLabelMap(games, "themes"), contextTagLabels.themes) : empty(),
+      platforms: currentFilter === "platforms" ? resolve(buildTagLabelMap(games, "platforms"), contextTagLabels.platforms) : empty(),
+      gameModes: currentFilter === "gameModes" ? resolve(buildTagLabelMap(games, "gameModes"), contextTagLabels.gameModes) : empty(),
+      playerPerspectives: currentFilter === "playerPerspectives" ? resolve(buildTagLabelMap(games, "playerPerspectives"), contextTagLabels.playerPerspectives) : empty(),
+      gameEngines: currentFilter === "gameEngines" ? resolve(buildTagLabelMap(games, "gameEngines"), contextTagLabels.gameEngines) : empty(),
+    };
+  }, [games, currentFilter, emptyMap, contextTagLabels]);
+
+  const devPubLabelMaps = useMemo(() => {
+    const empty = () => emptyMap;
+    const needMaps = currentFilter === "publishers" || currentFilter === "developers";
+    if (!needMaps) {
+      return { publishers: empty(), developers: empty() };
+    }
+    return {
+      publishers: currentFilter === "publishers" ? buildDevPubLabelMap(games, "publishers") : empty(),
+      developers: currentFilter === "developers" ? buildDevPubLabelMap(games, "developers") : empty(),
+    };
+  }, [games, currentFilter, emptyMap]);
 
   const getCurrentFilterLabel = () => {
     if (currentFilter === "year" && selectedYear !== null) {
@@ -103,33 +205,50 @@ export default function GamesListToolbar({
       const collection = availableCollections?.find((c: { id: string; title: string }) => String(c.id) === String(selectedCollection));
       return collection ? collection.title : String(selectedCollection);
     }
+    if (currentFilter === "series" && selectedSeries !== null) {
+      const series = availableSeries?.find((s: { id: string; title: string }) => String(s.id) === String(selectedSeries));
+      return series ? series.title : String(selectedSeries);
+    }
+    if (currentFilter === "franchise" && selectedFranchise !== null) {
+      const franchise = availableFranchises?.find((f: { id: string; title: string }) => String(f.id) === String(selectedFranchise));
+      return franchise ? franchise.title : String(selectedFranchise);
+    }
     if (currentFilter === "genre" && selectedGenre !== null) {
-      const genre = availableGenres.find((g) => g.title === selectedGenre);
-      return genre ? t(`genre.${genre.title}`, genre.title) : selectedGenre;
+      const genre = availableGenres.find((g) => String(g.id) === String(selectedGenre));
+      return genre ? t(`genre.${genre.title}`, genre.title) : String(selectedGenre);
     }
     if (currentFilter === "themes" && selectedThemes !== null) {
-      return t(`themes.${selectedThemes}`, selectedThemes);
+      const title = tagLabelMaps.themes.get(String(selectedThemes)) ?? String(selectedThemes);
+      return t(`themes.${title}`, title);
     }
     if (currentFilter === "keywords" && selectedKeywords !== null) {
       return selectedKeywords;
     }
     if (currentFilter === "platforms" && selectedPlatforms !== null) {
-      return selectedPlatforms;
+      return tagLabelMaps.platforms.get(String(selectedPlatforms)) ?? String(selectedPlatforms);
     }
     if (currentFilter === "gameModes" && selectedGameModes !== null) {
-      return t(`gameModes.${selectedGameModes}`, selectedGameModes);
+      const title = tagLabelMaps.gameModes.get(String(selectedGameModes)) ?? String(selectedGameModes);
+      return t(`gameModes.${title}`, title);
     }
     if (currentFilter === "publishers" && selectedPublishers !== null) {
-      return selectedPublishers;
+      const publisher = availablePublishers?.find((p) => String(p.id) === String(selectedPublishers));
+      if (publisher?.title) return publisher.title;
+      const fromGames = devPubLabelMaps.publishers.get(String(selectedPublishers));
+      return fromGames && fromGames !== String(selectedPublishers) ? fromGames : String(selectedPublishers);
     }
     if (currentFilter === "developers" && selectedDevelopers !== null) {
-      return selectedDevelopers;
+      const developer = availableDevelopers?.find((d) => String(d.id) === String(selectedDevelopers));
+      if (developer?.title) return developer.title;
+      const fromGames = devPubLabelMaps.developers.get(String(selectedDevelopers));
+      return fromGames && fromGames !== String(selectedDevelopers) ? fromGames : String(selectedDevelopers);
     }
     if (currentFilter === "playerPerspectives" && selectedPlayerPerspectives !== null) {
-      return t(`playerPerspectives.${selectedPlayerPerspectives}`, selectedPlayerPerspectives);
+      const title = tagLabelMaps.playerPerspectives.get(String(selectedPlayerPerspectives)) ?? String(selectedPlayerPerspectives);
+      return t(`playerPerspectives.${title}`, title);
     }
     if (currentFilter === "gameEngines" && selectedGameEngines !== null) {
-      return selectedGameEngines;
+      return tagLabelMaps.gameEngines.get(String(selectedGameEngines)) ?? String(selectedGameEngines);
     }
     if (currentFilter === "ageRating" && selectedAgeRating !== null) {
       // Format age rating: selectedAgeRating is "category-rating"
@@ -150,6 +269,8 @@ export default function GamesListToolbar({
       { value: "year" as FilterField, label: t("gamesListToolbar.filter.year") },
       { value: "decade" as FilterField, label: t("gamesListToolbar.filter.decade") },
       { value: "collection" as FilterField, label: t("gamesListToolbar.filter.collection") },
+      { value: "series" as FilterField, label: t("gamesListToolbar.filter.series") },
+      { value: "franchise" as FilterField, label: t("gamesListToolbar.filter.franchise") },
       { value: "ageRating" as FilterField, label: t("gamesListToolbar.filter.ageRating") },
     ];
     return filterOptions.find((opt) => opt.value === currentFilter)?.label || "";
@@ -323,6 +444,8 @@ export default function GamesListToolbar({
             selectedGameEngines={selectedGameEngines}
             selectedDecade={selectedDecade}
             selectedCollection={selectedCollection}
+            selectedSeries={selectedSeries}
+            selectedFranchise={selectedFranchise}
             selectedAgeRating={selectedAgeRating}
             onFilterChange={onFilterChange}
             onYearFilterChange={onYearFilterChange}
@@ -337,10 +460,16 @@ export default function GamesListToolbar({
             onGameEnginesFilterChange={onGameEnginesFilterChange}
             onDecadeFilterChange={onDecadeFilterChange}
             onCollectionFilterChange={onCollectionFilterChange}
+            onSeriesFilterChange={onSeriesFilterChange}
+            onFranchiseFilterChange={onFranchiseFilterChange}
             onAgeRatingFilterChange={onAgeRatingFilterChange}
             games={games}
             availableGenres={availableGenres}
             availableCollections={availableCollections}
+            availableSeries={availableSeries}
+            availableFranchises={availableFranchises}
+            availableDevelopers={availableDevelopers}
+            availablePublishers={availablePublishers}
           />
         </div>
 

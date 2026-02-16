@@ -8,7 +8,6 @@
   display: flex;
   flex-direction: row;
   gap: 20px;
-  padding: 16px;
   border-radius: 8px;
   transition: background-color 0.2s ease;
   cursor: pointer;
@@ -62,6 +61,15 @@
 }
 
 .games-list-detail-item:hover .games-list-detail-actions {
+  opacity: 1;
+}
+
+/* Mantieni evidenziazione quando il dropdown o sottomenu è aperto */
+.games-list-detail-item.detail-dropdown-open {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.games-list-detail-item.detail-dropdown-open .games-list-detail-actions {
   opacity: 1;
 }
 

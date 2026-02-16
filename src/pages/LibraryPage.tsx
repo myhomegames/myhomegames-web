@@ -51,9 +51,11 @@ export default function LibraryPage({
     onGamesLoaded(games);
   }, [onGamesLoaded]);
 
+  const hasAlphabetNav = hook.sortField === "title" && hook.isReady;
+
   return (
     <main className="flex-1 home-page-content">
-      <div className="home-page-layout">
+      <div className={`home-page-layout${hasAlphabetNav ? " has-alphabet-nav" : ""}`}>
         <GamesListPageContent
           hook={hook}
           viewMode={viewMode}
@@ -66,7 +68,7 @@ export default function LibraryPage({
           onPlay={onPlay}
           buildCoverUrlFn={buildCoverUrl}
         />
-        {hook.sortField === "title" && hook.isReady && (
+        {hasAlphabetNav && (
           <AlphabetNavigator
             games={hook.filteredAndSortedGames}
             scrollContainerRef={
@@ -75,14 +77,17 @@ export default function LibraryPage({
             itemRefs={hook.itemRefs}
             ascending={hook.sortAscending}
             virtualizedGridRef={
-              viewMode === "grid" && hook.scrollContainerRef.current
+              (viewMode as ViewMode) === "grid" && hook.scrollContainerRef.current
                 ? (hook.scrollContainerRef.current as any).__virtualizedGridRef
                 : undefined
             }
             virtualizedListRef={
-              viewMode === "detail" && hook.scrollContainerRef.current
+              ((viewMode as ViewMode) === "detail" && hook.scrollContainerRef.current
                 ? (hook.scrollContainerRef.current as any).__virtualizedListRef
-                : undefined
+                : undefined) ||
+              ((viewMode as ViewMode) === "table" && hook.tableScrollRef.current
+                ? (hook.tableScrollRef.current as any).__virtualizedListRef
+                : undefined)
             }
             viewMode={viewMode}
             coverSize={coverSize}

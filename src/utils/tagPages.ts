@@ -10,7 +10,9 @@ export type TagKey =
   | "publishers"
   | "gameEngines"
   | "gameModes"
-  | "playerPerspectives";
+  | "playerPerspectives"
+  | "series"
+  | "franchise";
 
 type TranslationFn = TFunction;
 
@@ -35,7 +37,9 @@ type TagListConfig = {
     | "platforms"
     | "game-engines"
     | "game-modes"
-    | "player-perspectives";
+    | "player-perspectives"
+    | "series"
+    | "franchise";
   editRouteBase?: string;
   updateEventName?: string;
   updateEventPayloadKey?: string;
@@ -51,12 +55,67 @@ type TagPageConfig = {
   getCoverDescription: (t: TranslationFn) => string;
 };
 
-const getGenreValues = (game: GameItem) => {
+/** Extract tag ids from genre. API returns number[]; legacy had { id, title }[]. */
+const getGenreIds = (game: GameItem): string[] | null => {
   if (!game.genre) return null;
-  return Array.isArray(game.genre) ? game.genre : [game.genre];
+  const raw = game.genre;
+  const arr = Array.isArray(raw) ? raw : [raw];
+  const ids = arr
+    .map((x) => {
+      if (typeof x === "number" && !Number.isNaN(x)) return String(x);
+      if (typeof x === "object" && x != null && "id" in x && (x as { id: number }).id != null)
+        return String((x as { id: number }).id);
+      return null;
+    })
+    .filter((id): id is string => id != null);
+  return ids.length > 0 ? ids : null;
 };
 
-const getArrayOrNull = (values?: string[]) => values || null;
+/** Extract tag ids from tag field. API returns number[]; legacy had { id, title }[] or string[]. */
+const getTagIdsOrNull = (values: unknown): string[] | null => {
+  if (!values || !Array.isArray(values)) return null;
+  const ids = values
+    .map((x) => {
+      if (typeof x === "number" && !Number.isNaN(x)) return String(x);
+      if (typeof x === "object" && x != null && "id" in x && (x as { id: number }).id != null)
+        return String((x as { id: number }).id);
+      if (typeof x === "string" && x.trim()) return x.trim();
+      return null;
+    })
+    .filter((id): id is string => id != null);
+  return ids.length > 0 ? ids : null;
+};
+
+/** API returns number[] for developers/publishers; legacy had { id, name }[]. */
+const toDevPubIds = (
+  arr: number[] | Array<{ id: number; name?: string }> | undefined | null
+): string[] | null => {
+  if (!arr || !Array.isArray(arr)) return null;
+  return arr
+    .map((x) => (typeof x === "number" ? String(x) : x?.id != null ? String(x.id) : null))
+    .filter((id): id is string => id != null);
+};
+
+const toSeriesFranchiseIds = (
+  arr: (number | string | { id: number; name?: string })[] | undefined | null
+): string[] | null => {
+  if (!arr || !Array.isArray(arr)) return null;
+  return arr
+    .map((x) => {
+      if (typeof x === "number" && !Number.isNaN(x)) return String(x);
+      if (typeof x === "object" && x?.id != null) return String(x.id);
+      return typeof x === "string" ? x : null;
+    })
+    .filter((id): id is string => id != null);
+};
+
+const toSeriesFranchiseArray = (
+  val: string | { id: number; name: string } | (string | { id: number; name: string })[] | undefined | null
+): (string | { id: number; name: string })[] | null => {
+  if (val == null) return null;
+  if (Array.isArray(val)) return val;
+  return [val];
+};
 
 export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
   categories: {
@@ -64,7 +123,7 @@ export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
       routeBase: "/category",
       listEndpoint: "/categories",
       listResponseKey: "categories",
-      valueExtractor: getGenreValues,
+      valueExtractor: getGenreIds,
       localCoverPrefix: "/category-covers/",
       responseKey: "category",
       removeResourceType: "categories",
@@ -88,7 +147,7 @@ export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
       routeBase: "/platforms",
       listEndpoint: "/platforms",
       listResponseKey: "platforms",
-      valueExtractor: (game) => getArrayOrNull(game.platforms),
+      valueExtractor: (game) => getTagIdsOrNull(game.platforms),
       localCoverPrefix: "/platform-covers/",
       responseKey: "platform",
       removeResourceType: "platforms",
@@ -110,7 +169,7 @@ export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
       routeBase: "/themes",
       listEndpoint: "/themes",
       listResponseKey: "themes",
-      valueExtractor: (game) => getArrayOrNull(game.themes),
+      valueExtractor: (game) => getTagIdsOrNull(game.themes),
       localCoverPrefix: "/theme-covers/",
       responseKey: "theme",
       removeResourceType: "themes",
@@ -132,7 +191,7 @@ export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
       routeBase: "/developers",
       listEndpoint: "/developers",
       listResponseKey: "developers",
-      valueExtractor: (game) => getArrayOrNull(game.developers),
+      valueExtractor: (game) => toDevPubIds(game.developers),
       localCoverPrefix: "/developer-covers/",
       responseKey: "developer",
     },
@@ -154,7 +213,7 @@ export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
       routeBase: "/publishers",
       listEndpoint: "/publishers",
       listResponseKey: "publishers",
-      valueExtractor: (game) => getArrayOrNull(game.publishers),
+      valueExtractor: (game) => toDevPubIds(game.publishers),
       localCoverPrefix: "/publisher-covers/",
       responseKey: "publisher",
     },
@@ -176,7 +235,7 @@ export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
       routeBase: "/game-engines",
       listEndpoint: "/game-engines",
       listResponseKey: "gameEngines",
-      valueExtractor: (game) => getArrayOrNull(game.gameEngines),
+      valueExtractor: (game) => getTagIdsOrNull(game.gameEngines),
       localCoverPrefix: "/game-engine-covers/",
       responseKey: "gameEngine",
       removeResourceType: "game-engines",
@@ -199,7 +258,7 @@ export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
       routeBase: "/game-modes",
       listEndpoint: "/game-modes",
       listResponseKey: "gameModes",
-      valueExtractor: (game) => getArrayOrNull(game.gameModes),
+      valueExtractor: (game) => getTagIdsOrNull(game.gameModes),
       localCoverPrefix: "/game-mode-covers/",
       responseKey: "gameMode",
       removeResourceType: "game-modes",
@@ -221,7 +280,7 @@ export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
       routeBase: "/player-perspectives",
       listEndpoint: "/player-perspectives",
       listResponseKey: "playerPerspectives",
-      valueExtractor: (game) => getArrayOrNull(game.playerPerspectives),
+      valueExtractor: (game) => getTagIdsOrNull(game.playerPerspectives),
       localCoverPrefix: "/player-perspective-covers/",
       responseKey: "playerPerspective",
       removeResourceType: "player-perspectives",
@@ -236,6 +295,56 @@ export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
       t("tags.noItemsFound", { type: t("libraries.playerPerspectives") }),
     getEditTitle: (t) =>
       `${t("common.edit", "Edit")} ${t("libraries.playerPerspectives")}`,
+    getCoverDescription: (t) =>
+      t("category.coverFormat", "Recommended ratio: 16:9 (e.g., 1280x720px)"),
+  },
+  series: {
+    list: {
+      routeBase: "/series",
+      listEndpoint: "/series",
+      listResponseKey: "series",
+      valueExtractor: (game) => toSeriesFranchiseIds(toSeriesFranchiseArray(game.series ?? game.collection)),
+      localCoverPrefix: "/series-covers/",
+      responseKey: "series",
+      removeResourceType: "series",
+      editRouteBase: "/series",
+      updateEventName: "seriesUpdated",
+      updateEventPayloadKey: "series",
+    },
+    detail: {
+      tagField: "series",
+      paramName: "seriesId",
+      storageKey: "series",
+    },
+    getDisplayName: () => (value) => value,
+    getEmptyMessage: (t) =>
+      t("tags.noItemsFound", { type: t("libraries.series", "Series") }),
+    getEditTitle: (t) => `${t("common.edit", "Edit")} ${t("libraries.series", "Series")}`,
+    getCoverDescription: (t) =>
+      t("category.coverFormat", "Recommended ratio: 16:9 (e.g., 1280x720px)"),
+  },
+  franchise: {
+    list: {
+      routeBase: "/franchise",
+      listEndpoint: "/franchises",
+      listResponseKey: "franchises",
+      valueExtractor: (game) => toSeriesFranchiseIds(toSeriesFranchiseArray(game.franchise)),
+      localCoverPrefix: "/franchise-covers/",
+      responseKey: "franchise",
+      removeResourceType: "franchise",
+      editRouteBase: "/franchises",
+      updateEventName: "franchiseUpdated",
+      updateEventPayloadKey: "franchise",
+    },
+    detail: {
+      tagField: "franchise",
+      paramName: "franchiseId",
+      storageKey: "franchise",
+    },
+    getDisplayName: () => (value) => value,
+    getEmptyMessage: (t) =>
+      t("tags.noItemsFound", { type: t("libraries.franchise", "Franchise") }),
+    getEditTitle: (t) => `${t("common.edit", "Edit")} ${t("libraries.franchise", "Franchise")}`,
     getCoverDescription: (t) =>
       t("category.coverFormat", "Recommended ratio: 16:9 (e.g., 1280x720px)"),
   },

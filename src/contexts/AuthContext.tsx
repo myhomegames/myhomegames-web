@@ -1,9 +1,10 @@
 // contexts/AuthContext.tsx
 // Authentication context for Twitch OAuth
 
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { API_BASE, updateApiToken } from "../config";
+import { setUnauthorizedHandler } from "../utils/unauthorizedInterceptor";
 
 interface User {
   userId: string;
@@ -112,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     // Check if this is a dev token (don't require clientId for dev tokens)
     const isDevToken = DEV_TOKEN && authToken === DEV_TOKEN;
-    
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
     try {
       const headers: Record<string, string> = {
         "X-Auth-Token": authToken,
@@ -123,10 +124,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (clientId && !isDevToken) {
         headers["X-Twitch-Client-Id"] = clientId;
       }
-      
+
+      const controller = new AbortController();
+      timeoutId = setTimeout(() => controller.abort(), 90000);
       const response = await fetch(`${API_BASE}/auth/me`, {
         headers,
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         const userData = await response.json();
@@ -161,6 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error("Failed to fetch user info:", error);
       // Only clear localStorage if this is a Twitch token (not a dev token)
       if (!isDevToken) {
@@ -233,10 +239,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error("Login error:", error);
-      if (error instanceof Error) {
-        alert(`Errore durante il login: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : "Si è verificato un errore sconosciuto";
+      // "Failed to fetch" or network errors: redirect to server (same as first-time app load)
+      // This helps when frontend (e.g. Vite dev) cannot reach API due to CORS/network
+      const isFetchError = errorMessage === "Failed to fetch" ||
+        errorMessage?.toLowerCase().includes("network") ||
+        errorMessage?.toLowerCase().includes("fetch");
+      if (isFetchError) {
+        const serverUrl = API_BASE.replace(/\/$/, "");
+        window.location.href = serverUrl;
       } else {
-        alert(`Errore durante il login: Si è verificato un errore sconosciuto`);
+        if (error instanceof Error) {
+          alert(`Errore durante il login: ${errorMessage}`);
+        } else {
+          alert(`Errore durante il login: ${errorMessage}`);
+        }
       }
     }
   };
@@ -266,6 +283,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Check auth on mount
   useEffect(() => {
     checkAuth();
+  }, []);
+
+  // Global 401 handling: invalidate session and redirect to server (login)
+  const logoutRef = useRef(logout);
+  logoutRef.current = logout;
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      logoutRef.current();
+      const serverUrl = API_BASE.replace(/\/$/, "");
+      window.location.href = serverUrl;
+    });
   }, []);
 
   const value: AuthContextType = {

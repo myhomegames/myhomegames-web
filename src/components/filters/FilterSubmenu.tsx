@@ -12,6 +12,8 @@ import {
   GameEnginesFilter,
   DecadeFilter,
   CollectionFilter,
+  SeriesFilter,
+  FranchiseFilter,
   AgeRatingFilter,
 } from "./index";
 
@@ -25,6 +27,10 @@ type FilterSubmenuProps = {
   games?: GameItem[];
   availableGenres?: Array<{ id: string; title: string }>;
   availableCollections?: Array<{ id: string; title: string }>;
+  availableSeries?: Array<{ id: string; title: string }>;
+  availableFranchises?: Array<{ id: string; title: string }>;
+  availableDevelopers?: Array<{ id: string; title: string }>;
+  availablePublishers?: Array<{ id: string; title: string }>;
 };
 
 export default function FilterSubmenu({
@@ -37,6 +43,10 @@ export default function FilterSubmenu({
   games = [],
   availableGenres = [],
   availableCollections = [],
+  availableSeries = [],
+  availableFranchises = [],
+  availableDevelopers = [],
+  availablePublishers = [],
 }: FilterSubmenuProps) {
   const commonProps = {
     isOpen,
@@ -61,9 +71,9 @@ export default function FilterSubmenu({
     case "gameModes":
       return <GameModesFilter {...commonProps} />;
     case "publishers":
-      return <PublishersFilter {...commonProps} />;
+      return <PublishersFilter {...commonProps} availablePublishers={availablePublishers} />;
     case "developers":
-      return <DevelopersFilter {...commonProps} />;
+      return <DevelopersFilter {...commonProps} availableDevelopers={availableDevelopers} />;
     case "playerPerspectives":
       return <PlayerPerspectivesFilter {...commonProps} />;
     case "gameEngines":
@@ -72,6 +82,10 @@ export default function FilterSubmenu({
       return <DecadeFilter {...commonProps} />;
     case "collection":
       return <CollectionFilter {...commonProps} availableCollections={availableCollections} />;
+    case "series":
+      return <SeriesFilter {...commonProps} availableSeries={availableSeries} />;
+    case "franchise":
+      return <FranchiseFilter {...commonProps} availableFranchises={availableFranchises} />;
     case "ageRating":
       return <AgeRatingFilter {...commonProps} />;
     default:

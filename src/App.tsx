@@ -21,7 +21,7 @@ import SettingsPage from "./pages/SettingsPage";
 import ProfilePage from "./pages/ProfilePage";
 import AddGamePage from "./pages/AddGamePage";
 import SearchResultsPage from "./pages/SearchResultsPage";
-import CollectionDetail from "./pages/CollectionDetail";
+import LibraryItemDetailPage from "./pages/LibraryItemDetailPage";
 import TagGamesRoutePage from "./pages/TagGamesRoutePage";
 import LoginPage from "./pages/LoginPage";
 import IGDBGameDetailPage from "./pages/IGDBGameDetailPage";
@@ -32,6 +32,8 @@ import { API_BASE, getApiToken } from "./config";
 import { useLoading } from "./contexts/LoadingContext";
 import { useAuth } from "./contexts/AuthContext";
 import { useCollections } from "./contexts/CollectionsContext";
+import { useDevelopers } from "./contexts/DevelopersContext";
+import { usePublishers } from "./contexts/PublishersContext";
 import { useLibraryGames } from "./contexts/LibraryGamesContext";
 
 // Wrapper function for buildApiUrl that uses API_BASE
@@ -44,6 +46,8 @@ function buildApiUrlWithBase(
 
 function AppContent() {
   const { collections: allCollections } = useCollections();
+  const { developers: allDevelopers } = useDevelopers();
+  const { publishers: allPublishers } = usePublishers();
   const { games: allGames } = useLibraryGames();
   const [launchError, setLaunchError] = useState<string | null>(null);
   const [isLaunching, setIsLaunching] = useState(false);
@@ -109,20 +113,22 @@ function AppContent() {
       return;
     }
 
-    async function loadSettings() {
+    async function loadSettings(attempt = 0) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90000);
       try {
         const url = new URL("/settings", API_BASE);
         const res = await fetch(url.toString(), {
           headers: buildApiHeaders({ Accept: "application/json" }),
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
         if (res.ok) {
           const data = await res.json();
           const loadedLanguage = data.language || "en";
-          // Update i18n language if different from current
           if (i18n.language !== loadedLanguage) {
             i18n.changeLanguage(loadedLanguage);
           }
-          // Also update localStorage
           localStorage.setItem("language", loadedLanguage);
           if (Array.isArray(data.visibleLibraries)) {
             localStorage.setItem(
@@ -133,8 +139,15 @@ function AppContent() {
         } else {
           console.error("Failed to load settings:", res.status);
         }
-      } catch (err) {
-        console.error("Failed to load settings on startup:", err);
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        if (attempt < 1) {
+          setTimeout(() => loadSettings(attempt + 1), 2000);
+          return;
+        }
+        if (err?.name !== "AbortError") {
+          console.error("Failed to load settings on startup:", err);
+        }
       }
     }
     loadSettings();
@@ -239,6 +252,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -264,6 +279,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -281,16 +298,16 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
                   onAddGameClick={() => setAddGameOpen(true)}
                 />
-                <CollectionDetail
+                <LibraryItemDetailPage
                   onGameClick={handleGameClick}
-                  onGamesLoaded={() => {
-                    // Games are now managed by LibraryGamesContext, no need to update here
-                  }}
+                  onGamesLoaded={() => {}}
                   onPlay={openLauncher}
                   allCollections={allCollections}
                 />
@@ -305,6 +322,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -323,6 +342,56 @@ function AppContent() {
             }
           />
           <Route
+            path="/series/:seriesId"
+            element={
+              <ProtectedRoute>
+                <Header
+                  onPlay={openLauncher}
+                  allGames={allGames}
+                  allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
+                  onGameSelect={handleGameSelect}
+                  onHomeClick={() => navigate("/")}
+                  onSettingsClick={() => navigate("/settings")}
+                  onAddGameClick={() => setAddGameOpen(true)}
+                />
+                <TagGamesRoutePage
+                  onGameClick={handleGameClick}
+                  onGamesLoaded={() => {}}
+                  onPlay={openLauncher}
+                  allCollections={allCollections}
+                  tagKey="series"
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/franchise/:franchiseId"
+            element={
+              <ProtectedRoute>
+                <Header
+                  onPlay={openLauncher}
+                  allGames={allGames}
+                  allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
+                  onGameSelect={handleGameSelect}
+                  onHomeClick={() => navigate("/")}
+                  onSettingsClick={() => navigate("/settings")}
+                  onAddGameClick={() => setAddGameOpen(true)}
+                />
+                <TagGamesRoutePage
+                  onGameClick={handleGameClick}
+                  onGamesLoaded={() => {}}
+                  onPlay={openLauncher}
+                  allCollections={allCollections}
+                  tagKey="franchise"
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/platforms/:platformId"
             element={
               <ProtectedRoute>
@@ -330,6 +399,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -355,6 +426,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -380,19 +453,18 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
                   onAddGameClick={() => setAddGameOpen(true)}
                 />
-                <TagGamesRoutePage
+                <LibraryItemDetailPage
                   onGameClick={handleGameClick}
-                  onGamesLoaded={() => {
-                    // Games are now managed by LibraryGamesContext, no need to update here
-                  }}
+                  onGamesLoaded={() => {}}
                   onPlay={openLauncher}
                   allCollections={allCollections}
-                  tagKey="developers"
                 />
               </ProtectedRoute>
             }
@@ -405,19 +477,18 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
                   onAddGameClick={() => setAddGameOpen(true)}
                 />
-                <TagGamesRoutePage
+                <LibraryItemDetailPage
                   onGameClick={handleGameClick}
-                  onGamesLoaded={() => {
-                    // Games are now managed by LibraryGamesContext, no need to update here
-                  }}
+                  onGamesLoaded={() => {}}
                   onPlay={openLauncher}
                   allCollections={allCollections}
-                  tagKey="publishers"
                 />
               </ProtectedRoute>
             }
@@ -430,6 +501,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -455,6 +528,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -480,6 +555,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -505,6 +582,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -522,6 +601,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -539,6 +620,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -560,6 +643,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -580,6 +665,8 @@ function AppContent() {
                   onPlay={openLauncher}
                   allGames={allGames}
                   allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
                   onGameSelect={handleGameSelect}
                   onHomeClick={() => navigate("/")}
                   onSettingsClick={() => navigate("/settings")}
@@ -646,6 +733,53 @@ function GameDetailPage({
     };
   }, [game]);
 
+  // Listen for game updates (e.g. add to developer/publisher) so the detail view reflects changes
+  useEffect(() => {
+    const handleGameUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ game: GameItem }>;
+      const updatedGame = customEvent.detail?.game;
+      if (!updatedGame || !gameId) return;
+      if (String(updatedGame.id) !== String(gameId)) return;
+      const parsed: GameItem = {
+        id: String(updatedGame.id),
+        title: updatedGame.title,
+        summary: updatedGame.summary,
+        cover: updatedGame.cover,
+        background: updatedGame.background,
+        day: updatedGame.day,
+        month: updatedGame.month,
+        year: updatedGame.year,
+        stars: updatedGame.stars,
+        genre: updatedGame.genre,
+        criticratings: updatedGame.criticratings,
+        userratings: updatedGame.userratings,
+        executables: updatedGame.executables ?? null,
+        themes: updatedGame.themes ?? undefined,
+        platforms: updatedGame.platforms ?? undefined,
+        gameModes: updatedGame.gameModes ?? undefined,
+        playerPerspectives: updatedGame.playerPerspectives ?? undefined,
+        websites: updatedGame.websites ?? undefined,
+        ageRatings: updatedGame.ageRatings ?? undefined,
+        developers: updatedGame.developers ?? undefined,
+        publishers: updatedGame.publishers ?? undefined,
+        franchise: updatedGame.franchise ?? undefined,
+        collection: updatedGame.collection ?? undefined,
+        series: updatedGame.series ?? updatedGame.collection ?? undefined,
+        screenshots: updatedGame.screenshots ?? undefined,
+        videos: updatedGame.videos ?? undefined,
+        gameEngines: updatedGame.gameEngines ?? undefined,
+        keywords: updatedGame.keywords ?? undefined,
+        alternativeNames: updatedGame.alternativeNames ?? undefined,
+        similarGames: updatedGame.similarGames ?? undefined,
+      };
+      setGame(parsed);
+    };
+    window.addEventListener("gameUpdated", handleGameUpdated as EventListener);
+    return () => {
+      window.removeEventListener("gameUpdated", handleGameUpdated as EventListener);
+    };
+  }, [gameId]);
+
   useEffect(() => {
     if (gameId && gameId !== lastGameIdRef.current) {
       lastGameIdRef.current = gameId;
@@ -703,6 +837,7 @@ function GameDetailPage({
         publishers: found.publishers || null,
         franchise: found.franchise || null,
         collection: found.collection || null,
+        series: found.series ?? found.collection ?? null,
         screenshots: found.screenshots || null,
         videos: found.videos || null,
         gameEngines: found.gameEngines || null,

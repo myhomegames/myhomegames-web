@@ -5,6 +5,8 @@ import type { ViewMode } from "../types";
 import LibraryPage from "./LibraryPage";
 import RecommendedPage from "./RecommendedPage";
 import CollectionsPage from "./CollectionsPage";
+import DevelopersPage from "./DevelopersPage";
+import PublishersPage from "./PublishersPage";
 import TagListRoutePage from "./TagListRoutePage";
 import type { GameItem, CategoryItem, GameLibrarySection, CollectionItem } from "../types";
 import { API_BASE, getApiToken } from "../config";
@@ -30,7 +32,9 @@ export default function HomePage({
   allCollections = [],
 }: HomePageProps) {
   const { isLoading } = useLoading();
-  const [libraries, setLibraries] = useState<GameLibrarySection[]>([]);
+  const [libraries, setLibraries] = useState<GameLibrarySection[]>(() =>
+    buildLibrarySections(normalizeVisibleLibraries([]))
+  );
   const [activeLibrary, setActiveLibrary] = useState<GameLibrarySection | null>(
     null
   );
@@ -110,9 +114,13 @@ export default function HomePage({
       if (API_BASE && apiToken) {
         try {
           const url = new URL("/settings", API_BASE);
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 90000);
           const res = await fetch(url.toString(), {
             headers: buildApiHeaders({ Accept: "application/json" }),
+            signal: controller.signal,
           });
+          clearTimeout(timeoutId);
           if (res.ok) {
             const data = await res.json();
             if (Array.isArray(data.visibleLibraries)) {
@@ -220,11 +228,23 @@ export default function HomePage({
             {activeLibrary.key === "categories" && (
               <TagListRoutePage coverSize={coverSize} tagKey="categories" />
             )}
+            {activeLibrary.key === "series" && (
+              <TagListRoutePage coverSize={coverSize} tagKey="series" />
+            )}
+            {activeLibrary.key === "franchise" && (
+              <TagListRoutePage coverSize={coverSize} tagKey="franchise" />
+            )}
             {activeLibrary.key === "platforms" && (
               <TagListRoutePage coverSize={coverSize} tagKey="platforms" />
             )}
             {activeLibrary.key === "themes" && (
               <TagListRoutePage coverSize={coverSize} tagKey="themes" />
+            )}
+            {activeLibrary.key === "developers" && (
+              <DevelopersPage coverSize={coverSize} />
+            )}
+            {activeLibrary.key === "publishers" && (
+              <PublishersPage coverSize={coverSize} />
             )}
             {activeLibrary.key === "gameEngines" && (
               <TagListRoutePage coverSize={coverSize} tagKey="gameEngines" />

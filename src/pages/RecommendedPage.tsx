@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { useState, useEffect, useRef, useLayoutEffect, useMemo } from "react";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
+import { useAutoTranslateBatch } from "../hooks/useAutoTranslate";
 import { useLoading } from "../contexts/LoadingContext";
 import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
 import type { GameItem, CollectionItem } from "../types";
@@ -109,6 +110,17 @@ export default function RecommendedPage({
     setLoading(isFetching || !isReady);
   }, [isFetching, isReady, setLoading]);
 
+  const batchItems = useMemo(
+    () =>
+      sections.map((section) => ({
+        id: section.id,
+        text: section.id,
+        translationKey: `recommended.${section.id}`,
+      })),
+    [sections]
+  );
+  const sectionTitles = useAutoTranslateBatch(batchItems);
+
   async function fetchRecommendedSections() {
     if (fetchingRef.current) {
       return;
@@ -116,11 +128,15 @@ export default function RecommendedPage({
     fetchingRef.current = true;
     setIsFetching(true);
     setLoading(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
     try {
       const url = buildApiUrl(API_BASE, `/recommended`);
       const res = await fetch(url, {
         headers: buildApiHeaders({ Accept: "application/json" }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       const sectionsData = (json.sections || []) as any[];
@@ -148,9 +164,11 @@ export default function RecommendedPage({
       const allGames = parsedSections.flatMap(section => section.games);
       onGamesLoaded(allGames);
     } catch (err: any) {
-      const errorMessage = String(err.message || err);
+      clearTimeout(timeoutId);
+      const errorMessage = err?.name === "AbortError" ? "Request timed out" : String(err.message || err);
       console.error("Error fetching recommended sections:", errorMessage);
     } finally {
+      clearTimeout(timeoutId);
       setIsFetching(false);
       fetchingRef.current = false;
     }
@@ -175,6 +193,8 @@ export default function RecommendedPage({
             <ScrollableGamesSection
               key={section.id}
               sectionId={section.id}
+              titleOverride={sectionTitles[section.id]}
+              disableAutoTranslate
               games={section.games}
               onGameClick={onGameClick}
               onPlay={onPlay}

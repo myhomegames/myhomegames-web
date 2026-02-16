@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import TagValueFilter from "./TagValueFilter";
+import { getTagLabelFromGames } from "./tagFilterUtils";
 import type { FilterValue, GameItem } from "./types";
 
 type GameModesFilterProps = {
@@ -26,6 +27,7 @@ export default function GameModesFilter(props: GameModesFilterProps) {
       searchPlaceholderKey="gamesListToolbar.filter.searchGameModes"
       valueExtractor={(game) => game.gameModes}
       formatValue={formatValue}
+      getLabelForValue={(value) => getTagLabelFromGames(props.games, "gameModes", value)}
     />
   );
 }
