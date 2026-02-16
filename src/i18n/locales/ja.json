@@ -445,6 +445,8 @@
     },
     "developers": "開発者",
     "publishers": "パブリッシャー",
+    "noDevelopersFound": "開発者が見つかりません",
+    "noPublishersFound": "パブリッシャーが見つかりません",
     "addToDeveloper": "開発者",
     "addToPublisher": "パブリッシャー",
     "franchise": "フランチャイズ",

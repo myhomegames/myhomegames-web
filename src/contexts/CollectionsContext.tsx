@@ -23,7 +23,7 @@ const CollectionsContext = createContext<CollectionsContextType | undefined>(und
 
 export function CollectionsProvider({ children }: { children: ReactNode }) {
   const [collections, setCollections] = useState<CollectionItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [collectionGameIds, setCollectionGameIds] = useState<Map<string, string[]>>(new Map());
   const collectionGameIdsRef = useRef(collectionGameIds);
@@ -80,9 +80,13 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
   // Load collections on mount and when auth is ready (stagger to avoid all fetches at once)
   useEffect(() => {
     if (authLoading) return;
+    if (!getApiToken() && !authToken) {
+      setIsLoading(false);
+      return;
+    }
     const t = setTimeout(fetchCollections, 400);
     return () => clearTimeout(t);
-  }, [authLoading, fetchCollections]);
+  }, [authLoading, authToken, fetchCollections]);
 
   useEffect(() => {
     collectionGameIdsRef.current = collectionGameIds;

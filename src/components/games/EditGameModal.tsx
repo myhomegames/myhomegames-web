@@ -27,7 +27,7 @@ export default function EditGameModal({
   const { t } = useTranslation();
   const { setLoading } = useLoading();
   const { categories } = useCategories();
-  const { tagLabels } = useTagLists();
+  const { tagLabels, refreshTagLists } = useTagLists();
   const [title, setTitle] = useState(game.title);
   const [summary, setSummary] = useState(game.summary || "");
   const [year, setYear] = useState(game.year?.toString() || "");
@@ -440,6 +440,8 @@ export default function EditGameModal({
         }
 
         const result = await response.json();
+        // Refresh tag lists so new tags created on save have names in GameInfoBlock
+        await refreshTagLists();
         // Add timestamp to image URLs if they were updated to force browser reload
         let finalCover = updatedCover !== null ? updatedCover : result.game.cover;
         let finalBackground = updatedBackground !== null ? updatedBackground : result.game.background;
@@ -666,7 +668,6 @@ export default function EditGameModal({
 
   if (!isOpen) return null;
 
-  console.log("[Search] EditGameModal rendering (isOpen=true)", { gameId: game.id, gameTitle: game.title });
   return createPortal(
     <div className="edit-game-modal-overlay" onClick={onClose}>
       <div

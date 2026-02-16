@@ -19,6 +19,8 @@ type CollectionsListProps = {
   onPlay?: (game: GameItem) => void;
   onCollectionUpdate?: (updatedCollection: CollectionItem) => void;
   onCollectionDelete?: (deletedCollection: CollectionItem) => void;
+  /** Quando true, non mostrare il messaggio "nessun *** trovato" (come in Library) */
+  isLoading?: boolean;
   /** When false, hide edit/delete (e.g. for developers/publishers list) */
   showEdit?: boolean;
   /** Games endpoint path for play button (collections vs developers vs publishers) */
@@ -119,10 +121,12 @@ export function CollectionListItem({
         onPlay={onPlay ? handlePlayClick : undefined}
         onClick={() => onCollectionClick(collection)}
         onEdit={onEditClick ? () => onEditClick(collection) : undefined}
-        collectionId={collection.id}
+        collectionId={gamesPath === "collections" ? collection.id : undefined}
+        developerId={gamesPath === "developers" ? collection.id : undefined}
+        publisherId={gamesPath === "publishers" ? collection.id : undefined}
         collectionTitle={collection.title}
-        onCollectionDelete={onCollectionDelete ? (collectionId: string) => {
-          if (collection.id === collectionId) {
+        onCollectionDelete={onCollectionDelete ? (deletedId: string) => {
+          if (String(collection.id) === String(deletedId)) {
             onCollectionDelete(collection);
           }
         } : undefined}
@@ -155,6 +159,7 @@ export default function CollectionsList({
   onPlay,
   onCollectionUpdate,
   onCollectionDelete,
+  isLoading = false,
   showEdit = true,
   gamesPath = "collections",
   buildCoverUrl,
@@ -165,10 +170,20 @@ export default function CollectionsList({
   const { t } = useTranslation();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedCollection, setSelectedCollection] = useState<CollectionInfo | null>(null);
-  
-  if (collections.length === 0) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Durante il caricamento non mostrare nulla (come in Library)
+  if (isLoading && collections.length === 0) return null;
+  // Messaggio "nessun *** trovato" solo a caricamento finito
+  if (!isLoading && collections.length === 0) {
+    const emptyMessageKey =
+      gamesPath === "developers"
+        ? "igdbInfo.noDevelopersFound"
+        : gamesPath === "publishers"
+          ? "igdbInfo.noPublishersFound"
+          : "collections.noCollectionsFound";
     return (
-      <div 
+      <div
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -177,7 +192,7 @@ export default function CollectionsList({
           minHeight: '400px',
         }}
       >
-        <div className="text-gray-400 text-center">{t("collections.noCollectionsFound")}</div>
+        <div className="text-gray-400 text-center">{t(emptyMessageKey)}</div>
       </div>
     );
   }
@@ -219,7 +234,6 @@ export default function CollectionsList({
 
   // Use virtual scrolling for large lists
   const useVirtualization = collections.length > VIRTUALIZATION_THRESHOLD;
-  const containerRef = useRef<HTMLDivElement>(null);
 
   return (
     <>

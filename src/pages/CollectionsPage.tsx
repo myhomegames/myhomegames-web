@@ -38,9 +38,9 @@ export default function CollectionsPage({
     navigate(`/collections/${collection.id}`);
   }
 
-  const handleCollectionUpdate = (updated: CollectionItem) => {
-    // Preserve gameCount and spread all properties from updated (like DevelopersPage)
-    updateCollection({ ...updated, gameCount: collections.find((c) => String(c.id) === String(updated.id))?.gameCount });
+  const handleCollectionUpdate = (updatedCollection: CollectionItem) => {
+    // Update via context (which will also dispatch the event)
+    updateCollection(updatedCollection);
   };
 
   const handleCollectionDelete = (deletedCollection: CollectionItem) => {
@@ -92,19 +92,18 @@ export default function CollectionsPage({
           ref={scrollContainerRef}
           className="home-page-scroll-container"
         >
-          {!collectionsLoading && (
-            <CollectionsList
-              collections={sortedCollections}
-              onCollectionClick={handleCollectionClick}
-              onPlay={onPlay as any}
-              onCollectionUpdate={handleCollectionUpdate}
-              onCollectionDelete={handleCollectionDelete}
-              buildCoverUrl={buildCoverUrl}
-              coverSize={coverSize}
-              itemRefs={itemRefs}
-              scrollContainerRef={scrollContainerRef}
-            />
-          )}
+          <CollectionsList
+            collections={sortedCollections}
+            onCollectionClick={handleCollectionClick}
+            onPlay={onPlay as any}
+            isLoading={collectionsLoading}
+            onCollectionUpdate={handleCollectionUpdate}
+            onCollectionDelete={handleCollectionDelete}
+            buildCoverUrl={buildCoverUrl}
+            coverSize={coverSize}
+            itemRefs={itemRefs}
+            scrollContainerRef={scrollContainerRef}
+          />
         </div>
       </div>
 

@@ -7,8 +7,12 @@ import { useLoading } from "../../../contexts/LoadingContext";
 type UseDeleteGameParams = {
   gameId?: string;
   collectionId?: string;
+  developerId?: string;
+  publisherId?: string;
   onGameDelete?: (gameId: string) => void;
   onCollectionDelete?: (collectionId: string) => void;
+  onDeveloperDelete?: (developerId: string) => void;
+  onPublisherDelete?: (publisherId: string) => void;
   onModalClose?: () => void;
 };
 
@@ -24,8 +28,12 @@ type UseDeleteGameReturn = {
 export function useDeleteGame({
   gameId,
   collectionId,
+  developerId,
+  publisherId,
   onGameDelete,
   onCollectionDelete,
+  onDeveloperDelete,
+  onPublisherDelete,
   onModalClose,
 }: UseDeleteGameParams): UseDeleteGameReturn {
   const { t } = useTranslation();
@@ -35,7 +43,6 @@ export function useDeleteGame({
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const handleDeleteClick = () => {
-    console.log("[Search] useDeleteGame.handleDeleteClick", { gameId, collectionId });
     setShowConfirmModal(true);
   };
 
@@ -93,6 +100,10 @@ export function useDeleteGame({
         }
 
         url = buildApiUrl(API_BASE, `/games/${gameId}`);
+      } else if (developerId) {
+        url = buildApiUrl(API_BASE, `/developers/${developerId}`);
+      } else if (publisherId) {
+        url = buildApiUrl(API_BASE, `/publishers/${publisherId}`);
       } else if (collectionId) {
         url = buildApiUrl(API_BASE, `/collections/${collectionId}`);
       } else {
@@ -109,6 +120,10 @@ export function useDeleteGame({
       if (response.ok) {
         if (gameId && onGameDelete) {
           onGameDelete(gameId);
+        } else if (developerId && onDeveloperDelete) {
+          onDeveloperDelete(developerId);
+        } else if (publisherId && onPublisherDelete) {
+          onPublisherDelete(publisherId);
         } else if (collectionId && onCollectionDelete) {
           onCollectionDelete(collectionId);
         }
@@ -123,6 +138,10 @@ export function useDeleteGame({
               detail: { collectionId } 
             }));
           });
+        } else if (developerId) {
+          window.dispatchEvent(new CustomEvent("developerDeleted", { detail: { developerId } }));
+        } else if (publisherId) {
+          window.dispatchEvent(new CustomEvent("publisherDeleted", { detail: { publisherId } }));
         } else if (collectionId) {
           window.dispatchEvent(new CustomEvent("collectionDeleted", { detail: { collectionId } }));
         }

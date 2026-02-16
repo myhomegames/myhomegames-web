@@ -58,19 +58,18 @@ export default function DevelopersPage({ coverSize }: DevelopersPageProps) {
           style={{ opacity: isReady ? 1 : 0, transition: "opacity 0.2s ease-in-out" }}
         >
           <div ref={scrollContainerRef} className="home-page-scroll-container">
-            {!developersLoading && (
-              <CollectionsList
-                collections={sortedDevelopers}
-                onCollectionClick={handleDeveloperClick}
-                showEdit={true}
-                gamesPath="developers"
+            <CollectionsList
+              collections={sortedDevelopers}
+              onCollectionClick={handleDeveloperClick}
+              isLoading={developersLoading}
+              showEdit={true}
+              gamesPath="developers"
                 onCollectionUpdate={(updated) => updateDeveloper({ ...updated, gameCount: developers.find((d) => String(d.id) === String(updated.id))?.gameCount })}
                 buildCoverUrl={buildCoverUrl}
                 coverSize={coverSize}
                 itemRefs={itemRefs}
                 scrollContainerRef={scrollContainerRef}
-              />
-            )}
+            />
           </div>
         </div>
         {isReady && (

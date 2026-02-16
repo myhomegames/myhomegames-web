@@ -445,6 +445,8 @@
     },
     "developers": "开发商",
     "publishers": "发行商",
+    "noDevelopersFound": "未找到开发者",
+    "noPublishersFound": "未找到发行商",
     "addToDeveloper": "开发商",
     "addToPublisher": "发行商",
     "franchise": "系列",

@@ -58,19 +58,18 @@ export default function PublishersPage({ coverSize }: PublishersPageProps) {
           style={{ opacity: isReady ? 1 : 0, transition: "opacity 0.2s ease-in-out" }}
         >
           <div ref={scrollContainerRef} className="home-page-scroll-container">
-            {!publishersLoading && (
-              <CollectionsList
-                collections={sortedPublishers}
-                onCollectionClick={handlePublisherClick}
-                showEdit={true}
-                gamesPath="publishers"
-                onCollectionUpdate={(updated) => updatePublisher({ ...updated, gameCount: publishers.find((p) => String(p.id) === String(updated.id))?.gameCount })}
-                buildCoverUrl={buildCoverUrl}
-                coverSize={coverSize}
-                itemRefs={itemRefs}
-                scrollContainerRef={scrollContainerRef}
-              />
-            )}
+            <CollectionsList
+              collections={sortedPublishers}
+              onCollectionClick={handlePublisherClick}
+              isLoading={publishersLoading}
+              showEdit={true}
+              gamesPath="publishers"
+              onCollectionUpdate={(updated) => updatePublisher({ ...updated, gameCount: publishers.find((p) => String(p.id) === String(updated.id))?.gameCount })}
+              buildCoverUrl={buildCoverUrl}
+              coverSize={coverSize}
+              itemRefs={itemRefs}
+              scrollContainerRef={scrollContainerRef}
+            />
           </div>
         </div>
         {isReady && (

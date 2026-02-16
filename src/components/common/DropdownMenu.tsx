@@ -68,8 +68,16 @@ export default function DropdownMenu({
   const deleteGame = useDeleteGame({
     gameId,
     collectionId,
+    developerId,
+    publisherId,
     onGameDelete,
     onCollectionDelete,
+    onDeveloperDelete: (id) => {
+      if (onCollectionDelete) onCollectionDelete(id);
+    },
+    onPublisherDelete: (id) => {
+      if (onCollectionDelete) onCollectionDelete(id);
+    },
     onModalClose,
   });
 
@@ -321,8 +329,8 @@ export default function DropdownMenu({
     e.stopPropagation();
     setIsOpen(false);
     
-    // If we have props to handle deletion internally (game or collection)
-    if ((gameId && gameTitle) || (collectionId && collectionTitle)) {
+    // If we have props to handle deletion internally (game, collection, developer, or publisher)
+    if ((gameId && gameTitle) || (collectionId && collectionTitle) || (developerId && collectionTitle) || (publisherId && collectionTitle)) {
       if (onModalOpen) {
         onModalOpen();
       }
@@ -524,7 +532,7 @@ export default function DropdownMenu({
             )}
             
             {/* Divider after Additional Executables / Add to Collection / Manage Installation */}
-            {((gameId && gameExecutables && gameExecutables.length > 1) || onAddToCollection || (gameId && onManageInstallation)) && !(onRemoveFromCollection && gameId && collectionId) && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !onEdit && !onDelete)) || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (getApiToken() && (gameId || collectionId)))) && (
+            {((gameId && gameExecutables && gameExecutables.length > 1) || onAddToCollection || (gameId && onManageInstallation)) && !(onRemoveFromCollection && gameId && collectionId) && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !developerId && !publisherId && !onEdit && !onDelete)) || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (getApiToken() && (gameId || collectionId || developerId || publisherId)))) && (
               <div 
                 className="dropdown-menu-divider"
                 onMouseEnter={handleOtherMenuItemMouseEnter}
@@ -574,7 +582,7 @@ export default function DropdownMenu({
                 <span>{t("igdbInfo.removeFromPublisher", "Remove from publisher")}</span>
               </button>
             )}
-            {((onRemoveFromCollection && gameId && collectionId) || (onRemoveFromDeveloper && gameId && developerId) || (onRemoveFromPublisher && gameId && publisherId)) && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !onEdit && !onDelete)) || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (getApiToken() && (gameId || collectionId)))) && (
+            {((onRemoveFromCollection && gameId && collectionId) || (onRemoveFromDeveloper && gameId && developerId) || (onRemoveFromPublisher && gameId && publisherId)) && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !developerId && !publisherId && !onEdit && !onDelete)) || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (getApiToken() && (gameId || collectionId || developerId || publisherId)))) && (
               <div className="dropdown-menu-divider" />
             )}
             
@@ -587,7 +595,7 @@ export default function DropdownMenu({
                 <span>{t("common.edit", "Edit")}</span>
               </button>
             )}
-            {(onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !onEdit && !onDelete)) && (
+            {(onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !developerId && !publisherId && !onEdit && !onDelete)) && (
               <button
                 onClick={handleReload}
                 className="dropdown-menu-item"
@@ -614,7 +622,7 @@ export default function DropdownMenu({
                 </span>
               </button>
             )}
-            {(onDelete || (getApiToken() && (gameId || collectionId))) && (
+            {(onDelete || (getApiToken() && (gameId || collectionId || developerId || publisherId))) && (
               <button
                 onClick={handleDeleteClick}
                 className="dropdown-menu-item dropdown-menu-item-danger"

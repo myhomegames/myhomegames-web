@@ -420,7 +420,7 @@ export default function LibraryItemDetailPage({
     if (!id || !item) return;
     const apiToken = getApiToken();
     if (!apiToken) return;
-    const base = resourceType === "developers" ? "developers" : "publishers";
+    const base = resourceType; // "collections" | "developers" | "publishers"
     setIsDeleting(true);
     setDeleteError(null);
     setLoading(true);
@@ -428,8 +428,8 @@ export default function LibraryItemDetailPage({
       const url = buildApiUrl(API_BASE, `/${base}/${id}`);
       const res = await fetch(url, { method: "DELETE", headers: { "X-Auth-Token": apiToken } });
       if (!res.ok) throw new Error("Delete failed");
-      const eventName = resourceType === "developers" ? "developerDeleted" : "publisherDeleted";
-      const detailKey = resourceType === "developers" ? "developerId" : "publisherId";
+      const eventName = resourceType === "collections" ? "collectionDeleted" : resourceType === "developers" ? "developerDeleted" : "publisherDeleted";
+      const detailKey = resourceType === "collections" ? "collectionId" : resourceType === "developers" ? "developerId" : "publisherId";
       window.dispatchEvent(new CustomEvent(eventName, { detail: { [detailKey]: id } }));
       setShowDeleteModal(false);
       navigate(-1);
@@ -893,22 +893,17 @@ function LibraryItemDetailContent({
                                 </svg>
                               </button>
                             </Tooltip>
-                            {isCollection && item && (
+                            {item && (isCollection || showDeleteInMenu) && (
                               <DropdownMenu
-                                collectionId={item.id}
+                                collectionId={isCollection ? item.id : undefined}
                                 collectionTitle={item.title}
+                                developerId={resourceType === "developers" ? item.id : undefined}
+                                publisherId={resourceType === "publishers" ? item.id : undefined}
                                 onCollectionDelete={(deletedId: string) => {
                                   if (item.id === deletedId) window.history.back();
                                 }}
                                 onCollectionUpdate={onItemUpdate}
-                                horizontal={true}
-                                className="library-item-detail-dropdown-menu"
-                                toolTipDelay={200}
-                              />
-                            )}
-                            {showDeleteInMenu && item && (
-                              <DropdownMenu
-                                onDelete={onDeleteClick}
+                                onDelete={showDeleteInMenu ? onDeleteClick : undefined}
                                 horizontal={true}
                                 className="library-item-detail-dropdown-menu"
                                 toolTipDelay={200}

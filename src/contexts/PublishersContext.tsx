@@ -17,7 +17,7 @@ const PublishersContext = createContext<PublishersContextType | undefined>(undef
 
 export function PublishersProvider({ children }: { children: ReactNode }) {
   const [publishers, setPublishers] = useState<CollectionItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { isLoading: authLoading, token: authToken } = useAuth();
 
@@ -59,9 +59,13 @@ export function PublishersProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (authLoading) return;
+    if (!getApiToken() && !authToken) {
+      setIsLoading(false);
+      return;
+    }
     const t = setTimeout(fetchPublishers, 1200);
     return () => clearTimeout(t);
-  }, [authLoading, fetchPublishers]);
+  }, [authLoading, authToken, fetchPublishers]);
 
   useEffect(() => {
     const handleUpdate = (e: Event) => {
@@ -90,15 +94,19 @@ export function PublishersProvider({ children }: { children: ReactNode }) {
         setPublishers((prev) => prev.filter((p) => String(p.id) !== String(id)));
       }
     };
+    const handleGameAdded = () => fetchPublishers();
+
     window.addEventListener("publisherUpdated", handleUpdate as EventListener);
     window.addEventListener("publisherAdded", handleAdded as EventListener);
     window.addEventListener("publisherDeleted", handleDeleted as EventListener);
     window.addEventListener("metadataReloaded", fetchPublishers);
+    window.addEventListener("gameAdded", handleGameAdded);
     return () => {
       window.removeEventListener("publisherUpdated", handleUpdate as EventListener);
       window.removeEventListener("publisherAdded", handleAdded as EventListener);
       window.removeEventListener("publisherDeleted", handleDeleted as EventListener);
       window.removeEventListener("metadataReloaded", fetchPublishers);
+      window.removeEventListener("gameAdded", handleGameAdded);
     };
   }, [fetchPublishers]);
 

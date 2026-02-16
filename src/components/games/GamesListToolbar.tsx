@@ -232,16 +232,16 @@ export default function GamesListToolbar({
       return t(`gameModes.${title}`, title);
     }
     if (currentFilter === "publishers" && selectedPublishers !== null) {
-      const fromGames = devPubLabelMaps.publishers.get(String(selectedPublishers));
-      if (fromGames) return fromGames;
       const publisher = availablePublishers?.find((p) => String(p.id) === String(selectedPublishers));
-      return publisher ? publisher.title : String(selectedPublishers);
+      if (publisher?.title) return publisher.title;
+      const fromGames = devPubLabelMaps.publishers.get(String(selectedPublishers));
+      return fromGames && fromGames !== String(selectedPublishers) ? fromGames : String(selectedPublishers);
     }
     if (currentFilter === "developers" && selectedDevelopers !== null) {
-      const fromGames = devPubLabelMaps.developers.get(String(selectedDevelopers));
-      if (fromGames) return fromGames;
       const developer = availableDevelopers?.find((d) => String(d.id) === String(selectedDevelopers));
-      return developer ? developer.title : String(selectedDevelopers);
+      if (developer?.title) return developer.title;
+      const fromGames = devPubLabelMaps.developers.get(String(selectedDevelopers));
+      return fromGames && fromGames !== String(selectedDevelopers) ? fromGames : String(selectedDevelopers);
     }
     if (currentFilter === "playerPerspectives" && selectedPlayerPerspectives !== null) {
       const title = tagLabelMaps.playerPerspectives.get(String(selectedPlayerPerspectives)) ?? String(selectedPlayerPerspectives);

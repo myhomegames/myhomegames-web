@@ -328,9 +328,9 @@ export function useGamesListPage(
     return { title: true, releaseDate: true, criticRating: false, ageRating: false };
   });
 
-  /** Compare selected filter (id or legacy title) with game tag field (ids or titles). */
+  /** Compare selected filter (id or legacy title) with game tag field (ids, or objects with id). */
   const hasTag = (
-    values: Array<{ id: number; title: string } | string> | null | undefined,
+    values: Array<number | string | { id: number }> | null | undefined,
     selected: FilterValue
   ) => {
     if (selected === null || selected === undefined) return false;
@@ -550,16 +550,10 @@ export function useGamesListPage(
             return hasTag(game.gameModes || null, selectedGameModes);
           case "publishers":
             if (selectedPublishers === null) return true;
-            return hasTag(
-              game.publishers?.map((p) => String(p.id)) ?? null,
-              selectedPublishers
-            );
+            return hasTag(game.publishers ?? null, selectedPublishers);
           case "developers":
             if (selectedDevelopers === null) return true;
-            return hasTag(
-              game.developers?.map((d) => String(d.id)) ?? null,
-              selectedDevelopers
-            );
+            return hasTag(game.developers ?? null, selectedDevelopers);
           case "playerPerspectives":
             if (selectedPlayerPerspectives === null) return true;
             return hasTag(game.playerPerspectives || null, selectedPlayerPerspectives);

@@ -78,6 +78,30 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
     return map;
   }, [libraryGames]);
 
+  // Names from game payload (e.g. IGDB response has { id, name }) so we show names even when not in library
+  const developerNamesFromGame = useMemo(() => {
+    const m = new Map<string, string>();
+    if (game.developers && Array.isArray(game.developers)) {
+      for (const d of game.developers) {
+        const id = typeof d === "object" && d != null && "id" in d ? String((d as { id: number }).id) : String(d);
+        const name = typeof d === "object" && d != null && "name" in d ? (d as { name: string }).name : null;
+        if (id && name) m.set(id, name);
+      }
+    }
+    return m;
+  }, [game.developers]);
+  const publisherNamesFromGame = useMemo(() => {
+    const m = new Map<string, string>();
+    if (game.publishers && Array.isArray(game.publishers)) {
+      for (const p of game.publishers) {
+        const id = typeof p === "object" && p != null && "id" in p ? String((p as { id: number }).id) : String(p);
+        const name = typeof p === "object" && p != null && "name" in p ? (p as { name: string }).name : null;
+        if (id && name) m.set(id, name);
+      }
+    }
+    return m;
+  }, [game.publishers]);
+
   return (
     <div className="game-info-block">
 
@@ -152,7 +176,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
         </div>
       )}
 
-      {/* Developers (API returns id[]; resolve name from context) */}
+      {/* Developers (show name from game payload e.g. IGDB { id, name }, else from library context) */}
       {game.developers && game.developers.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
@@ -160,7 +184,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           </div>
           <InlineTagList
             items={toIdStrings(game.developers)}
-            getLabel={(id) => developers.find((d) => String(d.id) === id)?.title ?? id}
+            getLabel={(id) => developerNamesFromGame.get(id) ?? developers.find((d) => String(d.id) === id)?.title ?? id}
             onItemClick={(value) =>
               navigate(`/developers/${encodeURIComponent(value)}`)
             }
@@ -171,7 +195,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
         </div>
       )}
 
-      {/* Publishers (API returns id[]; resolve name from context) */}
+      {/* Publishers (show name from game payload e.g. IGDB { id, name }, else from library context) */}
       {game.publishers && game.publishers.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
@@ -179,7 +203,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           </div>
           <InlineTagList
             items={toIdStrings(game.publishers)}
-            getLabel={(id) => publishers.find((p) => String(p.id) === id)?.title ?? id}
+            getLabel={(id) => publisherNamesFromGame.get(id) ?? publishers.find((p) => String(p.id) === id)?.title ?? id}
             onItemClick={(value) =>
               navigate(`/publishers/${encodeURIComponent(value)}`)
             }

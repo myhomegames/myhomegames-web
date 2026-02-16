@@ -17,7 +17,7 @@ const DevelopersContext = createContext<DevelopersContextType | undefined>(undef
 
 export function DevelopersProvider({ children }: { children: ReactNode }) {
   const [developers, setDevelopers] = useState<CollectionItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { isLoading: authLoading, token: authToken } = useAuth();
 
@@ -59,9 +59,13 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (authLoading) return;
+    if (!getApiToken() && !authToken) {
+      setIsLoading(false);
+      return;
+    }
     const t = setTimeout(fetchDevelopers, 800);
     return () => clearTimeout(t);
-  }, [authLoading, fetchDevelopers]);
+  }, [authLoading, authToken, fetchDevelopers]);
 
   useEffect(() => {
     const handleUpdate = (e: Event) => {
@@ -90,15 +94,19 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
         setDevelopers((prev) => prev.filter((d) => String(d.id) !== String(id)));
       }
     };
+    const handleGameAdded = () => fetchDevelopers();
+
     window.addEventListener("developerUpdated", handleUpdate as EventListener);
     window.addEventListener("developerAdded", handleAdded as EventListener);
     window.addEventListener("developerDeleted", handleDeleted as EventListener);
     window.addEventListener("metadataReloaded", fetchDevelopers);
+    window.addEventListener("gameAdded", handleGameAdded);
     return () => {
       window.removeEventListener("developerUpdated", handleUpdate as EventListener);
       window.removeEventListener("developerAdded", handleAdded as EventListener);
       window.removeEventListener("developerDeleted", handleDeleted as EventListener);
       window.removeEventListener("metadataReloaded", fetchDevelopers);
+      window.removeEventListener("gameAdded", handleGameAdded);
     };
   }, [fetchDevelopers]);
 

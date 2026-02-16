@@ -95,11 +95,17 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
       fetchCategories();
     };
 
+    const handleGameAdded = () => {
+      fetchCategories();
+    };
+
     window.addEventListener("categoryUpdated", handleCategoryUpdated as EventListener);
     window.addEventListener("metadataReloaded", handleMetadataReloaded);
+    window.addEventListener("gameAdded", handleGameAdded);
     return () => {
       window.removeEventListener("categoryUpdated", handleCategoryUpdated as EventListener);
       window.removeEventListener("metadataReloaded", handleMetadataReloaded);
+      window.removeEventListener("gameAdded", handleGameAdded);
     };
   }, [fetchCategories]);
 

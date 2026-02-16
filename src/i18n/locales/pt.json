@@ -445,6 +445,8 @@
     },
     "developers": "Desenvolvedores",
     "publishers": "Editoras",
+    "noDevelopersFound": "Nenhum desenvolvedor encontrado",
+    "noPublishersFound": "Nenhuma editora encontrada",
     "addToDeveloper": "Desenvolvedor",
     "addToPublisher": "Editora",
     "franchise": "Franquia",

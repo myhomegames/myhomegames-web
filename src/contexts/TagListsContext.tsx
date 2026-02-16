@@ -82,6 +82,13 @@ export function TagListsProvider({ children }: { children: ReactNode }) {
     refreshTagLists();
   }, [authLoading, authToken, refreshTagLists]);
 
+  // When a new game is added (possibly with new tags), refresh tag lists so new tags show titles instead of ids
+  useEffect(() => {
+    const handleGameAdded = () => refreshTagLists();
+    window.addEventListener("gameAdded", handleGameAdded);
+    return () => window.removeEventListener("gameAdded", handleGameAdded);
+  }, [refreshTagLists]);
+
   const value = { tagLabels, refreshTagLists };
   return (
     <TagListsContext.Provider value={value}>
