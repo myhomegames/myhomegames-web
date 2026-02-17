@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -8,8 +8,8 @@
       content="MyHomeGames - Personal video game collection management system"
     />
     <title>MyHomeGames - Manage Your Video Game Collection</title>
-    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
-    <link rel="icon" type="image/png" href="/assets/favicon.png">
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico" />
+    <link rel="icon" type="image/png" href="/assets/favicon.png" />
     <style>
       * {
         margin: 0;
@@ -18,7 +18,8 @@
       }
 
       body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
           "Helvetica Neue", Arial, sans-serif;
         line-height: 1.6;
         color: #333;
@@ -59,7 +60,9 @@
         border-radius: 12px;
         font-size: 1.5rem;
         font-weight: 700;
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
         margin: 2rem 0;
         box-shadow: 0 6px 25px rgba(245, 87, 108, 0.5);
         text-transform: uppercase;
@@ -127,7 +130,9 @@
         border-radius: 8px;
         font-size: 1.2rem;
         font-weight: 600;
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
         margin: 0.5rem;
         box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
       }
@@ -248,7 +253,15 @@
         src="https://www.youtube.com/embed/0zaQ4R9pXk0"
         title="MyHomeGames"
         frameborder="0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allow="
+          accelerometer;
+          autoplay;
+          clipboard-write;
+          encrypted-media;
+          gyroscope;
+          picture-in-picture;
+          web-share;
+        "
         allowfullscreen
       >
       </iframe>
@@ -319,7 +332,27 @@
             </li>
             <li>Fill in your information (username, password, email)</li>
             <li>Verify your email address</li>
+            <li></li>
             <li>Complete your profile setup</li>
+            <li>
+              Go in
+              <a
+                href="https://dev.twitch.tv/console/apps/create"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Twitch Developer Console</a
+              >
+              with your new account and create a new application specifiing the
+              following:
+              <ul>
+                <li>Application Name: MyHomeGames</li>
+                <li>
+                  Application Callback URL:
+                  https://localhost:41440/auth/twitch/callback
+                </li>
+                <li>Category: Application Integration</li>
+              </ul>
+            </li>
           </ol>
 
           <div class="button-container">
