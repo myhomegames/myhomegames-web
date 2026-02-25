@@ -258,13 +258,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Logout
+  // Logout: remove session only; keep Twitch client credentials so user can re-login without re-entering them
   const logout = () => {
-    // Remove all Twitch-related data
     localStorage.removeItem("twitch_token");
     localStorage.removeItem("twitch_user_id");
-    localStorage.removeItem("twitch_client_id");
-    localStorage.removeItem("twitch_client_secret");
     setUser(null);
     setToken(null);
     updateApiToken();
