@@ -8,13 +8,13 @@ import CollectionsPage from "./CollectionsPage";
 import DevelopersPage from "./DevelopersPage";
 import PublishersPage from "./PublishersPage";
 import TagListRoutePage from "./TagListRoutePage";
-import type { GameItem, CategoryItem, GameLibrarySection, CollectionItem } from "../types";
+import type { GameItem, TagItem, GameLibrarySection, CollectionItem } from "../types";
 import { API_BASE, getApiToken } from "../config";
 import { buildApiHeaders } from "../utils/api";
 import { buildLibrarySections, normalizeVisibleLibraries } from "../utils/librarySections";
 import "./HomePage.css";
 
-export type { GameItem, CategoryItem };
+export type { GameItem, TagItem };
 
 type HomePageProps = {
   onGameClick: (game: GameItem) => void;
@@ -171,7 +171,7 @@ export default function HomePage({
     }
   }
 
-  function handleGameClick(game: GameItem | CategoryItem) {
+  function handleGameClick(game: GameItem | TagItem) {
     onGameClick(game as GameItem);
   }
 

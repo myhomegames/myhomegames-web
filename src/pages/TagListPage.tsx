@@ -5,7 +5,7 @@ import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import TagList from "../components/lists/TagList";
 import EditTagModal from "../components/tags/EditTagModal";
 import AlphabetNavigator from "../components/ui/AlphabetNavigator";
-import type { CategoryItem, GameItem } from "../types";
+import type { TagItem, GameItem } from "../types";
 import { compareTitles } from "../utils/stringUtils";
 import { API_BASE } from "../config";
 import { buildApiHeaders, buildApiUrl, buildCoverUrl } from "../utils/api";
@@ -37,7 +37,7 @@ type TagListPageProps = {
       | "player-perspectives"
       | "series"
       | "franchise";
-    getRouteSegment?: (item: CategoryItem) => string;
+    getRouteSegment?: (item: TagItem) => string;
     listResponseKey?: string;
     updateEventName?: string;
     updateEventPayloadKey?: string;
@@ -57,11 +57,11 @@ export default function TagListPage({
 }: TagListPageProps) {
   const { isLoading, setLoading } = useLoading();
   const { games, isLoading: gamesLoading } = useLibraryGames();
-  const [items, setItems] = useState<CategoryItem[]>([]);
-  const [serverItems, setServerItems] = useState<CategoryItem[] | null>(null);
+  const [items, setItems] = useState<TagItem[]>([]);
+  const [serverItems, setServerItems] = useState<TagItem[] | null>(null);
   const [listLoading, setListLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
-  const [editingItem, setEditingItem] = useState<CategoryItem | null>(null);
+  const [editingItem, setEditingItem] = useState<TagItem | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
   const pendingScrollRestoreRef = useRef<number | null>(null);
@@ -105,12 +105,14 @@ export default function TagListPage({
           title: string;
           cover?: string;
           showTitle?: boolean;
+          hasCover?: boolean;
         }>;
         const parsed = rawItems.map((item) => ({
           id: String(item.id),
           title: item.title,
           cover: item.cover,
           showTitle: item.showTitle,
+          hasCover: item.hasCover,
         }));
         if (isActive) {
           setServerItems(parsed);
@@ -161,7 +163,7 @@ export default function TagListPage({
       });
     });
 
-    const serverMap = new Map<string, CategoryItem>();
+    const serverMap = new Map<string, TagItem>();
     if (serverItems) {
       serverItems.forEach((item) => {
         serverMap.set(String(item.id), item);
@@ -186,16 +188,16 @@ export default function TagListPage({
   }, [games, valueExtractor, getDisplayName, serverItems]);
 
   const getRoute = useMemo(
-    () => (item: CategoryItem) => `${routeBase}/${encodeURIComponent(item.id)}`,
+    () => (item: TagItem) => `${routeBase}/${encodeURIComponent(item.id)}`,
     [routeBase]
   );
 
   const getCoverUrl = useMemo(() => {
-    return (item: CategoryItem) => buildCoverUrl(API_BASE, item.cover);
+    return (item: TagItem) => buildCoverUrl(API_BASE, item.cover);
   }, []);
 
-  const handleItemUpdate = (updatedItem: CategoryItem) => {
-    const isMatch = (item: CategoryItem) => String(item.id) === String(updatedItem.id);
+  const handleItemUpdate = (updatedItem: TagItem) => {
+    const isMatch = (item: TagItem) => String(item.id) === String(updatedItem.id);
 
     setItems((prev) =>
       prev.map((item) => {
@@ -231,7 +233,7 @@ export default function TagListPage({
     }
   };
 
-  const handleItemEdit = (item: CategoryItem) => {
+  const handleItemEdit = (item: TagItem) => {
     // Save scroll position before opening modal
     const container = scrollContainerRef.current;
     if (container) {

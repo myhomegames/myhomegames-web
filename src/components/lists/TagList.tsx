@@ -1,28 +1,28 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Cover from "../games/Cover";
-import type { CategoryItem } from "../../types";
+import type { TagItem } from "../../types";
 import "./TagList.css";
 
 type TagListProps = {
-  items: CategoryItem[];
+  items: TagItem[];
   coverSize?: number;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
-  onItemEdit?: (item: CategoryItem) => void;
-  getDisplayName?: (item: CategoryItem) => string;
-  getCoverUrl?: (item: CategoryItem) => string;
-  getRoute?: (item: CategoryItem) => string;
+  onItemEdit?: (item: TagItem) => void;
+  getDisplayName?: (item: TagItem) => string;
+  getCoverUrl?: (item: TagItem) => string;
+  getRoute?: (item: TagItem) => string;
   emptyMessage?: string;
 };
 
 type TagListItemProps = {
-  item: CategoryItem;
+  item: TagItem;
   coverSize: number;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
-  onItemEdit?: (item: CategoryItem) => void;
-  getDisplayName?: (item: CategoryItem) => string;
-  getCoverUrl?: (item: CategoryItem) => string;
-  getRoute?: (item: CategoryItem) => string;
+  onItemEdit?: (item: TagItem) => void;
+  getDisplayName?: (item: TagItem) => string;
+  getCoverUrl?: (item: TagItem) => string;
+  getRoute?: (item: TagItem) => string;
 };
 
 function TagListItem({

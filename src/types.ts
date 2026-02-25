@@ -46,11 +46,13 @@ export type CollectionItem = {
   gameCount?: number;
 };
 
-export type CategoryItem = {
+export type TagItem = {
   id: string;
   title: string;
   cover?: string;
   showTitle?: boolean;
+  /** True when the cover file exists on server; false when only fallback URL is used. Used by EditTagModal for remove button. */
+  hasCover?: boolean;
 };
 
 export type CollectionInfo = {

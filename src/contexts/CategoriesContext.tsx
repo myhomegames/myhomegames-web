@@ -3,27 +3,22 @@ import type { ReactNode } from "react";
 import { API_BASE, getApiToken } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 import { useAuth } from "./AuthContext";
-
-export type CategoryItem = {
-  id: string | number;
-  title: string;
-  cover?: string;
-};
+import type { TagItem } from "../types";
 
 interface CategoriesContextType {
-  categories: CategoryItem[];
+  categories: TagItem[];
   isLoading: boolean;
   error: string | null;
   refreshCategories: () => Promise<void>;
-  addCategory: (category: CategoryItem) => void;
-  updateCategory: (category: CategoryItem) => void;
+  addCategory: (category: TagItem) => void;
+  updateCategory: (category: TagItem) => void;
   removeCategory: (categoryId: string | number) => void;
 }
 
 const CategoriesContext = createContext<CategoriesContextType | undefined>(undefined);
 
 export function CategoriesProvider({ children }: { children: ReactNode }) {
-  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [categories, setCategories] = useState<TagItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { isLoading: authLoading, token: authToken } = useAuth();
@@ -80,7 +75,7 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
   // Listen for category update events
   useEffect(() => {
     const handleCategoryUpdated = (event: Event) => {
-      const customEvent = event as CustomEvent<{ category: CategoryItem }>;
+      const customEvent = event as CustomEvent<{ category: TagItem }>;
       const updatedCategory = customEvent.detail?.category;
       if (updatedCategory) {
         setCategories((prev) =>
@@ -113,7 +108,7 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
     await fetchCategories();
   }, [fetchCategories]);
 
-  const addCategory = useCallback((category: CategoryItem) => {
+  const addCategory = useCallback((category: TagItem) => {
     setCategories((prev) => {
       // Check if category already exists
       if (prev.some((c) => String(c.id) === String(category.id))) {
@@ -125,7 +120,7 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const updateCategory = useCallback((category: CategoryItem) => {
+  const updateCategory = useCallback((category: TagItem) => {
     setCategories((prev) =>
       prev.map((cat) =>
         String(cat.id) === String(category.id) ? category : cat
