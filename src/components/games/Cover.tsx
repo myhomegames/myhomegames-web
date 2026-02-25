@@ -13,7 +13,7 @@ type CoverProps = {
   coverUrl: string;
   width: number;
   height: number;
-  onPlay?: () => void;
+  onPlay?: (executableName?: string) => void;
   onClick?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -440,7 +440,7 @@ export default function Cover({
                 gameExecutables={game.executables}
                 onPlayExecutable={(executableName: string) => {
                   if (onPlay) {
-                    (onPlay as any)(game, executableName);
+                    onPlay(executableName);
                   }
                 }}
               />

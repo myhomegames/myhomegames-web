@@ -112,7 +112,7 @@ export function GameDetailItem({
         coverUrl={coverUrl}
         width={FIXED_COVER_SIZE}
         height={coverHeight}
-        onPlay={onPlay ? () => onPlay(game) : undefined}
+        onPlay={onPlay ? (executableName?: string) => (executableName !== undefined ? (onPlay as (g: typeof game, ex?: string) => void)(game, executableName) : onPlay(game)) : undefined}
         showTitle={false}
         detail={false}
         play={!!(game.executables && game.executables.length > 0)}

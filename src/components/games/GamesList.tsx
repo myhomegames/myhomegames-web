@@ -155,7 +155,7 @@ export function GameListItem({
         coverUrl={coverUrl}
         width={coverSize}
         height={coverHeight}
-        onPlay={onPlay ? () => onPlay(game) : undefined}
+        onPlay={onPlay ? (executableName?: string) => (executableName !== undefined ? (onPlay as (g: typeof game, ex?: string) => void)(game, executableName) : onPlay(game)) : undefined}
         onClick={() => onGameClick(game)}
         onEdit={() => onEditClick(game)}
         gameId={game.id}

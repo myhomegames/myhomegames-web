@@ -369,7 +369,7 @@ function GameDetailContent({
               coverUrl={coverUrl}
               width={coverWidth}
               height={coverHeight}
-              onPlay={() => onPlay(game)}
+              onPlay={(executableName?: string) => (executableName !== undefined ? (onPlay as (g: typeof game, ex?: string) => void)(game, executableName) : onPlay(game))}
               showTitle={false}
               titlePosition="overlay"
               detail={false}
