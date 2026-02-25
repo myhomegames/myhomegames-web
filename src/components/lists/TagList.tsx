@@ -55,7 +55,7 @@ function TagListItem({
       key={item.id}
       ref={(el) => {
         if (el && itemRefs?.current) {
-          itemRefs.current.set(item.id, el);
+          itemRefs.current.set(String(item.id), el);
         }
       }}
       className="group cursor-pointer tag-list-item"
@@ -117,7 +117,7 @@ export default function TagList({
     >
       {items.map((item) => (
         <TagListItem
-          key={item.id}
+          key={String(item.id)}
           item={item}
           coverSize={coverSize}
           itemRefs={itemRefs}

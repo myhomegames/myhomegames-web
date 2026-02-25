@@ -71,8 +71,11 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
     const handleUpdate = (e: Event) => {
       const ev = e as CustomEvent<{ developer?: CollectionItem }>;
       if (ev.detail?.developer) {
+        const updated = ev.detail.developer;
         setDevelopers((prev) =>
-          prev.map((d) => (String(d.id) === String(ev.detail!.developer!.id) ? ev.detail!.developer! : d))
+          prev.map((d) =>
+            String(d.id) === String(updated.id) ? { ...d, ...updated } : d
+          )
         );
       } else {
         fetchDevelopers();

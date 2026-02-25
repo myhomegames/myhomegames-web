@@ -282,8 +282,12 @@ export default function EditTagModal({
         }
         
         const updatedItem: CategoryItem = {
-          id: result[responseKey]?.id || item.id,
-          title: result[responseKey]?.title || item.title,
+          id: result[responseKey]?.id ?? item.id,
+          title:
+            result[responseKey]?.title != null &&
+            result[responseKey].title !== String(result[responseKey]?.id ?? item.id)
+              ? result[responseKey].title
+              : item.title,
           cover: finalCover,
           showTitle: result[responseKey]?.showTitle ?? showTitle,
         };
@@ -325,7 +329,10 @@ export default function EditTagModal({
             
             const reloadedItem: CategoryItem = {
               id: foundItem.id,
-              title: foundItem.title,
+              title:
+                foundItem.title != null && foundItem.title !== String(foundItem.id)
+                  ? foundItem.title
+                  : item.title,
               cover: finalCover,
               showTitle: foundItem.showTitle ?? item.showTitle,
             };

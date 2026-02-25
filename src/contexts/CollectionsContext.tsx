@@ -100,10 +100,12 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
       const collectionId = customEvent.detail?.collectionId;
       
       if (updatedCollection) {
-        // Direct collection update with full object
+        // Merge with existing collection so we preserve fields not in the payload (e.g. gameCount)
         setCollections((prev) =>
           prev.map((col) =>
-            String(col.id) === String(updatedCollection.id) ? updatedCollection : col
+            String(col.id) === String(updatedCollection.id)
+              ? { ...col, ...updatedCollection }
+              : col
           )
         );
       } else if (collectionId) {

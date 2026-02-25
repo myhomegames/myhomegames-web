@@ -219,6 +219,7 @@ export default function CollectionsList({
 
   const handleCollectionUpdate = (updatedCollection: CollectionInfo) => {
     if (onCollectionUpdate) {
+      const current = collections.find((c) => String(c.id) === String(updatedCollection.id));
       const updatedItem: CollectionItem = {
         id: updatedCollection.id,
         title: updatedCollection.title,
@@ -226,6 +227,7 @@ export default function CollectionsList({
         cover: updatedCollection.cover,
         background: updatedCollection.background,
         showTitle: (updatedCollection as any).showTitle !== false,
+        gameCount: current?.gameCount,
       };
       onCollectionUpdate(updatedItem);
     }

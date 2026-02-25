@@ -331,6 +331,7 @@ export default function EditCollectionLikeModal({
           cover: finalCover,
           background: finalBackground,
           showTitle: hasShowTitle ? (data?.showTitle ?? (item as any).showTitle) : undefined,
+          ...(typeof (data as any)?.gameCount === "number" ? { gameCount: (data as any).gameCount } : {}),
         };
         dispatchUpdate(updatedItem);
         onItemUpdate(updatedItem);
@@ -362,6 +363,7 @@ export default function EditCollectionLikeModal({
             cover: finalCover,
             background: finalBackground,
             showTitle: hasShowTitle ? (data?.showTitle ?? (item as any).showTitle) : undefined,
+            ...(typeof (data as any)?.gameCount === "number" ? { gameCount: (data as any).gameCount } : {}),
           };
           dispatchUpdate(updatedItem);
           onItemUpdate(updatedItem);

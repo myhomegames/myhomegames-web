@@ -71,8 +71,11 @@ export function PublishersProvider({ children }: { children: ReactNode }) {
     const handleUpdate = (e: Event) => {
       const ev = e as CustomEvent<{ publisher?: CollectionItem }>;
       if (ev.detail?.publisher) {
+        const updated = ev.detail.publisher;
         setPublishers((prev) =>
-          prev.map((p) => (String(p.id) === String(ev.detail!.publisher!.id) ? ev.detail!.publisher! : p))
+          prev.map((p) =>
+            String(p.id) === String(updated.id) ? { ...p, ...updated } : p
+          )
         );
       } else {
         fetchPublishers();
