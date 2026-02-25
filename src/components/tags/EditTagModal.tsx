@@ -300,6 +300,7 @@ export default function EditTagModal({
             detail: { [updateEventPayloadKey]: updatedItem } 
           }));
         }
+        window.dispatchEvent(new CustomEvent("tagListUpdated"));
 
             onItemUpdate(updatedItem);
       } else if (coverFile || coverRemoved) {
@@ -346,6 +347,7 @@ export default function EditTagModal({
                 detail: { [updateEventPayloadKey]: reloadedItem } 
               }));
             }
+            window.dispatchEvent(new CustomEvent("tagListUpdated"));
 
             onItemUpdate(reloadedItem);
           }

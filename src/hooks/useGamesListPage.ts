@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useLayoutEffect, useCallback } from "react";
 import { useScrollRestoration } from "./useScrollRestoration";
-import { useCategories } from "../contexts/CategoriesContext";
+import { useTagLists } from "../contexts/TagListsContext";
 import { useCollections } from "../contexts/CollectionsContext";
 import { useDevelopers } from "../contexts/DevelopersContext";
 import { usePublishers } from "../contexts/PublishersContext";
@@ -241,11 +241,10 @@ export function useGamesListPage(
     }
     return null;
   });
-  const { categories } = useCategories();
-  // Convert categories to allGenres format (id as string)
-  const allGenres = useMemo(() => 
-    categories.map((cat) => ({ id: String(cat.id), title: cat.title })),
-    [categories]
+  const { tagLabels } = useTagLists();
+  const allGenres = useMemo(
+    () => Array.from(tagLabels.categories.entries()).map(([id, title]) => ({ id, title })),
+    [tagLabels.categories]
   );
   const { collections, collectionGameIds: contextCollectionGameIds } = useCollections();
   const { developers } = useDevelopers();
@@ -741,28 +740,39 @@ export function useGamesListPage(
   // Fetch functions (collections and library games are now loaded via context)
   // Update available genres based on games in the library (uses libraryGames via games)
   useEffect(() => {
-    if (games.length === 0 || allGenres.length === 0) return;
+    if (allGenres.length === 0) return;
 
     const genreIdsOrTitles = new Set<string>();
-    games.forEach((game) => {
-      if (game.genre) {
-        if (Array.isArray(game.genre)) {
-          game.genre.forEach((g) => {
-            if (typeof g === "string") {
-              genreIdsOrTitles.add(g);
-            } else if (typeof g === "object" && g != null && "id" in g) {
-              genreIdsOrTitles.add(String((g as { id: number }).id));
-            }
-          });
-        } else if (typeof game.genre === "string") {
-          genreIdsOrTitles.add(game.genre);
+    if (games.length > 0) {
+      games.forEach((game) => {
+        if (game.genre) {
+          if (Array.isArray(game.genre)) {
+            game.genre.forEach((g) => {
+              if (typeof g === "number" && !Number.isNaN(g)) {
+                genreIdsOrTitles.add(String(g));
+              } else if (typeof g === "string") {
+                genreIdsOrTitles.add(g);
+              } else if (typeof g === "object" && g != null && "id" in g) {
+                genreIdsOrTitles.add(String((g as { id: number }).id));
+              }
+            });
+          } else if (typeof game.genre === "number" && !Number.isNaN(game.genre)) {
+            genreIdsOrTitles.add(String(game.genre));
+          } else if (typeof game.genre === "string") {
+            genreIdsOrTitles.add(game.genre);
+          }
         }
-      }
-    });
+      });
+    }
 
-    const filteredGenres = allGenres.filter((genre) =>
-      genreIdsOrTitles.has(String(genre.id)) || genreIdsOrTitles.has(genre.title)
-    );
+    // Show all genres from API in the filter; if we have games, optionally restrict to those present in games
+    const filteredGenres =
+      genreIdsOrTitles.size > 0
+        ? allGenres.filter(
+            (genre) =>
+              genreIdsOrTitles.has(String(genre.id)) || genreIdsOrTitles.has(genre.title)
+          )
+        : allGenres;
 
     setAvailableGenres(filteredGenres);
 

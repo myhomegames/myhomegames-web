@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { API_BASE, API_TOKEN, getApiToken } from "../../config";
 import { useLoading } from "../../contexts/LoadingContext";
-import { useCategories } from "../../contexts/CategoriesContext";
 import { useTagLists } from "../../contexts/TagListsContext";
 import { EditGameInfoTab, EditGameMediaTab, EditGameTagsTab } from "./edit";
 import type { GameItem } from "../../types";
@@ -26,7 +25,6 @@ export default function EditGameModal({
 }: EditGameModalProps) {
   const { t } = useTranslation();
   const { setLoading } = useLoading();
-  const { categories } = useCategories();
   const { tagLabels, refreshTagLists } = useTagLists();
   const [title, setTitle] = useState(game.title);
   const [summary, setSummary] = useState(game.summary || "");
@@ -47,8 +45,7 @@ export default function EditGameModal({
     (Array.isArray(ids) ? ids : ids != null ? [ids] : []).map((x) => {
       const id = typeof x === "number" ? x : typeof x === "object" && x != null && "id" in x ? Number((x as { id: number }).id) : null;
       if (id == null) return String(x);
-      const c = categories.find((cat) => String(cat.id) === String(id));
-      return c?.title ?? String(id);
+      return tagLabels.categories.get(String(id)) ?? String(id);
     });
 
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
@@ -132,7 +129,7 @@ export default function EditGameModal({
       // Generate new timestamp to force image reload when modal opens
       setImageTimestamp(Date.now());
     }
-  }, [isOpen, game, tagLabels, categories]);
+  }, [isOpen, game, tagLabels]);
 
   // Update removed state when game is updated (e.g., after image removal)
   useEffect(() => {

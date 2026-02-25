@@ -23,7 +23,7 @@ import { buildApiUrl, buildBackgroundUrl } from "../../utils/api";
 import { API_BASE, getApiToken } from "../../config";
 import { useLoading } from "../../contexts/LoadingContext";
 import { useCollections } from "../../contexts/CollectionsContext";
-import { useCategories } from "../../contexts/CategoriesContext";
+import { useTagLists } from "../../contexts/TagListsContext";
 import { useLibraryGames } from "../../contexts/LibraryGamesContext";
 import ScrollableGamesSection from "../common/ScrollableGamesSection";
 import "./GameDetail.css";
@@ -219,7 +219,11 @@ function GameDetailContent({
   i18n: { language: string };
 }) {
   const navigate = useNavigate();
-  const { categories } = useCategories();
+  const { tagLabels } = useTagLists();
+  const categoriesList = useMemo(
+    () => Array.from(tagLabels.categories.entries()).map(([id, title]) => ({ id, title })),
+    [tagLabels.categories]
+  );
   const { hasBackground, isBackgroundVisible } = useBackground();
   const { getCollectionGameIds } = useCollections();
   const { games: libraryGames, updateGame } = useLibraryGames();
@@ -325,20 +329,17 @@ function GameDetailContent({
   };
 
   const handleGenreClick = (genreTitle: string) => {
-    const category = categories.find((c) => c.title === genreTitle);
+    const category = categoriesList.find((c) => c.title === genreTitle);
     if (category) {
       navigate(`/category/${category.id}`);
     }
   };
 
-  // API returns genre as id[]; resolve to titles using categories
+  // API returns genre as id[]; resolve to titles using categories map
   const genreTitles = useMemo(() => {
     const raw = Array.isArray(game.genre) ? game.genre : game.genre != null ? [game.genre] : [];
-    return raw.map((id) => {
-      const c = categories.find((cat) => String(cat.id) === String(id));
-      return c?.title ?? String(id);
-    });
-  }, [game.genre, categories]);
+    return raw.map((id) => tagLabels.categories.get(String(id)) ?? String(id));
+  }, [game.genre, tagLabels.categories]);
 
   return (
     <>

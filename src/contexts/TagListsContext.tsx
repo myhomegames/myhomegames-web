@@ -5,6 +5,7 @@ import { buildApiUrl, buildApiHeaders } from "../utils/api";
 import { useAuth } from "./AuthContext";
 
 export type TagLabelsMap = {
+  categories: Map<string, string>;
   themes: Map<string, string>;
   platforms: Map<string, string>;
   gameModes: Map<string, string>;
@@ -15,6 +16,7 @@ export type TagLabelsMap = {
 };
 
 const emptyMaps = (): TagLabelsMap => ({
+  categories: new Map(),
   themes: new Map(),
   platforms: new Map(),
   gameModes: new Map(),
@@ -32,6 +34,7 @@ interface TagListsContextType {
 const TagListsContext = createContext<TagListsContextType | undefined>(undefined);
 
 const ENDPOINTS: [keyof TagLabelsMap, string, string][] = [
+  ["categories", "/categories", "categories"],
   ["themes", "/themes", "themes"],
   ["platforms", "/platforms", "platforms"],
   ["gameModes", "/game-modes", "gameModes"],
@@ -87,6 +90,18 @@ export function TagListsProvider({ children }: { children: ReactNode }) {
     const handleGameAdded = () => refreshTagLists();
     window.addEventListener("gameAdded", handleGameAdded);
     return () => window.removeEventListener("gameAdded", handleGameAdded);
+  }, [refreshTagLists]);
+
+  // When a tag list is updated (e.g. from EditTagModal for any tag type), refresh so labels stay in sync
+  useEffect(() => {
+    const handleTagListUpdated = () => refreshTagLists();
+    const handleMetadataReloaded = () => refreshTagLists();
+    window.addEventListener("tagListUpdated", handleTagListUpdated as EventListener);
+    window.addEventListener("metadataReloaded", handleMetadataReloaded);
+    return () => {
+      window.removeEventListener("tagListUpdated", handleTagListUpdated as EventListener);
+      window.removeEventListener("metadataReloaded", handleMetadataReloaded);
+    };
   }, [refreshTagLists]);
 
   const value = { tagLabels, refreshTagLists };

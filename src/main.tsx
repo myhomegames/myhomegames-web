@@ -6,7 +6,6 @@ import "./utils/unauthorizedInterceptor";
 import App from "./App.tsx";
 import { AuthProvider } from "./contexts/AuthContext";
 import { LoadingProvider } from "./contexts/LoadingContext";
-import { CategoriesProvider } from "./contexts/CategoriesContext";
 import { CollectionsProvider } from "./contexts/CollectionsContext";
 import { DevelopersProvider } from "./contexts/DevelopersContext";
 import { PublishersProvider } from "./contexts/PublishersContext";
@@ -17,19 +16,17 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <AuthProvider>
       <LoadingProvider>
-        <CategoriesProvider>
-          <CollectionsProvider>
-            <DevelopersProvider>
-              <PublishersProvider>
-                <LibraryGamesProvider>
-                  <TagListsProvider>
-                    <App />
-                  </TagListsProvider>
-                </LibraryGamesProvider>
-              </PublishersProvider>
-            </DevelopersProvider>
-          </CollectionsProvider>
-        </CategoriesProvider>
+        <CollectionsProvider>
+          <DevelopersProvider>
+            <PublishersProvider>
+              <LibraryGamesProvider>
+                <TagListsProvider>
+                  <App />
+                </TagListsProvider>
+              </LibraryGamesProvider>
+            </PublishersProvider>
+          </DevelopersProvider>
+        </CollectionsProvider>
       </LoadingProvider>
     </AuthProvider>
   </StrictMode>

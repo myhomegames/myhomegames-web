@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Cover from "../components/games/Cover";
@@ -14,7 +14,7 @@ import { useAddGame } from "../components/common/actions";
 import { buildApiUrl } from "../utils/api";
 import { API_BASE, getApiToken, getTwitchClientId, getTwitchClientSecret } from "../config";
 import { useLoading } from "../contexts/LoadingContext";
-import { useCategories } from "../contexts/CategoriesContext";
+import { useTagLists } from "../contexts/TagListsContext";
 import type { IGDBGame } from "../types";
 import { formatIGDBGameDate } from "../utils/date";
 import type { TFunction } from "i18next";
@@ -206,10 +206,14 @@ function IGDBGameDetailContent({
   const userRatingFormatted = formatRating(game.userRating);
   const { hasBackground, isBackgroundVisible } = useBackground();
   const navigate = useNavigate();
-  const { categories } = useCategories();
+  const { tagLabels } = useTagLists();
+  const categoriesList = useMemo(
+    () => Array.from(tagLabels.categories.entries()).map(([id, title]) => ({ id, title })),
+    [tagLabels.categories]
+  );
 
   const handleGenreClick = (genreTitle: string) => {
-    const category = categories.find((c) => c.title === genreTitle);
+    const category = categoriesList.find((c: { id: string; title: string }) => c.title === genreTitle);
     if (category) {
       navigate(`/category/${category.id}`);
     }
