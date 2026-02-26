@@ -433,7 +433,7 @@ export default function EditTagModal({
               <div className="edit-collection-modal-media-image-container">
                 {(() => {
                   const currentCoverUrl = coverRemoved ? "" : (coverPreview || coverUrlWithTimestamp);
-                  const showRemoveButton = !coverRemoved && item.hasCover === true;
+                  const hasVisibleCover = !coverRemoved && (item.hasCover === true || !!coverPreview || !!coverFile);
                   return (
                     <>
                       <Cover
@@ -450,7 +450,7 @@ export default function EditTagModal({
                         aspectRatio="16/9"
                         onUpload={() => !uploadingCover && !saving && coverInputRef.current?.click()}
                         uploading={uploadingCover}
-                        showRemoveButton={!!showRemoveButton}
+                        showRemoveButton={!!hasVisibleCover}
                         removeMediaType="cover"
                         removeResourceId={getRouteSegment ? getRouteSegment(item) : item.title}
                         removeResourceType={removeResourceType}
