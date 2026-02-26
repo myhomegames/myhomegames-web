@@ -185,7 +185,7 @@ export default function AddGamePage({
                           </div>
                         )}
                         {game.summary && (
-                          <div className="text-gray-300 text-sm line-clamp-2">
+                          <div className="text-gray-300 text-sm line-clamp-2 whitespace-pre-line">
                             {game.summary}
                           </div>
                         )}

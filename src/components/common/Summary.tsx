@@ -43,7 +43,8 @@ export default function Summary({ summary, truncateOnly = false, maxLines = 4, f
           WebkitLineClamp: isExpanded ? 'none' : maxLines,
           WebkitBoxOrient: 'vertical',
           overflow: isExpanded ? 'visible' : 'hidden',
-          textOverflow: isExpanded ? 'clip' : 'ellipsis'
+          textOverflow: isExpanded ? 'clip' : 'ellipsis',
+          whiteSpace: 'pre-line'
         }}
       >
         {summary}

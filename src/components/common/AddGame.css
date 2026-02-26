@@ -288,5 +288,6 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   margin: 0;
+  white-space: pre-line;
 }
 
