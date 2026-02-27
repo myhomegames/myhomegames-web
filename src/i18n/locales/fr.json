@@ -242,7 +242,10 @@
     "games": "jeux",
     "gameAlreadyInCollection": "Le jeu est déjà dans cette collection",
     "removeFromCollection": "Retirer de la collection",
-    "titleRequired": "Le titre de la collection est requis"
+    "titleRequired": "Le titre de la collection est requis",
+    "subcollections": "Collections",
+    "subcollections_one": "{{count}} collection",
+    "subcollections_other": "{{count}} collections"
   },
   "launch": {
     "launching": "Lancement du jeu...",
@@ -447,6 +450,12 @@
     "publishers": "Éditeurs",
     "noDevelopersFound": "Aucun développeur trouvé",
     "noPublishersFound": "Aucun éditeur trouvé",
+    "subDevelopers": "Développeurs",
+    "subDevelopers_one": "{{count}} développeur",
+    "subDevelopers_other": "{{count}} développeurs",
+    "subPublishers": "Éditeurs",
+    "subPublishers_one": "{{count}} éditeur",
+    "subPublishers_other": "{{count}} éditeurs",
     "addToDeveloper": "Développeur",
     "addToPublisher": "Éditeur",
     "franchise": "Franchise",

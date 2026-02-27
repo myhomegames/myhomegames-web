@@ -240,7 +240,10 @@
     "games": "giochi",
     "gameAlreadyInCollection": "Il gioco è già in questa collezione",
     "removeFromCollection": "Rimuovere dalla raccolta",
-    "titleRequired": "Il titolo della collezione è obbligatorio"
+    "titleRequired": "Il titolo della collezione è obbligatorio",
+    "subcollections": "Raccolte",
+    "subcollections_one": "{{count}} raccolta",
+    "subcollections_other": "{{count}} raccolte"
   },
   "categories": {
     "noCategoriesFound": "Nessuna categoria trovata"
@@ -452,6 +455,12 @@
     "searchPublishers": "Cerca produttori...",
     "noDevelopersFound": "Nessuno sviluppatore trovato",
     "noPublishersFound": "Nessun produttore trovato",
+    "subDevelopers": "Sviluppatori",
+    "subDevelopers_one": "{{count}} sviluppatore",
+    "subDevelopers_other": "{{count}} sviluppatori",
+    "subPublishers": "Produttori",
+    "subPublishers_one": "{{count}} produttore",
+    "subPublishers_other": "{{count}} produttori",
     "newDeveloperName": "Nome nuovo sviluppatore",
     "newPublisherName": "Nome nuovo produttore",
     "removeFromDeveloper": "Rimuovi da sviluppatore",

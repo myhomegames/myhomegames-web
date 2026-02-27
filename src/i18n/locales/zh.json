@@ -242,7 +242,10 @@
     "games": "",
     "gameAlreadyInCollection": "已在此收藏中",
     "removeFromCollection": "从收藏中移除",
-    "titleRequired": "收藏标题是必需的"
+    "titleRequired": "收藏标题是必需的",
+    "subcollections": "收藏",
+    "subcollections_one": "{{count}} 个收藏",
+    "subcollections_other": "{{count}} 个收藏"
   },
   "launch": {
     "launching": "正在启动...",
@@ -447,6 +450,12 @@
     "publishers": "发行商",
     "noDevelopersFound": "未找到开发者",
     "noPublishersFound": "未找到发行商",
+    "subDevelopers": "开发商",
+    "subDevelopers_one": "{{count}} 个开发商",
+    "subDevelopers_other": "{{count}} 个开发商",
+    "subPublishers": "发行商",
+    "subPublishers_one": "{{count}} 个发行商",
+    "subPublishers_other": "{{count}} 个发行商",
     "addToDeveloper": "开发商",
     "addToPublisher": "发行商",
     "franchise": "系列",

@@ -626,6 +626,13 @@ export default function LibraryItemDetailPage({
         }}
         t={t}
         allCollections={allCollections}
+        allCollectionLikes={
+          resourceType === "collections"
+            ? allCollectionsFromContext
+            : resourceType === "developers"
+              ? allDevelopers
+              : allPublishers
+        }
         resourceType={resourceType}
         collectionId={resourceType === "collections" ? collectionId : undefined}
         onRemoveFromCollection={resourceType === "collections" ? handleRemoveFromCollection : undefined}
@@ -639,6 +646,15 @@ export default function LibraryItemDetailPage({
         onDeleteClick={() => setShowDeleteModal(true)}
         onConfirmDelete={handleConfirmDelete}
         onCloseDeleteModal={() => !isDeleting && setShowDeleteModal(false)}
+        onCollectionClick={(cid) => {
+          const base =
+            resourceType === "collections"
+              ? "collections"
+              : resourceType === "developers"
+                ? "developers"
+                : "publishers";
+          navigate(`/${base}/${cid}`);
+        }}
       />
     </BackgroundManager>
   );
@@ -670,6 +686,7 @@ type LibraryItemDetailContentProps = {
   onItemUpdate: (updated: CollectionInfo) => void;
   t: TFunction;
   allCollections?: CollectionItem[];
+  allCollectionLikes?: CollectionItem[];
   resourceType: CollectionLikeResourceType;
   collectionId?: string;
   onRemoveFromCollection?: (gameId: string) => void;
@@ -683,6 +700,7 @@ type LibraryItemDetailContentProps = {
   onDeleteClick?: () => void;
   onConfirmDelete?: () => void;
   onCloseDeleteModal?: () => void;
+  onCollectionClick?: (collectionId: string) => void;
 };
 
 function LibraryItemDetailContent({
@@ -711,6 +729,7 @@ function LibraryItemDetailContent({
   onItemUpdate,
   t,
   allCollections = [],
+  allCollectionLikes = [],
   resourceType,
   collectionId,
   onRemoveFromCollection,
@@ -724,6 +743,7 @@ function LibraryItemDetailContent({
   onDeleteClick,
   onConfirmDelete,
   onCloseDeleteModal,
+  onCollectionClick,
 }: LibraryItemDetailContentProps) {
   const { hasBackground, isBackgroundVisible } = useBackground();
   const { isLoading } = useLoading();
@@ -739,6 +759,54 @@ function LibraryItemDetailContent({
 
   const isCollection = resourceType === "collections";
   const showDeleteInMenu = resourceType === "developers" || resourceType === "publishers";
+
+  const SUBTITLE_SEPARATORS = [":", "-", ";", "_", "/", "\\", "@", "#"];
+
+  const isSubCollectionTitle = (parentTitle: string, childTitle: string): boolean => {
+    const parent = parentTitle.trim();
+    const child = childTitle.trim();
+    if (!parent || !child || child.length <= parent.length) return false;
+    if (!child.startsWith(parent)) return false;
+    const rest = child.slice(parent.length);
+    const restTrimmed = rest.replace(/^\s+/, "");
+    if (!restTrimmed) return false;
+    const first = restTrimmed[0];
+    return SUBTITLE_SEPARATORS.includes(first);
+  };
+
+  const getSubCollectionLabel = (parentTitle: string, childTitle: string): string => {
+    const parent = parentTitle.trim();
+    const child = childTitle.trim();
+    if (!parent || !child || child.length <= parent.length) return childTitle;
+    if (!child.startsWith(parent)) return childTitle;
+    const rest = child.slice(parent.length).replace(/^\s+/, "");
+    if (!rest) return childTitle;
+    const first = rest[0];
+    if (!SUBTITLE_SEPARATORS.includes(first)) return childTitle;
+    const label = rest.slice(1).trim();
+    return label || childTitle;
+  };
+
+  const subCollectionLikes = useMemo(() => {
+    const currentId = collectionId ?? developerId ?? publisherId;
+    if (!item || !currentId) return [];
+    const parentTitle = (item.title || "").trim();
+    if (!parentTitle) return [];
+
+    const children = allCollectionLikes.filter((c) => {
+      const title = (c.title || "").trim();
+      if (!title || String(c.id) === String(currentId)) return false;
+      return isSubCollectionTitle(parentTitle, title);
+    });
+
+    children.sort((a, b) => {
+      const aLabel = getSubCollectionLabel(parentTitle, a.title || "");
+      const bLabel = getSubCollectionLabel(parentTitle, b.title || "");
+      return compareTitles(aLabel || a.title || "", bLabel || b.title || "");
+    });
+
+    return children;
+  }, [collectionId, developerId, publisherId, item, allCollectionLikes]);
 
   return (
     <>
@@ -966,6 +1034,73 @@ function LibraryItemDetailContent({
 
                   {!isLoading && (
                     <div style={{ width: "100%" }}>
+                      <style>{`
+                        .library-item-detail-games-list .games-list-container {
+                          justify-content: flex-start !important;
+                        }
+                      `}</style>
+                      {subCollectionLikes.length > 0 && (
+                        <div style={{ marginBottom: "32px", marginTop: "8px" }}>
+                          <h2
+                            className="text-white"
+                            style={{
+                              fontFamily: "var(--font-heading-2-font-family)",
+                              fontSize: "var(--font-heading-2-font-size)",
+                              fontWeight: 600,
+                            }}
+                          >
+                            {resourceType === "collections"
+                              ? t("collections.subcollections", { count: subCollectionLikes.length })
+                              : resourceType === "developers"
+                                ? t("igdbInfo.subDevelopers", { count: subCollectionLikes.length })
+                                : t("igdbInfo.subPublishers", { count: subCollectionLikes.length })}
+                          </h2>
+                          <div className="library-item-detail-collections-list">
+                            <div
+                              className="collections-list-container"
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns: `repeat(auto-fill, ${coverSize}px)`,
+                                gap: 40,
+                                justifyContent: "flex-start",
+                                maxWidth: "100%",
+                              }}
+                            >
+                              {subCollectionLikes.map((col) => {
+                                const displayTitle = getSubCollectionLabel(item?.title || "", col.title || "");
+                                const colCoverUrl = col.cover
+                                  ? buildCoverUrl(API_BASE, col.cover, true)
+                                  : "";
+                                const handleClick = () => {
+                                  if (onCollectionClick) {
+                                    onCollectionClick(String(col.id));
+                                  }
+                                };
+                                return (
+                                  <div
+                                    key={String(col.id)}
+                                    className="group cursor-pointer collections-list-item"
+                                    style={{ width: `${coverSize}px`, minWidth: `${coverSize}px` }}
+                                    onClick={handleClick}
+                                  >
+                                    <Cover
+                                      title={displayTitle || col.title}
+                                      coverUrl={colCoverUrl}
+                                      width={coverSize}
+                                      height={coverSize * 1.5}
+                                      onClick={handleClick}
+                                      showTitle={col.showTitle !== false}
+                                      detail={true}
+                                      play={false}
+                                      showBorder={true}
+                                    />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       <div style={{ paddingLeft: "0", marginBottom: "32px", marginTop: "8px" }}>
                         <h2
                           className="text-white"

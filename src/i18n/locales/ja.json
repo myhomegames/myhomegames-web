@@ -242,7 +242,10 @@
     "games": "ゲーム",
     "gameAlreadyInCollection": "ゲームは既にこのコレクションにあります",
     "removeFromCollection": "コレクションから削除",
-    "titleRequired": "コレクションのタイトルが必要です"
+    "titleRequired": "コレクションのタイトルが必要です",
+    "subcollections": "コレクション",
+    "subcollections_one": "コレクション {{count}} 件",
+    "subcollections_other": "コレクション {{count}} 件"
   },
   "launch": {
     "launching": "ゲームを起動中...",
@@ -447,6 +450,12 @@
     "publishers": "パブリッシャー",
     "noDevelopersFound": "開発者が見つかりません",
     "noPublishersFound": "パブリッシャーが見つかりません",
+    "subDevelopers": "開発者",
+    "subDevelopers_one": "開発者 {{count}} 件",
+    "subDevelopers_other": "開発者 {{count}} 件",
+    "subPublishers": "パブリッシャー",
+    "subPublishers_one": "パブリッシャー {{count}} 件",
+    "subPublishers_other": "パブリッシャー {{count}} 件",
     "addToDeveloper": "開発者",
     "addToPublisher": "パブリッシャー",
     "franchise": "フランチャイズ",
