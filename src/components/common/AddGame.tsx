@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { formatIGDBGameDate } from "../../utils/date";
 import { API_BASE, API_TOKEN, getTwitchClientId, getTwitchClientSecret } from "../../config";
+import { useCreateGame } from "./actions";
 import type { GameItem, IGDBGame } from "../../types";
 import "./AddGame.css";
 
@@ -21,6 +22,7 @@ export default function AddGame({
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const [createTitle, setCreateTitle] = useState("");
   const [results, setResults] = useState<IGDBGame[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
@@ -29,6 +31,14 @@ export default function AddGame({
   const lastSearchQueryRef = useRef<string>("");
   const lastEffectQueryRef = useRef<string>("");
   const isOpenRef = useRef(isOpen);
+
+  const { isCreating, createError, createGame } = useCreateGame({
+    onGameAdded: (game) => {
+      navigate(`/game/${game.id}`);
+      onClose();
+    },
+    onError: () => {},
+  });
   
   useEffect(() => {
     isOpenRef.current = isOpen;
@@ -360,6 +370,39 @@ export default function AddGame({
               autoFocus
               aria-label={t("addGame.searchPlaceholder")}
             />
+          </div>
+
+          <div className="add-game-create-from-scratch">
+            <div className="add-game-create-label">{t("addGame.createFromScratch")}</div>
+            <div className="add-game-create-row">
+              <input
+                type="text"
+                value={createTitle}
+                onChange={(e) => setCreateTitle(e.target.value)}
+                placeholder={t("addGame.newGameTitlePlaceholder")}
+                className="add-game-search-input add-game-create-input"
+                aria-label={t("addGame.newGameTitle")}
+                disabled={isCreating}
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  const title = createTitle.trim();
+                  if (!title || isCreating) return;
+                  const game = await createGame(title);
+                  if (game) {
+                    setCreateTitle("");
+                  }
+                }}
+                disabled={!createTitle.trim() || isCreating}
+                className="add-game-create-btn"
+              >
+                {isCreating ? t("addGame.creating", "Creating...") : t("addGame.create")}
+              </button>
+            </div>
+            {createError && (
+              <div className="add-game-error add-game-create-error">{createError}</div>
+            )}
           </div>
 
           {error && (

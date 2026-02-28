@@ -101,6 +101,11 @@
   },
   "addGame": {
     "title": "添加",
+    "createFromScratch": "从零创建",
+    "newGameTitle": "游戏标题",
+    "newGameTitlePlaceholder": "输入标题",
+    "create": "创建",
+    "creating": "创建中...",
     "searchPlaceholder": "搜索...",
     "loading": "搜索中...",
     "noResults": "未找到",

@@ -101,6 +101,11 @@
   },
   "addGame": {
     "title": "ゲームを追加",
+    "createFromScratch": "ゼロから作成",
+    "newGameTitle": "ゲームタイトル",
+    "newGameTitlePlaceholder": "タイトルを入力",
+    "create": "作成",
+    "creating": "作成中...",
     "searchPlaceholder": "ゲームを検索...",
     "loading": "検索中...",
     "noResults": "ゲームが見つかりません",

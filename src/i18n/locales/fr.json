@@ -101,6 +101,11 @@
   },
   "addGame": {
     "title": "Ajouter un Jeu",
+    "createFromScratch": "Créer de zéro",
+    "newGameTitle": "Titre du jeu",
+    "newGameTitlePlaceholder": "Saisir le titre",
+    "create": "Créer",
+    "creating": "Création...",
     "searchPlaceholder": "Rechercher un jeu...",
     "loading": "Recherche...",
     "noResults": "Aucun jeu trouvé",

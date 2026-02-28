@@ -101,6 +101,11 @@
   },
   "addGame": {
     "title": "Add Game",
+    "createFromScratch": "Create from scratch",
+    "newGameTitle": "Game title",
+    "newGameTitlePlaceholder": "Enter title",
+    "create": "Create",
+    "creating": "Creating...",
     "searchPlaceholder": "Search for a game...",
     "loading": "Searching...",
     "noResults": "No games found",

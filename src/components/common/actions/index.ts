@@ -4,6 +4,7 @@ export { useReloadGame } from "./useReloadGame";
 export { useUnlinkExecutable } from "./useUnlinkExecutable";
 export { useExecutable } from "./useExecutable";
 export { useAddGame } from "./useAddGame";
+export { useCreateGame } from "./useCreateGame";
 export { useAddGameToCollection } from "./useAddGameToCollection";
 export { useAddGameToDeveloper } from "./useAddGameToDeveloper";
 export { useAddGameToPublisher } from "./useAddGameToPublisher";
