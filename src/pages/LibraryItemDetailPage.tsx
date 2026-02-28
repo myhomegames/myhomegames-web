@@ -808,6 +808,32 @@ function LibraryItemDetailContent({
     return children;
   }, [collectionId, developerId, publisherId, item, allCollectionLikes]);
 
+  const [editingChild, setEditingChild] = useState<CollectionInfo | null>(null);
+  const [isEditChildModalOpen, setIsEditChildModalOpen] = useState(false);
+
+  const dispatchCollectionLikeUpdated = (updatedItem: CollectionInfo) => {
+    if (resourceType === "collections") {
+      window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collection: updatedItem } }));
+    } else if (resourceType === "developers") {
+      window.dispatchEvent(new CustomEvent("developerUpdated", { detail: { developer: updatedItem } }));
+    } else if (resourceType === "publishers") {
+      window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: { publisher: updatedItem } }));
+    }
+  };
+
+  const openChildEditModal = (col: CollectionItem) => {
+    const childInfo: CollectionInfo = {
+      id: String(col.id),
+      title: col.title,
+      summary: col.summary || "",
+      cover: col.cover,
+      background: (col as any).background,
+      showTitle: (col as any).showTitle,
+    };
+    setEditingChild(childInfo);
+    setIsEditChildModalOpen(true);
+  };
+
   return (
     <>
       <div
@@ -1049,13 +1075,20 @@ function LibraryItemDetailContent({
                               fontWeight: 600,
                             }}
                           >
-                            {resourceType === "collections"
-                              ? t("collections.subcollections", { count: subCollectionLikes.length })
-                              : resourceType === "developers"
-                                ? t("igdbInfo.subDevelopers", { count: subCollectionLikes.length })
-                                : t("igdbInfo.subPublishers", { count: subCollectionLikes.length })}
+                            {(() => {
+                              const label =
+                                resourceType === "collections"
+                                  ? t("collections.subcollections", { count: subCollectionLikes.length })
+                                  : resourceType === "developers"
+                                    ? t("igdbInfo.subDevelopers", { count: subCollectionLikes.length })
+                                    : t("igdbInfo.subPublishers", { count: subCollectionLikes.length });
+                              return label.replace(/(\p{L})/u, (_, c) => c.toUpperCase());
+                            })()}
                           </h2>
-                          <div className="library-item-detail-collections-list">
+                          <div
+                            className="library-item-detail-collections-list"
+                            style={{ marginTop: "24px" }}
+                          >
                             <div
                               className="collections-list-container"
                               style={{
@@ -1081,7 +1114,6 @@ function LibraryItemDetailContent({
                                     key={String(col.id)}
                                     className="group cursor-pointer collections-list-item"
                                     style={{ width: `${coverSize}px`, minWidth: `${coverSize}px` }}
-                                    onClick={handleClick}
                                   >
                                     <Cover
                                       title={displayTitle || col.title}
@@ -1089,9 +1121,22 @@ function LibraryItemDetailContent({
                                       width={coverSize}
                                       height={coverSize * 1.5}
                                       onClick={handleClick}
-                                      showTitle={col.showTitle !== false}
+                                      onPlay={resourceType === "collections" ? handleClick : undefined}
+                                      onEdit={() => openChildEditModal(col)}
+                                      dropdownHorizontal={false}
+                                      dropdownToolTipDelay={200}
+                                      collectionId={resourceType === "collections" ? String(col.id) : undefined}
+                                      developerId={resourceType === "developers" ? String(col.id) : undefined}
+                                      publisherId={resourceType === "publishers" ? String(col.id) : undefined}
+                                      collectionTitle={col.title}
+                                      onCollectionUpdate={
+                                        resourceType === "collections"
+                                          ? (updated) => dispatchCollectionLikeUpdated(updated)
+                                          : undefined
+                                      }
+                                      showTitle={(col as any).showTitle !== false}
                                       detail={true}
-                                      play={false}
+                                      play={resourceType === "collections"}
                                       showBorder={true}
                                     />
                                   </div>
@@ -1100,6 +1145,17 @@ function LibraryItemDetailContent({
                             </div>
                           </div>
                         </div>
+                      )}
+                      {editingChild && (
+                        <EditCollectionLikeModal
+                          isOpen={isEditChildModalOpen}
+                          onClose={() => setIsEditChildModalOpen(false)}
+                          resourceType={resourceType}
+                          item={editingChild}
+                          onItemUpdate={(updated) => {
+                            setEditingChild(updated);
+                          }}
+                        />
                       )}
                       <div style={{ paddingLeft: "0", marginBottom: "32px", marginTop: "8px" }}>
                         <h2

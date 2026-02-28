@@ -40,6 +40,8 @@ type CoverProps = {
   overlayContent?: React.ReactNode; // Content to overlay on the cover
   titlePosition?: "bottom" | "overlay"; // Position of title: below cover or inside image (default: "bottom")
   editButtonPosition?: "bottom-left" | "bottom-right"; // Position of edit button (default: "bottom-left")
+  dropdownHorizontal?: boolean; // Use horizontal three-dots icon
+  dropdownToolTipDelay?: number; // Tooltip delay for dropdown menu button
   onUpload?: () => void; // Upload handler - shows upload button when provided
   uploading?: boolean; // Whether upload is in progress
   allCollections?: CollectionItem[];
@@ -96,6 +98,8 @@ export default function Cover({
   overlayContent,
   titlePosition = "bottom",
   editButtonPosition = "bottom-left",
+  dropdownHorizontal = false,
+  dropdownToolTipDelay = 0,
   onUpload,
   uploading = false,
   allCollections = [],
@@ -462,6 +466,8 @@ export default function Cover({
               publisherId={publisherId}
               onRemoveFromDeveloper={onRemoveFromDeveloper}
               onRemoveFromPublisher={onRemoveFromPublisher}
+              horizontal={dropdownHorizontal}
+              toolTipDelay={dropdownToolTipDelay}
               className="games-list-dropdown-menu"
             />
           </div>
