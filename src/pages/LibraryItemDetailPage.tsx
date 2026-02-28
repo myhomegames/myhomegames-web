@@ -655,6 +655,22 @@ export default function LibraryItemDetailPage({
                 : "publishers";
           navigate(`/${base}/${cid}`);
         }}
+        onPlayFirstGameInCollection={async (cid: string) => {
+          if (!onPlay) return;
+          try {
+            const url = buildApiUrl(API_BASE, `/collections/${cid}/games`);
+            const res = await fetch(url, {
+              headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
+            });
+            if (!res.ok) return;
+            const json = await res.json();
+            const games = parseGamesFromJson(json);
+            const first = games.find((g) => g.executables && g.executables.length > 0);
+            if (first) onPlay(first);
+          } catch (e) {
+            console.error("Error fetching subcollection games:", e);
+          }
+        }}
       />
     </BackgroundManager>
   );
@@ -701,6 +717,7 @@ type LibraryItemDetailContentProps = {
   onConfirmDelete?: () => void;
   onCloseDeleteModal?: () => void;
   onCollectionClick?: (collectionId: string) => void;
+  onPlayFirstGameInCollection?: (collectionId: string) => void | Promise<void>;
 };
 
 function LibraryItemDetailContent({
@@ -744,6 +761,7 @@ function LibraryItemDetailContent({
   onConfirmDelete,
   onCloseDeleteModal,
   onCollectionClick,
+  onPlayFirstGameInCollection,
 }: LibraryItemDetailContentProps) {
   const { hasBackground, isBackgroundVisible } = useBackground();
   const { isLoading } = useLoading();
@@ -1121,7 +1139,11 @@ function LibraryItemDetailContent({
                                       width={coverSize}
                                       height={coverSize * 1.5}
                                       onClick={handleClick}
-                                      onPlay={resourceType === "collections" ? handleClick : undefined}
+                                      onPlay={
+                                        resourceType === "collections" && onPlayFirstGameInCollection
+                                          ? () => onPlayFirstGameInCollection(String(col.id))
+                                          : undefined
+                                      }
                                       onEdit={() => openChildEditModal(col)}
                                       dropdownHorizontal={false}
                                       dropdownToolTipDelay={200}
