@@ -179,7 +179,16 @@
     "coverFormat": "推奨比率：3:4（例：400x533px）",
     "backgroundFormat": "推奨比率：16:9（例：1920x1080px）",
     "showTitleInPreview": "プレビューでタイトルを表示",
-    "showTitle": "カバーにタイトルを表示"
+    "showTitle": "カバーにタイトルを表示",
+    "screenshotsAndVideos": "動画とスクリーンショット",
+    "screenshotsAndVideosDescription": "動画・スクリーンショットのURLを追加、編集、削除。保存して反映。",
+    "videos": "動画",
+    "screenshots": "スクリーンショット",
+    "addVideoUrl": "動画URL（埋め込み）...",
+    "addScreenshotUrl": "スクリーンショットURL...",
+    "uploadScreenshot": "ファイルをアップロード",
+    "uploadScreenshotFailed": "アップロードに失敗しました",
+    "preview": "プレビュー"
   },
   "manageInstallation": {
     "title": "インストール管理",
@@ -216,6 +225,7 @@
     "cancel": "キャンセル",
     "save": "保存",
     "saving": "保存中...",
+    "remove": "削除",
     "uploading": "アップロード中...",
     "browse": "参照",
     "edit": "編集",

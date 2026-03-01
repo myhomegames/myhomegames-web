@@ -179,7 +179,16 @@
     "coverFormat": "Proporción recomendada: 3:4 (ej. 400x533px)",
     "backgroundFormat": "Proporción recomendada: 16:9 (ej. 1920x1080px)",
     "showTitleInPreview": "Mostrar título en la vista previa",
-    "showTitle": "Mostrar título en la portada"
+    "showTitle": "Mostrar título en la portada",
+    "screenshotsAndVideos": "Vídeos y capturas",
+    "screenshotsAndVideosDescription": "Añade, edita o elimina URL de vídeos y capturas. Guarda para aplicar.",
+    "videos": "Vídeos",
+    "screenshots": "Capturas",
+    "addVideoUrl": "URL del vídeo (incrustado)...",
+    "addScreenshotUrl": "URL de la captura...",
+    "uploadScreenshot": "Subir archivo",
+    "uploadScreenshotFailed": "Error al subir",
+    "preview": "Vista previa"
   },
   "manageInstallation": {
     "title": "Gestionar Instalación",
@@ -216,6 +225,7 @@
     "cancel": "Cancelar",
     "save": "Guardar",
     "saving": "Guardando...",
+    "remove": "Eliminar",
     "uploading": "Subiendo...",
     "browse": "Examinar",
     "edit": "Editar",

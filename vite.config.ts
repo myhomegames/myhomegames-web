@@ -68,6 +68,9 @@ export default defineConfig(({ mode }) => {
     define: {
       __APP_VERSION__: JSON.stringify(packageJson.version),
     },
+    test: {
+      environment: 'jsdom',
+    },
     build: {
       outDir: 'docs/app',
       emptyOutDir: true, // Svuota la directory prima del build
@@ -120,6 +123,11 @@ export default defineConfig(({ mode }) => {
         },
       }),
       port: 5173,
+      // HMR WebSocket: with base '/app/' the client would connect to wss://.../app/ but the server serves HMR at root
+      hmr: {
+        path: '/',
+        ...(HTTPS_ENABLED && { protocol: 'wss', host: 'localhost' }),
+      },
     },
   }
 })

@@ -64,6 +64,7 @@ export default function EditGameModal({
   const [uploadingBackground, setUploadingBackground] = useState(false);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const backgroundInputRef = useRef<HTMLInputElement | null>(null);
+  const screenshotInputRef = useRef<HTMLInputElement | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [backgroundPreview, setBackgroundPreview] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -72,6 +73,10 @@ export default function EditGameModal({
   const [backgroundRemoved, setBackgroundRemoved] = useState(false);
   const [imageTimestamp, setImageTimestamp] = useState<number>(Date.now());
   const [showTitle, setShowTitle] = useState(true);
+  const prevIsOpenRef = useRef(false);
+  const [localScreenshots, setLocalScreenshots] = useState<string[]>([]);
+  const [localVideos, setLocalVideos] = useState<string[]>([]);
+  const [pendingScreenshotFiles, setPendingScreenshotFiles] = useState<File[]>([]);
 
   // Memoize cover and background URLs with timestamp when modal opens
   // NEVER show IGDB images in edit modal - only show local images
@@ -102,7 +107,7 @@ export default function EditGameModal({
   }, [game?.background, imageTimestamp]);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !prevIsOpenRef.current) {
       setTitle(game.title);
       setSummary(game.summary || "");
       setYear(game.year?.toString() || "");
@@ -126,9 +131,13 @@ export default function EditGameModal({
       setCoverRemoved(false);
       setBackgroundRemoved(false);
       setShowTitle(game.showTitle !== false);
+      setLocalScreenshots(Array.isArray(game.screenshots) ? [...game.screenshots] : []);
+      setLocalVideos(Array.isArray(game.videos) ? [...game.videos] : []);
+      setPendingScreenshotFiles([]);
       // Generate new timestamp to force image reload when modal opens
       setImageTimestamp(Date.now());
     }
+    prevIsOpenRef.current = isOpen;
   }, [isOpen, game, tagLabels]);
 
   // Update removed state when game is updated (e.g., after image removal)
@@ -215,6 +224,12 @@ export default function EditGameModal({
     // Check if images were removed
     if (coverRemoved || backgroundRemoved) return true;
 
+    const gameScreenshots = Array.isArray(game.screenshots) ? game.screenshots : [];
+    const gameVideos = Array.isArray(game.videos) ? game.videos : [];
+    if (localScreenshots.length !== gameScreenshots.length || localScreenshots.some((s, i) => s !== gameScreenshots[i])) return true;
+    if (localVideos.length !== gameVideos.length || localVideos.some((v, i) => v !== gameVideos[i])) return true;
+    if (pendingScreenshotFiles.length > 0) return true;
+
     return false;
   };
 
@@ -224,6 +239,29 @@ export default function EditGameModal({
     setLoading(true);
 
     try {
+      // Upload pending screenshot files first (no uploads while editing; all on Save)
+      const uploadedScreenshotUrls: string[] = [];
+      for (const file of pendingScreenshotFiles) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const uploadUrl = buildApiUrl(API_BASE, `/games/${game.id}/upload-screenshot`);
+        const res = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "X-Auth-Token": getApiToken() || "" },
+          body: formData,
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err?.error || "Failed to upload screenshot");
+        }
+        const data = (await res.json()) as { url?: string };
+        if (data?.url) uploadedScreenshotUrls.push(data.url);
+      }
+      if (pendingScreenshotFiles.length > 0) {
+        setPendingScreenshotFiles([]);
+      }
+      const finalScreenshots = uploadedScreenshotUrls.length > 0 ? [...localScreenshots, ...uploadedScreenshotUrls] : localScreenshots;
+
       // First, handle image removal if marked for removal
       let updatedCover: string | null = null;
       let updatedBackground: string | null = null;
@@ -415,9 +453,14 @@ export default function EditGameModal({
       ) {
         updates.collection = selectedSeries.length > 0 ? selectedSeries : null;
       }
+      if (!areTagsEqual(selectedGameEngines, idsToTitles(game.gameEngines, tagLabels.gameEngines))) {
+        updates.gameEngines = selectedGameEngines.length > 0 ? selectedGameEngines : [];
+      }
       if (showTitle !== (game.showTitle !== false)) {
         updates.showTitle = showTitle;
       }
+      updates.screenshots = finalScreenshots.length > 0 ? finalScreenshots : null;
+      updates.videos = localVideos.length > 0 ? localVideos : null;
 
       // Only make PUT request if there are updates (images were already uploaded)
       if (Object.keys(updates).length > 0) {
@@ -478,8 +521,12 @@ export default function EditGameModal({
           franchise: result.game.franchise !== undefined ? result.game.franchise : (game.franchise ?? null),
           collection: result.game.collection !== undefined ? result.game.collection : (game.collection ?? null),
           series: result.game.series !== undefined ? result.game.series : (result.game.collection !== undefined ? result.game.collection : (game.series ?? game.collection ?? null)),
-          screenshots: result.game.screenshots ?? game.screenshots ?? null,
-          videos: result.game.videos ?? game.videos ?? null,
+          screenshots: updates.screenshots !== undefined
+            ? (result.game.screenshots != null && Array.isArray(result.game.screenshots) ? result.game.screenshots : finalScreenshots)
+            : (result.game.screenshots ?? game.screenshots ?? null),
+          videos: updates.videos !== undefined
+            ? (result.game.videos != null && Array.isArray(result.game.videos) ? result.game.videos : localVideos)
+            : (result.game.videos ?? game.videos ?? null),
           gameEngines: result.game.gameEngines !== undefined ? result.game.gameEngines : (game.gameEngines ?? null),
           keywords: result.game.keywords !== undefined ? result.game.keywords : (game.keywords ?? null),
           alternativeNames: result.game.alternativeNames ?? game.alternativeNames ?? null,
@@ -778,7 +825,7 @@ export default function EditGameModal({
           {activeTab === "MEDIA" && (
             <EditGameMediaTab
               t={t}
-              game={game}
+              game={{ ...game, screenshots: localScreenshots, videos: localVideos }}
               saving={saving}
               showTitle={showTitle}
               onShowTitleChange={setShowTitle}
@@ -788,7 +835,10 @@ export default function EditGameModal({
               uploadingCover={uploadingCover}
               coverInputRef={coverInputRef}
               handleCoverFileSelect={handleCoverFileSelect}
-              onGameUpdate={onGameUpdate}
+              onGameUpdate={(updated) => {
+                setLocalScreenshots(Array.isArray(updated.screenshots) ? updated.screenshots : []);
+                setLocalVideos(Array.isArray(updated.videos) ? updated.videos : []);
+              }}
               handleCoverRemoveSuccess={handleCoverRemoveSuccess}
               backgroundRemoved={backgroundRemoved}
               backgroundPreview={backgroundPreview}
@@ -797,6 +847,16 @@ export default function EditGameModal({
               backgroundInputRef={backgroundInputRef}
               handleBackgroundFileSelect={handleBackgroundFileSelect}
               handleBackgroundRemoveSuccess={handleBackgroundRemoveSuccess}
+              screenshotInputRef={screenshotInputRef}
+              pendingScreenshotFiles={pendingScreenshotFiles}
+              onAddPendingScreenshotFile={(file) => setPendingScreenshotFiles((prev) => [...prev, file])}
+              onRemoveScreenshotAt={(index) => {
+                if (index < localScreenshots.length) {
+                  setLocalScreenshots((prev) => prev.filter((_, i) => i !== index));
+                } else {
+                  setPendingScreenshotFiles((prev) => prev.filter((_, i) => i !== index - localScreenshots.length));
+                }
+              }}
             />
           )}
         </div>

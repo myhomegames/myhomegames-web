@@ -179,7 +179,16 @@
     "coverFormat": "推荐比例：3:4（例如 400x533px）",
     "backgroundFormat": "推荐比例：16:9（例如 1920x1080px）",
     "showTitleInPreview": "在预览中显示标题",
-    "showTitle": "在封面上显示标题"
+    "showTitle": "在封面上显示标题",
+    "screenshotsAndVideos": "视频与截图",
+    "screenshotsAndVideosDescription": "添加、编辑或删除视频与截图链接。保存后生效。",
+    "videos": "视频",
+    "screenshots": "截图",
+    "addVideoUrl": "新视频链接（嵌入）...",
+    "addScreenshotUrl": "新截图链接...",
+    "uploadScreenshot": "上传文件",
+    "uploadScreenshotFailed": "上传失败",
+    "preview": "预览"
   },
   "manageInstallation": {
     "title": "管理安装",
@@ -216,6 +225,7 @@
     "cancel": "取消",
     "save": "保存",
     "saving": "保存中...",
+    "remove": "移除",
     "uploading": "上传中...",
     "browse": "浏览",
     "edit": "编辑",

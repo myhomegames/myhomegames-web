@@ -68,3 +68,220 @@
   justify-content: flex-start;
   position: relative;
 }
+
+.edit-game-modal-media-gallery-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.edit-game-modal-media-row:has(.edit-game-modal-media-gallery-wrapper) {
+  min-height: unset;
+}
+
+.edit-game-modal-media-empty {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+.edit-game-modal-media-row-stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 38px;
+}
+
+.edit-game-modal-media-row-stack .edit-game-modal-media-info {
+  flex: none;
+  max-width: none;
+}
+
+.edit-game-modal-media-row-stack .edit-game-modal-media-info .edit-game-modal-media-description {
+  margin-bottom: 0;
+}
+
+.edit-game-modal-media-editor {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 38px;
+}
+
+.edit-game-modal-media-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.edit-game-modal-media-group-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.edit-game-modal-media-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.edit-game-modal-media-item-preview {
+  flex-shrink: 0;
+  width: 120px;
+  height: 68px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.edit-game-modal-media-item-preview-with-remove {
+  position: relative;
+}
+
+.edit-game-modal-media-item-remove-overlay {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  background-color: rgba(220, 38, 38, 0.9);
+  border: none;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  z-index: 10;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.edit-game-modal-media-item-remove-overlay:hover:not(:disabled) {
+  background-color: rgba(220, 38, 38, 1);
+  transform: scale(1.1);
+}
+
+.edit-game-modal-media-item-remove-overlay:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.edit-game-modal-media-item-preview-video {
+  width: 160px;
+  height: 90px;
+}
+
+.edit-game-modal-media-item-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.edit-game-modal-media-item-thumb-video {
+  width: 100%;
+  height: 100%;
+  border: none;
+  pointer-events: none;
+}
+
+.edit-game-modal-media-item-placeholder {
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.edit-game-modal-media-item-input {
+  flex: 1;
+  min-width: 160px;
+  padding: 6px 10px;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.edit-game-modal-media-item-input:focus {
+  outline: none;
+  border-color: #E5A00D;
+}
+
+.edit-game-modal-media-item-remove {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.edit-game-modal-media-item-remove:hover:not(:disabled) {
+  background: rgba(220, 53, 69, 0.5);
+  color: #fff;
+}
+
+.edit-game-modal-media-item-remove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.edit-game-modal-media-item-pending-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.6);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.edit-game-modal-media-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.edit-game-modal-media-add .edit-game-modal-media-item-input {
+  flex: 1;
+  min-width: 200px;
+}
+
+.edit-game-modal-media-add-btn {
+  padding: 6px 14px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #000;
+  background: #E5A00D;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.edit-game-modal-media-add-btn:hover:not(:disabled) {
+  background: #F5B041;
+}
+
+.edit-game-modal-media-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

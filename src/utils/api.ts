@@ -128,3 +128,23 @@ export function buildBackgroundUrl(apiBase: string, background?: string, addTime
   }
   return u.toString();
 }
+
+/**
+ * Returns the embed URL to use for iframes. For YouTube, uses the privacy-enhanced
+ * youtube-nocookie.com domain to reduce tracking and console noise from Google Ads/CORS.
+ * Other URLs are returned unchanged.
+ */
+export function getEmbedVideoUrl(url: string): string {
+  if (!url || !url.trim()) return "";
+  try {
+    const u = new URL(url.trim());
+    const host = u.hostname.toLowerCase();
+    if (host === "www.youtube.com" || host === "youtube.com") {
+      u.hostname = "www.youtube-nocookie.com";
+      return u.toString();
+    }
+    return url.trim();
+  } catch {
+    return url.trim();
+  }
+}

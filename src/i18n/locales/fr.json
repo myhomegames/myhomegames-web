@@ -179,7 +179,16 @@
     "coverFormat": "Ratio recommandé : 3:4 (ex. 400x533px)",
     "backgroundFormat": "Ratio recommandé : 16:9 (ex. 1920x1080px)",
     "showTitleInPreview": "Afficher le titre dans l’aperçu",
-    "showTitle": "Afficher le titre sur la couverture"
+    "showTitle": "Afficher le titre sur la couverture",
+    "screenshotsAndVideos": "Vidéos et captures d'écran",
+    "screenshotsAndVideosDescription": "Ajoutez, modifiez ou supprimez les URL de vidéos et captures. Enregistrer pour appliquer.",
+    "videos": "Vidéos",
+    "screenshots": "Captures d'écran",
+    "addVideoUrl": "URL de la vidéo (intégrée)...",
+    "addScreenshotUrl": "URL de la capture...",
+    "uploadScreenshot": "Télécharger un fichier",
+    "uploadScreenshotFailed": "Échec du téléchargement",
+    "preview": "Aperçu"
   },
   "manageInstallation": {
     "title": "Gérer l'Installation",
@@ -216,6 +225,7 @@
     "cancel": "Annuler",
     "save": "Enregistrer",
     "saving": "Enregistrement...",
+    "remove": "Supprimer",
     "uploading": "Téléchargement...",
     "browse": "Parcourir",
     "edit": "Modifier",

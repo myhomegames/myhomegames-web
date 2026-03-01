@@ -584,10 +584,8 @@ function GameDetailContent({
                   onClose={editGame.closeEditModal}
                   game={editGame.selectedGame}
                   onGameUpdate={(updatedGame) => {
-                    // Dispatch event to update allGames in App.tsx
                     window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
                     onGameUpdate(updatedGame);
-                    editGame.closeEditModal();
                   }}
                 />
               )}
@@ -609,7 +607,7 @@ function GameDetailContent({
         {/* Media Gallery - Full Width */}
         {((game.screenshots && game.screenshots.length > 0) || (game.videos && game.videos.length > 0)) && (
           <div className="game-detail-media-section">
-            <MediaGallery screenshots={game.screenshots} videos={game.videos} />
+            <MediaGallery screenshots={game.screenshots} videos={game.videos} apiBase={API_BASE} />
           </div>
         )}
         

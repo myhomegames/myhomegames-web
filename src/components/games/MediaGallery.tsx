@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
+import { getEmbedVideoUrl } from "../../utils/api";
 
 type MediaGalleryProps = {
   screenshots?: string[];
   videos?: string[];
+  /** If set, screenshot URLs that do not start with http will be resolved against this base (e.g. API_BASE). */
+  apiBase?: string;
 };
 
 type MediaItem = {
@@ -12,14 +15,17 @@ type MediaItem = {
   index: number;
 };
 
-export default function MediaGallery({ screenshots, videos }: MediaGalleryProps) {
+export default function MediaGallery({ screenshots, videos, apiBase }: MediaGalleryProps) {
+  const resolveSrc = (src: string) =>
+    !src ? "" : src.startsWith("http") ? src : apiBase ? new URL(src, apiBase).toString() : src;
+  const resolvedScreenshots = (screenshots || []).map(resolveSrc);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Combine screenshots and videos into a single array
-  const screenshotsCount = screenshots?.length || 0;
+  const screenshotsCount = resolvedScreenshots.length;
   const mediaItems: MediaItem[] = [
-    ...(screenshots || []).map((src, index) => ({ type: 'screenshot' as const, src, index })),
+    ...resolvedScreenshots.map((src, index) => ({ type: 'screenshot' as const, src, index })),
     ...(videos || []).map((src, index) => ({ type: 'video' as const, src, index: screenshotsCount + index })),
   ];
 
@@ -147,7 +153,7 @@ export default function MediaGallery({ screenshots, videos }: MediaGalleryProps)
               }}
             >
               <iframe
-                src={video}
+                src={getEmbedVideoUrl(video)}
                 title={`Video ${index + 1}`}
                 style={{
                   width: '100%',
@@ -162,7 +168,7 @@ export default function MediaGallery({ screenshots, videos }: MediaGalleryProps)
           ))}
 
           {/* Screenshots after videos */}
-          {screenshots && screenshots.map((screenshot, index) => (
+          {resolvedScreenshots.map((screenshot, index) => (
             <img
               key={`screenshot-${index}`}
               src={screenshot}
@@ -267,7 +273,7 @@ export default function MediaGallery({ screenshots, videos }: MediaGalleryProps)
               />
             ) : (
               <iframe
-                src={selectedMedia.src}
+                src={getEmbedVideoUrl(selectedMedia.src)}
                 title={`Video ${selectedIndex + 1}`}
                 style={{
                   width: '90vw',
