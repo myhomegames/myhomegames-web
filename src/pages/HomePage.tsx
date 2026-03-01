@@ -241,10 +241,10 @@ export default function HomePage({
               <TagListRoutePage coverSize={coverSize} tagKey="themes" />
             )}
             {activeLibrary.key === "developers" && (
-              <DevelopersPage coverSize={coverSize} />
+              <DevelopersPage onPlay={onPlay} coverSize={coverSize} />
             )}
             {activeLibrary.key === "publishers" && (
-              <PublishersPage coverSize={coverSize} />
+              <PublishersPage onPlay={onPlay} coverSize={coverSize} />
             )}
             {activeLibrary.key === "gameEngines" && (
               <TagListRoutePage coverSize={coverSize} tagKey="gameEngines" />

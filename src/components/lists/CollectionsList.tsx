@@ -146,7 +146,7 @@ export function CollectionListItem({
         showTitle={collection.showTitle !== false}
         subtitle={collection.gameCount !== undefined ? `${collection.gameCount} ${t("common.elements")}` : undefined}
         detail={true}
-        play={gamesPath === "collections" ? hasPlayableGame === true : false}
+        play={gamesPath === "collections" ? hasPlayableGame === true : !!onPlay}
         showBorder={true}
       />
     </div>

@@ -339,21 +339,9 @@ export default function LibraryItemDetailPage({
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      const items = (json.games || []).map((v: any) => ({
-        id: String(v.id),
-        title: v.title,
-        summary: v.summary,
-        cover: v.cover,
-        day: v.day,
-        month: v.month,
-        year: v.year,
-        stars: v.stars,
-        developers: v.developers,
-        publishers: v.publishers,
-        executables: v.executables,
-      }));
-      setGames(items);
-      onGamesLoaded(items);
+      const parsed = parseGamesFromJson(json);
+      setGames(parsed);
+      onGamesLoaded(parsed);
     } catch (err) {
       console.error("Error fetching developer games:", err);
     } finally {
@@ -393,21 +381,9 @@ export default function LibraryItemDetailPage({
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      const items = (json.games || []).map((v: any) => ({
-        id: String(v.id),
-        title: v.title,
-        summary: v.summary,
-        cover: v.cover,
-        day: v.day,
-        month: v.month,
-        year: v.year,
-        stars: v.stars,
-        developers: v.developers,
-        publishers: v.publishers,
-        executables: v.executables,
-      }));
-      setGames(items);
-      onGamesLoaded(items);
+      const parsed = parseGamesFromJson(json);
+      setGames(parsed);
+      onGamesLoaded(parsed);
     } catch (err) {
       console.error("Error fetching publisher games:", err);
     } finally {
@@ -655,10 +631,16 @@ export default function LibraryItemDetailPage({
                 : "publishers";
           navigate(`/${base}/${cid}`);
         }}
-        onPlayFirstGameInCollection={async (cid: string) => {
+        onPlayFirstInCollectionLike={async (type: string, cid: string) => {
           if (!onPlay) return;
+          const base =
+            type === "collections"
+              ? "collections"
+              : type === "developers"
+                ? "developers"
+                : "publishers";
           try {
-            const url = buildApiUrl(API_BASE, `/collections/${cid}/games`);
+            const url = buildApiUrl(API_BASE, `/${base}/${cid}/games`);
             const res = await fetch(url, {
               headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
             });
@@ -668,7 +650,7 @@ export default function LibraryItemDetailPage({
             const first = games.find((g) => g.executables && g.executables.length > 0);
             if (first) onPlay(first);
           } catch (e) {
-            console.error("Error fetching subcollection games:", e);
+            console.error(`Error fetching ${base} games:`, e);
           }
         }}
       />
@@ -717,7 +699,7 @@ type LibraryItemDetailContentProps = {
   onConfirmDelete?: () => void;
   onCloseDeleteModal?: () => void;
   onCollectionClick?: (collectionId: string) => void;
-  onPlayFirstGameInCollection?: (collectionId: string) => void | Promise<void>;
+  onPlayFirstInCollectionLike?: (resourceType: string, id: string) => void | Promise<void>;
 };
 
 function LibraryItemDetailContent({
@@ -761,7 +743,7 @@ function LibraryItemDetailContent({
   onConfirmDelete,
   onCloseDeleteModal,
   onCollectionClick,
-  onPlayFirstGameInCollection,
+  onPlayFirstInCollectionLike,
 }: LibraryItemDetailContentProps) {
   const { hasBackground, isBackgroundVisible } = useBackground();
   const { isLoading } = useLoading();
@@ -1140,8 +1122,8 @@ function LibraryItemDetailContent({
                                       height={coverSize * 1.5}
                                       onClick={handleClick}
                                       onPlay={
-                                        resourceType === "collections" && onPlayFirstGameInCollection
-                                          ? () => onPlayFirstGameInCollection(String(col.id))
+                                        onPlayFirstInCollectionLike
+                                          ? () => onPlayFirstInCollectionLike(resourceType, String(col.id))
                                           : undefined
                                       }
                                       onEdit={() => openChildEditModal(col)}
@@ -1158,7 +1140,7 @@ function LibraryItemDetailContent({
                                       }
                                       showTitle={(col as any).showTitle !== false}
                                       detail={true}
-                                      play={resourceType === "collections"}
+                                      play={!!onPlayFirstInCollectionLike}
                                       showBorder={true}
                                     />
                                   </div>

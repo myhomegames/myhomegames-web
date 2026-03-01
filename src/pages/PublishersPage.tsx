@@ -10,10 +10,11 @@ import type { CollectionItem } from "../types";
 import { buildCoverUrl } from "../utils/api";
 
 type PublishersPageProps = {
+  onPlay?: (game: import("../types").GameItem) => void;
   coverSize: number;
 };
 
-export default function PublishersPage({ coverSize }: PublishersPageProps) {
+export default function PublishersPage({ onPlay, coverSize }: PublishersPageProps) {
   const { setLoading } = useLoading();
   const { publishers, isLoading: publishersLoading, updatePublisher } = usePublishers();
   const navigate = useNavigate();
@@ -61,6 +62,7 @@ export default function PublishersPage({ coverSize }: PublishersPageProps) {
             <CollectionsList
               collections={sortedPublishers}
               onCollectionClick={handlePublisherClick}
+              onPlay={onPlay}
               isLoading={publishersLoading}
               showEdit={true}
               gamesPath="publishers"
