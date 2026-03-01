@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { CollectionItem } from "../types";
 import { API_BASE, getApiToken } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
+import { compareTitles } from "../utils/stringUtils";
 import { useAuth } from "./AuthContext";
 
 interface CollectionsContextType {
@@ -181,7 +182,7 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
         return prev;
       }
       const updated = [...prev, collection];
-      updated.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+      updated.sort((a, b) => compareTitles(a.title || "", b.title || ""));
       return updated;
     });
   }, []);

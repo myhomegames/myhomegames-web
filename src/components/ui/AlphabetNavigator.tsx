@@ -115,9 +115,14 @@ export default function AlphabetNavigator({
     ? ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")]
     : [..."ZYXWVUTSRQPONMLKJIHGFEDCBA".split(""), "#"];
 
-  // Get first letter of each game title (accented chars like É → E for grouping)
+  // Get first letter of each game title (ignore leading "The "/"A ", accented chars → base letter)
+  const getTitleForAlphabet = (title: string): string => {
+    if (!title) return "";
+    return title.trim().replace(/^(The|A)\s+/i, "").trim();
+  };
+
   const getFirstLetter = (title: string): string => {
-    const raw = title.trim();
+    const raw = getTitleForAlphabet(title);
     if (!raw.length) return "#";
     // Normalize so É → E, À → A, etc.; take first code point (base letter)
     const first = raw.charAt(0).normalize("NFD").charAt(0).toUpperCase();

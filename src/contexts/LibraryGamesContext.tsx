@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { GameItem } from "../types";
 import { API_BASE, getApiToken } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
+import { compareTitles } from "../utils/stringUtils";
 import { useAuth } from "./AuthContext";
 
 interface LibraryGamesContextType {
@@ -130,8 +131,8 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
               String(g.id) === String(addedGame.id) ? addedGame : g
             );
           }
-          return [...prev, addedGame].sort((a, b) => 
-            (a.title || "").localeCompare(b.title || "")
+          return [...prev, addedGame].sort((a, b) =>
+            compareTitles(a.title || "", b.title || "")
           );
         });
       }
@@ -165,8 +166,8 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
           String(g.id) === String(game.id) ? game : g
         );
       }
-      return [...prev, game].sort((a, b) => 
-        (a.title || "").localeCompare(b.title || "")
+      return [...prev, game].sort((a, b) =>
+        compareTitles(a.title || "", b.title || "")
       );
     });
   }, []);

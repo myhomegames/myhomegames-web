@@ -1,11 +1,11 @@
 /**
  * Normalizes a string for comparison by removing special characters
- * and converting to lowercase
+ * and converting to lowercase. Ignores leading "The " and "A " for sorting.
  */
 export function normalizeForSort(str: string): string {
   if (!str) return "";
-  
-  return str
+  const withoutArticle = str.replace(/^(The|A)\s+/i, "").trim();
+  return withoutArticle
     .toLowerCase()
     .normalize("NFD") // Decompose accented characters
     .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
