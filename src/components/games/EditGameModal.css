@@ -202,3 +202,100 @@
   cursor: not-allowed;
 }
 
+/* Alternative names list (Info tab) */
+.edit-game-modal-alt-names-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.edit-game-modal-alt-names-input {
+  flex: 1;
+  min-width: 0;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 8px 12px;
+  color: #ffffff;
+  font-size: 0.9375rem;
+  font-family: inherit;
+}
+
+.edit-game-modal-alt-names-input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.edit-game-modal-alt-names-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.edit-game-modal-alt-names-remove {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  background-color: rgba(220, 38, 38, 0.9);
+  border: none;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  line-height: 24px;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.edit-game-modal-alt-names-remove::before {
+  content: "×";
+  display: block;
+  line-height: 1;
+  transform: translateY(0px);
+}
+
+.edit-game-modal-alt-names-remove:hover:not(:disabled) {
+  background-color: rgba(220, 38, 38, 1);
+  transform: scale(1.1);
+}
+
+.edit-game-modal-alt-names-remove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.edit-game-modal-alt-names-add {
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
+.edit-game-modal-add-btn {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #000;
+  background: #E5A00D;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.edit-game-modal-add-btn:hover:not(:disabled) {
+  background: #F5B041;
+}
+
+.edit-game-modal-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -77,6 +77,7 @@ export default function EditGameModal({
   const [localScreenshots, setLocalScreenshots] = useState<string[]>([]);
   const [localVideos, setLocalVideos] = useState<string[]>([]);
   const [pendingScreenshotFiles, setPendingScreenshotFiles] = useState<File[]>([]);
+  const [localAlternativeNames, setLocalAlternativeNames] = useState<string[]>([]);
 
   // Memoize cover and background URLs with timestamp when modal opens
   // NEVER show IGDB images in edit modal - only show local images
@@ -134,6 +135,7 @@ export default function EditGameModal({
       setLocalScreenshots(Array.isArray(game.screenshots) ? [...game.screenshots] : []);
       setLocalVideos(Array.isArray(game.videos) ? [...game.videos] : []);
       setPendingScreenshotFiles([]);
+      setLocalAlternativeNames(Array.isArray(game.alternativeNames) ? [...game.alternativeNames] : []);
       // Generate new timestamp to force image reload when modal opens
       setImageTimestamp(Date.now());
     }
@@ -229,6 +231,9 @@ export default function EditGameModal({
     if (localScreenshots.length !== gameScreenshots.length || localScreenshots.some((s, i) => s !== gameScreenshots[i])) return true;
     if (localVideos.length !== gameVideos.length || localVideos.some((v, i) => v !== gameVideos[i])) return true;
     if (pendingScreenshotFiles.length > 0) return true;
+
+    const normalizedAlt = localAlternativeNames.map((s) => s.trim()).filter(Boolean);
+    if (!areTagsEqual(normalizedAlt, normalizeTagArray(game.alternativeNames))) return true;
 
     return false;
   };
@@ -461,6 +466,10 @@ export default function EditGameModal({
       }
       updates.screenshots = finalScreenshots.length > 0 ? finalScreenshots : null;
       updates.videos = localVideos.length > 0 ? localVideos : null;
+      if (!areTagsEqual(localAlternativeNames.map((s) => s.trim()).filter(Boolean), normalizeTagArray(game.alternativeNames))) {
+        const filtered = localAlternativeNames.map((s) => s.trim()).filter(Boolean);
+        updates.alternativeNames = filtered.length > 0 ? filtered : null;
+      }
 
       // Only make PUT request if there are updates (images were already uploaded)
       if (Object.keys(updates).length > 0) {
@@ -527,9 +536,13 @@ export default function EditGameModal({
           videos: updates.videos !== undefined
             ? (result.game.videos != null && Array.isArray(result.game.videos) ? result.game.videos : localVideos)
             : (result.game.videos ?? game.videos ?? null),
+          alternativeNames: updates.alternativeNames !== undefined
+            ? (result.game.alternativeNames != null && Array.isArray(result.game.alternativeNames)
+                ? result.game.alternativeNames
+                : localAlternativeNames.map((s) => s.trim()).filter(Boolean))
+            : (result.game.alternativeNames ?? game.alternativeNames ?? null),
           gameEngines: result.game.gameEngines !== undefined ? result.game.gameEngines : (game.gameEngines ?? null),
           keywords: result.game.keywords !== undefined ? result.game.keywords : (game.keywords ?? null),
-          alternativeNames: result.game.alternativeNames ?? game.alternativeNames ?? null,
           similarGames: result.game.similarGames ?? game.similarGames ?? null,
           showTitle: result.game.showTitle ?? game.showTitle,
         };
@@ -784,6 +797,8 @@ export default function EditGameModal({
               year={year}
               month={month}
               day={day}
+              alternativeNames={localAlternativeNames}
+              onAlternativeNamesChange={setLocalAlternativeNames}
               saving={saving}
               setTitle={setTitle}
               setSummary={setSummary}

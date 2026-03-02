@@ -161,8 +161,16 @@
   z-index: 10;
   padding: 0;
   margin: 0;
-  line-height: 1;
+  line-height: 24px;
   box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+.edit-game-modal-media-item-remove-overlay::before {
+  content: "×";
+  display: block;
+  line-height: 1;
+  transform: translateY(0px);
 }
 
 .edit-game-modal-media-item-remove-overlay:hover:not(:disabled) {

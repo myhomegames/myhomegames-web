@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { TFunction } from "i18next";
 
 type EditGameInfoTabProps = {
@@ -7,6 +8,8 @@ type EditGameInfoTabProps = {
   year: string;
   month: string;
   day: string;
+  alternativeNames: string[];
+  onAlternativeNamesChange: (names: string[]) => void;
   saving: boolean;
   setTitle: (value: string) => void;
   setSummary: (value: string) => void;
@@ -22,6 +25,8 @@ export default function EditGameInfoTab({
   year,
   month,
   day,
+  alternativeNames,
+  onAlternativeNamesChange,
   saving,
   setTitle,
   setSummary,
@@ -29,6 +34,25 @@ export default function EditGameInfoTab({
   setMonth,
   setDay,
 }: EditGameInfoTabProps) {
+  const [newAlternativeName, setNewAlternativeName] = useState("");
+
+  const handleAlternativeNameChange = (index: number, value: string) => {
+    const next = [...alternativeNames];
+    next[index] = value;
+    onAlternativeNamesChange(next);
+  };
+
+  const handleRemoveAlternativeName = (index: number) => {
+    onAlternativeNamesChange(alternativeNames.filter((_, i) => i !== index));
+  };
+
+  const handleAddAlternativeName = () => {
+    const trimmed = newAlternativeName.trim();
+    if (!trimmed) return;
+    onAlternativeNamesChange([...alternativeNames, trimmed]);
+    setNewAlternativeName("");
+  };
+
   return (
     <>
       <div className="edit-game-modal-field">
@@ -97,6 +121,56 @@ export default function EditGameInfoTab({
             min="1"
             max="31"
           />
+        </div>
+      </div>
+
+      <div className="edit-game-modal-field">
+        <label className="edit-game-modal-label">
+          {t("gameDetail.alternativeNames", "Nomi alternativi")}
+        </label>
+        {alternativeNames.map((name, index) => (
+          <div key={`alt-${index}`} className="edit-game-modal-alt-names-row">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => handleAlternativeNameChange(index, e.target.value)}
+              onBlur={(e) => {
+                const v = e.target.value.trim();
+                if (!v) handleRemoveAlternativeName(index);
+                else if (v !== name) handleAlternativeNameChange(index, v);
+              }}
+              disabled={saving}
+              placeholder={t("gameDetail.alternativeNamePlaceholder", "Nome alternativo")}
+              className="edit-game-modal-alt-names-input"
+            />
+            <button
+              type="button"
+              className="edit-game-modal-alt-names-remove"
+              onClick={() => handleRemoveAlternativeName(index)}
+              disabled={saving}
+              aria-label={t("common.remove", "Rimuovi")}
+              title={t("common.remove", "Rimuovi")}
+            />
+          </div>
+        ))}
+        <div className="edit-game-modal-alt-names-row edit-game-modal-alt-names-add">
+          <input
+            type="text"
+            value={newAlternativeName}
+            onChange={(e) => setNewAlternativeName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddAlternativeName())}
+            disabled={saving}
+            placeholder={t("gameDetail.addAlternativeName", "Aggiungi nome alternativo...")}
+            className="edit-game-modal-alt-names-input"
+          />
+          <button
+            type="button"
+            className="edit-game-modal-add-btn"
+            onClick={handleAddAlternativeName}
+            disabled={saving || !newAlternativeName.trim()}
+          >
+            {t("gameDetail.add", "Aggiungi")}
+          </button>
         </div>
       </div>
     </>

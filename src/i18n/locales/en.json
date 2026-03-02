@@ -189,7 +189,11 @@
     "addScreenshotUrl": "New screenshot URL...",
     "uploadScreenshot": "Upload file",
     "uploadScreenshotFailed": "Upload failed",
-    "preview": "Preview"
+    "preview": "Preview",
+    "alternativeNames": "Alternative Names",
+    "alternativeNamePlaceholder": "Alternative name",
+    "addAlternativeName": "Add alternative name...",
+    "add": "Add"
   },
   "manageInstallation": {
     "title": "Manage Installation",
