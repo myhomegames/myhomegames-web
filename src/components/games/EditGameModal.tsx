@@ -7,7 +7,7 @@ import { useTagLists } from "../../contexts/TagListsContext";
 import { EditGameInfoTab, EditGameMediaTab, EditGameTagsTab } from "./edit";
 import type { GameItem } from "../../types";
 import { buildApiUrl } from "../../utils/api";
-import { normalizeWebsites, areWebsitesEqual } from "../../utils/editGameUtils";
+import { normalizeWebsites, areWebsitesEqual, normalizeSimilarGames, areSimilarGamesEqual } from "../../utils/editGameUtils";
 import { toTagTitles as toTagTitlesUtil } from "../filters/tagFilterUtils";
 import "./EditGameModal.css";
 
@@ -80,6 +80,7 @@ export default function EditGameModal({
   const [pendingScreenshotFiles, setPendingScreenshotFiles] = useState<File[]>([]);
   const [localAlternativeNames, setLocalAlternativeNames] = useState<string[]>([]);
   const [localWebsites, setLocalWebsites] = useState<Array<{ url: string; category?: number }>>([]);
+  const [localSimilarGames, setLocalSimilarGames] = useState<Array<{ id: number; name: string }>>([]);
 
   // Memoize cover and background URLs with timestamp when modal opens
   // NEVER show IGDB images in edit modal - only show local images
@@ -143,6 +144,8 @@ export default function EditGameModal({
           ? game.websites.map((w) => ({ url: w.url, category: w.category }))
           : []
       );
+      const similar = normalizeSimilarGames(game.similarGames);
+      setLocalSimilarGames(similar);
       // Generate new timestamp to force image reload when modal opens
       setImageTimestamp(Date.now());
     }
@@ -243,6 +246,9 @@ export default function EditGameModal({
     if (!areTagsEqual(normalizedAlt, normalizeTagArray(game.alternativeNames))) return true;
 
     if (!areWebsitesEqual(normalizeWebsites(localWebsites), normalizeWebsites(game.websites))) return true;
+
+    const currentSimilar = normalizeSimilarGames(game.similarGames);
+    if (!areSimilarGamesEqual(localSimilarGames, currentSimilar)) return true;
 
     return false;
   };
@@ -483,6 +489,10 @@ export default function EditGameModal({
         const filtered = normalizeWebsites(localWebsites);
         updates.websites = filtered.length > 0 ? filtered : null;
       }
+      const currentSimilar = normalizeSimilarGames(game.similarGames);
+      if (!areSimilarGamesEqual(localSimilarGames, currentSimilar)) {
+        updates.similarGames = localSimilarGames.length > 0 ? localSimilarGames : null;
+      }
 
       // Only make PUT request if there are updates (images were already uploaded)
       if (Object.keys(updates).length > 0) {
@@ -558,6 +568,11 @@ export default function EditGameModal({
                 ? result.game.websites
                 : normalizeWebsites(localWebsites))
             : (result.game.websites ?? game.websites ?? null),
+          similarGames: updates.similarGames !== undefined
+            ? (result.game.similarGames != null && Array.isArray(result.game.similarGames)
+                ? result.game.similarGames
+                : localSimilarGames)
+            : (result.game.similarGames ?? game.similarGames ?? null),
           gameEngines: result.game.gameEngines !== undefined ? result.game.gameEngines : (game.gameEngines ?? null),
           keywords: result.game.keywords !== undefined ? result.game.keywords : (game.keywords ?? null),
           similarGames: result.game.similarGames ?? game.similarGames ?? null,
@@ -818,6 +833,9 @@ export default function EditGameModal({
               onAlternativeNamesChange={setLocalAlternativeNames}
               websites={localWebsites}
               onWebsitesChange={setLocalWebsites}
+              currentGameId={game.id}
+              similarGames={localSimilarGames}
+              onSimilarGamesChange={setLocalSimilarGames}
               saving={saving}
               setTitle={setTitle}
               setSummary={setSummary}

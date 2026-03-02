@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeWebsites, areWebsitesEqual } from "./editGameUtils";
+import { normalizeWebsites, areWebsitesEqual, normalizeSimilarGames, areSimilarGamesEqual } from "./editGameUtils";
 
 describe("normalizeWebsites", () => {
   it("returns empty array for null or undefined", () => {
@@ -63,5 +63,86 @@ describe("areWebsitesEqual", () => {
     const a = [{ url: "https://a.com" }];
     const b = [{ url: "https://a.com" }];
     expect(areWebsitesEqual(a, b)).toBe(true);
+  });
+});
+
+describe("normalizeSimilarGames", () => {
+  it("returns empty array for null or undefined", () => {
+    expect(normalizeSimilarGames(null)).toEqual([]);
+    expect(normalizeSimilarGames(undefined)).toEqual([]);
+  });
+
+  it("returns empty array for empty array", () => {
+    expect(normalizeSimilarGames([])).toEqual([]);
+  });
+
+  it("normalizes id to number and name to string", () => {
+    expect(
+      normalizeSimilarGames([
+        { id: 1, name: "Game A" },
+        { id: "2", name: "Game B" },
+      ])
+    ).toEqual([
+      { id: 1, name: "Game A" },
+      { id: 2, name: "Game B" },
+    ]);
+  });
+
+  it("uses id as name when name is missing or empty", () => {
+    expect(normalizeSimilarGames([{ id: 42 }, { id: 10, name: "" }])).toEqual([
+      { id: 42, name: "42" },
+      { id: 10, name: "10" },
+    ]);
+  });
+
+  it("trims name", () => {
+    expect(normalizeSimilarGames([{ id: 1, name: "  Foo  " }])).toEqual([{ id: 1, name: "Foo" }]);
+  });
+
+  it("filters out invalid items and deduplicates by id", () => {
+    expect(
+      normalizeSimilarGames([
+        { id: 1, name: "A" },
+        { id: null as unknown as number, name: "B" },
+        { id: 1, name: "A again" },
+        { id: 2, name: "B" },
+      ])
+    ).toEqual([
+      { id: 1, name: "A" },
+      { id: 2, name: "B" },
+    ]);
+  });
+
+  it("filters out NaN ids", () => {
+    expect(normalizeSimilarGames([{ id: "not-a-number", name: "X" }])).toEqual([]);
+  });
+});
+
+describe("areSimilarGamesEqual", () => {
+  it("returns true for empty arrays", () => {
+    expect(areSimilarGamesEqual([], [])).toBe(true);
+  });
+
+  it("returns false when lengths differ", () => {
+    expect(areSimilarGamesEqual([{ id: 1, name: "A" }], [])).toBe(false);
+    expect(areSimilarGamesEqual([], [{ id: 1, name: "A" }])).toBe(false);
+  });
+
+  it("returns true when id and name match", () => {
+    const a = [{ id: 1, name: "Game A" }];
+    const b = [{ id: 1, name: "Game A" }];
+    expect(areSimilarGamesEqual(a, b)).toBe(true);
+  });
+
+  it("returns false when id differs", () => {
+    const a = [{ id: 1, name: "A" }];
+    const b = [{ id: 2, name: "A" }];
+    expect(areSimilarGamesEqual(a, b)).toBe(false);
+  });
+
+  it("returns false when name differs", () => {
+    const a = [{ id: 1, name: "A" }];
+    const b = [{ id: 1, name: "B" }];
+    expect(areSimilarGamesEqual(a, b)).toBe(false);
   });
 });

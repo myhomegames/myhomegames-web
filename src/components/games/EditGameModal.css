@@ -232,6 +232,13 @@
   cursor: not-allowed;
 }
 
+.edit-game-modal-similar-name {
+  flex: 1;
+  min-width: 0;
+  color: #ffffff;
+  font-size: 0.9375rem;
+}
+
 .edit-game-modal-alt-names-remove {
   flex-shrink: 0;
   width: 24px;

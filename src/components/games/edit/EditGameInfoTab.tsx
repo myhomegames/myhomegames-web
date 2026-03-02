@@ -1,5 +1,7 @@
 import { useState } from "react";
 import type { TFunction } from "i18next";
+import GameSearchModal from "../GameSearchModal";
+import type { GameItem } from "../../types";
 
 type EditGameInfoTabProps = {
   t: TFunction;
@@ -12,6 +14,9 @@ type EditGameInfoTabProps = {
   onAlternativeNamesChange: (names: string[]) => void;
   websites: Array<{ url: string; category?: number }>;
   onWebsitesChange: (websites: Array<{ url: string; category?: number }>) => void;
+  currentGameId?: string;
+  similarGames: Array<{ id: number; name: string }>;
+  onSimilarGamesChange: (games: Array<{ id: number; name: string }>) => void;
   saving: boolean;
   setTitle: (value: string) => void;
   setSummary: (value: string) => void;
@@ -31,6 +36,9 @@ export default function EditGameInfoTab({
   onAlternativeNamesChange,
   websites,
   onWebsitesChange,
+  currentGameId,
+  similarGames,
+  onSimilarGamesChange,
   saving,
   setTitle,
   setSummary,
@@ -40,6 +48,7 @@ export default function EditGameInfoTab({
 }: EditGameInfoTabProps) {
   const [newAlternativeName, setNewAlternativeName] = useState("");
   const [newWebsiteUrl, setNewWebsiteUrl] = useState("");
+  const [isGameSearchOpen, setIsGameSearchOpen] = useState(false);
 
   const handleAlternativeNameChange = (index: number, value: string) => {
     const next = [...alternativeNames];
@@ -74,6 +83,19 @@ export default function EditGameInfoTab({
     onWebsitesChange([...websites, { url: trimmed }]);
     setNewWebsiteUrl("");
   };
+
+  const handleAddSimilarGame = (game: GameItem) => {
+    const id = Number(game.id);
+    if (Number.isNaN(id)) return;
+    if (similarGames.some((s) => s.id === id)) return;
+    onSimilarGamesChange([...similarGames, { id, name: game.title }]);
+  };
+
+  const handleRemoveSimilarGame = (index: number) => {
+    onSimilarGamesChange(similarGames.filter((_, i) => i !== index));
+  };
+
+  const excludeGameIds = [currentGameId, ...similarGames.map((s) => String(s.id))].filter(Boolean) as string[];
 
   return (
     <>
@@ -245,6 +267,43 @@ export default function EditGameInfoTab({
           </button>
         </div>
       </div>
+
+      <div className="edit-game-modal-field">
+        <label className="edit-game-modal-label">
+          {t("gameDetail.similarGames", "Giochi simili")}
+        </label>
+        {similarGames.map((sg, index) => (
+          <div key={`similar-${sg.id}`} className="edit-game-modal-alt-names-row">
+            <span className="edit-game-modal-similar-name">{sg.name}</span>
+            <button
+              type="button"
+              className="edit-game-modal-alt-names-remove"
+              onClick={() => handleRemoveSimilarGame(index)}
+              disabled={saving}
+              aria-label={t("common.remove", "Rimuovi")}
+              title={t("common.remove", "Rimuovi")}
+            />
+          </div>
+        ))}
+        <div className="edit-game-modal-alt-names-row edit-game-modal-alt-names-add">
+          <button
+            type="button"
+            className="edit-game-modal-add-btn"
+            onClick={() => setIsGameSearchOpen(true)}
+            disabled={saving}
+          >
+            {t("gameDetail.addSimilarGame", "Aggiungi gioco")}
+          </button>
+        </div>
+      </div>
+
+      <GameSearchModal
+        isOpen={isGameSearchOpen}
+        onClose={() => setIsGameSearchOpen(false)}
+        onSelectGame={handleAddSimilarGame}
+        excludeGameIds={excludeGameIds}
+        title={t("gameDetail.searchGameToAdd", "Cerca un gioco da aggiungere")}
+      />
     </>
   );
 }
