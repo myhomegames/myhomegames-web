@@ -1,0 +1,71 @@
+import { useState, useEffect, useMemo } from "react";
+import { API_BASE } from "../config";
+import { getApiToken, getTwitchClientId, getTwitchClientSecret } from "../config";
+import { buildApiUrl } from "../utils/api";
+
+export type SimilarGameDetails = { name: string; cover?: string };
+
+/**
+ * Fetches game names and covers from IGDB for the given ids.
+ * Returns a map id -> { name, cover }.
+ */
+export function useSimilarGamesDetails(
+  ids: number[]
+): { detailsById: Record<string, SimilarGameDetails>; isLoading: boolean } {
+  const [detailsById, setDetailsById] = useState<Record<string, SimilarGameDetails>>({});
+  const [isLoading, setIsLoading] = useState(false);
+
+  const idsKey = useMemo(() => [...new Set(ids)].sort((a, b) => a - b).join(","), [ids]);
+
+  useEffect(() => {
+    if (ids.length === 0) {
+      setDetailsById({});
+      setIsLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setIsLoading(true);
+
+    const clientId = getTwitchClientId();
+    const clientSecret = getTwitchClientSecret();
+    const token = getApiToken();
+    if (!clientId || !clientSecret || !token) {
+      setDetailsById({});
+      setIsLoading(false);
+      return;
+    }
+
+    const url = buildApiUrl(API_BASE, "/igdb/game-names-by-ids", { ids: idsKey });
+    fetch(url, {
+      method: "GET",
+      headers: {
+        "X-Auth-Token": token,
+        "X-Twitch-Client-Id": clientId,
+        "X-Twitch-Client-Secret": clientSecret,
+      },
+    })
+      .then((res) => (res.ok ? res.json() : {}))
+      .then((data: { names?: Record<string, string>; covers?: Record<string, string> }) => {
+        if (cancelled) return;
+        const names = data.names ?? {};
+        const covers = data.covers ?? {};
+        const result: Record<string, SimilarGameDetails> = {};
+        for (const id of Object.keys(names)) {
+          result[id] = { name: names[id], cover: covers[id] };
+        }
+        setDetailsById(result);
+      })
+      .catch(() => {
+        if (!cancelled) setDetailsById({});
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [idsKey]);
+
+  return { detailsById, isLoading };
+}
