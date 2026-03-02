@@ -139,7 +139,8 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
             "/themes",
             (id) =>
               t(`themes.${tagLabels.themes.get(id) ?? id}`, tagLabels.themes.get(id) ?? id),
-            (id) => tagLabels.themes.has(id) || [...tagLabels.themes.values()].includes(id)
+            (id) => tagLabels.themes.has(id) || [...tagLabels.themes.values()].includes(id),
+            tagLabels.themes
           )}
         </div>
       )}
