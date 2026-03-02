@@ -25,6 +25,8 @@ import { useLoading } from "../../contexts/LoadingContext";
 import { useCollections } from "../../contexts/CollectionsContext";
 import { useTagLists } from "../../contexts/TagListsContext";
 import { useLibraryGames } from "../../contexts/LibraryGamesContext";
+import { useSimilarGamesDetails } from "../../hooks/useSimilarGamesDetails";
+import SimilarGamesList, { type SimilarGameDisplayItem } from "./SimilarGamesList";
 import ScrollableGamesSection from "../common/ScrollableGamesSection";
 import "./GameDetail.css";
 
@@ -306,18 +308,39 @@ function GameDetailContent({
     };
   }, [allCollections, getCollectionGameIds, game.id, libraryGames]);
 
-  const similarGamesInLibrary = useMemo(() => {
-    if (!game.similarGames || game.similarGames.length === 0) {
-      return [];
-    }
-    const libraryMap = new Map<string, GameItem>();
+  const libraryMap = useMemo(() => {
+    const map = new Map<string, GameItem>();
     for (const item of libraryGames) {
-      libraryMap.set(String(item.id), item);
+      map.set(String(item.id), item);
     }
+    return map;
+  }, [libraryGames]);
+
+  const similarGamesNotInLibraryIds = useMemo(() => {
+    if (!game.similarGames || game.similarGames.length === 0) return [];
     return game.similarGames
-      .map((similar) => libraryMap.get(String(similar.id)))
-      .filter((item): item is GameItem => Boolean(item));
-  }, [game.similarGames, libraryGames]);
+      .filter((sg) => !libraryMap.has(String(sg.id)))
+      .map((sg) => sg.id);
+  }, [game.similarGames, libraryMap]);
+
+  const { detailsById } = useSimilarGamesDetails(similarGamesNotInLibraryIds);
+
+  const allSimilarGamesOrdered = useMemo((): SimilarGameDisplayItem[] => {
+    if (!game.similarGames || game.similarGames.length === 0) return [];
+    return game.similarGames.map((sg) => {
+      const libGame = libraryMap.get(String(sg.id));
+      if (libGame) {
+        return { type: "library", game: libGame };
+      }
+      const details = detailsById[String(sg.id)];
+      return {
+        type: "igdb",
+        id: sg.id,
+        name: details?.name ?? sg.name ?? String(sg.id),
+        cover: details?.cover,
+      };
+    });
+  }, [game.similarGames, libraryMap, detailsById]);
   const handleRelatedGameClick = (selectedGame: GameItem) => {
     navigate(`/game/${selectedGame.id}`);
   };
@@ -640,22 +663,17 @@ function GameDetailContent({
             </div>
           </div>
         )}
-        {similarGamesInLibrary.length > 0 && (
+        {(game.similarGames && game.similarGames.length > 0) && (
           <div className="game-detail-similar-section">
-            <h3 className="game-detail-section-title">
-              {t("igdbInfo.similarGames", "Similar Games")}
-            </h3>
-            <ScrollableGamesSection
-              sectionId="similar-games"
-              titleOverride={t("igdbInfo.similarGames", "Similar Games")}
-              disableAutoTranslate
-              showTitle={false}
-              games={similarGamesInLibrary}
-              onGameClick={handleRelatedGameClick}
+            <SimilarGamesList
+              items={allSimilarGamesOrdered}
+              coverSize={coverSize}
+              allCollections={allCollections}
+              onLibraryGameClick={handleRelatedGameClick}
+              onIgdbGameClick={(id) => navigate(`/igdb-game/${id}`)}
               onPlay={onPlay}
               onGameUpdate={handleRelatedGameUpdate}
-              coverSize={140}
-              allCollections={allCollections}
+              sectionTitle={t("igdbInfo.similarGames", "Similar Games")}
             />
           </div>
         )}

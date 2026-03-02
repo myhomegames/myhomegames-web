@@ -2,11 +2,9 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import type { IGDBGame, GameItem } from "../../types";
-import { useLibraryGames } from "../../contexts/LibraryGamesContext";
 import { useDevelopers } from "../../contexts/DevelopersContext";
 import { usePublishers } from "../../contexts/PublishersContext";
 import { useTagLists } from "../../contexts/TagListsContext";
-import { useResolvedSimilarGamesNames } from "../../hooks/useResolvedSimilarGamesNames";
 import WebsitesList from "./WebsitesList";
 import InlineTagList from "../common/InlineTagList";
 import "./GameInfoBlock.css";
@@ -23,10 +21,23 @@ function toIdStrings(value: unknown): string[] {
   );
 }
 
+/** Extract id -> name from franchise/series/collection (IGDB returns { id, name }). */
+function extractIdNameMap(value: unknown): Map<string, string> {
+  const m = new Map<string, string>();
+  const arr = value == null ? [] : Array.isArray(value) ? value : [value];
+  for (const x of arr) {
+    if (typeof x === "object" && x != null && "id" in x && "name" in x) {
+      const id = String((x as { id: number }).id);
+      const name = String((x as { name: string }).name).trim();
+      if (id && name) m.set(id, name);
+    }
+  }
+  return m;
+}
+
 export default function GameInfoBlock({ game }: GameInfoBlockProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { games: libraryGames } = useLibraryGames();
   const { developers } = useDevelopers();
   const { publishers } = usePublishers();
   const { tagLabels } = useTagLists();
@@ -49,37 +60,37 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
     seriesIds.length > 0 ||
     (game.screenshots && game.screenshots.length > 0) ||
     (game.gameEngines && game.gameEngines.length > 0) ||
-    (game.alternativeNames && game.alternativeNames.length > 0) ||
-    (game.similarGames && game.similarGames.length > 0);
+    (game.alternativeNames && game.alternativeNames.length > 0);
 
   if (!hasInfo) {
     return null;
   }
 
+  /** Resolve item (id or name) to route id: se è un nome IGDB, trova la chiave in map; altrimenti usa l'id. */
+  const resolveToRouteId = (map: Map<string, string>, idOrName: string) =>
+    map.has(idOrName) ? idOrName : [...map.entries()].find(([, v]) => v === idOrName)?.[0] ?? idOrName;
+
   const renderTagListByIds = (
     ids: string[],
     routeBase: string,
-    getLabel: (id: string) => string
+    getLabel: (id: string) => string,
+    isClickable?: (id: string) => boolean,
+    labelMap?: Map<string, string>
   ) => (
     <InlineTagList
       items={ids}
       getLabel={getLabel}
-      onItemClick={(id) => navigate(`${routeBase}/${encodeURIComponent(id)}`)}
+      onItemClick={(id) =>
+        navigate(
+          `${routeBase}/${encodeURIComponent(labelMap ? resolveToRouteId(labelMap, id) : id)}`
+        )
+      }
+      isClickable={isClickable}
       useInfoStyles
       showMoreMinCount={5}
       showMoreLabel={t("gameDetail.andMore", ", and more")}
     />
   );
-
-  const similarGamesInLibrary = useMemo(() => {
-    const map = new Map<string, GameItem>();
-    for (const item of libraryGames) {
-      map.set(String(item.id), item);
-    }
-    return map;
-  }, [libraryGames]);
-
-  const { similarGames: resolvedSimilarGames } = useResolvedSimilarGamesNames(game.similarGames ?? null);
 
   // Names from game payload (e.g. IGDB response has { id, name }) so we show names even when not in library
   const developerNamesFromGame = useMemo(() => {
@@ -105,6 +116,15 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
     return m;
   }, [game.publishers]);
 
+  const franchiseNamesFromGame = useMemo(
+    () => extractIdNameMap(game.franchise),
+    [game.franchise]
+  );
+  const seriesNamesFromGame = useMemo(
+    () => extractIdNameMap(game.series ?? game.collection),
+    [game.series, game.collection]
+  );
+
   return (
     <div className="game-info-block">
 
@@ -118,7 +138,8 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
             toIdStrings(game.themes),
             "/themes",
             (id) =>
-              t(`themes.${tagLabels.themes.get(id) ?? id}`, tagLabels.themes.get(id) ?? id)
+              t(`themes.${tagLabels.themes.get(id) ?? id}`, tagLabels.themes.get(id) ?? id),
+            (id) => tagLabels.themes.has(id) || [...tagLabels.themes.values()].includes(id)
           )}
         </div>
       )}
@@ -132,7 +153,9 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           {renderTagListByIds(
             toIdStrings(game.platforms),
             "/platforms",
-            (id) => tagLabels.platforms.get(id) ?? id
+            (id) => tagLabels.platforms.get(id) ?? id,
+            (id) => tagLabels.platforms.has(id) || [...tagLabels.platforms.values()].includes(id),
+            tagLabels.platforms
           )}
         </div>
       )}
@@ -146,7 +169,9 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           {renderTagListByIds(
             toIdStrings(game.gameModes),
             "/game-modes",
-            (id) => t(`gameModes.${tagLabels.gameModes.get(id) ?? id}`, tagLabels.gameModes.get(id) ?? id)
+            (id) => t(`gameModes.${tagLabels.gameModes.get(id) ?? id}`, tagLabels.gameModes.get(id) ?? id),
+            (id) => tagLabels.gameModes.has(id) || [...tagLabels.gameModes.values()].includes(id),
+            tagLabels.gameModes
           )}
         </div>
       )}
@@ -164,7 +189,11 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
               t(
                 `playerPerspectives.${tagLabels.playerPerspectives.get(id) ?? id}`,
                 tagLabels.playerPerspectives.get(id) ?? id
-              )
+              ),
+            (id) =>
+              tagLabels.playerPerspectives.has(id) ||
+              [...tagLabels.playerPerspectives.values()].includes(id),
+            tagLabels.playerPerspectives
           )}
         </div>
       )}
@@ -191,6 +220,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
             onItemClick={(value) =>
               navigate(`/developers/${encodeURIComponent(value)}`)
             }
+            isClickable={(id) => developers.some((d) => String(d.id) === id)}
             useInfoStyles
             showMoreMinCount={5}
             showMoreLabel={t("gameDetail.andMore", ", and more")}
@@ -210,6 +240,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
             onItemClick={(value) =>
               navigate(`/publishers/${encodeURIComponent(value)}`)
             }
+            isClickable={(id) => publishers.some((p) => String(p.id) === id)}
             useInfoStyles
             showMoreMinCount={5}
             showMoreLabel={t("gameDetail.andMore", ", and more")}
@@ -226,7 +257,9 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           {renderTagListByIds(
             franchiseIds,
             "/franchise",
-            (id) => tagLabels.franchises.get(id) ?? id
+            (id) => franchiseNamesFromGame.get(id) ?? tagLabels.franchises.get(id) ?? id,
+            (id) => tagLabels.franchises.has(id),
+            tagLabels.franchises
           )}
         </div>
       )}
@@ -240,7 +273,9 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           {renderTagListByIds(
             seriesIds,
             "/series",
-            (id) => tagLabels.series.get(id) ?? id
+            (id) => seriesNamesFromGame.get(id) ?? tagLabels.series.get(id) ?? id,
+            (id) => tagLabels.series.has(id),
+            tagLabels.series
           )}
         </div>
       )}
@@ -254,7 +289,11 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           {renderTagListByIds(
             toIdStrings(game.gameEngines),
             "/game-engines",
-            (id) => tagLabels.gameEngines.get(id) ?? id
+            (id) => tagLabels.gameEngines.get(id) ?? id,
+            (id) =>
+              tagLabels.gameEngines.has(id) ||
+              [...tagLabels.gameEngines.values()].includes(id),
+            tagLabels.gameEngines
           )}
         </div>
       )}
@@ -268,25 +307,6 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           <InlineTagList
             items={game.alternativeNames}
             getLabel={(name) => name}
-            useInfoStyles
-            showMoreMinCount={5}
-            showMoreLabel={t("gameDetail.andMore", ", and more")}
-          />
-        </div>
-      )}
-
-      {/* Similar Games */}
-      {resolvedSimilarGames.length > 0 && (
-        <div className="game-info-field">
-          <div className="text-white game-info-label">
-            {t("igdbInfo.similarGames", "Similar Games")}
-          </div>
-          <InlineTagList
-            items={resolvedSimilarGames}
-            getLabel={(sg) => sg.name}
-            getKey={(sg) => String(sg.id)}
-            onItemClick={(sg) => navigate(`/game/${sg.id}`)}
-            isClickable={(sg) => similarGamesInLibrary.has(String(sg.id))}
             useInfoStyles
             showMoreMinCount={5}
             showMoreLabel={t("gameDetail.andMore", ", and more")}

@@ -14,7 +14,11 @@ import { useAddGame } from "../components/common/actions";
 import { buildApiUrl } from "../utils/api";
 import { API_BASE, getApiToken, getTwitchClientId, getTwitchClientSecret } from "../config";
 import { useLoading } from "../contexts/LoadingContext";
+import { useCollections } from "../contexts/CollectionsContext";
+import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import { useTagLists } from "../contexts/TagListsContext";
+import { useSimilarGamesDetails } from "../hooks/useSimilarGamesDetails";
+import SimilarGamesList, { type SimilarGameDisplayItem } from "../components/games/SimilarGamesList";
 import type { IGDBGame } from "../types";
 import { formatIGDBGameDate } from "../utils/date";
 import type { TFunction } from "i18next";
@@ -207,6 +211,42 @@ function IGDBGameDetailContent({
   const { hasBackground, isBackgroundVisible } = useBackground();
   const navigate = useNavigate();
   const { tagLabels } = useTagLists();
+  const { collections: allCollections } = useCollections();
+  const { games: libraryGames } = useLibraryGames();
+
+  const libraryMap = useMemo(() => {
+    const map = new Map<string, import("../types").GameItem>();
+    for (const item of libraryGames) {
+      map.set(String(item.id), item);
+    }
+    return map;
+  }, [libraryGames]);
+
+  const similarGamesNotInLibraryIds = useMemo(() => {
+    if (!game.similarGames || game.similarGames.length === 0) return [];
+    return game.similarGames
+      .filter((sg) => !libraryMap.has(String(sg.id)))
+      .map((sg) => sg.id);
+  }, [game.similarGames, libraryMap]);
+
+  const { detailsById } = useSimilarGamesDetails(similarGamesNotInLibraryIds);
+
+  const allSimilarGamesOrdered = useMemo((): SimilarGameDisplayItem[] => {
+    if (!game.similarGames || game.similarGames.length === 0) return [];
+    return game.similarGames.map((sg) => {
+      const libGame = libraryMap.get(String(sg.id));
+      if (libGame) {
+        return { type: "library", game: libGame };
+      }
+      const details = detailsById[String(sg.id)];
+      return {
+        type: "igdb",
+        id: sg.id,
+        name: details?.name ?? sg.name ?? String(sg.id),
+        cover: details?.cover,
+      };
+    });
+  }, [game.similarGames, libraryMap, detailsById]);
   const categoriesList = useMemo(
     () => Array.from(tagLabels.categories.entries()).map(([id, title]) => ({ id, title })),
     [tagLabels.categories]
@@ -387,6 +427,20 @@ function IGDBGameDetailContent({
         <div className="igdb-game-detail-info-section">
           <GameInfoBlock game={game} />
         </div>
+
+        {/* Similar Games */}
+        {game.similarGames && game.similarGames.length > 0 && (
+          <div className="igdb-game-detail-similar-section">
+            <SimilarGamesList
+              items={allSimilarGamesOrdered}
+              coverSize={coverSize}
+              allCollections={allCollections}
+              onLibraryGameClick={(g) => navigate(`/game/${g.id}`)}
+              onIgdbGameClick={(id) => navigate(`/igdb-game/${id}`)}
+              sectionTitle={t("igdbInfo.similarGames", "Similar Games")}
+            />
+          </div>
+        )}
               </div>
             </div>
           </div>
