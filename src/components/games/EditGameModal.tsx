@@ -7,6 +7,7 @@ import { useTagLists } from "../../contexts/TagListsContext";
 import { EditGameInfoTab, EditGameMediaTab, EditGameTagsTab } from "./edit";
 import type { GameItem } from "../../types";
 import { buildApiUrl } from "../../utils/api";
+import { normalizeWebsites, areWebsitesEqual } from "../../utils/editGameUtils";
 import { toTagTitles as toTagTitlesUtil } from "../filters/tagFilterUtils";
 import "./EditGameModal.css";
 
@@ -78,6 +79,7 @@ export default function EditGameModal({
   const [localVideos, setLocalVideos] = useState<string[]>([]);
   const [pendingScreenshotFiles, setPendingScreenshotFiles] = useState<File[]>([]);
   const [localAlternativeNames, setLocalAlternativeNames] = useState<string[]>([]);
+  const [localWebsites, setLocalWebsites] = useState<Array<{ url: string; category?: number }>>([]);
 
   // Memoize cover and background URLs with timestamp when modal opens
   // NEVER show IGDB images in edit modal - only show local images
@@ -136,6 +138,11 @@ export default function EditGameModal({
       setLocalVideos(Array.isArray(game.videos) ? [...game.videos] : []);
       setPendingScreenshotFiles([]);
       setLocalAlternativeNames(Array.isArray(game.alternativeNames) ? [...game.alternativeNames] : []);
+      setLocalWebsites(
+        Array.isArray(game.websites)
+          ? game.websites.map((w) => ({ url: w.url, category: w.category }))
+          : []
+      );
       // Generate new timestamp to force image reload when modal opens
       setImageTimestamp(Date.now());
     }
@@ -234,6 +241,8 @@ export default function EditGameModal({
 
     const normalizedAlt = localAlternativeNames.map((s) => s.trim()).filter(Boolean);
     if (!areTagsEqual(normalizedAlt, normalizeTagArray(game.alternativeNames))) return true;
+
+    if (!areWebsitesEqual(normalizeWebsites(localWebsites), normalizeWebsites(game.websites))) return true;
 
     return false;
   };
@@ -470,6 +479,10 @@ export default function EditGameModal({
         const filtered = localAlternativeNames.map((s) => s.trim()).filter(Boolean);
         updates.alternativeNames = filtered.length > 0 ? filtered : null;
       }
+      if (!areWebsitesEqual(normalizeWebsites(localWebsites), normalizeWebsites(game.websites))) {
+        const filtered = normalizeWebsites(localWebsites);
+        updates.websites = filtered.length > 0 ? filtered : null;
+      }
 
       // Only make PUT request if there are updates (images were already uploaded)
       if (Object.keys(updates).length > 0) {
@@ -523,7 +536,6 @@ export default function EditGameModal({
           platforms: result.game.platforms !== undefined ? result.game.platforms : (game.platforms ?? null),
           gameModes: result.game.gameModes !== undefined ? result.game.gameModes : (game.gameModes ?? null),
           playerPerspectives: result.game.playerPerspectives !== undefined ? result.game.playerPerspectives : (game.playerPerspectives ?? null),
-          websites: result.game.websites ?? game.websites ?? null,
           ageRatings: result.game.ageRatings ?? game.ageRatings ?? null,
           developers: result.game.developers !== undefined ? result.game.developers : (game.developers ?? null),
           publishers: result.game.publishers !== undefined ? result.game.publishers : (game.publishers ?? null),
@@ -541,6 +553,11 @@ export default function EditGameModal({
                 ? result.game.alternativeNames
                 : localAlternativeNames.map((s) => s.trim()).filter(Boolean))
             : (result.game.alternativeNames ?? game.alternativeNames ?? null),
+          websites: updates.websites !== undefined
+            ? (result.game.websites != null && Array.isArray(result.game.websites)
+                ? result.game.websites
+                : normalizeWebsites(localWebsites))
+            : (result.game.websites ?? game.websites ?? null),
           gameEngines: result.game.gameEngines !== undefined ? result.game.gameEngines : (game.gameEngines ?? null),
           keywords: result.game.keywords !== undefined ? result.game.keywords : (game.keywords ?? null),
           similarGames: result.game.similarGames ?? game.similarGames ?? null,
@@ -799,6 +816,8 @@ export default function EditGameModal({
               day={day}
               alternativeNames={localAlternativeNames}
               onAlternativeNamesChange={setLocalAlternativeNames}
+              websites={localWebsites}
+              onWebsitesChange={setLocalWebsites}
               saving={saving}
               setTitle={setTitle}
               setSummary={setSummary}

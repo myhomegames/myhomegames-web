@@ -188,7 +188,13 @@
     "addScreenshotUrl": "新截图链接...",
     "uploadScreenshot": "上传文件",
     "uploadScreenshotFailed": "上传失败",
-    "preview": "预览"
+    "preview": "预览",
+    "alternativeNames": "别名",
+    "alternativeNamePlaceholder": "别名",
+    "addAlternativeName": "添加别名...",
+    "add": "添加",
+    "websites": "网站",
+    "addWebsiteUrl": "添加网站链接..."
   },
   "manageInstallation": {
     "title": "管理安装",

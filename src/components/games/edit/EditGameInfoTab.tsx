@@ -10,6 +10,8 @@ type EditGameInfoTabProps = {
   day: string;
   alternativeNames: string[];
   onAlternativeNamesChange: (names: string[]) => void;
+  websites: Array<{ url: string; category?: number }>;
+  onWebsitesChange: (websites: Array<{ url: string; category?: number }>) => void;
   saving: boolean;
   setTitle: (value: string) => void;
   setSummary: (value: string) => void;
@@ -27,6 +29,8 @@ export default function EditGameInfoTab({
   day,
   alternativeNames,
   onAlternativeNamesChange,
+  websites,
+  onWebsitesChange,
   saving,
   setTitle,
   setSummary,
@@ -35,6 +39,7 @@ export default function EditGameInfoTab({
   setDay,
 }: EditGameInfoTabProps) {
   const [newAlternativeName, setNewAlternativeName] = useState("");
+  const [newWebsiteUrl, setNewWebsiteUrl] = useState("");
 
   const handleAlternativeNameChange = (index: number, value: string) => {
     const next = [...alternativeNames];
@@ -51,6 +56,23 @@ export default function EditGameInfoTab({
     if (!trimmed) return;
     onAlternativeNamesChange([...alternativeNames, trimmed]);
     setNewAlternativeName("");
+  };
+
+  const handleWebsiteUrlChange = (index: number, url: string) => {
+    const next = [...websites];
+    next[index] = { ...next[index], url };
+    onWebsitesChange(next);
+  };
+
+  const handleRemoveWebsite = (index: number) => {
+    onWebsitesChange(websites.filter((_, i) => i !== index));
+  };
+
+  const handleAddWebsite = () => {
+    const trimmed = newWebsiteUrl.trim();
+    if (!trimmed) return;
+    onWebsitesChange([...websites, { url: trimmed }]);
+    setNewWebsiteUrl("");
   };
 
   return (
@@ -168,6 +190,56 @@ export default function EditGameInfoTab({
             className="edit-game-modal-add-btn"
             onClick={handleAddAlternativeName}
             disabled={saving || !newAlternativeName.trim()}
+          >
+            {t("gameDetail.add", "Aggiungi")}
+          </button>
+        </div>
+      </div>
+
+      <div className="edit-game-modal-field">
+        <label className="edit-game-modal-label">
+          {t("gameDetail.websites", "Siti web")}
+        </label>
+        {websites.map((website, index) => (
+          <div key={`web-${index}`} className="edit-game-modal-alt-names-row">
+            <input
+              type="url"
+              value={website.url}
+              onChange={(e) => handleWebsiteUrlChange(index, e.target.value)}
+              onBlur={(e) => {
+                const v = e.target.value.trim();
+                if (!v) handleRemoveWebsite(index);
+                else if (v !== website.url) handleWebsiteUrlChange(index, v);
+              }}
+              disabled={saving}
+              placeholder="https://..."
+              className="edit-game-modal-alt-names-input"
+            />
+            <button
+              type="button"
+              className="edit-game-modal-alt-names-remove"
+              onClick={() => handleRemoveWebsite(index)}
+              disabled={saving}
+              aria-label={t("common.remove", "Rimuovi")}
+              title={t("common.remove", "Rimuovi")}
+            />
+          </div>
+        ))}
+        <div className="edit-game-modal-alt-names-row edit-game-modal-alt-names-add">
+          <input
+            type="url"
+            value={newWebsiteUrl}
+            onChange={(e) => setNewWebsiteUrl(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddWebsite())}
+            disabled={saving}
+            placeholder={t("gameDetail.addWebsiteUrl", "Add website URL...")}
+            className="edit-game-modal-alt-names-input"
+          />
+          <button
+            type="button"
+            className="edit-game-modal-add-btn"
+            onClick={handleAddWebsite}
+            disabled={saving || !newWebsiteUrl.trim()}
           >
             {t("gameDetail.add", "Aggiungi")}
           </button>

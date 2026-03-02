@@ -193,7 +193,9 @@
     "alternativeNames": "Alternative Names",
     "alternativeNamePlaceholder": "Alternative name",
     "addAlternativeName": "Add alternative name...",
-    "add": "Add"
+    "add": "Add",
+    "websites": "Websites",
+    "addWebsiteUrl": "Add website URL..."
   },
   "manageInstallation": {
     "title": "Manage Installation",

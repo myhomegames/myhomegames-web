@@ -188,7 +188,13 @@
     "addScreenshotUrl": "スクリーンショットURL...",
     "uploadScreenshot": "ファイルをアップロード",
     "uploadScreenshotFailed": "アップロードに失敗しました",
-    "preview": "プレビュー"
+    "preview": "プレビュー",
+    "alternativeNames": "別名",
+    "alternativeNamePlaceholder": "別名",
+    "addAlternativeName": "別名を追加...",
+    "add": "追加",
+    "websites": "ウェブサイト",
+    "addWebsiteUrl": "ウェブサイトURLを追加..."
   },
   "manageInstallation": {
     "title": "インストール管理",

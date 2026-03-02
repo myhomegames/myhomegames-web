@@ -188,7 +188,13 @@
     "addScreenshotUrl": "URL da captura...",
     "uploadScreenshot": "Enviar arquivo",
     "uploadScreenshotFailed": "Falha no envio",
-    "preview": "Pré-visualização"
+    "preview": "Pré-visualização",
+    "alternativeNames": "Nomes alternativos",
+    "alternativeNamePlaceholder": "Nome alternativo",
+    "addAlternativeName": "Adicionar nome alternativo...",
+    "add": "Adicionar",
+    "websites": "Sites",
+    "addWebsiteUrl": "Adicionar URL do site..."
   },
   "manageInstallation": {
     "title": "Gerenciar Instalação",
