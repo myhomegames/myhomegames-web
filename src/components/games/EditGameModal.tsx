@@ -575,7 +575,6 @@ export default function EditGameModal({
             : (result.game.similarGames ?? game.similarGames ?? null),
           gameEngines: result.game.gameEngines !== undefined ? result.game.gameEngines : (game.gameEngines ?? null),
           keywords: result.game.keywords !== undefined ? result.game.keywords : (game.keywords ?? null),
-          similarGames: result.game.similarGames ?? game.similarGames ?? null,
           showTitle: result.game.showTitle ?? game.showTitle,
         };
 

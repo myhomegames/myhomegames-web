@@ -6,6 +6,7 @@ import { useLibraryGames } from "../../contexts/LibraryGamesContext";
 import { useDevelopers } from "../../contexts/DevelopersContext";
 import { usePublishers } from "../../contexts/PublishersContext";
 import { useTagLists } from "../../contexts/TagListsContext";
+import { useResolvedSimilarGamesNames } from "../../hooks/useResolvedSimilarGamesNames";
 import WebsitesList from "./WebsitesList";
 import InlineTagList from "../common/InlineTagList";
 import "./GameInfoBlock.css";
@@ -77,6 +78,8 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
     }
     return map;
   }, [libraryGames]);
+
+  const { similarGames: resolvedSimilarGames } = useResolvedSimilarGamesNames(game.similarGames ?? null);
 
   // Names from game payload (e.g. IGDB response has { id, name }) so we show names even when not in library
   const developerNamesFromGame = useMemo(() => {
@@ -273,13 +276,13 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
       )}
 
       {/* Similar Games */}
-      {game.similarGames && game.similarGames.length > 0 && (
+      {resolvedSimilarGames.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
             {t("igdbInfo.similarGames", "Similar Games")}
           </div>
           <InlineTagList
-            items={game.similarGames}
+            items={resolvedSimilarGames}
             getLabel={(sg) => sg.name}
             getKey={(sg) => String(sg.id)}
             onItemClick={(sg) => navigate(`/game/${sg.id}`)}

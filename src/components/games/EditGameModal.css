@@ -245,10 +245,10 @@
   height: 24px;
   min-width: 24px;
   min-height: 24px;
-  background-color: rgba(220, 38, 38, 0.9);
+  background-color: transparent;
   border: none;
-  border-radius: 50%;
-  color: #ffffff;
+  border-radius: 0;
+  color: rgba(255, 255, 255, 0.6);
   font-size: 20px;
   font-weight: bold;
   cursor: pointer;
@@ -260,7 +260,7 @@
   line-height: 24px;
   box-sizing: border-box;
   font-family: Arial, sans-serif;
-  transition: background-color 0.2s ease, transform 0.2s ease;
+  transition: color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
 }
 
 .edit-game-modal-alt-names-remove::before {
@@ -271,7 +271,7 @@
 }
 
 .edit-game-modal-alt-names-remove:hover:not(:disabled) {
-  background-color: rgba(220, 38, 38, 1);
+  color: #ffffff;
   transform: scale(1.1);
 }
 

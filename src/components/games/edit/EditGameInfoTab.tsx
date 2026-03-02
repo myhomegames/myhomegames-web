@@ -1,7 +1,8 @@
 import { useState } from "react";
 import type { TFunction } from "i18next";
 import GameSearchModal from "../GameSearchModal";
-import type { GameItem } from "../../types";
+import type { GameItem } from "../../../types";
+import { useResolvedSimilarGamesNames } from "../../../hooks/useResolvedSimilarGamesNames";
 
 type EditGameInfoTabProps = {
   t: TFunction;
@@ -96,6 +97,8 @@ export default function EditGameInfoTab({
   };
 
   const excludeGameIds = [currentGameId, ...similarGames.map((s) => String(s.id))].filter(Boolean) as string[];
+
+  const { similarGames: resolvedSimilarGames } = useResolvedSimilarGamesNames(similarGames);
 
   return (
     <>
@@ -272,7 +275,7 @@ export default function EditGameInfoTab({
         <label className="edit-game-modal-label">
           {t("gameDetail.similarGames", "Giochi simili")}
         </label>
-        {similarGames.map((sg, index) => (
+        {resolvedSimilarGames.map((sg, index) => (
           <div key={`similar-${sg.id}`} className="edit-game-modal-alt-names-row">
             <span className="edit-game-modal-similar-name">{sg.name}</span>
             <button
