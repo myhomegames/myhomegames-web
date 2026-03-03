@@ -34,6 +34,8 @@ export type GameItem = {
   keywords?: string[];
   alternativeNames?: string[];
   similarGames?: Array<{ id: number; name: string }>;
+  /** True when game is from IGDB only (not in library); click navigates to igdb-game page, cover shows "Nuovo" badge */
+  isIgdbOnly?: boolean;
 };
 
 export type CollectionItem = {

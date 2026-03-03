@@ -55,6 +55,7 @@ export default function TableRow({
   editGame,
   useDiv = false,
 }: TableRowProps) {
+  const isIgdbOnly = (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly;
   const isEven = index % 2 === 0;
   const rowClass = isEven ? "even-row" : "odd-row";
   const RowTag = useDiv ? "div" : "tr";
@@ -182,8 +183,8 @@ export default function TableRow({
               gap={3} 
               color="rgba(255, 255, 255, 0.4)" 
               noStroke={true}
-              readOnly={!API_BASE || !API_TOKEN}
-              onRatingChange={API_BASE && API_TOKEN ? (newStars) => handleRatingChange(game.id, newStars) : undefined}
+              readOnly={!API_BASE || !API_TOKEN || isIgdbOnly}
+              onRatingChange={!isIgdbOnly && API_BASE && API_TOKEN ? (newStars) => handleRatingChange(game.id, newStars) : undefined}
             />
           </div>
         </CellTag>
@@ -294,6 +295,7 @@ export default function TableRow({
         </CellTag>
       )}
       <CellTag className={`games-table-edit-cell ${rowClass}`} style={cellStyle} role={useDiv ? "cell" : undefined}>
+        {!isIgdbOnly && (
         <div className="games-table-actions">
           <button
             onClick={(e) => {
@@ -351,6 +353,7 @@ export default function TableRow({
             className="games-table-dropdown-menu"
           />
         </div>
+        )}
       </CellTag>
     </RowTag>
   );

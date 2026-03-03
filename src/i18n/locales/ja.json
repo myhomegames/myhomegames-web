@@ -47,6 +47,9 @@
   "tags": {
     "noItemsFound": "{{type}}が見つかりません"
   },
+  "tagGames": {
+    "igdbGamesNotInLibrary": "ライブラリにないゲーム"
+  },
   "header": {
     "home": "ホーム",
     "addGame": "ゲームを追加",

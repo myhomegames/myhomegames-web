@@ -1,13 +1,16 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useLoading } from "../contexts/LoadingContext";
+import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import { useGamesListPage } from "../hooks/useGamesListPage";
+import { useIgdbGamesForSeriesFranchise } from "../hooks/useIgdbGamesForSeriesFranchise";
 import GamesListPageContent from "../components/games/GamesListPageContent";
 import AlphabetNavigator from "../components/ui/AlphabetNavigator";
 import LibrariesBar from "../components/layout/LibrariesBar";
 import type { ViewMode } from "../types";
 import type { GameItem, CollectionItem } from "../types";
 import type { FilterField } from "../components/filters/types";
+import type { TagKey } from "../utils/tagPages";
 import { buildCoverUrl } from "../utils/api";
 
 type TagGamesPageProps = {
@@ -18,6 +21,8 @@ type TagGamesPageProps = {
   tagField: FilterField;
   paramName: string;
   storageKey: string;
+  tagKey?: TagKey;
+  onIgdbGameClick?: (igdbId: number) => void;
 };
 
 export default function TagGamesPage({
@@ -28,7 +33,10 @@ export default function TagGamesPage({
   tagField,
   paramName,
   storageKey,
+  tagKey,
+  onIgdbGameClick,
 }: TagGamesPageProps) {
+  const { games: libraryGames } = useLibraryGames();
   const { isLoading, setLoading } = useLoading();
   const params = useParams<Record<string, string>>();
   const rawParam = params[paramName];
@@ -36,6 +44,19 @@ export default function TagGamesPage({
     () => (rawParam ? decodeURIComponent(rawParam) : null),
     [rawParam]
   );
+  const libraryGameIds = useMemo(
+    () => libraryGames.map((g) => (typeof g.id === "number" ? g.id : parseInt(String(g.id), 10))).filter((id) => !Number.isNaN(id)),
+    [libraryGames]
+  );
+
+  const isSeriesOrFranchise = tagKey === "series" || tagKey === "franchise";
+  const { igdbGames, loading: igdbLoading } = useIgdbGamesForSeriesFranchise(
+    isSeriesOrFranchise ? tagKey : null,
+    tagValue,
+    libraryGameIds,
+    true
+  );
+
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     const saved = localStorage.getItem(`viewMode_${storageKey}`);
     return (saved as ViewMode) || "grid";
@@ -55,6 +76,40 @@ export default function TagGamesPage({
     gameEvents: ["gameUpdated", "gameDeleted"],
     scrollRestorationMode: viewMode === "table" ? undefined : viewMode,
   });
+
+  const mergedGamesForSeriesFranchise = useMemo(() => {
+    if (!isSeriesOrFranchise || !onIgdbGameClick) return null;
+    const libraryGamesInSeries = hook.filteredAndSortedGames;
+    const libraryById = new Map(libraryGamesInSeries.map((g) => [String(g.id), g]));
+    const seenIds = new Set<string>();
+    const merged: GameItem[] = [];
+    for (const ig of igdbGames) {
+      seenIds.add(String(ig.id));
+      const lib = libraryById.get(String(ig.id));
+      if (lib) {
+        merged.push(lib);
+      } else {
+        merged.push({
+          id: String(ig.id),
+          title: ig.name,
+          cover: ig.cover || undefined,
+          year: ig.releaseDate ?? undefined,
+          isIgdbOnly: true,
+        });
+      }
+    }
+    for (const lib of libraryGamesInSeries) {
+      if (!seenIds.has(lib.id)) {
+        merged.push(lib);
+      }
+    }
+    merged.sort((a, b) => {
+      const aYear = a.year ?? 9999;
+      const bYear = b.year ?? 9999;
+      return aYear - bYear;
+    });
+    return merged;
+  }, [isSeriesOrFranchise, onIgdbGameClick, hook.filteredAndSortedGames, igdbGames]);
 
   const { libraryGamesLoading, setFilterField, setSelectedThemes,
     setSelectedKeywords,
@@ -170,17 +225,19 @@ export default function TagGamesPage({
               hook={hook}
               viewMode={viewMode}
               coverSize={coverSize}
-              isLoading={isLoading}
+              isLoading={isLoading || igdbLoading}
               isReady={hook.isReady}
               allCollections={allCollections}
               onGameClick={onGameClick}
               onGamesLoaded={handleGamesLoaded}
               onPlay={onPlay}
               buildCoverUrlFn={buildCoverUrlFn}
+              gamesOverride={mergedGamesForSeriesFranchise}
+              onIgdbGameClick={onIgdbGameClick}
             />
             {hook.sortField === "title" && hook.isReady && (
               <AlphabetNavigator
-                games={hook.filteredAndSortedGames}
+                games={mergedGamesForSeriesFranchise ?? hook.filteredAndSortedGames}
                 scrollContainerRef={
                   viewMode === "table" ? hook.tableScrollRef : hook.scrollContainerRef
                 }

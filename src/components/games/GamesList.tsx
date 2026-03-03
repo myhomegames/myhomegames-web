@@ -88,6 +88,8 @@ export function GameListItem({
   onRemoveFromDeveloper,
   onRemoveFromPublisher,
 }: GameListItemProps) {
+  const { t } = useTranslation();
+  const isIgdbOnly = (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly;
   const coverHeight = coverSize * 1.5;
   
   // Track previous cover value to detect changes
@@ -155,35 +157,36 @@ export function GameListItem({
         coverUrl={coverUrl}
         width={coverSize}
         height={coverHeight}
-        onPlay={onPlay ? (executableName?: string) => (executableName !== undefined ? (onPlay as (g: typeof game, ex?: string) => void)(game, executableName) : onPlay(game)) : undefined}
+        onPlay={!isIgdbOnly && onPlay ? (executableName?: string) => (executableName !== undefined ? (onPlay as (g: typeof game, ex?: string) => void)(game, executableName) : onPlay(game)) : undefined}
         onClick={() => onGameClick(game)}
-        onEdit={() => onEditClick(game)}
+        onEdit={!isIgdbOnly ? () => onEditClick(game) : undefined}
         gameId={game.id}
         gameTitle={game.title}
-        game={game}
-        onGameDelete={onGameDelete ? (gameId: string) => {
+        game={isIgdbOnly ? undefined : game}
+        onGameDelete={!isIgdbOnly && onGameDelete ? (gameId: string) => {
           const deletedGame = game.id === gameId ? game : null;
           if (deletedGame) {
             onGameDelete(deletedGame);
           }
         } : undefined}
-        onGameUpdate={onGameUpdate ? (updatedGame) => {
+        onGameUpdate={!isIgdbOnly && onGameUpdate ? (updatedGame) => {
           if (updatedGame.id === game.id) {
             onGameUpdate(updatedGame);
           }
         } : undefined}
         collectionId={collectionId}
-        onRemoveFromCollection={onRemoveFromCollection ? () => onRemoveFromCollection(game.id) : undefined}
+        onRemoveFromCollection={!isIgdbOnly && onRemoveFromCollection ? () => onRemoveFromCollection(game.id) : undefined}
         developerId={developerId}
         publisherId={publisherId}
-        onRemoveFromDeveloper={onRemoveFromDeveloper ? () => onRemoveFromDeveloper(game.id) : undefined}
-        onRemoveFromPublisher={onRemoveFromPublisher ? () => onRemoveFromPublisher(game.id) : undefined}
+        onRemoveFromDeveloper={!isIgdbOnly && onRemoveFromDeveloper ? () => onRemoveFromDeveloper(game.id) : undefined}
+        onRemoveFromPublisher={!isIgdbOnly && onRemoveFromPublisher ? () => onRemoveFromPublisher(game.id) : undefined}
         showTitle={game.showTitle !== false}
         subtitle={game.year}
         detail={true}
         play={!!(game.executables && game.executables.length > 0)}
         showBorder={viewMode !== "detail"}
         allCollections={allCollections}
+        overlayContent={isIgdbOnly ? <span className="game-detail-similar-cover-badge">{t("addGame.new", "New")}</span> : undefined}
       />
     </div>
   );

@@ -47,6 +47,9 @@
   "tags": {
     "noItemsFound": "未找到{{type}}"
   },
+  "tagGames": {
+    "igdbGamesNotInLibrary": "不在库中的游戏"
+  },
   "header": {
     "home": "首页",
     "addGame": "添加",

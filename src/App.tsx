@@ -362,6 +362,7 @@ function AppContent() {
                   onPlay={openLauncher}
                   allCollections={allCollections}
                   tagKey="series"
+                  onIgdbGameClick={(id) => navigate(`/igdb-game/${id}`)}
                 />
               </ProtectedRoute>
             }
@@ -387,6 +388,7 @@ function AppContent() {
                   onPlay={openLauncher}
                   allCollections={allCollections}
                   tagKey="franchise"
+                  onIgdbGameClick={(id) => navigate(`/igdb-game/${id}`)}
                 />
               </ProtectedRoute>
             }

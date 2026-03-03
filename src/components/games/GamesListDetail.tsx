@@ -56,6 +56,7 @@ export function GameDetailItem({
   allCollections = [],
 }: GameDetailItemProps) {
   const { t, i18n } = useTranslation();
+  const isIgdbOnly = (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly;
   const isEven = index % 2 === 0;
   const coverHeight = FIXED_COVER_SIZE * 1.5;
   
@@ -112,11 +113,12 @@ export function GameDetailItem({
         coverUrl={coverUrl}
         width={FIXED_COVER_SIZE}
         height={coverHeight}
-        onPlay={onPlay ? (executableName?: string) => (executableName !== undefined ? (onPlay as (g: typeof game, ex?: string) => void)(game, executableName) : onPlay(game)) : undefined}
+        onPlay={!isIgdbOnly && onPlay ? (executableName?: string) => (executableName !== undefined ? (onPlay as (g: typeof game, ex?: string) => void)(game, executableName) : onPlay(game)) : undefined}
         showTitle={false}
         detail={false}
         play={!!(game.executables && game.executables.length > 0)}
         showBorder={false}
+        overlayContent={isIgdbOnly ? <span className="game-detail-similar-cover-badge">{t("addGame.new", "New")}</span> : undefined}
       />
       <div className="games-list-detail-content">
         <div className="text-white mb-2 games-list-detail-title">
@@ -139,6 +141,7 @@ export function GameDetailItem({
         )}
       </div>
       <div className="games-list-detail-actions">
+        {!isIgdbOnly && (
         <button
           onClick={handleEditClick}
           className="games-list-detail-edit-button"
@@ -158,11 +161,14 @@ export function GameDetailItem({
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
           </svg>
         </button>
+        )}
+        {!isIgdbOnly && (
         <AddToCollectionDropdown
           game={game}
           allCollections={allCollections}
         />
-        {game.executables && game.executables.length > 1 && onPlay && (
+        )}
+        {!isIgdbOnly && game.executables && game.executables.length > 1 && onPlay && (
           <AdditionalExecutablesDropdown
             gameId={game.id}
             gameExecutables={game.executables}
@@ -173,6 +179,7 @@ export function GameDetailItem({
             }}
           />
         )}
+        {!isIgdbOnly && (
         <DropdownMenu
           gameId={game.id}
           gameTitle={game.title}
@@ -190,6 +197,7 @@ export function GameDetailItem({
           } : undefined}
           className="games-list-detail-dropdown-menu"
         />
+        )}
       </div>
     </div>
   );

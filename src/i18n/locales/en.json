@@ -47,6 +47,9 @@
   "tags": {
     "noItemsFound": "No {{type}} found"
   },
+  "tagGames": {
+    "igdbGamesNotInLibrary": "Games not in library"
+  },
   "header": {
     "home": "Home",
     "addGame": "Add Game",
