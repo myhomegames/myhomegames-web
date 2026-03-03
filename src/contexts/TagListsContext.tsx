@@ -28,6 +28,7 @@ const emptyMaps = (): TagLabelsMap => ({
 
 interface TagListsContextType {
   tagLabels: TagLabelsMap;
+  tagLabelsReady: boolean;
   refreshTagLists: () => Promise<void>;
 }
 
@@ -46,6 +47,7 @@ const ENDPOINTS: [keyof TagLabelsMap, string, string][] = [
 
 export function TagListsProvider({ children }: { children: ReactNode }) {
   const [tagLabels, setTagLabels] = useState<TagLabelsMap>(emptyMaps);
+  const [tagLabelsReady, setTagLabelsReady] = useState(false);
   const { isLoading: authLoading, token: authToken } = useAuth();
 
   const refreshTagLists = useCallback(async () => {
@@ -81,8 +83,12 @@ export function TagListsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!getApiToken() && !authToken) return;
-    refreshTagLists();
+    if (!getApiToken() && !authToken) {
+      setTagLabelsReady(true);
+      return;
+    }
+    setTagLabelsReady(false);
+    refreshTagLists().finally(() => setTagLabelsReady(true));
   }, [authLoading, authToken, refreshTagLists]);
 
   // When a new game is added (possibly with new tags), refresh tag lists so new tags show titles instead of ids
@@ -104,7 +110,7 @@ export function TagListsProvider({ children }: { children: ReactNode }) {
     };
   }, [refreshTagLists]);
 
-  const value = { tagLabels, refreshTagLists };
+  const value = { tagLabels, tagLabelsReady, refreshTagLists };
   return (
     <TagListsContext.Provider value={value}>
       {children}

@@ -221,7 +221,7 @@ function GameDetailContent({
   i18n: { language: string };
 }) {
   const navigate = useNavigate();
-  const { tagLabels } = useTagLists();
+  const { tagLabels, tagLabelsReady } = useTagLists();
   const categoriesList = useMemo(
     () => Array.from(tagLabels.categories.entries()).map(([id, title]) => ({ id, title })),
     [tagLabels.categories]
@@ -426,12 +426,14 @@ function GameDetailContent({
                   </div>
                 );
               })()}
-              <InlineTagList
-                items={genreTitles}
-                getLabel={(genre) => t(`genre.${genre}`, genre)}
-                onItemClick={handleGenreClick}
-                showMoreLabel={t("gameDetail.andMore", ", and more")}
-              />
+              {tagLabelsReady && genreTitles.length > 0 && (
+                <InlineTagList
+                  items={genreTitles}
+                  getLabel={(genre) => t(`genre.${genre}`, genre)}
+                  onItemClick={handleGenreClick}
+                  showMoreLabel={t("gameDetail.andMore", ", and more")}
+                />
+              )}
               <div className="game-detail-ratings">
                 {(criticRating !== null) || (userRating !== null) ? (
                   <>

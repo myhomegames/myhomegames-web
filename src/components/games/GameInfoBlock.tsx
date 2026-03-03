@@ -40,7 +40,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
   const navigate = useNavigate();
   const { developers } = useDevelopers();
   const { publishers } = usePublishers();
-  const { tagLabels } = useTagLists();
+  const { tagLabels, tagLabelsReady } = useTagLists();
 
   const gameId = "id" in game ? String(game.id) : undefined;
 
@@ -128,8 +128,8 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
   return (
     <div className="game-info-block">
 
-      {/* Themes */}
-      {game.themes && game.themes.length > 0 && (
+      {/* Themes (wait for tagLabels so we never show raw IDs) */}
+      {tagLabelsReady && game.themes && game.themes.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
             {t("igdbInfo.themes", "Themes")}
@@ -145,8 +145,8 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
         </div>
       )}
 
-      {/* Platforms */}
-      {game.platforms && game.platforms.length > 0 && (
+      {/* Platforms (wait for tagLabels so we never show raw IDs) */}
+      {tagLabelsReady && game.platforms && game.platforms.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
             {t("igdbInfo.platforms", "Platforms")}
@@ -161,8 +161,8 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
         </div>
       )}
 
-      {/* Game Modes */}
-      {game.gameModes && game.gameModes.length > 0 && (
+      {/* Game Modes (wait for tagLabels so we never show raw IDs) */}
+      {tagLabelsReady && game.gameModes && game.gameModes.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
             {t("igdbInfo.gameModes", "Game Modes")}
@@ -177,8 +177,8 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
         </div>
       )}
 
-      {/* Player Perspectives */}
-      {game.playerPerspectives && game.playerPerspectives.length > 0 && (
+      {/* Player Perspectives (wait for tagLabels so we never show raw IDs) */}
+      {tagLabelsReady && game.playerPerspectives && game.playerPerspectives.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
             {t("igdbInfo.playerPerspectives", "Player Perspectives")}
@@ -249,8 +249,8 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
         </div>
       )}
 
-      {/* Franchise */}
-      {franchiseIds.length > 0 && (
+      {/* Franchise (wait for tagLabels when no names from game payload) */}
+      {tagLabelsReady && franchiseIds.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
             {t("igdbInfo.franchise", "Franchise")}
@@ -265,8 +265,8 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
         </div>
       )}
 
-      {/* Series (collection) */}
-      {seriesIds.length > 0 && (
+      {/* Series (collection) (wait for tagLabels when no names from game payload) */}
+      {tagLabelsReady && seriesIds.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
             {t("igdbInfo.series", "Series")}
@@ -281,8 +281,8 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
         </div>
       )}
 
-      {/* Game Engines */}
-      {game.gameEngines && game.gameEngines.length > 0 && (
+      {/* Game Engines (wait for tagLabels so we never show raw IDs) */}
+      {tagLabelsReady && game.gameEngines && game.gameEngines.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
             {t("igdbInfo.gameEngines", "Game Engines")}
