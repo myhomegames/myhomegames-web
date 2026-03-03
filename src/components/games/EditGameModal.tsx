@@ -82,6 +82,8 @@ export default function EditGameModal({
   const [localWebsites, setLocalWebsites] = useState<Array<{ url: string; category?: number }>>([]);
   const [localSimilarGames, setLocalSimilarGames] = useState<Array<{ id: number; name: string }>>([]);
   const [localAgeRatings, setLocalAgeRatings] = useState<Array<{ category: number; rating: number }>>([]);
+  const [localCriticRating, setLocalCriticRating] = useState("");
+  const [localUserRating, setLocalUserRating] = useState("");
 
   // Memoize cover and background URLs with timestamp when modal opens
   // NEVER show IGDB images in edit modal - only show local images
@@ -152,6 +154,16 @@ export default function EditGameModal({
           ? game.ageRatings.map((ar) => ({ category: ar.category, rating: ar.rating }))
           : []
       );
+      setLocalCriticRating(
+        game.criticratings != null && !Number.isNaN(game.criticratings)
+          ? String(Math.round(game.criticratings * 10))
+          : ""
+      );
+      setLocalUserRating(
+        game.userratings != null && !Number.isNaN(game.userratings)
+          ? String(Math.round(game.userratings * 10))
+          : ""
+      );
       // Generate new timestamp to force image reload when modal opens
       setImageTimestamp(Date.now());
     }
@@ -211,6 +223,9 @@ export default function EditGameModal({
     if (year !== (game.year?.toString() || "")) return true;
     if (month !== (game.month?.toString() || "")) return true;
     if (day !== (game.day?.toString() || "")) return true;
+    const expectedCritic = game.criticratings != null && !Number.isNaN(game.criticratings) ? String(Math.round(game.criticratings * 10)) : "";
+    const expectedUser = game.userratings != null && !Number.isNaN(game.userratings) ? String(Math.round(game.userratings * 10)) : "";
+    if (localCriticRating !== expectedCritic || localUserRating !== expectedUser) return true;
     if (showTitle !== (game.showTitle !== false)) return true;
 
     const currentGenre = genreIdsToTitles(game.genre);
@@ -529,6 +544,27 @@ export default function EditGameModal({
             : null;
       }
 
+      const criticVal = localCriticRating.trim() ? parseFloat(localCriticRating) : null;
+      const userVal = localUserRating.trim() ? parseFloat(localUserRating) : null;
+      const expectedCritic = game.criticratings != null && !Number.isNaN(game.criticratings) ? Math.round(game.criticratings * 10) : null;
+      const expectedUser = game.userratings != null && !Number.isNaN(game.userratings) ? Math.round(game.userratings * 10) : null;
+      if (criticVal != null && (Number.isNaN(criticVal) || criticVal < 0 || criticVal > 100)) {
+        setError(t("gameDetail.invalidCriticRating", "Critic rating must be between 0 and 100"));
+        setSaving(false);
+        setLoading(false);
+        return;
+      }
+      if (userVal != null && (Number.isNaN(userVal) || userVal < 0 || userVal > 100)) {
+        setError(t("gameDetail.invalidUserRating", "User rating must be between 0 and 100"));
+        setSaving(false);
+        setLoading(false);
+        return;
+      }
+      if (criticVal !== expectedCritic || userVal !== expectedUser) {
+        updates.criticRating = criticVal;
+        updates.userRating = userVal;
+      }
+
       // Only make PUT request if there are updates (images were already uploaded)
       if (Object.keys(updates).length > 0) {
         const url = buildApiUrl(API_BASE, `/games/${game.id}`);
@@ -536,7 +572,7 @@ export default function EditGameModal({
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            "X-Auth-Token": API_TOKEN,
+            "X-Auth-Token": getApiToken() || "",
           },
           body: JSON.stringify(updates),
         });
@@ -866,6 +902,10 @@ export default function EditGameModal({
               year={year}
               month={month}
               day={day}
+              criticRating={localCriticRating}
+              userRating={localUserRating}
+              onCriticRatingChange={setLocalCriticRating}
+              onUserRatingChange={setLocalUserRating}
               ageRatings={localAgeRatings}
               onAgeRatingsChange={setLocalAgeRatings}
               alternativeNames={localAlternativeNames}

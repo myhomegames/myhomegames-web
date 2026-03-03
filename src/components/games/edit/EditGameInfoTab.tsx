@@ -18,6 +18,10 @@ type EditGameInfoTabProps = {
   year: string;
   month: string;
   day: string;
+  criticRating: string;
+  userRating: string;
+  onCriticRatingChange: (value: string) => void;
+  onUserRatingChange: (value: string) => void;
   ageRatings: AgeRatingEntry[];
   onAgeRatingsChange: (ratings: AgeRatingEntry[]) => void;
   alternativeNames: string[];
@@ -42,6 +46,10 @@ export default function EditGameInfoTab({
   year,
   month,
   day,
+  criticRating,
+  userRating,
+  onCriticRatingChange,
+  onUserRatingChange,
   ageRatings,
   onAgeRatingsChange,
   alternativeNames,
@@ -195,6 +203,40 @@ export default function EditGameInfoTab({
             placeholder="DD"
             min="1"
             max="31"
+          />
+        </div>
+      </div>
+
+      <div className="edit-game-modal-row">
+        <div className="edit-game-modal-field">
+          <label htmlFor="edit-game-critic-rating">{t("gameDetail.criticRating", "Critic Rating")}</label>
+          <input
+            id="edit-game-critic-rating"
+            name="criticRating"
+            type="number"
+            min="0"
+            max="100"
+            step="1"
+            value={criticRating}
+            onChange={(e) => onCriticRatingChange(e.target.value)}
+            disabled={saving}
+            placeholder="0–100"
+          />
+        </div>
+
+        <div className="edit-game-modal-field">
+          <label htmlFor="edit-game-user-rating">{t("gameDetail.userRating", "User Rating")}</label>
+          <input
+            id="edit-game-user-rating"
+            name="userRating"
+            type="number"
+            min="0"
+            max="100"
+            step="1"
+            value={userRating}
+            onChange={(e) => onUserRatingChange(e.target.value)}
+            disabled={saving}
+            placeholder="0–100"
           />
         </div>
       </div>

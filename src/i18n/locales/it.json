@@ -177,6 +177,8 @@
     "removeCover": "Rimuovi locandina",
     "removeBackground": "Rimuovi sfondo",
     "invalidImageType": "Il file deve essere un'immagine",
+    "invalidCriticRating": "La valutazione della critica deve essere tra 0 e 100",
+    "invalidUserRating": "La valutazione del pubblico deve essere tra 0 e 100",
     "coverFormat": "Rapporto consigliato: 3:4 (es. 400x533px)",
     "backgroundFormat": "Rapporto consigliato: 16:9 (es. 1920x1080px)",
     "showTitleInPreview": "Mostra titolo in anteprima",

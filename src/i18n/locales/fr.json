@@ -176,6 +176,8 @@
     "removeCover": "Supprimer la couverture",
     "removeBackground": "Supprimer l'arrière-plan",
     "invalidImageType": "Le fichier doit être une image",
+    "invalidCriticRating": "La note de la critique doit être entre 0 et 100",
+    "invalidUserRating": "La note du public doit être entre 0 et 100",
     "coverFormat": "Ratio recommandé : 3:4 (ex. 400x533px)",
     "backgroundFormat": "Ratio recommandé : 16:9 (ex. 1920x1080px)",
     "showTitleInPreview": "Afficher le titre dans l’aperçu",

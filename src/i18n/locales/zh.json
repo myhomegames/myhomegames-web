@@ -176,6 +176,8 @@
     "removeCover": "删除封面",
     "removeBackground": "删除背景",
     "invalidImageType": "文件必须是图片",
+    "invalidCriticRating": "评论家评分必须在0到100之间",
+    "invalidUserRating": "用户评分必须在0到100之间",
     "coverFormat": "推荐比例：3:4（例如 400x533px）",
     "backgroundFormat": "推荐比例：16:9（例如 1920x1080px）",
     "showTitleInPreview": "在预览中显示标题",

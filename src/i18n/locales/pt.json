@@ -176,6 +176,8 @@
     "removeCover": "Remover capa",
     "removeBackground": "Remover plano de fundo",
     "invalidImageType": "O arquivo deve ser uma imagem",
+    "invalidCriticRating": "A avaliação da crítica deve estar entre 0 e 100",
+    "invalidUserRating": "A avaliação do público deve estar entre 0 e 100",
     "coverFormat": "Proporção recomendada: 3:4 (ex: 400x533px)",
     "backgroundFormat": "Proporção recomendada: 16:9 (ex: 1920x1080px)",
     "showTitleInPreview": "Mostrar título na pré-visualização",

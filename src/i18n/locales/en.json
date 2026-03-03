@@ -177,6 +177,8 @@
     "removeCover": "Remove cover",
     "removeBackground": "Remove background",
     "invalidImageType": "File must be an image",
+    "invalidCriticRating": "Critic rating must be between 0 and 100",
+    "invalidUserRating": "User rating must be between 0 and 100",
     "coverFormat": "Recommended ratio: 3:4 (e.g., 400x533px)",
     "backgroundFormat": "Recommended ratio: 16:9 (e.g., 1920x1080px)",
     "showTitleInPreview": "Show title in preview",
