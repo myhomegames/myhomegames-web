@@ -24,8 +24,8 @@ type AgeRatingsProps = {
   ageRatings: AgeRating[];
 };
 
-// Map IGDB age rating category numbers to names
-const AGE_RATING_CATEGORIES: Record<number, string> = {
+// Map IGDB age rating category numbers to names (exported for EditGameInfoTab)
+export const AGE_RATING_CATEGORIES: Record<number, string> = {
   1: "ESRB",
   2: "PEGI",
   3: "CERO",
@@ -35,9 +35,9 @@ const AGE_RATING_CATEGORIES: Record<number, string> = {
   7: "ACB",
 };
 
-// Map IGDB rating_category values to rating names for each organization
+// Map IGDB rating_category values to rating names for each organization (exported for EditGameInfoTab)
 // Format: organization -> rating_category -> rating name
-const AGE_RATING_VALUES_BY_ORG: Record<number, Record<number, string>> = {
+export const AGE_RATING_VALUES_BY_ORG: Record<number, Record<number, string>> = {
   // ESRB (1)
   1: {
     6: "EC",

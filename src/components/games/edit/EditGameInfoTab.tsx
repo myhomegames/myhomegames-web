@@ -3,6 +3,13 @@ import type { TFunction } from "i18next";
 import GameSearchModal from "../GameSearchModal";
 import type { GameItem } from "../../../types";
 import { useResolvedSimilarGamesNames } from "../../../hooks/useResolvedSimilarGamesNames";
+import {
+  AGE_RATING_CATEGORIES,
+  AGE_RATING_VALUES_BY_ORG,
+  formatAgeRating,
+} from "../AgeRatings";
+
+type AgeRatingEntry = { category: number; rating: number };
 
 type EditGameInfoTabProps = {
   t: TFunction;
@@ -11,6 +18,8 @@ type EditGameInfoTabProps = {
   year: string;
   month: string;
   day: string;
+  ageRatings: AgeRatingEntry[];
+  onAgeRatingsChange: (ratings: AgeRatingEntry[]) => void;
   alternativeNames: string[];
   onAlternativeNamesChange: (names: string[]) => void;
   websites: Array<{ url: string; category?: number }>;
@@ -33,6 +42,8 @@ export default function EditGameInfoTab({
   year,
   month,
   day,
+  ageRatings,
+  onAgeRatingsChange,
   alternativeNames,
   onAlternativeNamesChange,
   websites,
@@ -50,6 +61,23 @@ export default function EditGameInfoTab({
   const [newAlternativeName, setNewAlternativeName] = useState("");
   const [newWebsiteUrl, setNewWebsiteUrl] = useState("");
   const [isGameSearchOpen, setIsGameSearchOpen] = useState(false);
+  const [newAgeRatingCategory, setNewAgeRatingCategory] = useState<string>("1");
+  const [newAgeRatingValue, setNewAgeRatingValue] = useState<string>("");
+
+  const handleAddAgeRating = () => {
+    const cat = parseInt(newAgeRatingCategory, 10);
+    const rat = parseInt(newAgeRatingValue, 10);
+    if (Number.isNaN(cat) || Number.isNaN(rat)) return;
+    const values = AGE_RATING_VALUES_BY_ORG[cat];
+    if (!values || !(rat in values)) return;
+    if (ageRatings.some((ar) => ar.category === cat && ar.rating === rat)) return;
+    onAgeRatingsChange([...ageRatings, { category: cat, rating: rat }]);
+    setNewAgeRatingValue("");
+  };
+
+  const handleRemoveAgeRating = (index: number) => {
+    onAgeRatingsChange(ageRatings.filter((_, i) => i !== index));
+  };
 
   const handleAlternativeNameChange = (index: number, value: string) => {
     const next = [...alternativeNames];
@@ -168,6 +196,68 @@ export default function EditGameInfoTab({
             min="1"
             max="31"
           />
+        </div>
+      </div>
+
+      <div className="edit-game-modal-field">
+        <label className="edit-game-modal-label">
+          {t("gameDetail.ageRatings", "Classificazioni di età")}
+        </label>
+        {ageRatings.map((ar, index) => (
+          <div key={`age-${index}`} className="edit-game-modal-alt-names-row">
+            <span className="edit-game-modal-similar-name">
+              {formatAgeRating(ar.category, ar.rating, t)}
+            </span>
+            <button
+              type="button"
+              className="edit-game-modal-alt-names-remove"
+              onClick={() => handleRemoveAgeRating(index)}
+              disabled={saving}
+              aria-label={t("common.remove", "Rimuovi")}
+              title={t("common.remove", "Rimuovi")}
+            />
+          </div>
+        ))}
+        <div className="edit-game-modal-alt-names-row edit-game-modal-alt-names-add" style={{ gap: "8px", flexWrap: "wrap" }}>
+          <select
+            value={newAgeRatingCategory}
+            onChange={(e) => {
+              setNewAgeRatingCategory(e.target.value);
+              setNewAgeRatingValue("");
+            }}
+            disabled={saving}
+            className="edit-game-modal-age-rating-select"
+          >
+            {Object.entries(AGE_RATING_CATEGORIES).map(([cat, name]) => (
+              <option key={cat} value={cat}>
+                {name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={newAgeRatingValue}
+            onChange={(e) => setNewAgeRatingValue(e.target.value)}
+            disabled={saving}
+            className="edit-game-modal-age-rating-select"
+          >
+            <option value="">{t("gameDetail.selectRating", "Seleziona classificazione...")}</option>
+            {AGE_RATING_VALUES_BY_ORG[parseInt(newAgeRatingCategory, 10)] &&
+              Object.entries(AGE_RATING_VALUES_BY_ORG[parseInt(newAgeRatingCategory, 10)]).map(
+                ([rat, name]) => (
+                  <option key={rat} value={rat}>
+                    {t(`igdbInfo.ageRating.${AGE_RATING_CATEGORIES[parseInt(newAgeRatingCategory, 10)]}.${name}`, name)}
+                  </option>
+                )
+              )}
+          </select>
+          <button
+            type="button"
+            className="edit-game-modal-add-btn"
+            onClick={handleAddAgeRating}
+            disabled={saving || !newAgeRatingValue}
+          >
+            {t("gameDetail.add", "Aggiungi")}
+          </button>
         </div>
       </div>
 

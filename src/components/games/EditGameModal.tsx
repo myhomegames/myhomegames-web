@@ -81,6 +81,7 @@ export default function EditGameModal({
   const [localAlternativeNames, setLocalAlternativeNames] = useState<string[]>([]);
   const [localWebsites, setLocalWebsites] = useState<Array<{ url: string; category?: number }>>([]);
   const [localSimilarGames, setLocalSimilarGames] = useState<Array<{ id: number; name: string }>>([]);
+  const [localAgeRatings, setLocalAgeRatings] = useState<Array<{ category: number; rating: number }>>([]);
 
   // Memoize cover and background URLs with timestamp when modal opens
   // NEVER show IGDB images in edit modal - only show local images
@@ -146,6 +147,11 @@ export default function EditGameModal({
       );
       const similar = normalizeSimilarGames(game.similarGames);
       setLocalSimilarGames(similar);
+      setLocalAgeRatings(
+        Array.isArray(game.ageRatings) && game.ageRatings.length > 0
+          ? game.ageRatings.map((ar) => ({ category: ar.category, rating: ar.rating }))
+          : []
+      );
       // Generate new timestamp to force image reload when modal opens
       setImageTimestamp(Date.now());
     }
@@ -249,6 +255,19 @@ export default function EditGameModal({
 
     const currentSimilar = normalizeSimilarGames(game.similarGames);
     if (!areSimilarGamesEqual(localSimilarGames, currentSimilar)) return true;
+
+    const currentAgeRatings =
+      Array.isArray(game.ageRatings) && game.ageRatings.length > 0
+        ? game.ageRatings.map((ar) => ({ category: ar.category, rating: ar.rating }))
+        : [];
+    if (
+      localAgeRatings.length !== currentAgeRatings.length ||
+      localAgeRatings.some(
+        (ar, i) =>
+          currentAgeRatings[i]?.category !== ar.category || currentAgeRatings[i]?.rating !== ar.rating
+      )
+    )
+      return true;
 
     return false;
   };
@@ -493,6 +512,22 @@ export default function EditGameModal({
       if (!areSimilarGamesEqual(localSimilarGames, currentSimilar)) {
         updates.similarGames = localSimilarGames.length > 0 ? localSimilarGames : null;
       }
+      const currentAgeRatings =
+        Array.isArray(game.ageRatings) && game.ageRatings.length > 0
+          ? game.ageRatings.map((ar) => ({ category: ar.category, rating: ar.rating }))
+          : [];
+      const ageRatingsChanged =
+        localAgeRatings.length !== currentAgeRatings.length ||
+        localAgeRatings.some(
+          (ar, i) =>
+            currentAgeRatings[i]?.category !== ar.category || currentAgeRatings[i]?.rating !== ar.rating
+        );
+      if (ageRatingsChanged) {
+        updates.ageRatings =
+          localAgeRatings.length > 0
+            ? localAgeRatings.map((ar) => ({ category: Number(ar.category), rating: Number(ar.rating) }))
+            : null;
+      }
 
       // Only make PUT request if there are updates (images were already uploaded)
       if (Object.keys(updates).length > 0) {
@@ -546,7 +581,10 @@ export default function EditGameModal({
           platforms: result.game.platforms !== undefined ? result.game.platforms : (game.platforms ?? null),
           gameModes: result.game.gameModes !== undefined ? result.game.gameModes : (game.gameModes ?? null),
           playerPerspectives: result.game.playerPerspectives !== undefined ? result.game.playerPerspectives : (game.playerPerspectives ?? null),
-          ageRatings: result.game.ageRatings ?? game.ageRatings ?? null,
+          ageRatings:
+            updates.ageRatings !== undefined
+              ? (result.game.ageRatings ?? null)
+              : (result.game.ageRatings ?? game.ageRatings ?? null),
           developers: result.game.developers !== undefined ? result.game.developers : (game.developers ?? null),
           publishers: result.game.publishers !== undefined ? result.game.publishers : (game.publishers ?? null),
           franchise: result.game.franchise !== undefined ? result.game.franchise : (game.franchise ?? null),
@@ -828,6 +866,8 @@ export default function EditGameModal({
               year={year}
               month={month}
               day={day}
+              ageRatings={localAgeRatings}
+              onAgeRatingsChange={setLocalAgeRatings}
               alternativeNames={localAlternativeNames}
               onAlternativeNamesChange={setLocalAlternativeNames}
               websites={localWebsites}
