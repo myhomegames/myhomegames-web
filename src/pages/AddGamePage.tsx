@@ -35,8 +35,10 @@ export default function AddGamePage({
       clearTimeout(searchTimeoutRef.current);
     }
 
-    // Don't search if query is too short
-    if (searchQuery.trim().length < 2) {
+    // Don't search if query is too short (allow single character when it's a numeric IGDB ID)
+    const trimmed = searchQuery.trim();
+    const isNumericId = /^\d+$/.test(trimmed);
+    if (trimmed.length < 2 && !isNumericId) {
       setResults([]);
       setIsSearching(false);
       return;

@@ -241,8 +241,9 @@ export default function AddGame({
       return;
     }
     
-    // Don't search if query is too short
-    if (trimmedQuery.length < 2) {
+    // Don't search if query is too short (allow single digit when it's a numeric ID)
+    const isNumericId = /^\d+$/.test(trimmedQuery);
+    if (trimmedQuery.length < 2 && !isNumericId) {
       setResults([]);
       setIsSearching(false);
       lastSearchQueryRef.current = "";
