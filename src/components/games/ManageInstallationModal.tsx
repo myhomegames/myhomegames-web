@@ -289,7 +289,9 @@ export default function ManageInstallationModal({
             onClick={onClose}
             aria-label="Close"
           >
-            ×
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
           </button>
         </div>
         <div className="manage-installation-modal-content">
@@ -376,7 +378,9 @@ export default function ManageInstallationModal({
                   className="manage-installation-remove-button"
                   title={t("common.remove", "Remove")}
                 >
-                  ×
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
               );

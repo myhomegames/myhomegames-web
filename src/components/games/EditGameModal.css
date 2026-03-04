@@ -43,7 +43,6 @@
   background: transparent;
   border: none;
   color: rgba(255, 255, 255, 0.6);
-  font-size: 2rem;
   cursor: pointer;
   padding: 0;
   width: 32px;
@@ -251,38 +250,27 @@
 
 .edit-game-modal-alt-names-remove {
   flex-shrink: 0;
-  width: 24px;
-  height: 24px;
-  min-width: 24px;
-  min-height: 24px;
-  background-color: transparent;
-  border: none;
-  border-radius: 0;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 20px;
-  font-weight: bold;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  background-color: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: 4px;
+  color: #ef4444;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
   margin: 0;
-  line-height: 24px;
   box-sizing: border-box;
-  font-family: Arial, sans-serif;
-  transition: color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
-}
-
-.edit-game-modal-alt-names-remove::before {
-  content: "×";
-  display: block;
-  line-height: 1;
-  transform: translateY(0px);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .edit-game-modal-alt-names-remove:hover:not(:disabled) {
-  color: #ffffff;
-  transform: scale(1.1);
+  background-color: rgba(220, 38, 38, 0.2);
+  border-color: rgba(220, 38, 38, 0.5);
 }
 
 .edit-game-modal-alt-names-remove:disabled {
