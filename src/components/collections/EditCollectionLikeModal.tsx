@@ -286,7 +286,7 @@ export default function EditCollectionLikeModal({
           const result = await res.json();
           const data = result[config.responseKey];
           if (data?.background) updatedBackground = data.background;
-          if (data?.cover && !updatedCover) updatedCover = data.cover;
+          // Do not set updatedCover from background response: cover and background are separate
         } finally {
           setUploadingBackground(false);
         }
@@ -312,9 +312,10 @@ export default function EditCollectionLikeModal({
         }
         const result = await res.json();
         const data = result[config.responseKey];
-        let finalCover = coverRemoved ? undefined : (updatedCover ?? data?.cover ?? item.cover);
+        // Use server response for final media state (including IGDB fallback covers)
+        let finalCover = updatedCover ?? data?.cover ?? item.cover ?? null;
         let finalBackground = hasBackground
-          ? (backgroundRemoved ? undefined : (updatedBackground ?? data?.background ?? item.background))
+          ? (updatedBackground ?? data?.background ?? item.background ?? null)
           : undefined;
         if (updatedCover && finalCover) {
           const sep = finalCover.includes("?") ? "&" : "?";
@@ -344,9 +345,10 @@ export default function EditCollectionLikeModal({
         if (res.ok) {
           const result = await res.json();
           const data = result[config.responseKey] ?? result;
-          let finalCover = coverRemoved ? undefined : (updatedCover ?? data?.cover ?? item.cover);
+          // Again, trust server response (data.cover may include IGDB fallback)
+          let finalCover = updatedCover ?? data?.cover ?? item.cover ?? null;
           let finalBackground = hasBackground
-            ? (backgroundRemoved ? undefined : (updatedBackground ?? data?.background ?? item.background))
+            ? (updatedBackground ?? data?.background ?? item.background ?? null)
             : undefined;
           if ((updatedCover !== null || coverRemoved) && finalCover) {
             const sep = finalCover.includes("?") ? "&" : "?";
@@ -493,6 +495,8 @@ export default function EditCollectionLikeModal({
                   {(() => {
                     const currentCoverUrl = coverRemoved ? "" : (coverPreview || coverUrlWithTimestamp);
                     const hasCover = !!currentCoverUrl?.trim();
+                    // Only show remove button when item actually has a cover (or user selected a cover preview)
+                    const hasRealCover = hasCover && (!!coverPreview || !!(item.cover && item.cover.trim()));
                     return (
                       <>
                         <Cover
@@ -508,7 +512,7 @@ export default function EditCollectionLikeModal({
                           aspectRatio="3/4"
                           onUpload={() => !uploadingCover && !saving && coverInputRef.current?.click()}
                           uploading={uploadingCover}
-                          showRemoveButton={!!hasCover && !coverRemoved}
+                          showRemoveButton={!!hasRealCover && !coverRemoved}
                           removeMediaType="cover"
                           removeResourceId={item.id}
                           removeResourceType={resourceType}
