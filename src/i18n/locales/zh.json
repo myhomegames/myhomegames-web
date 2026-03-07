@@ -228,6 +228,8 @@
     "fetchError": "无法连接到服务器",
     "games": "",
     "elements": "元素",
+    "elements_one": "{{count}} 个元素",
+    "elements_other": "{{count}} 个元素",
     "play": "播放",
     "more": "更多",
     "less": "更少",

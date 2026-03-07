@@ -228,6 +228,8 @@
     "fetchError": "Falha ao conectar ao servidor",
     "games": "Jogos",
     "elements": "Elementos",
+    "elements_one": "{{count}} Elemento",
+    "elements_other": "{{count}} Elementos",
     "play": "Reproduzir",
     "more": "Mais",
     "less": "Menos",

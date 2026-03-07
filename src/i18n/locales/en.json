@@ -229,6 +229,8 @@
     "fetchError": "Failed to connect to server",
     "games": "Games",
     "elements": "Elements",
+    "elements_one": "{{count}} Element",
+    "elements_other": "{{count}} Elements",
     "play": "Play",
     "more": "More",
     "less": "Less",

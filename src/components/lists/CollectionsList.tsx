@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { API_BASE, getApiToken } from "../../config";
 import { buildApiUrl } from "../../utils/api";
@@ -7,6 +7,7 @@ import EditCollectionLikeModal, { type CollectionLikeResourceType } from "../col
 import { useCollectionHasPlayableGame } from "../common/hooks/useCollectionHasPlayableGame";
 import VirtualizedCollectionsList from "./VirtualizedCollectionsList";
 import type { CollectionItem, CollectionInfo, GameItem } from "../../types";
+import { isSubCollectionTitle } from "../../utils/stringUtils";
 import "./CollectionsList.css";
 
 const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are more than this many items
@@ -33,6 +34,8 @@ type CollectionsListProps = {
 
 type CollectionListItemProps = {
   collection: CollectionItem;
+  /** Total count to show (games + sub-collections). When set, used for subtitle instead of gameCount. */
+  displayCount?: number;
   onCollectionClick: (collection: CollectionItem) => void;
   onPlay?: (game: GameItem) => void;
   onEditClick?: (collection: CollectionItem) => void;
@@ -46,6 +49,7 @@ type CollectionListItemProps = {
 
 export function CollectionListItem({
   collection,
+  displayCount,
   onCollectionClick,
   onPlay,
   onEditClick,
@@ -58,6 +62,8 @@ export function CollectionListItem({
 }: CollectionListItemProps) {
   const { t } = useTranslation();
   const coverHeight = coverSize * 1.5;
+  const count = displayCount ?? collection.gameCount;
+  const subtitle = count !== undefined ? t("common.elements", { count }) : undefined;
   
   // Check if any game in collection has executables (only for collections)
   const { hasPlayableGame } = useCollectionHasPlayableGame(
@@ -144,7 +150,7 @@ export function CollectionListItem({
           }
         } : undefined}
         showTitle={collection.showTitle !== false}
-        subtitle={collection.gameCount !== undefined ? `${collection.gameCount} ${t("common.elements")}` : undefined}
+        subtitle={subtitle}
         detail={true}
         play={gamesPath === "collections" ? hasPlayableGame === true : !!onPlay}
         showBorder={true}
@@ -171,6 +177,22 @@ export default function CollectionsList({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedCollection, setSelectedCollection] = useState<CollectionInfo | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Total display count = games + sub-collections (by title). Must run before any conditional return (Rules of Hooks).
+  const displayCountById = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const c of collections) {
+      const parentTitle = (c.title || "").trim();
+      let subCount = 0;
+      for (const other of collections) {
+        if (String(other.id) === String(c.id)) continue;
+        const childTitle = (other.title || "").trim();
+        if (isSubCollectionTitle(parentTitle, childTitle)) subCount += 1;
+      }
+      map[String(c.id)] = (c.gameCount ?? 0) + subCount;
+    }
+    return map;
+  }, [collections]);
 
   // Durante il caricamento non mostrare nulla (come in Library)
   if (isLoading && collections.length === 0) return null;
@@ -250,6 +272,7 @@ export default function CollectionsList({
         {useVirtualization ? (
           <VirtualizedCollectionsList
             collections={collections}
+            displayCountById={displayCountById}
             coverSize={coverSize}
             containerRef={scrollContainerRef || containerRef}
             itemRefs={itemRefs}
@@ -266,6 +289,7 @@ export default function CollectionsList({
             <CollectionListItem
               key={String(collection.id)}
               collection={collection}
+              displayCount={displayCountById[String(collection.id)]}
               onCollectionClick={onCollectionClick}
               onPlay={onPlay}
               onEditClick={showEdit ? handleEditClick : undefined}

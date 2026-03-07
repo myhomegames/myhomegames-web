@@ -228,6 +228,8 @@
     "fetchError": "サーバーに接続できませんでした",
     "games": "ゲーム",
     "elements": "要素",
+    "elements_one": "{{count}} 要素",
+    "elements_other": "{{count}} 要素",
     "play": "再生",
     "more": "もっと",
     "less": "少なく",

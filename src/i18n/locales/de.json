@@ -228,6 +228,8 @@
     "fetchError": "Verbindung zum Server fehlgeschlagen",
     "games": "Spiele",
     "elements": "Elemente",
+    "elements_one": "{{count}} Element",
+    "elements_other": "{{count}} Elemente",
     "play": "Abspielen",
     "more": "Mehr",
     "less": "Weniger",

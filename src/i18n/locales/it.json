@@ -229,6 +229,8 @@
     "fetchError": "Impossibile connettersi al server",
     "games": "Giochi",
     "elements": "Elementi",
+    "elements_one": "{{count}} Elemento",
+    "elements_other": "{{count}} Elementi",
     "play": "Gioca",
     "more": "Altro",
     "less": "Meno",
