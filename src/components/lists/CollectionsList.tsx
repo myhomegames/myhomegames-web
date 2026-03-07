@@ -64,6 +64,16 @@ export function CollectionListItem({
   const coverHeight = coverSize * 1.5;
   const count = displayCount ?? collection.gameCount;
   const subtitle = count !== undefined ? t("common.elements", { count }) : undefined;
+
+  // Track previous cover value to detect changes (same as GameListItem – stable URL avoids flicker on scroll)
+  const prevCoverRef = useRef<string | undefined>(collection.cover);
+  const coverChanged = prevCoverRef.current !== collection.cover;
+  if (coverChanged) {
+    prevCoverRef.current = collection.cover;
+  }
+  const coverUrl = useMemo(() => {
+    return collection.cover ? buildCoverUrl(API_BASE, collection.cover, coverChanged) : "";
+  }, [collection.cover, coverChanged, buildCoverUrl]);
   
   // Check if any game in collection has executables (only for collections)
   const { hasPlayableGame } = useCollectionHasPlayableGame(
@@ -121,7 +131,7 @@ export function CollectionListItem({
       <Cover
         key={`${collection.id}-${collection.cover}`}
         title={collection.title}
-        coverUrl={buildCoverUrl(API_BASE, collection.cover, true)}
+        coverUrl={coverUrl}
         width={coverSize}
         height={coverHeight}
         onPlay={onPlay ? handlePlayClick : undefined}
