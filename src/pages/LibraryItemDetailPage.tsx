@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useLayoutEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
@@ -72,6 +72,7 @@ export default function LibraryItemDetailPage({
 }: LibraryItemDetailPageProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { setLoading, isLoading } = useLoading();
   const { collections: allCollectionsFromContext } = useCollections();
   const { developers: allDevelopers, updateDeveloper } = useDevelopers();
@@ -100,12 +101,101 @@ export default function LibraryItemDetailPage({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [scrollRestoreTrigger, setScrollRestoreTrigger] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
   const fetchingGamesRef = useRef<boolean>(false);
   const lastIdRef = useRef<string | undefined>(undefined);
+  const scrollPositionToRestoreRef = useRef<number | null>(null);
+  /** Snapshot taken when user clicks Edit; only we write it, so nothing can overwrite it before restore */
+  const scrollSnapshotForModalRef = useRef<number | null>(null);
+
+  const scrollStorageKey = `${location.pathname}:modalScroll`;
 
   useScrollRestoration(scrollContainerRef);
+
+  // Keep scroll position ref updated on scroll (when modal closed) so we have it before click on Edit.
+  // Re-run when item is set so we attach the listener once the scroll container is in the DOM.
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el || isEditModalOpen) return;
+    const onScroll = () => {
+      const pos = el.scrollTop;
+      // Only update ref when there's real scrollable content; when scrollHeight collapses
+      // (e.g. on modal open/re-render) we get scrollTop 0 and would overwrite the good value.
+      if (el.scrollHeight > el.clientHeight) {
+        scrollPositionToRestoreRef.current = pos;
+        try {
+          if (pos > 0) sessionStorage.setItem(scrollStorageKey, String(pos));
+        } catch {
+          // ignore
+        }
+      }
+    };
+    if (el.scrollHeight > el.clientHeight) {
+      scrollPositionToRestoreRef.current = el.scrollTop;
+      try {
+        if (el.scrollTop > 0) sessionStorage.setItem(scrollStorageKey, String(el.scrollTop));
+      } catch {
+        // ignore
+      }
+    }
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [isEditModalOpen, item, scrollStorageKey]);
+
+  // Restore scroll when modal is closed
+  useLayoutEffect(() => {
+    if (isEditModalOpen) return;
+    let saved = scrollSnapshotForModalRef.current ?? scrollPositionToRestoreRef.current;
+    // Fallback: read from sessionStorage (we write there on every valid scroll; nothing overwrites it when collapsed)
+    if ((saved === null || saved === 0) && scrollStorageKey) {
+      try {
+        const stored = sessionStorage.getItem(scrollStorageKey);
+        if (stored !== null) {
+          const parsed = parseInt(stored, 10);
+          if (!isNaN(parsed) && parsed > 0) saved = parsed;
+        }
+      } catch {
+        // ignore
+      }
+    }
+    if (saved === null) return;
+    scrollSnapshotForModalRef.current = null;
+    scrollPositionToRestoreRef.current = null;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const restore = () => {
+      if (!container.scrollHeight) return;
+      const maxScroll = container.scrollHeight - container.clientHeight;
+      const toSet = maxScroll > 0 ? Math.min(saved, maxScroll) : 0;
+      container.scrollTop = toSet;
+      try {
+        container.focus({ preventScroll: true });
+      } catch {
+        // ignore
+      }
+    };
+    // Restore immediately
+    restore();
+    // Run again after modal's useEffect cleanup (body overflow + focus) so we win over browser scroll
+    const t0 = setTimeout(restore, 0);
+    const t50 = setTimeout(restore, 50);
+    const t100 = setTimeout(restore, 100);
+    const t200 = setTimeout(restore, 200);
+    try {
+      sessionStorage.setItem(location.pathname, String(saved));
+    } catch {
+      // ignore
+    }
+    return () => {
+      clearTimeout(t0);
+      clearTimeout(t50);
+      clearTimeout(t100);
+      clearTimeout(t200);
+    };
+  }, [item, games, isEditModalOpen, location.pathname, scrollRestoreTrigger]);
 
   const handleCoverSizeChange = (size: number) => {
     setCoverSize(size);
@@ -150,6 +240,34 @@ export default function LibraryItemDetailPage({
       }
     }
   }, [allCollectionsFromContext, collectionId, resourceType, item]);
+
+  // When a game is added to THIS collection, save scroll then refetch so the list updates and we restore position
+  useEffect(() => {
+    if (resourceType !== "collections" || !collectionId) return;
+    const handleCollectionUpdated = (e: Event) => {
+      const ev = e as CustomEvent<{ collectionId?: string | number }>;
+      if (String(ev.detail?.collectionId) !== String(collectionId)) return;
+      const el = scrollContainerRef.current;
+      if (el && el.scrollHeight > el.clientHeight && el.scrollTop > 0) {
+        scrollPositionToRestoreRef.current = el.scrollTop;
+        try {
+          sessionStorage.setItem(scrollStorageKey, String(el.scrollTop));
+        } catch {
+          // ignore
+        }
+      }
+      fetchCollectionGames(collectionId);
+    };
+    window.addEventListener("collectionUpdated", handleCollectionUpdated as EventListener);
+    return () => window.removeEventListener("collectionUpdated", handleCollectionUpdated as EventListener);
+  }, [collectionId, resourceType, scrollStorageKey]);
+
+  // When a game is added to ANY collection (e.g. "Aggiungi a" on an item), bump trigger so restore effect runs after re-render
+  useEffect(() => {
+    const handle = () => setScrollRestoreTrigger((n) => n + 1);
+    window.addEventListener("collectionUpdated", handle);
+    return () => window.removeEventListener("collectionUpdated", handle);
+  }, []);
 
   // Load item info when id changes (developers) — same pattern as collections
   useEffect(() => {
@@ -441,6 +559,7 @@ export default function LibraryItemDetailPage({
       const updatedGame = result.game;
       if (updatedGame) window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
       window.dispatchEvent(new CustomEvent("developerUpdated", { detail: { developerId } }));
+      if (scrollContainerRef.current) scrollPositionToRestoreRef.current = scrollContainerRef.current.scrollTop;
       setGames((prev) => prev.filter((g) => String(g.id) !== String(gameId)));
     } catch (err) {
       console.error("Error removing game from developer:", err);
@@ -471,6 +590,7 @@ export default function LibraryItemDetailPage({
       const updatedGame = result.game;
       if (updatedGame) window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
       window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: { publisherId } }));
+      if (scrollContainerRef.current) scrollPositionToRestoreRef.current = scrollContainerRef.current.scrollTop;
       setGames((prev) => prev.filter((g) => String(g.id) !== String(gameId)));
     } catch (err) {
       console.error("Error removing game from publisher:", err);
@@ -495,21 +615,25 @@ export default function LibraryItemDetailPage({
   }, [games, customOrder, resourceType]);
 
   const handleGameUpdate = (updatedGame: GameItem) => {
+    if (scrollContainerRef.current) scrollPositionToRestoreRef.current = scrollContainerRef.current.scrollTop;
     setGames((prev) => prev.map((g) => (String(g.id) === String(updatedGame.id) ? updatedGame : g)));
     window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
     if (collectionId) fetchCollectionGames(collectionId);
   };
 
   const handleGameDelete = (deletedGame: GameItem) => {
+    if (scrollContainerRef.current) scrollPositionToRestoreRef.current = scrollContainerRef.current.scrollTop;
     setGames((prev) => prev.filter((g) => String(g.id) !== String(deletedGame.id)));
   };
 
   const handleRemoveFromCollection = (gameId: string) => {
+    if (scrollContainerRef.current) scrollPositionToRestoreRef.current = scrollContainerRef.current.scrollTop;
     setGames((prev) => prev.filter((g) => String(g.id) !== String(gameId)));
   };
 
   const handleDragEnd = async (sourceIndex: number, destinationIndex: number) => {
     if (sourceIndex === destinationIndex || resourceType !== "collections") return;
+    if (scrollContainerRef.current) scrollPositionToRestoreRef.current = scrollContainerRef.current.scrollTop;
     const newGames = [...sortedGames];
     const [removed] = newGames.splice(sourceIndex, 1);
     newGames.splice(destinationIndex, 0, removed);
@@ -593,7 +717,23 @@ export default function LibraryItemDetailPage({
         scrollContainerRef={scrollContainerRef}
         isReady={isReady}
         isEditModalOpen={isEditModalOpen}
-        onEditModalOpen={() => setIsEditModalOpen(true)}
+        onEditModalOpen={() => {
+          // Prefer sessionStorage (persistent, only updated when scrollHeight > clientHeight)
+          let toSave: number | null = null;
+          try {
+            const stored = sessionStorage.getItem(scrollStorageKey);
+            if (stored !== null) toSave = parseInt(stored, 10);
+          } catch {
+            // ignore
+          }
+          if (toSave === null || isNaN(toSave)) {
+            const el = scrollContainerRef.current;
+            const live = el && el.scrollHeight > el.clientHeight ? el.scrollTop : null;
+            toSave = scrollPositionToRestoreRef.current ?? live;
+          }
+          scrollSnapshotForModalRef.current = toSave;
+          setIsEditModalOpen(true);
+        }}
         onEditModalClose={() => setIsEditModalOpen(false)}
         onItemUpdate={(updated) => {
           setItem(updated);
@@ -878,6 +1018,7 @@ function LibraryItemDetailContent({
                 <div
                   ref={scrollContainerRef}
                   className="home-page-scroll-container"
+                  tabIndex={-1}
                   style={{ paddingLeft: "64px", paddingRight: "64px", paddingTop: "5px", paddingBottom: "32px" }}
                 >
                   {item && (

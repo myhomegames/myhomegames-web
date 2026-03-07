@@ -144,7 +144,10 @@ export default function EditCollectionLikeModal({
     document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", handleEscKey, true);
-      document.body.style.overflow = "";
+      // Restore body overflow after a tick so parent can restore scroll position first
+      setTimeout(() => {
+        document.body.style.overflow = "";
+      }, 0);
     };
   }, [isOpen, onClose]);
 
