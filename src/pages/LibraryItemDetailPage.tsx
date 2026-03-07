@@ -1019,7 +1019,7 @@ function LibraryItemDetailContent({
                   ref={scrollContainerRef}
                   className="home-page-scroll-container"
                   tabIndex={-1}
-                  style={{ paddingLeft: "64px", paddingRight: "64px", paddingTop: "5px", paddingBottom: "32px" }}
+                  style={{ paddingLeft: "64px", paddingRight: "64px", paddingTop: "5px", paddingBottom: "16px" }}
                 >
                   {item && (
                     <div
@@ -1031,7 +1031,7 @@ function LibraryItemDetailContent({
                         alignItems: "flex-start",
                         width: "100%",
                         boxSizing: "border-box",
-                        marginBottom: "32px",
+                        marginBottom: "16px",
                       }}
                     >
                       <div style={{ flexShrink: 0 }}>
@@ -1207,7 +1207,7 @@ function LibraryItemDetailContent({
                         }
                       `}</style>
                       {subCollectionLikes.length > 0 && (
-                        <div style={{ marginBottom: "32px", marginTop: "8px" }}>
+                        <div style={{ marginBottom: "32px", marginTop: "0" }}>
                           <h2
                             className="text-white"
                             style={{
@@ -1304,7 +1304,7 @@ function LibraryItemDetailContent({
                       )}
                       {sortedGames.length > 0 && (
                         <>
-                          <div style={{ paddingLeft: "0", marginBottom: "32px", marginTop: "8px" }}>
+                          <div style={{ paddingLeft: "0", marginBottom: "32px", marginTop: "0" }}>
                             <h2
                               className="text-white"
                               style={{
