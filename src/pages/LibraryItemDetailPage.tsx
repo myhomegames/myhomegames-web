@@ -1302,44 +1302,48 @@ function LibraryItemDetailContent({
                           }}
                         />
                       )}
-                      <div style={{ paddingLeft: "0", marginBottom: "32px", marginTop: "8px" }}>
-                        <h2
-                          className="text-white"
-                          style={{
-                            fontFamily: "var(--font-heading-2-font-family)",
-                            fontSize: "var(--font-heading-2-font-size)",
-                            fontWeight: 600,
-                          }}
-                        >
-                          {sortedGames.length} {t("common.games")}
-                        </h2>
-                      </div>
-                      <style>{`
-                        .library-item-detail-games-list .games-list-container {
-                          justify-content: flex-start !important;
-                        }
-                      `}</style>
-                      <div className="library-item-detail-games-list">
-                        <GamesList
-                          games={sortedGames}
-                          onGameClick={onGameClick}
-                          onPlay={onPlay}
-                          onGameUpdate={onGameUpdate}
-                          onGameDelete={onGameDelete}
-                          buildCoverUrl={buildCoverUrl}
-                          coverSize={coverSize}
-                          itemRefs={itemRefs}
-                          draggable={isCollection}
-                          onDragEnd={isCollection ? handleDragEnd : undefined}
-                          allCollections={isCollection ? allCollections : undefined}
-                          collectionId={collectionId}
-                          onRemoveFromCollection={onRemoveFromCollection}
-                          developerId={developerId}
-                          publisherId={publisherId}
-                          onRemoveFromDeveloper={onRemoveFromDeveloper}
-                          onRemoveFromPublisher={onRemoveFromPublisher}
-                        />
-                      </div>
+                      {sortedGames.length > 0 && (
+                        <>
+                          <div style={{ paddingLeft: "0", marginBottom: "32px", marginTop: "8px" }}>
+                            <h2
+                              className="text-white"
+                              style={{
+                                fontFamily: "var(--font-heading-2-font-family)",
+                                fontSize: "var(--font-heading-2-font-size)",
+                                fontWeight: 600,
+                              }}
+                            >
+                              {sortedGames.length} {t("common.games")}
+                            </h2>
+                          </div>
+                          <style>{`
+                            .library-item-detail-games-list .games-list-container {
+                              justify-content: flex-start !important;
+                            }
+                          `}</style>
+                          <div className="library-item-detail-games-list">
+                            <GamesList
+                              games={sortedGames}
+                              onGameClick={onGameClick}
+                              onPlay={onPlay}
+                              onGameUpdate={onGameUpdate}
+                              onGameDelete={onGameDelete}
+                              buildCoverUrl={buildCoverUrl}
+                              coverSize={coverSize}
+                              itemRefs={itemRefs}
+                              draggable={isCollection}
+                              onDragEnd={isCollection ? handleDragEnd : undefined}
+                              allCollections={isCollection ? allCollections : undefined}
+                              collectionId={collectionId}
+                              onRemoveFromCollection={onRemoveFromCollection}
+                              developerId={developerId}
+                              publisherId={publisherId}
+                              onRemoveFromDeveloper={onRemoveFromDeveloper}
+                              onRemoveFromPublisher={onRemoveFromPublisher}
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
