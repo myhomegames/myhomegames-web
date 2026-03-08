@@ -75,6 +75,7 @@
     "title": "Bienvenido a MyHomeGames",
     "subtitle": "Por favor inicia sesión para continuar",
     "button": "Iniciar sesión con Twitch",
+    "orGoToSettings": "O ir a Configuración",
     "credentialsNeeded": "Las credenciales Twitch OAuth son necesarias para iniciar sesión. Por favor, configúralas primero en Configuración.",
     "configureFirst": "Puedes obtener tu Twitch Client ID y Client Secret desde la Consola de Desarrolladores de Twitch.",
     "goToSettings": "Ir a Configuración"

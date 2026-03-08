@@ -70,6 +70,14 @@ export default function LoginPage() {
           >
             {t("login.button", "Login with Twitch")}
           </button>
+          <p style={{ marginTop: "1.5rem", color: "rgba(255, 255, 255, 0.6)", fontSize: "0.9rem" }}>
+            <Link
+              to="/settings"
+              style={{ color: "#E5A00D", textDecoration: "none" }}
+            >
+              {t("login.orGoToSettings", "Or go to Settings")}
+            </Link>
+          </p>
         </>
       ) : (
         <>

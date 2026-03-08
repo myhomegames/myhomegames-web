@@ -75,6 +75,7 @@
     "title": "欢迎使用 MyHomeGames",
     "subtitle": "请登录以继续",
     "button": "使用 Twitch 登录",
+    "orGoToSettings": "或前往设置",
     "credentialsNeeded": "登录需要Twitch OAuth凭据。请先在设置中配置。",
     "configureFirst": "您可以从Twitch开发者控制台获取您的Twitch客户端ID和客户端密钥。",
     "goToSettings": "前往设置"

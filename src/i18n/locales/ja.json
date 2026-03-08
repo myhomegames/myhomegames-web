@@ -75,6 +75,7 @@
     "title": "MyHomeGamesへようこそ",
     "subtitle": "続行するにはログインしてください",
     "button": "Twitchでログイン",
+    "orGoToSettings": "または設定へ",
     "credentialsNeeded": "ログインにはTwitch OAuth認証情報が必要です。まず設定で設定してください。",
     "configureFirst": "Twitch Client IDとClient Secretは、Twitch Developer Consoleから取得できます。",
     "goToSettings": "設定に移動"
