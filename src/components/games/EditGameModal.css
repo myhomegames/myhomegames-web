@@ -59,6 +59,13 @@
   color: #ffffff;
 }
 
+.edit-game-modal-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 .edit-game-modal-content {
   padding: 24px;
   overflow-y: auto;

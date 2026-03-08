@@ -857,6 +857,7 @@ export default function EditGameModal({
             {t("gameDetail.editGame", "Edit Game")}
           </h2>
           <button
+            type="button"
             className="edit-game-modal-close"
             onClick={onClose}
             aria-label="Close"
@@ -867,6 +868,10 @@ export default function EditGameModal({
           </button>
         </div>
 
+        <form
+          className="edit-game-modal-form"
+          onSubmit={(e) => e.preventDefault()}
+        >
         <div className="edit-game-modal-content">
           {error && (
             <div className="edit-game-modal-error">{error}</div>
@@ -875,6 +880,7 @@ export default function EditGameModal({
           {/* Tabs */}
           <div className="edit-game-modal-tabs">
             <button
+              type="button"
               className={`edit-game-modal-tab ${activeTab === "INFO" ? "active" : ""}`}
               onClick={() => setActiveTab("INFO")}
               disabled={saving}
@@ -882,6 +888,7 @@ export default function EditGameModal({
               {t("gameDetail.info", "INFO")}
             </button>
             <button
+              type="button"
               className={`edit-game-modal-tab ${activeTab === "TAGS" ? "active" : ""}`}
               onClick={() => setActiveTab("TAGS")}
               disabled={saving}
@@ -889,6 +896,7 @@ export default function EditGameModal({
               {t("gameDetail.tags", "TAGS")}
             </button>
             <button
+              type="button"
               className={`edit-game-modal-tab ${activeTab === "MEDIA" ? "active" : ""}`}
               onClick={() => setActiveTab("MEDIA")}
               disabled={saving}
@@ -998,6 +1006,7 @@ export default function EditGameModal({
 
         <div className="edit-game-modal-footer">
           <button
+            type="button"
             className="edit-game-modal-cancel"
             onClick={onClose}
             disabled={saving}
@@ -1005,6 +1014,7 @@ export default function EditGameModal({
             {t("common.cancel", "Cancel")}
           </button>
           <button
+            type="button"
             className="edit-game-modal-save"
             onClick={handleSave}
             disabled={saving || !hasChanges()}
@@ -1012,6 +1022,7 @@ export default function EditGameModal({
             {saving ? t("common.saving", "Saving...") : t("common.save", "Save")}
           </button>
         </div>
+        </form>
       </div>
     </div>,
     document.body

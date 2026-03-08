@@ -95,6 +95,7 @@ export default function TagEditor({
   const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && tagSearch.trim() && !isCreating) {
       e.preventDefault();
+      e.stopPropagation();
       const rawSearch = tagSearch.trim();
       const searchTerm = rawSearch.toLowerCase();
 
