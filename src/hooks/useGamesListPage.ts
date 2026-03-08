@@ -250,10 +250,10 @@ export function useGamesListPage(
   const { collections, collectionGameIds: contextCollectionGameIds } = useCollections();
   const { developers } = useDevelopers();
   const { publishers } = usePublishers();
-  const { twitchLoginEnabled } = useSettings();
+  const { twitchLoginEnabled, settingsLoaded } = useSettings();
 
   // Convert collections to availableCollections format
-  const availableCollections = useMemo(() => 
+  const availableCollections = useMemo(() =>
     collections.map((col) => ({ id: String(col.id), title: col.title || "" })),
     [collections]
   );
@@ -262,6 +262,7 @@ export function useGamesListPage(
   const [availableFranchises, setAvailableFranchises] = useState<Array<{ id: string; title: string }>>([]);
   useEffect(() => {
     let cancelled = false;
+    if (!settingsLoaded) return;
     if (twitchLoginEnabled && !getApiToken()) return;
     const toItems = (list: Array<{ id: number | string; title?: string; name?: string }>, _key: string) =>
       (list || []).map((x) => ({ id: String(x.id), title: String((x as any).title ?? (x as any).name ?? x.id) }));
@@ -279,7 +280,7 @@ export function useGamesListPage(
       }
     });
     return () => { cancelled = true; };
-  }, [twitchLoginEnabled]);
+  }, [twitchLoginEnabled, settingsLoaded]);
 
   const availableDevelopers = useMemo(() =>
     developers.map((d) => ({ id: String(d.id), title: d.title || "" })),

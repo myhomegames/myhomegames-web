@@ -30,10 +30,13 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
   const [collectionGameIds, setCollectionGameIds] = useState<Map<string, string[]>>(new Map());
   const collectionGameIdsRef = useRef(collectionGameIds);
   const { isLoading: authLoading, token: authToken } = useAuth();
-  const { twitchLoginEnabled } = useSettings();
+  const { twitchLoginEnabled, settingsLoaded } = useSettings();
 
   const fetchCollections = useCallback(async () => {
     if (authLoading) {
+      return;
+    }
+    if (!settingsLoaded) {
       return;
     }
     if (twitchLoginEnabled && !getApiToken() && !authToken) {
@@ -75,18 +78,19 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [authLoading, authToken, twitchLoginEnabled]);
+  }, [authLoading, authToken, twitchLoginEnabled, settingsLoaded]);
 
   // Load collections on mount and when auth is ready (stagger to avoid all fetches at once)
   useEffect(() => {
     if (authLoading) return;
+    if (!settingsLoaded) return;
     if (twitchLoginEnabled && !getApiToken() && !authToken) {
       setIsLoading(false);
       return;
     }
     const t = setTimeout(fetchCollections, 400);
     return () => clearTimeout(t);
-  }, [authLoading, authToken, twitchLoginEnabled, fetchCollections]);
+  }, [authLoading, authToken, twitchLoginEnabled, settingsLoaded, fetchCollections]);
 
   useEffect(() => {
     collectionGameIdsRef.current = collectionGameIds;

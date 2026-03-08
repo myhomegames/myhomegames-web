@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { API_BASE, getApiToken } from "../../../config";
-import { buildApiUrl } from "../../../utils/api";
+import { buildApiUrl, buildApiHeaders } from "../../../utils/api";
 import { useLoading } from "../../../contexts/LoadingContext";
+import { useSettings } from "../../../contexts/SettingsContext";
 import type { GameItem } from "../../../types";
 
 type UseCreateGameParams = {
@@ -20,12 +21,13 @@ export function useCreateGame({
   onError,
 }: UseCreateGameParams = {}): UseCreateGameReturn {
   const { setLoading } = useLoading();
+  const { twitchLoginEnabled } = useSettings();
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
   const createGame = async (title: string): Promise<GameItem | null> => {
     const apiToken = getApiToken();
-    if (!apiToken) {
+    if (twitchLoginEnabled && !apiToken) {
       const errorMsg = "Authentication required";
       setCreateError(errorMsg);
       if (onError) onError(errorMsg);
@@ -48,11 +50,10 @@ export function useCreateGame({
       const url = buildApiUrl(API_BASE, "/games/create");
       const res = await fetch(url, {
         method: "POST",
-        headers: {
+        headers: buildApiHeaders({
           "Content-Type": "application/json",
           Accept: "application/json",
-          "X-Auth-Token": apiToken,
-        },
+        }),
         body: JSON.stringify({ title: name }),
       });
 

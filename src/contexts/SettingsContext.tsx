@@ -7,12 +7,14 @@ interface SettingsContextType {
   twitchLoginEnabled: boolean;
   setTwitchLoginEnabled: (value: boolean) => void;
   refreshSettings: () => Promise<void>;
+  settingsLoaded: boolean;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [twitchLoginEnabled, setTwitchLoginEnabled] = useState(false);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   const refreshSettings = useCallback(async () => {
     try {
@@ -26,6 +28,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       }
     } catch (err) {
       console.error("Failed to refresh settings:", err);
+    } finally {
+      setSettingsLoaded(true);
     }
   }, []);
 
@@ -36,7 +40,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   return (
     <SettingsContext.Provider
-      value={{ twitchLoginEnabled, setTwitchLoginEnabled, refreshSettings }}
+      value={{ twitchLoginEnabled, setTwitchLoginEnabled, refreshSettings, settingsLoaded }}
     >
       {children}
     </SettingsContext.Provider>

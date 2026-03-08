@@ -25,6 +25,7 @@ export default function SettingsPage() {
   const [initialTwitchClientId, setInitialTwitchClientId] = useState<string | null>(null);
   const [initialTwitchClientSecret, setInitialTwitchClientSecret] = useState<string | null>(null);
   const [savingTwitch, setSavingTwitch] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Check if there are unsaved changes
   const hasLibraryChanges =
@@ -116,6 +117,7 @@ export default function SettingsPage() {
   }, [setLoading]);
 
   async function handleSave() {
+    setSaveError(null);
     setSaving(true);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90000);
@@ -134,7 +136,8 @@ export default function SettingsPage() {
       clearTimeout(timeoutId);
 
       if (!res.ok) {
-        throw new Error("Failed to save settings");
+        const errBody = await res.text();
+        throw new Error(errBody || `HTTP ${res.status}`);
       }
 
       // Also save to localStorage as fallback
@@ -147,7 +150,19 @@ export default function SettingsPage() {
       setInitialVisibleLibraries(visibleLibraries);
     } catch (err) {
       clearTimeout(timeoutId);
+      const message = err instanceof Error ? err.message : "Failed to save settings";
       console.error("Failed to save settings:", err);
+      // "Failed to fetch" or network/certificate errors: redirect to API so user can accept cert (same as login)
+      const isFetchError =
+        message === "Failed to fetch" ||
+        message?.toLowerCase().includes("network") ||
+        message?.toLowerCase().includes("fetch");
+      if (isFetchError && API_BASE) {
+        const serverUrl = API_BASE.replace(/\/$/, "");
+        window.location.href = serverUrl;
+        return;
+      }
+      setSaveError(message);
       // Fallback to localStorage
       localStorage.setItem("language", language);
       localStorage.setItem("visibleLibraries", JSON.stringify(visibleLibraries));
@@ -282,6 +297,11 @@ export default function SettingsPage() {
             </div>
 
             <div className="settings-actions">
+              {saveError && (
+                <p className="settings-help-text" style={{ color: "#f87171", marginBottom: "12px" }}>
+                  {t("settings.saveError", "Impossibile salvare sul server")}: {saveError}
+                </p>
+              )}
               <button
                 onClick={handleSave}
                 className={`settings-button ${hasChanges ? "settings-button-active" : ""}`}

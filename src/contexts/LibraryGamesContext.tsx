@@ -24,10 +24,13 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { isLoading: authLoading, token: authToken } = useAuth();
-  const { twitchLoginEnabled } = useSettings();
+  const { twitchLoginEnabled, settingsLoaded } = useSettings();
 
   const fetchGames = useCallback(async () => {
     if (authLoading) {
+      return;
+    }
+    if (!settingsLoaded) {
       return;
     }
     // When Twitch login is enabled, require token; when disabled, token is optional
@@ -88,14 +91,15 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [authLoading, authToken, twitchLoginEnabled]);
+  }, [authLoading, authToken, twitchLoginEnabled, settingsLoaded]);
 
   // Load games on mount and when auth is ready
   useEffect(() => {
-    if (!authLoading) {
-      fetchGames();
+    if (authLoading || !settingsLoaded) {
+      return;
     }
-  }, [authLoading, fetchGames]);
+    fetchGames();
+  }, [authLoading, settingsLoaded, fetchGames]);
 
   // Listen for game update events
   useEffect(() => {

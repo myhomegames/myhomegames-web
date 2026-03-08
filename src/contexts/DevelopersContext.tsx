@@ -21,10 +21,11 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { isLoading: authLoading, token: authToken } = useAuth();
-  const { twitchLoginEnabled } = useSettings();
+  const { twitchLoginEnabled, settingsLoaded } = useSettings();
 
   const fetchDevelopers = useCallback(async () => {
     if (authLoading) return;
+    if (!settingsLoaded) return;
     if (twitchLoginEnabled && !getApiToken() && !authToken) return;
 
     setIsLoading(true);
@@ -56,17 +57,18 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [authLoading, authToken, twitchLoginEnabled]);
+  }, [authLoading, authToken, twitchLoginEnabled, settingsLoaded]);
 
   useEffect(() => {
     if (authLoading) return;
+    if (!settingsLoaded) return;
     if (twitchLoginEnabled && !getApiToken() && !authToken) {
       setIsLoading(false);
       return;
     }
     const t = setTimeout(fetchDevelopers, 800);
     return () => clearTimeout(t);
-  }, [authLoading, authToken, twitchLoginEnabled, fetchDevelopers]);
+  }, [authLoading, authToken, twitchLoginEnabled, settingsLoaded, fetchDevelopers]);
 
   useEffect(() => {
     const handleUpdate = (e: Event) => {
