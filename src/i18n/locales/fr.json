@@ -56,7 +56,15 @@
     "settings": "Paramètres",
     "account": "Compte",
     "profile": "Profil",
-    "loading": "Chargement"
+    "loading": "Chargement",
+    "updateAvailable": "Nouvelle mise à jour disponible",
+    "newVersionAvailable": "Nouvelle version {{version}} disponible",
+    "changelog": "Changelog",
+    "downloadServer": "Télécharger le serveur",
+    "downloadWindows": "Windows",
+    "downloadMacArm": "macOS (Apple Silicon)",
+    "downloadMacIntel": "macOS (Intel)",
+    "downloadLinux": "Linux"
   },
   "profile": {
     "viewProfile": "Voir le profil",

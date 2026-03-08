@@ -86,6 +86,11 @@ For development, the web application uses:
 - `VITE_HTTPS_ENABLED` (default: `false`) - Enable HTTPS for Vite dev server (`true`/`false`)
   - When enabled, Vite will serve the app over HTTPS using certificates from the `certs/` directory
 
+- `VITE_GITHUB_REPO` (optional) - GitHub repository in the form `owner/repo` (e.g. `MyHomeGames/MyHomeGames`)
+  - When set, the app periodically checks the [GitHub Releases](https://docs.github.com/en/repositories/releasing-projects-on-github) API
+  - If a release with a version greater than the current app version exists, a yellow notification icon appears in the header
+  - Clicking the icon opens a dropdown to download the server package for your operating system (Windows, macOS, Linux)
+
 **Note**: `VITE_API_BASE` is required. The application will not start without it.
 
 ## Development Authentication

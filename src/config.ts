@@ -4,6 +4,9 @@ if (!envApiBase) {
 }
 export const API_BASE = envApiBase;
 
+/** GitHub repo "owner/repo" for checking releases (optional). e.g. MyHomeGames/MyHomeGames */
+export const GITHUB_REPO = (import.meta.env.VITE_GITHUB_REPO as string) || "";
+
 // Get API token - prefer dev token if available, otherwise use Twitch token
 export function getApiToken(): string {
   // If VITE_API_TOKEN is set, prefer it (for development mode)

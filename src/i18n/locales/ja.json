@@ -56,7 +56,15 @@
     "settings": "設定",
     "account": "アカウント",
     "profile": "プロフィール",
-    "loading": "読み込み中"
+    "loading": "読み込み中",
+    "updateAvailable": "新しいアップデートがあります",
+    "newVersionAvailable": "新しいバージョン {{version}} が利用可能です",
+    "changelog": "変更履歴",
+    "downloadServer": "サーバーをダウンロード",
+    "downloadWindows": "Windows",
+    "downloadMacArm": "macOS (Apple Silicon)",
+    "downloadMacIntel": "macOS (Intel)",
+    "downloadLinux": "Linux"
   },
   "profile": {
     "viewProfile": "プロフィールを表示",

@@ -56,7 +56,15 @@
     "settings": "设置",
     "account": "账户",
     "profile": "个人资料",
-    "loading": "加载中"
+    "loading": "加载中",
+    "updateAvailable": "有新更新",
+    "newVersionAvailable": "新版本 {{version}} 可用",
+    "changelog": "更新日志",
+    "downloadServer": "下载服务器",
+    "downloadWindows": "Windows",
+    "downloadMacArm": "macOS (Apple Silicon)",
+    "downloadMacIntel": "macOS (Intel)",
+    "downloadLinux": "Linux"
   },
   "profile": {
     "viewProfile": "查看个人资料",

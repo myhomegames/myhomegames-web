@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import Logo from "../common/Logo";
 import SearchBar from "../search/SearchBar";
 import ProfileDropdown from "./ProfileDropdown";
+import UpdateNotification from "./UpdateNotification";
 import Tooltip from "../common/Tooltip";
 import { useLoading } from "../../contexts/LoadingContext";
 import { useSettings } from "../../contexts/SettingsContext";
@@ -125,6 +126,7 @@ export default function Header({
               </svg>
             </button>
           </Tooltip>
+          <UpdateNotification />
           {showProfile && <ProfileDropdown />}
         </div>
       </div>
