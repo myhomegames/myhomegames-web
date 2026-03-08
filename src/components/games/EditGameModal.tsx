@@ -16,6 +16,7 @@ type EditGameModalProps = {
   onClose: () => void;
   game: GameItem;
   onGameUpdate: (updatedGame: GameItem) => void;
+  onGameDraftUpdate?: (updatedGame: GameItem) => void;
 };
 
 export default function EditGameModal({
@@ -23,6 +24,7 @@ export default function EditGameModal({
   onClose,
   game,
   onGameUpdate,
+  onGameDraftUpdate: _onGameDraftUpdate,
 }: EditGameModalProps) {
   const { t } = useTranslation();
   const { setLoading } = useLoading();

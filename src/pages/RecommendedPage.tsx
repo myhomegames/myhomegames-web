@@ -179,8 +179,8 @@ export default function RecommendedPage({
           const mergedSections = await Promise.all(
             parsedSections.map(async (section) => {
               const excludeIds = section.games
-                .map((g) => Number(g.id))
-                .filter((id) => !Number.isNaN(id));
+                .map((g: GameItem) => Number(g.id))
+                .filter((id: number) => !Number.isNaN(id));
               try {
                 const url = buildApiUrl(API_BASE, "/igdb/games-by-keyword");
                 const igdbRes = await fetch(url, {
