@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import type { ReactNode } from "react";
 import { API_BASE } from "../config";
 import { buildApiHeaders } from "../utils/api";
@@ -28,6 +28,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       console.error("Failed to refresh settings:", err);
     }
   }, []);
+
+  // Load settings as soon as the app mounts (don't wait for auth)
+  useEffect(() => {
+    refreshSettings();
+  }, [refreshSettings]);
 
   return (
     <SettingsContext.Provider

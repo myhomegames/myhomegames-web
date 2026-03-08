@@ -1,10 +1,13 @@
-import { useState, useEffect, useRef, useLayoutEffect, useMemo } from "react";
+import { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useAutoTranslateBatch } from "../hooks/useAutoTranslate";
 import { useLoading } from "../contexts/LoadingContext";
+import { useSettings } from "../contexts/SettingsContext";
 import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
 import type { GameItem, CollectionItem } from "../types";
 import { API_BASE } from "../config";
+import { getApiToken, getTwitchClientId, getTwitchClientSecret } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 
 type RecommendedSection = {
@@ -27,12 +30,25 @@ export default function RecommendedPage({
   coverSize,
   allCollections = [],
 }: RecommendedPageProps) {
+  const navigate = useNavigate();
+  const { twitchLoginEnabled } = useSettings();
   const { setLoading } = useLoading();
   const [sections, setSections] = useState<RecommendedSection[]>([]);
   const [isReady, setIsReady] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const fetchingRef = useRef<boolean>(false);
+
+  const handleGameClick = useCallback(
+    (game: GameItem) => {
+      if (twitchLoginEnabled && (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly) {
+        navigate(`/igdb-game/${game.id}`);
+      } else {
+        onGameClick(game);
+      }
+    },
+    [twitchLoginEnabled, navigate, onGameClick]
+  );
   
   // Restore scroll position
   useScrollRestoration(scrollContainerRef);
@@ -46,8 +62,6 @@ export default function RecommendedPage({
         ),
       }))
     );
-    // Dispatch event to ensure other components are notified
-    // (though EditGameModal should already dispatch it)
     window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
   };
 
@@ -77,7 +91,7 @@ export default function RecommendedPage({
 
   useEffect(() => {
     fetchRecommendedSections();
-  }, []);
+  }, [twitchLoginEnabled]);
 
   // Listen for metadata reload event
   useEffect(() => {
@@ -140,7 +154,7 @@ export default function RecommendedPage({
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       const sectionsData = (json.sections || []) as any[];
-      
+
       const parsedSections = sectionsData.map((section) => ({
         id: section.id,
         games: (section.games || []).map((v: any) => ({
@@ -157,12 +171,60 @@ export default function RecommendedPage({
           executables: v.executables || null,
         })),
       }));
-      
-      setSections(parsedSections);
-      
-      // Collect all games for onGamesLoaded callback
-      const allGames = parsedSections.flatMap(section => section.games);
-      onGamesLoaded(allGames);
+
+      if (twitchLoginEnabled) {
+        const clientId = getTwitchClientId();
+        const clientSecret = getTwitchClientSecret();
+        if (clientId && clientSecret) {
+          const mergedSections = await Promise.all(
+            parsedSections.map(async (section) => {
+              const excludeIds = section.games
+                .map((g) => Number(g.id))
+                .filter((id) => !Number.isNaN(id));
+              try {
+                const url = buildApiUrl(API_BASE, "/igdb/games-by-keyword");
+                const igdbRes = await fetch(url, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "X-Auth-Token": getApiToken() || "",
+                    "X-Twitch-Client-Id": clientId,
+                    "X-Twitch-Client-Secret": clientSecret,
+                  },
+                  body: JSON.stringify({ keyword: section.id, excludeIds }),
+                });
+                const igdbData = await igdbRes.json().catch(() => ({}));
+                if (!igdbRes.ok) {
+                  return section;
+                }
+                const igdbGamesList = (igdbData.games || []) as Array<{ id: number; name: string; cover?: string | null; releaseDate?: number | null }>;
+                const igdbGames = igdbGamesList.map(
+                  (g) =>
+                    ({
+                      id: String(g.id),
+                      title: g.name,
+                      cover: g.cover || undefined,
+                      year: g.releaseDate ?? undefined,
+                      isIgdbOnly: true,
+                    }) as GameItem
+                );
+                return { ...section, games: [...section.games, ...igdbGames] };
+              } catch (err) {
+                return section;
+              }
+            })
+          );
+          setSections(mergedSections);
+          const allGamesMerged = mergedSections.flatMap((s) => s.games);
+          onGamesLoaded(allGamesMerged);
+        } else {
+          setSections(parsedSections);
+          onGamesLoaded(parsedSections.flatMap((s) => s.games));
+        }
+      } else {
+        setSections(parsedSections);
+        onGamesLoaded(parsedSections.flatMap((s) => s.games));
+      }
     } catch (err: any) {
       clearTimeout(timeoutId);
       const errorMessage = err?.name === "AbortError" ? "Request timed out" : String(err.message || err);
@@ -196,7 +258,7 @@ export default function RecommendedPage({
               titleOverride={sectionTitles[section.id]}
               disableAutoTranslate
               games={section.games}
-              onGameClick={onGameClick}
+              onGameClick={handleGameClick}
               onPlay={onPlay}
               onGameUpdate={handleGameUpdate}
               coverSize={coverSize}
