@@ -31,6 +31,7 @@ import { buildApiUrl, buildCoverUrl, buildApiHeaders } from "./utils/api";
 import { API_BASE, getApiToken } from "./config";
 import { useLoading } from "./contexts/LoadingContext";
 import { useAuth } from "./contexts/AuthContext";
+import { useSettings } from "./contexts/SettingsContext";
 import { useCollections } from "./contexts/CollectionsContext";
 import { useDevelopers } from "./contexts/DevelopersContext";
 import { usePublishers } from "./contexts/PublishersContext";
@@ -56,6 +57,7 @@ function AppContent() {
   const { i18n } = useTranslation();
   const { setLoading } = useLoading();
   const { isLoading: authLoading } = useAuth();
+  const { setTwitchLoginEnabled, twitchLoginEnabled } = useSettings();
 
   const handleCloseLaunchModal = () => {
     setLaunchError(null);
@@ -101,15 +103,9 @@ function AppContent() {
   }
 
   // Load settings from server on app startup (after auth is ready)
+  // GET /settings is public so we can load twitchLoginEnabled even without token
   useEffect(() => {
-    // Wait for authentication to complete
     if (authLoading) {
-      return;
-    }
-
-    // Check if we have a token (either from auth or dev token)
-    const apiToken = getApiToken();
-    if (!apiToken) {
       return;
     }
 
@@ -129,6 +125,7 @@ function AppContent() {
           if (i18n.language !== loadedLanguage) {
             i18n.changeLanguage(loadedLanguage);
           }
+          setTwitchLoginEnabled(!!data.twitchLoginEnabled);
           localStorage.setItem("language", loadedLanguage);
           if (Array.isArray(data.visibleLibraries)) {
             localStorage.setItem(
@@ -362,7 +359,7 @@ function AppContent() {
                   onPlay={openLauncher}
                   allCollections={allCollections}
                   tagKey="series"
-                  onIgdbGameClick={(id) => navigate(`/igdb-game/${id}`)}
+                  onIgdbGameClick={twitchLoginEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
                 />
               </ProtectedRoute>
             }
@@ -388,7 +385,7 @@ function AppContent() {
                   onPlay={openLauncher}
                   allCollections={allCollections}
                   tagKey="franchise"
-                  onIgdbGameClick={(id) => navigate(`/igdb-game/${id}`)}
+                  onIgdbGameClick={twitchLoginEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
                 />
               </ProtectedRoute>
             }

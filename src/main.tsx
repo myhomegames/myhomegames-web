@@ -5,6 +5,7 @@ import "./i18n/config";
 import "./utils/unauthorizedInterceptor";
 import App from "./App.tsx";
 import { AuthProvider } from "./contexts/AuthContext";
+import { SettingsProvider } from "./contexts/SettingsContext";
 import { LoadingProvider } from "./contexts/LoadingContext";
 import { CollectionsProvider } from "./contexts/CollectionsContext";
 import { DevelopersProvider } from "./contexts/DevelopersContext";
@@ -14,8 +15,9 @@ import { TagListsProvider } from "./contexts/TagListsContext";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <AuthProvider>
-      <LoadingProvider>
+    <SettingsProvider>
+      <AuthProvider>
+        <LoadingProvider>
         <CollectionsProvider>
           <DevelopersProvider>
             <PublishersProvider>
@@ -27,7 +29,8 @@ createRoot(document.getElementById("root")!).render(
             </PublishersProvider>
           </DevelopersProvider>
         </CollectionsProvider>
-      </LoadingProvider>
-    </AuthProvider>
+        </LoadingProvider>
+      </AuthProvider>
+    </SettingsProvider>
   </StrictMode>
 );

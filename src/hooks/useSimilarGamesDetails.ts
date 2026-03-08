@@ -3,11 +3,11 @@ import { API_BASE } from "../config";
 import { getApiToken, getTwitchClientId, getTwitchClientSecret } from "../config";
 import { buildApiUrl } from "../utils/api";
 
-export type SimilarGameDetails = { name: string; cover?: string };
+export type SimilarGameDetails = { name: string; cover?: string; releaseDate?: number | null };
 
 /**
- * Fetches game names and covers from IGDB for the given ids.
- * Returns a map id -> { name, cover }.
+ * Fetches game names, covers and release year from IGDB for the given ids.
+ * Returns a map id -> { name, cover?, releaseDate? }.
  */
 export function useSimilarGamesDetails(
   ids: number[]
@@ -45,13 +45,18 @@ export function useSimilarGamesDetails(
       },
     })
       .then((res) => (res.ok ? res.json() : {}))
-      .then((data: { names?: Record<string, string>; covers?: Record<string, string> }) => {
+      .then((data: { names?: Record<string, string>; covers?: Record<string, string>; releaseDates?: Record<string, number> }) => {
         if (cancelled) return;
         const names = data.names ?? {};
         const covers = data.covers ?? {};
+        const releaseDates = data.releaseDates ?? {};
         const result: Record<string, SimilarGameDetails> = {};
         for (const id of Object.keys(names)) {
-          result[id] = { name: names[id], cover: covers[id] };
+          result[id] = {
+            name: names[id],
+            cover: covers[id],
+            releaseDate: releaseDates[id] ?? null,
+          };
         }
         setDetailsById(result);
       })

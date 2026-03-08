@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { buildApiUrl } from "../utils/api";
 import { API_BASE, getApiToken, getTwitchClientId, getTwitchClientSecret } from "../config";
 
@@ -25,6 +25,7 @@ export function useIgdbGamesForSeriesFranchise(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const libraryGameIdsKey = fetchAll ? "" : libraryGameIds.join(",");
   const fetchGames = useCallback(async () => {
     if (tagKey && (tagKey === "series" || tagKey === "franchise") && tagId) {
       const id = parseInt(tagId || "", 10);
@@ -48,6 +49,7 @@ export function useIgdbGamesForSeriesFranchise(
             ? `/igdb/games-by-franchise/${id}`
             : `/igdb/games-by-collection/${id}`;
         const url = buildApiUrl(API_BASE, endpoint);
+        const excludeIds = fetchAll ? [] : libraryGameIds;
         const res = await fetch(url, {
           method: "POST",
           headers: {
@@ -56,7 +58,7 @@ export function useIgdbGamesForSeriesFranchise(
             "X-Twitch-Client-Id": clientId,
             "X-Twitch-Client-Secret": clientSecret,
           },
-          body: JSON.stringify({ excludeIds: fetchAll ? [] : libraryGameIds }),
+          body: JSON.stringify({ excludeIds }),
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
@@ -79,15 +81,24 @@ export function useIgdbGamesForSeriesFranchise(
     } else {
       setIgdbGames([]);
     }
-  }, [tagKey, tagId, libraryGameIds.join(","), fetchAll]);
+  }, [tagKey, tagId, libraryGameIdsKey, fetchAll]);
 
+  const lastFetchedRef = useRef<{ tagKey: string; tagId: string } | null>(null);
   useEffect(() => {
-    if (tagKey && (tagKey === "series" || tagKey === "franchise") && tagId) {
-      fetchGames();
-    } else {
+    if (!(tagKey && (tagKey === "series" || tagKey === "franchise") && tagId)) {
+      lastFetchedRef.current = null;
       setIgdbGames([]);
       setError(null);
+      return;
     }
+    if (
+      lastFetchedRef.current?.tagKey === tagKey &&
+      lastFetchedRef.current?.tagId === tagId
+    ) {
+      return;
+    }
+    lastFetchedRef.current = { tagKey, tagId };
+    fetchGames();
   }, [tagKey, tagId, fetchGames]);
 
   return { igdbGames, loading, error, refetch: fetchGames };

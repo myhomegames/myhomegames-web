@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { API_BASE, getApiToken } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 import { useAuth } from "./AuthContext";
+import { useSettings } from "./SettingsContext";
 
 export type TagLabelsMap = {
   categories: Map<string, string>;
@@ -49,11 +50,11 @@ export function TagListsProvider({ children }: { children: ReactNode }) {
   const [tagLabels, setTagLabels] = useState<TagLabelsMap>(emptyMaps);
   const [tagLabelsReady, setTagLabelsReady] = useState(false);
   const { isLoading: authLoading, token: authToken } = useAuth();
+  const { twitchLoginEnabled } = useSettings();
 
   const refreshTagLists = useCallback(async () => {
     if (authLoading) return;
-    const token = getApiToken() || authToken;
-    if (!token) return;
+    if (twitchLoginEnabled && !getApiToken() && !authToken) return;
 
     const headers = buildApiHeaders({ Accept: "application/json" });
     const results = await Promise.all(
@@ -79,17 +80,17 @@ export function TagListsProvider({ children }: { children: ReactNode }) {
       for (const { key, map } of results) next[key] = map;
       return next;
     });
-  }, [authLoading, authToken]);
+  }, [authLoading, authToken, twitchLoginEnabled]);
 
   useEffect(() => {
     if (authLoading) return;
-    if (!getApiToken() && !authToken) {
+    if (twitchLoginEnabled && !getApiToken() && !authToken) {
       setTagLabelsReady(true);
       return;
     }
     setTagLabelsReady(false);
     refreshTagLists().finally(() => setTagLabelsReady(true));
-  }, [authLoading, authToken, refreshTagLists]);
+  }, [authLoading, authToken, twitchLoginEnabled, refreshTagLists]);
 
   // When a new game is added (possibly with new tags), refresh tag lists so new tags show titles instead of ids
   useEffect(() => {

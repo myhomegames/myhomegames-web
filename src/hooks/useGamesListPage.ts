@@ -10,6 +10,7 @@ import type { FilterField, FilterValue } from "../components/filters/types";
 import { compareTitles } from "../utils/stringUtils";
 import { API_BASE, getApiToken } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
+import { useSettings } from "../contexts/SettingsContext";
 
 type GameEventType = "gameUpdated" | "gameDeleted" | "gameAdded";
 
@@ -249,6 +250,7 @@ export function useGamesListPage(
   const { collections, collectionGameIds: contextCollectionGameIds } = useCollections();
   const { developers } = useDevelopers();
   const { publishers } = usePublishers();
+  const { twitchLoginEnabled } = useSettings();
 
   // Convert collections to availableCollections format
   const availableCollections = useMemo(() => 
@@ -260,8 +262,7 @@ export function useGamesListPage(
   const [availableFranchises, setAvailableFranchises] = useState<Array<{ id: string; title: string }>>([]);
   useEffect(() => {
     let cancelled = false;
-    const token = getApiToken();
-    if (!token) return;
+    if (twitchLoginEnabled && !getApiToken()) return;
     const toItems = (list: Array<{ id: number | string; title?: string; name?: string }>, _key: string) =>
       (list || []).map((x) => ({ id: String(x.id), title: String((x as any).title ?? (x as any).name ?? x.id) }));
     Promise.all([
@@ -278,7 +279,7 @@ export function useGamesListPage(
       }
     });
     return () => { cancelled = true; };
-  }, []);
+  }, [twitchLoginEnabled]);
 
   const availableDevelopers = useMemo(() =>
     developers.map((d) => ({ id: String(d.id), title: d.title || "" })),

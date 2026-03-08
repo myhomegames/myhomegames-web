@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useLoading } from "../contexts/LoadingContext";
+import { useSettings } from "../contexts/SettingsContext";
 import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import { useGamesListPage } from "../hooks/useGamesListPage";
 import { useIgdbGamesForSeriesFranchise } from "../hooks/useIgdbGamesForSeriesFranchise";
@@ -37,6 +38,7 @@ export default function TagGamesPage({
   onIgdbGameClick,
 }: TagGamesPageProps) {
   const { games: libraryGames } = useLibraryGames();
+  const { twitchLoginEnabled } = useSettings();
   const { isLoading, setLoading } = useLoading();
   const params = useParams<Record<string, string>>();
   const rawParam = params[paramName];
@@ -51,7 +53,7 @@ export default function TagGamesPage({
 
   const isSeriesOrFranchise = tagKey === "series" || tagKey === "franchise";
   const { igdbGames, loading: igdbLoading } = useIgdbGamesForSeriesFranchise(
-    isSeriesOrFranchise ? tagKey : null,
+    isSeriesOrFranchise && twitchLoginEnabled ? tagKey : null,
     tagValue,
     libraryGameIds,
     true
@@ -78,7 +80,7 @@ export default function TagGamesPage({
   });
 
   const mergedGamesForSeriesFranchise = useMemo(() => {
-    if (!isSeriesOrFranchise || !onIgdbGameClick) return null;
+    if (!isSeriesOrFranchise || !twitchLoginEnabled) return null;
     const libraryGamesInSeries = hook.filteredAndSortedGames;
     const libraryById = new Map(libraryGamesInSeries.map((g) => [String(g.id), g]));
     const seenIds = new Set<string>();
@@ -109,7 +111,7 @@ export default function TagGamesPage({
       return aYear - bYear;
     });
     return merged;
-  }, [isSeriesOrFranchise, onIgdbGameClick, hook.filteredAndSortedGames, igdbGames]);
+  }, [isSeriesOrFranchise, twitchLoginEnabled, hook.filteredAndSortedGames, igdbGames]);
 
   const { libraryGamesLoading, setFilterField, setSelectedThemes,
     setSelectedKeywords,

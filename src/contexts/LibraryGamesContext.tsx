@@ -5,6 +5,7 @@ import { API_BASE, getApiToken } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 import { compareTitles } from "../utils/stringUtils";
 import { useAuth } from "./AuthContext";
+import { useSettings } from "./SettingsContext";
 
 interface LibraryGamesContextType {
   games: GameItem[];
@@ -23,15 +24,15 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { isLoading: authLoading, token: authToken } = useAuth();
+  const { twitchLoginEnabled } = useSettings();
 
   const fetchGames = useCallback(async () => {
-    // Wait for authentication to complete before making API requests
     if (authLoading) {
       return;
     }
-    
+    // When Twitch login is enabled, require token; when disabled, token is optional
     const apiToken = getApiToken() || authToken;
-    if (!apiToken) {
+    if (twitchLoginEnabled && !apiToken) {
       return;
     }
 
@@ -87,7 +88,7 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [authLoading, authToken]);
+  }, [authLoading, authToken, twitchLoginEnabled]);
 
   // Load games on mount and when auth is ready
   useEffect(() => {

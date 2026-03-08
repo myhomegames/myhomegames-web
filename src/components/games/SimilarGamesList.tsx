@@ -11,7 +11,7 @@ import "../common/ScrollableGamesSection.css";
 
 export type SimilarGameDisplayItem =
   | { type: "library"; game: GameItem }
-  | { type: "igdb"; id: number; name: string; cover?: string };
+  | { type: "igdb"; id: number; name: string; cover?: string; year?: number | null };
 
 function getScrollPosition(key: string): number {
   try {
@@ -196,7 +196,7 @@ export default function SimilarGamesList({
                 height={coverHeight}
                 onClick={() => onIgdbGameClick(item.id)}
                 showTitle
-                subtitle={null}
+                subtitle={item.year != null ? item.year : null}
                 detail
                 play={false}
                 showBorder

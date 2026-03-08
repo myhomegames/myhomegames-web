@@ -22,6 +22,7 @@ import { formatGameDate } from "../../utils/date";
 import { buildApiUrl, buildBackgroundUrl } from "../../utils/api";
 import { API_BASE, getApiToken } from "../../config";
 import { useLoading } from "../../contexts/LoadingContext";
+import { useSettings } from "../../contexts/SettingsContext";
 import { useCollections } from "../../contexts/CollectionsContext";
 import { useTagLists } from "../../contexts/TagListsContext";
 import { useLibraryGames } from "../../contexts/LibraryGamesContext";
@@ -221,6 +222,7 @@ function GameDetailContent({
   i18n: { language: string };
 }) {
   const navigate = useNavigate();
+  const { twitchLoginEnabled } = useSettings();
   const { tagLabels, tagLabelsReady } = useTagLists();
   const categoriesList = useMemo(
     () => Array.from(tagLabels.categories.entries()).map(([id, title]) => ({ id, title })),
@@ -338,9 +340,17 @@ function GameDetailContent({
         id: sg.id,
         name: details?.name ?? sg.name ?? String(sg.id),
         cover: details?.cover,
+        year: details?.releaseDate ?? null,
       };
     });
   }, [game.similarGames, libraryMap, detailsById]);
+
+  // When login is disabled, hide IGDB-only games (those with "New" badge)
+  const similarGamesToShow = useMemo((): SimilarGameDisplayItem[] => {
+    if (twitchLoginEnabled) return allSimilarGamesOrdered;
+    return allSimilarGamesOrdered.filter((item) => item.type === "library");
+  }, [twitchLoginEnabled, allSimilarGamesOrdered]);
+
   const handleRelatedGameClick = (selectedGame: GameItem) => {
     navigate(`/game/${selectedGame.id}`);
   };
@@ -670,10 +680,10 @@ function GameDetailContent({
             </div>
           </div>
         )}
-        {(game.similarGames && game.similarGames.length > 0) && (
+        {(game.similarGames && game.similarGames.length > 0) && similarGamesToShow.length > 0 && (
           <div className="game-detail-similar-section">
             <SimilarGamesList
-              items={allSimilarGamesOrdered}
+              items={similarGamesToShow}
               coverSize={coverSize}
               allCollections={allCollections}
               onLibraryGameClick={handleRelatedGameClick}

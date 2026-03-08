@@ -116,6 +116,9 @@ function SingleWebsiteLink({ url }: { url: string; category?: number }) {
           aria-hidden="true"
           className="websites-list-favicon"
           loading="lazy"
+          onError={(e) => {
+            e.currentTarget.style.display = "none";
+          }}
         />
       )}
     </a>

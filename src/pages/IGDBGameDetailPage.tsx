@@ -244,6 +244,7 @@ function IGDBGameDetailContent({
         id: sg.id,
         name: details?.name ?? sg.name ?? String(sg.id),
         cover: details?.cover,
+        year: details?.releaseDate ?? null,
       };
     });
   }, [game.similarGames, libraryMap, detailsById]);

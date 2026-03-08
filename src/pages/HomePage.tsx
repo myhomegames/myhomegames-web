@@ -9,7 +9,7 @@ import DevelopersPage from "./DevelopersPage";
 import PublishersPage from "./PublishersPage";
 import TagListRoutePage from "./TagListRoutePage";
 import type { GameItem, TagItem, GameLibrarySection, CollectionItem } from "../types";
-import { API_BASE, getApiToken } from "../config";
+import { API_BASE } from "../config";
 import { buildApiHeaders } from "../utils/api";
 import { buildLibrarySections, normalizeVisibleLibraries } from "../utils/librarySections";
 import "./HomePage.css";
@@ -109,9 +109,8 @@ export default function HomePage({
     setError(null);
     try {
       let visibleLibraries: string[] | null = null;
-      const apiToken = getApiToken();
 
-      if (API_BASE && apiToken) {
+      if (API_BASE) {
         try {
           const url = new URL("/settings", API_BASE);
           const controller = new AbortController();

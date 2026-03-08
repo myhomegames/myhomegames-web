@@ -5,6 +5,7 @@ import { createContext, useContext, useState, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { API_BASE, updateApiToken } from "../config";
 import { setUnauthorizedHandler } from "../utils/unauthorizedInterceptor";
+import { useSettings } from "./SettingsContext";
 
 interface User {
   userId: string;
@@ -30,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { twitchLoginEnabled } = useSettings();
 
   // Check authentication status
   const checkAuth = async () => {
@@ -282,16 +284,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
-  // Global 401 handling: invalidate session and redirect to server (login)
+  // Global 401 handling: when Twitch login is enabled, invalidate session and redirect; when disabled, do nothing
   const logoutRef = useRef(logout);
   logoutRef.current = logout;
   useEffect(() => {
     setUnauthorizedHandler(() => {
+      if (!twitchLoginEnabled) return;
       logoutRef.current();
       const serverUrl = API_BASE.replace(/\/$/, "");
       window.location.href = serverUrl;
     });
-  }, []);
+  }, [twitchLoginEnabled]);
 
   const value: AuthContextType = {
     user,

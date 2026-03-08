@@ -4,6 +4,7 @@ import type { CollectionItem } from "../types";
 import { API_BASE, getApiToken } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 import { useAuth } from "./AuthContext";
+import { useSettings } from "./SettingsContext";
 
 interface PublishersContextType {
   publishers: CollectionItem[];
@@ -20,11 +21,11 @@ export function PublishersProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { isLoading: authLoading, token: authToken } = useAuth();
+  const { twitchLoginEnabled } = useSettings();
 
   const fetchPublishers = useCallback(async () => {
     if (authLoading) return;
-    const apiToken = getApiToken() || authToken;
-    if (!apiToken) return;
+    if (twitchLoginEnabled && !getApiToken() && !authToken) return;
 
     setIsLoading(true);
     setError(null);
@@ -55,17 +56,17 @@ export function PublishersProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [authLoading, authToken]);
+  }, [authLoading, authToken, twitchLoginEnabled]);
 
   useEffect(() => {
     if (authLoading) return;
-    if (!getApiToken() && !authToken) {
+    if (twitchLoginEnabled && !getApiToken() && !authToken) {
       setIsLoading(false);
       return;
     }
     const t = setTimeout(fetchPublishers, 1200);
     return () => clearTimeout(t);
-  }, [authLoading, authToken, fetchPublishers]);
+  }, [authLoading, authToken, twitchLoginEnabled, fetchPublishers]);
 
   useEffect(() => {
     const handleUpdate = (e: Event) => {

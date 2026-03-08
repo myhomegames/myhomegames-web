@@ -156,6 +156,7 @@ export default function GamesListTable({
             isOpen={editGame.isEditModalOpen}
             onClose={editGame.closeEditModal}
             game={editGame.selectedGame}
+            onGameDraftUpdate={(updatedGame) => editGame.updateSelectedGame(updatedGame)}
             onGameUpdate={handleGameUpdate}
           />
         )}

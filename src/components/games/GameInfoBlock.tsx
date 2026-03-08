@@ -21,26 +21,12 @@ function toIdStrings(value: unknown): string[] {
   );
 }
 
-/** Extract id -> name from franchise/series/collection (IGDB returns { id, name }). */
-function extractIdNameMap(value: unknown): Map<string, string> {
-  const m = new Map<string, string>();
-  const arr = value == null ? [] : Array.isArray(value) ? value : [value];
-  for (const x of arr) {
-    if (typeof x === "object" && x != null && "id" in x && "name" in x) {
-      const id = String((x as { id: number }).id);
-      const name = String((x as { name: string }).name).trim();
-      if (id && name) m.set(id, name);
-    }
-  }
-  return m;
-}
-
 export default function GameInfoBlock({ game }: GameInfoBlockProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { developers } = useDevelopers();
   const { publishers } = usePublishers();
-  const { tagLabels, tagLabelsReady } = useTagLists();
+  const { tagLabels } = useTagLists();
 
   const gameId = "id" in game ? String(game.id) : undefined;
 
@@ -66,26 +52,15 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
     return null;
   }
 
-  /** Resolve item (id or name) to route id: se è un nome IGDB, trova la chiave in map; altrimenti usa l'id. */
-  const resolveToRouteId = (map: Map<string, string>, idOrName: string) =>
-    map.has(idOrName) ? idOrName : [...map.entries()].find(([, v]) => v === idOrName)?.[0] ?? idOrName;
-
   const renderTagListByIds = (
     ids: string[],
     routeBase: string,
-    getLabel: (id: string) => string,
-    isClickable?: (id: string) => boolean,
-    labelMap?: Map<string, string>
+    getLabel: (id: string) => string
   ) => (
     <InlineTagList
       items={ids}
       getLabel={getLabel}
-      onItemClick={(id) =>
-        navigate(
-          `${routeBase}/${encodeURIComponent(labelMap ? resolveToRouteId(labelMap, id) : id)}`
-        )
-      }
-      isClickable={isClickable}
+      onItemClick={(id) => navigate(`${routeBase}/${encodeURIComponent(id)}`)}
       useInfoStyles
       showMoreMinCount={5}
       showMoreLabel={t("gameDetail.andMore", ", and more")}
@@ -116,20 +91,11 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
     return m;
   }, [game.publishers]);
 
-  const franchiseNamesFromGame = useMemo(
-    () => extractIdNameMap(game.franchise),
-    [game.franchise]
-  );
-  const seriesNamesFromGame = useMemo(
-    () => extractIdNameMap(game.series ?? game.collection),
-    [game.series, game.collection]
-  );
-
   return (
     <div className="game-info-block">
 
-      {/* Themes (wait for tagLabels so we never show raw IDs) */}
-      {tagLabelsReady && game.themes && game.themes.length > 0 && (
+      {/* Themes */}
+      {game.themes && game.themes.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
             {t("igdbInfo.themes", "Themes")}
@@ -138,15 +104,13 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
             toIdStrings(game.themes),
             "/themes",
             (id) =>
-              t(`themes.${tagLabels.themes.get(id) ?? id}`, tagLabels.themes.get(id) ?? id),
-            (id) => tagLabels.themes.has(id) || [...tagLabels.themes.values()].includes(id),
-            tagLabels.themes
+              t(`themes.${tagLabels.themes.get(id) ?? id}`, tagLabels.themes.get(id) ?? id)
           )}
         </div>
       )}
 
-      {/* Platforms (wait for tagLabels so we never show raw IDs) */}
-      {tagLabelsReady && game.platforms && game.platforms.length > 0 && (
+      {/* Platforms */}
+      {game.platforms && game.platforms.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
             {t("igdbInfo.platforms", "Platforms")}
@@ -154,15 +118,13 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           {renderTagListByIds(
             toIdStrings(game.platforms),
             "/platforms",
-            (id) => tagLabels.platforms.get(id) ?? id,
-            (id) => tagLabels.platforms.has(id) || [...tagLabels.platforms.values()].includes(id),
-            tagLabels.platforms
+            (id) => tagLabels.platforms.get(id) ?? id
           )}
         </div>
       )}
 
-      {/* Game Modes (wait for tagLabels so we never show raw IDs) */}
-      {tagLabelsReady && game.gameModes && game.gameModes.length > 0 && (
+      {/* Game Modes */}
+      {game.gameModes && game.gameModes.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
             {t("igdbInfo.gameModes", "Game Modes")}
@@ -170,15 +132,13 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           {renderTagListByIds(
             toIdStrings(game.gameModes),
             "/game-modes",
-            (id) => t(`gameModes.${tagLabels.gameModes.get(id) ?? id}`, tagLabels.gameModes.get(id) ?? id),
-            (id) => tagLabels.gameModes.has(id) || [...tagLabels.gameModes.values()].includes(id),
-            tagLabels.gameModes
+            (id) => t(`gameModes.${tagLabels.gameModes.get(id) ?? id}`, tagLabels.gameModes.get(id) ?? id)
           )}
         </div>
       )}
 
-      {/* Player Perspectives (wait for tagLabels so we never show raw IDs) */}
-      {tagLabelsReady && game.playerPerspectives && game.playerPerspectives.length > 0 && (
+      {/* Player Perspectives */}
+      {game.playerPerspectives && game.playerPerspectives.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
             {t("igdbInfo.playerPerspectives", "Player Perspectives")}
@@ -190,11 +150,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
               t(
                 `playerPerspectives.${tagLabels.playerPerspectives.get(id) ?? id}`,
                 tagLabels.playerPerspectives.get(id) ?? id
-              ),
-            (id) =>
-              tagLabels.playerPerspectives.has(id) ||
-              [...tagLabels.playerPerspectives.values()].includes(id),
-            tagLabels.playerPerspectives
+              )
           )}
         </div>
       )}
@@ -221,7 +177,6 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
             onItemClick={(value) =>
               navigate(`/developers/${encodeURIComponent(value)}`)
             }
-            isClickable={(id) => developers.some((d) => String(d.id) === id)}
             useInfoStyles
             showMoreMinCount={5}
             showMoreLabel={t("gameDetail.andMore", ", and more")}
@@ -241,7 +196,6 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
             onItemClick={(value) =>
               navigate(`/publishers/${encodeURIComponent(value)}`)
             }
-            isClickable={(id) => publishers.some((p) => String(p.id) === id)}
             useInfoStyles
             showMoreMinCount={5}
             showMoreLabel={t("gameDetail.andMore", ", and more")}
@@ -249,8 +203,8 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
         </div>
       )}
 
-      {/* Franchise (wait for tagLabels when no names from game payload) */}
-      {tagLabelsReady && franchiseIds.length > 0 && (
+      {/* Franchise */}
+      {franchiseIds.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
             {t("igdbInfo.franchise", "Franchise")}
@@ -258,15 +212,13 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           {renderTagListByIds(
             franchiseIds,
             "/franchise",
-            (id) => franchiseNamesFromGame.get(id) ?? tagLabels.franchises.get(id) ?? id,
-            (id) => tagLabels.franchises.has(id),
-            tagLabels.franchises
+            (id) => tagLabels.franchises.get(id) ?? id
           )}
         </div>
       )}
 
-      {/* Series (collection) (wait for tagLabels when no names from game payload) */}
-      {tagLabelsReady && seriesIds.length > 0 && (
+      {/* Series (collection) */}
+      {seriesIds.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
             {t("igdbInfo.series", "Series")}
@@ -274,15 +226,13 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           {renderTagListByIds(
             seriesIds,
             "/series",
-            (id) => seriesNamesFromGame.get(id) ?? tagLabels.series.get(id) ?? id,
-            (id) => tagLabels.series.has(id),
-            tagLabels.series
+            (id) => tagLabels.series.get(id) ?? id
           )}
         </div>
       )}
 
-      {/* Game Engines (wait for tagLabels so we never show raw IDs) */}
-      {tagLabelsReady && game.gameEngines && game.gameEngines.length > 0 && (
+      {/* Game Engines */}
+      {game.gameEngines && game.gameEngines.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
             {t("igdbInfo.gameEngines", "Game Engines")}
@@ -290,11 +240,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           {renderTagListByIds(
             toIdStrings(game.gameEngines),
             "/game-engines",
-            (id) => tagLabels.gameEngines.get(id) ?? id,
-            (id) =>
-              tagLabels.gameEngines.has(id) ||
-              [...tagLabels.gameEngines.values()].includes(id),
-            tagLabels.gameEngines
+            (id) => tagLabels.gameEngines.get(id) ?? id
           )}
         </div>
       )}
