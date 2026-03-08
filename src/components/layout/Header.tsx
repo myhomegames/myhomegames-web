@@ -4,6 +4,8 @@ import SearchBar from "../search/SearchBar";
 import ProfileDropdown from "./ProfileDropdown";
 import Tooltip from "../common/Tooltip";
 import { useLoading } from "../../contexts/LoadingContext";
+import { useSettings } from "../../contexts/SettingsContext";
+import { getApiToken } from "../../config";
 import type { GameItem, CollectionItem } from "../../types";
 
 type HeaderProps = {
@@ -31,6 +33,9 @@ export default function Header({
 }: HeaderProps) {
   const { t } = useTranslation();
   const { isLoading } = useLoading();
+  const { twitchLoginEnabled } = useSettings();
+  const hasToken = !!getApiToken();
+  const showProfile = twitchLoginEnabled && hasToken;
 
   return (
     <header className="mhg-header">
@@ -120,7 +125,7 @@ export default function Header({
               </svg>
             </button>
           </Tooltip>
-          <ProfileDropdown />
+          {showProfile && <ProfileDropdown />}
         </div>
       </div>
     </header>

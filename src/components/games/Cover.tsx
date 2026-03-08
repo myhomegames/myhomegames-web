@@ -409,6 +409,7 @@ export default function Cover({
         )}
         {onEdit && (
           <button
+            type="button"
             onClick={handleEditClick}
             className={`games-list-edit-button ${editButtonPosition === "bottom-right" ? "games-list-edit-button-bottom-right" : ""}`}
             aria-label={t("common.edit", "Edit")}

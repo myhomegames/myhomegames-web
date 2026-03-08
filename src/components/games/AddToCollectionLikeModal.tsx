@@ -61,6 +61,7 @@ export default function AddToCollectionLikeModal({
 }: AddToCollectionLikeModalProps) {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [newItemTitle, setNewItemTitle] = useState(
     resourceType === "collections" ? game.title : ""
   );
@@ -83,6 +84,7 @@ export default function AddToCollectionLikeModal({
       onAdded?.();
       onClose();
     },
+    onError: setError,
   });
 
   const addGameToDeveloper = useAddGameToDeveloper({
@@ -90,6 +92,7 @@ export default function AddToCollectionLikeModal({
       onAdded?.();
       onClose();
     },
+    onError: setError,
   });
 
   const addGameToPublisher = useAddGameToPublisher({
@@ -97,6 +100,7 @@ export default function AddToCollectionLikeModal({
       onAdded?.();
       onClose();
     },
+    onError: setError,
   });
 
   const createCollection = useCreateCollection({
@@ -105,10 +109,11 @@ export default function AddToCollectionLikeModal({
         await addGameToCollection.addGameToCollection(game.id, newCollection.id);
       }
     },
+    onError: setError,
   });
 
-  const createDeveloper = useCreateDeveloper();
-  const createPublisher = useCreatePublisher();
+  const createDeveloper = useCreateDeveloper({ onError: setError });
+  const createPublisher = useCreatePublisher({ onError: setError });
 
   // Filter out items that already contain this game
   const availableItems = useMemo(() => {
@@ -137,6 +142,7 @@ export default function AddToCollectionLikeModal({
     if (isOpen) {
       setNewItemTitle(resourceType === "collections" ? game.title : "");
       setSearchQuery("");
+      setError(null);
       document.body.style.overflow = "hidden";
       setTimeout(() => {
         createInputRef.current?.focus();
@@ -203,10 +209,16 @@ export default function AddToCollectionLikeModal({
       <div className="add-to-collection-modal" onClick={(e) => e.stopPropagation()}>
         <div className="add-to-collection-modal-header">
           <h2>{t(config.titleKey)}</h2>
-          <button className="add-to-collection-modal-close" onClick={onClose}>
+          <button type="button" className="add-to-collection-modal-close" onClick={onClose}>
             ×
           </button>
         </div>
+
+        {error && (
+          <div className="add-to-collection-modal-error" role="alert">
+            {error}
+          </div>
+        )}
 
         <div className="add-to-collection-modal-search">
           <input
@@ -254,7 +266,10 @@ export default function AddToCollectionLikeModal({
             type="text"
             placeholder={t(config.newTitlePlaceholderKey)}
             value={newItemTitle}
-            onChange={(e) => setNewItemTitle(e.target.value)}
+            onChange={(e) => {
+              setNewItemTitle(e.target.value);
+              setError(null);
+            }}
             onFocus={(e) => {
               if (e.target.value) e.target.select();
             }}
@@ -264,6 +279,7 @@ export default function AddToCollectionLikeModal({
             aria-label={t(config.newTitlePlaceholderKey)}
           />
           <button
+            type="button"
             onClick={handleCreateNew}
             disabled={
               !newItemTitle.trim() ||

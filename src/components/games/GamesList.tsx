@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { API_BASE, API_TOKEN } from "../../config";
+import { API_BASE } from "../../config";
 import Cover from "./Cover";
 import EditGameModal from "./EditGameModal";
 import { useEditGame } from "../common/actions";
@@ -320,7 +320,7 @@ export default function GamesList({
           ))
         )}
       </div>
-      {editGame.selectedGame && API_TOKEN && (
+      {editGame.selectedGame && (
         <EditGameModal
           isOpen={editGame.isEditModalOpen}
           onClose={editGame.closeEditModal}
