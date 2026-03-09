@@ -45,7 +45,7 @@ export default function LibrariesBar({
   showNewGamesToggle = false,
   showNewGames = false,
   onShowNewGamesChange,
-  showNewGamesLabel,
+  showNewGamesLabel: _showNewGamesLabel,
 }: LibrariesBarProps) {
   const { t } = useTranslation();
   const { isLoading: globalLoading } = useLoading();
