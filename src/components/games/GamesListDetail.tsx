@@ -19,6 +19,7 @@ const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are mo
 type GamesListDetailProps = {
   games: GameItem[];
   onGameClick: (game: GameItem) => void;
+  onIgdbGameClick?: (igdbId: number) => void;
   onPlay?: (game: GameItem) => void;
   onGameUpdate?: (updatedGame: GameItem) => void;
   onGameDelete?: (deletedGame: GameItem) => void;
@@ -33,6 +34,7 @@ const FIXED_COVER_SIZE = 100; // Fixed size corresponding to minimum slider posi
 type GameDetailItemProps = {
   game: GameItem;
   onGameClick: (game: GameItem) => void;
+  onIgdbGameClick?: (igdbId: number) => void;
   onPlay?: (game: GameItem) => void;
   onEditClick: (game: GameItem) => void;
   onGameDelete?: (deletedGame: GameItem) => void;
@@ -46,6 +48,7 @@ type GameDetailItemProps = {
 export function GameDetailItem({
   game,
   onGameClick,
+  onIgdbGameClick,
   onPlay,
   onEditClick,
   onGameDelete,
@@ -57,6 +60,13 @@ export function GameDetailItem({
 }: GameDetailItemProps) {
   const { t, i18n } = useTranslation();
   const isIgdbOnly = (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly;
+  const handleRowClick = () => {
+    if (isIgdbOnly && onIgdbGameClick) {
+      onIgdbGameClick(Number(game.id));
+    } else {
+      onGameClick(game);
+    }
+  };
   const isEven = index % 2 === 0;
   const coverHeight = FIXED_COVER_SIZE * 1.5;
   
@@ -105,7 +115,7 @@ export function GameDetailItem({
       className={`group cursor-pointer mb-6 games-list-detail-item ${
         isEven ? "even" : "odd"
       }${isDropdownOpen ? " detail-dropdown-open" : ""}`}
-      onClick={() => onGameClick(game)}
+      onClick={handleRowClick}
     >
       <Cover
         key={`${game.id}-${game.cover}`}
@@ -206,6 +216,7 @@ export function GameDetailItem({
 export default function GamesListDetail({
   games,
   onGameClick,
+  onIgdbGameClick,
   onPlay,
   onGameUpdate,
   onGameDelete,
@@ -251,6 +262,7 @@ export default function GamesListDetail({
             containerRef={scrollContainerRef || containerRef}
             itemRefs={itemRefs}
             onGameClick={onGameClick}
+            onIgdbGameClick={onIgdbGameClick}
             onPlay={onPlay}
             onEditClick={editGame.openEditModal}
             onGameDelete={onGameDelete}
@@ -264,6 +276,7 @@ export default function GamesListDetail({
               key={game.id}
               game={game}
               onGameClick={onGameClick}
+              onIgdbGameClick={onIgdbGameClick}
               onPlay={onPlay}
               onEditClick={editGame.openEditModal}
               onGameDelete={onGameDelete}

@@ -22,6 +22,7 @@ type TableRowProps = {
   index: number;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
   onGameClick: (game: GameItem) => void;
+  onIgdbGameClick?: (igdbId: number) => void;
   onPlay?: (game: GameItem) => void;
   onGameUpdate?: (updatedGame: GameItem) => void;
   onGameDelete?: (deletedGame: GameItem) => void;
@@ -42,6 +43,7 @@ export default function TableRow({
   index,
   itemRefs,
   onGameClick,
+  onIgdbGameClick,
   onPlay,
   onGameUpdate,
   onGameDelete,
@@ -56,6 +58,13 @@ export default function TableRow({
   useDiv = false,
 }: TableRowProps) {
   const isIgdbOnly = (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly;
+  const handleTitleClick = () => {
+    if (isIgdbOnly && onIgdbGameClick) {
+      onIgdbGameClick(Number(game.id));
+    } else {
+      onGameClick(game);
+    }
+  };
   const isEven = index % 2 === 0;
   const rowClass = isEven ? "even-row" : "odd-row";
   const RowTag = useDiv ? "div" : "tr";
@@ -141,7 +150,7 @@ export default function TableRow({
       }}
       style={rowStyle}
       role={useDiv ? "row" : undefined}
-      className={isDropdownOpen ? "row-dropdown-open" : undefined}
+      className={[isDropdownOpen && "row-dropdown-open", isIgdbOnly && "igdb-only-row"].filter(Boolean).join(" ") || undefined}
     >
       <CellTag className="column-menu-cell" style={cellStyle} role={useDiv ? "cell" : undefined}></CellTag>
       {columnVisibility.title && (
@@ -150,7 +159,7 @@ export default function TableRow({
           <Tooltip text={game.title} delay={1000}>
             <span 
               className={firstVisibleColumn === "title" ? "first-cell-text" : "title-cell-text"}
-              onClick={() => onGameClick(game)}
+              onClick={handleTitleClick}
             >
               {game.title}
             </span>

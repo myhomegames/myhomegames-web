@@ -277,6 +277,7 @@ export default function GamesListPageContent({
                   <GamesListDetail
                     games={displayGames}
                     onGameClick={handleGameClick}
+                    onIgdbGameClick={onIgdbGameClick}
                     onPlay={onPlay}
                     onGameUpdate={handleGameUpdate}
                     onGameDelete={handleGameDelete}
@@ -290,6 +291,7 @@ export default function GamesListPageContent({
                   <GamesListTable
                     games={displayGames}
                     onGameClick={handleGameClick}
+                    onIgdbGameClick={onIgdbGameClick}
                     onPlay={onPlay}
                     onGameUpdate={handleGameUpdate}
                     onGameDelete={handleGameDelete}
