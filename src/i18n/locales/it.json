@@ -48,7 +48,9 @@
     "noItemsFound": "Nessun {{type}} trovato"
   },
   "tagGames": {
-    "igdbGamesNotInLibrary": "Giochi non in libreria"
+    "igdbGamesNotInLibrary": "Giochi non in libreria",
+    "showNewGames": "Giochi nuovi",
+    "hideNewGames": "Nascondi giochi nuovi"
   },
   "header": {
     "home": "Home",
@@ -155,7 +157,7 @@
     "genre": "Genere",
     "addGenre": "Aggiungi genere...",
     "themes": "Temi",
-    "keywords": "Parole chiave",
+    "keywords": "Consigliati",
     "platforms": "Piattaforme",
     "gameModes": "Modalità di gioco",
     "publishers": "Produttori",
@@ -294,7 +296,7 @@
       "all": "Tutto",
       "genre": "Genere",
       "themes": "Temi",
-      "keywords": "Parole chiave",
+      "keywords": "Consigliati",
       "platforms": "Piattaforme",
       "gameModes": "Modalità di gioco",
       "publishers": "Produttori",
@@ -310,7 +312,7 @@
       "searchYear": "Filtro Anno",
       "searchGenre": "Filtro Genere",
       "searchThemes": "Filtro Temi",
-      "searchKeywords": "Filtro Parole chiave",
+      "searchKeywords": "Filtro Consigliati",
       "searchPlatforms": "Filtro Piattaforme",
       "searchGameModes": "Filtro Modalità di gioco",
       "searchPublishers": "Filtro Produttore",
@@ -510,7 +512,7 @@
     "screenshots": "Screenshot",
     "videos": "Video",
     "gameEngines": "Motori di gioco",
-    "keywords": "Parole chiave",
+    "keywords": "Consigliati",
     "alternativeNames": "Nomi alternativi",
     "similarGames": "Giochi simili",
     "genres": "Generi",

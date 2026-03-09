@@ -12,6 +12,89 @@ import { API_BASE, getApiToken } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 import { useSettings } from "../contexts/SettingsContext";
 
+/** Shared sort for merged lists (e.g. tag pages with IGDB + library games). */
+export function sortGamesList(
+  games: GameItem[],
+  sortField: SortField,
+  sortAscending: boolean
+): GameItem[] {
+  const sorted = [...games];
+  sorted.sort((a, b) => {
+    let compareResult = 0;
+    switch (sortField) {
+      case "title":
+        compareResult = compareTitles(a.title || "", b.title || "");
+        break;
+      case "year": {
+        const yearA = a.year ?? 0;
+        const yearB = b.year ?? 0;
+        compareResult = yearA - yearB;
+        break;
+      }
+      case "stars": {
+        const starsA = a.stars ?? 0;
+        const starsB = b.stars ?? 0;
+        compareResult = starsA - starsB;
+        break;
+      }
+      case "releaseDate": {
+        const dateA = a.year ?? 0;
+        const dateB = b.year ?? 0;
+        if (dateA !== dateB) {
+          compareResult = dateA - dateB;
+        } else {
+          const monthA = a.month ?? 0;
+          const monthB = b.month ?? 0;
+          if (monthA !== monthB) {
+            compareResult = monthA - monthB;
+          } else {
+            const dayA = a.day ?? 0;
+            const dayB = b.day ?? 0;
+            compareResult = dayA - dayB;
+          }
+        }
+        break;
+      }
+      case "criticRating": {
+        const criticA = a.criticratings ?? 0;
+        const criticB = b.criticratings ?? 0;
+        compareResult = criticA - criticB;
+        break;
+      }
+      case "userRating": {
+        const userA = a.userratings ?? 0;
+        const userB = b.userratings ?? 0;
+        compareResult = userA - userB;
+        break;
+      }
+      case "ageRating": {
+        const ageRatingsA = a.ageRatings && a.ageRatings.length > 0 ? a.ageRatings : [];
+        const ageRatingsB = b.ageRatings && b.ageRatings.length > 0 ? b.ageRatings : [];
+        if (ageRatingsA.length === 0 && ageRatingsB.length === 0) {
+          compareResult = 0;
+        } else if (ageRatingsA.length === 0) {
+          compareResult = 1;
+        } else if (ageRatingsB.length === 0) {
+          compareResult = -1;
+        } else {
+          const firstA = ageRatingsA[0];
+          const firstB = ageRatingsB[0];
+          if (firstA.category !== firstB.category) {
+            compareResult = firstA.category - firstB.category;
+          } else {
+            compareResult = firstA.rating - firstB.rating;
+          }
+        }
+        break;
+      }
+      default:
+        compareResult = 0;
+    }
+    return sortAscending ? compareResult : -compareResult;
+  });
+  return sorted;
+}
+
 type GameEventType = "gameUpdated" | "gameDeleted" | "gameAdded";
 
 type ColumnVisibility = {

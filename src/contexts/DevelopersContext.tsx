@@ -107,12 +107,14 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
     window.addEventListener("developerDeleted", handleDeleted as EventListener);
     window.addEventListener("metadataReloaded", fetchDevelopers);
     window.addEventListener("gameAdded", handleGameAdded);
+    window.addEventListener("gameDeleted", handleGameAdded);
     return () => {
       window.removeEventListener("developerUpdated", handleUpdate as EventListener);
       window.removeEventListener("developerAdded", handleAdded as EventListener);
       window.removeEventListener("developerDeleted", handleDeleted as EventListener);
       window.removeEventListener("metadataReloaded", fetchDevelopers);
       window.removeEventListener("gameAdded", handleGameAdded);
+      window.removeEventListener("gameDeleted", handleGameAdded);
     };
   }, [fetchDevelopers]);
 

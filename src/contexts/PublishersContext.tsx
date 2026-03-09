@@ -107,12 +107,14 @@ export function PublishersProvider({ children }: { children: ReactNode }) {
     window.addEventListener("publisherDeleted", handleDeleted as EventListener);
     window.addEventListener("metadataReloaded", fetchPublishers);
     window.addEventListener("gameAdded", handleGameAdded);
+    window.addEventListener("gameDeleted", handleGameAdded);
     return () => {
       window.removeEventListener("publisherUpdated", handleUpdate as EventListener);
       window.removeEventListener("publisherAdded", handleAdded as EventListener);
       window.removeEventListener("publisherDeleted", handleDeleted as EventListener);
       window.removeEventListener("metadataReloaded", fetchPublishers);
       window.removeEventListener("gameAdded", handleGameAdded);
+      window.removeEventListener("gameDeleted", handleGameAdded);
     };
   }, [fetchPublishers]);
 

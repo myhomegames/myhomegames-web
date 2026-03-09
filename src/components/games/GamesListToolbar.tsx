@@ -95,6 +95,8 @@ type GamesListToolbarProps = {
   availableFranchises?: Array<{ id: string; title: string }>;
   availableDevelopers?: Array<{ id: string; title: string }>;
   availablePublishers?: Array<{ id: string; title: string }>;
+  /** When on tag page with IGDB id, show this instead of the raw id in the filter label */
+  selectedFilterValueLabel?: string;
 };
 
 export default function GamesListToolbar({
@@ -143,6 +145,7 @@ export default function GamesListToolbar({
   availableFranchises = [],
   availableDevelopers = [],
   availablePublishers = [],
+  selectedFilterValueLabel,
 }: GamesListToolbarProps) {
   const { t } = useTranslation();
   const { tagLabels: contextTagLabels } = useTagLists();
@@ -195,6 +198,12 @@ export default function GamesListToolbar({
   }, [games, currentFilter, emptyMap]);
 
   const getCurrentFilterLabel = () => {
+    if (selectedFilterValueLabel && ["themes", "platforms", "gameModes", "playerPerspectives", "gameEngines"].includes(currentFilter)) {
+      if (currentFilter === "themes") return t(`themes.${selectedFilterValueLabel}`, selectedFilterValueLabel);
+      if (currentFilter === "gameModes") return t(`gameModes.${selectedFilterValueLabel}`, selectedFilterValueLabel);
+      if (currentFilter === "playerPerspectives") return t(`playerPerspectives.${selectedFilterValueLabel}`, selectedFilterValueLabel);
+      return selectedFilterValueLabel;
+    }
     if (currentFilter === "year" && selectedYear !== null) {
       return selectedYear.toString();
     }

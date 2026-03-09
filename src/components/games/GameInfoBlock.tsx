@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import type { IGDBGame, GameItem } from "../../types";
+import { getTagId } from "../../utils/tagId";
 import { useDevelopers } from "../../contexts/DevelopersContext";
 import { usePublishers } from "../../contexts/PublishersContext";
 import { useTagLists } from "../../contexts/TagListsContext";
@@ -19,6 +20,40 @@ function toIdStrings(value: unknown): string[] {
   return value.map((x) =>
     typeof x === "object" && x != null && "id" in x ? String((x as { id: number }).id) : String(x)
   );
+}
+
+/** When game has tag objects with name (IGDB), use library-style hash id for links and optional ?name= for tag page. */
+function getTagLinkInfo(arr: unknown[]): {
+  linkIds: string[];
+  hashToDisplayName: Map<string, string>;
+  getSearchParams: (id: string) => string;
+} {
+  const hasNames =
+    arr &&
+    Array.isArray(arr) &&
+    arr.length > 0 &&
+    arr.every((x) => typeof x === "object" && x != null && "name" in x && typeof (x as { name: string }).name === "string");
+  if (!hasNames || !arr.length) {
+    return { linkIds: toIdStrings(arr), hashToDisplayName: new Map(), getSearchParams: () => "" };
+  }
+  const linkIds: string[] = [];
+  const hashToDisplayName = new Map<string, string>();
+  const hashToNameForQuery = new Map<string, string>();
+  for (const x of arr) {
+    const name = (x as { name: string }).name;
+    const hash = String(getTagId(name));
+    linkIds.push(hash);
+    hashToDisplayName.set(hash, name);
+    hashToNameForQuery.set(hash, name);
+  }
+  return {
+    linkIds,
+    hashToDisplayName,
+    getSearchParams: (id: string) => {
+      const name = hashToNameForQuery.get(id);
+      return name ? `?name=${encodeURIComponent(name)}` : "";
+    },
+  };
 }
 
 export default function GameInfoBlock({ game }: GameInfoBlockProps) {
@@ -55,12 +90,17 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
   const renderTagListByIds = (
     ids: string[],
     routeBase: string,
-    getLabel: (id: string) => string
+    getLabel: (id: string) => string,
+    getSearchParams?: (id: string) => string,
+    isClickable?: (id: string) => boolean
   ) => (
     <InlineTagList
       items={ids}
       getLabel={getLabel}
-      onItemClick={(id) => navigate(`${routeBase}/${encodeURIComponent(id)}`)}
+      onItemClick={(id) =>
+        navigate(`${routeBase}/${encodeURIComponent(id)}${getSearchParams ? getSearchParams(id) : ""}`)
+      }
+      isClickable={isClickable}
       useInfoStyles
       showMoreMinCount={5}
       showMoreLabel={t("gameDetail.andMore", ", and more")}
@@ -91,6 +131,62 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
     return m;
   }, [game.publishers]);
 
+  // Names from game payload for franchise/series (IGDB returns { id, name })
+  const franchiseNamesFromGame = useMemo(() => {
+    const m = new Map<string, string>();
+    const raw = game.franchise;
+    const arr = raw == null ? [] : Array.isArray(raw) ? raw : [raw];
+    for (const x of arr) {
+      if (typeof x === "object" && x != null && "id" in x && "name" in x) {
+        m.set(String((x as { id: number }).id), (x as { name: string }).name);
+      }
+    }
+    return m;
+  }, [game.franchise]);
+  const seriesNamesFromGame = useMemo(() => {
+    const m = new Map<string, string>();
+    const raw = game.series ?? game.collection;
+    const arr = raw == null ? [] : Array.isArray(raw) ? raw : [raw];
+    for (const x of arr) {
+      if (typeof x === "object" && x != null && "id" in x && "name" in x) {
+        m.set(String((x as { id: number }).id), (x as { name: string }).name);
+      }
+    }
+    return m;
+  }, [game.series, game.collection]);
+
+  // Names from game payload for tag fields (IGDB returns { id, name })
+  const tagNamesFromGame = useMemo(() => {
+    const themeMap = new Map<string, string>();
+    const platformMap = new Map<string, string>();
+    const gameModeMap = new Map<string, string>();
+    const ppMap = new Map<string, string>();
+    const engineMap = new Map<string, string>();
+    const add = (arr: unknown[], map: Map<string, string>) => {
+      if (!arr || !Array.isArray(arr)) return;
+      for (const x of arr) {
+        if (typeof x === "object" && x != null && "id" in x && "name" in x) {
+          map.set(String((x as { id: number }).id), (x as { name: string }).name);
+        }
+      }
+    };
+    add(game.themes as unknown[], themeMap);
+    add(game.platforms as unknown[], platformMap);
+    add(game.gameModes as unknown[], gameModeMap);
+    add(game.playerPerspectives as unknown[], ppMap);
+    add(game.gameEngines as unknown[], engineMap);
+    return { themeMap, platformMap, gameModeMap, ppMap, engineMap };
+  }, [game.themes, game.platforms, game.gameModes, game.playerPerspectives, game.gameEngines]);
+
+  const themeLinkInfo = useMemo(() => getTagLinkInfo(game.themes as unknown[]), [game.themes]);
+  const platformLinkInfo = useMemo(() => getTagLinkInfo(game.platforms as unknown[]), [game.platforms]);
+  const gameModeLinkInfo = useMemo(() => getTagLinkInfo(game.gameModes as unknown[]), [game.gameModes]);
+  const playerPerspectiveLinkInfo = useMemo(
+    () => getTagLinkInfo(game.playerPerspectives as unknown[]),
+    [game.playerPerspectives]
+  );
+  const gameEngineLinkInfo = useMemo(() => getTagLinkInfo(game.gameEngines as unknown[]), [game.gameEngines]);
+
   return (
     <div className="game-info-block">
 
@@ -101,10 +197,18 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
             {t("igdbInfo.themes", "Themes")}
           </div>
           {renderTagListByIds(
-            toIdStrings(game.themes),
+            themeLinkInfo.linkIds,
             "/themes",
-            (id) =>
-              t(`themes.${tagLabels.themes.get(id) ?? id}`, tagLabels.themes.get(id) ?? id)
+            (id) => {
+              const displayName =
+                themeLinkInfo.hashToDisplayName.get(id) ??
+                tagNamesFromGame.themeMap.get(id) ??
+                tagLabels.themes.get(id) ??
+                id;
+              return t(`themes.${displayName}`, displayName);
+            },
+            themeLinkInfo.getSearchParams,
+            (id) => tagLabels.themes.has(id)
           )}
         </div>
       )}
@@ -116,9 +220,18 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
             {t("igdbInfo.platforms", "Platforms")}
           </div>
           {renderTagListByIds(
-            toIdStrings(game.platforms),
+            platformLinkInfo.linkIds,
             "/platforms",
-            (id) => tagLabels.platforms.get(id) ?? id
+            (id) => {
+              const displayName =
+                platformLinkInfo.hashToDisplayName.get(id) ??
+                tagNamesFromGame.platformMap.get(id) ??
+                tagLabels.platforms.get(id) ??
+                id;
+              return t(`platforms.${displayName}`, displayName);
+            },
+            platformLinkInfo.getSearchParams,
+            (id) => tagLabels.platforms.has(id)
           )}
         </div>
       )}
@@ -130,9 +243,18 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
             {t("igdbInfo.gameModes", "Game Modes")}
           </div>
           {renderTagListByIds(
-            toIdStrings(game.gameModes),
+            gameModeLinkInfo.linkIds,
             "/game-modes",
-            (id) => t(`gameModes.${tagLabels.gameModes.get(id) ?? id}`, tagLabels.gameModes.get(id) ?? id)
+            (id) => {
+              const displayName =
+                gameModeLinkInfo.hashToDisplayName.get(id) ??
+                tagNamesFromGame.gameModeMap.get(id) ??
+                tagLabels.gameModes.get(id) ??
+                id;
+              return t(`gameModes.${displayName}`, displayName);
+            },
+            gameModeLinkInfo.getSearchParams,
+            (id) => tagLabels.gameModes.has(id)
           )}
         </div>
       )}
@@ -144,13 +266,18 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
             {t("igdbInfo.playerPerspectives", "Player Perspectives")}
           </div>
           {renderTagListByIds(
-            toIdStrings(game.playerPerspectives),
+            playerPerspectiveLinkInfo.linkIds,
             "/player-perspectives",
-            (id) =>
-              t(
-                `playerPerspectives.${tagLabels.playerPerspectives.get(id) ?? id}`,
-                tagLabels.playerPerspectives.get(id) ?? id
-              )
+            (id) => {
+              const displayName =
+                playerPerspectiveLinkInfo.hashToDisplayName.get(id) ??
+                tagNamesFromGame.ppMap.get(id) ??
+                tagLabels.playerPerspectives.get(id) ??
+                id;
+              return t(`playerPerspectives.${displayName}`, displayName);
+            },
+            playerPerspectiveLinkInfo.getSearchParams,
+            (id) => tagLabels.playerPerspectives.has(id)
           )}
         </div>
       )}
@@ -177,6 +304,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
             onItemClick={(value) =>
               navigate(`/developers/${encodeURIComponent(value)}`)
             }
+            isClickable={(id) => developers.some((d) => String(d.id) === id)}
             useInfoStyles
             showMoreMinCount={5}
             showMoreLabel={t("gameDetail.andMore", ", and more")}
@@ -196,6 +324,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
             onItemClick={(value) =>
               navigate(`/publishers/${encodeURIComponent(value)}`)
             }
+            isClickable={(id) => publishers.some((p) => String(p.id) === id)}
             useInfoStyles
             showMoreMinCount={5}
             showMoreLabel={t("gameDetail.andMore", ", and more")}
@@ -212,7 +341,9 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           {renderTagListByIds(
             franchiseIds,
             "/franchise",
-            (id) => tagLabels.franchises.get(id) ?? id
+            (id) => franchiseNamesFromGame.get(id) ?? tagLabels.franchises.get(id) ?? id,
+            undefined,
+            (id) => tagLabels.franchises.has(id)
           )}
         </div>
       )}
@@ -226,7 +357,9 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
           {renderTagListByIds(
             seriesIds,
             "/series",
-            (id) => tagLabels.series.get(id) ?? id
+            (id) => seriesNamesFromGame.get(id) ?? tagLabels.series.get(id) ?? id,
+            undefined,
+            (id) => tagLabels.series.has(id)
           )}
         </div>
       )}
@@ -238,9 +371,18 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
             {t("igdbInfo.gameEngines", "Game Engines")}
           </div>
           {renderTagListByIds(
-            toIdStrings(game.gameEngines),
+            gameEngineLinkInfo.linkIds,
             "/game-engines",
-            (id) => tagLabels.gameEngines.get(id) ?? id
+            (id) => {
+              const displayName =
+                gameEngineLinkInfo.hashToDisplayName.get(id) ??
+                tagNamesFromGame.engineMap.get(id) ??
+                tagLabels.gameEngines.get(id) ??
+                id;
+              return t(`gameEngines.${displayName}`, displayName);
+            },
+            gameEngineLinkInfo.getSearchParams,
+            (id) => tagLabels.gameEngines.has(id)
           )}
         </div>
       )}

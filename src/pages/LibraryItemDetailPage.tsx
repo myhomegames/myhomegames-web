@@ -5,9 +5,12 @@ import type { TFunction } from "i18next";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useGameEvents } from "../hooks/useGameEvents";
 import { useLoading } from "../contexts/LoadingContext";
+import { useSettings } from "../contexts/SettingsContext";
 import { useCollections } from "../contexts/CollectionsContext";
 import { useDevelopers } from "../contexts/DevelopersContext";
 import { usePublishers } from "../contexts/PublishersContext";
+import { useLibraryGames } from "../contexts/LibraryGamesContext";
+import { useIgdbGamesForTag, type IgdbTagKey } from "../hooks/useIgdbGamesForTag";
 import GamesList from "../components/games/GamesList";
 import Cover from "../components/games/Cover";
 import LibrariesBar from "../components/layout/LibrariesBar";
@@ -77,6 +80,8 @@ export default function LibraryItemDetailPage({
   const { collections: allCollectionsFromContext } = useCollections();
   const { developers: allDevelopers, updateDeveloper } = useDevelopers();
   const { publishers: allPublishers, updatePublisher } = usePublishers();
+  const { twitchLoginEnabled } = useSettings();
+  const { games: libraryGames } = useLibraryGames();
   const params = useParams<{ collectionId?: string; developerId?: string; publisherId?: string }>();
   const collectionId = params.collectionId;
   const developerId = params.developerId;
@@ -111,6 +116,38 @@ export default function LibraryItemDetailPage({
   const scrollSnapshotForModalRef = useRef<number | null>(null);
 
   const scrollStorageKey = `${location.pathname}:modalScroll`;
+
+  const libraryGameIds = useMemo(
+    () =>
+      libraryGames
+        .map((g) => (typeof g.id === "number" ? g.id : parseInt(String(g.id), 10)))
+        .filter((n) => !Number.isNaN(n)),
+    [libraryGames]
+  );
+
+  const igdbTagKey: IgdbTagKey | null =
+    resourceType === "developers" ? "developers" : resourceType === "publishers" ? "publishers" : null;
+  const { igdbGames: igdbTagGames, loading: _igdbTagLoading } = useIgdbGamesForTag(
+    twitchLoginEnabled && igdbTagKey && id ? igdbTagKey : null,
+    id ?? null,
+    libraryGameIds,
+    true,
+    undefined
+  );
+
+  const canShowNewGamesToggle = (resourceType === "developers" || resourceType === "publishers") && !!twitchLoginEnabled;
+  const storageKeyForNewGames = resourceType === "developers" ? "developers" : "publishers";
+  const [showNewGames, setShowNewGames] = useState<boolean>(() => {
+    if (resourceType !== "developers" && resourceType !== "publishers") return false;
+    const saved = localStorage.getItem(`showNewGames_${storageKeyForNewGames}`);
+    if (saved === "false") return false;
+    if (saved === "true") return true;
+    return false;
+  });
+  useEffect(() => {
+    if (!canShowNewGamesToggle) return;
+    localStorage.setItem(`showNewGames_${storageKeyForNewGames}`, String(showNewGames));
+  }, [canShowNewGamesToggle, showNewGames, storageKeyForNewGames]);
 
   useScrollRestoration(scrollContainerRef);
 
@@ -597,12 +634,48 @@ export default function LibraryItemDetailPage({
     }
   };
 
+  const mergedGames = useMemo(() => {
+    if (!canShowNewGamesToggle || !id) return games;
+    const libraryById = new Map(games.map((g) => [String(g.id), g]));
+    const seenIds = new Set<string>();
+    const result: GameItem[] = [];
+    for (const ig of igdbTagGames) {
+      const sid = String(ig.id);
+      seenIds.add(sid);
+      const lib = libraryById.get(sid);
+      if (lib) result.push(lib);
+      else
+        result.push({
+          id: sid,
+          title: ig.name,
+          cover: ig.cover || undefined,
+          year: ig.releaseDate ?? undefined,
+          isIgdbOnly: true,
+        });
+    }
+    for (const g of games) {
+      if (!seenIds.has(String(g.id))) result.push(g);
+    }
+    result.sort((a, b) => {
+      const yearA = a.year ?? 0;
+      const yearB = b.year ?? 0;
+      if (yearA !== 0 && yearB !== 0) return yearA - yearB;
+      if (yearA !== 0 && yearB === 0) return -1;
+      if (yearA === 0 && yearB !== 0) return 1;
+      return compareTitles(a.title || "", b.title || "");
+    });
+    return result;
+  }, [canShowNewGamesToggle, id, igdbTagGames, games]);
+
+  const gamesToShow = canShowNewGamesToggle && showNewGames ? mergedGames : games;
+
   const sortedGames = useMemo(() => {
-    if (resourceType === "collections" && customOrder && customOrder.length === games.length) {
-      const gameMap = new Map(games.map((g) => [g.id, g]));
+    const source = gamesToShow;
+    if (resourceType === "collections" && customOrder && customOrder.length === source.length) {
+      const gameMap = new Map(source.map((g) => [g.id, g]));
       return customOrder.map((id) => gameMap.get(id)).filter(Boolean) as GameItem[];
     }
-    const sorted = [...games];
+    const sorted = [...source];
     sorted.sort((a, b) => {
       const yearA = a.year ?? 0;
       const yearB = b.year ?? 0;
@@ -612,7 +685,7 @@ export default function LibraryItemDetailPage({
       return compareTitles(a.title || "", b.title || "");
     });
     return sorted;
-  }, [games, customOrder, resourceType]);
+  }, [gamesToShow, customOrder, resourceType]);
 
   const handleGameUpdate = (updatedGame: GameItem) => {
     if (scrollContainerRef.current) scrollPositionToRestoreRef.current = scrollContainerRef.current.scrollTop;
@@ -657,19 +730,19 @@ export default function LibraryItemDetailPage({
   };
 
   const yearRange = useMemo(() => {
-    const years = games.map((g) => g.year).filter((y): y is number => y != null);
+    const years = gamesToShow.map((g) => g.year).filter((y): y is number => y != null);
     if (years.length === 0) return null;
     const min = Math.min(...years);
     const max = Math.max(...years);
     return min === max ? min.toString() : `${min} - ${max}`;
-  }, [games]);
+  }, [gamesToShow]);
 
   const averageRating = useMemo(() => {
-    const ratings = games.map((g) => g.stars).filter((s): s is number => s != null);
+    const ratings = gamesToShow.map((g) => g.stars).filter((s): s is number => s != null);
     if (ratings.length === 0) return null;
     const sum = ratings.reduce((a, b) => a + b, 0);
     return (sum / ratings.length / 10) * 5;
-  }, [games]);
+  }, [gamesToShow]);
 
   const notFoundMessage =
     resourceType === "collections"
@@ -793,6 +866,10 @@ export default function LibraryItemDetailPage({
             console.error(`Error fetching ${base} games:`, e);
           }
         }}
+        showNewGamesToggle={canShowNewGamesToggle}
+        showNewGames={showNewGames}
+        onShowNewGamesChange={setShowNewGames}
+        showNewGamesLabel={canShowNewGamesToggle ? t("tagGames.showNewGames") : undefined}
       />
     </BackgroundManager>
   );
@@ -840,6 +917,10 @@ type LibraryItemDetailContentProps = {
   onCloseDeleteModal?: () => void;
   onCollectionClick?: (collectionId: string) => void;
   onPlayFirstInCollectionLike?: (resourceType: string, id: string) => void | Promise<void>;
+  showNewGamesToggle?: boolean;
+  showNewGames?: boolean;
+  onShowNewGamesChange?: (value: boolean) => void;
+  showNewGamesLabel?: string;
 };
 
 function LibraryItemDetailContent({
@@ -884,6 +965,10 @@ function LibraryItemDetailContent({
   onCloseDeleteModal,
   onCollectionClick,
   onPlayFirstInCollectionLike,
+  showNewGamesToggle = false,
+  showNewGames = false,
+  onShowNewGamesChange,
+  showNewGamesLabel,
 }: LibraryItemDetailContentProps) {
   const { hasBackground, isBackgroundVisible } = useBackground();
   const { isLoading } = useLoading();
@@ -990,6 +1075,10 @@ function LibraryItemDetailContent({
           onCoverSizeChange={handleCoverSizeChange}
           viewMode={viewMode}
           onViewModeChange={() => {}}
+          showNewGamesToggle={showNewGamesToggle}
+          showNewGames={showNewGames}
+          onShowNewGamesChange={onShowNewGamesChange ?? (() => {})}
+          showNewGamesLabel={showNewGamesLabel}
         />
       </div>
       <div style={{ position: "relative", zIndex: 2, height: "100vh", display: "flex", flexDirection: "column" }}>

@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useLoading } from "../contexts/LoadingContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { useLibraryGames } from "../contexts/LibraryGamesContext";
-import { useGamesListPage } from "../hooks/useGamesListPage";
+import { useTagLists } from "../contexts/TagListsContext";
+import { useGamesListPage, sortGamesList } from "../hooks/useGamesListPage";
 import { useIgdbGamesForSeriesFranchise } from "../hooks/useIgdbGamesForSeriesFranchise";
+import { useIgdbGamesForTag, type IgdbTagKey } from "../hooks/useIgdbGamesForTag";
 import GamesListPageContent from "../components/games/GamesListPageContent";
 import AlphabetNavigator from "../components/ui/AlphabetNavigator";
 import LibrariesBar from "../components/layout/LibrariesBar";
@@ -37,8 +40,11 @@ export default function TagGamesPage({
   tagKey,
   onIgdbGameClick,
 }: TagGamesPageProps) {
+  const { t } = useTranslation();
   const { games: libraryGames } = useLibraryGames();
   const { twitchLoginEnabled } = useSettings();
+  const { tagLabels } = useTagLists();
+  const [searchParams] = useSearchParams();
   const { isLoading, setLoading } = useLoading();
   const params = useParams<Record<string, string>>();
   const rawParam = params[paramName];
@@ -52,16 +58,39 @@ export default function TagGamesPage({
   );
 
   const isSeriesOrFranchise = tagKey === "series" || tagKey === "franchise";
+  const isIgdbTag = tagKey === "themes" || tagKey === "platforms" || tagKey === "gameModes" || tagKey === "playerPerspectives" || tagKey === "gameEngines" || tagKey === "developers" || tagKey === "publishers" || tagKey === "categories";
+  const tagNameFromUrl = searchParams.get("name");
+  const tagNameFromLabels = useMemo(() => {
+    if (!tagValue || !tagKey || !isIgdbTag) return null;
+    const key = tagKey as keyof typeof tagLabels;
+    const map = tagLabels[key];
+    return map && typeof map.get === "function" ? map.get(tagValue) ?? null : null;
+  }, [tagValue, tagKey, isIgdbTag, tagLabels]);
+  const igdbTagNameForFetch = tagNameFromUrl ?? tagNameFromLabels ?? undefined;
+
   const { igdbGames, loading: igdbLoading } = useIgdbGamesForSeriesFranchise(
     isSeriesOrFranchise && twitchLoginEnabled ? tagKey : null,
     tagValue,
     libraryGameIds,
     true
   );
+  const { igdbGames: igdbTagGames, loading: igdbTagLoading, tagName: igdbTagName } = useIgdbGamesForTag(
+    isIgdbTag && twitchLoginEnabled ? (tagKey as IgdbTagKey) : null,
+    tagValue,
+    libraryGameIds,
+    true,
+    igdbTagNameForFetch
+  );
 
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     const saved = localStorage.getItem(`viewMode_${storageKey}`);
     return (saved as ViewMode) || "grid";
+  });
+  const [showNewGames, setShowNewGames] = useState<boolean>(() => {
+    const saved = localStorage.getItem(`showNewGames_${storageKey}`);
+    if (saved === "false") return false;
+    if (saved === "true") return true;
+    return false;
   });
   const coverSize = (() => {
     const saved = localStorage.getItem("coverSize");
@@ -71,6 +100,10 @@ export default function TagGamesPage({
   useEffect(() => {
     localStorage.setItem(`viewMode_${storageKey}`, viewMode);
   }, [viewMode, storageKey]);
+
+  useEffect(() => {
+    localStorage.setItem(`showNewGames_${storageKey}`, String(showNewGames));
+  }, [showNewGames, storageKey]);
 
   const hook = useGamesListPage({
     defaultFilterField: tagField,
@@ -105,13 +138,43 @@ export default function TagGamesPage({
         merged.push(lib);
       }
     }
-    merged.sort((a, b) => {
-      const aYear = a.year ?? 9999;
-      const bYear = b.year ?? 9999;
-      return aYear - bYear;
-    });
-    return merged;
-  }, [isSeriesOrFranchise, twitchLoginEnabled, hook.filteredAndSortedGames, igdbGames]);
+    return sortGamesList(merged, hook.sortField, hook.sortAscending);
+  }, [isSeriesOrFranchise, twitchLoginEnabled, hook.filteredAndSortedGames, igdbGames, hook.sortField, hook.sortAscending]);
+
+  const mergedGamesForIgdbTag = useMemo(() => {
+    if (!isIgdbTag || !twitchLoginEnabled) return null;
+    const libraryGamesFiltered = hook.filteredAndSortedGames;
+    const libraryById = new Map(libraryGamesFiltered.map((g) => [String(g.id), g]));
+    const seenIds = new Set<string>();
+    const merged: GameItem[] = [];
+    for (const ig of igdbTagGames) {
+      seenIds.add(String(ig.id));
+      const lib = libraryById.get(String(ig.id));
+      if (lib) {
+        merged.push(lib);
+      } else {
+        merged.push({
+          id: String(ig.id),
+          title: ig.name,
+          cover: ig.cover || undefined,
+          year: ig.releaseDate ?? undefined,
+          isIgdbOnly: true,
+        });
+      }
+    }
+    for (const lib of libraryGamesFiltered) {
+      if (!seenIds.has(lib.id)) {
+        merged.push(lib);
+      }
+    }
+    return sortGamesList(merged, hook.sortField, hook.sortAscending);
+  }, [isIgdbTag, twitchLoginEnabled, hook.filteredAndSortedGames, igdbTagGames, hook.sortField, hook.sortAscending]);
+
+  const mergedGamesOverride = mergedGamesForSeriesFranchise ?? mergedGamesForIgdbTag;
+  const canShowNewGamesToggle =
+    (isSeriesOrFranchise || isIgdbTag) && !!twitchLoginEnabled && hook.filterField !== "all";
+  const effectiveGamesOverride = canShowNewGamesToggle && showNewGames ? mergedGamesOverride : null;
+  const gamesForList = effectiveGamesOverride ?? hook.filteredAndSortedGames;
 
   const { libraryGamesLoading, setFilterField, setSelectedThemes,
     setSelectedKeywords,
@@ -219,6 +282,10 @@ export default function TagGamesPage({
         error={null}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
+        showNewGamesToggle={canShowNewGamesToggle}
+        showNewGames={showNewGames}
+        onShowNewGamesChange={setShowNewGames}
+        showNewGamesLabel={canShowNewGamesToggle ? t("tagGames.showNewGames") : undefined}
       />
       <div className="bg-[#1a1a1a] home-page-main-container">
         <main className="flex-1 home-page-content">
@@ -227,19 +294,20 @@ export default function TagGamesPage({
               hook={hook}
               viewMode={viewMode}
               coverSize={coverSize}
-              isLoading={isLoading || igdbLoading}
+              isLoading={isLoading || igdbLoading || igdbTagLoading}
               isReady={hook.isReady}
               allCollections={allCollections}
               onGameClick={onGameClick}
               onGamesLoaded={handleGamesLoaded}
               onPlay={onPlay}
               buildCoverUrlFn={buildCoverUrlFn}
-              gamesOverride={mergedGamesForSeriesFranchise}
+              gamesOverride={effectiveGamesOverride}
               onIgdbGameClick={onIgdbGameClick}
+              selectedFilterValueLabel={isIgdbTag ? igdbTagName ?? undefined : undefined}
             />
             {hook.sortField === "title" && hook.isReady && (
               <AlphabetNavigator
-                games={mergedGamesForSeriesFranchise ?? hook.filteredAndSortedGames}
+                games={gamesForList}
                 scrollContainerRef={
                   viewMode === "table" ? hook.tableScrollRef : hook.scrollContainerRef
                 }

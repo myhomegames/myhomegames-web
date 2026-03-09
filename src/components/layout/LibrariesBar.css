@@ -50,6 +50,12 @@
   transform: translateY(3px);
 }
 
+.mhg-libraries-actions-new-games-container {
+  display: flex;
+  align-items: center;
+  margin-right: 26px;
+}
+
 .mhg-libraries-actions-view-mode-container {
   display: flex;
   align-items: center;

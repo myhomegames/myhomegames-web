@@ -31,6 +31,8 @@ type GamesListPageContentProps = {
   // Series/franchise: merged library + IGDB games in one list
   gamesOverride?: GameItem[] | null;
   onIgdbGameClick?: (igdbId: number) => void;
+  /** When on a tag page with an IGDB id, override the filter value label (e.g. show "Action" instead of "1") */
+  selectedFilterValueLabel?: string;
 };
 
 export default function GamesListPageContent({
@@ -46,6 +48,7 @@ export default function GamesListPageContent({
   buildCoverUrlFn,
   gamesOverride,
   onIgdbGameClick,
+  selectedFilterValueLabel,
 }: GamesListPageContentProps) {
   const { t } = useTranslation();
   const {
@@ -224,6 +227,7 @@ export default function GamesListPageContent({
           availableFranchises={availableFranchises}
           availableDevelopers={availableDevelopers}
           availablePublishers={availablePublishers}
+          selectedFilterValueLabel={selectedFilterValueLabel}
         />
       )}
       {/* Table header section */}

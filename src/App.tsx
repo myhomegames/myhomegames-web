@@ -413,6 +413,7 @@ function AppContent() {
                   onPlay={openLauncher}
                   allCollections={allCollections}
                   tagKey="platforms"
+                  onIgdbGameClick={twitchLoginEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
                 />
               </ProtectedRoute>
             }
@@ -440,6 +441,7 @@ function AppContent() {
                   onPlay={openLauncher}
                   allCollections={allCollections}
                   tagKey="themes"
+                  onIgdbGameClick={twitchLoginEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
                 />
               </ProtectedRoute>
             }
@@ -515,6 +517,7 @@ function AppContent() {
                   onPlay={openLauncher}
                   allCollections={allCollections}
                   tagKey="gameEngines"
+                  onIgdbGameClick={twitchLoginEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
                 />
               </ProtectedRoute>
             }
@@ -542,6 +545,7 @@ function AppContent() {
                   onPlay={openLauncher}
                   allCollections={allCollections}
                   tagKey="gameModes"
+                  onIgdbGameClick={twitchLoginEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
                 />
               </ProtectedRoute>
             }
@@ -569,6 +573,7 @@ function AppContent() {
                   onPlay={openLauncher}
                   allCollections={allCollections}
                   tagKey="playerPerspectives"
+                  onIgdbGameClick={twitchLoginEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
                 />
               </ProtectedRoute>
             }

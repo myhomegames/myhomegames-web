@@ -48,7 +48,9 @@
     "noItemsFound": "未找到{{type}}"
   },
   "tagGames": {
-    "igdbGamesNotInLibrary": "不在库中的游戏"
+    "igdbGamesNotInLibrary": "不在库中的游戏",
+    "showNewGames": "新游戏",
+    "hideNewGames": "隐藏新游戏"
   },
   "header": {
     "home": "首页",
@@ -154,7 +156,7 @@
     "genre": "类型",
     "addGenre": "添加类型...",
     "themes": "主题",
-    "keywords": "关键词",
+    "keywords": "推荐",
     "platforms": "平台",
     "gameModes": "游戏模式",
     "publishers": "发行商",
@@ -163,7 +165,7 @@
     "gameEngines": "游戏引擎",
     "addTag": "添加标签...",
     "addTheme": "添加主题...",
-    "addKeyword": "添加关键词...",
+    "addKeyword": "添加推荐...",
     "addPlatform": "添加平台...",
     "addGameMode": "添加游戏模式...",
     "addPublisher": "添加发行商...",
@@ -293,7 +295,7 @@
       "all": "全部",
       "genre": "类型",
       "themes": "主题",
-      "keywords": "关键词",
+      "keywords": "推荐",
       "platforms": "平台",
       "gameModes": "游戏模式",
       "publishers": "发行商",
@@ -309,7 +311,7 @@
       "searchYear": "筛选年份",
       "searchGenre": "筛选类型",
       "searchThemes": "筛选主题",
-      "searchKeywords": "筛选关键词",
+      "searchKeywords": "筛选推荐",
       "searchPlatforms": "筛选平台",
       "searchGameModes": "筛选游戏模式",
       "searchPublishers": "筛选发行商",
@@ -501,7 +503,7 @@
     "screenshots": "截图",
     "videos": "视频",
     "gameEngines": "引擎",
-    "keywords": "关键词",
+    "keywords": "推荐",
     "alternativeNames": "别名",
     "similarGames": "类似",
     "genres": "类型",
