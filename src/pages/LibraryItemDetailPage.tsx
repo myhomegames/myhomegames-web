@@ -1351,6 +1351,7 @@ function LibraryItemDetailContent({
                                       width={coverSize}
                                       height={coverSize * 1.5}
                                       onClick={handleClick}
+                                      subtitle={col.gameCount != null ? t("common.elements", { count: col.gameCount }) : undefined}
                                       onPlay={
                                         onPlayFirstInCollectionLike
                                           ? () => onPlayFirstInCollectionLike(resourceType, String(col.id))
