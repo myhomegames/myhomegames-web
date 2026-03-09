@@ -134,7 +134,7 @@ export default function TagGamesPage({
       }
     }
     for (const lib of libraryGamesInSeries) {
-      if (!seenIds.has(lib.id)) {
+      if (!seenIds.has(String(lib.id))) {
         merged.push(lib);
       }
     }
@@ -163,7 +163,7 @@ export default function TagGamesPage({
       }
     }
     for (const lib of libraryGamesFiltered) {
-      if (!seenIds.has(lib.id)) {
+      if (!seenIds.has(String(lib.id))) {
         merged.push(lib);
       }
     }
@@ -171,9 +171,27 @@ export default function TagGamesPage({
   }, [isIgdbTag, twitchLoginEnabled, hook.filteredAndSortedGames, igdbTagGames, hook.sortField, hook.sortAscending]);
 
   const mergedGamesOverride = mergedGamesForSeriesFranchise ?? mergedGamesForIgdbTag;
+  const selectedValueMatchesTag = useMemo(() => {
+    if (!tagValue) return false;
+    const normalized = String(tagValue);
+    switch (tagField) {
+      case "themes": return hook.selectedThemes != null && String(hook.selectedThemes) === normalized;
+      case "platforms": return hook.selectedPlatforms != null && String(hook.selectedPlatforms) === normalized;
+      case "gameModes": return hook.selectedGameModes != null && String(hook.selectedGameModes) === normalized;
+      case "playerPerspectives": return hook.selectedPlayerPerspectives != null && String(hook.selectedPlayerPerspectives) === normalized;
+      case "gameEngines": return hook.selectedGameEngines != null && String(hook.selectedGameEngines) === normalized;
+      case "developers": return hook.selectedDevelopers != null && String(hook.selectedDevelopers) === normalized;
+      case "publishers": return hook.selectedPublishers != null && String(hook.selectedPublishers) === normalized;
+      case "genre": return hook.selectedGenre != null && String(hook.selectedGenre) === normalized;
+      case "series": return hook.selectedSeries != null && String(hook.selectedSeries) === normalized;
+      case "franchise": return hook.selectedFranchise != null && String(hook.selectedFranchise) === normalized;
+      default: return true;
+    }
+  }, [tagField, tagValue, hook.selectedThemes, hook.selectedPlatforms, hook.selectedGameModes, hook.selectedPlayerPerspectives, hook.selectedGameEngines, hook.selectedDevelopers, hook.selectedPublishers, hook.selectedGenre, hook.selectedSeries, hook.selectedFranchise]);
   const canShowNewGamesToggle =
     (isSeriesOrFranchise || isIgdbTag) && !!twitchLoginEnabled && hook.filterField !== "all";
-  const effectiveGamesOverride = canShowNewGamesToggle && showNewGames ? mergedGamesOverride : null;
+  const effectiveGamesOverride =
+    canShowNewGamesToggle && showNewGames && selectedValueMatchesTag ? mergedGamesOverride : null;
   const gamesForList = effectiveGamesOverride ?? hook.filteredAndSortedGames;
 
   const { libraryGamesLoading, setFilterField, setSelectedThemes,

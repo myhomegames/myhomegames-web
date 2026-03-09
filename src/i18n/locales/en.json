@@ -50,7 +50,8 @@
   "tagGames": {
     "igdbGamesNotInLibrary": "Games not in library",
     "showNewGames": "New games",
-    "hideNewGames": "Hide new games"
+    "hideNewGames": "Hide new games",
+    "newGamesTooltip": "Also show new games"
   },
   "header": {
     "home": "Home",

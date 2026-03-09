@@ -50,7 +50,8 @@
   "tagGames": {
     "igdbGamesNotInLibrary": "ライブラリにないゲーム",
     "showNewGames": "新規ゲーム",
-    "hideNewGames": "新規ゲームを非表示"
+    "hideNewGames": "新規ゲームを非表示",
+    "newGamesTooltip": "新規ゲームも表示する"
   },
   "header": {
     "home": "ホーム",

@@ -50,7 +50,8 @@
   "tagGames": {
     "igdbGamesNotInLibrary": "不在库中的游戏",
     "showNewGames": "新游戏",
-    "hideNewGames": "隐藏新游戏"
+    "hideNewGames": "隐藏新游戏",
+    "newGamesTooltip": "同时显示新游戏"
   },
   "header": {
     "home": "首页",
