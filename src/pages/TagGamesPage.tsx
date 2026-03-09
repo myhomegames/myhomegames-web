@@ -68,20 +68,6 @@ export default function TagGamesPage({
   }, [tagValue, tagKey, isIgdbTag, tagLabels]);
   const igdbTagNameForFetch = tagNameFromUrl ?? tagNameFromLabels ?? undefined;
 
-  const { igdbGames, loading: igdbLoading } = useIgdbGamesForSeriesFranchise(
-    isSeriesOrFranchise && twitchLoginEnabled ? tagKey : null,
-    tagValue,
-    libraryGameIds,
-    true
-  );
-  const { igdbGames: igdbTagGames, loading: igdbTagLoading, tagName: igdbTagName } = useIgdbGamesForTag(
-    isIgdbTag && twitchLoginEnabled ? (tagKey as IgdbTagKey) : null,
-    tagValue,
-    libraryGameIds,
-    true,
-    igdbTagNameForFetch
-  );
-
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     const saved = localStorage.getItem(`viewMode_${storageKey}`);
     return (saved as ViewMode) || "grid";
@@ -97,6 +83,13 @@ export default function TagGamesPage({
     return saved ? parseInt(saved, 10) : 150;
   })();
 
+  const hook = useGamesListPage({
+    defaultFilterField: tagField,
+    listenToGameDeleted: true,
+    gameEvents: ["gameUpdated", "gameDeleted"],
+    scrollRestorationMode: viewMode === "table" ? undefined : viewMode,
+  });
+
   useEffect(() => {
     localStorage.setItem(`viewMode_${storageKey}`, viewMode);
   }, [viewMode, storageKey]);
@@ -105,15 +98,49 @@ export default function TagGamesPage({
     localStorage.setItem(`showNewGames_${storageKey}`, String(showNewGames));
   }, [showNewGames, storageKey]);
 
-  const hook = useGamesListPage({
-    defaultFilterField: tagField,
-    listenToGameDeleted: true,
-    gameEvents: ["gameUpdated", "gameDeleted"],
-    scrollRestorationMode: viewMode === "table" ? undefined : viewMode,
-  });
+  const EFFECTIVE_TAG_FIELDS: FilterField[] = ["themes", "platforms", "gameModes", "playerPerspectives", "gameEngines", "developers", "publishers", "series", "franchise"];
+  const effectiveTagKey = hook.filterField !== "all" && EFFECTIVE_TAG_FIELDS.includes(hook.filterField) ? hook.filterField : null;
+  const effectiveTagValue = useMemo(() => {
+    if (!effectiveTagKey) return null;
+    switch (effectiveTagKey) {
+      case "themes": return hook.selectedThemes;
+      case "platforms": return hook.selectedPlatforms;
+      case "gameModes": return hook.selectedGameModes;
+      case "playerPerspectives": return hook.selectedPlayerPerspectives;
+      case "gameEngines": return hook.selectedGameEngines;
+      case "developers": return hook.selectedDevelopers;
+      case "publishers": return hook.selectedPublishers;
+      case "series": return hook.selectedSeries;
+      case "franchise": return hook.selectedFranchise;
+      default: return null;
+    }
+  }, [effectiveTagKey, hook.selectedThemes, hook.selectedPlatforms, hook.selectedGameModes, hook.selectedPlayerPerspectives, hook.selectedGameEngines, hook.selectedDevelopers, hook.selectedPublishers, hook.selectedSeries, hook.selectedFranchise]);
+  const effectiveTagValueResolved = effectiveTagValue ?? (effectiveTagKey === tagField ? tagValue : null);
+  const isEffectiveSeriesOrFranchise = effectiveTagKey === "series" || effectiveTagKey === "franchise";
+  const isEffectiveIgdbTag = effectiveTagKey !== null && effectiveTagKey !== "series" && effectiveTagKey !== "franchise";
+  const effectiveTagNameForFetch = useMemo(() => {
+    if (!effectiveTagKey || !effectiveTagValueResolved || !isEffectiveIgdbTag) return undefined;
+    const key = effectiveTagKey as keyof typeof tagLabels;
+    const map = tagLabels[key];
+    return map && typeof map.get === "function" ? map.get(String(effectiveTagValueResolved)) ?? undefined : undefined;
+  }, [effectiveTagKey, effectiveTagValueResolved, isEffectiveIgdbTag, tagLabels]);
+
+  const { igdbGames, loading: igdbLoading } = useIgdbGamesForSeriesFranchise(
+    isEffectiveSeriesOrFranchise && twitchLoginEnabled ? effectiveTagKey as "series" | "franchise" : null,
+    effectiveTagValueResolved,
+    libraryGameIds,
+    true
+  );
+  const { igdbGames: igdbTagGames, loading: igdbTagLoading, tagName: igdbTagName } = useIgdbGamesForTag(
+    isEffectiveIgdbTag && twitchLoginEnabled ? (effectiveTagKey as IgdbTagKey) : null,
+    effectiveTagValueResolved,
+    libraryGameIds,
+    true,
+    effectiveTagNameForFetch ?? (effectiveTagKey === tagKey ? igdbTagNameForFetch : undefined)
+  );
 
   const mergedGamesForSeriesFranchise = useMemo(() => {
-    if (!isSeriesOrFranchise || !twitchLoginEnabled) return null;
+    if (!isEffectiveSeriesOrFranchise || !twitchLoginEnabled) return null;
     const libraryGamesInSeries = hook.filteredAndSortedGames;
     const libraryById = new Map(libraryGamesInSeries.map((g) => [String(g.id), g]));
     const seenIds = new Set<string>();
@@ -139,10 +166,10 @@ export default function TagGamesPage({
       }
     }
     return sortGamesList(merged, hook.sortField, hook.sortAscending);
-  }, [isSeriesOrFranchise, twitchLoginEnabled, hook.filteredAndSortedGames, igdbGames, hook.sortField, hook.sortAscending]);
+  }, [isEffectiveSeriesOrFranchise, twitchLoginEnabled, hook.filteredAndSortedGames, igdbGames, hook.sortField, hook.sortAscending]);
 
   const mergedGamesForIgdbTag = useMemo(() => {
-    if (!isIgdbTag || !twitchLoginEnabled) return null;
+    if (!isEffectiveIgdbTag || !twitchLoginEnabled) return null;
     const libraryGamesFiltered = hook.filteredAndSortedGames;
     const libraryById = new Map(libraryGamesFiltered.map((g) => [String(g.id), g]));
     const seenIds = new Set<string>();
@@ -168,7 +195,7 @@ export default function TagGamesPage({
       }
     }
     return sortGamesList(merged, hook.sortField, hook.sortAscending);
-  }, [isIgdbTag, twitchLoginEnabled, hook.filteredAndSortedGames, igdbTagGames, hook.sortField, hook.sortAscending]);
+  }, [isEffectiveIgdbTag, twitchLoginEnabled, hook.filteredAndSortedGames, igdbTagGames, hook.sortField, hook.sortAscending]);
 
   const mergedGamesOverride = mergedGamesForSeriesFranchise ?? mergedGamesForIgdbTag;
   const selectedValueMatchesTag = useMemo(() => {
@@ -191,7 +218,7 @@ export default function TagGamesPage({
   const canShowNewGamesToggle =
     (isSeriesOrFranchise || isIgdbTag) && !!twitchLoginEnabled && hook.filterField !== "all";
   const effectiveGamesOverride =
-    canShowNewGamesToggle && showNewGames && selectedValueMatchesTag ? mergedGamesOverride : null;
+    canShowNewGamesToggle && showNewGames ? mergedGamesOverride : null;
   const gamesForList = effectiveGamesOverride ?? hook.filteredAndSortedGames;
 
   const { libraryGamesLoading, setFilterField, setSelectedThemes,
@@ -321,7 +348,7 @@ export default function TagGamesPage({
               buildCoverUrlFn={buildCoverUrlFn}
               gamesOverride={effectiveGamesOverride}
               onIgdbGameClick={onIgdbGameClick}
-              selectedFilterValueLabel={isIgdbTag ? igdbTagName ?? undefined : undefined}
+              selectedFilterValueLabel={isIgdbTag && selectedValueMatchesTag ? (igdbTagName ?? undefined) : undefined}
             />
             {hook.sortField === "title" && hook.isReady && (
               <AlphabetNavigator
