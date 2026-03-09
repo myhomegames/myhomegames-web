@@ -38,6 +38,7 @@ export default function RecommendedPage({
   const [isFetching, setIsFetching] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const fetchingRef = useRef<boolean>(false);
+  const fetchGenerationRef = useRef(0);
 
   const handleGameClick = useCallback(
     (game: GameItem) => {
@@ -140,6 +141,7 @@ export default function RecommendedPage({
       return;
     }
     fetchingRef.current = true;
+    const generation = ++fetchGenerationRef.current;
     setIsFetching(true);
     setLoading(true);
     const controller = new AbortController();
@@ -172,31 +174,40 @@ export default function RecommendedPage({
         })),
       }));
 
+      // Show library data immediately so the page is fast
+      setSections(parsedSections);
+      onGamesLoaded(parsedSections.flatMap((s) => s.games));
+      setIsFetching(false);
+      setLoading(false);
+
       if (twitchLoginEnabled) {
         const clientId = getTwitchClientId();
         const clientSecret = getTwitchClientSecret();
         if (clientId && clientSecret) {
-          const mergedSections = await Promise.all(
-            parsedSections.map(async (section) => {
-              const excludeIds = section.games
-                .map((g: GameItem) => Number(g.id))
-                .filter((id: number) => !Number.isNaN(id));
-              try {
-                const url = buildApiUrl(API_BASE, "/igdb/games-by-keyword");
-                const igdbRes = await fetch(url, {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    "X-Auth-Token": getApiToken() || "",
-                    "X-Twitch-Client-Id": clientId,
-                    "X-Twitch-Client-Secret": clientSecret,
-                  },
-                  body: JSON.stringify({ keyword: section.id, excludeIds }),
-                });
-                const igdbData = await igdbRes.json().catch(() => ({}));
-                if (!igdbRes.ok) {
-                  return section;
-                }
+          // Fetch IGDB data in background; update each section as its response arrives
+          parsedSections.forEach((section) => {
+            const excludeIds = section.games
+              .map((g: GameItem) => Number(g.id))
+              .filter((id: number) => !Number.isNaN(id));
+            const igdbUrl = buildApiUrl(API_BASE, "/igdb/games-by-keyword");
+            fetch(igdbUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Auth-Token": getApiToken() || "",
+                "X-Twitch-Client-Id": clientId,
+                "X-Twitch-Client-Secret": clientSecret,
+              },
+              body: JSON.stringify({ keyword: section.id, excludeIds }),
+            })
+              .then((igdbRes) => {
+                if (generation !== fetchGenerationRef.current) return null;
+                return igdbRes.json().catch(() => ({})).then((igdbData) => ({ igdbRes, igdbData }));
+              })
+              .then((pair) => {
+                if (!pair || generation !== fetchGenerationRef.current) return;
+                const { igdbRes, igdbData } = pair;
+                if (!igdbRes.ok) return;
                 const igdbGamesList = (igdbData.games || []) as Array<{ id: number; name: string; cover?: string | null; releaseDate?: number | null }>;
                 const igdbGames = igdbGamesList.map(
                   (g) =>
@@ -208,22 +219,17 @@ export default function RecommendedPage({
                       isIgdbOnly: true,
                     }) as GameItem
                 );
-                return { ...section, games: [...section.games, ...igdbGames] };
-              } catch (err) {
-                return section;
-              }
-            })
-          );
-          setSections(mergedSections);
-          const allGamesMerged = mergedSections.flatMap((s) => s.games);
-          onGamesLoaded(allGamesMerged);
-        } else {
-          setSections(parsedSections);
-          onGamesLoaded(parsedSections.flatMap((s) => s.games));
+                setSections((prev) => {
+                  const next = prev.map((s) =>
+                    s.id === section.id ? { ...s, games: [...s.games, ...igdbGames] } : s
+                  );
+                  onGamesLoaded(next.flatMap((s) => s.games));
+                  return next;
+                });
+              })
+              .catch(() => {});
+          });
         }
-      } else {
-        setSections(parsedSections);
-        onGamesLoaded(parsedSections.flatMap((s) => s.games));
       }
     } catch (err: any) {
       clearTimeout(timeoutId);
