@@ -3,11 +3,11 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { API_BASE, API_TOKEN, getApiToken } from "../../config";
 import { useLoading } from "../../contexts/LoadingContext";
-import { useCategories } from "../../contexts/CategoriesContext";
 import { useTagLists } from "../../contexts/TagListsContext";
 import { EditGameInfoTab, EditGameMediaTab, EditGameTagsTab } from "./edit";
 import type { GameItem } from "../../types";
 import { buildApiUrl } from "../../utils/api";
+import { normalizeWebsites, areWebsitesEqual, normalizeSimilarGames, areSimilarGamesEqual } from "../../utils/editGameUtils";
 import { toTagTitles as toTagTitlesUtil } from "../filters/tagFilterUtils";
 import "./EditGameModal.css";
 
@@ -16,6 +16,7 @@ type EditGameModalProps = {
   onClose: () => void;
   game: GameItem;
   onGameUpdate: (updatedGame: GameItem) => void;
+  onGameDraftUpdate?: (updatedGame: GameItem) => void;
 };
 
 export default function EditGameModal({
@@ -23,10 +24,10 @@ export default function EditGameModal({
   onClose,
   game,
   onGameUpdate,
+  onGameDraftUpdate: _onGameDraftUpdate,
 }: EditGameModalProps) {
   const { t } = useTranslation();
   const { setLoading } = useLoading();
-  const { categories } = useCategories();
   const { tagLabels, refreshTagLists } = useTagLists();
   const [title, setTitle] = useState(game.title);
   const [summary, setSummary] = useState(game.summary || "");
@@ -47,8 +48,7 @@ export default function EditGameModal({
     (Array.isArray(ids) ? ids : ids != null ? [ids] : []).map((x) => {
       const id = typeof x === "number" ? x : typeof x === "object" && x != null && "id" in x ? Number((x as { id: number }).id) : null;
       if (id == null) return String(x);
-      const c = categories.find((cat) => String(cat.id) === String(id));
-      return c?.title ?? String(id);
+      return tagLabels.categories.get(String(id)) ?? String(id);
     });
 
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
@@ -67,6 +67,7 @@ export default function EditGameModal({
   const [uploadingBackground, setUploadingBackground] = useState(false);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const backgroundInputRef = useRef<HTMLInputElement | null>(null);
+  const screenshotInputRef = useRef<HTMLInputElement | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [backgroundPreview, setBackgroundPreview] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -75,6 +76,16 @@ export default function EditGameModal({
   const [backgroundRemoved, setBackgroundRemoved] = useState(false);
   const [imageTimestamp, setImageTimestamp] = useState<number>(Date.now());
   const [showTitle, setShowTitle] = useState(true);
+  const prevIsOpenRef = useRef(false);
+  const [localScreenshots, setLocalScreenshots] = useState<string[]>([]);
+  const [localVideos, setLocalVideos] = useState<string[]>([]);
+  const [pendingScreenshotFiles, setPendingScreenshotFiles] = useState<File[]>([]);
+  const [localAlternativeNames, setLocalAlternativeNames] = useState<string[]>([]);
+  const [localWebsites, setLocalWebsites] = useState<Array<{ url: string; category?: number }>>([]);
+  const [localSimilarGames, setLocalSimilarGames] = useState<Array<{ id: number; name: string }>>([]);
+  const [localAgeRatings, setLocalAgeRatings] = useState<Array<{ category: number; rating: number }>>([]);
+  const [localCriticRating, setLocalCriticRating] = useState("");
+  const [localUserRating, setLocalUserRating] = useState("");
 
   // Memoize cover and background URLs with timestamp when modal opens
   // NEVER show IGDB images in edit modal - only show local images
@@ -105,7 +116,7 @@ export default function EditGameModal({
   }, [game?.background, imageTimestamp]);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !prevIsOpenRef.current) {
       setTitle(game.title);
       setSummary(game.summary || "");
       setYear(game.year?.toString() || "");
@@ -129,10 +140,37 @@ export default function EditGameModal({
       setCoverRemoved(false);
       setBackgroundRemoved(false);
       setShowTitle(game.showTitle !== false);
+      setLocalScreenshots(Array.isArray(game.screenshots) ? [...game.screenshots] : []);
+      setLocalVideos(Array.isArray(game.videos) ? [...game.videos] : []);
+      setPendingScreenshotFiles([]);
+      setLocalAlternativeNames(Array.isArray(game.alternativeNames) ? [...game.alternativeNames] : []);
+      setLocalWebsites(
+        Array.isArray(game.websites)
+          ? game.websites.map((w) => ({ url: w.url, category: w.category }))
+          : []
+      );
+      const similar = normalizeSimilarGames(game.similarGames);
+      setLocalSimilarGames(similar);
+      setLocalAgeRatings(
+        Array.isArray(game.ageRatings) && game.ageRatings.length > 0
+          ? game.ageRatings.map((ar) => ({ category: ar.category, rating: ar.rating }))
+          : []
+      );
+      setLocalCriticRating(
+        game.criticratings != null && !Number.isNaN(game.criticratings)
+          ? String(Math.round(game.criticratings * 10))
+          : ""
+      );
+      setLocalUserRating(
+        game.userratings != null && !Number.isNaN(game.userratings)
+          ? String(Math.round(game.userratings * 10))
+          : ""
+      );
       // Generate new timestamp to force image reload when modal opens
       setImageTimestamp(Date.now());
     }
-  }, [isOpen, game, tagLabels, categories]);
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen, game, tagLabels]);
 
   // Update removed state when game is updated (e.g., after image removal)
   useEffect(() => {
@@ -187,6 +225,9 @@ export default function EditGameModal({
     if (year !== (game.year?.toString() || "")) return true;
     if (month !== (game.month?.toString() || "")) return true;
     if (day !== (game.day?.toString() || "")) return true;
+    const expectedCritic = game.criticratings != null && !Number.isNaN(game.criticratings) ? String(Math.round(game.criticratings * 10)) : "";
+    const expectedUser = game.userratings != null && !Number.isNaN(game.userratings) ? String(Math.round(game.userratings * 10)) : "";
+    if (localCriticRating !== expectedCritic || localUserRating !== expectedUser) return true;
     if (showTitle !== (game.showTitle !== false)) return true;
 
     const currentGenre = genreIdsToTitles(game.genre);
@@ -218,6 +259,33 @@ export default function EditGameModal({
     // Check if images were removed
     if (coverRemoved || backgroundRemoved) return true;
 
+    const gameScreenshots = Array.isArray(game.screenshots) ? game.screenshots : [];
+    const gameVideos = Array.isArray(game.videos) ? game.videos : [];
+    if (localScreenshots.length !== gameScreenshots.length || localScreenshots.some((s, i) => s !== gameScreenshots[i])) return true;
+    if (localVideos.length !== gameVideos.length || localVideos.some((v, i) => v !== gameVideos[i])) return true;
+    if (pendingScreenshotFiles.length > 0) return true;
+
+    const normalizedAlt = localAlternativeNames.map((s) => s.trim()).filter(Boolean);
+    if (!areTagsEqual(normalizedAlt, normalizeTagArray(game.alternativeNames))) return true;
+
+    if (!areWebsitesEqual(normalizeWebsites(localWebsites), normalizeWebsites(game.websites))) return true;
+
+    const currentSimilar = normalizeSimilarGames(game.similarGames);
+    if (!areSimilarGamesEqual(localSimilarGames, currentSimilar)) return true;
+
+    const currentAgeRatings =
+      Array.isArray(game.ageRatings) && game.ageRatings.length > 0
+        ? game.ageRatings.map((ar) => ({ category: ar.category, rating: ar.rating }))
+        : [];
+    if (
+      localAgeRatings.length !== currentAgeRatings.length ||
+      localAgeRatings.some(
+        (ar, i) =>
+          currentAgeRatings[i]?.category !== ar.category || currentAgeRatings[i]?.rating !== ar.rating
+      )
+    )
+      return true;
+
     return false;
   };
 
@@ -227,6 +295,29 @@ export default function EditGameModal({
     setLoading(true);
 
     try {
+      // Upload pending screenshot files first (no uploads while editing; all on Save)
+      const uploadedScreenshotUrls: string[] = [];
+      for (const file of pendingScreenshotFiles) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const uploadUrl = buildApiUrl(API_BASE, `/games/${game.id}/upload-screenshot`);
+        const res = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "X-Auth-Token": getApiToken() || "" },
+          body: formData,
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err?.error || "Failed to upload screenshot");
+        }
+        const data = (await res.json()) as { url?: string };
+        if (data?.url) uploadedScreenshotUrls.push(data.url);
+      }
+      if (pendingScreenshotFiles.length > 0) {
+        setPendingScreenshotFiles([]);
+      }
+      const finalScreenshots = uploadedScreenshotUrls.length > 0 ? [...localScreenshots, ...uploadedScreenshotUrls] : localScreenshots;
+
       // First, handle image removal if marked for removal
       let updatedCover: string | null = null;
       let updatedBackground: string | null = null;
@@ -418,8 +509,62 @@ export default function EditGameModal({
       ) {
         updates.collection = selectedSeries.length > 0 ? selectedSeries : null;
       }
+      if (!areTagsEqual(selectedGameEngines, idsToTitles(game.gameEngines, tagLabels.gameEngines))) {
+        updates.gameEngines = selectedGameEngines.length > 0 ? selectedGameEngines : [];
+      }
       if (showTitle !== (game.showTitle !== false)) {
         updates.showTitle = showTitle;
+      }
+      updates.screenshots = finalScreenshots.length > 0 ? finalScreenshots : null;
+      updates.videos = localVideos.length > 0 ? localVideos : null;
+      if (!areTagsEqual(localAlternativeNames.map((s) => s.trim()).filter(Boolean), normalizeTagArray(game.alternativeNames))) {
+        const filtered = localAlternativeNames.map((s) => s.trim()).filter(Boolean);
+        updates.alternativeNames = filtered.length > 0 ? filtered : null;
+      }
+      if (!areWebsitesEqual(normalizeWebsites(localWebsites), normalizeWebsites(game.websites))) {
+        const filtered = normalizeWebsites(localWebsites);
+        updates.websites = filtered.length > 0 ? filtered : null;
+      }
+      const currentSimilar = normalizeSimilarGames(game.similarGames);
+      if (!areSimilarGamesEqual(localSimilarGames, currentSimilar)) {
+        updates.similarGames = localSimilarGames.length > 0 ? localSimilarGames : null;
+      }
+      const currentAgeRatings =
+        Array.isArray(game.ageRatings) && game.ageRatings.length > 0
+          ? game.ageRatings.map((ar) => ({ category: ar.category, rating: ar.rating }))
+          : [];
+      const ageRatingsChanged =
+        localAgeRatings.length !== currentAgeRatings.length ||
+        localAgeRatings.some(
+          (ar, i) =>
+            currentAgeRatings[i]?.category !== ar.category || currentAgeRatings[i]?.rating !== ar.rating
+        );
+      if (ageRatingsChanged) {
+        updates.ageRatings =
+          localAgeRatings.length > 0
+            ? localAgeRatings.map((ar) => ({ category: Number(ar.category), rating: Number(ar.rating) }))
+            : null;
+      }
+
+      const criticVal = localCriticRating.trim() ? parseFloat(localCriticRating) : null;
+      const userVal = localUserRating.trim() ? parseFloat(localUserRating) : null;
+      const expectedCritic = game.criticratings != null && !Number.isNaN(game.criticratings) ? Math.round(game.criticratings * 10) : null;
+      const expectedUser = game.userratings != null && !Number.isNaN(game.userratings) ? Math.round(game.userratings * 10) : null;
+      if (criticVal != null && (Number.isNaN(criticVal) || criticVal < 0 || criticVal > 100)) {
+        setError(t("gameDetail.invalidCriticRating", "Critic rating must be between 0 and 100"));
+        setSaving(false);
+        setLoading(false);
+        return;
+      }
+      if (userVal != null && (Number.isNaN(userVal) || userVal < 0 || userVal > 100)) {
+        setError(t("gameDetail.invalidUserRating", "User rating must be between 0 and 100"));
+        setSaving(false);
+        setLoading(false);
+        return;
+      }
+      if (criticVal !== expectedCritic || userVal !== expectedUser) {
+        updates.criticRating = criticVal;
+        updates.userRating = userVal;
       }
 
       // Only make PUT request if there are updates (images were already uploaded)
@@ -429,7 +574,7 @@ export default function EditGameModal({
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            "X-Auth-Token": API_TOKEN,
+            "X-Auth-Token": getApiToken() || "",
           },
           body: JSON.stringify(updates),
         });
@@ -465,28 +610,47 @@ export default function EditGameModal({
           month: result.game.month,
           year: result.game.year,
           stars: result.game.stars,
-          genre: result.game.genre,
+          genre: result.game.genre !== undefined ? result.game.genre : game.genre ?? null,
           criticratings: result.game.criticratings || null,
           userratings: result.game.userratings || null,
           executables: result.game.executables || null,
-          // Preserve all other fields from the original game or from the result
-          themes: result.game.themes ?? game.themes ?? null,
-          platforms: result.game.platforms ?? game.platforms ?? null,
-          gameModes: result.game.gameModes ?? game.gameModes ?? null,
-          playerPerspectives: result.game.playerPerspectives ?? game.playerPerspectives ?? null,
-          websites: result.game.websites ?? game.websites ?? null,
-          ageRatings: result.game.ageRatings ?? game.ageRatings ?? null,
-          developers: result.game.developers ?? game.developers ?? null,
-          publishers: result.game.publishers ?? game.publishers ?? null,
-          franchise: result.game.franchise ?? game.franchise ?? null,
-          collection: result.game.collection ?? game.collection ?? null,
-          series: result.game.series ?? result.game.collection ?? game.series ?? game.collection ?? null,
-          screenshots: result.game.screenshots ?? game.screenshots ?? null,
-          videos: result.game.videos ?? game.videos ?? null,
-          gameEngines: result.game.gameEngines ?? game.gameEngines ?? null,
-          keywords: result.game.keywords ?? game.keywords ?? null,
-          alternativeNames: result.game.alternativeNames ?? game.alternativeNames ?? null,
-          similarGames: result.game.similarGames ?? game.similarGames ?? null,
+          // Use result when present (including null = cleared); otherwise keep previous
+          themes: result.game.themes !== undefined ? result.game.themes : (game.themes ?? null),
+          platforms: result.game.platforms !== undefined ? result.game.platforms : (game.platforms ?? null),
+          gameModes: result.game.gameModes !== undefined ? result.game.gameModes : (game.gameModes ?? null),
+          playerPerspectives: result.game.playerPerspectives !== undefined ? result.game.playerPerspectives : (game.playerPerspectives ?? null),
+          ageRatings:
+            updates.ageRatings !== undefined
+              ? (result.game.ageRatings ?? null)
+              : (result.game.ageRatings ?? game.ageRatings ?? null),
+          developers: result.game.developers !== undefined ? result.game.developers : (game.developers ?? null),
+          publishers: result.game.publishers !== undefined ? result.game.publishers : (game.publishers ?? null),
+          franchise: result.game.franchise !== undefined ? result.game.franchise : (game.franchise ?? null),
+          collection: result.game.collection !== undefined ? result.game.collection : (game.collection ?? null),
+          series: result.game.series !== undefined ? result.game.series : (result.game.collection !== undefined ? result.game.collection : (game.series ?? game.collection ?? null)),
+          screenshots: updates.screenshots !== undefined
+            ? (result.game.screenshots != null && Array.isArray(result.game.screenshots) ? result.game.screenshots : finalScreenshots)
+            : (result.game.screenshots ?? game.screenshots ?? null),
+          videos: updates.videos !== undefined
+            ? (result.game.videos != null && Array.isArray(result.game.videos) ? result.game.videos : localVideos)
+            : (result.game.videos ?? game.videos ?? null),
+          alternativeNames: updates.alternativeNames !== undefined
+            ? (result.game.alternativeNames != null && Array.isArray(result.game.alternativeNames)
+                ? result.game.alternativeNames
+                : localAlternativeNames.map((s) => s.trim()).filter(Boolean))
+            : (result.game.alternativeNames ?? game.alternativeNames ?? null),
+          websites: updates.websites !== undefined
+            ? (result.game.websites != null && Array.isArray(result.game.websites)
+                ? result.game.websites
+                : normalizeWebsites(localWebsites))
+            : (result.game.websites ?? game.websites ?? null),
+          similarGames: updates.similarGames !== undefined
+            ? (result.game.similarGames != null && Array.isArray(result.game.similarGames)
+                ? result.game.similarGames
+                : localSimilarGames)
+            : (result.game.similarGames ?? game.similarGames ?? null),
+          gameEngines: result.game.gameEngines !== undefined ? result.game.gameEngines : (game.gameEngines ?? null),
+          keywords: result.game.keywords !== undefined ? result.game.keywords : (game.keywords ?? null),
           showTitle: result.game.showTitle ?? game.showTitle,
         };
 
@@ -693,14 +857,21 @@ export default function EditGameModal({
             {t("gameDetail.editGame", "Edit Game")}
           </h2>
           <button
+            type="button"
             className="edit-game-modal-close"
             onClick={onClose}
             aria-label="Close"
           >
-            ×
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
           </button>
         </div>
 
+        <form
+          className="edit-game-modal-form"
+          onSubmit={(e) => e.preventDefault()}
+        >
         <div className="edit-game-modal-content">
           {error && (
             <div className="edit-game-modal-error">{error}</div>
@@ -709,6 +880,7 @@ export default function EditGameModal({
           {/* Tabs */}
           <div className="edit-game-modal-tabs">
             <button
+              type="button"
               className={`edit-game-modal-tab ${activeTab === "INFO" ? "active" : ""}`}
               onClick={() => setActiveTab("INFO")}
               disabled={saving}
@@ -716,6 +888,7 @@ export default function EditGameModal({
               {t("gameDetail.info", "INFO")}
             </button>
             <button
+              type="button"
               className={`edit-game-modal-tab ${activeTab === "TAGS" ? "active" : ""}`}
               onClick={() => setActiveTab("TAGS")}
               disabled={saving}
@@ -723,6 +896,7 @@ export default function EditGameModal({
               {t("gameDetail.tags", "TAGS")}
             </button>
             <button
+              type="button"
               className={`edit-game-modal-tab ${activeTab === "MEDIA" ? "active" : ""}`}
               onClick={() => setActiveTab("MEDIA")}
               disabled={saving}
@@ -740,6 +914,19 @@ export default function EditGameModal({
               year={year}
               month={month}
               day={day}
+              criticRating={localCriticRating}
+              userRating={localUserRating}
+              onCriticRatingChange={setLocalCriticRating}
+              onUserRatingChange={setLocalUserRating}
+              ageRatings={localAgeRatings}
+              onAgeRatingsChange={setLocalAgeRatings}
+              alternativeNames={localAlternativeNames}
+              onAlternativeNamesChange={setLocalAlternativeNames}
+              websites={localWebsites}
+              onWebsitesChange={setLocalWebsites}
+              currentGameId={game.id}
+              similarGames={localSimilarGames}
+              onSimilarGamesChange={setLocalSimilarGames}
               saving={saving}
               setTitle={setTitle}
               setSummary={setSummary}
@@ -781,7 +968,7 @@ export default function EditGameModal({
           {activeTab === "MEDIA" && (
             <EditGameMediaTab
               t={t}
-              game={game}
+              game={{ ...game, screenshots: localScreenshots, videos: localVideos }}
               saving={saving}
               showTitle={showTitle}
               onShowTitleChange={setShowTitle}
@@ -791,7 +978,10 @@ export default function EditGameModal({
               uploadingCover={uploadingCover}
               coverInputRef={coverInputRef}
               handleCoverFileSelect={handleCoverFileSelect}
-              onGameUpdate={onGameUpdate}
+              onGameUpdate={(updated) => {
+                setLocalScreenshots(Array.isArray(updated.screenshots) ? updated.screenshots : []);
+                setLocalVideos(Array.isArray(updated.videos) ? updated.videos : []);
+              }}
               handleCoverRemoveSuccess={handleCoverRemoveSuccess}
               backgroundRemoved={backgroundRemoved}
               backgroundPreview={backgroundPreview}
@@ -800,12 +990,23 @@ export default function EditGameModal({
               backgroundInputRef={backgroundInputRef}
               handleBackgroundFileSelect={handleBackgroundFileSelect}
               handleBackgroundRemoveSuccess={handleBackgroundRemoveSuccess}
+              screenshotInputRef={screenshotInputRef}
+              pendingScreenshotFiles={pendingScreenshotFiles}
+              onAddPendingScreenshotFile={(file) => setPendingScreenshotFiles((prev) => [...prev, file])}
+              onRemoveScreenshotAt={(index) => {
+                if (index < localScreenshots.length) {
+                  setLocalScreenshots((prev) => prev.filter((_, i) => i !== index));
+                } else {
+                  setPendingScreenshotFiles((prev) => prev.filter((_, i) => i !== index - localScreenshots.length));
+                }
+              }}
             />
           )}
         </div>
 
         <div className="edit-game-modal-footer">
           <button
+            type="button"
             className="edit-game-modal-cancel"
             onClick={onClose}
             disabled={saving}
@@ -813,6 +1014,7 @@ export default function EditGameModal({
             {t("common.cancel", "Cancel")}
           </button>
           <button
+            type="button"
             className="edit-game-modal-save"
             onClick={handleSave}
             disabled={saving || !hasChanges()}
@@ -820,6 +1022,7 @@ export default function EditGameModal({
             {saving ? t("common.saving", "Saving...") : t("common.save", "Save")}
           </button>
         </div>
+        </form>
       </div>
     </div>,
     document.body

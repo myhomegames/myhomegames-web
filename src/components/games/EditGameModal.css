@@ -43,7 +43,6 @@
   background: transparent;
   border: none;
   color: rgba(255, 255, 255, 0.6);
-  font-size: 2rem;
   cursor: pointer;
   padding: 0;
   width: 32px;
@@ -58,6 +57,13 @@
 .edit-game-modal-close:hover {
   background-color: transparent;
   color: #ffffff;
+}
+
+.edit-game-modal-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .edit-game-modal-content {
@@ -86,6 +92,16 @@
   font-size: 0.875rem;
   font-weight: 500;
   margin-bottom: 8px;
+}
+
+.edit-game-modal-age-rating-select {
+  background-color: #2a2a2a;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  min-width: 120px;
 }
 
 .edit-game-modal-field input,
@@ -202,3 +218,96 @@
   cursor: not-allowed;
 }
 
+/* Alternative names list (Info tab) */
+.edit-game-modal-alt-names-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.edit-game-modal-alt-names-input {
+  flex: 1;
+  min-width: 0;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 8px 12px;
+  color: #ffffff;
+  font-size: 0.9375rem;
+  font-family: inherit;
+}
+
+.edit-game-modal-alt-names-input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.edit-game-modal-alt-names-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.edit-game-modal-similar-name {
+  flex: 1;
+  min-width: 0;
+  color: #ffffff;
+  font-size: 0.9375rem;
+}
+
+.edit-game-modal-alt-names-remove {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  background-color: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: 4px;
+  color: #ef4444;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.edit-game-modal-alt-names-remove:hover:not(:disabled) {
+  background-color: rgba(220, 38, 38, 0.2);
+  border-color: rgba(220, 38, 38, 0.5);
+}
+
+.edit-game-modal-alt-names-remove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.edit-game-modal-alt-names-add {
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
+.edit-game-modal-add-btn {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #000;
+  background: #E5A00D;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.edit-game-modal-add-btn:hover:not(:disabled) {
+  background: #F5B041;
+}
+
+.edit-game-modal-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

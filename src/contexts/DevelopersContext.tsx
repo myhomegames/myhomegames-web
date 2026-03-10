@@ -4,6 +4,7 @@ import type { CollectionItem } from "../types";
 import { API_BASE, getApiToken } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 import { useAuth } from "./AuthContext";
+import { useSettings } from "./SettingsContext";
 
 interface DevelopersContextType {
   developers: CollectionItem[];
@@ -20,11 +21,12 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { isLoading: authLoading, token: authToken } = useAuth();
+  const { twitchLoginEnabled, settingsLoaded } = useSettings();
 
   const fetchDevelopers = useCallback(async () => {
     if (authLoading) return;
-    const apiToken = getApiToken() || authToken;
-    if (!apiToken) return;
+    if (!settingsLoaded) return;
+    if (twitchLoginEnabled && !getApiToken() && !authToken) return;
 
     setIsLoading(true);
     setError(null);
@@ -55,24 +57,28 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [authLoading, authToken]);
+  }, [authLoading, authToken, twitchLoginEnabled, settingsLoaded]);
 
   useEffect(() => {
     if (authLoading) return;
-    if (!getApiToken() && !authToken) {
+    if (!settingsLoaded) return;
+    if (twitchLoginEnabled && !getApiToken() && !authToken) {
       setIsLoading(false);
       return;
     }
     const t = setTimeout(fetchDevelopers, 800);
     return () => clearTimeout(t);
-  }, [authLoading, authToken, fetchDevelopers]);
+  }, [authLoading, authToken, twitchLoginEnabled, settingsLoaded, fetchDevelopers]);
 
   useEffect(() => {
     const handleUpdate = (e: Event) => {
       const ev = e as CustomEvent<{ developer?: CollectionItem }>;
       if (ev.detail?.developer) {
+        const updated = ev.detail.developer;
         setDevelopers((prev) =>
-          prev.map((d) => (String(d.id) === String(ev.detail!.developer!.id) ? ev.detail!.developer! : d))
+          prev.map((d) =>
+            String(d.id) === String(updated.id) ? { ...d, ...updated } : d
+          )
         );
       } else {
         fetchDevelopers();
@@ -101,12 +107,14 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
     window.addEventListener("developerDeleted", handleDeleted as EventListener);
     window.addEventListener("metadataReloaded", fetchDevelopers);
     window.addEventListener("gameAdded", handleGameAdded);
+    window.addEventListener("gameDeleted", handleGameAdded);
     return () => {
       window.removeEventListener("developerUpdated", handleUpdate as EventListener);
       window.removeEventListener("developerAdded", handleAdded as EventListener);
       window.removeEventListener("developerDeleted", handleDeleted as EventListener);
       window.removeEventListener("metadataReloaded", fetchDevelopers);
       window.removeEventListener("gameAdded", handleGameAdded);
+      window.removeEventListener("gameDeleted", handleGameAdded);
     };
   }, [fetchDevelopers]);
 

@@ -25,22 +25,17 @@ export function useAddGameToCollection({
   const [isAdding, setIsAdding] = useState(false);
 
   const addGameToCollection = async (gameId: string, collectionId: string) => {
-    const apiToken = getApiToken();
-    if (!apiToken) {
-      onError?.(t("common.unauthorized", "Unauthorized"));
-      return;
-    }
-
     setIsAdding(true);
     setLoading(true);
 
     try {
+      const token = getApiToken() || "";
       // First, get current games in the collection
       const gamesUrl = buildApiUrl(API_BASE, `/collections/${collectionId}/games`);
       const gamesResponse = await fetch(gamesUrl, {
         headers: {
           Accept: "application/json",
-          "X-Auth-Token": apiToken,
+          "X-Auth-Token": token,
         },
       });
 
@@ -66,7 +61,7 @@ export function useAddGameToCollection({
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "X-Auth-Token": apiToken,
+          "X-Auth-Token": token,
         },
         body: JSON.stringify({ gameIds: updatedGameIds }),
       });

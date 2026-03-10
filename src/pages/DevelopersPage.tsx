@@ -10,10 +10,11 @@ import type { CollectionItem } from "../types";
 import { buildCoverUrl } from "../utils/api";
 
 type DevelopersPageProps = {
+  onPlay?: (game: import("../types").GameItem) => void;
   coverSize: number;
 };
 
-export default function DevelopersPage({ coverSize }: DevelopersPageProps) {
+export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProps) {
   const { setLoading } = useLoading();
   const { developers, isLoading: developersLoading, updateDeveloper } = useDevelopers();
   const navigate = useNavigate();
@@ -61,6 +62,7 @@ export default function DevelopersPage({ coverSize }: DevelopersPageProps) {
             <CollectionsList
               collections={sortedDevelopers}
               onCollectionClick={handleDeveloperClick}
+              onPlay={onPlay}
               isLoading={developersLoading}
               showEdit={true}
               gamesPath="developers"

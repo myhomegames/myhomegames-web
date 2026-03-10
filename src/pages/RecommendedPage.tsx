@@ -1,10 +1,13 @@
-import { useState, useEffect, useRef, useLayoutEffect, useMemo } from "react";
+import { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useAutoTranslateBatch } from "../hooks/useAutoTranslate";
 import { useLoading } from "../contexts/LoadingContext";
+import { useSettings } from "../contexts/SettingsContext";
 import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
 import type { GameItem, CollectionItem } from "../types";
 import { API_BASE } from "../config";
+import { getApiToken, getTwitchClientId, getTwitchClientSecret } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 
 type RecommendedSection = {
@@ -27,12 +30,26 @@ export default function RecommendedPage({
   coverSize,
   allCollections = [],
 }: RecommendedPageProps) {
+  const navigate = useNavigate();
+  const { twitchLoginEnabled } = useSettings();
   const { setLoading } = useLoading();
   const [sections, setSections] = useState<RecommendedSection[]>([]);
   const [isReady, setIsReady] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const fetchingRef = useRef<boolean>(false);
+  const fetchGenerationRef = useRef(0);
+
+  const handleGameClick = useCallback(
+    (game: GameItem) => {
+      if (twitchLoginEnabled && (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly) {
+        navigate(`/igdb-game/${game.id}`);
+      } else {
+        onGameClick(game);
+      }
+    },
+    [twitchLoginEnabled, navigate, onGameClick]
+  );
   
   // Restore scroll position
   useScrollRestoration(scrollContainerRef);
@@ -46,8 +63,6 @@ export default function RecommendedPage({
         ),
       }))
     );
-    // Dispatch event to ensure other components are notified
-    // (though EditGameModal should already dispatch it)
     window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
   };
 
@@ -77,7 +92,7 @@ export default function RecommendedPage({
 
   useEffect(() => {
     fetchRecommendedSections();
-  }, []);
+  }, [twitchLoginEnabled]);
 
   // Listen for metadata reload event
   useEffect(() => {
@@ -126,6 +141,7 @@ export default function RecommendedPage({
       return;
     }
     fetchingRef.current = true;
+    const generation = ++fetchGenerationRef.current;
     setIsFetching(true);
     setLoading(true);
     const controller = new AbortController();
@@ -140,7 +156,7 @@ export default function RecommendedPage({
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       const sectionsData = (json.sections || []) as any[];
-      
+
       const parsedSections = sectionsData.map((section) => ({
         id: section.id,
         games: (section.games || []).map((v: any) => ({
@@ -157,12 +173,64 @@ export default function RecommendedPage({
           executables: v.executables || null,
         })),
       }));
-      
+
+      // Show library data immediately so the page is fast
       setSections(parsedSections);
-      
-      // Collect all games for onGamesLoaded callback
-      const allGames = parsedSections.flatMap(section => section.games);
-      onGamesLoaded(allGames);
+      onGamesLoaded(parsedSections.flatMap((s) => s.games));
+      setIsFetching(false);
+      setLoading(false);
+
+      if (twitchLoginEnabled) {
+        const clientId = getTwitchClientId();
+        const clientSecret = getTwitchClientSecret();
+        if (clientId && clientSecret) {
+          // Fetch IGDB data in background; update each section as its response arrives
+          parsedSections.forEach((section) => {
+            const excludeIds = section.games
+              .map((g: GameItem) => Number(g.id))
+              .filter((id: number) => !Number.isNaN(id));
+            const igdbUrl = buildApiUrl(API_BASE, "/igdb/games-by-keyword");
+            fetch(igdbUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Auth-Token": getApiToken() || "",
+                "X-Twitch-Client-Id": clientId,
+                "X-Twitch-Client-Secret": clientSecret,
+              },
+              body: JSON.stringify({ keyword: section.id, excludeIds }),
+            })
+              .then((igdbRes) => {
+                if (generation !== fetchGenerationRef.current) return null;
+                return igdbRes.json().catch(() => ({})).then((igdbData) => ({ igdbRes, igdbData }));
+              })
+              .then((pair) => {
+                if (!pair || generation !== fetchGenerationRef.current) return;
+                const { igdbRes, igdbData } = pair;
+                if (!igdbRes.ok) return;
+                const igdbGamesList = (igdbData.games || []) as Array<{ id: number; name: string; cover?: string | null; releaseDate?: number | null }>;
+                const igdbGames = igdbGamesList.map(
+                  (g) =>
+                    ({
+                      id: String(g.id),
+                      title: g.name,
+                      cover: g.cover || undefined,
+                      year: g.releaseDate ?? undefined,
+                      isIgdbOnly: true,
+                    }) as GameItem
+                );
+                setSections((prev) => {
+                  const next = prev.map((s) =>
+                    s.id === section.id ? { ...s, games: [...s.games, ...igdbGames] } : s
+                  );
+                  onGamesLoaded(next.flatMap((s) => s.games));
+                  return next;
+                });
+              })
+              .catch(() => {});
+          });
+        }
+      }
     } catch (err: any) {
       clearTimeout(timeoutId);
       const errorMessage = err?.name === "AbortError" ? "Request timed out" : String(err.message || err);
@@ -196,7 +264,7 @@ export default function RecommendedPage({
               titleOverride={sectionTitles[section.id]}
               disableAutoTranslate
               games={section.games}
-              onGameClick={onGameClick}
+              onGameClick={handleGameClick}
               onPlay={onPlay}
               onGameUpdate={handleGameUpdate}
               coverSize={coverSize}

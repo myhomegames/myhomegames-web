@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useLayoutEffect, useCallback } from "react";
 import { useScrollRestoration } from "./useScrollRestoration";
-import { useCategories } from "../contexts/CategoriesContext";
+import { useTagLists } from "../contexts/TagListsContext";
 import { useCollections } from "../contexts/CollectionsContext";
 import { useDevelopers } from "../contexts/DevelopersContext";
 import { usePublishers } from "../contexts/PublishersContext";
@@ -10,6 +10,90 @@ import type { FilterField, FilterValue } from "../components/filters/types";
 import { compareTitles } from "../utils/stringUtils";
 import { API_BASE, getApiToken } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
+import { useSettings } from "../contexts/SettingsContext";
+
+/** Shared sort for merged lists (e.g. tag pages with IGDB + library games). */
+export function sortGamesList(
+  games: GameItem[],
+  sortField: SortField,
+  sortAscending: boolean
+): GameItem[] {
+  const sorted = [...games];
+  sorted.sort((a, b) => {
+    let compareResult = 0;
+    switch (sortField) {
+      case "title":
+        compareResult = compareTitles(a.title || "", b.title || "");
+        break;
+      case "year": {
+        const yearA = a.year ?? 0;
+        const yearB = b.year ?? 0;
+        compareResult = yearA - yearB;
+        break;
+      }
+      case "stars": {
+        const starsA = a.stars ?? 0;
+        const starsB = b.stars ?? 0;
+        compareResult = starsA - starsB;
+        break;
+      }
+      case "releaseDate": {
+        const dateA = a.year ?? 0;
+        const dateB = b.year ?? 0;
+        if (dateA !== dateB) {
+          compareResult = dateA - dateB;
+        } else {
+          const monthA = a.month ?? 0;
+          const monthB = b.month ?? 0;
+          if (monthA !== monthB) {
+            compareResult = monthA - monthB;
+          } else {
+            const dayA = a.day ?? 0;
+            const dayB = b.day ?? 0;
+            compareResult = dayA - dayB;
+          }
+        }
+        break;
+      }
+      case "criticRating": {
+        const criticA = a.criticratings ?? 0;
+        const criticB = b.criticratings ?? 0;
+        compareResult = criticA - criticB;
+        break;
+      }
+      case "userRating": {
+        const userA = a.userratings ?? 0;
+        const userB = b.userratings ?? 0;
+        compareResult = userA - userB;
+        break;
+      }
+      case "ageRating": {
+        const ageRatingsA = a.ageRatings && a.ageRatings.length > 0 ? a.ageRatings : [];
+        const ageRatingsB = b.ageRatings && b.ageRatings.length > 0 ? b.ageRatings : [];
+        if (ageRatingsA.length === 0 && ageRatingsB.length === 0) {
+          compareResult = 0;
+        } else if (ageRatingsA.length === 0) {
+          compareResult = 1;
+        } else if (ageRatingsB.length === 0) {
+          compareResult = -1;
+        } else {
+          const firstA = ageRatingsA[0];
+          const firstB = ageRatingsB[0];
+          if (firstA.category !== firstB.category) {
+            compareResult = firstA.category - firstB.category;
+          } else {
+            compareResult = firstA.rating - firstB.rating;
+          }
+        }
+        break;
+      }
+      default:
+        compareResult = 0;
+    }
+    return sortAscending ? compareResult : -compareResult;
+  });
+  return sorted;
+}
 
 type GameEventType = "gameUpdated" | "gameDeleted" | "gameAdded";
 
@@ -241,18 +325,18 @@ export function useGamesListPage(
     }
     return null;
   });
-  const { categories } = useCategories();
-  // Convert categories to allGenres format (id as string)
-  const allGenres = useMemo(() => 
-    categories.map((cat) => ({ id: String(cat.id), title: cat.title })),
-    [categories]
+  const { tagLabels } = useTagLists();
+  const allGenres = useMemo(
+    () => Array.from(tagLabels.categories.entries()).map(([id, title]) => ({ id, title })),
+    [tagLabels.categories]
   );
   const { collections, collectionGameIds: contextCollectionGameIds } = useCollections();
   const { developers } = useDevelopers();
   const { publishers } = usePublishers();
+  const { twitchLoginEnabled, settingsLoaded } = useSettings();
 
   // Convert collections to availableCollections format
-  const availableCollections = useMemo(() => 
+  const availableCollections = useMemo(() =>
     collections.map((col) => ({ id: String(col.id), title: col.title || "" })),
     [collections]
   );
@@ -261,8 +345,8 @@ export function useGamesListPage(
   const [availableFranchises, setAvailableFranchises] = useState<Array<{ id: string; title: string }>>([]);
   useEffect(() => {
     let cancelled = false;
-    const token = getApiToken();
-    if (!token) return;
+    if (!settingsLoaded) return;
+    if (twitchLoginEnabled && !getApiToken()) return;
     const toItems = (list: Array<{ id: number | string; title?: string; name?: string }>, _key: string) =>
       (list || []).map((x) => ({ id: String(x.id), title: String((x as any).title ?? (x as any).name ?? x.id) }));
     Promise.all([
@@ -279,7 +363,7 @@ export function useGamesListPage(
       }
     });
     return () => { cancelled = true; };
-  }, []);
+  }, [twitchLoginEnabled, settingsLoaded]);
 
   const availableDevelopers = useMemo(() =>
     developers.map((d) => ({ id: String(d.id), title: d.title || "" })),
@@ -741,28 +825,39 @@ export function useGamesListPage(
   // Fetch functions (collections and library games are now loaded via context)
   // Update available genres based on games in the library (uses libraryGames via games)
   useEffect(() => {
-    if (games.length === 0 || allGenres.length === 0) return;
+    if (allGenres.length === 0) return;
 
     const genreIdsOrTitles = new Set<string>();
-    games.forEach((game) => {
-      if (game.genre) {
-        if (Array.isArray(game.genre)) {
-          game.genre.forEach((g) => {
-            if (typeof g === "string") {
-              genreIdsOrTitles.add(g);
-            } else if (typeof g === "object" && g != null && "id" in g) {
-              genreIdsOrTitles.add(String((g as { id: number }).id));
-            }
-          });
-        } else if (typeof game.genre === "string") {
-          genreIdsOrTitles.add(game.genre);
+    if (games.length > 0) {
+      games.forEach((game) => {
+        if (game.genre) {
+          if (Array.isArray(game.genre)) {
+            game.genre.forEach((g) => {
+              if (typeof g === "number" && !Number.isNaN(g)) {
+                genreIdsOrTitles.add(String(g));
+              } else if (typeof g === "string") {
+                genreIdsOrTitles.add(g);
+              } else if (typeof g === "object" && g != null && "id" in g) {
+                genreIdsOrTitles.add(String((g as { id: number }).id));
+              }
+            });
+          } else if (typeof game.genre === "number" && !Number.isNaN(game.genre)) {
+            genreIdsOrTitles.add(String(game.genre));
+          } else if (typeof game.genre === "string") {
+            genreIdsOrTitles.add(game.genre);
+          }
         }
-      }
-    });
+      });
+    }
 
-    const filteredGenres = allGenres.filter((genre) =>
-      genreIdsOrTitles.has(String(genre.id)) || genreIdsOrTitles.has(genre.title)
-    );
+    // Show all genres from API in the filter; if we have games, optionally restrict to those present in games
+    const filteredGenres =
+      genreIdsOrTitles.size > 0
+        ? allGenres.filter(
+            (genre) =>
+              genreIdsOrTitles.has(String(genre.id)) || genreIdsOrTitles.has(genre.title)
+          )
+        : allGenres;
 
     setAvailableGenres(filteredGenres);
 

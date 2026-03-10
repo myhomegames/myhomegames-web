@@ -317,6 +317,14 @@
   background-color: rgba(255, 255, 255, 0.02);
 }
 
+/* Solo il titolo in verde per i giochi nuovi (stesso colore del badge sulle cover) */
+.games-table tbody tr.igdb-only-row > td.title-cell {
+  color: #4ade80;
+}
+.games-table tbody tr.igdb-only-row:hover > td.title-cell {
+  color: #4ade80;
+}
+
 .games-table td.has-border-right {
   border-right: none;
 }
@@ -332,6 +340,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   vertical-align: middle;
+  cursor: pointer;
 }
 
 .games-table td.title-cell .tooltip-wrapper {
@@ -569,6 +578,14 @@
   background-color: rgba(255, 255, 255, 0.02);
 }
 
+/* Solo il titolo in verde per i giochi nuovi in tabella virtualizzata */
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"].igdb-only-row > div.title-cell {
+  color: #4ade80;
+}
+.virtualized-games-table-list .virtualized-table-row-wrapper:hover > div[role="row"].igdb-only-row > div.title-cell {
+  color: #4ade80;
+}
+
 .virtualized-games-table-list .virtualized-table-row-wrapper:hover .first-cell-play-button {
   opacity: 1;
 }
@@ -606,6 +623,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   vertical-align: middle;
+  cursor: pointer;
 }
 
 .virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.title-cell .tooltip-wrapper {
@@ -614,6 +632,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  cursor: pointer;
 }
 
 .virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.title-cell .tooltip-wrapper span,
@@ -625,6 +644,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
+  cursor: pointer;
 }
 
 /* Cella data virtualizzata: come .games-table td.date-cell, wrap così la riga può crescere in altezza */

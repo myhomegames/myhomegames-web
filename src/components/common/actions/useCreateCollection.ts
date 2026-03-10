@@ -27,12 +27,6 @@ export function useCreateCollection({
     title: string,
     summary?: string
   ): Promise<CollectionItem | null> => {
-    const apiToken = getApiToken();
-    if (!apiToken) {
-      onError?.(t("common.unauthorized", "Unauthorized"));
-      return null;
-    }
-
     if (!title || title.trim() === "") {
       onError?.(t("collections.titleRequired", "Collection title is required"));
       return null;
@@ -42,13 +36,13 @@ export function useCreateCollection({
     setLoading(true);
 
     try {
-      // Create collection via POST endpoint
+      // Create collection via POST endpoint (server accepts without token when login disabled)
       const url = buildApiUrl(API_BASE, "/collections");
       const response = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Auth-Token": apiToken,
+          "X-Auth-Token": getApiToken() || "",
         },
         body: JSON.stringify({
           title: title.trim(),

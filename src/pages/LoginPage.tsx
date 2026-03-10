@@ -8,9 +8,14 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   
-  const [hasCredentials, setHasCredentials] = useState(false);
+  const [hasCredentials, setHasCredentials] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const storedClientId = localStorage.getItem("twitch_client_id");
+    const storedClientSecret = localStorage.getItem("twitch_client_secret");
+    return !!(storedClientId && storedClientSecret);
+  });
 
-  // Check if credentials exist on mount
+  // Update hasCredentials if localStorage changes (e.g. user added credentials in Settings in another tab)
   useEffect(() => {
     const storedClientId = localStorage.getItem("twitch_client_id");
     const storedClientSecret = localStorage.getItem("twitch_client_secret");
@@ -65,6 +70,14 @@ export default function LoginPage() {
           >
             {t("login.button", "Login with Twitch")}
           </button>
+          <p style={{ marginTop: "1.5rem", color: "rgba(255, 255, 255, 0.6)", fontSize: "0.9rem" }}>
+            <Link
+              to="/settings"
+              style={{ color: "#E5A00D", textDecoration: "none" }}
+            >
+              {t("login.orGoToSettings", "Or go to Settings")}
+            </Link>
+          </p>
         </>
       ) : (
         <>

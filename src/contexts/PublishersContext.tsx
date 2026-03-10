@@ -4,6 +4,7 @@ import type { CollectionItem } from "../types";
 import { API_BASE, getApiToken } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 import { useAuth } from "./AuthContext";
+import { useSettings } from "./SettingsContext";
 
 interface PublishersContextType {
   publishers: CollectionItem[];
@@ -20,11 +21,12 @@ export function PublishersProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { isLoading: authLoading, token: authToken } = useAuth();
+  const { twitchLoginEnabled, settingsLoaded } = useSettings();
 
   const fetchPublishers = useCallback(async () => {
     if (authLoading) return;
-    const apiToken = getApiToken() || authToken;
-    if (!apiToken) return;
+    if (!settingsLoaded) return;
+    if (twitchLoginEnabled && !getApiToken() && !authToken) return;
 
     setIsLoading(true);
     setError(null);
@@ -55,24 +57,28 @@ export function PublishersProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [authLoading, authToken]);
+  }, [authLoading, authToken, twitchLoginEnabled, settingsLoaded]);
 
   useEffect(() => {
     if (authLoading) return;
-    if (!getApiToken() && !authToken) {
+    if (!settingsLoaded) return;
+    if (twitchLoginEnabled && !getApiToken() && !authToken) {
       setIsLoading(false);
       return;
     }
     const t = setTimeout(fetchPublishers, 1200);
     return () => clearTimeout(t);
-  }, [authLoading, authToken, fetchPublishers]);
+  }, [authLoading, authToken, twitchLoginEnabled, settingsLoaded, fetchPublishers]);
 
   useEffect(() => {
     const handleUpdate = (e: Event) => {
       const ev = e as CustomEvent<{ publisher?: CollectionItem }>;
       if (ev.detail?.publisher) {
+        const updated = ev.detail.publisher;
         setPublishers((prev) =>
-          prev.map((p) => (String(p.id) === String(ev.detail!.publisher!.id) ? ev.detail!.publisher! : p))
+          prev.map((p) =>
+            String(p.id) === String(updated.id) ? { ...p, ...updated } : p
+          )
         );
       } else {
         fetchPublishers();
@@ -101,12 +107,14 @@ export function PublishersProvider({ children }: { children: ReactNode }) {
     window.addEventListener("publisherDeleted", handleDeleted as EventListener);
     window.addEventListener("metadataReloaded", fetchPublishers);
     window.addEventListener("gameAdded", handleGameAdded);
+    window.addEventListener("gameDeleted", handleGameAdded);
     return () => {
       window.removeEventListener("publisherUpdated", handleUpdate as EventListener);
       window.removeEventListener("publisherAdded", handleAdded as EventListener);
       window.removeEventListener("publisherDeleted", handleDeleted as EventListener);
       window.removeEventListener("metadataReloaded", fetchPublishers);
       window.removeEventListener("gameAdded", handleGameAdded);
+      window.removeEventListener("gameDeleted", handleGameAdded);
     };
   }, [fetchPublishers]);
 

@@ -5,8 +5,8 @@ import "./i18n/config";
 import "./utils/unauthorizedInterceptor";
 import App from "./App.tsx";
 import { AuthProvider } from "./contexts/AuthContext";
+import { SettingsProvider } from "./contexts/SettingsContext";
 import { LoadingProvider } from "./contexts/LoadingContext";
-import { CategoriesProvider } from "./contexts/CategoriesContext";
 import { CollectionsProvider } from "./contexts/CollectionsContext";
 import { DevelopersProvider } from "./contexts/DevelopersContext";
 import { PublishersProvider } from "./contexts/PublishersContext";
@@ -15,22 +15,22 @@ import { TagListsProvider } from "./contexts/TagListsContext";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <AuthProvider>
-      <LoadingProvider>
-        <CategoriesProvider>
-          <CollectionsProvider>
-            <DevelopersProvider>
-              <PublishersProvider>
-                <LibraryGamesProvider>
-                  <TagListsProvider>
-                    <App />
-                  </TagListsProvider>
-                </LibraryGamesProvider>
-              </PublishersProvider>
-            </DevelopersProvider>
-          </CollectionsProvider>
-        </CategoriesProvider>
-      </LoadingProvider>
-    </AuthProvider>
+    <SettingsProvider>
+      <AuthProvider>
+        <LoadingProvider>
+        <CollectionsProvider>
+          <DevelopersProvider>
+            <PublishersProvider>
+              <LibraryGamesProvider>
+                <TagListsProvider>
+                  <App />
+                </TagListsProvider>
+              </LibraryGamesProvider>
+            </PublishersProvider>
+          </DevelopersProvider>
+        </CollectionsProvider>
+        </LoadingProvider>
+      </AuthProvider>
+    </SettingsProvider>
   </StrictMode>
 );

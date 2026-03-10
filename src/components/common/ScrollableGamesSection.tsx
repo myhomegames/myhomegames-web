@@ -89,7 +89,7 @@ export default function ScrollableGamesSection({
     }
   };
 
-  // Restore position when route or section changes
+  // Restore position when route or section changes (not when only games.length changes, e.g. IGDB merge)
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
@@ -135,9 +135,9 @@ export default function ScrollableGamesSection({
       clearTimeout(timer);
       setIsRestoring(false);
     };
-  }, [location.pathname, sectionId, storageKey, games.length]);
+  }, [location.pathname, sectionId, storageKey]);
 
-  // Save position during scroll
+  // Save position during scroll + re-attach when content changes (e.g. IGDB games merged) so scrollWidth is correct
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
@@ -192,13 +192,19 @@ export default function ScrollableGamesSection({
         setScrollPosition(storageKey, finalPosition);
       }
     };
-  }, [sectionId, storageKey, isRestoring]);
+  }, [sectionId, storageKey, isRestoring, games.length]);
 
-  // Update buttons when content changes
+  // Update buttons when content changes (e.g. after IGDB games merged)
   useEffect(() => {
     updateScrollButtons();
     const timer = setTimeout(updateScrollButtons, 200);
-    return () => clearTimeout(timer);
+    const rafId = requestAnimationFrame(() => {
+      requestAnimationFrame(updateScrollButtons);
+    });
+    return () => {
+      clearTimeout(timer);
+      cancelAnimationFrame(rafId);
+    };
   }, [games.length]);
 
   if (games.length === 0) {

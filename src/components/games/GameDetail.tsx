@@ -22,9 +22,12 @@ import { formatGameDate } from "../../utils/date";
 import { buildApiUrl, buildBackgroundUrl } from "../../utils/api";
 import { API_BASE, getApiToken } from "../../config";
 import { useLoading } from "../../contexts/LoadingContext";
+import { useSettings } from "../../contexts/SettingsContext";
 import { useCollections } from "../../contexts/CollectionsContext";
-import { useCategories } from "../../contexts/CategoriesContext";
+import { useTagLists } from "../../contexts/TagListsContext";
 import { useLibraryGames } from "../../contexts/LibraryGamesContext";
+import { useSimilarGamesDetails } from "../../hooks/useSimilarGamesDetails";
+import SimilarGamesList, { type SimilarGameDisplayItem } from "./SimilarGamesList";
 import ScrollableGamesSection from "../common/ScrollableGamesSection";
 import "./GameDetail.css";
 
@@ -219,7 +222,12 @@ function GameDetailContent({
   i18n: { language: string };
 }) {
   const navigate = useNavigate();
-  const { categories } = useCategories();
+  const { twitchLoginEnabled } = useSettings();
+  const { tagLabels, tagLabelsReady } = useTagLists();
+  const categoriesList = useMemo(
+    () => Array.from(tagLabels.categories.entries()).map(([id, title]) => ({ id, title })),
+    [tagLabels.categories]
+  );
   const { hasBackground, isBackgroundVisible } = useBackground();
   const { getCollectionGameIds } = useCollections();
   const { games: libraryGames, updateGame } = useLibraryGames();
@@ -302,18 +310,47 @@ function GameDetailContent({
     };
   }, [allCollections, getCollectionGameIds, game.id, libraryGames]);
 
-  const similarGamesInLibrary = useMemo(() => {
-    if (!game.similarGames || game.similarGames.length === 0) {
-      return [];
-    }
-    const libraryMap = new Map<string, GameItem>();
+  const libraryMap = useMemo(() => {
+    const map = new Map<string, GameItem>();
     for (const item of libraryGames) {
-      libraryMap.set(String(item.id), item);
+      map.set(String(item.id), item);
     }
+    return map;
+  }, [libraryGames]);
+
+  const similarGamesNotInLibraryIds = useMemo(() => {
+    if (!game.similarGames || game.similarGames.length === 0) return [];
     return game.similarGames
-      .map((similar) => libraryMap.get(String(similar.id)))
-      .filter((item): item is GameItem => Boolean(item));
-  }, [game.similarGames, libraryGames]);
+      .filter((sg) => !libraryMap.has(String(sg.id)))
+      .map((sg) => sg.id);
+  }, [game.similarGames, libraryMap]);
+
+  const { detailsById } = useSimilarGamesDetails(similarGamesNotInLibraryIds);
+
+  const allSimilarGamesOrdered = useMemo((): SimilarGameDisplayItem[] => {
+    if (!game.similarGames || game.similarGames.length === 0) return [];
+    return game.similarGames.map((sg) => {
+      const libGame = libraryMap.get(String(sg.id));
+      if (libGame) {
+        return { type: "library", game: libGame };
+      }
+      const details = detailsById[String(sg.id)];
+      return {
+        type: "igdb",
+        id: sg.id,
+        name: details?.name ?? sg.name ?? String(sg.id),
+        cover: details?.cover,
+        year: details?.releaseDate ?? null,
+      };
+    });
+  }, [game.similarGames, libraryMap, detailsById]);
+
+  // When login is disabled, hide IGDB-only games (those with "New" badge)
+  const similarGamesToShow = useMemo((): SimilarGameDisplayItem[] => {
+    if (twitchLoginEnabled) return allSimilarGamesOrdered;
+    return allSimilarGamesOrdered.filter((item) => item.type === "library");
+  }, [twitchLoginEnabled, allSimilarGamesOrdered]);
+
   const handleRelatedGameClick = (selectedGame: GameItem) => {
     navigate(`/game/${selectedGame.id}`);
   };
@@ -325,20 +362,17 @@ function GameDetailContent({
   };
 
   const handleGenreClick = (genreTitle: string) => {
-    const category = categories.find((c) => c.title === genreTitle);
+    const category = categoriesList.find((c) => c.title === genreTitle);
     if (category) {
       navigate(`/category/${category.id}`);
     }
   };
 
-  // API returns genre as id[]; resolve to titles using categories
+  // API returns genre as id[]; resolve to titles using categories map
   const genreTitles = useMemo(() => {
     const raw = Array.isArray(game.genre) ? game.genre : game.genre != null ? [game.genre] : [];
-    return raw.map((id) => {
-      const c = categories.find((cat) => String(cat.id) === String(id));
-      return c?.title ?? String(id);
-    });
-  }, [game.genre, categories]);
+    return raw.map((id) => tagLabels.categories.get(String(id)) ?? String(id));
+  }, [game.genre, tagLabels.categories]);
 
   return (
     <>
@@ -369,7 +403,7 @@ function GameDetailContent({
               coverUrl={coverUrl}
               width={coverWidth}
               height={coverHeight}
-              onPlay={() => onPlay(game)}
+              onPlay={(executableName?: string) => (executableName !== undefined ? (onPlay as (g: typeof game, ex?: string) => void)(game, executableName) : onPlay(game))}
               showTitle={false}
               titlePosition="overlay"
               detail={false}
@@ -384,30 +418,37 @@ function GameDetailContent({
               <h1 className="text-white game-detail-title">
                 {game.title}
               </h1>
-              {releaseDate && (() => {
-                const validAgeRatings = game.ageRatings && game.ageRatings.length > 0 
+              {(() => {
+                const validAgeRatings = game.ageRatings && game.ageRatings.length > 0
                   ? filterAgeRatingsByLocale(game.ageRatings, i18n.language)
                   : [];
                 const hasValidAgeRatings = validAgeRatings.length > 0;
-                
+                const hasReleaseOrAgeRatings = releaseDate || hasValidAgeRatings;
+                if (!hasReleaseOrAgeRatings) return null;
                 return (
                   <div className="text-white game-detail-release-date">
                     {releaseDate}
+                    {releaseDate && hasValidAgeRatings && (
+                      <span className="game-detail-age-ratings-inline">
+                        {" • "}
+                      </span>
+                    )}
                     {hasValidAgeRatings && (
                       <span className="game-detail-age-ratings-inline">
-                        {"•   "}
                         <AgeRatings ageRatings={game.ageRatings || []} />
                       </span>
                     )}
                   </div>
                 );
               })()}
-              <InlineTagList
-                items={genreTitles}
-                getLabel={(genre) => t(`genre.${genre}`, genre)}
-                onItemClick={handleGenreClick}
-                showMoreLabel={t("gameDetail.andMore", ", and more")}
-              />
+              {tagLabelsReady && genreTitles.length > 0 && (
+                <InlineTagList
+                  items={genreTitles}
+                  getLabel={(genre) => t(`genre.${genre}`, genre)}
+                  onItemClick={handleGenreClick}
+                  showMoreLabel={t("gameDetail.andMore", ", and more")}
+                />
+              )}
               <div className="game-detail-ratings">
                 {(criticRating !== null) || (userRating !== null) ? (
                   <>
@@ -583,10 +624,8 @@ function GameDetailContent({
                   onClose={editGame.closeEditModal}
                   game={editGame.selectedGame}
                   onGameUpdate={(updatedGame) => {
-                    // Dispatch event to update allGames in App.tsx
                     window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
                     onGameUpdate(updatedGame);
-                    editGame.closeEditModal();
                   }}
                 />
               )}
@@ -608,7 +647,7 @@ function GameDetailContent({
         {/* Media Gallery - Full Width */}
         {((game.screenshots && game.screenshots.length > 0) || (game.videos && game.videos.length > 0)) && (
           <div className="game-detail-media-section">
-            <MediaGallery screenshots={game.screenshots} videos={game.videos} />
+            <MediaGallery screenshots={game.screenshots} videos={game.videos} apiBase={API_BASE} />
           </div>
         )}
         
@@ -641,22 +680,17 @@ function GameDetailContent({
             </div>
           </div>
         )}
-        {similarGamesInLibrary.length > 0 && (
+        {(game.similarGames && game.similarGames.length > 0) && similarGamesToShow.length > 0 && (
           <div className="game-detail-similar-section">
-            <h3 className="game-detail-section-title">
-              {t("igdbInfo.similarGames", "Similar Games")}
-            </h3>
-            <ScrollableGamesSection
-              sectionId="similar-games"
-              titleOverride={t("igdbInfo.similarGames", "Similar Games")}
-              disableAutoTranslate
-              showTitle={false}
-              games={similarGamesInLibrary}
-              onGameClick={handleRelatedGameClick}
+            <SimilarGamesList
+              items={similarGamesToShow}
+              coverSize={coverSize}
+              allCollections={allCollections}
+              onLibraryGameClick={handleRelatedGameClick}
+              onIgdbGameClick={(id) => navigate(`/igdb-game/${id}`)}
               onPlay={onPlay}
               onGameUpdate={handleRelatedGameUpdate}
-              coverSize={140}
-              allCollections={allCollections}
+              sectionTitle={t("igdbInfo.similarGames", "Similar Games")}
             />
           </div>
         )}

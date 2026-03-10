@@ -3,6 +3,10 @@
   background-color: transparent !important;
 }
 
+.home-page-scroll-container:focus {
+  outline: none;
+}
+
 .library-item-detail-edit-button {
   background-color: transparent;
   color: rgba(255, 255, 255, 0.8);

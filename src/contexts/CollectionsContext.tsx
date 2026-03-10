@@ -3,7 +3,9 @@ import type { ReactNode } from "react";
 import type { CollectionItem } from "../types";
 import { API_BASE, getApiToken } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
+import { compareTitles } from "../utils/stringUtils";
 import { useAuth } from "./AuthContext";
+import { useSettings } from "./SettingsContext";
 
 interface CollectionsContextType {
   collections: CollectionItem[];
@@ -28,15 +30,16 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
   const [collectionGameIds, setCollectionGameIds] = useState<Map<string, string[]>>(new Map());
   const collectionGameIdsRef = useRef(collectionGameIds);
   const { isLoading: authLoading, token: authToken } = useAuth();
+  const { twitchLoginEnabled, settingsLoaded } = useSettings();
 
   const fetchCollections = useCallback(async () => {
-    // Wait for authentication to complete before making API requests
     if (authLoading) {
       return;
     }
-    
-    const apiToken = getApiToken() || authToken;
-    if (!apiToken) {
+    if (!settingsLoaded) {
+      return;
+    }
+    if (twitchLoginEnabled && !getApiToken() && !authToken) {
       return;
     }
 
@@ -75,18 +78,19 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [authLoading, authToken]);
+  }, [authLoading, authToken, twitchLoginEnabled, settingsLoaded]);
 
   // Load collections on mount and when auth is ready (stagger to avoid all fetches at once)
   useEffect(() => {
     if (authLoading) return;
-    if (!getApiToken() && !authToken) {
+    if (!settingsLoaded) return;
+    if (twitchLoginEnabled && !getApiToken() && !authToken) {
       setIsLoading(false);
       return;
     }
     const t = setTimeout(fetchCollections, 400);
     return () => clearTimeout(t);
-  }, [authLoading, authToken, fetchCollections]);
+  }, [authLoading, authToken, twitchLoginEnabled, settingsLoaded, fetchCollections]);
 
   useEffect(() => {
     collectionGameIdsRef.current = collectionGameIds;
@@ -100,10 +104,12 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
       const collectionId = customEvent.detail?.collectionId;
       
       if (updatedCollection) {
-        // Direct collection update with full object
+        // Merge with existing collection so we preserve fields not in the payload (e.g. gameCount)
         setCollections((prev) =>
           prev.map((col) =>
-            String(col.id) === String(updatedCollection.id) ? updatedCollection : col
+            String(col.id) === String(updatedCollection.id)
+              ? { ...col, ...updatedCollection }
+              : col
           )
         );
       } else if (collectionId) {
@@ -179,7 +185,7 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
         return prev;
       }
       const updated = [...prev, collection];
-      updated.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+      updated.sort((a, b) => compareTitles(a.title || "", b.title || ""));
       return updated;
     });
   }, []);

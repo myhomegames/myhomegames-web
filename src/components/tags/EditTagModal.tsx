@@ -4,15 +4,15 @@ import { useTranslation } from "react-i18next";
 import { API_BASE, getApiToken } from "../../config";
 import { useLoading } from "../../contexts/LoadingContext";
 import Cover from "../games/Cover";
-import type { CategoryItem } from "../../types";
+import type { TagItem } from "../../types";
 import { buildApiUrl } from "../../utils/api";
 import "./EditTagModal.css";
 
 type EditTagModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  item: CategoryItem;
-  onItemUpdate: (updatedItem: CategoryItem) => void;
+  item: TagItem;
+  onItemUpdate: (updatedItem: TagItem) => void;
   title: string;
   coverDescription?: string;
   routeBase: string;
@@ -31,7 +31,7 @@ type EditTagModalProps = {
     | "series"
     | "franchise";
   /** When set, use this for API route segment instead of item.title (e.g. item.id for series/franchise) */
-  getRouteSegment?: (item: CategoryItem) => string;
+  getRouteSegment?: (item: TagItem) => string;
   /** When set, use this key to read the list from GET response (e.g. "series", "franchises") */
   listResponseKey?: string;
   updateEventName?: string;
@@ -75,9 +75,10 @@ export default function EditTagModal({
   const normalizedRouteBase = routeBase.startsWith("/") ? routeBase : `/${routeBase}`;
   const routeSegment = getRouteSegment ? getRouteSegment(item) : encodeURIComponent(item.title);
 
-  // Same as EditGameModal (library): only show local cover in edit; fallback (FRONTEND_URL) = not shown here.
-  // For series/franchise (getRouteSegment set), cover is always routeBase/id/cover.webp = real cover, not fallback.
+  // Same as EditGameModal (library): only show local cover in edit; fallback = never in preview.
+  // hasCover === true means cover.webp exists on disk; otherwise show placeholder only.
   const coverUrlWithTimestamp = useMemo(() => {
+    if (item.hasCover !== true) return "";
     if (!item?.cover || item.cover.trim() === "") return "";
     const baseUrl = item.cover.split("?")[0].split("&")[0];
     if (baseUrl.startsWith("http")) return "";
@@ -90,7 +91,7 @@ export default function EditTagModal({
     const url = buildApiUrl(API_BASE, baseUrl);
     const separator = url.includes("?") ? "&" : "?";
     return `${url}${separator}t=${imageTimestamp}`;
-  }, [item?.cover, imageTimestamp, routeBase, getRouteSegment]);
+  }, [item?.cover, item?.hasCover, imageTimestamp, routeBase, getRouteSegment]);
 
   useEffect(() => {
     if (isOpen && item) {
@@ -281,11 +282,16 @@ export default function EditTagModal({
           finalCover = `${finalCover}${separator}t=${Date.now()}`;
         }
         
-        const updatedItem: CategoryItem = {
-          id: result[responseKey]?.id || item.id,
-          title: result[responseKey]?.title || item.title,
+        const updatedItem: TagItem = {
+          id: result[responseKey]?.id ?? item.id,
+          title:
+            result[responseKey]?.title != null &&
+            result[responseKey].title !== String(result[responseKey]?.id ?? item.id)
+              ? result[responseKey].title
+              : item.title,
           cover: finalCover,
           showTitle: result[responseKey]?.showTitle ?? showTitle,
+          hasCover: result[responseKey]?.hasCover,
         };
 
         // Dispatch custom event if configured
@@ -294,6 +300,7 @@ export default function EditTagModal({
             detail: { [updateEventPayloadKey]: updatedItem } 
           }));
         }
+        window.dispatchEvent(new CustomEvent("tagListUpdated"));
 
             onItemUpdate(updatedItem);
       } else if (coverFile || coverRemoved) {
@@ -312,8 +319,8 @@ export default function EditTagModal({
           const listKey = listResponseKey ?? (responseKey.endsWith('y') ? `${responseKey.slice(0, -1)}ies` : `${responseKey}s`);
           const items = result[listKey] || [];
           const foundItem = getRouteSegment
-            ? items.find((i: CategoryItem) => String(i.id) === String(item.id))
-            : items.find((i: CategoryItem) => i.title.toLowerCase() === item.title.toLowerCase());
+            ? items.find((i: TagItem) => String(i.id) === String(item.id))
+            : items.find((i: TagItem) => i.title.toLowerCase() === item.title.toLowerCase());
           
           if (foundItem) {
             let finalCover = updatedCover !== null ? updatedCover : foundItem.cover;
@@ -323,11 +330,15 @@ export default function EditTagModal({
               finalCover = `${finalCover}${separator}t=${Date.now()}`;
             }
             
-            const reloadedItem: CategoryItem = {
+            const reloadedItem: TagItem = {
               id: foundItem.id,
-              title: foundItem.title,
+              title:
+                foundItem.title != null && foundItem.title !== String(foundItem.id)
+                  ? foundItem.title
+                  : item.title,
               cover: finalCover,
               showTitle: foundItem.showTitle ?? item.showTitle,
+              hasCover: foundItem.hasCover,
             };
 
             // Dispatch custom event if configured
@@ -336,6 +347,7 @@ export default function EditTagModal({
                 detail: { [updateEventPayloadKey]: reloadedItem } 
               }));
             }
+            window.dispatchEvent(new CustomEvent("tagListUpdated"));
 
             onItemUpdate(reloadedItem);
           }
@@ -421,7 +433,7 @@ export default function EditTagModal({
               <div className="edit-collection-modal-media-image-container">
                 {(() => {
                   const currentCoverUrl = coverRemoved ? "" : (coverPreview || coverUrlWithTimestamp);
-                  const hasCover = currentCoverUrl && currentCoverUrl.trim() !== "";
+                  const hasVisibleCover = !coverRemoved && (item.hasCover === true || !!coverPreview || !!coverFile);
                   return (
                     <>
                       <Cover
@@ -438,7 +450,7 @@ export default function EditTagModal({
                         aspectRatio="16/9"
                         onUpload={() => !uploadingCover && !saving && coverInputRef.current?.click()}
                         uploading={uploadingCover}
-                        showRemoveButton={!!hasCover && !coverRemoved}
+                        showRemoveButton={!!hasVisibleCover}
                         removeMediaType="cover"
                         removeResourceId={getRouteSegment ? getRouteSegment(item) : item.title}
                         removeResourceType={removeResourceType}

@@ -1,13 +1,16 @@
 import { useState, useEffect, useRef, useMemo, useLayoutEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useGameEvents } from "../hooks/useGameEvents";
 import { useLoading } from "../contexts/LoadingContext";
+import { useSettings } from "../contexts/SettingsContext";
 import { useCollections } from "../contexts/CollectionsContext";
 import { useDevelopers } from "../contexts/DevelopersContext";
 import { usePublishers } from "../contexts/PublishersContext";
+import { useLibraryGames } from "../contexts/LibraryGamesContext";
+import { useIgdbGamesForTag, type IgdbTagKey } from "../hooks/useIgdbGamesForTag";
 import GamesList from "../components/games/GamesList";
 import Cover from "../components/games/Cover";
 import LibrariesBar from "../components/layout/LibrariesBar";
@@ -26,6 +29,7 @@ import "./LibraryItemDetail.css";
 
 type LibraryItemDetailPageProps = {
   onGameClick: (game: GameItem) => void;
+  onIgdbGameClick?: (igdbId: number) => void;
   onGamesLoaded: (games: GameItem[]) => void;
   onPlay?: (game: GameItem) => void;
   allCollections?: CollectionItem[];
@@ -66,16 +70,20 @@ function parseGamesFromJson(json: { games?: any[] }) {
 
 export default function LibraryItemDetailPage({
   onGameClick,
+  onIgdbGameClick,
   onGamesLoaded,
   onPlay,
   allCollections = [],
 }: LibraryItemDetailPageProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { setLoading, isLoading } = useLoading();
   const { collections: allCollectionsFromContext } = useCollections();
   const { developers: allDevelopers, updateDeveloper } = useDevelopers();
   const { publishers: allPublishers, updatePublisher } = usePublishers();
+  const { twitchLoginEnabled } = useSettings();
+  const { games: libraryGames } = useLibraryGames();
   const params = useParams<{ collectionId?: string; developerId?: string; publisherId?: string }>();
   const collectionId = params.collectionId;
   const developerId = params.developerId;
@@ -100,12 +108,133 @@ export default function LibraryItemDetailPage({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [scrollRestoreTrigger, setScrollRestoreTrigger] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
   const fetchingGamesRef = useRef<boolean>(false);
   const lastIdRef = useRef<string | undefined>(undefined);
+  const scrollPositionToRestoreRef = useRef<number | null>(null);
+  /** Snapshot taken when user clicks Edit; only we write it, so nothing can overwrite it before restore */
+  const scrollSnapshotForModalRef = useRef<number | null>(null);
+
+  const scrollStorageKey = `${location.pathname}:modalScroll`;
+
+  const libraryGameIds = useMemo(
+    () =>
+      libraryGames
+        .map((g) => (typeof g.id === "number" ? g.id : parseInt(String(g.id), 10)))
+        .filter((n) => !Number.isNaN(n)),
+    [libraryGames]
+  );
+
+  const igdbTagKey: IgdbTagKey | null =
+    resourceType === "developers" ? "developers" : resourceType === "publishers" ? "publishers" : null;
+  const { igdbGames: igdbTagGames, loading: _igdbTagLoading } = useIgdbGamesForTag(
+    twitchLoginEnabled && igdbTagKey && id ? igdbTagKey : null,
+    id ?? null,
+    libraryGameIds,
+    true,
+    undefined
+  );
+
+  const canShowNewGamesToggle = (resourceType === "developers" || resourceType === "publishers") && !!twitchLoginEnabled;
+  const storageKeyForNewGames = resourceType === "developers" ? "developers" : "publishers";
+  const [showNewGames, setShowNewGames] = useState<boolean>(() => {
+    if (resourceType !== "developers" && resourceType !== "publishers") return false;
+    const saved = localStorage.getItem(`showNewGames_${storageKeyForNewGames}`);
+    if (saved === "false") return false;
+    if (saved === "true") return true;
+    return false;
+  });
+  useEffect(() => {
+    if (!canShowNewGamesToggle) return;
+    localStorage.setItem(`showNewGames_${storageKeyForNewGames}`, String(showNewGames));
+  }, [canShowNewGamesToggle, showNewGames, storageKeyForNewGames]);
 
   useScrollRestoration(scrollContainerRef);
+
+  // Keep scroll position ref updated on scroll (when modal closed) so we have it before click on Edit.
+  // Re-run when item is set so we attach the listener once the scroll container is in the DOM.
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el || isEditModalOpen) return;
+    const onScroll = () => {
+      const pos = el.scrollTop;
+      // Only update ref when there's real scrollable content; when scrollHeight collapses
+      // (e.g. on modal open/re-render) we get scrollTop 0 and would overwrite the good value.
+      if (el.scrollHeight > el.clientHeight) {
+        scrollPositionToRestoreRef.current = pos;
+        try {
+          if (pos > 0) sessionStorage.setItem(scrollStorageKey, String(pos));
+        } catch {
+          // ignore
+        }
+      }
+    };
+    if (el.scrollHeight > el.clientHeight) {
+      scrollPositionToRestoreRef.current = el.scrollTop;
+      try {
+        if (el.scrollTop > 0) sessionStorage.setItem(scrollStorageKey, String(el.scrollTop));
+      } catch {
+        // ignore
+      }
+    }
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [isEditModalOpen, item, scrollStorageKey]);
+
+  // Restore scroll when modal is closed
+  useLayoutEffect(() => {
+    if (isEditModalOpen) return;
+    let saved = scrollSnapshotForModalRef.current ?? scrollPositionToRestoreRef.current;
+    // Fallback: read from sessionStorage (we write there on every valid scroll; nothing overwrites it when collapsed)
+    if ((saved === null || saved === 0) && scrollStorageKey) {
+      try {
+        const stored = sessionStorage.getItem(scrollStorageKey);
+        if (stored !== null) {
+          const parsed = parseInt(stored, 10);
+          if (!isNaN(parsed) && parsed > 0) saved = parsed;
+        }
+      } catch {
+        // ignore
+      }
+    }
+    if (saved === null) return;
+    scrollSnapshotForModalRef.current = null;
+    scrollPositionToRestoreRef.current = null;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const restore = () => {
+      if (!container.scrollHeight) return;
+      const maxScroll = container.scrollHeight - container.clientHeight;
+      const toSet = maxScroll > 0 ? Math.min(saved, maxScroll) : 0;
+      container.scrollTop = toSet;
+      try {
+        container.focus({ preventScroll: true });
+      } catch {
+        // ignore
+      }
+    };
+    // Restore immediately
+    restore();
+    // Run again after modal's useEffect cleanup (body overflow + focus) so we win over browser scroll
+    const t0 = setTimeout(restore, 0);
+    const t50 = setTimeout(restore, 50);
+    const t100 = setTimeout(restore, 100);
+    const t200 = setTimeout(restore, 200);
+    try {
+      sessionStorage.setItem(location.pathname, String(saved));
+    } catch {
+      // ignore
+    }
+    return () => {
+      clearTimeout(t0);
+      clearTimeout(t50);
+      clearTimeout(t100);
+      clearTimeout(t200);
+    };
+  }, [item, games, isEditModalOpen, location.pathname, scrollRestoreTrigger]);
 
   const handleCoverSizeChange = (size: number) => {
     setCoverSize(size);
@@ -150,6 +279,34 @@ export default function LibraryItemDetailPage({
       }
     }
   }, [allCollectionsFromContext, collectionId, resourceType, item]);
+
+  // When a game is added to THIS collection, save scroll then refetch so the list updates and we restore position
+  useEffect(() => {
+    if (resourceType !== "collections" || !collectionId) return;
+    const handleCollectionUpdated = (e: Event) => {
+      const ev = e as CustomEvent<{ collectionId?: string | number }>;
+      if (String(ev.detail?.collectionId) !== String(collectionId)) return;
+      const el = scrollContainerRef.current;
+      if (el && el.scrollHeight > el.clientHeight && el.scrollTop > 0) {
+        scrollPositionToRestoreRef.current = el.scrollTop;
+        try {
+          sessionStorage.setItem(scrollStorageKey, String(el.scrollTop));
+        } catch {
+          // ignore
+        }
+      }
+      fetchCollectionGames(collectionId);
+    };
+    window.addEventListener("collectionUpdated", handleCollectionUpdated as EventListener);
+    return () => window.removeEventListener("collectionUpdated", handleCollectionUpdated as EventListener);
+  }, [collectionId, resourceType, scrollStorageKey]);
+
+  // When a game is added to ANY collection (e.g. "Aggiungi a" on an item), bump trigger so restore effect runs after re-render
+  useEffect(() => {
+    const handle = () => setScrollRestoreTrigger((n) => n + 1);
+    window.addEventListener("collectionUpdated", handle);
+    return () => window.removeEventListener("collectionUpdated", handle);
+  }, []);
 
   // Load item info when id changes (developers) — same pattern as collections
   useEffect(() => {
@@ -339,21 +496,9 @@ export default function LibraryItemDetailPage({
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      const items = (json.games || []).map((v: any) => ({
-        id: String(v.id),
-        title: v.title,
-        summary: v.summary,
-        cover: v.cover,
-        day: v.day,
-        month: v.month,
-        year: v.year,
-        stars: v.stars,
-        developers: v.developers,
-        publishers: v.publishers,
-        executables: v.executables,
-      }));
-      setGames(items);
-      onGamesLoaded(items);
+      const parsed = parseGamesFromJson(json);
+      setGames(parsed);
+      onGamesLoaded(parsed);
     } catch (err) {
       console.error("Error fetching developer games:", err);
     } finally {
@@ -393,21 +538,9 @@ export default function LibraryItemDetailPage({
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      const items = (json.games || []).map((v: any) => ({
-        id: String(v.id),
-        title: v.title,
-        summary: v.summary,
-        cover: v.cover,
-        day: v.day,
-        month: v.month,
-        year: v.year,
-        stars: v.stars,
-        developers: v.developers,
-        publishers: v.publishers,
-        executables: v.executables,
-      }));
-      setGames(items);
-      onGamesLoaded(items);
+      const parsed = parseGamesFromJson(json);
+      setGames(parsed);
+      onGamesLoaded(parsed);
     } catch (err) {
       console.error("Error fetching publisher games:", err);
     } finally {
@@ -465,6 +598,7 @@ export default function LibraryItemDetailPage({
       const updatedGame = result.game;
       if (updatedGame) window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
       window.dispatchEvent(new CustomEvent("developerUpdated", { detail: { developerId } }));
+      if (scrollContainerRef.current) scrollPositionToRestoreRef.current = scrollContainerRef.current.scrollTop;
       setGames((prev) => prev.filter((g) => String(g.id) !== String(gameId)));
     } catch (err) {
       console.error("Error removing game from developer:", err);
@@ -495,18 +629,55 @@ export default function LibraryItemDetailPage({
       const updatedGame = result.game;
       if (updatedGame) window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
       window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: { publisherId } }));
+      if (scrollContainerRef.current) scrollPositionToRestoreRef.current = scrollContainerRef.current.scrollTop;
       setGames((prev) => prev.filter((g) => String(g.id) !== String(gameId)));
     } catch (err) {
       console.error("Error removing game from publisher:", err);
     }
   };
 
+  const mergedGames = useMemo(() => {
+    if (!canShowNewGamesToggle || !id) return games;
+    const libraryById = new Map(games.map((g) => [String(g.id), g]));
+    const seenIds = new Set<string>();
+    const result: GameItem[] = [];
+    for (const ig of igdbTagGames) {
+      const sid = String(ig.id);
+      seenIds.add(sid);
+      const lib = libraryById.get(sid);
+      if (lib) result.push(lib);
+      else
+        result.push({
+          id: sid,
+          title: ig.name,
+          cover: ig.cover || undefined,
+          year: ig.releaseDate ?? undefined,
+          isIgdbOnly: true,
+        });
+    }
+    for (const g of games) {
+      if (!seenIds.has(String(g.id))) result.push(g);
+    }
+    result.sort((a, b) => {
+      const yearA = a.year ?? 0;
+      const yearB = b.year ?? 0;
+      if (yearA !== 0 && yearB !== 0) return yearA - yearB;
+      if (yearA !== 0 && yearB === 0) return -1;
+      if (yearA === 0 && yearB !== 0) return 1;
+      return compareTitles(a.title || "", b.title || "");
+    });
+    return result;
+  }, [canShowNewGamesToggle, id, igdbTagGames, games]);
+
+  const gamesToShow = canShowNewGamesToggle && showNewGames ? mergedGames : games;
+
   const sortedGames = useMemo(() => {
-    if (resourceType === "collections" && customOrder && customOrder.length === games.length) {
-      const gameMap = new Map(games.map((g) => [g.id, g]));
+    const source = gamesToShow;
+    if (resourceType === "collections" && customOrder && customOrder.length === source.length) {
+      const gameMap = new Map(source.map((g) => [g.id, g]));
       return customOrder.map((id) => gameMap.get(id)).filter(Boolean) as GameItem[];
     }
-    const sorted = [...games];
+    const sorted = [...source];
     sorted.sort((a, b) => {
       const yearA = a.year ?? 0;
       const yearB = b.year ?? 0;
@@ -516,24 +687,28 @@ export default function LibraryItemDetailPage({
       return compareTitles(a.title || "", b.title || "");
     });
     return sorted;
-  }, [games, customOrder, resourceType]);
+  }, [gamesToShow, customOrder, resourceType]);
 
   const handleGameUpdate = (updatedGame: GameItem) => {
+    if (scrollContainerRef.current) scrollPositionToRestoreRef.current = scrollContainerRef.current.scrollTop;
     setGames((prev) => prev.map((g) => (String(g.id) === String(updatedGame.id) ? updatedGame : g)));
     window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
     if (collectionId) fetchCollectionGames(collectionId);
   };
 
   const handleGameDelete = (deletedGame: GameItem) => {
+    if (scrollContainerRef.current) scrollPositionToRestoreRef.current = scrollContainerRef.current.scrollTop;
     setGames((prev) => prev.filter((g) => String(g.id) !== String(deletedGame.id)));
   };
 
   const handleRemoveFromCollection = (gameId: string) => {
+    if (scrollContainerRef.current) scrollPositionToRestoreRef.current = scrollContainerRef.current.scrollTop;
     setGames((prev) => prev.filter((g) => String(g.id) !== String(gameId)));
   };
 
   const handleDragEnd = async (sourceIndex: number, destinationIndex: number) => {
     if (sourceIndex === destinationIndex || resourceType !== "collections") return;
+    if (scrollContainerRef.current) scrollPositionToRestoreRef.current = scrollContainerRef.current.scrollTop;
     const newGames = [...sortedGames];
     const [removed] = newGames.splice(sourceIndex, 1);
     newGames.splice(destinationIndex, 0, removed);
@@ -557,19 +732,19 @@ export default function LibraryItemDetailPage({
   };
 
   const yearRange = useMemo(() => {
-    const years = games.map((g) => g.year).filter((y): y is number => y != null);
+    const years = gamesToShow.map((g) => g.year).filter((y): y is number => y != null);
     if (years.length === 0) return null;
     const min = Math.min(...years);
     const max = Math.max(...years);
     return min === max ? min.toString() : `${min} - ${max}`;
-  }, [games]);
+  }, [gamesToShow]);
 
   const averageRating = useMemo(() => {
-    const ratings = games.map((g) => g.stars).filter((s): s is number => s != null);
+    const ratings = gamesToShow.map((g) => g.stars).filter((s): s is number => s != null);
     if (ratings.length === 0) return null;
     const sum = ratings.reduce((a, b) => a + b, 0);
     return (sum / ratings.length / 10) * 5;
-  }, [games]);
+  }, [gamesToShow]);
 
   const notFoundMessage =
     resourceType === "collections"
@@ -606,6 +781,7 @@ export default function LibraryItemDetailPage({
         onPlay={onPlay}
         sortedGames={sortedGames}
         onGameClick={onGameClick}
+        onIgdbGameClick={onIgdbGameClick}
         onGameUpdate={handleGameUpdate}
         onGameDelete={handleGameDelete}
         buildCoverUrl={(apiBase, cover, addTimestamp) => buildCoverUrl(apiBase, cover, addTimestamp ?? false)}
@@ -617,7 +793,23 @@ export default function LibraryItemDetailPage({
         scrollContainerRef={scrollContainerRef}
         isReady={isReady}
         isEditModalOpen={isEditModalOpen}
-        onEditModalOpen={() => setIsEditModalOpen(true)}
+        onEditModalOpen={() => {
+          // Prefer sessionStorage (persistent, only updated when scrollHeight > clientHeight)
+          let toSave: number | null = null;
+          try {
+            const stored = sessionStorage.getItem(scrollStorageKey);
+            if (stored !== null) toSave = parseInt(stored, 10);
+          } catch {
+            // ignore
+          }
+          if (toSave === null || isNaN(toSave)) {
+            const el = scrollContainerRef.current;
+            const live = el && el.scrollHeight > el.clientHeight ? el.scrollTop : null;
+            toSave = scrollPositionToRestoreRef.current ?? live;
+          }
+          scrollSnapshotForModalRef.current = toSave;
+          setIsEditModalOpen(true);
+        }}
         onEditModalClose={() => setIsEditModalOpen(false)}
         onItemUpdate={(updated) => {
           setItem(updated);
@@ -626,6 +818,13 @@ export default function LibraryItemDetailPage({
         }}
         t={t}
         allCollections={allCollections}
+        allCollectionLikes={
+          resourceType === "collections"
+            ? allCollectionsFromContext
+            : resourceType === "developers"
+              ? allDevelopers
+              : allPublishers
+        }
         resourceType={resourceType}
         collectionId={resourceType === "collections" ? collectionId : undefined}
         onRemoveFromCollection={resourceType === "collections" ? handleRemoveFromCollection : undefined}
@@ -639,6 +838,41 @@ export default function LibraryItemDetailPage({
         onDeleteClick={() => setShowDeleteModal(true)}
         onConfirmDelete={handleConfirmDelete}
         onCloseDeleteModal={() => !isDeleting && setShowDeleteModal(false)}
+        onCollectionClick={(cid) => {
+          const base =
+            resourceType === "collections"
+              ? "collections"
+              : resourceType === "developers"
+                ? "developers"
+                : "publishers";
+          navigate(`/${base}/${cid}`);
+        }}
+        onPlayFirstInCollectionLike={async (type: string, cid: string) => {
+          if (!onPlay) return;
+          const base =
+            type === "collections"
+              ? "collections"
+              : type === "developers"
+                ? "developers"
+                : "publishers";
+          try {
+            const url = buildApiUrl(API_BASE, `/${base}/${cid}/games`);
+            const res = await fetch(url, {
+              headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
+            });
+            if (!res.ok) return;
+            const json = await res.json();
+            const games = parseGamesFromJson(json);
+            const first = games.find((g) => g.executables && g.executables.length > 0);
+            if (first) onPlay(first);
+          } catch (e) {
+            console.error(`Error fetching ${base} games:`, e);
+          }
+        }}
+        showNewGamesToggle={canShowNewGamesToggle}
+        showNewGames={showNewGames}
+        onShowNewGamesChange={setShowNewGames}
+        showNewGamesLabel={canShowNewGamesToggle ? t("tagGames.showNewGames") : undefined}
       />
     </BackgroundManager>
   );
@@ -654,6 +888,7 @@ type LibraryItemDetailContentProps = {
   onPlay?: (game: GameItem) => void;
   sortedGames: GameItem[];
   onGameClick: (game: GameItem) => void;
+  onIgdbGameClick?: (igdbId: number) => void;
   onGameUpdate?: (updatedGame: GameItem) => void;
   onGameDelete?: (deletedGame: GameItem) => void;
   buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean) => string;
@@ -670,6 +905,7 @@ type LibraryItemDetailContentProps = {
   onItemUpdate: (updated: CollectionInfo) => void;
   t: TFunction;
   allCollections?: CollectionItem[];
+  allCollectionLikes?: CollectionItem[];
   resourceType: CollectionLikeResourceType;
   collectionId?: string;
   onRemoveFromCollection?: (gameId: string) => void;
@@ -683,6 +919,12 @@ type LibraryItemDetailContentProps = {
   onDeleteClick?: () => void;
   onConfirmDelete?: () => void;
   onCloseDeleteModal?: () => void;
+  onCollectionClick?: (collectionId: string) => void;
+  onPlayFirstInCollectionLike?: (resourceType: string, id: string) => void | Promise<void>;
+  showNewGamesToggle?: boolean;
+  showNewGames?: boolean;
+  onShowNewGamesChange?: (value: boolean) => void;
+  showNewGamesLabel?: string;
 };
 
 function LibraryItemDetailContent({
@@ -695,6 +937,7 @@ function LibraryItemDetailContent({
   onPlay,
   sortedGames,
   onGameClick,
+  onIgdbGameClick,
   onGameUpdate,
   onGameDelete,
   buildCoverUrl,
@@ -711,6 +954,7 @@ function LibraryItemDetailContent({
   onItemUpdate,
   t,
   allCollections = [],
+  allCollectionLikes = [],
   resourceType,
   collectionId,
   onRemoveFromCollection,
@@ -724,6 +968,12 @@ function LibraryItemDetailContent({
   onDeleteClick,
   onConfirmDelete,
   onCloseDeleteModal,
+  onCollectionClick,
+  onPlayFirstInCollectionLike,
+  showNewGamesToggle = false,
+  showNewGames = false,
+  onShowNewGamesChange,
+  showNewGamesLabel,
 }: LibraryItemDetailContentProps) {
   const { hasBackground, isBackgroundVisible } = useBackground();
   const { isLoading } = useLoading();
@@ -739,6 +989,80 @@ function LibraryItemDetailContent({
 
   const isCollection = resourceType === "collections";
   const showDeleteInMenu = resourceType === "developers" || resourceType === "publishers";
+
+  const SUBTITLE_SEPARATORS = [":", "-", ";", "_", "/", "\\", "@", "#"];
+
+  const isSubCollectionTitle = (parentTitle: string, childTitle: string): boolean => {
+    const parent = parentTitle.trim();
+    const child = childTitle.trim();
+    if (!parent || !child || child.length <= parent.length) return false;
+    if (!child.startsWith(parent)) return false;
+    const rest = child.slice(parent.length);
+    const restTrimmed = rest.replace(/^\s+/, "");
+    if (!restTrimmed) return false;
+    const first = restTrimmed[0];
+    return SUBTITLE_SEPARATORS.includes(first);
+  };
+
+  const getSubCollectionLabel = (parentTitle: string, childTitle: string): string => {
+    const parent = parentTitle.trim();
+    const child = childTitle.trim();
+    if (!parent || !child || child.length <= parent.length) return childTitle;
+    if (!child.startsWith(parent)) return childTitle;
+    const rest = child.slice(parent.length).replace(/^\s+/, "");
+    if (!rest) return childTitle;
+    const first = rest[0];
+    if (!SUBTITLE_SEPARATORS.includes(first)) return childTitle;
+    const label = rest.slice(1).trim();
+    return label || childTitle;
+  };
+
+  const subCollectionLikes = useMemo(() => {
+    const currentId = collectionId ?? developerId ?? publisherId;
+    if (!item || !currentId) return [];
+    const parentTitle = (item.title || "").trim();
+    if (!parentTitle) return [];
+
+    const children = allCollectionLikes.filter((c) => {
+      const title = (c.title || "").trim();
+      if (!title || String(c.id) === String(currentId)) return false;
+      return isSubCollectionTitle(parentTitle, title);
+    });
+
+    children.sort((a, b) => {
+      const aLabel = getSubCollectionLabel(parentTitle, a.title || "");
+      const bLabel = getSubCollectionLabel(parentTitle, b.title || "");
+      return compareTitles(aLabel || a.title || "", bLabel || b.title || "");
+    });
+
+    return children;
+  }, [collectionId, developerId, publisherId, item, allCollectionLikes]);
+
+  const [editingChild, setEditingChild] = useState<CollectionInfo | null>(null);
+  const [isEditChildModalOpen, setIsEditChildModalOpen] = useState(false);
+
+  const dispatchCollectionLikeUpdated = (updatedItem: CollectionInfo) => {
+    if (resourceType === "collections") {
+      window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collection: updatedItem } }));
+    } else if (resourceType === "developers") {
+      window.dispatchEvent(new CustomEvent("developerUpdated", { detail: { developer: updatedItem } }));
+    } else if (resourceType === "publishers") {
+      window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: { publisher: updatedItem } }));
+    }
+  };
+
+  const openChildEditModal = (col: CollectionItem) => {
+    const childInfo: CollectionInfo = {
+      id: String(col.id),
+      title: col.title,
+      summary: col.summary || "",
+      cover: col.cover,
+      background: (col as any).background,
+      showTitle: (col as any).showTitle,
+    };
+    setEditingChild(childInfo);
+    setIsEditChildModalOpen(true);
+  };
 
   return (
     <>
@@ -756,6 +1080,10 @@ function LibraryItemDetailContent({
           onCoverSizeChange={handleCoverSizeChange}
           viewMode={viewMode}
           onViewModeChange={() => {}}
+          showNewGamesToggle={showNewGamesToggle}
+          showNewGames={showNewGames}
+          onShowNewGamesChange={onShowNewGamesChange ?? (() => {})}
+          showNewGamesLabel={showNewGamesLabel}
         />
       </div>
       <div style={{ position: "relative", zIndex: 2, height: "100vh", display: "flex", flexDirection: "column" }}>
@@ -784,7 +1112,8 @@ function LibraryItemDetailContent({
                 <div
                   ref={scrollContainerRef}
                   className="home-page-scroll-container"
-                  style={{ paddingLeft: "64px", paddingRight: "64px", paddingTop: "5px", paddingBottom: "32px" }}
+                  tabIndex={-1}
+                  style={{ paddingLeft: "64px", paddingRight: "64px", paddingTop: "5px", paddingBottom: "16px" }}
                 >
                   {item && (
                     <div
@@ -796,7 +1125,7 @@ function LibraryItemDetailContent({
                         alignItems: "flex-start",
                         width: "100%",
                         boxSizing: "border-box",
-                        marginBottom: "32px",
+                        marginBottom: "16px",
                       }}
                     >
                       <div style={{ flexShrink: 0 }}>
@@ -966,44 +1295,157 @@ function LibraryItemDetailContent({
 
                   {!isLoading && (
                     <div style={{ width: "100%" }}>
-                      <div style={{ paddingLeft: "0", marginBottom: "32px", marginTop: "8px" }}>
-                        <h2
-                          className="text-white"
-                          style={{
-                            fontFamily: "var(--font-heading-2-font-family)",
-                            fontSize: "var(--font-heading-2-font-size)",
-                            fontWeight: 600,
-                          }}
-                        >
-                          {sortedGames.length} {t("common.games")}
-                        </h2>
-                      </div>
                       <style>{`
                         .library-item-detail-games-list .games-list-container {
                           justify-content: flex-start !important;
                         }
                       `}</style>
-                      <div className="library-item-detail-games-list">
-                        <GamesList
-                          games={sortedGames}
-                          onGameClick={onGameClick}
-                          onPlay={onPlay}
-                          onGameUpdate={onGameUpdate}
-                          onGameDelete={onGameDelete}
-                          buildCoverUrl={buildCoverUrl}
-                          coverSize={coverSize}
-                          itemRefs={itemRefs}
-                          draggable={isCollection}
-                          onDragEnd={isCollection ? handleDragEnd : undefined}
-                          allCollections={isCollection ? allCollections : undefined}
-                          collectionId={collectionId}
-                          onRemoveFromCollection={onRemoveFromCollection}
-                          developerId={developerId}
-                          publisherId={publisherId}
-                          onRemoveFromDeveloper={onRemoveFromDeveloper}
-                          onRemoveFromPublisher={onRemoveFromPublisher}
+                      {subCollectionLikes.length > 0 && (
+                        <div style={{ marginBottom: "32px", marginTop: "0" }}>
+                          <h2
+                            className="text-white"
+                            style={{
+                              fontFamily: "var(--font-heading-2-font-family)",
+                              fontSize: "var(--font-heading-2-font-size)",
+                              fontWeight: 600,
+                            }}
+                          >
+                            {(() => {
+                              const label =
+                                resourceType === "collections"
+                                  ? t("collections.subcollections", { count: subCollectionLikes.length })
+                                  : resourceType === "developers"
+                                    ? t("igdbInfo.subDevelopers", { count: subCollectionLikes.length })
+                                    : t("igdbInfo.subPublishers", { count: subCollectionLikes.length });
+                              return label.replace(/(\p{L})/u, (_, c) => c.toUpperCase());
+                            })()}
+                          </h2>
+                          <div
+                            className="library-item-detail-collections-list"
+                            style={{ marginTop: "24px" }}
+                          >
+                            <div
+                              className="collections-list-container"
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns: `repeat(auto-fill, ${coverSize}px)`,
+                                gap: 40,
+                                justifyContent: "flex-start",
+                                maxWidth: "100%",
+                              }}
+                            >
+                              {subCollectionLikes.map((col) => {
+                                const displayTitle = getSubCollectionLabel(item?.title || "", col.title || "");
+                                const colCoverUrl = col.cover
+                                  ? buildCoverUrl(API_BASE, col.cover, true)
+                                  : "";
+                                const handleClick = () => {
+                                  if (onCollectionClick) {
+                                    onCollectionClick(String(col.id));
+                                  }
+                                };
+                                return (
+                                  <div
+                                    key={String(col.id)}
+                                    className="group cursor-pointer collections-list-item"
+                                    style={{ width: `${coverSize}px`, minWidth: `${coverSize}px` }}
+                                  >
+                                    <Cover
+                                      title={displayTitle || col.title}
+                                      coverUrl={colCoverUrl}
+                                      width={coverSize}
+                                      height={coverSize * 1.5}
+                                      onClick={handleClick}
+                                      subtitle={col.gameCount != null ? t("common.elements", { count: col.gameCount }) : undefined}
+                                      onPlay={
+                                        onPlayFirstInCollectionLike
+                                          ? () => onPlayFirstInCollectionLike(resourceType, String(col.id))
+                                          : undefined
+                                      }
+                                      onEdit={() => openChildEditModal(col)}
+                                      dropdownHorizontal={false}
+                                      dropdownToolTipDelay={200}
+                                      collectionId={resourceType === "collections" ? String(col.id) : undefined}
+                                      developerId={resourceType === "developers" ? String(col.id) : undefined}
+                                      publisherId={resourceType === "publishers" ? String(col.id) : undefined}
+                                      collectionTitle={col.title}
+                                      onCollectionUpdate={
+                                        resourceType === "collections"
+                                          ? (updated) => dispatchCollectionLikeUpdated(updated)
+                                          : undefined
+                                      }
+                                      showTitle={(col as any).showTitle !== false}
+                                      detail={true}
+                                      play={!!onPlayFirstInCollectionLike}
+                                      showBorder={true}
+                                    />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {editingChild && (
+                        <EditCollectionLikeModal
+                          isOpen={isEditChildModalOpen}
+                          onClose={() => setIsEditChildModalOpen(false)}
+                          resourceType={resourceType}
+                          item={editingChild}
+                          onItemUpdate={(updated) => {
+                            setEditingChild(updated);
+                          }}
                         />
-                      </div>
+                      )}
+                      {sortedGames.length > 0 && (
+                        <>
+                          <div style={{ paddingLeft: "0", marginBottom: "32px", marginTop: "0" }}>
+                            <h2
+                              className="text-white"
+                              style={{
+                                fontFamily: "var(--font-heading-2-font-family)",
+                                fontSize: "var(--font-heading-2-font-size)",
+                                fontWeight: 600,
+                              }}
+                            >
+                              {sortedGames.length} {t("common.games")}
+                            </h2>
+                          </div>
+                          <style>{`
+                            .library-item-detail-games-list .games-list-container {
+                              justify-content: flex-start !important;
+                            }
+                          `}</style>
+                          <div className="library-item-detail-games-list">
+                            <GamesList
+                              games={sortedGames}
+                              onGameClick={(game) => {
+                                const g = game as GameItem & { isIgdbOnly?: boolean };
+                                if (g.isIgdbOnly && onIgdbGameClick) {
+                                  onIgdbGameClick(Number(game.id));
+                                } else {
+                                  onGameClick(game);
+                                }
+                              }}
+                              onPlay={onPlay}
+                              onGameUpdate={onGameUpdate}
+                              onGameDelete={onGameDelete}
+                              buildCoverUrl={buildCoverUrl}
+                              coverSize={coverSize}
+                              itemRefs={itemRefs}
+                              draggable={isCollection}
+                              onDragEnd={isCollection ? handleDragEnd : undefined}
+                              allCollections={isCollection ? allCollections : undefined}
+                              collectionId={collectionId}
+                              onRemoveFromCollection={onRemoveFromCollection}
+                              developerId={developerId}
+                              publisherId={publisherId}
+                              onRemoveFromDeveloper={onRemoveFromDeveloper}
+                              onRemoveFromPublisher={onRemoveFromPublisher}
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>

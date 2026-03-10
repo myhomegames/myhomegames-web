@@ -408,6 +408,7 @@ export default function SearchResultsList({
             }
           }}
           game={editGame.selectedGame}
+          onGameDraftUpdate={(updatedGame: GameItem) => editGame.updateSelectedGame(updatedGame)}
           onGameUpdate={handleGameUpdate}
         />
       )}

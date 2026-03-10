@@ -67,6 +67,61 @@
   background: #1a1a1a;
 }
 
+.add-game-create-from-scratch {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.add-game-create-label {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 10px;
+}
+
+.add-game-create-row {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.add-game-create-input {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.add-game-create-btn {
+  flex-shrink: 0;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #FFB300 0%, #e6a000 100%);
+  border: none;
+  border-radius: 12px;
+  color: #0f0f0f;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-game-create-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ffc233 0%, #FFB300 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 179, 0, 0.35);
+}
+
+.add-game-create-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.add-game-create-error {
+  margin-top: 10px;
+  margin-bottom: 0;
+}
+
 .add-game-search-container {
   margin-bottom: 24px;
 }
@@ -288,5 +343,6 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   margin: 0;
+  white-space: pre-line;
 }
 

@@ -3,7 +3,9 @@ import type { ReactNode } from "react";
 import type { GameItem } from "../types";
 import { API_BASE, getApiToken } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
+import { compareTitles } from "../utils/stringUtils";
 import { useAuth } from "./AuthContext";
+import { useSettings } from "./SettingsContext";
 
 interface LibraryGamesContextType {
   games: GameItem[];
@@ -22,15 +24,18 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { isLoading: authLoading, token: authToken } = useAuth();
+  const { twitchLoginEnabled, settingsLoaded } = useSettings();
 
   const fetchGames = useCallback(async () => {
-    // Wait for authentication to complete before making API requests
     if (authLoading) {
       return;
     }
-    
+    if (!settingsLoaded) {
+      return;
+    }
+    // When Twitch login is enabled, require token; when disabled, token is optional
     const apiToken = getApiToken() || authToken;
-    if (!apiToken) {
+    if (twitchLoginEnabled && !apiToken) {
       return;
     }
 
@@ -86,14 +91,15 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [authLoading, authToken]);
+  }, [authLoading, authToken, twitchLoginEnabled, settingsLoaded]);
 
   // Load games on mount and when auth is ready
   useEffect(() => {
-    if (!authLoading) {
-      fetchGames();
+    if (authLoading || !settingsLoaded) {
+      return;
     }
-  }, [authLoading, fetchGames]);
+    fetchGames();
+  }, [authLoading, settingsLoaded, fetchGames]);
 
   // Listen for game update events
   useEffect(() => {
@@ -130,8 +136,8 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
               String(g.id) === String(addedGame.id) ? addedGame : g
             );
           }
-          return [...prev, addedGame].sort((a, b) => 
-            (a.title || "").localeCompare(b.title || "")
+          return [...prev, addedGame].sort((a, b) =>
+            compareTitles(a.title || "", b.title || "")
           );
         });
       }
@@ -165,8 +171,8 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
           String(g.id) === String(game.id) ? game : g
         );
       }
-      return [...prev, game].sort((a, b) => 
-        (a.title || "").localeCompare(b.title || "")
+      return [...prev, game].sort((a, b) =>
+        compareTitles(a.title || "", b.title || "")
       );
     });
   }, []);

@@ -4,6 +4,7 @@ import { useLoading } from "../../contexts/LoadingContext";
 import CoverSizeSlider from "../ui/CoverSizeSlider";
 import ViewModeSelector from "../ui/ViewModeSelector";
 import BackgroundToggle from "../ui/BackgroundToggle";
+import NewGamesToggle from "../ui/NewGamesToggle";
 import DropdownMenu from "../common/DropdownMenu";
 import { useBackground } from "../common/BackgroundManager";
 import { API_BASE, getApiToken } from "../../config";
@@ -22,6 +23,11 @@ type LibrariesBarProps = {
   onViewModeChange?: (mode: ViewMode) => void;
   hideBackgroundToggle?: boolean;
   onReloadMetadata?: () => Promise<void>;
+  /** When true, show an icon toggle to include/exclude new (IGDB) games in tag lists */
+  showNewGamesToggle?: boolean;
+  showNewGames?: boolean;
+  onShowNewGamesChange?: (value: boolean) => void;
+  showNewGamesLabel?: string;
 };
 
 export default function LibrariesBar({
@@ -36,6 +42,10 @@ export default function LibrariesBar({
   onViewModeChange,
   hideBackgroundToggle = false,
   onReloadMetadata,
+  showNewGamesToggle = false,
+  showNewGames = false,
+  onShowNewGamesChange,
+  showNewGamesLabel: _showNewGamesLabel,
 }: LibrariesBarProps) {
   const { t } = useTranslation();
   const { isLoading: globalLoading } = useLoading();
@@ -158,6 +168,14 @@ export default function LibrariesBar({
               <BackgroundToggle
                 isVisible={isBackgroundVisible}
                 onChange={setBackgroundVisible}
+              />
+            </div>
+          )}
+          {showNewGamesToggle && onShowNewGamesChange && (
+            <div className="mhg-libraries-actions-new-games-container">
+              <NewGamesToggle
+                showNewGames={showNewGames}
+                onChange={onShowNewGamesChange}
               />
             </div>
           )}

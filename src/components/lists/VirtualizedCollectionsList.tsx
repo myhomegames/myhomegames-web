@@ -27,6 +27,8 @@ function setScrollPosition(key: string, scrollTop: number, scrollLeft: number): 
 
 type VirtualizedCollectionsListProps = {
   collections: CollectionItem[];
+  /** Optional map of collection id -> display count (games + sub-collections) for subtitle */
+  displayCountById?: Record<string, number>;
   coverSize: number;
   containerRef: React.RefObject<HTMLDivElement | null>;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
@@ -44,6 +46,7 @@ const OVERSCAN_COUNT = 2; // Number of items to render outside visible area
 
 export default function VirtualizedCollectionsList({
   collections,
+  displayCountById,
   coverSize,
   containerRef,
   itemRefs,
@@ -317,6 +320,7 @@ export default function VirtualizedCollectionsList({
       >
         <CollectionListItem
           collection={collection}
+          displayCount={displayCountById?.[String(collection.id)]}
           onCollectionClick={onCollectionClick}
           onPlay={onPlay}
           onEditClick={onEditClick}

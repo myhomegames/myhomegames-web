@@ -34,6 +34,8 @@ export type GameItem = {
   keywords?: string[];
   alternativeNames?: string[];
   similarGames?: Array<{ id: number; name: string }>;
+  /** True when game is from IGDB only (not in library); click navigates to igdb-game page, cover shows "Nuovo" badge */
+  isIgdbOnly?: boolean;
 };
 
 export type CollectionItem = {
@@ -46,11 +48,13 @@ export type CollectionItem = {
   gameCount?: number;
 };
 
-export type CategoryItem = {
+export type TagItem = {
   id: string;
   title: string;
   cover?: string;
   showTitle?: boolean;
+  /** True when the cover file exists on server; false when only fallback URL is used. Used by EditTagModal for remove button. */
+  hasCover?: boolean;
 };
 
 export type CollectionInfo = {
@@ -76,10 +80,10 @@ export type IGDBGame = {
     timestamp: number;
   } | null;
   genres?: string[];
-  themes?: string[];
-  platforms?: string[];
-  gameModes?: string[];
-  playerPerspectives?: string[];
+  themes?: Array<{ id: number; name: string }> | string[];
+  platforms?: Array<{ id: number; name: string }> | string[];
+  gameModes?: Array<{ id: number; name: string }> | string[];
+  playerPerspectives?: Array<{ id: number; name: string }> | string[];
   websites?: Array<{ url: string; category?: number }>;
   ageRatings?: Array<{ rating: number; category: number }>;
   developers?: Array<{ id: number; name: string }>;
@@ -89,7 +93,7 @@ export type IGDBGame = {
   series?: (string | { id: number; name: string }) | (string | { id: number; name: string })[];
   screenshots?: string[];
   videos?: string[];
-  gameEngines?: string[];
+  gameEngines?: Array<{ id: number; name: string }> | string[];
   keywords?: string[];
   alternativeNames?: string[];
   similarGames?: Array<{ id: number; name: string }>;

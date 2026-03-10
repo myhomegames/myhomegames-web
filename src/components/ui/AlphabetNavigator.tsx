@@ -115,18 +115,27 @@ export default function AlphabetNavigator({
     ? ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")]
     : [..."ZYXWVUTSRQPONMLKJIHGFEDCBA".split(""), "#"];
 
-  // Get first letter of each game title
+  // Get first letter of each game title (ignore leading "The "/"A ", accented chars → base letter)
+  const getTitleForAlphabet = (title: string): string => {
+    if (!title) return "";
+    return title.trim().replace(/^(The|A)\s+/i, "").trim();
+  };
+
   const getFirstLetter = (title: string): string => {
-    const firstChar = title.trim().charAt(0).toUpperCase();
-    if (/[A-Z]/.test(firstChar)) {
-      return firstChar;
-    } else if (/[0-9]/.test(firstChar)) {
-      return "#";
-    } else {
-      // For other special characters, use the first letter found in the title
-      const match = title.match(/[A-Z]/i);
-      return match ? match[0].toUpperCase() : "#";
+    const raw = getTitleForAlphabet(title);
+    if (!raw.length) return "#";
+    // Normalize so É → E, À → A, etc.; take first code point (base letter)
+    const first = raw.charAt(0).normalize("NFD").charAt(0).toUpperCase();
+    if (/[A-Z]/.test(first)) {
+      return first;
     }
+    if (/[0-9]/.test(first)) {
+      return "#";
+    }
+    // First char not A-Z/0-9: find first letter in title (after normalization)
+    const normalized = raw.normalize("NFD");
+    const match = normalized.match(/[A-Z]/i);
+    return match ? match[0].toUpperCase() : "#";
   };
 
   // Check if a letter has games
@@ -159,19 +168,33 @@ export default function AlphabetNavigator({
     if (actualGridRef && viewMode === "grid") {
       const grid = actualGridRef;
       if (grid && typeof grid.scrollToCell === 'function') {
-        // Calculate row and column from index
-        const containerWidth = container.clientWidth;
-        const itemWidth = (coverSize || 150) + 40; // coverSize + gap
-        const columnCount = Math.max(1, Math.floor((containerWidth + 40) / itemWidth));
-        const rowIndex = Math.floor(firstGameIndex / columnCount);
-        const columnIndex = firstGameIndex % columnCount;
-        
-        grid.scrollToCell({
-          rowIndex,
-          columnIndex,
-          align: "start",
-          behavior: "smooth",
-        });
+        // Use the exact same formula as VirtualizedGamesList to avoid wrong row (e.g. T landing on E)
+        const GAP = 40;
+        const rect = container.getBoundingClientRect();
+        const dimensionsWidth = rect.width - 40;
+        const itemWidth = (coverSize || 150) + GAP;
+        const columnCount = Math.max(
+          1,
+          dimensionsWidth <= 0 ? 1 : Math.floor((dimensionsWidth + GAP) / itemWidth)
+        );
+        const rowCount = Math.ceil(games.length / columnCount);
+
+        const rowIndex = Math.min(
+          Math.floor(firstGameIndex / columnCount),
+          Math.max(0, rowCount - 1)
+        );
+        const columnIndex = Math.min(firstGameIndex % columnCount, columnCount - 1);
+
+        try {
+          grid.scrollToCell({
+            rowIndex,
+            columnIndex,
+            align: "start",
+            behavior: "smooth",
+          });
+        } catch {
+          // Grid may not have updated rowCount yet (navigation/cover size race)
+        }
         return;
       }
     }
@@ -180,11 +203,16 @@ export default function AlphabetNavigator({
     if (actualListRef && (viewMode === "detail" || viewMode === "table")) {
       const list = actualListRef;
       if (list && typeof list.scrollToRow === 'function') {
-        list.scrollToRow({
-          index: firstGameIndex,
-          align: "start",
-          behavior: "smooth",
-        });
+        const safeIndex = Math.min(firstGameIndex, Math.max(0, games.length - 1));
+        try {
+          list.scrollToRow({
+            index: safeIndex,
+            align: "start",
+            behavior: "smooth",
+          });
+        } catch {
+          // List may not have updated row count yet (navigation race)
+        }
         return;
       }
     }
@@ -214,11 +242,19 @@ export default function AlphabetNavigator({
       }
     }
 
-    // Fallback: scroll by calculating position
-    // This is a simple approach - might need adjustment based on item height
-    const itemsPerRow = Math.floor(container.clientWidth / 200); // Approximate
+    // Fallback: scroll by calculating position (non-virtualized grid)
+    // Same row height and column formula as VirtualizedGamesList
+    const GAP = 40;
+    const rect = container.getBoundingClientRect();
+    const dimensionsWidth = rect.width - 40;
+    const itemWidth = (coverSize ?? 150) + GAP;
+    const rowHeight = (coverSize ?? 150) * 1.5 + GAP;
+    const itemsPerRow = Math.max(
+      1,
+      dimensionsWidth <= 0 ? 1 : Math.floor((dimensionsWidth + GAP) / itemWidth)
+    );
     const rowIndex = Math.floor(firstGameIndex / itemsPerRow);
-    const scrollPosition = rowIndex * 200; // Approximate row height
+    const scrollPosition = rowIndex * rowHeight;
 
     container.scrollTo({
       top: scrollPosition,

@@ -27,6 +27,12 @@ type GamesListPageContentProps = {
   
   // Custom buildCoverUrl function (optional, for CategoryPage)
   buildCoverUrlFn?: (apiBase: string, cover?: string, addTimestamp?: boolean) => string;
+  
+  // Series/franchise: merged library + IGDB games in one list
+  gamesOverride?: GameItem[] | null;
+  onIgdbGameClick?: (igdbId: number) => void;
+  /** When on a tag page with an IGDB id, override the filter value label (e.g. show "Action" instead of "1") */
+  selectedFilterValueLabel?: string;
 };
 
 export default function GamesListPageContent({
@@ -40,6 +46,9 @@ export default function GamesListPageContent({
   onGamesLoaded,
   onPlay,
   buildCoverUrlFn,
+  gamesOverride,
+  onIgdbGameClick,
+  selectedFilterValueLabel,
 }: GamesListPageContentProps) {
   const { t } = useTranslation();
   const {
@@ -149,18 +158,31 @@ export default function GamesListPageContent({
   // Use custom buildCoverUrl function if provided, otherwise use default
   const coverUrlBuilder = buildCoverUrlFn || buildCoverUrl;
 
+  const displayGames = gamesOverride ?? filteredAndSortedGames;
+  const handleGameClick = useCallback(
+    (game: GameItem) => {
+      const g = game as GameItem & { isIgdbOnly?: boolean };
+      if (g.isIgdbOnly && onIgdbGameClick) {
+        onIgdbGameClick(Number(game.id));
+      } else {
+        onGameClick(game);
+      }
+    },
+    [onGameClick, onIgdbGameClick]
+  );
+
   return (
     <div 
-      className={`home-page-content-wrapper ${!isLoading && games.length > 0 ? "has-toolbar" : ""}`}
+      className={`home-page-content-wrapper ${!isLoading && displayGames.length > 0 ? "has-toolbar" : ""}`}
       style={{
         opacity: isReady ? 1 : 0,
         transition: 'opacity 0.2s ease-in-out',
       }}
     >
       {/* Toolbar with filter and sort */}
-      {!isLoading && games.length > 0 && (
+      {!isLoading && displayGames.length > 0 && (
         <GamesListToolbar
-          gamesCount={filteredAndSortedGames.length}
+          gamesCount={displayGames.length}
           games={games}
           onFilterChange={handleFilterChange}
           onYearFilterChange={setSelectedYear}
@@ -205,10 +227,11 @@ export default function GamesListPageContent({
           availableFranchises={availableFranchises}
           availableDevelopers={availableDevelopers}
           availablePublishers={availablePublishers}
+          selectedFilterValueLabel={selectedFilterValueLabel}
         />
       )}
       {/* Table header section */}
-      {viewMode === "table" && !isLoading && games.length > 0 && (
+      {viewMode === "table" && !isLoading && displayGames.length > 0 && (
         <GamesListTableHeader
           columnVisibility={columnVisibility}
           onToggleColumn={toggleColumn}
@@ -222,7 +245,7 @@ export default function GamesListPageContent({
         ref={scrollContainerRef}
         className={`home-page-scroll-container ${
           viewMode === "table" ? "table-view" : ""
-        } ${!isReady || filteredAndSortedGames.length === 0 ? "centered-content min-h-[400px]" : ""}`}
+        } ${!isReady || displayGames.length === 0 ? "centered-content min-h-[400px]" : ""}`}
       >
         {!isReady && (
           <div className="text-gray-400 text-center" style={{ padding: "2rem" }}>
@@ -231,14 +254,14 @@ export default function GamesListPageContent({
         )}
         {isReady && !isLoading && (
           <>
-            {filteredAndSortedGames.length === 0 ? (
+            {displayGames.length === 0 ? (
               <div className="text-gray-400 text-center">{t("table.noGames")}</div>
             ) : (
               <>
                 {viewMode === "grid" && (
                   <GamesList
-                    games={filteredAndSortedGames}
-                    onGameClick={onGameClick}
+                    games={displayGames}
+                    onGameClick={handleGameClick}
                     onPlay={onPlay}
                     onGameUpdate={handleGameUpdate}
                     onGameDelete={handleGameDelete}
@@ -252,8 +275,9 @@ export default function GamesListPageContent({
                 )}
                 {viewMode === "detail" && (
                   <GamesListDetail
-                    games={filteredAndSortedGames}
-                    onGameClick={onGameClick}
+                    games={displayGames}
+                    onGameClick={handleGameClick}
+                    onIgdbGameClick={onIgdbGameClick}
                     onPlay={onPlay}
                     onGameUpdate={handleGameUpdate}
                     onGameDelete={handleGameDelete}
@@ -265,8 +289,9 @@ export default function GamesListPageContent({
                 )}
                 {viewMode === "table" && (
                   <GamesListTable
-                    games={filteredAndSortedGames}
-                    onGameClick={onGameClick}
+                    games={displayGames}
+                    onGameClick={handleGameClick}
+                    onIgdbGameClick={onIgdbGameClick}
                     onPlay={onPlay}
                     onGameUpdate={handleGameUpdate}
                     onGameDelete={handleGameDelete}

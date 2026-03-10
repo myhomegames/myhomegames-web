@@ -1,0 +1,93 @@
+import { useState, useEffect, useMemo } from "react";
+import { API_BASE } from "../config";
+import { getApiToken, getTwitchClientId, getTwitchClientSecret } from "../config";
+import { buildApiUrl } from "../utils/api";
+
+type SimilarGameEntry = { id: number; name: string };
+
+/**
+ * Returns true if the name is just the id (game not in library, server returned id as name).
+ */
+function isNumericName(sg: SimilarGameEntry): boolean {
+  const idStr = String(sg.id);
+  return sg.name === idStr || sg.name.trim() === idStr;
+}
+
+/**
+ * Fetches game names from IGDB for the given ids and returns a map id -> name.
+ */
+async function fetchIgdbNamesByIds(ids: number[]): Promise<Record<string, string>> {
+  const clientId = getTwitchClientId();
+  const clientSecret = getTwitchClientSecret();
+  if (!clientId || !clientSecret) return {};
+  const token = getApiToken();
+  if (!token) return {};
+
+  const url = buildApiUrl(API_BASE, "/igdb/game-names-by-ids", { ids: ids.join(",") });
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      "X-Auth-Token": token,
+      "X-Twitch-Client-Id": clientId,
+      "X-Twitch-Client-Secret": clientSecret,
+    },
+  });
+  if (!res.ok) return {};
+  const data = (await res.json()) as { names?: Record<string, string> };
+  return data.names ?? {};
+}
+
+/**
+ * Resolves similar games that have numeric names (id as name) by fetching titles from IGDB.
+ * Returns the same list with names replaced when available from IGDB.
+ */
+export function useResolvedSimilarGamesNames(
+  similarGames: SimilarGameEntry[] | null | undefined
+): { similarGames: SimilarGameEntry[]; isLoading: boolean } {
+  const list = useMemo(
+    () => (similarGames && Array.isArray(similarGames) ? similarGames : []),
+    [similarGames]
+  );
+
+  const [resolvedNames, setResolvedNames] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(false);
+
+  const idsToResolve = useMemo(() => {
+    const ids: number[] = [];
+    for (const sg of list) {
+      if (isNumericName(sg)) ids.push(sg.id);
+    }
+    return ids;
+  }, [list]);
+
+  useEffect(() => {
+    if (idsToResolve.length === 0) {
+      setResolvedNames({});
+      return;
+    }
+    let cancelled = false;
+    setIsLoading(true);
+    fetchIgdbNamesByIds(idsToResolve)
+      .then((names) => {
+        if (!cancelled) setResolvedNames(names);
+      })
+      .catch(() => {
+        if (!cancelled) setResolvedNames({});
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [idsToResolve.join(",")]);
+
+  const resolved = useMemo(() => {
+    return list.map((sg) => {
+      const resolvedName = resolvedNames[String(sg.id)];
+      return resolvedName != null ? { id: sg.id, name: resolvedName } : sg;
+    });
+  }, [list, resolvedNames]);
+
+  return { similarGames: resolved, isLoading };
+}

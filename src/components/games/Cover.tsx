@@ -13,7 +13,7 @@ type CoverProps = {
   coverUrl: string;
   width: number;
   height: number;
-  onPlay?: () => void;
+  onPlay?: (executableName?: string) => void;
   onClick?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -40,6 +40,8 @@ type CoverProps = {
   overlayContent?: React.ReactNode; // Content to overlay on the cover
   titlePosition?: "bottom" | "overlay"; // Position of title: below cover or inside image (default: "bottom")
   editButtonPosition?: "bottom-left" | "bottom-right"; // Position of edit button (default: "bottom-left")
+  dropdownHorizontal?: boolean; // Use horizontal three-dots icon
+  dropdownToolTipDelay?: number; // Tooltip delay for dropdown menu button
   onUpload?: () => void; // Upload handler - shows upload button when provided
   uploading?: boolean; // Whether upload is in progress
   allCollections?: CollectionItem[];
@@ -96,6 +98,8 @@ export default function Cover({
   overlayContent,
   titlePosition = "bottom",
   editButtonPosition = "bottom-left",
+  dropdownHorizontal = false,
+  dropdownToolTipDelay = 0,
   onUpload,
   uploading = false,
   allCollections = [],
@@ -405,6 +409,7 @@ export default function Cover({
         )}
         {onEdit && (
           <button
+            type="button"
             onClick={handleEditClick}
             className={`games-list-edit-button ${editButtonPosition === "bottom-right" ? "games-list-edit-button-bottom-right" : ""}`}
             aria-label={t("common.edit", "Edit")}
@@ -440,7 +445,7 @@ export default function Cover({
                 gameExecutables={game.executables}
                 onPlayExecutable={(executableName: string) => {
                   if (onPlay) {
-                    (onPlay as any)(game, executableName);
+                    onPlay(executableName);
                   }
                 }}
               />
@@ -462,6 +467,8 @@ export default function Cover({
               publisherId={publisherId}
               onRemoveFromDeveloper={onRemoveFromDeveloper}
               onRemoveFromPublisher={onRemoveFromPublisher}
+              horizontal={dropdownHorizontal}
+              toolTipDelay={dropdownToolTipDelay}
               className="games-list-dropdown-menu"
             />
           </div>

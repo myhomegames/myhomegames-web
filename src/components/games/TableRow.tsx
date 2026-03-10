@@ -22,6 +22,7 @@ type TableRowProps = {
   index: number;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
   onGameClick: (game: GameItem) => void;
+  onIgdbGameClick?: (igdbId: number) => void;
   onPlay?: (game: GameItem) => void;
   onGameUpdate?: (updatedGame: GameItem) => void;
   onGameDelete?: (deletedGame: GameItem) => void;
@@ -42,6 +43,7 @@ export default function TableRow({
   index,
   itemRefs,
   onGameClick,
+  onIgdbGameClick,
   onPlay,
   onGameUpdate,
   onGameDelete,
@@ -55,6 +57,14 @@ export default function TableRow({
   editGame,
   useDiv = false,
 }: TableRowProps) {
+  const isIgdbOnly = (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly;
+  const handleTitleClick = () => {
+    if (isIgdbOnly && onIgdbGameClick) {
+      onIgdbGameClick(Number(game.id));
+    } else {
+      onGameClick(game);
+    }
+  };
   const isEven = index % 2 === 0;
   const rowClass = isEven ? "even-row" : "odd-row";
   const RowTag = useDiv ? "div" : "tr";
@@ -140,7 +150,7 @@ export default function TableRow({
       }}
       style={rowStyle}
       role={useDiv ? "row" : undefined}
-      className={isDropdownOpen ? "row-dropdown-open" : undefined}
+      className={[isDropdownOpen && "row-dropdown-open", isIgdbOnly && "igdb-only-row"].filter(Boolean).join(" ") || undefined}
     >
       <CellTag className="column-menu-cell" style={cellStyle} role={useDiv ? "cell" : undefined}></CellTag>
       {columnVisibility.title && (
@@ -149,7 +159,7 @@ export default function TableRow({
           <Tooltip text={game.title} delay={1000}>
             <span 
               className={firstVisibleColumn === "title" ? "first-cell-text" : "title-cell-text"}
-              onClick={() => onGameClick(game)}
+              onClick={handleTitleClick}
             >
               {game.title}
             </span>
@@ -182,8 +192,8 @@ export default function TableRow({
               gap={3} 
               color="rgba(255, 255, 255, 0.4)" 
               noStroke={true}
-              readOnly={!API_BASE || !API_TOKEN}
-              onRatingChange={API_BASE && API_TOKEN ? (newStars) => handleRatingChange(game.id, newStars) : undefined}
+              readOnly={!API_BASE || !API_TOKEN || isIgdbOnly}
+              onRatingChange={!isIgdbOnly && API_BASE && API_TOKEN ? (newStars) => handleRatingChange(game.id, newStars) : undefined}
             />
           </div>
         </CellTag>
@@ -294,6 +304,7 @@ export default function TableRow({
         </CellTag>
       )}
       <CellTag className={`games-table-edit-cell ${rowClass}`} style={cellStyle} role={useDiv ? "cell" : undefined}>
+        {!isIgdbOnly && (
         <div className="games-table-actions">
           <button
             onClick={(e) => {
@@ -351,6 +362,7 @@ export default function TableRow({
             className="games-table-dropdown-menu"
           />
         </div>
+        )}
       </CellTag>
     </RowTag>
   );

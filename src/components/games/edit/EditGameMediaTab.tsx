@@ -2,6 +2,7 @@ import type { TFunction } from "i18next";
 import type { ChangeEvent, RefObject } from "react";
 import type { GameItem } from "../../../types";
 import Cover from "../Cover";
+import ScreenshotsAndVideosEditor from "./ScreenshotsAndVideosEditor";
 import "./EditGameMediaTab.css";
 
 type EditGameMediaTabProps = {
@@ -25,7 +26,16 @@ type EditGameMediaTabProps = {
   backgroundInputRef: RefObject<HTMLInputElement | null>;
   handleBackgroundFileSelect: (event: ChangeEvent<HTMLInputElement>) => void;
   handleBackgroundRemoveSuccess: () => void;
+  screenshotInputRef?: RefObject<HTMLInputElement | null>;
+  pendingScreenshotFiles: File[];
+  onAddPendingScreenshotFile: (file: File) => void;
+  onRemoveScreenshotAt: (index: number) => void;
 };
+
+function ensureStringArray(v: string[] | null | undefined): string[] {
+  if (v == null) return [];
+  return Array.isArray(v) ? v : [];
+}
 
 export default function EditGameMediaTab({
   t,
@@ -48,7 +58,28 @@ export default function EditGameMediaTab({
   backgroundInputRef,
   handleBackgroundFileSelect,
   handleBackgroundRemoveSuccess,
+  screenshotInputRef: screenshotInputRefProp,
+  pendingScreenshotFiles,
+  onAddPendingScreenshotFile,
+  onRemoveScreenshotAt,
 }: EditGameMediaTabProps) {
+  const screenshots = ensureStringArray(game.screenshots);
+  const videos = ensureStringArray(game.videos);
+
+  const handleScreenshotsChange = (next: string[]) => {
+    onGameUpdate({ ...game, screenshots: next.length > 0 ? next : [] });
+  };
+  const handleVideosChange = (next: string[]) => {
+    onGameUpdate({ ...game, videos: next.length > 0 ? next : [] });
+  };
+  const handleRemoveScreenshotAt = (index: number) => {
+    if (index < screenshots.length) {
+      handleScreenshotsChange(screenshots.filter((_, i) => i !== index));
+    } else {
+      onRemoveScreenshotAt(index - screenshots.length);
+    }
+  };
+
   return (
     <div className="edit-game-modal-media">
       <div className="edit-game-modal-media-options">
@@ -72,16 +103,13 @@ export default function EditGameMediaTab({
         </div>
         <div className="edit-game-modal-media-image-container">
           {(() => {
-            // NEVER show IGDB images in edit modal - coverUrlWithTimestamp already filters them out
             const currentCoverUrl = coverRemoved ? "" : (coverPreview || coverUrlWithTimestamp);
             const hasCover = currentCoverUrl && currentCoverUrl.trim() !== "";
-            // Check if cover is from IGDB (external URL) - don't show remove button for external images
-            // Since we never show IGDB images, this is always false
             const isCoverFromIgdb = false;
             return (
               <>
                 <Cover
-                  key={`cover-${coverRemoved ? 'removed' : coverPreview ? 'preview' : coverUrlWithTimestamp}`}
+                  key={`cover-${coverRemoved ? "removed" : coverPreview ? "preview" : coverUrlWithTimestamp}`}
                   title={game.title}
                   coverUrl={currentCoverUrl}
                   width={150}
@@ -127,16 +155,13 @@ export default function EditGameMediaTab({
         </div>
         <div className="edit-game-modal-media-image-container">
           {(() => {
-            // NEVER show IGDB images in edit modal - backgroundUrlWithTimestamp already filters them out
             const currentBackgroundUrl = backgroundRemoved ? "" : (backgroundPreview || backgroundUrlWithTimestamp);
             const hasBackground = currentBackgroundUrl && currentBackgroundUrl.trim() !== "";
-            // Check if background is from IGDB (external URL) - don't show remove button for external images
-            // Since we never show IGDB images, this is always false
             const isBackgroundFromIgdb = false;
             return (
               <>
                 <Cover
-                  key={`background-${backgroundRemoved ? 'removed' : backgroundPreview ? 'preview' : backgroundUrlWithTimestamp}`}
+                  key={`background-${backgroundRemoved ? "removed" : backgroundPreview ? "preview" : backgroundUrlWithTimestamp}`}
                   title={game.title}
                   coverUrl={currentBackgroundUrl}
                   width={300}
@@ -170,6 +195,28 @@ export default function EditGameMediaTab({
             );
           })()}
         </div>
+      </div>
+
+      {/* Screenshots & Videos - editable (separate component) */}
+      <div className="edit-game-modal-media-row edit-game-modal-media-row-stack">
+        <div className="edit-game-modal-media-info">
+          <div className="edit-game-modal-label">{t("gameDetail.screenshotsAndVideos", "Video e screenshots")}</div>
+          <div className="edit-game-modal-media-description">
+            {t("gameDetail.screenshotsAndVideosDescription", "Aggiungi, modifica o rimuovi URL di video e screenshot. Salva per applicare.")}
+          </div>
+        </div>
+        <ScreenshotsAndVideosEditor
+          t={t}
+          screenshots={screenshots}
+          videos={videos}
+          pendingScreenshotFiles={pendingScreenshotFiles}
+          onScreenshotsChange={handleScreenshotsChange}
+          onVideosChange={handleVideosChange}
+          onAddPendingScreenshotFile={onAddPendingScreenshotFile}
+          onRemoveScreenshotAt={handleRemoveScreenshotAt}
+          saving={saving}
+          screenshotInputRef={screenshotInputRefProp}
+        />
       </div>
     </div>
   );

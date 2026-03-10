@@ -128,8 +128,6 @@ export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
       responseKey: "category",
       removeResourceType: "categories",
       editRouteBase: "/categories",
-      updateEventName: "categoryUpdated",
-      updateEventPayloadKey: "category",
     },
     detail: {
       tagField: "genre",

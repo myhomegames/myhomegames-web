@@ -6,6 +6,7 @@ type UseEditGameReturn = {
   selectedGame: GameItem | null;
   openEditModal: (game: GameItem) => void;
   closeEditModal: () => void;
+  updateSelectedGame: (game: GameItem) => void;
 };
 
 export function useEditGame(): UseEditGameReturn {
@@ -22,11 +23,16 @@ export function useEditGame(): UseEditGameReturn {
     setSelectedGame(null);
   };
 
+  const updateSelectedGame = (game: GameItem) => {
+    setSelectedGame(game);
+  };
+
   return {
     isEditModalOpen,
     selectedGame,
     openEditModal,
     closeEditModal,
+    updateSelectedGame,
   };
 }
 

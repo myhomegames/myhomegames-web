@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { API_BASE, getApiToken } from "../../config";
 import { buildApiUrl } from "../../utils/api";
 import { useLoading } from "../../contexts/LoadingContext";
-import { useCategories } from "../../contexts/CategoriesContext";
+import { useTagLists } from "../../contexts/TagListsContext";
 import "./TagEditor.css";
 
 type TagEditorProps = {
@@ -29,7 +29,15 @@ export default function TagEditor({
 }: TagEditorProps) {
   const { t } = useTranslation();
   const { setLoading } = useLoading();
-  const { categories: availableCategories, addCategory } = useCategories();
+  const { tagLabels, refreshTagLists } = useTagLists();
+  const availableCategories = useMemo(
+    () => Array.from(tagLabels.categories.values()),
+    [tagLabels.categories]
+  );
+  const categoriesList = useMemo(
+    () => Array.from(tagLabels.categories.entries()).map(([id, title]) => ({ id, title })),
+    [tagLabels.categories]
+  );
   const [tagSearch, setTagSearch] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const isCategoryMode = mode === "categories";
@@ -59,10 +67,9 @@ export default function TagEditor({
       const newCategory = json.category;
       // Handle both old format (string) and new format (object)
       const categoryTitle = typeof newCategory === "string" ? newCategory : newCategory.title;
-      const categoryId = typeof newCategory === "string" ? newCategory : newCategory.id;
       
-      // Add to context
-      addCategory({ id: categoryId, title: categoryTitle });
+      // Refresh tag lists so the new category appears in suggestions
+      await refreshTagLists();
       
       return categoryTitle;
     } catch (err: any) {
@@ -88,12 +95,13 @@ export default function TagEditor({
   const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && tagSearch.trim() && !isCreating) {
       e.preventDefault();
+      e.stopPropagation();
       const rawSearch = tagSearch.trim();
       const searchTerm = rawSearch.toLowerCase();
 
       if (isCategoryMode) {
         // First, try to find existing category
-        const category = availableCategories.find((c) => {
+        const category = categoriesList.find((c) => {
           const categoryTitle = c.title.toLowerCase();
           const translatedName = t(`genre.${c.title}`, c.title).toLowerCase();
           return (
@@ -129,7 +137,7 @@ export default function TagEditor({
   };
 
   const tagOptions = isCategoryMode
-    ? availableCategories.map((category) => category.title)
+    ? availableCategories
     : availableTags || [];
   const getTagDisplayName = (tag: string) => {
     if (isCategoryMode) {

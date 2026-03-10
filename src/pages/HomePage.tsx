@@ -8,13 +8,13 @@ import CollectionsPage from "./CollectionsPage";
 import DevelopersPage from "./DevelopersPage";
 import PublishersPage from "./PublishersPage";
 import TagListRoutePage from "./TagListRoutePage";
-import type { GameItem, CategoryItem, GameLibrarySection, CollectionItem } from "../types";
-import { API_BASE, getApiToken } from "../config";
+import type { GameItem, TagItem, GameLibrarySection, CollectionItem } from "../types";
+import { API_BASE } from "../config";
 import { buildApiHeaders } from "../utils/api";
 import { buildLibrarySections, normalizeVisibleLibraries } from "../utils/librarySections";
 import "./HomePage.css";
 
-export type { GameItem, CategoryItem };
+export type { GameItem, TagItem };
 
 type HomePageProps = {
   onGameClick: (game: GameItem) => void;
@@ -109,9 +109,8 @@ export default function HomePage({
     setError(null);
     try {
       let visibleLibraries: string[] | null = null;
-      const apiToken = getApiToken();
 
-      if (API_BASE && apiToken) {
+      if (API_BASE) {
         try {
           const url = new URL("/settings", API_BASE);
           const controller = new AbortController();
@@ -171,7 +170,7 @@ export default function HomePage({
     }
   }
 
-  function handleGameClick(game: GameItem | CategoryItem) {
+  function handleGameClick(game: GameItem | TagItem) {
     onGameClick(game as GameItem);
   }
 
@@ -241,10 +240,10 @@ export default function HomePage({
               <TagListRoutePage coverSize={coverSize} tagKey="themes" />
             )}
             {activeLibrary.key === "developers" && (
-              <DevelopersPage coverSize={coverSize} />
+              <DevelopersPage onPlay={onPlay} coverSize={coverSize} />
             )}
             {activeLibrary.key === "publishers" && (
-              <PublishersPage coverSize={coverSize} />
+              <PublishersPage onPlay={onPlay} coverSize={coverSize} />
             )}
             {activeLibrary.key === "gameEngines" && (
               <TagListRoutePage coverSize={coverSize} tagKey="gameEngines" />

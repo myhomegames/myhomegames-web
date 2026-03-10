@@ -24,20 +24,15 @@ export function useAddGameToDeveloper({
   const [isAdding, setIsAdding] = useState(false);
 
   const addGameToDeveloper = async (gameId: string, developerId: string, developerTitle: string) => {
-    const apiToken = getApiToken();
-    if (!apiToken) {
-      onError?.(t("common.unauthorized", "Unauthorized"));
-      return;
-    }
-
     setIsAdding(true);
     setLoading(true);
 
     try {
+      const token = getApiToken() || "";
       // Fetch current game
       const gameUrl = buildApiUrl(API_BASE, `/games/${gameId}`);
       const gameResponse = await fetch(gameUrl, {
-        headers: { Accept: "application/json", "X-Auth-Token": apiToken },
+        headers: { Accept: "application/json", "X-Auth-Token": token },
       });
 
       if (!gameResponse.ok) {
@@ -64,7 +59,7 @@ export function useAddGameToDeveloper({
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "X-Auth-Token": apiToken,
+          "X-Auth-Token": token,
         },
         body: JSON.stringify({ developers: newDevelopers }),
       });

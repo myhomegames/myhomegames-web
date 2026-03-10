@@ -63,6 +63,14 @@
   color: #ffffff;
 }
 
+.add-to-collection-modal-error {
+  padding: 10px 24px;
+  background-color: rgba(220, 53, 69, 0.15);
+  color: #f87171;
+  font-size: 0.875rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 .add-to-collection-modal-search {
   padding: 16px 24px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
