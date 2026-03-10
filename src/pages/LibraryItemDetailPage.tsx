@@ -29,6 +29,7 @@ import "./LibraryItemDetail.css";
 
 type LibraryItemDetailPageProps = {
   onGameClick: (game: GameItem) => void;
+  onIgdbGameClick?: (igdbId: number) => void;
   onGamesLoaded: (games: GameItem[]) => void;
   onPlay?: (game: GameItem) => void;
   allCollections?: CollectionItem[];
@@ -69,6 +70,7 @@ function parseGamesFromJson(json: { games?: any[] }) {
 
 export default function LibraryItemDetailPage({
   onGameClick,
+  onIgdbGameClick,
   onGamesLoaded,
   onPlay,
   allCollections = [],
@@ -779,6 +781,7 @@ export default function LibraryItemDetailPage({
         onPlay={onPlay}
         sortedGames={sortedGames}
         onGameClick={onGameClick}
+        onIgdbGameClick={onIgdbGameClick}
         onGameUpdate={handleGameUpdate}
         onGameDelete={handleGameDelete}
         buildCoverUrl={(apiBase, cover, addTimestamp) => buildCoverUrl(apiBase, cover, addTimestamp ?? false)}
@@ -885,6 +888,7 @@ type LibraryItemDetailContentProps = {
   onPlay?: (game: GameItem) => void;
   sortedGames: GameItem[];
   onGameClick: (game: GameItem) => void;
+  onIgdbGameClick?: (igdbId: number) => void;
   onGameUpdate?: (updatedGame: GameItem) => void;
   onGameDelete?: (deletedGame: GameItem) => void;
   buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean) => string;
@@ -933,6 +937,7 @@ function LibraryItemDetailContent({
   onPlay,
   sortedGames,
   onGameClick,
+  onIgdbGameClick,
   onGameUpdate,
   onGameDelete,
   buildCoverUrl,
@@ -1414,7 +1419,14 @@ function LibraryItemDetailContent({
                           <div className="library-item-detail-games-list">
                             <GamesList
                               games={sortedGames}
-                              onGameClick={onGameClick}
+                              onGameClick={(game) => {
+                                const g = game as GameItem & { isIgdbOnly?: boolean };
+                                if (g.isIgdbOnly && onIgdbGameClick) {
+                                  onIgdbGameClick(Number(game.id));
+                                } else {
+                                  onGameClick(game);
+                                }
+                              }}
                               onPlay={onPlay}
                               onGameUpdate={onGameUpdate}
                               onGameDelete={onGameDelete}

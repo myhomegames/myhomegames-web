@@ -304,6 +304,7 @@ function AppContent() {
                 />
                 <LibraryItemDetailPage
                   onGameClick={handleGameClick}
+                  onIgdbGameClick={twitchLoginEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
                   onGamesLoaded={() => {}}
                   onPlay={openLauncher}
                   allCollections={allCollections}
@@ -463,6 +464,7 @@ function AppContent() {
                 />
                 <LibraryItemDetailPage
                   onGameClick={handleGameClick}
+                  onIgdbGameClick={twitchLoginEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
                   onGamesLoaded={() => {}}
                   onPlay={openLauncher}
                   allCollections={allCollections}
@@ -487,6 +489,7 @@ function AppContent() {
                 />
                 <LibraryItemDetailPage
                   onGameClick={handleGameClick}
+                  onIgdbGameClick={twitchLoginEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
                   onGamesLoaded={() => {}}
                   onPlay={openLauncher}
                   allCollections={allCollections}
