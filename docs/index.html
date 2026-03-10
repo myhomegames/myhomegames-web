@@ -302,8 +302,8 @@
               </p>
             </div>
             <div class="feature-card">
-              <h4>🔐 Twitch Authentication</h4>
-              <p>Securely access using your Twitch account</p>
+              <h4>🔐 Optional Twitch Login</h4>
+              <p>Optional: sign in with Twitch for IGDB metadata and extra features</p>
             </div>
           </div>
         </section>
@@ -311,70 +311,10 @@
         <section class="section">
           <h2>🚀 Getting Started</h2>
           <p>
-            To use MyHomeGames, you need to create a Twitch account and download
-            the server package.
+            To use MyHomeGames, download and run the server, then open the web app.
           </p>
 
-          <h3>1. Create a Twitch Account</h3>
-          <p>
-            If you don't already have a Twitch account, you can create one for
-            free:
-          </p>
-          <ol>
-            <li>
-              Go to
-              <a
-                href="https://www.twitch.tv/signup"
-                target="_blank"
-                rel="noopener noreferrer"
-                >Twitch Sign Up</a
-              >
-            </li>
-            <li>Fill in your information (username, password, email)</li>
-            <li>Verify your email address</li>
-            <li>Complete your profile setup</li>
-            <li>
-              Go in
-              <a
-                href="https://dev.twitch.tv/console/apps/create"
-                target="_blank"
-                rel="noopener noreferrer"
-                >Twitch Developer Console</a
-              >
-              with your new account and create a new application specifiing the
-              following:
-              <ul>
-                <li>Application Name: MyHomeGames</li>
-                <li>
-                  Application Callback URL:
-                  https://localhost:41440/auth/twitch/callback
-                </li>
-                <li>Category: Application Integration</li>
-              </ul>
-            </li>
-            <li>
-              Save your generated Client Id and Client Secret. They will be
-              requested upon first login
-            </li>
-          </ol>
-
-          <div class="button-container">
-            <a
-              href="https://www.twitch.tv/signup"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="button"
-            >
-              📝 Create Twitch Account
-            </a>
-          </div>
-
-          <div class="info">
-            <strong>💡 Note:</strong> Your Twitch account will be used to
-            securely authenticate and access your personal game collection.
-          </div>
-
-          <h3>2. Download the Server Package</h3>
+          <h3>1. Download the Server Package</h3>
           <p>
             <strong>The server is essential for MyHomeGames to work.</strong>
             Download and install the server package before proceeding.
@@ -398,15 +338,10 @@
             >
           </p>
 
-          <h3>3. Access the Web Application</h3>
+          <h3>2. Access the Web Application</h3>
           <p>
-            Once you have your Twitch account and the server is running, you can
-            access the web application using the button at the top of this page
-            or by visiting the web app URL directly.
-          </p>
-          <p>
-            Log in with your Twitch account to start managing your video game
-            collection!
+            Once the server is running, access the web application using the button at the top of this page
+            or by visiting the web app URL directly. You can start managing your video game collection right away.
           </p>
         </section>
 
@@ -435,6 +370,58 @@
               class="button button-secondary"
             >
               ▶️ YouTube Channel
+            </a>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>🔐 Optional: Twitch Login</h2>
+          <p>
+            Twitch login is <strong>optional</strong>. You can use MyHomeGames without it.
+            If you enable Twitch in the server settings, you get access to IGDB metadata (covers, descriptions, similar games, etc.) and sign in with your Twitch account.
+          </p>
+          <h3>Setting up Twitch (optional)</h3>
+          <p>If you want to use Twitch authentication and IGDB features:</p>
+          <ol>
+            <li>
+              Go to
+              <a
+                href="https://www.twitch.tv/signup"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Twitch Sign Up</a
+              >
+              if you don't have an account.
+            </li>
+            <li>
+              In the
+              <a
+                href="https://dev.twitch.tv/console/apps/create"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Twitch Developer Console</a
+              >, create a new application with:
+              <ul>
+                <li>Application Name: MyHomeGames</li>
+                <li>
+                  Application Callback URL:
+                  https://localhost:41440/auth/twitch/callback
+                </li>
+                <li>Category: Application Integration</li>
+              </ul>
+            </li>
+            <li>
+              Save your Client Id and Client Secret and configure them in the server (e.g. in Settings or environment).
+            </li>
+          </ol>
+          <div class="button-container">
+            <a
+              href="https://dev.twitch.tv/console/apps/create"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="button"
+            >
+              Twitch Developer Console
             </a>
           </div>
         </section>
@@ -483,7 +470,7 @@
       <footer>
         <p>© 2024 MyHomeGames - Manage Your Video Game Collection</p>
         <p style="margin-top: 0.5rem; opacity: 0.8">
-          Built with ❤️ using React, TypeScript, Express.js and Twitch OAuth
+          Built with ❤️ using React, TypeScript, Express.js and optional Twitch OAuth
         </p>
       </footer>
     </div>
