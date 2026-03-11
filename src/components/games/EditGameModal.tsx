@@ -590,12 +590,13 @@ export default function EditGameModal({
         // Add timestamp to image URLs if they were updated to force browser reload
         let finalCover = updatedCover !== null ? updatedCover : result.game.cover;
         let finalBackground = updatedBackground !== null ? updatedBackground : result.game.background;
-        
-        if (updatedCover && finalCover) {
+
+        // Add timestamp whenever we changed cover/background (upload or remove) so list UI updates even if API didn't return the new URL
+        if ((coverFile || coverRemoved) && finalCover) {
           const separator = finalCover.includes('?') ? '&' : '?';
           finalCover = `${finalCover}${separator}t=${Date.now()}`;
         }
-        if (updatedBackground && finalBackground) {
+        if ((backgroundFile || backgroundRemoved) && finalBackground) {
           const separator = finalBackground.includes('?') ? '&' : '?';
           finalBackground = `${finalBackground}${separator}t=${Date.now()}`;
         }

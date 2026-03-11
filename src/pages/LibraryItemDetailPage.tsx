@@ -693,7 +693,8 @@ export default function LibraryItemDetailPage({
     if (scrollContainerRef.current) scrollPositionToRestoreRef.current = scrollContainerRef.current.scrollTop;
     setGames((prev) => prev.map((g) => (String(g.id) === String(updatedGame.id) ? updatedGame : g)));
     window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
-    if (collectionId) fetchCollectionGames(collectionId);
+    // Don't refetch collection here: it would overwrite state with API response (cover without timestamp) and the list would show the old cover again
+    // if (collectionId) fetchCollectionGames(collectionId);
   };
 
   const handleGameDelete = (deletedGame: GameItem) => {
