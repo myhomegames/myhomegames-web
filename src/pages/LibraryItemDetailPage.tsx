@@ -108,6 +108,7 @@ export default function LibraryItemDetailPage({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [listLoadTimestamp, setListLoadTimestamp] = useState(() => Date.now());
   const [scrollRestoreTrigger, setScrollRestoreTrigger] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
@@ -456,6 +457,7 @@ export default function LibraryItemDetailPage({
       if (!orderMatches) setCustomOrder(orderFromBackend);
       else setCustomOrder(null);
       setGames(parsed);
+      setListLoadTimestamp(Date.now());
       onGamesLoaded(parsed);
     } catch (err: any) {
       console.error("Error fetching collection games:", err?.message);
@@ -498,6 +500,7 @@ export default function LibraryItemDetailPage({
       const json = await res.json();
       const parsed = parseGamesFromJson(json);
       setGames(parsed);
+      setListLoadTimestamp(Date.now());
       onGamesLoaded(parsed);
     } catch (err) {
       console.error("Error fetching developer games:", err);
@@ -540,6 +543,7 @@ export default function LibraryItemDetailPage({
       const json = await res.json();
       const parsed = parseGamesFromJson(json);
       setGames(parsed);
+      setListLoadTimestamp(Date.now());
       onGamesLoaded(parsed);
     } catch (err) {
       console.error("Error fetching publisher games:", err);
@@ -785,7 +789,7 @@ export default function LibraryItemDetailPage({
         onIgdbGameClick={onIgdbGameClick}
         onGameUpdate={handleGameUpdate}
         onGameDelete={handleGameDelete}
-        buildCoverUrl={(apiBase, cover, addTimestamp) => buildCoverUrl(apiBase, cover, addTimestamp ?? false)}
+        buildCoverUrl={(apiBase, cover, addTimestamp, customTimestamp) => buildCoverUrl(apiBase, cover, addTimestamp ?? false, customTimestamp)}
         coverSize={coverSize}
         handleCoverSizeChange={handleCoverSizeChange}
         viewMode={viewMode}
@@ -874,6 +878,7 @@ export default function LibraryItemDetailPage({
         showNewGames={showNewGames}
         onShowNewGamesChange={setShowNewGames}
         showNewGamesLabel={canShowNewGamesToggle ? t("tagGames.showNewGames") : undefined}
+        listLoadTimestamp={listLoadTimestamp}
       />
     </BackgroundManager>
   );
@@ -892,7 +897,7 @@ type LibraryItemDetailContentProps = {
   onIgdbGameClick?: (igdbId: number) => void;
   onGameUpdate?: (updatedGame: GameItem) => void;
   onGameDelete?: (deletedGame: GameItem) => void;
-  buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean) => string;
+  buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean, customTimestamp?: number) => string;
   coverSize: number;
   handleCoverSizeChange: (size: number) => void;
   viewMode: "grid" | "detail" | "table";
@@ -926,6 +931,7 @@ type LibraryItemDetailContentProps = {
   showNewGames?: boolean;
   onShowNewGamesChange?: (value: boolean) => void;
   showNewGamesLabel?: string;
+  listLoadTimestamp?: number;
 };
 
 function LibraryItemDetailContent({
@@ -975,6 +981,7 @@ function LibraryItemDetailContent({
   showNewGames = false,
   onShowNewGamesChange,
   showNewGamesLabel,
+  listLoadTimestamp,
 }: LibraryItemDetailContentProps) {
   const { hasBackground, isBackgroundVisible } = useBackground();
   const { isLoading } = useLoading();
@@ -1432,6 +1439,7 @@ function LibraryItemDetailContent({
                               onGameUpdate={onGameUpdate}
                               onGameDelete={onGameDelete}
                               buildCoverUrl={buildCoverUrl}
+                              coverCacheBustTimestamp={listLoadTimestamp}
                               coverSize={coverSize}
                               itemRefs={itemRefs}
                               draggable={isCollection}

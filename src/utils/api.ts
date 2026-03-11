@@ -53,9 +53,11 @@ export function buildApiHeaders(additionalHeaders: Record<string, string> = {}):
  * Builds a cover image URL
  * @param apiBase - The base URL for the API
  * @param cover - The cover path from the server (e.g., /covers/gameId) or full IGDB URL
+ * @param addTimestamp - If true, append cache-busting query param (uses customTimestamp or Date.now())
+ * @param customTimestamp - Optional fixed timestamp for cache busting (e.g. list load time) so all covers in a view share the same t=
  * @returns The complete cover URL string, or empty string if cover is not provided
  */
-export function buildCoverUrl(apiBase: string, cover?: string, addTimestamp?: boolean): string {
+export function buildCoverUrl(apiBase: string, cover?: string, addTimestamp?: boolean, customTimestamp?: number): string {
   if (!cover) return "";
   // If cover is already a full URL (starts with http:// or https://), return it directly
   if (cover.startsWith('http://') || cover.startsWith('https://')) {
@@ -64,7 +66,7 @@ export function buildCoverUrl(apiBase: string, cover?: string, addTimestamp?: bo
   // Cover is a relative path from server (e.g., /covers/gameId)
   // Check if it already has a timestamp
   const hasTimestamp = cover.includes('?t=') || cover.includes('&t=');
-  
+
   // If it already has a timestamp, preserve it when building the URL
   if (hasTimestamp) {
     const basePath = cover.split('?')[0];
@@ -79,12 +81,12 @@ export function buildCoverUrl(apiBase: string, cover?: string, addTimestamp?: bo
     }
     return u.toString();
   }
-  
+
   // No timestamp, build URL normally
   const u = new URL(cover, apiBase);
   // Add timestamp to force browser reload if requested
   if (addTimestamp) {
-    u.searchParams.set('t', Date.now().toString());
+    u.searchParams.set('t', (customTimestamp ?? Date.now()).toString());
   }
   return u.toString();
 }

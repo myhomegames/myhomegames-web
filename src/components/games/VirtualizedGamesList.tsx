@@ -28,6 +28,7 @@ function setScrollPosition(key: string, scrollTop: number, scrollLeft: number): 
 type VirtualizedGamesListProps = {
   games: GameItem[];
   coverSize: number;
+  coverCacheBustTimestamp?: number;
   containerRef: React.RefObject<HTMLDivElement | null>;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
   onGameClick: (game: GameItem) => void;
@@ -35,7 +36,7 @@ type VirtualizedGamesListProps = {
   onEditClick: (game: GameItem) => void;
   onGameDelete?: (deletedGame: GameItem) => void;
   onGameUpdate?: (updatedGame: GameItem) => void;
-  buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean) => string;
+  buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean, customTimestamp?: number) => string;
   allCollections?: import("../../types").CollectionItem[];
   collectionId?: string;
   onRemoveFromCollection?: (gameId: string) => void;
@@ -51,6 +52,7 @@ const OVERSCAN_COUNT = 2; // Number of items to render outside visible area
 export default function VirtualizedGamesList({
   games,
   coverSize,
+  coverCacheBustTimestamp,
   containerRef,
   itemRefs,
   onGameClick,
@@ -336,6 +338,7 @@ export default function VirtualizedGamesList({
           onGameUpdate={onGameUpdate}
           buildCoverUrl={buildCoverUrl}
           coverSize={coverSize}
+          coverCacheBustTimestamp={coverCacheBustTimestamp}
           itemRefs={itemRefs}
           index={index}
           onDragStart={() => {}}

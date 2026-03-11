@@ -16,8 +16,9 @@ type GamesListProps = {
   onPlay?: (game: GameItem) => void;
   onGameUpdate?: (updatedGame: GameItem) => void;
   onGameDelete?: (deletedGame: GameItem) => void;
-  buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean) => string;
+  buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean, customTimestamp?: number) => string;
   coverSize?: number;
+  coverCacheBustTimestamp?: number;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
   draggable?: boolean;
   onDragEnd?: (sourceIndex: number, destinationIndex: number) => void;
@@ -42,8 +43,9 @@ type GameListItemProps = {
   onEditClick: (game: GameItem) => void;
   onGameDelete?: (deletedGame: GameItem) => void;
   onGameUpdate?: (updatedGame: GameItem) => void;
-  buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean) => string;
+  buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean, customTimestamp?: number) => string;
   coverSize: number;
+  coverCacheBustTimestamp?: number;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
   draggable?: boolean;
   index: number;
@@ -71,6 +73,7 @@ export function GameListItem({
   onGameUpdate,
   buildCoverUrl,
   coverSize,
+  coverCacheBustTimestamp,
   itemRefs,
   draggable = false,
   index,
@@ -98,11 +101,13 @@ export function GameListItem({
   if (coverChanged) {
     prevCoverRef.current = game.cover;
   }
-  
-  // Memoize cover URL - only add timestamp when cover actually changes
+
+  // Use cache-bust timestamp from list load (so back-navigation shows fresh cover) or add timestamp only when cover changed
+  const addTimestamp = coverCacheBustTimestamp != null ? true : coverChanged;
+  const customTimestamp = coverCacheBustTimestamp ?? undefined;
   const coverUrl = useMemo(() => {
-    return game.cover ? buildCoverUrl(API_BASE, game.cover, coverChanged) : "";
-  }, [game.cover, coverChanged, buildCoverUrl]);
+    return game.cover ? buildCoverUrl(API_BASE, game.cover, addTimestamp, customTimestamp) : "";
+  }, [game.cover, addTimestamp, customTimestamp, buildCoverUrl]);
 
   const handleDragStart = (e: React.DragEvent) => {
     if (!draggable) return;
@@ -200,6 +205,7 @@ export default function GamesList({
   onGameDelete,
   buildCoverUrl,
   coverSize = 150,
+  coverCacheBustTimestamp,
   itemRefs,
   draggable = false,
   onDragEnd,
@@ -272,6 +278,7 @@ export default function GamesList({
           <VirtualizedGamesList
             games={games}
             coverSize={coverSize}
+            coverCacheBustTimestamp={coverCacheBustTimestamp}
             containerRef={scrollContainerRef || containerRef}
             itemRefs={itemRefs}
             onGameClick={onGameClick}
@@ -300,6 +307,7 @@ export default function GamesList({
               onGameUpdate={onGameUpdate}
               buildCoverUrl={buildCoverUrl}
               coverSize={coverSize}
+              coverCacheBustTimestamp={coverCacheBustTimestamp}
               itemRefs={itemRefs}
               draggable={draggable}
               index={index}
