@@ -20,7 +20,7 @@ import EditCollectionLikeModal from "../components/collections/EditCollectionLik
 import DropdownMenu from "../components/common/DropdownMenu";
 import Tooltip from "../components/common/Tooltip";
 import BackgroundManager, { useBackground } from "../components/common/BackgroundManager";
-import { compareTitles } from "../utils/stringUtils";
+import { compareTitles, filterRootCollectionLikes } from "../utils/stringUtils";
 import { buildApiUrl, buildCoverUrl, buildBackgroundUrl } from "../utils/api";
 import { API_BASE, getApiToken } from "../config";
 import type { GameItem, CollectionInfo, CollectionItem } from "../types";
@@ -1037,14 +1037,33 @@ function LibraryItemDetailContent({
       return isSubCollectionTitle(parentTitle, title);
     });
 
-    children.sort((a, b) => {
+    // Show only direct children (root within this list), not grandchildren
+    const rootChildren = filterRootCollectionLikes(children);
+
+    rootChildren.sort((a, b) => {
       const aLabel = getSubCollectionLabel(parentTitle, a.title || "");
       const bLabel = getSubCollectionLabel(parentTitle, b.title || "");
       return compareTitles(aLabel || a.title || "", bLabel || b.title || "");
     });
 
-    return children;
+    return rootChildren;
   }, [collectionId, developerId, publisherId, item, allCollectionLikes]);
+
+  // Display count for each sub-collection card: games assigned directly + first-level sub-collections only (aligned with CollectionsList).
+  const subCollectionDisplayCountById = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const col of subCollectionLikes) {
+      const parentTitle = (col.title || "").trim();
+      const children = allCollectionLikes.filter((c) => {
+        if (String(c.id) === String(col.id)) return false;
+        const title = (c.title || "").trim();
+        return isSubCollectionTitle(parentTitle, title);
+      });
+      const directOnly = filterRootCollectionLikes(children);
+      map[String(col.id)] = (col.gameCount ?? 0) + directOnly.length;
+    }
+    return map;
+  }, [subCollectionLikes, allCollectionLikes]);
 
   const [editingChild, setEditingChild] = useState<CollectionInfo | null>(null);
   const [isEditChildModalOpen, setIsEditChildModalOpen] = useState(false);
@@ -1364,7 +1383,11 @@ function LibraryItemDetailContent({
                                       width={coverSize}
                                       height={coverSize * 1.5}
                                       onClick={handleClick}
-                                      subtitle={col.gameCount != null ? t("common.elements", { count: col.gameCount }) : undefined}
+                                      subtitle={
+                                        (subCollectionDisplayCountById[String(col.id)] ?? col.gameCount) != null
+                                          ? t("common.elements", { count: subCollectionDisplayCountById[String(col.id)] ?? col.gameCount })
+                                          : undefined
+                                      }
                                       onPlay={
                                         onPlayFirstInCollectionLike
                                           ? () => onPlayFirstInCollectionLike(resourceType, String(col.id))

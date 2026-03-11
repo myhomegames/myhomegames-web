@@ -5,7 +5,7 @@ import { useLoading } from "../contexts/LoadingContext";
 import { useCollections } from "../contexts/CollectionsContext";
 import CollectionsList from "../components/lists/CollectionsList";
 import AlphabetNavigator from "../components/ui/AlphabetNavigator";
-import { compareTitles } from "../utils/stringUtils";
+import { compareTitles, filterRootCollectionLikes } from "../utils/stringUtils";
 import type { CollectionItem } from "../types";
 import { buildCoverUrl } from "../utils/api";
 
@@ -48,20 +48,25 @@ export default function CollectionsPage({
     removeCollection(deletedCollection.id);
   };
 
-  // Sort collections and remove duplicates by ID
+  // Sort collections and remove duplicates by ID; show only root items (no sub-collections)
   const sortedCollections = useMemo(() => {
-    // Remove duplicates by ID (keep first occurrence)
     const uniqueCollections = collections.filter((collection, index, self) =>
       index === self.findIndex((c) => String(c.id) === String(collection.id))
     );
-    
-    const sorted = [...uniqueCollections];
+    const rootOnly = filterRootCollectionLikes(uniqueCollections);
+    const sorted = [...rootOnly];
     sorted.sort((a, b) => {
       const compareResult = compareTitles(a.title || "", b.title || "");
       return sortAscending ? compareResult : -compareResult;
     });
     return sorted;
   }, [collections, sortAscending]);
+
+  const allCollectionsForCount = useMemo(() => {
+    return collections.filter((collection, index, self) =>
+      index === self.findIndex((c) => String(c.id) === String(collection.id))
+    );
+  }, [collections]);
 
   // Hide content until fully rendered
   useLayoutEffect(() => {
@@ -94,6 +99,7 @@ export default function CollectionsPage({
         >
           <CollectionsList
             collections={sortedCollections}
+            allItemsForCount={allCollectionsForCount}
             onCollectionClick={handleCollectionClick}
             onPlay={onPlay as any}
             isLoading={collectionsLoading}

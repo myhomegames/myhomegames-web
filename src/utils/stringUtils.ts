@@ -41,3 +41,20 @@ export function isSubCollectionTitle(parentTitle: string, childTitle: string): b
   return SUBTITLE_SEPARATORS.includes(first);
 }
 
+/**
+ * Returns only items that are not "children" of any other item in the list.
+ * Children are detected by title (e.g. "Nintendo: America" is child of "Nintendo").
+ * Use this for root-level lists (Collections, Developers, Publishers pages) so
+ * sub-items are only shown inside their parent's detail page.
+ */
+export function filterRootCollectionLikes<T extends { id: string | number; title?: string | null }>(items: T[]): T[] {
+  return items.filter((item) => {
+    const itemTitle = (item.title || "").trim();
+    if (!itemTitle) return true;
+    const isChildOfSomeOther = items.some(
+      (other) => String(other.id) !== String(item.id) && isSubCollectionTitle((other.title || "").trim(), itemTitle)
+    );
+    return !isChildOfSomeOther;
+  });
+}
+
