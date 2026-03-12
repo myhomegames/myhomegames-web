@@ -717,6 +717,17 @@ function GameDetailPage({
   const isDeletingLocallyRef = useRef(false);
   const fetchingGameRef = useRef<boolean>(false);
   const lastGameIdRef = useRef<string | undefined>(undefined);
+  const lastCoverRef = useRef<string | undefined>(undefined);
+  const [coverTimestamp, setCoverTimestamp] = useState(() => Date.now());
+
+  // Stable cover URL: only bump timestamp when game.cover actually changes (e.g. after edit modal save), not on every re-render.
+  useEffect(() => {
+    if (!game) return;
+    if (lastCoverRef.current !== game.cover) {
+      lastCoverRef.current = game.cover;
+      setCoverTimestamp(Date.now());
+    }
+  }, [game?.id, game?.cover]);
 
   // Listen for game deletion events - if the current game is deleted from elsewhere, navigate back
   useEffect(() => {
@@ -884,7 +895,7 @@ function GameDetailPage({
     <GameDetail
       key={imageKey}
       game={game}
-      coverUrl={buildCoverUrl(API_BASE, game.cover, true)}
+      coverUrl={buildCoverUrl(API_BASE, game.cover, true, coverTimestamp)}
       onPlay={onPlay}
       allCollections={allCollections}
       onGameUpdate={(updatedGame) => {
