@@ -101,13 +101,12 @@ export function GameListItem({
   if (coverChanged) {
     prevCoverRef.current = game.cover;
   }
-
-  // Use cache-bust timestamp from list load (so back-navigation shows fresh cover) or add timestamp only when cover changed
-  const addTimestamp = coverCacheBustTimestamp != null ? true : coverChanged;
-  const customTimestamp = coverCacheBustTimestamp ?? undefined;
+  
+  // Memoize cover URL - only add timestamp when cover actually changes
   const coverUrl = useMemo(() => {
-    return game.cover ? buildCoverUrl(API_BASE, game.cover, addTimestamp, customTimestamp) : "";
-  }, [game.cover, addTimestamp, customTimestamp, buildCoverUrl]);
+    const timestamp = coverChanged ? Date.now() : coverCacheBustTimestamp;
+    return game.cover ? buildCoverUrl(API_BASE, game.cover, !!timestamp, timestamp) : "";
+  }, [game.cover, coverChanged, coverCacheBustTimestamp, buildCoverUrl]);
 
   const handleDragStart = (e: React.DragEvent) => {
     if (!draggable) return;
