@@ -1,4 +1,3 @@
-import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import "./i18n/config";
@@ -14,23 +13,21 @@ import { LibraryGamesProvider } from "./contexts/LibraryGamesContext";
 import { TagListsProvider } from "./contexts/TagListsContext";
 
 createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <SettingsProvider>
-      <AuthProvider>
-        <LoadingProvider>
-        <CollectionsProvider>
-          <DevelopersProvider>
-            <PublishersProvider>
-              <LibraryGamesProvider>
-                <TagListsProvider>
-                  <App />
-                </TagListsProvider>
-              </LibraryGamesProvider>
-            </PublishersProvider>
-          </DevelopersProvider>
-        </CollectionsProvider>
-        </LoadingProvider>
-      </AuthProvider>
-    </SettingsProvider>
-  </StrictMode>
+  <SettingsProvider>
+    <AuthProvider>
+      <LoadingProvider>
+      <CollectionsProvider>
+        <DevelopersProvider>
+          <PublishersProvider>
+            <LibraryGamesProvider>
+              <TagListsProvider>
+                <App />
+              </TagListsProvider>
+            </LibraryGamesProvider>
+          </PublishersProvider>
+        </DevelopersProvider>
+      </CollectionsProvider>
+    </LoadingProvider>
+  </AuthProvider>
+  </SettingsProvider>
 );
