@@ -246,13 +246,9 @@ export default function ManageInstallationModal({
   };
 
   const handleSave = async () => {
-    // Piattaforma e file obbligatori per ogni eseguibile
+    // File required for each executable; platform is optional
     for (let i = 0; i < executables.length; i++) {
       const exec = executables[i];
-      if (!exec.platform || !exec.platform.trim()) {
-        setError(t("manageInstallation.platformRequired", "Platform is required for each executable."));
-        return;
-      }
       const hasFile = exec.file !== null || exec.isExisting === true;
       if (!hasFile) {
         setError(t("manageInstallation.fileRequired", "File is required for each executable."));
