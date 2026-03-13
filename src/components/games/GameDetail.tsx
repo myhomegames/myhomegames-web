@@ -16,7 +16,7 @@ import AdditionalExecutablesDropdown from "./AdditionalExecutablesDropdown";
 import Tooltip from "../common/Tooltip";
 import BackgroundManager, { useBackground } from "../common/BackgroundManager";
 import LibrariesBar from "../layout/LibrariesBar";
-import { useEditGame, useExecutable } from "../common/actions";
+import { useEditGame } from "../common/actions";
 import type { GameItem, CollectionItem } from "../../types";
 import { formatGameDate } from "../../utils/date";
 import { buildApiUrl, buildBackgroundUrl } from "../../utils/api";
@@ -53,20 +53,7 @@ export default function GameDetail({
   const [localGame, setLocalGame] = useState<GameItem>(game);
   const [isManageInstallationModalOpen, setIsManageInstallationModalOpen] = useState(false);
   const editGame = useEditGame();
-  
-  // Use executable hook (handles both upload and unlink)
-  const executable = useExecutable({
-    game: localGame,
-    onGameUpdate: (updatedGame) => {
-      setLocalGame(updatedGame);
-      // Dispatch event to update allGames in App.tsx
-      window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
-      if (onGameUpdate) {
-        onGameUpdate(updatedGame);
-      }
-    },
-  });
-  
+
   // Sync localGame when game prop changes
   useEffect(() => {
     setLocalGame(game);
@@ -167,7 +154,6 @@ export default function GameDetail({
           }
         }}
         onGameDelete={onGameDelete}
-        executable={executable}
         allCollections={allCollections}
         isManageInstallationModalOpen={isManageInstallationModalOpen}
         setIsManageInstallationModalOpen={setIsManageInstallationModalOpen}
@@ -193,7 +179,6 @@ function GameDetailContent({
   onGameUpdate,
   onGameReload,
   onGameDelete,
-  executable,
   allCollections,
   isManageInstallationModalOpen,
   setIsManageInstallationModalOpen,
@@ -214,7 +199,6 @@ function GameDetailContent({
   onGameUpdate: (updatedGame: GameItem) => void;
   onGameReload: (updatedGame: GameItem) => void;
   onGameDelete?: (game: GameItem) => void;
-  executable: ReturnType<typeof useExecutable>;
   allCollections: CollectionItem[];
   isManageInstallationModalOpen: boolean;
   setIsManageInstallationModalOpen: (open: boolean) => void;
@@ -521,48 +505,26 @@ function GameDetailContent({
                     {t("common.play")}
                   </button>
                 ) : (
-                    <>
                     <button
-                      onClick={executable.handleBrowseClick}
-                      disabled={executable.isUploading}
+                      onClick={() => setIsManageInstallationModalOpen(true)}
                       className="game-detail-link-executable-button"
                     >
-                      <>
-                        <svg
-                          width="28"
-                          height="28"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="game-detail-link-executable-button-icon"
-                        >
-                          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                        </svg>
-                        {executable.isUploading ? t("gameDetail.uploading", "Uploading...") : t("gameDetail.linkExecutable")}
-                      </>
+                      <svg
+                        width="28"
+                        height="28"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="game-detail-link-executable-button-icon"
+                      >
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                      </svg>
+                      {t("gameDetail.linkExecutable")}
                     </button>
-                    <input
-                      ref={executable.fileInputRef}
-                      id="game-executable-input"
-                      name="executable"
-                      type="file"
-                      aria-label={t("gameDetail.executableFile", "Executable file")}
-                      className="game-detail-executable-input"
-                      accept=".sh,.bat"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          await executable.handleFileSelect(file);
-                          // Reset the input so the same file can be selected again
-                          e.target.value = "";
-                        }
-                      }}
-                    />
-                  </>
                 )}
                 <Tooltip text={t("common.edit")} delay={200}>
                   <button

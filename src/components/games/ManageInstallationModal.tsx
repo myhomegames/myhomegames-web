@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { API_BASE, getApiToken } from "../../config";
 import { useLoading } from "../../contexts/LoadingContext";
+import { useTagLists } from "../../contexts/TagListsContext";
+import TagEditor from "../common/TagEditor";
 import type { GameItem } from "../../types";
 import { buildApiUrl } from "../../utils/api";
 import "./ManageInstallationModal.css";
@@ -36,7 +38,12 @@ export default function ManageInstallationModal({
 }: ManageInstallationModalProps) {
   const { t } = useTranslation();
   const { setLoading } = useLoading();
-  
+  const { tagLabels } = useTagLists();
+  const availablePlatforms = useMemo(
+    () => Array.from(tagLabels.platforms.values()),
+    [tagLabels.platforms]
+  );
+
   // Initialize executables from game.executables
   const getInitialExecutables = (): ExecutableState[] => {
     if (game.executables && game.executables.length > 0) {
@@ -59,8 +66,11 @@ export default function ManageInstallationModal({
   useEffect(() => {
     if (isOpen) {
       const initial = getInitialExecutables();
-      setExecutables(initial);
       setInitialExecutables(initial);
+      // Se non c'è nessun eseguibile, mostra un blocco vuoto da compilare (es. da "Collega eseguibile")
+      setExecutables(
+        initial.length > 0 ? initial : [{ label: "", file: null, existingPath: null }]
+      );
       setError(null);
     }
   }, [isOpen, game]);
@@ -155,8 +165,14 @@ export default function ManageInstallationModal({
 
   const handleUpdateLabel = (index: number, label: string) => {
     const updated = [...executables];
-    updated[index] = { ...updated[index], label };
+    updated[index] = { ...updated[index], label: label.trim() };
     setExecutables(updated);
+  };
+
+  /** Single platform per executable: onTagsChange receives new list; we keep only one (last selected). */
+  const handlePlatformChange = (index: number, tags: string[]) => {
+    const label = tags.length ? tags[tags.length - 1] : "";
+    handleUpdateLabel(index, label);
   };
 
   const handleBrowseFile = async (index: number) => {
@@ -329,17 +345,21 @@ export default function ManageInstallationModal({
                   </div>
                 <div className="manage-installation-executable-fields">
                   <div className="manage-installation-field-group">
-                    <label htmlFor={`manage-installation-label-${index}`}>
-                      {t("manageInstallation.label", "Label")}
+                    <label htmlFor={`manage-installation-platform-${index}`}>
+                      {t("gameDetail.platforms", "Platform")}
                     </label>
-                    <input
-                      id={`manage-installation-label-${index}`}
-                      name={`executableLabel-${index}`}
-                      type="text"
-                      value={executable.label}
-                      onChange={(e) => handleUpdateLabel(index, e.target.value)}
-                      placeholder={t("manageInstallation.labelPlaceholder", "e.g., Play, Launch, Install")}
-                    />
+                    {isOpen && (
+                      <TagEditor
+                        key={`manage-installation-platform-${game.id}-${index}-${isOpen}`}
+                        mode="freeform"
+                        selectedTags={executable.label ? [executable.label] : []}
+                        onTagsChange={(tags) => handlePlatformChange(index, tags)}
+                        disabled={saving}
+                        placeholder={t("gameDetail.addPlatform", "Add platform...")}
+                        availableTags={availablePlatforms}
+                        allowCreate={true}
+                      />
+                    )}
                   </div>
                   <div className="manage-installation-field-group">
                     <label htmlFor={`manage-installation-path-${index}`}>
