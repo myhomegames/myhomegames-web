@@ -15,7 +15,9 @@ export type GameItem = {
   genre?: Array<{ id: number; title: string }> | string | string[];
   criticratings?: number | null;
   userratings?: number | null;
-  executables?: string[] | null; // Array of executable names (without extension)
+  executables?: string[] | null; // Array of executable labels
+  /** File basenames (label-id) in same order as executables; used to derive platform from id after hyphen */
+  executableFileNames?: (string | null)[] | null;
   /** Tag fields: API returns [{ id, title }]; legacy may use string[]. */
   themes?: Array<{ id: number; title: string }> | string[];
   platforms?: Array<{ id: number; title: string }> | string[];

@@ -36,6 +36,7 @@ type GameDetailProps = {
   coverUrl: string;
   onPlay: (game: GameItem) => void;
   allCollections?: CollectionItem[];
+  onRefetchGame?: () => void;
   onGameUpdate?: (updatedGame: GameItem) => void;
   onGameDelete?: (game: GameItem) => void;
 };
@@ -45,6 +46,7 @@ export default function GameDetail({
   coverUrl,
   onPlay,
   allCollections = [],
+  onRefetchGame,
   onGameUpdate,
   onGameDelete,
 }: GameDetailProps) {
@@ -155,6 +157,7 @@ export default function GameDetail({
         }}
         onGameDelete={onGameDelete}
         allCollections={allCollections}
+        onRefetchGame={onRefetchGame}
         isManageInstallationModalOpen={isManageInstallationModalOpen}
         setIsManageInstallationModalOpen={setIsManageInstallationModalOpen}
         t={t as any}
@@ -180,6 +183,7 @@ function GameDetailContent({
   onGameReload,
   onGameDelete,
   allCollections,
+  onRefetchGame,
   isManageInstallationModalOpen,
   setIsManageInstallationModalOpen,
   t,
@@ -200,6 +204,7 @@ function GameDetailContent({
   onGameReload: (updatedGame: GameItem) => void;
   onGameDelete?: (game: GameItem) => void;
   allCollections: CollectionItem[];
+  onRefetchGame?: () => void;
   isManageInstallationModalOpen: boolean;
   setIsManageInstallationModalOpen: (open: boolean) => void;
   t: (key: string, defaultValue?: string) => string;
@@ -595,8 +600,8 @@ function GameDetailContent({
                 isOpen={isManageInstallationModalOpen}
                 onClose={() => setIsManageInstallationModalOpen(false)}
                 game={game}
+                onNeedRefresh={onRefetchGame}
                 onGameUpdate={(updatedGame) => {
-                  // Dispatch event to update allGames in App.tsx
                   window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
                   onGameUpdate(updatedGame);
                 }}

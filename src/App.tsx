@@ -772,6 +772,7 @@ function GameDetailPage({
         criticratings: updatedGame.criticratings,
         userratings: updatedGame.userratings,
         executables: updatedGame.executables ?? null,
+        executableFileNames: updatedGame.executableFileNames ?? null,
         themes: updatedGame.themes ?? undefined,
         platforms: updatedGame.platforms ?? undefined,
         gameModes: updatedGame.gameModes ?? undefined,
@@ -845,6 +846,7 @@ function GameDetailPage({
         criticratings: found.criticratings,
         userratings: found.userratings,
         executables: found.executables || null,
+        executableFileNames: found.executableFileNames || null,
         themes: found.themes || null,
         platforms: found.platforms || null,
         gameModes: found.gameModes || null,
@@ -898,6 +900,7 @@ function GameDetailPage({
       coverUrl={buildCoverUrl(API_BASE, game.cover, true, coverTimestamp)}
       onPlay={onPlay}
       allCollections={allCollections}
+      onRefetchGame={() => fetchGame(gameId!)}
       onGameUpdate={(updatedGame) => {
         setGame(updatedGame);
       }}
