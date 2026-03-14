@@ -47,6 +47,7 @@ type VirtualizedGamesListTableProps = {
   t: any;
   i18n: any;
   editGame: any;
+  platformIdForPlay?: string;
 };
 
 const ITEM_HEIGHT = 56; // Approximate height of each table row
@@ -69,6 +70,7 @@ export default function VirtualizedGamesListTable({
   t,
   i18n,
   editGame,
+  platformIdForPlay,
 }: VirtualizedGamesListTableProps) {
   const location = useLocation();
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -258,6 +260,7 @@ export default function VirtualizedGamesListTable({
           i18n={i18n}
           editGame={editGame}
           useDiv
+          platformIdForPlay={platformIdForPlay}
         />
       </div>
     );

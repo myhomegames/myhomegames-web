@@ -44,6 +44,7 @@ type VirtualizedGamesListProps = {
   publisherId?: string;
   onRemoveFromDeveloper?: (gameId: string) => void;
   onRemoveFromPublisher?: (gameId: string) => void;
+  platformIdForPlay?: string;
 };
 
 const GAP = 40; // Gap between items in grid
@@ -68,6 +69,7 @@ export default function VirtualizedGamesList({
   publisherId,
   onRemoveFromDeveloper,
   onRemoveFromPublisher,
+  platformIdForPlay,
 }: VirtualizedGamesListProps) {
   const location = useLocation();
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -354,6 +356,7 @@ export default function VirtualizedGamesList({
           publisherId={publisherId}
           onRemoveFromDeveloper={onRemoveFromDeveloper}
           onRemoveFromPublisher={onRemoveFromPublisher}
+          platformIdForPlay={platformIdForPlay}
         />
       </div>
     );

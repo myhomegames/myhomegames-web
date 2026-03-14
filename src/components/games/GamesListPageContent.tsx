@@ -106,6 +106,10 @@ export default function GamesListPageContent({
     availablePublishers,
   } = hook;
 
+  /** Restrict Play/dropdown to platform executables only when platform filter is selected; when filter is cleared, show all */
+  const platformIdForPlay =
+    filterField === "platforms" && selectedPlatforms ? selectedPlatforms : undefined;
+
   const handleFilterChange = useCallback(
     (field: import("../filters/types").FilterField) => {
       if (field === "all") {
@@ -271,6 +275,7 @@ export default function GamesListPageContent({
                     viewMode={viewMode}
                     allCollections={allCollections}
                     scrollContainerRef={scrollContainerRef}
+                    platformIdForPlay={platformIdForPlay}
                   />
                 )}
                 {viewMode === "detail" && (
@@ -285,6 +290,7 @@ export default function GamesListPageContent({
                     itemRefs={itemRefs}
                     allCollections={allCollections}
                     scrollContainerRef={scrollContainerRef}
+                    platformIdForPlay={platformIdForPlay}
                   />
                 )}
                 {viewMode === "table" && (
@@ -299,6 +305,7 @@ export default function GamesListPageContent({
                     scrollContainerRef={tableScrollRef}
                     allCollections={allCollections}
                     columnVisibility={columnVisibility}
+                    platformIdForPlay={platformIdForPlay}
                   />
                 )}
               </>

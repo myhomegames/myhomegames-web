@@ -16,6 +16,9 @@ type DropdownMenuProps = {
   gameId?: string;
   gameTitle?: string;
   gameExecutables?: string[] | null;
+  /** Full game (all executables) for unlink when filtering by platform; avoids removing other platforms' executables */
+  fullGame?: import("../../types").GameItem;
+  platformIdForPlay?: string;
   onGameDelete?: (gameId: string) => void;
   onGameUpdate?: (game: any) => void;
   collectionId?: string;
@@ -43,6 +46,8 @@ export default function DropdownMenu({
   gameId,
   gameTitle,
   gameExecutables,
+  fullGame,
+  platformIdForPlay,
   onGameDelete,
   onGameUpdate,
   collectionId,
@@ -90,12 +95,13 @@ export default function DropdownMenu({
     onModalClose,
   });
 
-  const unlinkExecutable = gameId && onGameUpdate
-    ? useUnlinkExecutable({
-        gameId,
-        onGameUpdate,
-      })
-    : { isUnlinking: false, handleUnlinkExecutable: async () => {} };
+  // Always call the hook (React rules of hooks); hook no-ops when gameId or onGameUpdate missing
+  const unlinkExecutable = useUnlinkExecutable({
+    gameId: gameId ?? "",
+    onGameUpdate: onGameUpdate ?? (() => {}),
+    fullGame,
+    platformIdForPlay,
+  });
 
   // Use remove game from collection hook when we're in a collection detail context
   const removeGameFromCollection = useRemoveGameFromCollection({

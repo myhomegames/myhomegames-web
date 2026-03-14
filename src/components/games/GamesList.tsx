@@ -6,6 +6,7 @@ import EditGameModal from "./EditGameModal";
 import { useEditGame } from "../common/actions";
 import VirtualizedGamesList from "./VirtualizedGamesList";
 import type { GameItem } from "../../types";
+import { gameHasExecutableForPlatform, getExecutablesForPlatform } from "../../utils/gameExecutables";
 import "./GamesList.css";
 
 const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are more than this many items
@@ -33,6 +34,7 @@ type GamesListProps = {
   onRemoveFromPublisher?: (gameId: string) => void;
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
   enableVirtualization?: boolean;
+  platformIdForPlay?: string;
 };
 
 
@@ -62,6 +64,7 @@ type GameListItemProps = {
   publisherId?: string;
   onRemoveFromDeveloper?: (gameId: string) => void;
   onRemoveFromPublisher?: (gameId: string) => void;
+  platformIdForPlay?: string;
 };
 
 export function GameListItem({
@@ -90,11 +93,18 @@ export function GameListItem({
   publisherId,
   onRemoveFromDeveloper,
   onRemoveFromPublisher,
+  platformIdForPlay,
 }: GameListItemProps) {
   const { t } = useTranslation();
   const isIgdbOnly = (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly;
   const coverHeight = coverSize * 1.5;
-  
+  const gameForCover = useMemo(() => {
+    if (!platformIdForPlay) return game;
+    const f = getExecutablesForPlatform(game, platformIdForPlay);
+    if (!f) return { ...game, executables: [], executableFileNames: [] };
+    return { ...game, executables: f.executables, executableFileNames: f.executableFileNames };
+  }, [game, platformIdForPlay]);
+
   // Track previous cover value to detect changes
   const prevCoverRef = useRef<string | undefined>(game.cover);
   const coverChanged = prevCoverRef.current !== game.cover;
@@ -161,12 +171,14 @@ export function GameListItem({
         coverUrl={coverUrl}
         width={coverSize}
         height={coverHeight}
-        onPlay={!isIgdbOnly && onPlay ? (executableName?: string) => (executableName !== undefined ? (onPlay as (g: typeof game, ex?: string) => void)(game, executableName) : onPlay(game)) : undefined}
+        onPlay={!isIgdbOnly && onPlay ? (executableName?: string) => (executableName !== undefined ? (onPlay as (g: typeof game, ex?: string) => void)(game, executableName) : (onPlay as (g: typeof game) => void)(gameForCover)) : undefined}
         onClick={() => onGameClick(game)}
         onEdit={!isIgdbOnly ? () => onEditClick(game) : undefined}
         gameId={game.id}
         gameTitle={game.title}
-        game={isIgdbOnly ? undefined : game}
+        game={isIgdbOnly ? undefined : gameForCover}
+        fullGameForActions={!isIgdbOnly ? game : undefined}
+        platformIdForPlay={platformIdForPlay}
         onGameDelete={!isIgdbOnly && onGameDelete ? (gameId: string) => {
           const deletedGame = game.id === gameId ? game : null;
           if (deletedGame) {
@@ -187,7 +199,7 @@ export function GameListItem({
         showTitle={game.showTitle !== false}
         subtitle={game.year}
         detail={true}
-        play={!!(game.executables && game.executables.length > 0)}
+        play={platformIdForPlay ? gameHasExecutableForPlatform(game, platformIdForPlay) : !!(game.executables && game.executables.length > 0)}
         showBorder={viewMode !== "detail"}
         allCollections={allCollections}
         overlayContent={isIgdbOnly ? <span className="game-detail-similar-cover-badge">{t("addGame.new", "New")}</span> : undefined}
@@ -219,6 +231,7 @@ export default function GamesList({
   onRemoveFromPublisher,
   scrollContainerRef,
   enableVirtualization = true,
+  platformIdForPlay,
 }: GamesListProps) {
   const { t } = useTranslation();
   const editGame = useEditGame();
@@ -293,6 +306,7 @@ export default function GamesList({
             publisherId={publisherId}
             onRemoveFromDeveloper={onRemoveFromDeveloper}
             onRemoveFromPublisher={onRemoveFromPublisher}
+            platformIdForPlay={platformIdForPlay}
           />
         ) : (
           games.map((game, index) => (
@@ -323,6 +337,7 @@ export default function GamesList({
               publisherId={publisherId}
               onRemoveFromDeveloper={onRemoveFromDeveloper}
               onRemoveFromPublisher={onRemoveFromPublisher}
+              platformIdForPlay={platformIdForPlay}
             />
           ))
         )}

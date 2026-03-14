@@ -33,6 +33,7 @@ type GamesListTableProps = {
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
   allCollections?: CollectionItem[];
   columnVisibility: ColumnVisibility;
+  platformIdForPlay?: string;
 };
 
 export default function GamesListTable({
@@ -46,6 +47,7 @@ export default function GamesListTable({
   scrollContainerRef,
   allCollections = [],
   columnVisibility,
+  platformIdForPlay,
 }: GamesListTableProps) {
   const internalScrollRef = useRef<HTMLDivElement>(null);
   const actualScrollRef = scrollContainerRef || internalScrollRef;
@@ -152,6 +154,7 @@ export default function GamesListTable({
             t={t}
             i18n={i18n}
             editGame={editGame}
+            platformIdForPlay={platformIdForPlay}
           />
         </div>
         {editGame.selectedGame && (
@@ -195,6 +198,7 @@ export default function GamesListTable({
                   t={t}
                   i18n={i18n}
                   editGame={editGame}
+                  platformIdForPlay={platformIdForPlay}
                 />
               );
             })}

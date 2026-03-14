@@ -35,6 +35,7 @@ type VirtualizedGamesListDetailProps = {
   onGameUpdate?: (updatedGame: GameItem) => void;
   buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean) => string;
   allCollections?: CollectionItem[];
+  platformIdForPlay?: string;
 };
 
 const ITEM_HEIGHT = 144; // Height of each detail item (120px content + 24px margin-bottom)
@@ -52,6 +53,7 @@ export default function VirtualizedGamesListDetail({
   onGameUpdate,
   buildCoverUrl,
   allCollections = [],
+  platformIdForPlay,
 }: VirtualizedGamesListDetailProps) {
   const location = useLocation();
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -273,6 +275,7 @@ export default function VirtualizedGamesListDetail({
           itemRefs={itemRefs}
           index={index}
           allCollections={allCollections}
+          platformIdForPlay={platformIdForPlay}
         />
       </div>
     );

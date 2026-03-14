@@ -7,6 +7,7 @@ import AdditionalExecutablesDropdown from "./AdditionalExecutablesDropdown";
 import Tooltip from "../common/Tooltip";
 import AgeRatings from "./AgeRatings";
 import type { GameItem, CollectionItem } from "../../types";
+import { gameHasExecutableForPlatform, getExecutablesForPlatform } from "../../utils/gameExecutables";
 
 type ColumnVisibility = {
   title: boolean;
@@ -36,6 +37,7 @@ type TableRowProps = {
   editGame: any;
   /** When true, render as div (table-row/table-cell) for valid HTML inside virtualized list */
   useDiv?: boolean;
+  platformIdForPlay?: string;
 };
 
 export default function TableRow({
@@ -56,8 +58,15 @@ export default function TableRow({
   i18n,
   editGame,
   useDiv = false,
+  platformIdForPlay,
 }: TableRowProps) {
   const isIgdbOnly = (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly;
+  const hasPlay = platformIdForPlay ? gameHasExecutableForPlatform(game, platformIdForPlay) : !!(game.executables && game.executables.length > 0);
+  const playFiltered = platformIdForPlay ? getExecutablesForPlatform(game, platformIdForPlay) : null;
+  const playExecutables = platformIdForPlay ? (playFiltered?.executables ?? []) : game.executables;
+  const gameForPlay = platformIdForPlay && playFiltered
+    ? { ...game, executables: playFiltered.executables, executableFileNames: playFiltered.executableFileNames }
+    : game;
   const handleTitleClick = () => {
     if (isIgdbOnly && onIgdbGameClick) {
       onIgdbGameClick(Number(game.id));
@@ -106,15 +115,12 @@ export default function TableRow({
     : null;
 
   const PlayIcon = () => {
-    // Only show play button if game has executables
-    if (!game.executables || game.executables.length === 0) {
-      return null;
-    }
+    if (!hasPlay) return null;
 
     const handlePlayClick = (e: React.MouseEvent) => {
       e.stopPropagation();
       if (onPlay) {
-        onPlay(game);
+        onPlay(gameForPlay);
       }
     };
 
@@ -332,10 +338,10 @@ export default function TableRow({
             game={game}
             allCollections={allCollections}
           />
-          {game.executables && game.executables.length > 1 && onPlay && (
+          {playExecutables && playExecutables.length > 1 && onPlay && (
             <AdditionalExecutablesDropdown
               gameId={game.id}
-              gameExecutables={game.executables}
+              gameExecutables={playExecutables}
               onPlayExecutable={(executableName: string) => {
                 if (onPlay) {
                   (onPlay as any)(game, executableName);
@@ -346,7 +352,9 @@ export default function TableRow({
           <DropdownMenu
             gameId={game.id}
             gameTitle={game.title}
-            gameExecutables={game.executables}
+            gameExecutables={playExecutables}
+            fullGame={game}
+            platformIdForPlay={platformIdForPlay}
             onAddToCollection={() => {}}
             onGameDelete={onGameDelete ? (gameId: string) => {
               const deletedGame = game.id === gameId ? game : null;

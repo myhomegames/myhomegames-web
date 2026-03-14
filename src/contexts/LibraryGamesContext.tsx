@@ -65,6 +65,7 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
         criticratings: v.criticratings,
         userratings: v.userratings,
         executables: v.executables || null,
+        executableFileNames: v.executableFileNames || null,
         themes: v.themes || null,
         platforms: v.platforms || null,
         gameModes: v.gameModes || null,
