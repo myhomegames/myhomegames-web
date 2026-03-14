@@ -335,15 +335,17 @@ export default function ManageInstallationModal({
         }
       }
 
-      // Build final executables array and platform ids (same order) for sync/rename on server
-      // Label fallback: label → platform → "script" (same for new uploads and existing rows)
+      // Build final executables array, platform ids, and previous filenames (same order) for sync/rename on server
+      // executablePreviousFileNames lets the server match rows to files when labels are removed/reordered
       const finalExecutables: string[] = [];
       const executablePlatformIds: string[] = [];
+      const executablePreviousFileNames: string[] = [];
       for (const exec of executables) {
         const label = (exec.label && exec.label.trim()) || (exec.platform && exec.platform.trim()) || "script";
         if (label.length > 0) {
           finalExecutables.push(label);
           executablePlatformIds.push(exec.platform ? platformTitleToId.get(exec.platform) ?? "" : "");
+          executablePreviousFileNames.push(exec.existingFileName ?? "");
         }
       }
 
@@ -357,6 +359,7 @@ export default function ManageInstallationModal({
         body: JSON.stringify({
           executables: finalExecutables.length > 0 ? finalExecutables : null,
           executablePlatformIds: finalExecutables.length > 0 ? executablePlatformIds : null,
+          executablePreviousFileNames: finalExecutables.length > 0 ? executablePreviousFileNames : null,
         }),
       });
 
