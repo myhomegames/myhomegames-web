@@ -615,6 +615,7 @@ export default function EditGameModal({
           criticratings: result.game.criticratings || null,
           userratings: result.game.userratings || null,
           executables: result.game.executables || null,
+          executableFileNames: result.game.executableFileNames !== undefined ? result.game.executableFileNames : (game.executableFileNames ?? null),
           // Use result when present (including null = cleared); otherwise keep previous
           themes: result.game.themes !== undefined ? result.game.themes : (game.themes ?? null),
           platforms: result.game.platforms !== undefined ? result.game.platforms : (game.platforms ?? null),
