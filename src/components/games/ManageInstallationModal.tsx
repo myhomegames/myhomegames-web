@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { API_BASE, getApiToken } from "../../config";
@@ -100,6 +100,8 @@ export default function ManageInstallationModal({
   const [error, setError] = useState<string | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const shouldScrollToBottomRef = useRef(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -117,6 +119,19 @@ export default function ManageInstallationModal({
       onNeedRefresh?.();
     }
   }, [isOpen, game?.id]);
+
+  useEffect(() => {
+    if (shouldScrollToBottomRef.current && contentRef.current) {
+      shouldScrollToBottomRef.current = false;
+      contentRef.current.scrollTo({ top: contentRef.current.scrollHeight, behavior: "smooth" });
+    }
+  }, [executables.length]);
+
+  useEffect(() => {
+    if (error && contentRef.current) {
+      contentRef.current.scrollTo({ top: contentRef.current.scrollHeight, behavior: "smooth" });
+    }
+  }, [error]);
 
   // Check if there are any changes compared to initial state
   const hasChanges = (): boolean => {
@@ -157,6 +172,7 @@ export default function ManageInstallationModal({
   };
 
   const handleAddExecutable = () => {
+    shouldScrollToBottomRef.current = true;
     setExecutables([...executables, { label: "", platform: "", file: null, existingPath: null, existingFileName: null, isExisting: false }]);
   };
 
@@ -261,10 +277,10 @@ export default function ManageInstallationModal({
       }
     }
 
-    // Chiave primaria: (label effettiva, piattaforma). Niente duplicati.
+    // Primary key: (effective label, platform). No duplicates. Use same fallback as save (label → platform → "script").
     const keyOf = (exec: ExecutableState) => {
-      const effectiveLabel = (exec.label && exec.label.trim()) || (exec.platform && exec.platform.trim()) || "";
-      return `${(effectiveLabel || "").toLowerCase()}|${(exec.platform || "").trim().toLowerCase()}`;
+      const effectiveLabel = (exec.label && exec.label.trim()) || (exec.platform && exec.platform.trim()) || "script";
+      return `${effectiveLabel.toLowerCase()}|${(exec.platform || "").trim().toLowerCase()}`;
     };
     const seen = new Set<string>();
     for (let i = 0; i < executables.length; i++) {
@@ -388,14 +404,10 @@ export default function ManageInstallationModal({
             </svg>
           </button>
         </div>
-        <div className="manage-installation-modal-content">
+        <div ref={contentRef} className="manage-installation-modal-content">
           <p className="manage-installation-modal-description">
             {t("manageInstallation.description", "Configure multiple executable scripts for this game. The first script will be used by the Play button.")}
           </p>
-          
-          {error && (
-            <div className="manage-installation-modal-error">{error}</div>
-          )}
 
           <div className="manage-installation-executables-list">
             {executables.map((executable, index) => {
@@ -497,6 +509,10 @@ export default function ManageInstallationModal({
           >
             + {t("manageInstallation.addExecutable", "Add Executable")}
           </button>
+
+          {error && (
+            <div className="manage-installation-modal-error">{error}</div>
+          )}
         </div>
         <div className="manage-installation-modal-footer">
           <button
