@@ -9,14 +9,6 @@ import type { GameItem } from "../../types";
 import { buildApiUrl } from "../../utils/api";
 import "./ManageInstallationModal.css";
 
-// Import path for basename
-const path = {
-  basename: (filePath: string) => {
-    const parts = filePath.split(/[/\\]/);
-    return parts[parts.length - 1];
-  }
-};
-
 type ExecutableState = {
   label: string;
   platform: string;
@@ -63,6 +55,19 @@ export default function ManageInstallationModal({
   }, [tagLabels.platforms]);
 
   const sanitizeLabel = (s: string) => (s || "").replace(/[^a-zA-Z0-9_-]/g, "_");
+
+  const getDisplayFileName = (executable: ExecutableState): string => {
+    const effectiveLabel = (executable.label && executable.label.trim()) || (executable.platform && executable.platform.trim()) || "script";
+    const sanitized = sanitizeLabel(effectiveLabel);
+    const platformId = executable.platform ? platformTitleToId.get(executable.platform) ?? "" : "";
+    const base = platformId ? `${sanitized}-${platformId}` : sanitized;
+    const ext = executable.file
+      ? (executable.file.name.toLowerCase().endsWith(".bat") ? ".bat" : ".sh")
+      : executable.existingFileName?.toLowerCase().endsWith(".bat")
+        ? ".bat"
+        : ".sh";
+    return base ? base + ext : "";
+  };
 
   // Initialize executables from game.executables; platform and filename from executableFileNames (label-id.ext)
   const getInitialExecutables = (): ExecutableState[] => {
@@ -456,17 +461,7 @@ export default function ManageInstallationModal({
                         id={`manage-installation-path-${index}`}
                         name={`executablePath-${index}`}
                         type="text"
-                        value={
-                          executable.file
-                            ? executable.file.name
-                            : executable.existingFileName
-                              ? executable.existingFileName
-                              : executable.existingPath
-                                ? path.basename(executable.existingPath)
-                                : executable.label
-                                  ? `${executable.label}.sh`
-                                  : ""
-                        }
+                        value={getDisplayFileName(executable)}
                         readOnly
                         placeholder={t("manageInstallation.pathPlaceholder", "No file selected")}
                       />

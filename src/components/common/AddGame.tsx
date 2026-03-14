@@ -387,32 +387,43 @@ export default function AddGame({
 
           <div className="add-game-create-from-scratch">
             <div className="add-game-create-label">{t("addGame.createFromScratch")}</div>
-            <div className="add-game-create-row">
+            <form
+              className="add-game-create-row"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const title = createTitle.trim();
+                if (!title || isCreating) return;
+                const game = await createGame(title);
+                if (game) {
+                  setCreateTitle("");
+                }
+              }}
+            >
               <input
                 type="text"
                 value={createTitle}
                 onChange={(e) => setCreateTitle(e.target.value)}
+                onKeyDown={async (e) => {
+                  if (e.key !== "Enter") return;
+                  e.preventDefault();
+                  const title = createTitle.trim();
+                  if (!title || isCreating) return;
+                  const game = await createGame(title);
+                  if (game) setCreateTitle("");
+                }}
                 placeholder={t("addGame.newGameTitlePlaceholder")}
                 className="add-game-search-input add-game-create-input"
                 aria-label={t("addGame.newGameTitle")}
                 disabled={isCreating}
               />
               <button
-                type="button"
-                onClick={async () => {
-                  const title = createTitle.trim();
-                  if (!title || isCreating) return;
-                  const game = await createGame(title);
-                  if (game) {
-                    setCreateTitle("");
-                  }
-                }}
+                type="submit"
                 disabled={!createTitle.trim() || isCreating}
                 className="add-game-create-btn"
               >
                 {isCreating ? t("addGame.creating", "Creating...") : t("addGame.create")}
               </button>
-            </div>
+            </form>
             {createError && (
               <div className="add-game-error add-game-create-error">{createError}</div>
             )}
