@@ -56,7 +56,7 @@ export default function ManageInstallationModal({
 
   const sanitizeLabel = (s: string) => (s || "").replace(/[^a-zA-Z0-9_-]/g, "_");
 
-  const getDisplayFileName = (executable: ExecutableState): string => {
+  const getDisplayFileName = (executable: ExecutableState, index: number): string => {
     const effectiveLabel = (executable.label && executable.label.trim()) || (executable.platform && executable.platform.trim()) || "script";
     const sanitized = sanitizeLabel(effectiveLabel);
     const platformId = executable.platform ? platformTitleToId.get(executable.platform) ?? "" : "";
@@ -66,19 +66,24 @@ export default function ManageInstallationModal({
       : executable.existingFileName?.toLowerCase().endsWith(".bat")
         ? ".bat"
         : ".sh";
-    return base ? base + ext : "";
+    const prefix = String(index + 1).padStart(2, "0") + "-";
+    return base ? prefix + base + ext : "";
   };
 
-  // Initialize executables from game.executables; platform and filename from executableFileNames (label-id.ext)
+  // Initialize executables from game.executables; platform and filename from executableFileNames (NN-label-platformId.ext)
   const getInitialExecutables = (): ExecutableState[] => {
     if (game.executables && game.executables.length > 0) {
       const fileNames = game.executableFileNames ?? [];
       return game.executables.map((exec, i) => {
         let platform = "";
-        const fullName = fileNames[i]; // e.g. "Play-1.sh"
-        const basenameNoExt = fullName ? fullName.replace(/\.(sh|bat)$/i, "") : "";
+        const fullName = fileNames[i]; // e.g. "01-Play-1.sh"
+        let basenameNoExt = fullName ? fullName.replace(/\.(sh|bat)$/i, "") : "";
+        // Strip leading numeratore (NN-) so we get "label-platformId"
+        if (basenameNoExt) {
+          basenameNoExt = basenameNoExt.replace(/^\d+-/, "");
+        }
         if (basenameNoExt && basenameNoExt.includes("-")) {
-          const platformId = basenameNoExt.slice(basenameNoExt.indexOf("-") + 1);
+          const platformId = basenameNoExt.slice(basenameNoExt.lastIndexOf("-") + 1);
           platform = platformIdToTitle.get(platformId) ?? "";
         }
         return {
@@ -473,7 +478,7 @@ export default function ManageInstallationModal({
                         id={`manage-installation-path-${index}`}
                         name={`executablePath-${index}`}
                         type="text"
-                        value={getDisplayFileName(executable)}
+                        value={getDisplayFileName(executable, index)}
                         readOnly
                         placeholder={t("manageInstallation.pathPlaceholder", "No file selected")}
                       />
