@@ -65,3 +65,14 @@
   line-height: var(--font-body-2-line-height);
 }
 
+/* Platform not used by any executable (same green as new games) */
+.game-info-list-item--platform-no-executable,
+.game-info-list-link.game-info-list-item--platform-no-executable {
+  color: #4ade80;
+}
+
+.game-info-list-link.game-info-list-item--platform-no-executable:hover {
+  color: #6ee7a6;
+  text-decoration-color: #4ade80;
+}
+

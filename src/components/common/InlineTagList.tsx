@@ -8,6 +8,7 @@ type InlineTagListProps<TItem> = {
   onItemClick?: (item: TItem) => void;
   isClickable?: (item: TItem) => boolean;
   getKey?: (item: TItem, index: number) => string;
+  getItemClassName?: (item: TItem) => string | undefined;
   showMoreMinCount?: number;
   showMoreLabel?: string;
   useInfoStyles?: boolean;
@@ -19,6 +20,7 @@ export default function InlineTagList<TItem>({
   onItemClick,
   isClickable,
   getKey,
+  getItemClassName,
   showMoreMinCount = 4,
   showMoreLabel,
   useInfoStyles = false,
@@ -57,17 +59,19 @@ export default function InlineTagList<TItem>({
       {displayedItems.map((item, index) => {
         const label = getLabel(item);
         const clickable = Boolean(onItemClick) && (isClickable ? isClickable(item) : true);
+        const extraClass = getItemClassName?.(item) ?? "";
+        const itemClass = ["game-info-list-item", extraClass].filter(Boolean).join(" ");
         const content = useInfoStyles ? (
           clickable ? (
             <button
               type="button"
-              className="game-info-list-item game-info-list-link"
+              className={`${itemClass} game-info-list-link`}
               onClick={() => onItemClick?.(item)}
             >
               {label}
             </button>
           ) : (
-            <span className="game-info-list-item">{label}</span>
+            <span className={itemClass}>{label}</span>
           )
         ) : (
           <span
