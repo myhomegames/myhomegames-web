@@ -98,6 +98,8 @@ export default function GamesListPageContent({
     itemRefs,
     handleGameUpdate,
     handleGameDelete,
+    saveScrollBeforeEdit,
+    clearScrollAfterEditRef,
     availableGenres,
     availableCollections,
     availableSeries,
@@ -286,6 +288,8 @@ export default function GamesListPageContent({
                     onPlay={onPlay}
                     onGameUpdate={handleGameUpdate}
                     onGameDelete={handleGameDelete}
+                    saveScrollBeforeEdit={saveScrollBeforeEdit}
+                    clearScrollAfterEditRef={clearScrollAfterEditRef}
                     buildCoverUrl={coverUrlBuilder}
                     itemRefs={itemRefs}
                     allCollections={allCollections}
@@ -301,6 +305,8 @@ export default function GamesListPageContent({
                     onPlay={onPlay}
                     onGameUpdate={handleGameUpdate}
                     onGameDelete={handleGameDelete}
+                    saveScrollBeforeEdit={saveScrollBeforeEdit}
+                    clearScrollAfterEditRef={clearScrollAfterEditRef}
                     itemRefs={itemRefs}
                     scrollContainerRef={tableScrollRef}
                     allCollections={allCollections}

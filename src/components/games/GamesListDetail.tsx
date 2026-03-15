@@ -29,6 +29,8 @@ type GamesListDetailProps = {
   allCollections?: CollectionItem[];
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
   platformIdForPlay?: string;
+  saveScrollBeforeEdit?: () => void;
+  clearScrollAfterEditRef?: () => void;
 };
 
 const FIXED_COVER_SIZE = 100; // Fixed size corresponding to minimum slider position
@@ -237,10 +239,16 @@ export default function GamesListDetail({
   allCollections = [],
   scrollContainerRef,
   platformIdForPlay,
+  saveScrollBeforeEdit,
+  clearScrollAfterEditRef,
 }: GamesListDetailProps) {
   const { t } = useTranslation();
   const editGame = useEditGame();
-  
+  const handleEditClick = (game: GameItem) => {
+    saveScrollBeforeEdit?.();
+    editGame.openEditModal(game);
+  };
+
   if (games.length === 0) {
     return (
       <div className="centered-content h-full min-h-[400px]">
@@ -277,7 +285,7 @@ export default function GamesListDetail({
             onGameClick={onGameClick}
             onIgdbGameClick={onIgdbGameClick}
             onPlay={onPlay}
-            onEditClick={editGame.openEditModal}
+            onEditClick={handleEditClick}
             onGameDelete={onGameDelete}
             onGameUpdate={onGameUpdate}
             buildCoverUrl={buildCoverUrl}
@@ -292,7 +300,7 @@ export default function GamesListDetail({
               onGameClick={onGameClick}
               onIgdbGameClick={onIgdbGameClick}
               onPlay={onPlay}
-              onEditClick={editGame.openEditModal}
+              onEditClick={handleEditClick}
               onGameDelete={onGameDelete}
               onGameUpdate={onGameUpdate}
               buildCoverUrl={buildCoverUrl}
@@ -307,7 +315,10 @@ export default function GamesListDetail({
       {editGame.selectedGame && (
         <EditGameModal
           isOpen={editGame.isEditModalOpen}
-          onClose={editGame.closeEditModal}
+          onClose={() => {
+            clearScrollAfterEditRef?.();
+            editGame.closeEditModal();
+          }}
           game={editGame.selectedGame}
           onGameUpdate={handleGameUpdate}
         />

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { API_BASE, API_TOKEN } from "../../config";
 import EditGameModal from "./EditGameModal";
@@ -34,6 +34,8 @@ type GamesListTableProps = {
   allCollections?: CollectionItem[];
   columnVisibility: ColumnVisibility;
   platformIdForPlay?: string;
+  saveScrollBeforeEdit?: () => void;
+  clearScrollAfterEditRef?: () => void;
 };
 
 export default function GamesListTable({
@@ -48,15 +50,30 @@ export default function GamesListTable({
   allCollections = [],
   columnVisibility,
   platformIdForPlay,
+  saveScrollBeforeEdit,
+  clearScrollAfterEditRef,
 }: GamesListTableProps) {
   const internalScrollRef = useRef<HTMLDivElement>(null);
   const actualScrollRef = scrollContainerRef || internalScrollRef;
-  
-  // Use useScrollRestoration directly here, so it's executed only when the component is mounted
-  useScrollRestoration(actualScrollRef, "table");
+  const useVirtualization = games.length > VIRTUALIZATION_THRESHOLD;
+  // Only use pathname:table from the hook for non-virtualized table; virtualized table saves/restores in VirtualizedGamesListTable
+  useScrollRestoration(actualScrollRef, useVirtualization ? undefined : "table");
   
   const [localGames, setLocalGames] = useState<GameItem[]>(games);
   const editGame = useEditGame();
+  const editGameWithSaveScroll = useMemo(
+    () =>
+      saveScrollBeforeEdit
+        ? {
+            ...editGame,
+            openEditModal: (game: GameItem) => {
+              saveScrollBeforeEdit();
+              editGame.openEditModal(game);
+            },
+          }
+        : editGame,
+    [editGame, saveScrollBeforeEdit]
+  );
   
   // Sync localGames when games prop changes
   useEffect(() => {
@@ -126,7 +143,6 @@ export default function GamesListTable({
   };
 
   // Use virtual scrolling for large lists
-  const useVirtualization = localGames.length > VIRTUALIZATION_THRESHOLD;
   const containerRef = useRef<HTMLDivElement>(null);
 
   if (useVirtualization) {
@@ -153,14 +169,17 @@ export default function GamesListTable({
             formatGameDate={formatGameDate}
             t={t}
             i18n={i18n}
-            editGame={editGame}
+            editGame={editGameWithSaveScroll}
             platformIdForPlay={platformIdForPlay}
           />
         </div>
         {editGame.selectedGame && (
           <EditGameModal
             isOpen={editGame.isEditModalOpen}
-            onClose={editGame.closeEditModal}
+            onClose={() => {
+              clearScrollAfterEditRef?.();
+              editGame.closeEditModal();
+            }}
             game={editGame.selectedGame}
             onGameDraftUpdate={(updatedGame: GameItem) => editGame.updateSelectedGame(updatedGame)}
             onGameUpdate={handleGameUpdate}
@@ -197,7 +216,7 @@ export default function GamesListTable({
                   formatGameDate={formatGameDate}
                   t={t}
                   i18n={i18n}
-                  editGame={editGame}
+                  editGame={editGameWithSaveScroll}
                   platformIdForPlay={platformIdForPlay}
                 />
               );
@@ -208,7 +227,10 @@ export default function GamesListTable({
       {editGame.selectedGame && (
         <EditGameModal
           isOpen={editGame.isEditModalOpen}
-          onClose={editGame.closeEditModal}
+          onClose={() => {
+            clearScrollAfterEditRef?.();
+            editGame.closeEditModal();
+          }}
           game={editGame.selectedGame}
           onGameUpdate={handleGameUpdate}
         />
