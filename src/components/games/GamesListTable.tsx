@@ -173,7 +173,7 @@ export default function GamesListTable({
   return (
     <div className="games-table-container">
       <div
-        className="games-table-scroll"
+        className="games-table-scroll games-table-scroll-non-virtualized"
         ref={actualScrollRef as React.RefObject<HTMLDivElement>}
       >
         <table className="games-table">

@@ -148,6 +148,11 @@
   padding-right: 12px;
 }
 
+/* Non-virtualized table: reserve space so first row is not hidden under the sticky header */
+.games-table-scroll-non-virtualized {
+  padding-top: 50px;
+}
+
 /* Solo quando il navigatore alfabetico è nel DOM (stesso layout ha .home-page-alphabet-container) */
 .home-page-layout:has(.home-page-alphabet-container) .games-table-scroll {
   width: calc(100% + 49px);
