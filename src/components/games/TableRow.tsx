@@ -120,7 +120,11 @@ export default function TableRow({
     const handlePlayClick = (e: React.MouseEvent) => {
       e.stopPropagation();
       if (onPlay) {
-        onPlay(gameForPlay);
+        // When filtered by platform, pass the executable label (server expects label, not filename)
+        const executableName = platformIdForPlay && gameForPlay.executables?.length
+          ? gameForPlay.executables[0]
+          : undefined;
+        (onPlay as (g: GameItem, ex?: string) => void)(gameForPlay, executableName);
       }
     };
 

@@ -135,7 +135,16 @@ export function GameDetailItem({
         coverUrl={coverUrl}
         width={FIXED_COVER_SIZE}
         height={coverHeight}
-        onPlay={!isIgdbOnly && onPlay ? (executableName?: string) => (executableName !== undefined ? (onPlay as (g: typeof game, ex?: string) => void)(game, executableName) : (onPlay as (g: typeof game) => void)(gameForCover)) : undefined}
+        onPlay={!isIgdbOnly && onPlay ? (executableName?: string) => {
+          if (executableName !== undefined) {
+            (onPlay as (g: typeof game, ex?: string) => void)(game, executableName);
+          } else {
+            const ex = platformIdForPlay && gameForCover.executables?.length
+              ? gameForCover.executables[0]
+              : undefined;
+            (onPlay as (g: typeof game, ex?: string) => void)(gameForCover, ex);
+          }
+        } : undefined}
         showTitle={false}
         detail={false}
         play={platformIdForPlay ? gameHasExecutableForPlatform(game, platformIdForPlay) : !!(game.executables && game.executables.length > 0)}

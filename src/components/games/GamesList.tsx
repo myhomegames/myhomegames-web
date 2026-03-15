@@ -171,7 +171,16 @@ export function GameListItem({
         coverUrl={coverUrl}
         width={coverSize}
         height={coverHeight}
-        onPlay={!isIgdbOnly && onPlay ? (executableName?: string) => (executableName !== undefined ? (onPlay as (g: typeof game, ex?: string) => void)(game, executableName) : (onPlay as (g: typeof game) => void)(gameForCover)) : undefined}
+        onPlay={!isIgdbOnly && onPlay ? (executableName?: string) => {
+          if (executableName !== undefined) {
+            (onPlay as (g: typeof game, ex?: string) => void)(game, executableName);
+          } else {
+            const ex = platformIdForPlay && gameForCover.executables?.length
+              ? gameForCover.executables[0]
+              : undefined;
+            (onPlay as (g: typeof game, ex?: string) => void)(gameForCover, ex);
+          }
+        } : undefined}
         onClick={() => onGameClick(game)}
         onEdit={!isIgdbOnly ? () => onEditClick(game) : undefined}
         gameId={game.id}
