@@ -104,8 +104,12 @@ export default function IGDBGameDetailPage() {
     await addGame.addGame(game);
   }
 
-  if (isLoading) {
-    return null;
+  if (isLoading && !game) {
+    return (
+      <div className="bg-[#1a1a1a] text-white flex items-center justify-center igdb-game-detail-not-found">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    );
   }
 
   if (!game) {

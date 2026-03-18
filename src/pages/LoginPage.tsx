@@ -30,7 +30,19 @@ export default function LoginPage() {
   }, [user, isLoading, navigate]);
 
   if (isLoading) {
-    return null;
+    return (
+      <div style={{
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "100vh",
+        backgroundColor: "#1a1a1a",
+        color: "white"
+      }}>
+        <div style={{ color: "rgba(255, 255, 255, 0.7)" }}>Loading...</div>
+      </div>
+    );
   }
 
   return (

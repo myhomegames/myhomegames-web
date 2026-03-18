@@ -876,8 +876,14 @@ function GameDetailPage({
     }
   }
 
-  if (isLoading) {
-    return null;
+  // Never blank the whole page while loading; show the last game if available
+  // and fall back to a simple spinner when we don't have data yet.
+  if (isLoading && !game) {
+    return (
+      <div className="bg-[#1a1a1a] text-white flex items-center justify-center app-content-wrapper">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    );
   }
 
   if (!game) {

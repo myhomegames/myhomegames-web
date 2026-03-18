@@ -21,7 +21,6 @@ import type { GameItem, CollectionItem } from "../../types";
 import { formatGameDate } from "../../utils/date";
 import { buildApiUrl, buildBackgroundUrl } from "../../utils/api";
 import { API_BASE, getApiToken } from "../../config";
-import { useLoading } from "../../contexts/LoadingContext";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useCollections } from "../../contexts/CollectionsContext";
 import { useTagLists } from "../../contexts/TagListsContext";
@@ -51,8 +50,8 @@ export default function GameDetail({
   onGameDelete,
 }: GameDetailProps) {
   const { t, i18n } = useTranslation();
-  const { setLoading } = useLoading();
   const [localGame, setLocalGame] = useState<GameItem>(game);
+  const [isSavingRating, setIsSavingRating] = useState(false);
   const [isManageInstallationModalOpen, setIsManageInstallationModalOpen] = useState(false);
   const editGame = useEditGame();
 
@@ -78,7 +77,7 @@ export default function GameDetail({
   const rating = localGame.stars ? localGame.stars / 2 : null;
 
   const handleRatingChange = async (newStars: number) => {
-    setLoading(true);
+    setIsSavingRating(true);
     try {
       const url = buildApiUrl(API_BASE, `/games/${localGame.id}`);
       const response = await fetch(url, {
@@ -107,7 +106,7 @@ export default function GameDetail({
     } catch (error) {
       console.error('Error updating rating:', error);
     } finally {
-      setLoading(false);
+      setIsSavingRating(false);
     }
   };
 
@@ -138,6 +137,7 @@ export default function GameDetail({
         coverSize={coverSize}
         handleCoverSizeChange={handleCoverSizeChange}
         onRatingChange={handleRatingChange}
+        isSavingRating={isSavingRating}
         editGame={editGame}
         onGameUpdate={(updatedGame) => {
           setLocalGame(updatedGame);
@@ -178,6 +178,7 @@ function GameDetailContent({
   coverSize,
   handleCoverSizeChange,
   onRatingChange,
+  isSavingRating,
   editGame,
   onGameUpdate,
   onGameReload,
@@ -199,6 +200,7 @@ function GameDetailContent({
   coverSize: number;
   handleCoverSizeChange: (size: number) => void;
   onRatingChange?: (newStars: number) => void;
+  isSavingRating: boolean;
   editGame: ReturnType<typeof useEditGame>;
   onGameUpdate: (updatedGame: GameItem) => void;
   onGameReload: (updatedGame: GameItem) => void;
@@ -489,7 +491,7 @@ function GameDetailContent({
                 <StarRating 
                   rating={rating || 0} 
                   readOnly={false}
-                  onRatingChange={onRatingChange}
+                  onRatingChange={isSavingRating ? undefined : onRatingChange}
                 />
               </div>
               <div className="game-detail-actions">
