@@ -77,9 +77,13 @@ export default function GameDetail({
   const rating = localGame.stars ? localGame.stars / 2 : null;
 
   const handleRatingChange = async (newStars: number) => {
+    // Optimistic UI: update immediately, then persist in background.
+    // If the request fails, revert.
+    const previousGame = localGame;
+    setLocalGame({ ...previousGame, stars: newStars });
     setIsSavingRating(true);
     try {
-      const url = buildApiUrl(API_BASE, `/games/${localGame.id}`);
+      const url = buildApiUrl(API_BASE, `/games/${previousGame.id}`);
       const response = await fetch(url, {
         method: 'PUT',
         headers: {
@@ -91,7 +95,7 @@ export default function GameDetail({
 
       if (response.ok) {
         const updatedGame: GameItem = {
-          ...localGame,
+          ...previousGame,
           stars: newStars,
         };
         setLocalGame(updatedGame);
@@ -102,9 +106,11 @@ export default function GameDetail({
         }
       } else {
         console.error('Failed to update rating');
+        setLocalGame(previousGame);
       }
     } catch (error) {
       console.error('Error updating rating:', error);
+      setLocalGame(previousGame);
     } finally {
       setIsSavingRating(false);
     }
