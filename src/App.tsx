@@ -876,7 +876,9 @@ function GameDetailPage({
     }
   }
 
-  if (isLoading) {
+  // If we already have game data, never blank the whole page during background operations
+  // (e.g. unlink executable). Only return null while initial game fetch has no data yet.
+  if (isLoading && !game) {
     return null;
   }
 
