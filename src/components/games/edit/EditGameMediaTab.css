@@ -78,6 +78,12 @@
   min-height: unset;
 }
 
+/* Background 16:9 (~169px): senza questo la riga resta alta 203px (come la cover) e l’URL sembra lontano */
+.edit-game-modal-media-row.edit-game-modal-media-row--background {
+  min-height: unset;
+  align-items: flex-start;
+}
+
 .edit-game-modal-media-empty {
   color: rgba(255, 255, 255, 0.5);
   font-size: 0.875rem;

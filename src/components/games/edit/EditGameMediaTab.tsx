@@ -180,7 +180,7 @@ export default function EditGameMediaTab({
 
       {/* Background + external URL */}
       <div className="edit-game-modal-media-block">
-        <div className="edit-game-modal-media-row">
+        <div className="edit-game-modal-media-row edit-game-modal-media-row--background">
           <div className="edit-game-modal-media-info">
             <div className="edit-game-modal-label">{t("gameDetail.background", "Background")}</div>
             <div className="edit-game-modal-media-description">

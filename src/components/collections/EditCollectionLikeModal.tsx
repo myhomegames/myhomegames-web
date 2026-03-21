@@ -19,6 +19,13 @@ function initialExternalCoverUrl(item: CollectionInfo): string {
   return c.startsWith("http") ? c : "";
 }
 
+function initialExternalBackgroundUrl(item: CollectionInfo): string {
+  const e = item.externalBackgroundUrl?.trim();
+  if (e) return e;
+  const b = item.background?.split("?")[0] ?? "";
+  return b.startsWith("http") ? b : "";
+}
+
 export type CollectionLikeResourceType = "collections" | "developers" | "publishers";
 
 /** Merge cover from save: server null must not fall back to previous item.cover (?? would do that). */
@@ -120,6 +127,7 @@ export default function EditCollectionLikeModal({
   const [imageTimestamp, setImageTimestamp] = useState<number>(Date.now());
   const [showTitleInPreview, setShowTitleInPreview] = useState(false);
   const [localExternalCover, setLocalExternalCover] = useState("");
+  const [localExternalBackground, setLocalExternalBackground] = useState("");
 
   // Never show fallback/IGDB covers in edit - same as when no cover present
   const coverUrlWithTimestamp = useMemo(() => {
@@ -134,7 +142,9 @@ export default function EditCollectionLikeModal({
   const backgroundUrlWithTimestamp = useMemo(() => {
     if (!item?.background || item.background.trim() === "") return "";
     const baseUrl = item.background.split("?")[0].split("&")[0];
-    if (baseUrl.startsWith("http")) return "";
+    if (baseUrl.startsWith("http")) {
+      return `${baseUrl}?t=${imageTimestamp}`;
+    }
     const url = buildApiUrl(API_BASE, baseUrl);
     const separator = url.includes("?") ? "&" : "?";
     return `${url}${separator}t=${imageTimestamp}`;
@@ -153,6 +163,7 @@ export default function EditCollectionLikeModal({
       setSummary(item.summary || "");
       setShowTitleInPreview((item as any).showTitle !== false);
       setLocalExternalCover(initialExternalCoverUrl(item));
+      setLocalExternalBackground(initialExternalBackgroundUrl(item));
       setError(null);
       setActiveTab("INFO");
       setCoverPreview(null);
@@ -212,6 +223,8 @@ export default function EditCollectionLikeModal({
       summary.trim() !== (item.summary || "").trim() ||
       (hasShowTitle && showTitleInPreview !== ((item as any).showTitle !== false)) ||
       normExt(localExternalCover) !== normExt(initialExternalCoverUrl(item)) ||
+      (hasBackground &&
+        normExt(localExternalBackground) !== normExt(initialExternalBackgroundUrl(item))) ||
       coverFile !== null ||
       (hasBackground && backgroundFile !== null) ||
       coverRemoved ||
@@ -360,6 +373,14 @@ export default function EditCollectionLikeModal({
       if (normExt(localExternalCover) !== normExt(initialExternalCoverUrl(item))) {
         updates.externalCoverUrl = localExternalCover.trim() ? localExternalCover.trim() : null;
       }
+      if (
+        hasBackground &&
+        normExt(localExternalBackground) !== normExt(initialExternalBackgroundUrl(item))
+      ) {
+        updates.externalBackgroundUrl = localExternalBackground.trim()
+          ? localExternalBackground.trim()
+          : null;
+      }
 
       if (Object.keys(updates).length > 0) {
         const url = buildApiUrl(API_BASE, basePath);
@@ -400,6 +421,10 @@ export default function EditCollectionLikeModal({
             data?.externalCoverUrl !== undefined
               ? data.externalCoverUrl
               : (item.externalCoverUrl ?? null),
+          externalBackgroundUrl:
+            data?.externalBackgroundUrl !== undefined
+              ? data.externalBackgroundUrl
+              : (item.externalBackgroundUrl ?? null),
           showTitle: hasShowTitle ? (data?.showTitle ?? (item as any).showTitle) : undefined,
           ...(typeof (data as any)?.gameCount === "number" ? { gameCount: (data as any).gameCount } : {}),
         };
@@ -439,6 +464,10 @@ export default function EditCollectionLikeModal({
               data?.externalCoverUrl !== undefined
                 ? data.externalCoverUrl
                 : (item.externalCoverUrl ?? null),
+            externalBackgroundUrl:
+              data?.externalBackgroundUrl !== undefined
+                ? data.externalBackgroundUrl
+                : (item.externalBackgroundUrl ?? null),
             showTitle: hasShowTitle ? (data?.showTitle ?? (item as any).showTitle) : undefined,
             ...(typeof (data as any)?.gameCount === "number" ? { gameCount: (data as any).gameCount } : {}),
           };
@@ -632,51 +661,78 @@ export default function EditCollectionLikeModal({
               </div>
 
               {hasBackground && (
-                <div className="edit-collection-modal-media-row">
-                  <div className="edit-collection-modal-media-info">
-                    <div className="edit-collection-modal-label">{t("gameDetail.background", "Background")}</div>
-                    <div className="edit-collection-modal-media-description">
-                      {t("gameDetail.backgroundFormat", "Recommended format: WebP, ratio 16:9 (e.g., 1920x1080px)")}
+                <div className="edit-game-modal-media-block">
+                  <div className="edit-collection-modal-media-row edit-collection-modal-media-row--background">
+                    <div className="edit-collection-modal-media-info">
+                      <div className="edit-collection-modal-label">{t("gameDetail.background", "Background")}</div>
+                      <div className="edit-collection-modal-media-description">
+                        {t("gameDetail.backgroundFormat", "Recommended format: WebP, ratio 16:9 (e.g., 1920x1080px)")}
+                      </div>
+                    </div>
+                    <div className="edit-collection-modal-media-image-container">
+                      {(() => {
+                        const currentBgUrl = backgroundRemoved ? "" : (backgroundPreview || backgroundUrlWithTimestamp);
+                        const hasBg = !!currentBgUrl?.trim();
+                        return (
+                          <>
+                            <Cover
+                              key={`bg-${backgroundRemoved ? "removed" : backgroundPreview ? "preview" : backgroundUrlWithTimestamp}`}
+                              title={item.title}
+                              coverUrl={currentBgUrl}
+                              width={300}
+                              height={169}
+                              showTitle={false}
+                              detail={false}
+                              play={false}
+                              showBorder={true}
+                              aspectRatio="16/9"
+                              onUpload={() => !uploadingBackground && !saving && backgroundInputRef.current?.click()}
+                              uploading={uploadingBackground}
+                              showRemoveButton={!!hasBg && !backgroundRemoved}
+                              removeMediaType="background"
+                              removeResourceId={item.id}
+                              removeResourceType={resourceType}
+                              onCollectionUpdate={onItemUpdate}
+                              onRemoveSuccess={handleBackgroundRemoveSuccess}
+                              removeDisabled={saving || uploadingBackground}
+                            />
+                            <input
+                              ref={backgroundInputRef}
+                              type="file"
+                              accept="image/*"
+                              style={{ display: "none" }}
+                              onChange={handleBackgroundFileSelect}
+                              aria-label={t("gameDetail.background", "Background")}
+                            />
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
-                  <div className="edit-collection-modal-media-image-container">
-                    {(() => {
-                      const currentBgUrl = backgroundRemoved ? "" : (backgroundPreview || backgroundUrlWithTimestamp);
-                      const hasBg = !!currentBgUrl?.trim();
-                      return (
-                        <>
-                          <Cover
-                            key={`bg-${backgroundRemoved ? "removed" : backgroundPreview ? "preview" : backgroundUrlWithTimestamp}`}
-                            title={item.title}
-                            coverUrl={currentBgUrl}
-                            width={300}
-                            height={169}
-                            showTitle={false}
-                            detail={false}
-                            play={false}
-                            showBorder={true}
-                            aspectRatio="16/9"
-                            onUpload={() => !uploadingBackground && !saving && backgroundInputRef.current?.click()}
-                            uploading={uploadingBackground}
-                            showRemoveButton={!!hasBg && !backgroundRemoved}
-                            removeMediaType="background"
-                            removeResourceId={item.id}
-                            removeResourceType={resourceType}
-                            onCollectionUpdate={onItemUpdate}
-                            onRemoveSuccess={handleBackgroundRemoveSuccess}
-                            removeDisabled={saving || uploadingBackground}
-                          />
-                          <input
-                            ref={backgroundInputRef}
-                            type="file"
-                            accept="image/*"
-                            style={{ display: "none" }}
-                            onChange={handleBackgroundFileSelect}
-                            aria-label={t("gameDetail.background", "Background")}
-                          />
-                        </>
-                      );
-                    })()}
+                  <div className="edit-collection-modal-media-row edit-game-modal-external-url-row">
+                    <div className="edit-collection-modal-media-info">
+                      <label htmlFor="edit-collection-like-external-background-url" className="edit-collection-modal-label">
+                        {t("gameDetail.externalBackgroundUrl", "External background URL")}
+                      </label>
+                    </div>
+                    <div className="edit-game-modal-external-url-input-column">
+                      <input
+                        id="edit-collection-like-external-background-url"
+                        type="url"
+                        className="edit-game-modal-external-url-input"
+                        value={localExternalBackground}
+                        onChange={(e) => setLocalExternalBackground(e.target.value)}
+                        disabled={saving}
+                        placeholder={t(
+                          "gameDetail.externalBackgroundUrlPlaceholder",
+                          "https://… (used when no local background)"
+                        )}
+                        autoComplete="off"
+                      />
+                      <p className="edit-game-modal-external-url-hint">
+                        {t("gameDetail.externalUrlHint", "A local uploaded file takes priority over this URL.")}
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}

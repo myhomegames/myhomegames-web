@@ -244,6 +244,12 @@
   align-items: flex-start;
 }
 
+/* Background 16:9 (~169px) non riempie i 203px della riga cover: senza questo resta vuoto sotto l’immagine e l’URL sembra lontano */
+.edit-collection-modal-media-row.edit-collection-modal-media-row--background {
+  min-height: unset;
+  align-items: flex-start;
+}
+
 .edit-collection-modal-media-info {
   flex: 0 0 200px;
   display: flex;

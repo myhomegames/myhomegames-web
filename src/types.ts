@@ -72,6 +72,8 @@ export type CollectionInfo = {
   background?: string;
   /** Remote cover URL in metadata when no local cover.webp */
   externalCoverUrl?: string | null;
+  /** Remote background URL in metadata when no local background.webp */
+  externalBackgroundUrl?: string | null;
   showTitle?: boolean;
 };
 
