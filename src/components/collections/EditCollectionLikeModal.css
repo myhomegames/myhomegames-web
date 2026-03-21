@@ -238,6 +238,12 @@
   min-height: 203px;
 }
 
+/* Riga URL esterno: stessa altezza contenuto, non 203px */
+.edit-collection-modal-media-row.edit-game-modal-external-url-row {
+  min-height: unset;
+  align-items: flex-start;
+}
+
 .edit-collection-modal-media-info {
   flex: 0 0 200px;
   display: flex;
