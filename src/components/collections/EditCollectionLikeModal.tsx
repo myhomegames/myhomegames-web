@@ -21,6 +21,39 @@ function initialExternalCoverUrl(item: CollectionInfo): string {
 
 export type CollectionLikeResourceType = "collections" | "developers" | "publishers";
 
+/** Merge cover from save: server null must not fall back to previous item.cover (?? would do that). */
+function coverAfterSave(
+  updatedFromUploadOrDelete: string | null,
+  apiData: { cover?: string | null } | null | undefined,
+  previousCover: string | undefined
+): string | undefined {
+  if (updatedFromUploadOrDelete != null && updatedFromUploadOrDelete !== "") {
+    return updatedFromUploadOrDelete;
+  }
+  if (apiData != null) {
+    const c = apiData.cover ?? null;
+    return c === null ? undefined : c;
+  }
+  return previousCover;
+}
+
+function backgroundAfterSave(
+  updatedFromUploadOrDelete: string | null,
+  apiData: { background?: string | null } | null | undefined,
+  previousBackground: string | undefined,
+  hasBackground: boolean
+): string | undefined {
+  if (!hasBackground) return undefined;
+  if (updatedFromUploadOrDelete != null && updatedFromUploadOrDelete !== "") {
+    return updatedFromUploadOrDelete;
+  }
+  if (apiData != null) {
+    const b = apiData.background ?? null;
+    return b === null ? undefined : b;
+  }
+  return previousBackground;
+}
+
 const RESOURCE_CONFIG: Record<
   CollectionLikeResourceType,
   { routeBase: string; responseKey: string; coverPrefix: string; backgroundPrefix: string; titleKey: string }
@@ -341,11 +374,14 @@ export default function EditCollectionLikeModal({
         }
         const result = await res.json();
         const data = result[config.responseKey];
-        // Use server response for final media state (including IGDB fallback covers)
-        let finalCover = updatedCover ?? data?.cover ?? item.cover ?? null;
-        let finalBackground = hasBackground
-          ? (updatedBackground ?? data?.background ?? item.background ?? null)
-          : undefined;
+        // Use server response for final media state (do not use ?? so null cover clears old external URL)
+        let finalCover = coverAfterSave(updatedCover, data, item.cover);
+        let finalBackground = backgroundAfterSave(
+          updatedBackground,
+          data,
+          item.background,
+          hasBackground
+        );
         if (updatedCover && finalCover) {
           const sep = finalCover.includes("?") ? "&" : "?";
           finalCover = `${finalCover}${sep}t=${Date.now()}`;
@@ -378,11 +414,13 @@ export default function EditCollectionLikeModal({
         if (res.ok) {
           const result = await res.json();
           const data = result[config.responseKey] ?? result;
-          // Again, trust server response (data.cover may include IGDB fallback)
-          let finalCover = updatedCover ?? data?.cover ?? item.cover ?? null;
-          let finalBackground = hasBackground
-            ? (updatedBackground ?? data?.background ?? item.background ?? null)
-            : undefined;
+          let finalCover = coverAfterSave(updatedCover, data, item.cover);
+          let finalBackground = backgroundAfterSave(
+            updatedBackground,
+            data,
+            item.background,
+            hasBackground
+          );
           if ((updatedCover !== null || coverRemoved) && finalCover) {
             const sep = finalCover.includes("?") ? "&" : "?";
             finalCover = `${finalCover}${sep}t=${Date.now()}`;
