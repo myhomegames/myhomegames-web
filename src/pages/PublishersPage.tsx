@@ -5,7 +5,7 @@ import { useLoading } from "../contexts/LoadingContext";
 import { usePublishers } from "../contexts/PublishersContext";
 import CollectionsList from "../components/lists/CollectionsList";
 import AlphabetNavigator from "../components/ui/AlphabetNavigator";
-import { compareTitles } from "../utils/stringUtils";
+import { compareTitles, filterRootCollectionLikes } from "../utils/stringUtils";
 import type { CollectionItem } from "../types";
 import { buildCoverUrl } from "../utils/api";
 
@@ -37,10 +37,17 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
     const unique = publishers.filter((p, i, self) =>
       i === self.findIndex((x) => String(x.id) === String(p.id))
     );
-    return [...unique].sort((a, b) =>
+    const rootOnly = filterRootCollectionLikes(unique);
+    return [...rootOnly].sort((a, b) =>
       sortAscending ? compareTitles(a.title || "", b.title || "") : -compareTitles(a.title || "", b.title || "")
     );
   }, [publishers, sortAscending]);
+
+  const allPublishersForCount = useMemo(() => {
+    return publishers.filter((p, i, self) =>
+      i === self.findIndex((x) => String(x.id) === String(p.id))
+    );
+  }, [publishers]);
 
   useLayoutEffect(() => {
     if (publishersLoading) setIsReady(false);
@@ -61,6 +68,7 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
           <div ref={scrollContainerRef} className="home-page-scroll-container">
             <CollectionsList
               collections={sortedPublishers}
+              allItemsForCount={allPublishersForCount}
               onCollectionClick={handlePublisherClick}
               onPlay={onPlay}
               isLoading={publishersLoading}

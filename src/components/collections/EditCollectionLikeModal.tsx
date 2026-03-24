@@ -6,9 +6,61 @@ import { useLoading } from "../../contexts/LoadingContext";
 import Cover from "../games/Cover";
 import type { CollectionInfo } from "../../types";
 import { buildApiUrl } from "../../utils/api";
+import { normalizeGameCoverImage, normalizeWideImage } from "../../utils/imageUploadNormalize";
+import "../games/edit/EditGameMediaTab.css";
 import "./EditCollectionLikeModal.css";
 
+function normExt(s: string | null | undefined) {
+  return (s ?? "").trim();
+}
+function initialExternalCoverUrl(item: CollectionInfo): string {
+  const e = item.externalCoverUrl?.trim();
+  if (e) return e;
+  const c = item.cover?.split("?")[0] ?? "";
+  return c.startsWith("http") ? c : "";
+}
+
+function initialExternalBackgroundUrl(item: CollectionInfo): string {
+  const e = item.externalBackgroundUrl?.trim();
+  if (e) return e;
+  const b = item.background?.split("?")[0] ?? "";
+  return b.startsWith("http") ? b : "";
+}
+
 export type CollectionLikeResourceType = "collections" | "developers" | "publishers";
+
+/** Merge cover from save: server null must not fall back to previous item.cover (?? would do that). */
+function coverAfterSave(
+  updatedFromUploadOrDelete: string | null,
+  apiData: { cover?: string | null } | null | undefined,
+  previousCover: string | undefined
+): string | undefined {
+  if (updatedFromUploadOrDelete != null && updatedFromUploadOrDelete !== "") {
+    return updatedFromUploadOrDelete;
+  }
+  if (apiData != null) {
+    const c = apiData.cover ?? null;
+    return c === null ? undefined : c;
+  }
+  return previousCover;
+}
+
+function backgroundAfterSave(
+  updatedFromUploadOrDelete: string | null,
+  apiData: { background?: string | null } | null | undefined,
+  previousBackground: string | undefined,
+  hasBackground: boolean
+): string | undefined {
+  if (!hasBackground) return undefined;
+  if (updatedFromUploadOrDelete != null && updatedFromUploadOrDelete !== "") {
+    return updatedFromUploadOrDelete;
+  }
+  if (apiData != null) {
+    const b = apiData.background ?? null;
+    return b === null ? undefined : b;
+  }
+  return previousBackground;
+}
 
 const RESOURCE_CONFIG: Record<
   CollectionLikeResourceType,
@@ -75,6 +127,8 @@ export default function EditCollectionLikeModal({
   const [backgroundRemoved, setBackgroundRemoved] = useState(false);
   const [imageTimestamp, setImageTimestamp] = useState<number>(Date.now());
   const [showTitleInPreview, setShowTitleInPreview] = useState(false);
+  const [localExternalCover, setLocalExternalCover] = useState("");
+  const [localExternalBackground, setLocalExternalBackground] = useState("");
 
   // Never show fallback/IGDB covers in edit - same as when no cover present
   const coverUrlWithTimestamp = useMemo(() => {
@@ -89,17 +143,28 @@ export default function EditCollectionLikeModal({
   const backgroundUrlWithTimestamp = useMemo(() => {
     if (!item?.background || item.background.trim() === "") return "";
     const baseUrl = item.background.split("?")[0].split("&")[0];
-    if (baseUrl.startsWith("http")) return "";
+    if (baseUrl.startsWith("http")) {
+      return `${baseUrl}?t=${imageTimestamp}`;
+    }
     const url = buildApiUrl(API_BASE, baseUrl);
     const separator = url.includes("?") ? "&" : "?";
     return `${url}${separator}t=${imageTimestamp}`;
   }, [item?.background, imageTimestamp]);
+
+  /** Cover preview in modal: local file + upload preview only (never external URLs). */
+  const coverLocalPreviewUrl = useMemo(() => {
+    if (coverRemoved) return "";
+    if (coverPreview) return coverPreview;
+    return coverUrlWithTimestamp;
+  }, [coverRemoved, coverPreview, coverUrlWithTimestamp]);
 
   useEffect(() => {
     if (isOpen && item) {
       setTitle(item.title || "");
       setSummary(item.summary || "");
       setShowTitleInPreview((item as any).showTitle !== false);
+      setLocalExternalCover(initialExternalCoverUrl(item));
+      setLocalExternalBackground(initialExternalBackgroundUrl(item));
       setError(null);
       setActiveTab("INFO");
       setCoverPreview(null);
@@ -119,7 +184,9 @@ export default function EditCollectionLikeModal({
 
   useEffect(() => {
     if (item) {
-      if (!item.cover && !coverRemoved && !coverFile) {
+      const hasCoverOrExternal =
+        !!(item.cover && item.cover.trim()) || !!item.externalCoverUrl?.trim();
+      if (!hasCoverOrExternal && !coverRemoved && !coverFile) {
         setCoverRemoved(true);
         setCoverPreview(null);
         setImageTimestamp(Date.now());
@@ -156,6 +223,9 @@ export default function EditCollectionLikeModal({
       title.trim() !== item.title.trim() ||
       summary.trim() !== (item.summary || "").trim() ||
       (hasShowTitle && showTitleInPreview !== ((item as any).showTitle !== false)) ||
+      normExt(localExternalCover) !== normExt(initialExternalCoverUrl(item)) ||
+      (hasBackground &&
+        normExt(localExternalBackground) !== normExt(initialExternalBackgroundUrl(item))) ||
       coverFile !== null ||
       (hasBackground && backgroundFile !== null) ||
       coverRemoved ||
@@ -165,32 +235,52 @@ export default function EditCollectionLikeModal({
 
   const handleCoverFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file?.type.startsWith("image/")) {
-      const reader = new FileReader();
-      reader.onloadend = () => setCoverPreview(reader.result as string);
-      reader.readAsDataURL(file);
-      setCoverFile(file);
-      setCoverRemoved(false);
-      setError(null);
-    } else {
-      setError(t("gameDetail.invalidImageType", "File must be an image"));
-    }
     e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError(t("gameDetail.invalidImageType", "File must be an image"));
+      return;
+    }
+    void (async () => {
+      try {
+        const out = await normalizeGameCoverImage(file);
+        const reader = new FileReader();
+        reader.onloadend = () => setCoverPreview(reader.result as string);
+        reader.readAsDataURL(out);
+        setCoverFile(out);
+        setCoverRemoved(false);
+        setError(null);
+      } catch {
+        setError(
+          t("gameDetail.imageProcessFailed", "Could not process the image. Try another format (e.g. JPEG or PNG).")
+        );
+      }
+    })();
   };
 
   const handleBackgroundFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file?.type.startsWith("image/")) {
-      const reader = new FileReader();
-      reader.onloadend = () => setBackgroundPreview(reader.result as string);
-      reader.readAsDataURL(file);
-      setBackgroundFile(file);
-      setBackgroundRemoved(false);
-      setError(null);
-    } else {
-      setError(t("gameDetail.invalidImageType", "File must be an image"));
-    }
     e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError(t("gameDetail.invalidImageType", "File must be an image"));
+      return;
+    }
+    void (async () => {
+      try {
+        const out = await normalizeWideImage(file);
+        const reader = new FileReader();
+        reader.onloadend = () => setBackgroundPreview(reader.result as string);
+        reader.readAsDataURL(out);
+        setBackgroundFile(out);
+        setBackgroundRemoved(false);
+        setError(null);
+      } catch {
+        setError(
+          t("gameDetail.imageProcessFailed", "Could not process the image. Try another format (e.g. JPEG or PNG).")
+        );
+      }
+    })();
   };
 
   const handleCoverRemoveSuccess = () => {
@@ -301,6 +391,17 @@ export default function EditCollectionLikeModal({
       if (hasShowTitle && showTitleInPreview !== ((item as any).showTitle !== false)) {
         updates.showTitle = showTitleInPreview;
       }
+      if (normExt(localExternalCover) !== normExt(initialExternalCoverUrl(item))) {
+        updates.externalCoverUrl = localExternalCover.trim() ? localExternalCover.trim() : null;
+      }
+      if (
+        hasBackground &&
+        normExt(localExternalBackground) !== normExt(initialExternalBackgroundUrl(item))
+      ) {
+        updates.externalBackgroundUrl = localExternalBackground.trim()
+          ? localExternalBackground.trim()
+          : null;
+      }
 
       if (Object.keys(updates).length > 0) {
         const url = buildApiUrl(API_BASE, basePath);
@@ -315,11 +416,14 @@ export default function EditCollectionLikeModal({
         }
         const result = await res.json();
         const data = result[config.responseKey];
-        // Use server response for final media state (including IGDB fallback covers)
-        let finalCover = updatedCover ?? data?.cover ?? item.cover ?? null;
-        let finalBackground = hasBackground
-          ? (updatedBackground ?? data?.background ?? item.background ?? null)
-          : undefined;
+        // Use server response for final media state (do not use ?? so null cover clears old external URL)
+        let finalCover = coverAfterSave(updatedCover, data, item.cover);
+        let finalBackground = backgroundAfterSave(
+          updatedBackground,
+          data,
+          item.background,
+          hasBackground
+        );
         if (updatedCover && finalCover) {
           const sep = finalCover.includes("?") ? "&" : "?";
           finalCover = `${finalCover}${sep}t=${Date.now()}`;
@@ -334,6 +438,14 @@ export default function EditCollectionLikeModal({
           summary: data?.summary ?? item.summary ?? "",
           cover: finalCover,
           background: finalBackground,
+          externalCoverUrl:
+            data?.externalCoverUrl !== undefined
+              ? data.externalCoverUrl
+              : (item.externalCoverUrl ?? null),
+          externalBackgroundUrl:
+            data?.externalBackgroundUrl !== undefined
+              ? data.externalBackgroundUrl
+              : (item.externalBackgroundUrl ?? null),
           showTitle: hasShowTitle ? (data?.showTitle ?? (item as any).showTitle) : undefined,
           ...(typeof (data as any)?.gameCount === "number" ? { gameCount: (data as any).gameCount } : {}),
         };
@@ -348,11 +460,13 @@ export default function EditCollectionLikeModal({
         if (res.ok) {
           const result = await res.json();
           const data = result[config.responseKey] ?? result;
-          // Again, trust server response (data.cover may include IGDB fallback)
-          let finalCover = updatedCover ?? data?.cover ?? item.cover ?? null;
-          let finalBackground = hasBackground
-            ? (updatedBackground ?? data?.background ?? item.background ?? null)
-            : undefined;
+          let finalCover = coverAfterSave(updatedCover, data, item.cover);
+          let finalBackground = backgroundAfterSave(
+            updatedBackground,
+            data,
+            item.background,
+            hasBackground
+          );
           if ((updatedCover !== null || coverRemoved) && finalCover) {
             const sep = finalCover.includes("?") ? "&" : "?";
             finalCover = `${finalCover}${sep}t=${Date.now()}`;
@@ -367,6 +481,14 @@ export default function EditCollectionLikeModal({
             summary: data?.summary ?? item.summary ?? "",
             cover: finalCover,
             background: finalBackground,
+            externalCoverUrl:
+              data?.externalCoverUrl !== undefined
+                ? data.externalCoverUrl
+                : (item.externalCoverUrl ?? null),
+            externalBackgroundUrl:
+              data?.externalBackgroundUrl !== undefined
+                ? data.externalBackgroundUrl
+                : (item.externalBackgroundUrl ?? null),
             showTitle: hasShowTitle ? (data?.showTitle ?? (item as any).showTitle) : undefined,
             ...(typeof (data as any)?.gameCount === "number" ? { gameCount: (data as any).gameCount } : {}),
           };
@@ -487,102 +609,151 @@ export default function EditCollectionLikeModal({
                   </label>
                 </div>
               )}
-              <div className="edit-collection-modal-media-row">
-                <div className="edit-collection-modal-media-info">
-                  <div className="edit-collection-modal-label">{t("gameDetail.cover", "Cover")}</div>
-                  <div className="edit-collection-modal-media-description">
-                    {t("gameDetail.coverFormat", "Recommended format: WebP, ratio 2:3 (e.g., 400x600px)")}
-                  </div>
-                </div>
-                <div className="edit-collection-modal-media-image-container">
-                  {(() => {
-                    const currentCoverUrl = coverRemoved ? "" : (coverPreview || coverUrlWithTimestamp);
-                    const hasCover = !!currentCoverUrl?.trim();
-                    // Only show remove button when item actually has a cover (or user selected a cover preview)
-                    const hasRealCover = hasCover && (!!coverPreview || !!(item.cover && item.cover.trim()));
-                    return (
-                      <>
-                        <Cover
-                          key={`cover-${coverRemoved ? "removed" : coverPreview ? "preview" : coverUrlWithTimestamp}`}
-                          title={item.title}
-                          coverUrl={currentCoverUrl}
-                          width={150}
-                          height={200}
-                          showTitle={false}
-                          detail={false}
-                          play={false}
-                          showBorder={true}
-                          aspectRatio="3/4"
-                          onUpload={() => !uploadingCover && !saving && coverInputRef.current?.click()}
-                          uploading={uploadingCover}
-                          showRemoveButton={!!hasRealCover && !coverRemoved}
-                          removeMediaType="cover"
-                          removeResourceId={item.id}
-                          removeResourceType={resourceType}
-                          onCollectionUpdate={onItemUpdate}
-                          onRemoveSuccess={handleCoverRemoveSuccess}
-                          removeDisabled={saving || uploadingCover}
-                        />
-                        <input
-                          ref={coverInputRef}
-                          type="file"
-                          accept="image/*"
-                          style={{ display: "none" }}
-                          onChange={handleCoverFileSelect}
-                          aria-label={t("gameDetail.cover", "Cover")}
-                        />
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-
-              {hasBackground && (
+              <div className="edit-game-modal-media-block">
                 <div className="edit-collection-modal-media-row">
                   <div className="edit-collection-modal-media-info">
-                    <div className="edit-collection-modal-label">{t("gameDetail.background", "Background")}</div>
+                    <div className="edit-collection-modal-label">{t("gameDetail.cover", "Cover")}</div>
                     <div className="edit-collection-modal-media-description">
-                      {t("gameDetail.backgroundFormat", "Recommended format: WebP, ratio 16:9 (e.g., 1920x1080px)")}
+                      {t("gameDetail.coverFormat", "Recommended format: WebP, ratio 2:3 (e.g., 400x600px)")}
                     </div>
                   </div>
                   <div className="edit-collection-modal-media-image-container">
                     {(() => {
-                      const currentBgUrl = backgroundRemoved ? "" : (backgroundPreview || backgroundUrlWithTimestamp);
-                      const hasBg = !!currentBgUrl?.trim();
+                      const currentCoverUrl = coverRemoved ? "" : coverLocalPreviewUrl;
+                      const hasCover = !!currentCoverUrl?.trim();
                       return (
                         <>
                           <Cover
-                            key={`bg-${backgroundRemoved ? "removed" : backgroundPreview ? "preview" : backgroundUrlWithTimestamp}`}
+                            key={`cover-${coverRemoved ? "removed" : coverPreview ? "preview" : coverLocalPreviewUrl}`}
                             title={item.title}
-                            coverUrl={currentBgUrl}
-                            width={300}
-                            height={169}
+                            coverUrl={currentCoverUrl}
+                            width={150}
+                            height={200}
                             showTitle={false}
                             detail={false}
                             play={false}
                             showBorder={true}
-                            aspectRatio="16/9"
-                            onUpload={() => !uploadingBackground && !saving && backgroundInputRef.current?.click()}
-                            uploading={uploadingBackground}
-                            showRemoveButton={!!hasBg && !backgroundRemoved}
-                            removeMediaType="background"
+                            aspectRatio="3/4"
+                            onUpload={() => !uploadingCover && !saving && coverInputRef.current?.click()}
+                            uploading={uploadingCover}
+                            showRemoveButton={!!hasCover && !coverRemoved}
+                            removeMediaType="cover"
                             removeResourceId={item.id}
                             removeResourceType={resourceType}
                             onCollectionUpdate={onItemUpdate}
-                            onRemoveSuccess={handleBackgroundRemoveSuccess}
-                            removeDisabled={saving || uploadingBackground}
+                            onRemoveSuccess={handleCoverRemoveSuccess}
+                            removeDisabled={saving || uploadingCover}
                           />
                           <input
-                            ref={backgroundInputRef}
+                            ref={coverInputRef}
                             type="file"
                             accept="image/*"
                             style={{ display: "none" }}
-                            onChange={handleBackgroundFileSelect}
-                            aria-label={t("gameDetail.background", "Background")}
+                            onChange={handleCoverFileSelect}
+                            aria-label={t("gameDetail.cover", "Cover")}
                           />
                         </>
                       );
                     })()}
+                  </div>
+                </div>
+                <div className="edit-collection-modal-media-row edit-game-modal-external-url-row">
+                  <div className="edit-collection-modal-media-info">
+                    <label htmlFor="edit-collection-like-external-cover-url" className="edit-collection-modal-label">
+                      {t("gameDetail.externalCoverUrl", "External cover URL")}
+                    </label>
+                  </div>
+                  <div className="edit-game-modal-external-url-input-column">
+                    <input
+                      id="edit-collection-like-external-cover-url"
+                      type="url"
+                      className="edit-game-modal-external-url-input"
+                      value={localExternalCover}
+                      onChange={(e) => setLocalExternalCover(e.target.value)}
+                      disabled={saving}
+                      placeholder={t("gameDetail.externalCoverUrlPlaceholder", "https://… (used when no local cover)")}
+                      autoComplete="off"
+                    />
+                    <p className="edit-game-modal-external-url-hint">
+                      {t("gameDetail.externalUrlHint", "A local uploaded file takes priority over this URL.")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {hasBackground && (
+                <div className="edit-game-modal-media-block">
+                  <div className="edit-collection-modal-media-row edit-collection-modal-media-row--background">
+                    <div className="edit-collection-modal-media-info">
+                      <div className="edit-collection-modal-label">{t("gameDetail.background", "Background")}</div>
+                      <div className="edit-collection-modal-media-description">
+                        {t("gameDetail.backgroundFormat", "Recommended format: WebP, ratio 16:9 (e.g., 1920x1080px)")}
+                      </div>
+                    </div>
+                    <div className="edit-collection-modal-media-image-container">
+                      {(() => {
+                        const currentBgUrl = backgroundRemoved ? "" : (backgroundPreview || backgroundUrlWithTimestamp);
+                        const hasBg = !!currentBgUrl?.trim();
+                        return (
+                          <>
+                            <Cover
+                              key={`bg-${backgroundRemoved ? "removed" : backgroundPreview ? "preview" : backgroundUrlWithTimestamp}`}
+                              title={item.title}
+                              coverUrl={currentBgUrl}
+                              width={300}
+                              height={169}
+                              showTitle={false}
+                              detail={false}
+                              play={false}
+                              showBorder={true}
+                              aspectRatio="16/9"
+                              onUpload={() => !uploadingBackground && !saving && backgroundInputRef.current?.click()}
+                              uploading={uploadingBackground}
+                              showRemoveButton={!!hasBg && !backgroundRemoved}
+                              removeMediaType="background"
+                              removeResourceId={item.id}
+                              removeResourceType={resourceType}
+                              onCollectionUpdate={onItemUpdate}
+                              onRemoveSuccess={handleBackgroundRemoveSuccess}
+                              removeDisabled={saving || uploadingBackground}
+                            />
+                            <input
+                              ref={backgroundInputRef}
+                              type="file"
+                              accept="image/*"
+                              style={{ display: "none" }}
+                              onChange={handleBackgroundFileSelect}
+                              aria-label={t("gameDetail.background", "Background")}
+                            />
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                  <div className="edit-collection-modal-media-row edit-game-modal-external-url-row">
+                    <div className="edit-collection-modal-media-info">
+                      <label htmlFor="edit-collection-like-external-background-url" className="edit-collection-modal-label">
+                        {t("gameDetail.externalBackgroundUrl", "External background URL")}
+                      </label>
+                    </div>
+                    <div className="edit-game-modal-external-url-input-column">
+                      <input
+                        id="edit-collection-like-external-background-url"
+                        type="url"
+                        className="edit-game-modal-external-url-input"
+                        value={localExternalBackground}
+                        onChange={(e) => setLocalExternalBackground(e.target.value)}
+                        disabled={saving}
+                        placeholder={t(
+                          "gameDetail.externalBackgroundUrlPlaceholder",
+                          "https://… (used when no local background)"
+                        )}
+                        autoComplete="off"
+                      />
+                      <p className="edit-game-modal-external-url-hint">
+                        {t("gameDetail.externalUrlHint", "A local uploaded file takes priority over this URL.")}
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}

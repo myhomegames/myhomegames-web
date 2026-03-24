@@ -78,6 +78,12 @@
   min-height: unset;
 }
 
+/* Background 16:9 (~169px): senza questo la riga resta alta 203px (come la cover) e l’URL sembra lontano */
+.edit-game-modal-media-row.edit-game-modal-media-row--background {
+  min-height: unset;
+  align-items: flex-start;
+}
+
 .edit-game-modal-media-empty {
   color: rgba(255, 255, 255, 0.5);
   font-size: 0.875rem;
@@ -292,4 +298,57 @@
 .edit-game-modal-media-add-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.edit-game-modal-media-image-with-fields {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+/** Raggruppa immagine + riga URL esterno con gap compatto */
+.edit-game-modal-media-block {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+/** Seconda riga: label nella colonna 200px come Cover/Background */
+.edit-game-modal-external-url-row {
+  min-height: unset;
+  align-items: flex-start;
+}
+
+.edit-game-modal-external-url-input-column {
+  flex: 1;
+  min-width: 0;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.edit-game-modal-external-url-field {
+  width: 100%;
+  max-width: 420px;
+}
+
+.edit-game-modal-external-url-input {
+  width: 100%;
+  margin-top: 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.35);
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.8125rem;
+  box-sizing: border-box;
+}
+
+.edit-game-modal-external-url-hint {
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.35;
 }

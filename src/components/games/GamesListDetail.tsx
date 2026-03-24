@@ -12,6 +12,7 @@ import { useEditGame } from "../common/actions";
 import VirtualizedGamesListDetail from "./VirtualizedGamesListDetail";
 import type { GameItem, CollectionItem } from "../../types";
 import { formatGameDate } from "../../utils/date";
+import { gameHasExecutableForPlatform, getExecutablesForPlatform } from "../../utils/gameExecutables";
 import "./GamesListDetail.css";
 
 const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are more than this many items
@@ -27,6 +28,9 @@ type GamesListDetailProps = {
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
   allCollections?: CollectionItem[];
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
+  platformIdForPlay?: string;
+  saveScrollBeforeEdit?: () => void;
+  clearScrollAfterEditRef?: () => void;
 };
 
 const FIXED_COVER_SIZE = 100; // Fixed size corresponding to minimum slider position
@@ -43,6 +47,7 @@ type GameDetailItemProps = {
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
   index: number;
   allCollections?: CollectionItem[];
+  platformIdForPlay?: string;
 };
 
 export function GameDetailItem({
@@ -57,9 +62,16 @@ export function GameDetailItem({
   itemRefs,
   index,
   allCollections = [],
+  platformIdForPlay,
 }: GameDetailItemProps) {
   const { t, i18n } = useTranslation();
   const isIgdbOnly = (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly;
+  const gameForCover = useMemo(() => {
+    if (!platformIdForPlay) return game;
+    const f = getExecutablesForPlatform(game, platformIdForPlay);
+    if (!f) return { ...game, executables: [], executableFileNames: [] };
+    return { ...game, executables: f.executables, executableFileNames: f.executableFileNames };
+  }, [game, platformIdForPlay]);
   const handleRowClick = () => {
     if (isIgdbOnly && onIgdbGameClick) {
       onIgdbGameClick(Number(game.id));
@@ -123,10 +135,19 @@ export function GameDetailItem({
         coverUrl={coverUrl}
         width={FIXED_COVER_SIZE}
         height={coverHeight}
-        onPlay={!isIgdbOnly && onPlay ? (executableName?: string) => (executableName !== undefined ? (onPlay as (g: typeof game, ex?: string) => void)(game, executableName) : onPlay(game)) : undefined}
+        onPlay={!isIgdbOnly && onPlay ? (executableName?: string) => {
+          if (executableName !== undefined) {
+            (onPlay as (g: typeof game, ex?: string) => void)(game, executableName);
+          } else {
+            const ex = platformIdForPlay && gameForCover.executables?.length
+              ? gameForCover.executables[0]
+              : undefined;
+            (onPlay as (g: typeof game, ex?: string) => void)(gameForCover, ex);
+          }
+        } : undefined}
         showTitle={false}
         detail={false}
-        play={!!(game.executables && game.executables.length > 0)}
+        play={platformIdForPlay ? gameHasExecutableForPlatform(game, platformIdForPlay) : !!(game.executables && game.executables.length > 0)}
         showBorder={false}
         overlayContent={isIgdbOnly ? <span className="game-detail-similar-cover-badge">{t("addGame.new", "New")}</span> : undefined}
       />
@@ -178,10 +199,10 @@ export function GameDetailItem({
           allCollections={allCollections}
         />
         )}
-        {!isIgdbOnly && game.executables && game.executables.length > 1 && onPlay && (
+        {!isIgdbOnly && gameForCover.executables && gameForCover.executables.length > 1 && onPlay && (
           <AdditionalExecutablesDropdown
             gameId={game.id}
-            gameExecutables={game.executables}
+            gameExecutables={gameForCover.executables}
             onPlayExecutable={(executableName: string) => {
               if (onPlay) {
                 (onPlay as any)(game, executableName);
@@ -193,7 +214,9 @@ export function GameDetailItem({
         <DropdownMenu
           gameId={game.id}
           gameTitle={game.title}
-          gameExecutables={game.executables}
+          gameExecutables={gameForCover.executables}
+          fullGame={game}
+          platformIdForPlay={platformIdForPlay}
           onAddToCollection={() => {}}
           onGameDelete={onGameDelete ? (gameId: string) => {
             if (game.id === gameId) {
@@ -224,10 +247,17 @@ export default function GamesListDetail({
   itemRefs,
   allCollections = [],
   scrollContainerRef,
+  platformIdForPlay,
+  saveScrollBeforeEdit,
+  clearScrollAfterEditRef,
 }: GamesListDetailProps) {
   const { t } = useTranslation();
   const editGame = useEditGame();
-  
+  const handleEditClick = (game: GameItem) => {
+    saveScrollBeforeEdit?.();
+    editGame.openEditModal(game);
+  };
+
   if (games.length === 0) {
     return (
       <div className="centered-content h-full min-h-[400px]">
@@ -264,11 +294,12 @@ export default function GamesListDetail({
             onGameClick={onGameClick}
             onIgdbGameClick={onIgdbGameClick}
             onPlay={onPlay}
-            onEditClick={editGame.openEditModal}
+            onEditClick={handleEditClick}
             onGameDelete={onGameDelete}
             onGameUpdate={onGameUpdate}
             buildCoverUrl={buildCoverUrl}
             allCollections={allCollections}
+            platformIdForPlay={platformIdForPlay}
           />
         ) : (
           games.map((game, index) => (
@@ -278,13 +309,14 @@ export default function GamesListDetail({
               onGameClick={onGameClick}
               onIgdbGameClick={onIgdbGameClick}
               onPlay={onPlay}
-              onEditClick={editGame.openEditModal}
+              onEditClick={handleEditClick}
               onGameDelete={onGameDelete}
               onGameUpdate={onGameUpdate}
               buildCoverUrl={buildCoverUrl}
               itemRefs={itemRefs}
               index={index}
               allCollections={allCollections}
+              platformIdForPlay={platformIdForPlay}
             />
           ))
         )}
@@ -292,7 +324,10 @@ export default function GamesListDetail({
       {editGame.selectedGame && (
         <EditGameModal
           isOpen={editGame.isEditModalOpen}
-          onClose={editGame.closeEditModal}
+          onClose={() => {
+            clearScrollAfterEditRef?.();
+            editGame.closeEditModal();
+          }}
           game={editGame.selectedGame}
           onGameUpdate={handleGameUpdate}
         />

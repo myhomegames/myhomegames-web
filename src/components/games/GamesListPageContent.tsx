@@ -98,6 +98,8 @@ export default function GamesListPageContent({
     itemRefs,
     handleGameUpdate,
     handleGameDelete,
+    saveScrollBeforeEdit,
+    clearScrollAfterEditRef,
     availableGenres,
     availableCollections,
     availableSeries,
@@ -105,6 +107,10 @@ export default function GamesListPageContent({
     availableDevelopers,
     availablePublishers,
   } = hook;
+
+  /** Restrict Play/dropdown to platform executables only when platform filter is selected; when filter is cleared, show all */
+  const platformIdForPlay =
+    filterField === "platforms" && selectedPlatforms ? selectedPlatforms : undefined;
 
   const handleFilterChange = useCallback(
     (field: import("../filters/types").FilterField) => {
@@ -271,6 +277,7 @@ export default function GamesListPageContent({
                     viewMode={viewMode}
                     allCollections={allCollections}
                     scrollContainerRef={scrollContainerRef}
+                    platformIdForPlay={platformIdForPlay}
                   />
                 )}
                 {viewMode === "detail" && (
@@ -281,10 +288,13 @@ export default function GamesListPageContent({
                     onPlay={onPlay}
                     onGameUpdate={handleGameUpdate}
                     onGameDelete={handleGameDelete}
+                    saveScrollBeforeEdit={saveScrollBeforeEdit}
+                    clearScrollAfterEditRef={clearScrollAfterEditRef}
                     buildCoverUrl={coverUrlBuilder}
                     itemRefs={itemRefs}
                     allCollections={allCollections}
                     scrollContainerRef={scrollContainerRef}
+                    platformIdForPlay={platformIdForPlay}
                   />
                 )}
                 {viewMode === "table" && (
@@ -295,10 +305,13 @@ export default function GamesListPageContent({
                     onPlay={onPlay}
                     onGameUpdate={handleGameUpdate}
                     onGameDelete={handleGameDelete}
+                    saveScrollBeforeEdit={saveScrollBeforeEdit}
+                    clearScrollAfterEditRef={clearScrollAfterEditRef}
                     itemRefs={itemRefs}
                     scrollContainerRef={tableScrollRef}
                     allCollections={allCollections}
                     columnVisibility={columnVisibility}
+                    platformIdForPlay={platformIdForPlay}
                   />
                 )}
               </>

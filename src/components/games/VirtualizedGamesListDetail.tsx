@@ -35,6 +35,7 @@ type VirtualizedGamesListDetailProps = {
   onGameUpdate?: (updatedGame: GameItem) => void;
   buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean) => string;
   allCollections?: CollectionItem[];
+  platformIdForPlay?: string;
 };
 
 const ITEM_HEIGHT = 144; // Height of each detail item (120px content + 24px margin-bottom)
@@ -52,12 +53,16 @@ export default function VirtualizedGamesListDetail({
   onGameUpdate,
   buildCoverUrl,
   allCollections = [],
+  platformIdForPlay,
 }: VirtualizedGamesListDetailProps) {
   const location = useLocation();
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const listRef = useRef<any>(null);
   const isRestoringRef = useRef(false);
+  const lastSavedScrollRef = useRef<number | null>(null);
+  const storageKeyRef = useRef<string>("");
   const storageKey = `${location.pathname}:detail`;
+  storageKeyRef.current = storageKey;
 
   // Expose listRef to parent via containerRef if it's a ref object
   useEffect(() => {
@@ -176,7 +181,7 @@ export default function VirtualizedGamesListDetail({
       clearTimeout(timer);
       isRestoringRef.current = false;
     };
-  }, [location.pathname, storageKey, dimensions.height, games.length]);
+  }, [location.pathname, storageKey, dimensions.height, games.length, containerRef]);
 
   // Save scroll position when scrolling
   useEffect(() => {
@@ -218,30 +223,20 @@ export default function VirtualizedGamesListDetail({
 
       const handleScroll = () => {
         if (isRestoringRef.current) return;
-
-        // Debounce scroll saving
-        if (scrollTimeout) {
-          clearTimeout(scrollTimeout);
-        }
-
-        scrollTimeout = setTimeout(() => {
-          // Save scroll position directly
-          const scrollTop = listElement!.scrollTop;
-          setScrollPosition(storageKey, scrollTop);
-        }, 150);
+        const scrollTop = listElement!.scrollTop;
+        lastSavedScrollRef.current = scrollTop;
+        if (scrollTimeout) clearTimeout(scrollTimeout);
+        scrollTimeout = window.setTimeout(() => setScrollPosition(storageKeyRef.current, scrollTop), 150);
       };
 
       listElement.addEventListener('scroll', handleScroll, { passive: true });
       
       cleanupFn = () => {
-        if (scrollTimeout) {
-          clearTimeout(scrollTimeout);
-        }
+        if (scrollTimeout) clearTimeout(scrollTimeout);
         listElement.removeEventListener('scroll', handleScroll);
-        // Save position when component unmounts
-        if (!isRestoringRef.current && listElement) {
-          const scrollTop = listElement.scrollTop;
-          setScrollPosition(storageKey, scrollTop);
+        const toSave = lastSavedScrollRef.current;
+        if (!isRestoringRef.current && toSave != null && toSave >= 0) {
+          setScrollPosition(storageKeyRef.current, toSave);
         }
       };
     };
@@ -273,6 +268,7 @@ export default function VirtualizedGamesListDetail({
           itemRefs={itemRefs}
           index={index}
           allCollections={allCollections}
+          platformIdForPlay={platformIdForPlay}
         />
       </div>
     );

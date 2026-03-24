@@ -28,6 +28,7 @@ function setScrollPosition(key: string, scrollTop: number, scrollLeft: number): 
 type VirtualizedGamesListProps = {
   games: GameItem[];
   coverSize: number;
+  coverCacheBustTimestamp?: number;
   containerRef: React.RefObject<HTMLDivElement | null>;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
   onGameClick: (game: GameItem) => void;
@@ -35,7 +36,7 @@ type VirtualizedGamesListProps = {
   onEditClick: (game: GameItem) => void;
   onGameDelete?: (deletedGame: GameItem) => void;
   onGameUpdate?: (updatedGame: GameItem) => void;
-  buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean) => string;
+  buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean, customTimestamp?: number) => string;
   allCollections?: import("../../types").CollectionItem[];
   collectionId?: string;
   onRemoveFromCollection?: (gameId: string) => void;
@@ -43,6 +44,7 @@ type VirtualizedGamesListProps = {
   publisherId?: string;
   onRemoveFromDeveloper?: (gameId: string) => void;
   onRemoveFromPublisher?: (gameId: string) => void;
+  platformIdForPlay?: string;
 };
 
 const GAP = 40; // Gap between items in grid
@@ -51,6 +53,7 @@ const OVERSCAN_COUNT = 2; // Number of items to render outside visible area
 export default function VirtualizedGamesList({
   games,
   coverSize,
+  coverCacheBustTimestamp,
   containerRef,
   itemRefs,
   onGameClick,
@@ -66,6 +69,7 @@ export default function VirtualizedGamesList({
   publisherId,
   onRemoveFromDeveloper,
   onRemoveFromPublisher,
+  platformIdForPlay,
 }: VirtualizedGamesListProps) {
   const location = useLocation();
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -336,6 +340,7 @@ export default function VirtualizedGamesList({
           onGameUpdate={onGameUpdate}
           buildCoverUrl={buildCoverUrl}
           coverSize={coverSize}
+          coverCacheBustTimestamp={coverCacheBustTimestamp}
           itemRefs={itemRefs}
           index={index}
           onDragStart={() => {}}
@@ -351,6 +356,7 @@ export default function VirtualizedGamesList({
           publisherId={publisherId}
           onRemoveFromDeveloper={onRemoveFromDeveloper}
           onRemoveFromPublisher={onRemoveFromPublisher}
+          platformIdForPlay={platformIdForPlay}
         />
       </div>
     );

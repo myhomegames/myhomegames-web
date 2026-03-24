@@ -13,19 +13,24 @@ type EditGameMediaTabProps = {
   onShowTitleChange: (value: boolean) => void;
   coverRemoved: boolean;
   coverPreview: string | null;
-  coverUrlWithTimestamp: string;
+  /** Local / upload preview only — external URLs are edited below, not shown in Cover */
+  coverLocalPreviewUrl: string;
   uploadingCover: boolean;
   coverInputRef: RefObject<HTMLInputElement | null>;
   handleCoverFileSelect: (event: ChangeEvent<HTMLInputElement>) => void;
   onGameUpdate: (updatedGame: GameItem) => void;
   handleCoverRemoveSuccess: () => void;
+  externalCoverUrl: string;
+  onExternalCoverChange: (value: string) => void;
   backgroundRemoved: boolean;
   backgroundPreview: string | null;
-  backgroundUrlWithTimestamp: string;
+  backgroundLocalPreviewUrl: string;
   uploadingBackground: boolean;
   backgroundInputRef: RefObject<HTMLInputElement | null>;
   handleBackgroundFileSelect: (event: ChangeEvent<HTMLInputElement>) => void;
   handleBackgroundRemoveSuccess: () => void;
+  externalBackgroundUrl: string;
+  onExternalBackgroundChange: (value: string) => void;
   screenshotInputRef?: RefObject<HTMLInputElement | null>;
   pendingScreenshotFiles: File[];
   onAddPendingScreenshotFile: (file: File) => void;
@@ -45,19 +50,23 @@ export default function EditGameMediaTab({
   onShowTitleChange,
   coverRemoved,
   coverPreview,
-  coverUrlWithTimestamp,
+  coverLocalPreviewUrl,
   uploadingCover,
   coverInputRef,
   handleCoverFileSelect,
   onGameUpdate,
   handleCoverRemoveSuccess,
+  externalCoverUrl,
+  onExternalCoverChange,
   backgroundRemoved,
   backgroundPreview,
-  backgroundUrlWithTimestamp,
+  backgroundLocalPreviewUrl,
   uploadingBackground,
   backgroundInputRef,
   handleBackgroundFileSelect,
   handleBackgroundRemoveSuccess,
+  externalBackgroundUrl,
+  onExternalBackgroundChange,
   screenshotInputRef: screenshotInputRefProp,
   pendingScreenshotFiles,
   onAddPendingScreenshotFile,
@@ -93,107 +102,155 @@ export default function EditGameMediaTab({
           <span>{t("gameDetail.showTitle", "Show title on cover")}</span>
         </label>
       </div>
-      {/* Cover Section - First Row */}
-      <div className="edit-game-modal-media-row">
-        <div className="edit-game-modal-media-info">
-          <div className="edit-game-modal-label">{t("gameDetail.cover", "Cover")}</div>
-          <div className="edit-game-modal-media-description">
-            {t("gameDetail.coverFormat", "Recommended format: WebP, ratio 2:3 (e.g., 400x600px)")}
+      {/* Cover + external URL (label allineata alla colonna Cover/Background) */}
+      <div className="edit-game-modal-media-block">
+        <div className="edit-game-modal-media-row">
+          <div className="edit-game-modal-media-info">
+            <div className="edit-game-modal-label">{t("gameDetail.cover", "Cover")}</div>
+            <div className="edit-game-modal-media-description">
+              {t("gameDetail.coverFormat", "Recommended format: WebP, ratio 2:3 (e.g., 400x600px)")}
+            </div>
+          </div>
+          <div className="edit-game-modal-media-image-container">
+            {(() => {
+              const currentCoverUrl = coverRemoved ? "" : coverLocalPreviewUrl;
+              const hasCover = currentCoverUrl && currentCoverUrl.trim() !== "";
+              const isCoverFromIgdb = false;
+              return (
+                <>
+                  <Cover
+                    key={`cover-${coverRemoved ? "removed" : coverPreview ? "preview" : coverLocalPreviewUrl}`}
+                    title={game.title}
+                    coverUrl={currentCoverUrl}
+                    width={150}
+                    height={200}
+                    showTitle={false}
+                    detail={false}
+                    play={false}
+                    showBorder={true}
+                    aspectRatio="3/4"
+                    onUpload={() => !uploadingCover && !saving && coverInputRef.current?.click()}
+                    uploading={uploadingCover}
+                    showRemoveButton={!!hasCover && !coverRemoved && !isCoverFromIgdb}
+                    removeMediaType="cover"
+                    removeResourceId={game.id}
+                    removeResourceType="games"
+                    onGameUpdate={onGameUpdate}
+                    onRemoveSuccess={handleCoverRemoveSuccess}
+                    removeDisabled={saving || uploadingCover}
+                  />
+                  <input
+                    ref={coverInputRef}
+                    id="edit-game-cover-input"
+                    name="cover"
+                    type="file"
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    onChange={handleCoverFileSelect}
+                    aria-label={t("gameDetail.cover", "Cover")}
+                  />
+                </>
+              );
+            })()}
           </div>
         </div>
-        <div className="edit-game-modal-media-image-container">
-          {(() => {
-            const currentCoverUrl = coverRemoved ? "" : (coverPreview || coverUrlWithTimestamp);
-            const hasCover = currentCoverUrl && currentCoverUrl.trim() !== "";
-            const isCoverFromIgdb = false;
-            return (
-              <>
-                <Cover
-                  key={`cover-${coverRemoved ? "removed" : coverPreview ? "preview" : coverUrlWithTimestamp}`}
-                  title={game.title}
-                  coverUrl={currentCoverUrl}
-                  width={150}
-                  height={200}
-                  showTitle={false}
-                  detail={false}
-                  play={false}
-                  showBorder={true}
-                  aspectRatio="3/4"
-                  onUpload={() => !uploadingCover && !saving && coverInputRef.current?.click()}
-                  uploading={uploadingCover}
-                  showRemoveButton={!!hasCover && !coverRemoved && !isCoverFromIgdb}
-                  removeMediaType="cover"
-                  removeResourceId={game.id}
-                  removeResourceType="games"
-                  onGameUpdate={onGameUpdate}
-                  onRemoveSuccess={handleCoverRemoveSuccess}
-                  removeDisabled={saving || uploadingCover}
-                />
-                <input
-                  ref={coverInputRef}
-                  id="edit-game-cover-input"
-                  name="cover"
-                  type="file"
-                  accept="image/*"
-                  style={{ display: "none" }}
-                  onChange={handleCoverFileSelect}
-                  aria-label={t("gameDetail.cover", "Cover")}
-                />
-              </>
-            );
-          })()}
+        <div className="edit-game-modal-media-row edit-game-modal-external-url-row">
+          <div className="edit-game-modal-media-info">
+            <label htmlFor="edit-game-external-cover-url" className="edit-game-modal-label">
+              {t("gameDetail.externalCoverUrl", "External cover URL")}
+            </label>
+          </div>
+          <div className="edit-game-modal-external-url-input-column">
+            <input
+              id="edit-game-external-cover-url"
+              type="url"
+              className="edit-game-modal-external-url-input"
+              value={externalCoverUrl}
+              onChange={(e) => onExternalCoverChange(e.target.value)}
+              disabled={saving}
+              placeholder={t("gameDetail.externalCoverUrlPlaceholder", "https://… (used when no local cover)")}
+              autoComplete="off"
+            />
+            <p className="edit-game-modal-external-url-hint">
+              {t("gameDetail.externalUrlHint", "A local uploaded file takes priority over this URL.")}
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Background Section - Second Row */}
-      <div className="edit-game-modal-media-row">
-        <div className="edit-game-modal-media-info">
-          <div className="edit-game-modal-label">{t("gameDetail.background", "Background")}</div>
-          <div className="edit-game-modal-media-description">
-            {t("gameDetail.backgroundFormat", "Recommended format: WebP, ratio 16:9 (e.g., 1920x1080px)")}
+      {/* Background + external URL */}
+      <div className="edit-game-modal-media-block">
+        <div className="edit-game-modal-media-row edit-game-modal-media-row--background">
+          <div className="edit-game-modal-media-info">
+            <div className="edit-game-modal-label">{t("gameDetail.background", "Background")}</div>
+            <div className="edit-game-modal-media-description">
+              {t("gameDetail.backgroundFormat", "Recommended format: WebP, ratio 16:9 (e.g., 1920x1080px)")}
+            </div>
+          </div>
+          <div className="edit-game-modal-media-image-container">
+            {(() => {
+              const currentBackgroundUrl = backgroundRemoved ? "" : backgroundLocalPreviewUrl;
+              const hasBackground = currentBackgroundUrl && currentBackgroundUrl.trim() !== "";
+              const isBackgroundFromIgdb = false;
+              return (
+                <>
+                  <Cover
+                    key={`background-${backgroundRemoved ? "removed" : backgroundPreview ? "preview" : backgroundLocalPreviewUrl}`}
+                    title={game.title}
+                    coverUrl={currentBackgroundUrl}
+                    width={300}
+                    height={169}
+                    showTitle={false}
+                    detail={false}
+                    play={false}
+                    showBorder={true}
+                    aspectRatio="16/9"
+                    onUpload={() => !uploadingBackground && !saving && backgroundInputRef.current?.click()}
+                    uploading={uploadingBackground}
+                    showRemoveButton={!!hasBackground && !backgroundRemoved && !isBackgroundFromIgdb}
+                    removeMediaType="background"
+                    removeResourceId={game.id}
+                    removeResourceType="games"
+                    onGameUpdate={onGameUpdate}
+                    onRemoveSuccess={handleBackgroundRemoveSuccess}
+                    removeDisabled={saving || uploadingBackground}
+                  />
+                  <input
+                    ref={backgroundInputRef}
+                    id="edit-game-background-input"
+                    name="background"
+                    type="file"
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    onChange={handleBackgroundFileSelect}
+                    aria-label={t("gameDetail.background", "Background")}
+                  />
+                </>
+              );
+            })()}
           </div>
         </div>
-        <div className="edit-game-modal-media-image-container">
-          {(() => {
-            const currentBackgroundUrl = backgroundRemoved ? "" : (backgroundPreview || backgroundUrlWithTimestamp);
-            const hasBackground = currentBackgroundUrl && currentBackgroundUrl.trim() !== "";
-            const isBackgroundFromIgdb = false;
-            return (
-              <>
-                <Cover
-                  key={`background-${backgroundRemoved ? "removed" : backgroundPreview ? "preview" : backgroundUrlWithTimestamp}`}
-                  title={game.title}
-                  coverUrl={currentBackgroundUrl}
-                  width={300}
-                  height={169}
-                  showTitle={false}
-                  detail={false}
-                  play={false}
-                  showBorder={true}
-                  aspectRatio="16/9"
-                  onUpload={() => !uploadingBackground && !saving && backgroundInputRef.current?.click()}
-                  uploading={uploadingBackground}
-                  showRemoveButton={!!hasBackground && !backgroundRemoved && !isBackgroundFromIgdb}
-                  removeMediaType="background"
-                  removeResourceId={game.id}
-                  removeResourceType="games"
-                  onGameUpdate={onGameUpdate}
-                  onRemoveSuccess={handleBackgroundRemoveSuccess}
-                  removeDisabled={saving || uploadingBackground}
-                />
-                <input
-                  ref={backgroundInputRef}
-                  id="edit-game-background-input"
-                  name="background"
-                  type="file"
-                  accept="image/*"
-                  style={{ display: "none" }}
-                  onChange={handleBackgroundFileSelect}
-                  aria-label={t("gameDetail.background", "Background")}
-                />
-              </>
-            );
-          })()}
+        <div className="edit-game-modal-media-row edit-game-modal-external-url-row">
+          <div className="edit-game-modal-media-info">
+            <label htmlFor="edit-game-external-background-url" className="edit-game-modal-label">
+              {t("gameDetail.externalBackgroundUrl", "External background URL")}
+            </label>
+          </div>
+          <div className="edit-game-modal-external-url-input-column">
+            <input
+              id="edit-game-external-background-url"
+              type="url"
+              className="edit-game-modal-external-url-input"
+              value={externalBackgroundUrl}
+              onChange={(e) => onExternalBackgroundChange(e.target.value)}
+              disabled={saving}
+              placeholder={t("gameDetail.externalBackgroundUrlPlaceholder", "https://… (used when no local background)")}
+              autoComplete="off"
+            />
+            <p className="edit-game-modal-external-url-hint">
+              {t("gameDetail.externalUrlHint", "A local uploaded file takes priority over this URL.")}
+            </p>
+          </div>
         </div>
       </div>
 

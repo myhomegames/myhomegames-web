@@ -1,30 +1,29 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { API_BASE, getApiToken } from "../../config";
 import { useLoading } from "../../contexts/LoadingContext";
+import { useTagLists } from "../../contexts/TagListsContext";
+import TagEditor from "../common/TagEditor";
 import type { GameItem } from "../../types";
 import { buildApiUrl } from "../../utils/api";
 import "./ManageInstallationModal.css";
 
-// Import path for basename
-const path = {
-  basename: (filePath: string) => {
-    const parts = filePath.split(/[/\\]/);
-    return parts[parts.length - 1];
-  }
-};
-
 type ExecutableState = {
   label: string;
+  platform: string;
   file: File | null;
-  existingPath: string | null; // Path to existing file (if not uploading new file)
+  existingPath: string | null;
+  /** Full filename on server (e.g. Play-1.sh) when row loaded from game.executables */
+  existingFileName?: string | null;
+  isExisting?: boolean;
 };
 
 type ManageInstallationModalProps = {
   isOpen: boolean;
   onClose: () => void;
   game: GameItem;
+  onNeedRefresh?: () => void;
   onGameUpdate: (updatedGame: GameItem) => void;
 };
 
@@ -32,19 +31,70 @@ export default function ManageInstallationModal({
   isOpen,
   onClose,
   game,
+  onNeedRefresh,
   onGameUpdate,
 }: ManageInstallationModalProps) {
   const { t } = useTranslation();
   const { setLoading } = useLoading();
-  
-  // Initialize executables from game.executables
+  const { tagLabels } = useTagLists();
+  const availablePlatforms = useMemo(
+    () => Array.from(tagLabels.platforms.values()),
+    [tagLabels.platforms]
+  );
+  /** Map platform title -> id for building label-platformId filename */
+  const platformTitleToId = useMemo(() => {
+    const m = new Map<string, string>();
+    tagLabels.platforms.forEach((title, id) => m.set(title, String(id)));
+    return m;
+  }, [tagLabels.platforms]);
+  /** Map platform id -> title to show platform from filename (id after hyphen) */
+  const platformIdToTitle = useMemo(() => {
+    const m = new Map<string, string>();
+    tagLabels.platforms.forEach((title, id) => m.set(String(id), title));
+    return m;
+  }, [tagLabels.platforms]);
+
+  const sanitizeLabel = (s: string) => (s || "").replace(/[^a-zA-Z0-9_-]/g, "_");
+
+  const getDisplayFileName = (executable: ExecutableState, index: number): string => {
+    const effectiveLabel = (executable.label && executable.label.trim()) || (executable.platform && executable.platform.trim()) || "script";
+    const sanitized = sanitizeLabel(effectiveLabel);
+    const platformId = executable.platform ? platformTitleToId.get(executable.platform) ?? "" : "";
+    const base = platformId ? `${sanitized}-${platformId}` : sanitized;
+    const ext = executable.file
+      ? (executable.file.name.toLowerCase().endsWith(".bat") ? ".bat" : ".sh")
+      : executable.existingFileName?.toLowerCase().endsWith(".bat")
+        ? ".bat"
+        : ".sh";
+    const prefix = String(index + 1).padStart(2, "0") + "-";
+    return base ? prefix + base + ext : "";
+  };
+
+  // Initialize executables from game.executables; platform and filename from executableFileNames (NN-label-platformId.ext)
   const getInitialExecutables = (): ExecutableState[] => {
     if (game.executables && game.executables.length > 0) {
-      return game.executables.map(exec => ({
-        label: exec || "script",
-        file: null,
-        existingPath: null, // executables is just an array of names, not paths
-      }));
+      const fileNames = game.executableFileNames ?? [];
+      return game.executables.map((exec, i) => {
+        let platform = "";
+        const fullName = fileNames[i]; // e.g. "01-Play-1.sh"
+        let basenameNoExt = fullName ? fullName.replace(/\.(sh|bat)$/i, "") : "";
+        // Strip leading numeratore (NN-) so we get "label-platformId"
+        if (basenameNoExt) {
+          basenameNoExt = basenameNoExt.replace(/^\d+-/, "");
+        }
+        if (basenameNoExt && basenameNoExt.includes("-")) {
+          const platformId = basenameNoExt.slice(basenameNoExt.lastIndexOf("-") + 1);
+          platform = platformIdToTitle.get(platformId) ?? "";
+        }
+        return {
+          label: exec || "script",
+          platform,
+          file: null,
+          existingPath: null,
+          existingFileName: fullName ?? null,
+          isExisting: true,
+        };
+      });
     }
     return [];
   };
@@ -55,15 +105,38 @@ export default function ManageInstallationModal({
   const [error, setError] = useState<string | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const shouldScrollToBottomRef = useRef(false);
 
   useEffect(() => {
     if (isOpen) {
       const initial = getInitialExecutables();
-      setExecutables(initial);
       setInitialExecutables(initial);
+      setExecutables(
+        initial.length > 0 ? initial : [{ label: "", platform: "", file: null, existingPath: null, existingFileName: null, isExisting: false }]
+      );
       setError(null);
     }
   }, [isOpen, game]);
+
+  useEffect(() => {
+    if (isOpen && game.executables?.length && !(game.executableFileNames && game.executableFileNames.length)) {
+      onNeedRefresh?.();
+    }
+  }, [isOpen, game?.id]);
+
+  useEffect(() => {
+    if (shouldScrollToBottomRef.current && contentRef.current) {
+      shouldScrollToBottomRef.current = false;
+      contentRef.current.scrollTo({ top: contentRef.current.scrollHeight, behavior: "smooth" });
+    }
+  }, [executables.length]);
+
+  useEffect(() => {
+    if (error && contentRef.current) {
+      contentRef.current.scrollTo({ top: contentRef.current.scrollHeight, behavior: "smooth" });
+    }
+  }, [error]);
 
   // Check if there are any changes compared to initial state
   const hasChanges = (): boolean => {
@@ -79,6 +152,11 @@ export default function ManageInstallationModal({
 
       // Check if label changed
       if (current.label.trim() !== (initial?.label.trim() || "")) {
+        return true;
+      }
+
+      // Check if platform changed
+      if ((current.platform || "").trim() !== (initial?.platform || "").trim()) {
         return true;
       }
 
@@ -99,7 +177,8 @@ export default function ManageInstallationModal({
   };
 
   const handleAddExecutable = () => {
-    setExecutables([...executables, { label: "", file: null, existingPath: null }]);
+    shouldScrollToBottomRef.current = true;
+    setExecutables([...executables, { label: "", platform: "", file: null, existingPath: null, existingFileName: null, isExisting: false }]);
   };
 
   const handleRemoveExecutable = (index: number) => {
@@ -155,7 +234,15 @@ export default function ManageInstallationModal({
 
   const handleUpdateLabel = (index: number, label: string) => {
     const updated = [...executables];
-    updated[index] = { ...updated[index], label };
+    updated[index] = { ...updated[index], label: label.trim() };
+    setExecutables(updated);
+  };
+
+  /** Single platform per executable: onTagsChange receives new list; we keep only one (last selected). */
+  const handlePlatformChange = (index: number, tags: string[]) => {
+    const platform = tags.length ? tags[tags.length - 1] : "";
+    const updated = [...executables];
+    updated[index] = { ...updated[index], platform };
     setExecutables(updated);
   };
 
@@ -171,12 +258,12 @@ export default function ManageInstallationModal({
           alert(t("gameDetail.invalidFileType", "Only .sh and .bat files are allowed"));
           return;
         }
-
         const updated = [...executables];
         updated[index] = { 
           ...updated[index], 
           file: file,
-          existingPath: null // Clear existing path when new file is selected
+          existingPath: null,
+          existingFileName: null,
         };
         setExecutables(updated);
       }
@@ -185,12 +272,29 @@ export default function ManageInstallationModal({
   };
 
   const handleSave = async () => {
-    // Validate all executables have label
+    // File required for each executable; platform is optional
     for (let i = 0; i < executables.length; i++) {
-      if (!executables[i].label || !executables[i].label.trim()) {
-        setError(t("manageInstallation.labelRequired", "All executables must have a label"));
+      const exec = executables[i];
+      const hasFile = exec.file !== null || exec.isExisting === true;
+      if (!hasFile) {
+        setError(t("manageInstallation.fileRequired", "File is required for each executable."));
         return;
       }
+    }
+
+    // Primary key: (effective label, platform). No duplicates. Use same fallback as save (label → platform → "script").
+    const keyOf = (exec: ExecutableState) => {
+      const effectiveLabel = (exec.label && exec.label.trim()) || (exec.platform && exec.platform.trim()) || "script";
+      return `${effectiveLabel.toLowerCase()}|${(exec.platform || "").trim().toLowerCase()}`;
+    };
+    const seen = new Set<string>();
+    for (let i = 0; i < executables.length; i++) {
+      const key = keyOf(executables[i]);
+      if (seen.has(key)) {
+        setError(t("manageInstallation.duplicateKey", "Duplicate executable: the same label and platform cannot appear more than once."));
+        return;
+      }
+      seen.add(key);
     }
 
     setSaving(true);
@@ -203,13 +307,17 @@ export default function ManageInstallationModal({
         // Skip executables without a file selected (existing executables that are not being modified)
         if (!exec.file) continue;
 
-        if (!exec.label || !exec.label.trim()) {
-          continue; // Skip if no label
-        }
+        // Default label: custom label, else platform name, else "script"
+        const effectiveLabel = (exec.label && exec.label.trim()) || (exec.platform && exec.platform.trim()) || "script";
+        const platformId = platformTitleToId.get(exec.platform) ?? "";
 
         const formData = new FormData();
         formData.append('file', exec.file);
-        formData.append('label', exec.label.trim());
+        formData.append('label', effectiveLabel);
+        formData.append('platformId', platformId);
+        if (exec.platform && exec.platform.trim()) {
+          formData.append('platform', exec.platform.trim());
+        }
 
         const uploadUrl = buildApiUrl(API_BASE, `/games/${game.id}/upload-executable`);
         const uploadResponse = await fetch(uploadUrl, {
@@ -227,12 +335,20 @@ export default function ManageInstallationModal({
         }
       }
 
-      // Build final executables array with all labels (preserving existing ones without file)
-      const finalExecutables = executables
-        .map(exec => exec.label.trim())
-        .filter(label => label.length > 0);
+      // Build final executables array, platform ids, and previous filenames (same order) for sync/rename on server
+      // executablePreviousFileNames lets the server match rows to files when labels are removed/reordered
+      const finalExecutables: string[] = [];
+      const executablePlatformIds: string[] = [];
+      const executablePreviousFileNames: string[] = [];
+      for (const exec of executables) {
+        const label = (exec.label && exec.label.trim()) || (exec.platform && exec.platform.trim()) || "script";
+        if (label.length > 0) {
+          finalExecutables.push(label);
+          executablePlatformIds.push(exec.platform ? platformTitleToId.get(exec.platform) ?? "" : "");
+          executablePreviousFileNames.push(exec.existingFileName ?? "");
+        }
+      }
 
-      // Update executables array in game (this will sync files on server)
       const updateUrl = buildApiUrl(API_BASE, `/games/${game.id}`);
       const updateResponse = await fetch(updateUrl, {
         method: 'PUT',
@@ -240,8 +356,10 @@ export default function ManageInstallationModal({
           'Content-Type': 'application/json',
           'X-Auth-Token': getApiToken() || '',
         },
-        body: JSON.stringify({ 
-          executables: finalExecutables.length > 0 ? finalExecutables : null 
+        body: JSON.stringify({
+          executables: finalExecutables.length > 0 ? finalExecutables : null,
+          executablePlatformIds: finalExecutables.length > 0 ? executablePlatformIds : null,
+          executablePreviousFileNames: finalExecutables.length > 0 ? executablePreviousFileNames : null,
         }),
       });
 
@@ -294,14 +412,10 @@ export default function ManageInstallationModal({
             </svg>
           </button>
         </div>
-        <div className="manage-installation-modal-content">
+        <div ref={contentRef} className="manage-installation-modal-content">
           <p className="manage-installation-modal-description">
             {t("manageInstallation.description", "Configure multiple executable scripts for this game. The first script will be used by the Play button.")}
           </p>
-          
-          {error && (
-            <div className="manage-installation-modal-error">{error}</div>
-          )}
 
           <div className="manage-installation-executables-list">
             {executables.map((executable, index) => {
@@ -342,6 +456,23 @@ export default function ManageInstallationModal({
                     />
                   </div>
                   <div className="manage-installation-field-group">
+                    <label htmlFor={`manage-installation-platform-${index}`}>
+                      {t("manageInstallation.platform", "Platform")}
+                    </label>
+                    {isOpen && (
+                      <TagEditor
+                        key={`manage-installation-platform-${game.id}-${index}-${isOpen}`}
+                        mode="freeform"
+                        selectedTags={executable.platform ? [executable.platform] : []}
+                        onTagsChange={(tags) => handlePlatformChange(index, tags)}
+                        disabled={saving}
+                        placeholder={t("gameDetail.addPlatform", "Add platform...")}
+                        availableTags={availablePlatforms}
+                        allowCreate={true}
+                      />
+                    )}
+                  </div>
+                  <div className="manage-installation-field-group">
                     <label htmlFor={`manage-installation-path-${index}`}>
                       {t("manageInstallation.path", "File")}
                     </label>
@@ -350,15 +481,7 @@ export default function ManageInstallationModal({
                         id={`manage-installation-path-${index}`}
                         name={`executablePath-${index}`}
                         type="text"
-                        value={
-                          executable.file 
-                            ? executable.file.name 
-                            : executable.existingPath 
-                              ? path.basename(executable.existingPath)
-                              : executable.label
-                                ? `${executable.label}.sh`
-                                : ""
-                        }
+                        value={getDisplayFileName(executable, index)}
                         readOnly
                         placeholder={t("manageInstallation.pathPlaceholder", "No file selected")}
                       />
@@ -394,6 +517,10 @@ export default function ManageInstallationModal({
           >
             + {t("manageInstallation.addExecutable", "Add Executable")}
           </button>
+
+          {error && (
+            <div className="manage-installation-modal-error">{error}</div>
+          )}
         </div>
         <div className="manage-installation-modal-footer">
           <button

@@ -5,7 +5,7 @@ import { useLoading } from "../contexts/LoadingContext";
 import { useDevelopers } from "../contexts/DevelopersContext";
 import CollectionsList from "../components/lists/CollectionsList";
 import AlphabetNavigator from "../components/ui/AlphabetNavigator";
-import { compareTitles } from "../utils/stringUtils";
+import { compareTitles, filterRootCollectionLikes } from "../utils/stringUtils";
 import type { CollectionItem } from "../types";
 import { buildCoverUrl } from "../utils/api";
 
@@ -37,10 +37,17 @@ export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProp
     const unique = developers.filter((d, i, self) =>
       i === self.findIndex((x) => String(x.id) === String(d.id))
     );
-    return [...unique].sort((a, b) =>
+    const rootOnly = filterRootCollectionLikes(unique);
+    return [...rootOnly].sort((a, b) =>
       sortAscending ? compareTitles(a.title || "", b.title || "") : -compareTitles(a.title || "", b.title || "")
     );
   }, [developers, sortAscending]);
+
+  const allDevelopersForCount = useMemo(() => {
+    return developers.filter((d, i, self) =>
+      i === self.findIndex((x) => String(x.id) === String(d.id))
+    );
+  }, [developers]);
 
   useLayoutEffect(() => {
     if (developersLoading) setIsReady(false);
@@ -61,6 +68,7 @@ export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProp
           <div ref={scrollContainerRef} className="home-page-scroll-container">
             <CollectionsList
               collections={sortedDevelopers}
+              allItemsForCount={allDevelopersForCount}
               onCollectionClick={handleDeveloperClick}
               onPlay={onPlay}
               isLoading={developersLoading}

@@ -5,19 +5,19 @@ import type { GameItem, CollectionItem } from "../../types";
 import TableRow from "./TableRow";
 import "./VirtualizedGamesListTable.css";
 
-// Helper functions for scroll restoration
-function getScrollPosition(key: string): number | null {
+// Scroll restoration: we store the first visible row INDEX (from onRowsRendered), not scrollTop.
+function getSavedScrollIndex(key: string): number | null {
   try {
     const stored = sessionStorage.getItem(key);
-    return stored ? parseFloat(stored) : null;
+    return stored ? parseInt(stored, 10) : null;
   } catch {
     return null;
   }
 }
 
-function setScrollPosition(key: string, position: number): void {
+function setSavedScrollIndex(key: string, index: number): void {
   try {
-    sessionStorage.setItem(key, position.toString());
+    sessionStorage.setItem(key, index.toString());
   } catch {
     // Ignore
   }
@@ -47,6 +47,7 @@ type VirtualizedGamesListTableProps = {
   t: any;
   i18n: any;
   editGame: any;
+  platformIdForPlay?: string;
 };
 
 const ITEM_HEIGHT = 56; // Approximate height of each table row
@@ -69,13 +70,17 @@ export default function VirtualizedGamesListTable({
   t,
   i18n,
   editGame,
+  platformIdForPlay,
 }: VirtualizedGamesListTableProps) {
   const location = useLocation();
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const listRef = useRef<any>(null);
   const isRestoringRef = useRef(false);
-  const lastSavedScrollRef = useRef<number | null>(null);
-  const storageKey = `${location.pathname}:table`;
+  const lastVisibleIndexRef = useRef<number>(0);
+  const storageKeyRef = useRef<string>("");
+  const restoreVerifyTimerRef = useRef<number | undefined>(undefined);
+  const storageKey = `${location.pathname}:table:index`;
+  storageKeyRef.current = storageKey;
   const [isScrollRestored, setIsScrollRestored] = useState(false);
   const dynamicRowHeight = useDynamicRowHeight({ defaultRowHeight: ITEM_HEIGHT });
 
@@ -111,22 +116,22 @@ export default function VirtualizedGamesListTable({
     };
   }, [containerRef]);
 
-  // Restore scroll position when component mounts or route changes
+  // Restore scroll: we saved the first visible row index; scroll to that row via list API.
   useEffect(() => {
     if (dimensions.height === 0 || games.length === 0) return;
 
-    const savedScrollTop = getScrollPosition(storageKey);
-    if (savedScrollTop === null || savedScrollTop < 0) {
+    const savedIndex = getSavedScrollIndex(storageKey);
+    if (savedIndex === null || savedIndex < 0) {
       setIsScrollRestored(true);
       return;
     }
 
     isRestoringRef.current = true;
+    const index = Math.min(games.length - 1, Math.max(0, savedIndex));
 
-    // Wait for list to be ready
     const restoreScroll = (attempt = 0) => {
       const list = listRef.current;
-      if (!list) {
+      if (!list || typeof list.scrollToRow !== "function") {
         if (attempt < 50) {
           setTimeout(() => restoreScroll(attempt + 1), 50);
         } else {
@@ -136,86 +141,28 @@ export default function VirtualizedGamesListTable({
         return;
       }
 
-      // Find the scrollable element - react-window creates a scrollable div inside the container
-      let listElement: HTMLElement | null = null;
-      
-      // Method 1: Try list.element if available
-      if (list.element) {
-        listElement = list.element;
-      }
-      // Method 2: Find scrollable element in container
-      else if (containerRef.current) {
-        const scrollable = containerRef.current.querySelector('[style*="overflow"]') as HTMLElement;
-        if (scrollable && scrollable.scrollHeight > scrollable.clientHeight) {
-          listElement = scrollable;
-        }
-      }
-      
-      if (!listElement) {
-        if (attempt < 20) {
-          setTimeout(() => restoreScroll(attempt + 1), 50);
-        } else {
-          isRestoringRef.current = false;
-          setIsScrollRestored(true);
-        }
-        return;
-      }
+      list.scrollToRow({ index, align: "start", behavior: "auto" });
 
-      // Restore scroll position
-      listElement.scrollTop = savedScrollTop;
-      
-      // Verify restoration
-      setTimeout(() => {
+      restoreVerifyTimerRef.current = window.setTimeout(() => {
         isRestoringRef.current = false;
         setIsScrollRestored(true);
-      }, 50);
+      }, 200);
     };
 
-    restoreScroll();
-  }, [dimensions.height, games.length, storageKey, containerRef]);
-
-  // Save scroll position on scroll
-  useEffect(() => {
-    if (isRestoringRef.current || dimensions.height === 0) return;
-
-    const list = listRef.current;
-    if (!list) return;
-
-    let listElement: HTMLElement | null = null;
-    if (list.element) {
-      listElement = list.element;
-    } else if (containerRef.current) {
-      listElement = containerRef.current.querySelector('[style*="overflow"]') as HTMLElement;
-    }
-
-    if (!listElement) return;
-
-    const handleScroll = () => {
-      if (isRestoringRef.current) return;
-
-      const scrollTop = listElement?.scrollTop || 0;
-      
-      // Debounce: only save if scroll position changed significantly
-      if (lastSavedScrollRef.current !== null && Math.abs(lastSavedScrollRef.current - scrollTop) < 10) {
-        return;
-      }
-
-      lastSavedScrollRef.current = scrollTop;
-      setScrollPosition(storageKey, scrollTop);
-    };
-
-    // Debounce scroll events
-    let scrollTimeout: number;
-    listElement.addEventListener('scroll', () => {
-      clearTimeout(scrollTimeout);
-      scrollTimeout = window.setTimeout(handleScroll, 100);
-    }, { passive: true });
-
+    const timer = setTimeout(() => restoreScroll(), 300);
     return () => {
-      clearTimeout(scrollTimeout);
-      listElement?.removeEventListener('scroll', handleScroll);
+      clearTimeout(timer);
+      clearTimeout(restoreVerifyTimerRef.current);
     };
-  }, [dimensions.height, storageKey, containerRef]);
+  }, [dimensions.height, games.length, storageKey, location.pathname]);
+
+  // Save scroll: use onRowsRendered from the List to get the first visible index; save on unmount.
+  useEffect(() => {
+    return () => {
+      const idx = lastVisibleIndexRef.current;
+      if (idx >= 0) setSavedScrollIndex(storageKeyRef.current, idx);
+    };
+  }, [storageKey, location.pathname]);
 
   // Row component for react-window (useDiv so we don't put <tr> inside <div> — valid HTML only)
   const Row = ({
@@ -258,6 +205,7 @@ export default function VirtualizedGamesListTable({
           i18n={i18n}
           editGame={editGame}
           useDiv
+          platformIdForPlay={platformIdForPlay}
         />
       </div>
     );
@@ -282,6 +230,9 @@ export default function VirtualizedGamesListTable({
           style={{ height: dimensions.height, width: dimensions.width }}
           onResize={(size) => {
             setDimensions({ width: size.width, height: size.height });
+          }}
+          onRowsRendered={({ startIndex }) => {
+            if (!isRestoringRef.current) lastVisibleIndexRef.current = startIndex;
           }}
         />
       </div>

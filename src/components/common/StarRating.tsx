@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 
 type StarRatingProps = {
   rating: number; // Rating from 0 to 5
@@ -21,7 +21,9 @@ export default function StarRating({
 }: StarRatingProps) {
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   
-  const handleStarClick = (starValue: number, isHalf: boolean) => {
+  const handleStarClick = (e: MouseEvent<HTMLDivElement>, starValue: number, isHalf: boolean) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (!readOnly && onRatingChange) {
       // Convert from 0-5 scale to 1-10 scale
       // starValue is 1-5, if isHalf then subtract 0.5
@@ -92,7 +94,7 @@ export default function StarRating({
                   cursor: 'pointer',
                   zIndex: 10
                 }}
-                onClick={() => handleStarClick(star, true)}
+                onClick={(e) => handleStarClick(e, star, true)}
                 onMouseEnter={() => handleStarHover(star, true)}
               />
             )}
@@ -109,7 +111,7 @@ export default function StarRating({
                   cursor: 'pointer',
                   zIndex: 10
                 }}
-                onClick={() => handleStarClick(star, false)}
+                onClick={(e) => handleStarClick(e, star, false)}
                 onMouseEnter={() => handleStarHover(star, false)}
               />
             )}

@@ -7,7 +7,7 @@ import EditCollectionLikeModal, { type CollectionLikeResourceType } from "../col
 import { useCollectionHasPlayableGame } from "../common/hooks/useCollectionHasPlayableGame";
 import VirtualizedCollectionsList from "./VirtualizedCollectionsList";
 import type { CollectionItem, CollectionInfo, GameItem } from "../../types";
-import { isSubCollectionTitle } from "../../utils/stringUtils";
+import { isSubCollectionTitle, filterRootCollectionLikes } from "../../utils/stringUtils";
 import "./CollectionsList.css";
 
 const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are more than this many items
@@ -16,6 +16,8 @@ export type GamesPathType = "collections" | "developers" | "publishers";
 
 type CollectionsListProps = {
   collections: CollectionItem[];
+  /** Full list (root + children) for computing display count (games + sub-collections). When not set, uses collections. */
+  allItemsForCount?: CollectionItem[];
   onCollectionClick: (collection: CollectionItem) => void;
   onPlay?: (game: GameItem) => void;
   onCollectionUpdate?: (updatedCollection: CollectionItem) => void;
@@ -171,6 +173,7 @@ export function CollectionListItem({
 
 export default function CollectionsList({
   collections,
+  allItemsForCount,
   onCollectionClick,
   onPlay,
   onCollectionUpdate,
@@ -188,21 +191,23 @@ export default function CollectionsList({
   const [selectedCollection, setSelectedCollection] = useState<CollectionInfo | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Total display count = games + sub-collections (by title). Must run before any conditional return (Rules of Hooks).
+  // Display count = games assigned directly + first-level sub-collections only (not grandchildren).
   const displayCountById = useMemo(() => {
+    const listForCount = allItemsForCount ?? collections;
     const map: Record<string, number> = {};
     for (const c of collections) {
       const parentTitle = (c.title || "").trim();
-      let subCount = 0;
-      for (const other of collections) {
-        if (String(other.id) === String(c.id)) continue;
+      const children = listForCount.filter((other) => {
+        if (String(other.id) === String(c.id)) return false;
         const childTitle = (other.title || "").trim();
-        if (isSubCollectionTitle(parentTitle, childTitle)) subCount += 1;
-      }
+        return isSubCollectionTitle(parentTitle, childTitle);
+      });
+      const directChildrenOnly = filterRootCollectionLikes(children);
+      const subCount = directChildrenOnly.length;
       map[String(c.id)] = (c.gameCount ?? 0) + subCount;
     }
     return map;
-  }, [collections]);
+  }, [collections, allItemsForCount]);
 
   // Durante il caricamento non mostrare nulla (come in Library)
   if (isLoading && collections.length === 0) return null;

@@ -20,6 +20,9 @@ type CoverProps = {
   gameId?: string;
   gameTitle?: string;
   game?: GameItem;
+  /** Full game (all executables) for dropdown unlink when filtering by platform */
+  fullGameForActions?: GameItem;
+  platformIdForPlay?: string;
   onGameDelete?: (gameId: string) => void;
   onGameUpdate?: (game: any) => void;
   collectionId?: string;
@@ -78,6 +81,8 @@ export default function Cover({
   gameId,
   gameTitle,
   game,
+  fullGameForActions,
+  platformIdForPlay,
   onGameDelete,
   onGameUpdate,
   collectionId,
@@ -455,6 +460,8 @@ export default function Cover({
               gameId={gameId}
               gameTitle={gameTitle}
               gameExecutables={game?.executables}
+              fullGame={fullGameForActions ?? game}
+              platformIdForPlay={platformIdForPlay}
               onAddToCollection={gameId && game ? () => {} : undefined}
               onRemoveFromCollection={onRemoveFromCollection}
               onGameDelete={onGameDelete}

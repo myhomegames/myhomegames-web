@@ -6,6 +6,7 @@ import EditGameModal from "./EditGameModal";
 import { useEditGame } from "../common/actions";
 import VirtualizedGamesList from "./VirtualizedGamesList";
 import type { GameItem } from "../../types";
+import { gameHasExecutableForPlatform, getExecutablesForPlatform } from "../../utils/gameExecutables";
 import "./GamesList.css";
 
 const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are more than this many items
@@ -16,8 +17,9 @@ type GamesListProps = {
   onPlay?: (game: GameItem) => void;
   onGameUpdate?: (updatedGame: GameItem) => void;
   onGameDelete?: (deletedGame: GameItem) => void;
-  buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean) => string;
+  buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean, customTimestamp?: number) => string;
   coverSize?: number;
+  coverCacheBustTimestamp?: number;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
   draggable?: boolean;
   onDragEnd?: (sourceIndex: number, destinationIndex: number) => void;
@@ -32,6 +34,7 @@ type GamesListProps = {
   onRemoveFromPublisher?: (gameId: string) => void;
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
   enableVirtualization?: boolean;
+  platformIdForPlay?: string;
 };
 
 
@@ -42,8 +45,9 @@ type GameListItemProps = {
   onEditClick: (game: GameItem) => void;
   onGameDelete?: (deletedGame: GameItem) => void;
   onGameUpdate?: (updatedGame: GameItem) => void;
-  buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean) => string;
+  buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean, customTimestamp?: number) => string;
   coverSize: number;
+  coverCacheBustTimestamp?: number;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
   draggable?: boolean;
   index: number;
@@ -60,6 +64,7 @@ type GameListItemProps = {
   publisherId?: string;
   onRemoveFromDeveloper?: (gameId: string) => void;
   onRemoveFromPublisher?: (gameId: string) => void;
+  platformIdForPlay?: string;
 };
 
 export function GameListItem({
@@ -71,6 +76,7 @@ export function GameListItem({
   onGameUpdate,
   buildCoverUrl,
   coverSize,
+  coverCacheBustTimestamp,
   itemRefs,
   draggable = false,
   index,
@@ -87,11 +93,18 @@ export function GameListItem({
   publisherId,
   onRemoveFromDeveloper,
   onRemoveFromPublisher,
+  platformIdForPlay,
 }: GameListItemProps) {
   const { t } = useTranslation();
   const isIgdbOnly = (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly;
   const coverHeight = coverSize * 1.5;
-  
+  const gameForCover = useMemo(() => {
+    if (!platformIdForPlay) return game;
+    const f = getExecutablesForPlatform(game, platformIdForPlay);
+    if (!f) return { ...game, executables: [], executableFileNames: [] };
+    return { ...game, executables: f.executables, executableFileNames: f.executableFileNames };
+  }, [game, platformIdForPlay]);
+
   // Track previous cover value to detect changes
   const prevCoverRef = useRef<string | undefined>(game.cover);
   const coverChanged = prevCoverRef.current !== game.cover;
@@ -101,8 +114,9 @@ export function GameListItem({
   
   // Memoize cover URL - only add timestamp when cover actually changes
   const coverUrl = useMemo(() => {
-    return game.cover ? buildCoverUrl(API_BASE, game.cover, coverChanged) : "";
-  }, [game.cover, coverChanged, buildCoverUrl]);
+    const timestamp = coverChanged ? Date.now() : coverCacheBustTimestamp;
+    return game.cover ? buildCoverUrl(API_BASE, game.cover, !!timestamp, timestamp) : "";
+  }, [game.cover, coverChanged, coverCacheBustTimestamp, buildCoverUrl]);
 
   const handleDragStart = (e: React.DragEvent) => {
     if (!draggable) return;
@@ -157,12 +171,23 @@ export function GameListItem({
         coverUrl={coverUrl}
         width={coverSize}
         height={coverHeight}
-        onPlay={!isIgdbOnly && onPlay ? (executableName?: string) => (executableName !== undefined ? (onPlay as (g: typeof game, ex?: string) => void)(game, executableName) : onPlay(game)) : undefined}
+        onPlay={!isIgdbOnly && onPlay ? (executableName?: string) => {
+          if (executableName !== undefined) {
+            (onPlay as (g: typeof game, ex?: string) => void)(game, executableName);
+          } else {
+            const ex = platformIdForPlay && gameForCover.executables?.length
+              ? gameForCover.executables[0]
+              : undefined;
+            (onPlay as (g: typeof game, ex?: string) => void)(gameForCover, ex);
+          }
+        } : undefined}
         onClick={() => onGameClick(game)}
         onEdit={!isIgdbOnly ? () => onEditClick(game) : undefined}
         gameId={game.id}
         gameTitle={game.title}
-        game={isIgdbOnly ? undefined : game}
+        game={isIgdbOnly ? undefined : gameForCover}
+        fullGameForActions={!isIgdbOnly ? game : undefined}
+        platformIdForPlay={platformIdForPlay}
         onGameDelete={!isIgdbOnly && onGameDelete ? (gameId: string) => {
           const deletedGame = game.id === gameId ? game : null;
           if (deletedGame) {
@@ -183,7 +208,7 @@ export function GameListItem({
         showTitle={game.showTitle !== false}
         subtitle={game.year}
         detail={true}
-        play={!!(game.executables && game.executables.length > 0)}
+        play={platformIdForPlay ? gameHasExecutableForPlatform(game, platformIdForPlay) : !!(game.executables && game.executables.length > 0)}
         showBorder={viewMode !== "detail"}
         allCollections={allCollections}
         overlayContent={isIgdbOnly ? <span className="game-detail-similar-cover-badge">{t("addGame.new", "New")}</span> : undefined}
@@ -200,6 +225,7 @@ export default function GamesList({
   onGameDelete,
   buildCoverUrl,
   coverSize = 150,
+  coverCacheBustTimestamp,
   itemRefs,
   draggable = false,
   onDragEnd,
@@ -214,6 +240,7 @@ export default function GamesList({
   onRemoveFromPublisher,
   scrollContainerRef,
   enableVirtualization = true,
+  platformIdForPlay,
 }: GamesListProps) {
   const { t } = useTranslation();
   const editGame = useEditGame();
@@ -272,6 +299,7 @@ export default function GamesList({
           <VirtualizedGamesList
             games={games}
             coverSize={coverSize}
+            coverCacheBustTimestamp={coverCacheBustTimestamp}
             containerRef={scrollContainerRef || containerRef}
             itemRefs={itemRefs}
             onGameClick={onGameClick}
@@ -287,6 +315,7 @@ export default function GamesList({
             publisherId={publisherId}
             onRemoveFromDeveloper={onRemoveFromDeveloper}
             onRemoveFromPublisher={onRemoveFromPublisher}
+            platformIdForPlay={platformIdForPlay}
           />
         ) : (
           games.map((game, index) => (
@@ -300,6 +329,7 @@ export default function GamesList({
               onGameUpdate={onGameUpdate}
               buildCoverUrl={buildCoverUrl}
               coverSize={coverSize}
+              coverCacheBustTimestamp={coverCacheBustTimestamp}
               itemRefs={itemRefs}
               draggable={draggable}
               index={index}
@@ -316,6 +346,7 @@ export default function GamesList({
               publisherId={publisherId}
               onRemoveFromDeveloper={onRemoveFromDeveloper}
               onRemoveFromPublisher={onRemoveFromPublisher}
+              platformIdForPlay={platformIdForPlay}
             />
           ))
         )}

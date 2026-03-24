@@ -14,7 +14,6 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const DEV_TOKEN = import.meta.env.VITE_API_TOKEN || "";
   const isDevMode = DEV_TOKEN !== "";
 
-  // Show loading state while checking auth (spinner is handled by Header)
   if (isLoading) {
     return null;
   }

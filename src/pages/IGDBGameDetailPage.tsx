@@ -104,7 +104,7 @@ export default function IGDBGameDetailPage() {
     await addGame.addGame(game);
   }
 
-  if (isLoading) {
+  if (isLoading && !game) {
     return null;
   }
 

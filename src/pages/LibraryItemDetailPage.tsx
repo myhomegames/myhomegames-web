@@ -20,7 +20,7 @@ import EditCollectionLikeModal from "../components/collections/EditCollectionLik
 import DropdownMenu from "../components/common/DropdownMenu";
 import Tooltip from "../components/common/Tooltip";
 import BackgroundManager, { useBackground } from "../components/common/BackgroundManager";
-import { compareTitles } from "../utils/stringUtils";
+import { compareTitles, filterRootCollectionLikes } from "../utils/stringUtils";
 import { buildApiUrl, buildCoverUrl, buildBackgroundUrl } from "../utils/api";
 import { API_BASE, getApiToken } from "../config";
 import type { GameItem, CollectionInfo, CollectionItem } from "../types";
@@ -108,6 +108,7 @@ export default function LibraryItemDetailPage({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [listLoadTimestamp, setListLoadTimestamp] = useState(() => Date.now());
   const [scrollRestoreTrigger, setScrollRestoreTrigger] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
@@ -456,6 +457,7 @@ export default function LibraryItemDetailPage({
       if (!orderMatches) setCustomOrder(orderFromBackend);
       else setCustomOrder(null);
       setGames(parsed);
+      setListLoadTimestamp(Date.now());
       onGamesLoaded(parsed);
     } catch (err: any) {
       console.error("Error fetching collection games:", err?.message);
@@ -498,6 +500,7 @@ export default function LibraryItemDetailPage({
       const json = await res.json();
       const parsed = parseGamesFromJson(json);
       setGames(parsed);
+      setListLoadTimestamp(Date.now());
       onGamesLoaded(parsed);
     } catch (err) {
       console.error("Error fetching developer games:", err);
@@ -540,6 +543,7 @@ export default function LibraryItemDetailPage({
       const json = await res.json();
       const parsed = parseGamesFromJson(json);
       setGames(parsed);
+      setListLoadTimestamp(Date.now());
       onGamesLoaded(parsed);
     } catch (err) {
       console.error("Error fetching publisher games:", err);
@@ -693,7 +697,8 @@ export default function LibraryItemDetailPage({
     if (scrollContainerRef.current) scrollPositionToRestoreRef.current = scrollContainerRef.current.scrollTop;
     setGames((prev) => prev.map((g) => (String(g.id) === String(updatedGame.id) ? updatedGame : g)));
     window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
-    if (collectionId) fetchCollectionGames(collectionId);
+    // Don't refetch collection here: it would overwrite state with API response (cover without timestamp) and the list would show the old cover again
+    // if (collectionId) fetchCollectionGames(collectionId);
   };
 
   const handleGameDelete = (deletedGame: GameItem) => {
@@ -784,7 +789,7 @@ export default function LibraryItemDetailPage({
         onIgdbGameClick={onIgdbGameClick}
         onGameUpdate={handleGameUpdate}
         onGameDelete={handleGameDelete}
-        buildCoverUrl={(apiBase, cover, addTimestamp) => buildCoverUrl(apiBase, cover, addTimestamp ?? false)}
+        buildCoverUrl={(apiBase, cover, addTimestamp, customTimestamp) => buildCoverUrl(apiBase, cover, addTimestamp ?? false, customTimestamp)}
         coverSize={coverSize}
         handleCoverSizeChange={handleCoverSizeChange}
         viewMode={viewMode}
@@ -873,6 +878,7 @@ export default function LibraryItemDetailPage({
         showNewGames={showNewGames}
         onShowNewGamesChange={setShowNewGames}
         showNewGamesLabel={canShowNewGamesToggle ? t("tagGames.showNewGames") : undefined}
+        listLoadTimestamp={listLoadTimestamp}
       />
     </BackgroundManager>
   );
@@ -891,7 +897,7 @@ type LibraryItemDetailContentProps = {
   onIgdbGameClick?: (igdbId: number) => void;
   onGameUpdate?: (updatedGame: GameItem) => void;
   onGameDelete?: (deletedGame: GameItem) => void;
-  buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean) => string;
+  buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean, customTimestamp?: number) => string;
   coverSize: number;
   handleCoverSizeChange: (size: number) => void;
   viewMode: "grid" | "detail" | "table";
@@ -925,6 +931,7 @@ type LibraryItemDetailContentProps = {
   showNewGames?: boolean;
   onShowNewGamesChange?: (value: boolean) => void;
   showNewGamesLabel?: string;
+  listLoadTimestamp?: number;
 };
 
 function LibraryItemDetailContent({
@@ -974,6 +981,7 @@ function LibraryItemDetailContent({
   showNewGames = false,
   onShowNewGamesChange,
   showNewGamesLabel,
+  listLoadTimestamp,
 }: LibraryItemDetailContentProps) {
   const { hasBackground, isBackgroundVisible } = useBackground();
   const { isLoading } = useLoading();
@@ -1029,14 +1037,33 @@ function LibraryItemDetailContent({
       return isSubCollectionTitle(parentTitle, title);
     });
 
-    children.sort((a, b) => {
+    // Show only direct children (root within this list), not grandchildren
+    const rootChildren = filterRootCollectionLikes(children);
+
+    rootChildren.sort((a, b) => {
       const aLabel = getSubCollectionLabel(parentTitle, a.title || "");
       const bLabel = getSubCollectionLabel(parentTitle, b.title || "");
       return compareTitles(aLabel || a.title || "", bLabel || b.title || "");
     });
 
-    return children;
+    return rootChildren;
   }, [collectionId, developerId, publisherId, item, allCollectionLikes]);
+
+  // Display count for each sub-collection card: games assigned directly + first-level sub-collections only (aligned with CollectionsList).
+  const subCollectionDisplayCountById = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const col of subCollectionLikes) {
+      const parentTitle = (col.title || "").trim();
+      const children = allCollectionLikes.filter((c) => {
+        if (String(c.id) === String(col.id)) return false;
+        const title = (c.title || "").trim();
+        return isSubCollectionTitle(parentTitle, title);
+      });
+      const directOnly = filterRootCollectionLikes(children);
+      map[String(col.id)] = (col.gameCount ?? 0) + directOnly.length;
+    }
+    return map;
+  }, [subCollectionLikes, allCollectionLikes]);
 
   const [editingChild, setEditingChild] = useState<CollectionInfo | null>(null);
   const [isEditChildModalOpen, setIsEditChildModalOpen] = useState(false);
@@ -1356,7 +1383,11 @@ function LibraryItemDetailContent({
                                       width={coverSize}
                                       height={coverSize * 1.5}
                                       onClick={handleClick}
-                                      subtitle={col.gameCount != null ? t("common.elements", { count: col.gameCount }) : undefined}
+                                      subtitle={
+                                        (subCollectionDisplayCountById[String(col.id)] ?? col.gameCount) != null
+                                          ? t("common.elements", { count: subCollectionDisplayCountById[String(col.id)] ?? col.gameCount })
+                                          : undefined
+                                      }
                                       onPlay={
                                         onPlayFirstInCollectionLike
                                           ? () => onPlayFirstInCollectionLike(resourceType, String(col.id))
@@ -1431,6 +1462,7 @@ function LibraryItemDetailContent({
                               onGameUpdate={onGameUpdate}
                               onGameDelete={onGameDelete}
                               buildCoverUrl={buildCoverUrl}
+                              coverCacheBustTimestamp={listLoadTimestamp}
                               coverSize={coverSize}
                               itemRefs={itemRefs}
                               draggable={isCollection}

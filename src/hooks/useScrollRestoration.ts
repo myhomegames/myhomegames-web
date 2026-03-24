@@ -66,7 +66,7 @@ export function useScrollRestoration(
         return;
       }
 
-      // Check if it's a table and if it has rows
+      // When viewMode is "table" we're in the non-virtualized table (scroll on this container); wait for tbody rows.
       const isTable = viewMode === "table";
       const hasTableRows = isTable ? currentContainer.querySelector('tbody tr') : true;
 

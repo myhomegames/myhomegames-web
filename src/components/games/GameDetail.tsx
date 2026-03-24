@@ -16,12 +16,11 @@ import AdditionalExecutablesDropdown from "./AdditionalExecutablesDropdown";
 import Tooltip from "../common/Tooltip";
 import BackgroundManager, { useBackground } from "../common/BackgroundManager";
 import LibrariesBar from "../layout/LibrariesBar";
-import { useEditGame, useExecutable } from "../common/actions";
+import { useEditGame } from "../common/actions";
 import type { GameItem, CollectionItem } from "../../types";
 import { formatGameDate } from "../../utils/date";
 import { buildApiUrl, buildBackgroundUrl } from "../../utils/api";
 import { API_BASE, getApiToken } from "../../config";
-import { useLoading } from "../../contexts/LoadingContext";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useCollections } from "../../contexts/CollectionsContext";
 import { useTagLists } from "../../contexts/TagListsContext";
@@ -36,6 +35,7 @@ type GameDetailProps = {
   coverUrl: string;
   onPlay: (game: GameItem) => void;
   allCollections?: CollectionItem[];
+  onRefetchGame?: () => void;
   onGameUpdate?: (updatedGame: GameItem) => void;
   onGameDelete?: (game: GameItem) => void;
 };
@@ -45,28 +45,16 @@ export default function GameDetail({
   coverUrl,
   onPlay,
   allCollections = [],
+  onRefetchGame,
   onGameUpdate,
   onGameDelete,
 }: GameDetailProps) {
   const { t, i18n } = useTranslation();
-  const { setLoading } = useLoading();
   const [localGame, setLocalGame] = useState<GameItem>(game);
+  const [isSavingRating, setIsSavingRating] = useState(false);
   const [isManageInstallationModalOpen, setIsManageInstallationModalOpen] = useState(false);
   const editGame = useEditGame();
-  
-  // Use executable hook (handles both upload and unlink)
-  const executable = useExecutable({
-    game: localGame,
-    onGameUpdate: (updatedGame) => {
-      setLocalGame(updatedGame);
-      // Dispatch event to update allGames in App.tsx
-      window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
-      if (onGameUpdate) {
-        onGameUpdate(updatedGame);
-      }
-    },
-  });
-  
+
   // Sync localGame when game prop changes
   useEffect(() => {
     setLocalGame(game);
@@ -89,9 +77,13 @@ export default function GameDetail({
   const rating = localGame.stars ? localGame.stars / 2 : null;
 
   const handleRatingChange = async (newStars: number) => {
-    setLoading(true);
+    // Optimistic UI: update immediately, then persist in background.
+    // If the request fails, revert.
+    const previousGame = localGame;
+    setLocalGame({ ...previousGame, stars: newStars });
+    setIsSavingRating(true);
     try {
-      const url = buildApiUrl(API_BASE, `/games/${localGame.id}`);
+      const url = buildApiUrl(API_BASE, `/games/${previousGame.id}`);
       const response = await fetch(url, {
         method: 'PUT',
         headers: {
@@ -103,7 +95,7 @@ export default function GameDetail({
 
       if (response.ok) {
         const updatedGame: GameItem = {
-          ...localGame,
+          ...previousGame,
           stars: newStars,
         };
         setLocalGame(updatedGame);
@@ -114,11 +106,13 @@ export default function GameDetail({
         }
       } else {
         console.error('Failed to update rating');
+        setLocalGame(previousGame);
       }
     } catch (error) {
       console.error('Error updating rating:', error);
+      setLocalGame(previousGame);
     } finally {
-      setLoading(false);
+      setIsSavingRating(false);
     }
   };
 
@@ -149,6 +143,7 @@ export default function GameDetail({
         coverSize={coverSize}
         handleCoverSizeChange={handleCoverSizeChange}
         onRatingChange={handleRatingChange}
+        isSavingRating={isSavingRating}
         editGame={editGame}
         onGameUpdate={(updatedGame) => {
           setLocalGame(updatedGame);
@@ -167,8 +162,8 @@ export default function GameDetail({
           }
         }}
         onGameDelete={onGameDelete}
-        executable={executable}
         allCollections={allCollections}
+        onRefetchGame={onRefetchGame}
         isManageInstallationModalOpen={isManageInstallationModalOpen}
         setIsManageInstallationModalOpen={setIsManageInstallationModalOpen}
         t={t as any}
@@ -189,12 +184,13 @@ function GameDetailContent({
   coverSize,
   handleCoverSizeChange,
   onRatingChange,
+  isSavingRating,
   editGame,
   onGameUpdate,
   onGameReload,
   onGameDelete,
-  executable,
   allCollections,
+  onRefetchGame,
   isManageInstallationModalOpen,
   setIsManageInstallationModalOpen,
   t,
@@ -210,12 +206,13 @@ function GameDetailContent({
   coverSize: number;
   handleCoverSizeChange: (size: number) => void;
   onRatingChange?: (newStars: number) => void;
+  isSavingRating: boolean;
   editGame: ReturnType<typeof useEditGame>;
   onGameUpdate: (updatedGame: GameItem) => void;
   onGameReload: (updatedGame: GameItem) => void;
   onGameDelete?: (game: GameItem) => void;
-  executable: ReturnType<typeof useExecutable>;
   allCollections: CollectionItem[];
+  onRefetchGame?: () => void;
   isManageInstallationModalOpen: boolean;
   setIsManageInstallationModalOpen: (open: boolean) => void;
   t: (key: string, defaultValue?: string) => string;
@@ -500,7 +497,7 @@ function GameDetailContent({
                 <StarRating 
                   rating={rating || 0} 
                   readOnly={false}
-                  onRatingChange={onRatingChange}
+                  onRatingChange={isSavingRating ? undefined : onRatingChange}
                 />
               </div>
               <div className="game-detail-actions">
@@ -521,48 +518,26 @@ function GameDetailContent({
                     {t("common.play")}
                   </button>
                 ) : (
-                    <>
                     <button
-                      onClick={executable.handleBrowseClick}
-                      disabled={executable.isUploading}
+                      onClick={() => setIsManageInstallationModalOpen(true)}
                       className="game-detail-link-executable-button"
                     >
-                      <>
-                        <svg
-                          width="28"
-                          height="28"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="game-detail-link-executable-button-icon"
-                        >
-                          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                        </svg>
-                        {executable.isUploading ? t("gameDetail.uploading", "Uploading...") : t("gameDetail.linkExecutable")}
-                      </>
+                      <svg
+                        width="28"
+                        height="28"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="game-detail-link-executable-button-icon"
+                      >
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                      </svg>
+                      {t("gameDetail.linkExecutable")}
                     </button>
-                    <input
-                      ref={executable.fileInputRef}
-                      id="game-executable-input"
-                      name="executable"
-                      type="file"
-                      aria-label={t("gameDetail.executableFile", "Executable file")}
-                      className="game-detail-executable-input"
-                      accept=".sh,.bat"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          await executable.handleFileSelect(file);
-                          // Reset the input so the same file can be selected again
-                          e.target.value = "";
-                        }
-                      }}
-                    />
-                  </>
                 )}
                 <Tooltip text={t("common.edit")} delay={200}>
                   <button
@@ -633,8 +608,8 @@ function GameDetailContent({
                 isOpen={isManageInstallationModalOpen}
                 onClose={() => setIsManageInstallationModalOpen(false)}
                 game={game}
+                onNeedRefresh={onRefetchGame}
                 onGameUpdate={(updatedGame) => {
-                  // Dispatch event to update allGames in App.tsx
                   window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
                   onGameUpdate(updatedGame);
                 }}

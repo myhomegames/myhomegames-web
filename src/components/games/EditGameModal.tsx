@@ -7,9 +7,30 @@ import { useTagLists } from "../../contexts/TagListsContext";
 import { EditGameInfoTab, EditGameMediaTab, EditGameTagsTab } from "./edit";
 import type { GameItem } from "../../types";
 import { buildApiUrl } from "../../utils/api";
+import {
+  normalizeGameCoverImage,
+  normalizeScreenshotImage,
+  normalizeWideImage,
+} from "../../utils/imageUploadNormalize";
 import { normalizeWebsites, areWebsitesEqual, normalizeSimilarGames, areSimilarGamesEqual } from "../../utils/editGameUtils";
 import { toTagTitles as toTagTitlesUtil } from "../filters/tagFilterUtils";
 import "./EditGameModal.css";
+
+function normExt(s: string | null | undefined) {
+  return (s ?? "").trim();
+}
+function initialExternalCoverUrl(g: GameItem): string {
+  const e = g.externalCoverUrl?.trim();
+  if (e) return e;
+  const c = g.cover?.split("?")[0] ?? "";
+  return c.startsWith("http") ? c : "";
+}
+function initialExternalBackgroundUrl(g: GameItem): string {
+  const e = g.externalBackgroundUrl?.trim();
+  if (e) return e;
+  const b = g.background?.split("?")[0] ?? "";
+  return b.startsWith("http") ? b : "";
+}
 
 type EditGameModalProps = {
   isOpen: boolean;
@@ -86,6 +107,8 @@ export default function EditGameModal({
   const [localAgeRatings, setLocalAgeRatings] = useState<Array<{ category: number; rating: number }>>([]);
   const [localCriticRating, setLocalCriticRating] = useState("");
   const [localUserRating, setLocalUserRating] = useState("");
+  const [localExternalCover, setLocalExternalCover] = useState("");
+  const [localExternalBackground, setLocalExternalBackground] = useState("");
 
   // Memoize cover and background URLs with timestamp when modal opens
   // NEVER show IGDB images in edit modal - only show local images
@@ -114,6 +137,20 @@ export default function EditGameModal({
     const separator = url.includes('?') ? '&' : '?';
     return `${url}${separator}t=${imageTimestamp}`;
   }, [game?.background, imageTimestamp]);
+
+  /** Cover image in modal: local file + upload preview only (never external/IGDB URLs). */
+  const coverLocalPreviewUrl = useMemo(() => {
+    if (coverRemoved) return "";
+    if (coverPreview) return coverPreview;
+    return coverUrlWithTimestamp;
+  }, [coverRemoved, coverPreview, coverUrlWithTimestamp]);
+
+  /** Background image in modal: local file + upload preview only (never external URLs). */
+  const backgroundLocalPreviewUrl = useMemo(() => {
+    if (backgroundRemoved) return "";
+    if (backgroundPreview) return backgroundPreview;
+    return backgroundUrlWithTimestamp;
+  }, [backgroundRemoved, backgroundPreview, backgroundUrlWithTimestamp]);
 
   useEffect(() => {
     if (isOpen && !prevIsOpenRef.current) {
@@ -166,6 +203,8 @@ export default function EditGameModal({
           ? String(Math.round(game.userratings * 10))
           : ""
       );
+      setLocalExternalCover(initialExternalCoverUrl(game));
+      setLocalExternalBackground(initialExternalBackgroundUrl(game));
       // Generate new timestamp to force image reload when modal opens
       setImageTimestamp(Date.now());
     }
@@ -285,6 +324,9 @@ export default function EditGameModal({
       )
     )
       return true;
+
+    if (normExt(localExternalCover) !== normExt(initialExternalCoverUrl(game))) return true;
+    if (normExt(localExternalBackground) !== normExt(initialExternalBackgroundUrl(game))) return true;
 
     return false;
   };
@@ -567,6 +609,15 @@ export default function EditGameModal({
         updates.userRating = userVal;
       }
 
+      if (normExt(localExternalCover) !== normExt(initialExternalCoverUrl(game))) {
+        updates.externalCoverUrl = localExternalCover.trim() ? localExternalCover.trim() : null;
+      }
+      if (normExt(localExternalBackground) !== normExt(initialExternalBackgroundUrl(game))) {
+        updates.externalBackgroundUrl = localExternalBackground.trim()
+          ? localExternalBackground.trim()
+          : null;
+      }
+
       // Only make PUT request if there are updates (images were already uploaded)
       if (Object.keys(updates).length > 0) {
         const url = buildApiUrl(API_BASE, `/games/${game.id}`);
@@ -590,12 +641,13 @@ export default function EditGameModal({
         // Add timestamp to image URLs if they were updated to force browser reload
         let finalCover = updatedCover !== null ? updatedCover : result.game.cover;
         let finalBackground = updatedBackground !== null ? updatedBackground : result.game.background;
-        
-        if (updatedCover && finalCover) {
+
+        // Add timestamp whenever we changed cover/background (upload or remove) so list UI updates even if API didn't return the new URL
+        if ((coverFile || coverRemoved) && finalCover) {
           const separator = finalCover.includes('?') ? '&' : '?';
           finalCover = `${finalCover}${separator}t=${Date.now()}`;
         }
-        if (updatedBackground && finalBackground) {
+        if ((backgroundFile || backgroundRemoved) && finalBackground) {
           const separator = finalBackground.includes('?') ? '&' : '?';
           finalBackground = `${finalBackground}${separator}t=${Date.now()}`;
         }
@@ -614,6 +666,7 @@ export default function EditGameModal({
           criticratings: result.game.criticratings || null,
           userratings: result.game.userratings || null,
           executables: result.game.executables || null,
+          executableFileNames: result.game.executableFileNames !== undefined ? result.game.executableFileNames : (game.executableFileNames ?? null),
           // Use result when present (including null = cleared); otherwise keep previous
           themes: result.game.themes !== undefined ? result.game.themes : (game.themes ?? null),
           platforms: result.game.platforms !== undefined ? result.game.platforms : (game.platforms ?? null),
@@ -652,6 +705,14 @@ export default function EditGameModal({
           gameEngines: result.game.gameEngines !== undefined ? result.game.gameEngines : (game.gameEngines ?? null),
           keywords: result.game.keywords !== undefined ? result.game.keywords : (game.keywords ?? null),
           showTitle: result.game.showTitle ?? game.showTitle,
+          externalCoverUrl:
+            result.game.externalCoverUrl !== undefined
+              ? result.game.externalCoverUrl
+              : (game.externalCoverUrl ?? null),
+          externalBackgroundUrl:
+            result.game.externalBackgroundUrl !== undefined
+              ? result.game.externalBackgroundUrl
+              : (game.externalBackgroundUrl ?? null),
         };
 
         // Check if any genres were removed and delete unused categories
@@ -752,6 +813,8 @@ export default function EditGameModal({
           ...game,
           cover: finalCover,
           background: finalBackground,
+          externalCoverUrl: game.externalCoverUrl ?? null,
+          externalBackgroundUrl: game.externalBackgroundUrl ?? null,
         };
         
         onGameUpdate(updatedGame);
@@ -776,44 +839,52 @@ export default function EditGameModal({
 
   const handleCoverFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        setError(t("gameDetail.invalidImageType", "File must be an image"));
-        e.target.value = "";
-        return;
-      }
-      // Create preview and store file for later upload
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setCoverPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      setCoverFile(file);
-      setCoverRemoved(false);
-      setError(null);
-      e.target.value = "";
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError(t("gameDetail.invalidImageType", "File must be an image"));
+      return;
     }
+    void (async () => {
+      try {
+        const out = await normalizeGameCoverImage(file);
+        const reader = new FileReader();
+        reader.onloadend = () => setCoverPreview(reader.result as string);
+        reader.readAsDataURL(out);
+        setCoverFile(out);
+        setCoverRemoved(false);
+        setError(null);
+      } catch {
+        setError(
+          t("gameDetail.imageProcessFailed", "Could not process the image. Try another format (e.g. JPEG or PNG).")
+        );
+      }
+    })();
   };
 
   const handleBackgroundFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        setError(t("gameDetail.invalidImageType", "File must be an image"));
-        e.target.value = "";
-        return;
-      }
-      // Create preview and store file for later upload
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setBackgroundPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      setBackgroundFile(file);
-      setBackgroundRemoved(false);
-      setError(null);
-      e.target.value = "";
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError(t("gameDetail.invalidImageType", "File must be an image"));
+      return;
     }
+    void (async () => {
+      try {
+        const out = await normalizeWideImage(file);
+        const reader = new FileReader();
+        reader.onloadend = () => setBackgroundPreview(reader.result as string);
+        reader.readAsDataURL(out);
+        setBackgroundFile(out);
+        setBackgroundRemoved(false);
+        setError(null);
+      } catch {
+        setError(
+          t("gameDetail.imageProcessFailed", "Could not process the image. Try another format (e.g. JPEG or PNG).")
+        );
+      }
+    })();
   };
 
   const handleCoverRemoveSuccess = () => {
@@ -974,7 +1045,7 @@ export default function EditGameModal({
               onShowTitleChange={setShowTitle}
               coverRemoved={coverRemoved}
               coverPreview={coverPreview}
-              coverUrlWithTimestamp={coverUrlWithTimestamp}
+              coverLocalPreviewUrl={coverLocalPreviewUrl}
               uploadingCover={uploadingCover}
               coverInputRef={coverInputRef}
               handleCoverFileSelect={handleCoverFileSelect}
@@ -983,16 +1054,35 @@ export default function EditGameModal({
                 setLocalVideos(Array.isArray(updated.videos) ? updated.videos : []);
               }}
               handleCoverRemoveSuccess={handleCoverRemoveSuccess}
+              externalCoverUrl={localExternalCover}
+              onExternalCoverChange={setLocalExternalCover}
               backgroundRemoved={backgroundRemoved}
               backgroundPreview={backgroundPreview}
-              backgroundUrlWithTimestamp={backgroundUrlWithTimestamp}
+              backgroundLocalPreviewUrl={backgroundLocalPreviewUrl}
               uploadingBackground={uploadingBackground}
               backgroundInputRef={backgroundInputRef}
               handleBackgroundFileSelect={handleBackgroundFileSelect}
               handleBackgroundRemoveSuccess={handleBackgroundRemoveSuccess}
+              externalBackgroundUrl={localExternalBackground}
+              onExternalBackgroundChange={setLocalExternalBackground}
               screenshotInputRef={screenshotInputRef}
               pendingScreenshotFiles={pendingScreenshotFiles}
-              onAddPendingScreenshotFile={(file) => setPendingScreenshotFiles((prev) => [...prev, file])}
+              onAddPendingScreenshotFile={(file) => {
+                void (async () => {
+                  try {
+                    const out = await normalizeScreenshotImage(file);
+                    setPendingScreenshotFiles((prev) => [...prev, out]);
+                    setError(null);
+                  } catch {
+                    setError(
+                      t(
+                        "gameDetail.imageProcessFailed",
+                        "Could not process the image. Try another format (e.g. JPEG or PNG)."
+                      )
+                    );
+                  }
+                })();
+              }}
               onRemoveScreenshotAt={(index) => {
                 if (index < localScreenshots.length) {
                   setLocalScreenshots((prev) => prev.filter((_, i) => i !== index));

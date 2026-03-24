@@ -125,7 +125,7 @@ type UseGamesListPageOptions = {
   onCategoryIdChange?: (categoryId: string | null) => void; // Callback when categoryId changes
   
   // Scroll restoration
-  scrollRestorationMode?: ViewMode | undefined; // For table view, pass undefined
+  scrollRestorationMode?: ViewMode | undefined;
 };
 
 export type UseGamesListPageReturn = {
@@ -191,7 +191,9 @@ export type UseGamesListPageReturn = {
   toggleColumn: (column: keyof ColumnVisibility) => void;
   handleGameUpdate: (updatedGame: GameItem) => void;
   handleGameDelete: (deletedGame: GameItem) => void;
-  
+  saveScrollBeforeEdit: () => void;
+  clearScrollAfterEditRef: () => void;
+
   // Fetch functions (collections and library games are now loaded via context)
 };
 
@@ -392,6 +394,7 @@ export function useGamesListPage(
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const tableScrollRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const pendingScrollAfterEditRef = useRef<{ container: number; table: number; detailList: number } | null>(null);
 
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(() => {
     const saved = localStorage.getItem("tableColumnVisibility");
@@ -887,9 +890,57 @@ export function useGamesListPage(
     }));
   };
 
+  type ContainerWithListRef = HTMLDivElement & { __virtualizedListRef?: { current?: { element?: HTMLDivElement } } };
+
+  const clearScrollAfterEditRef = useCallback(() => {
+    pendingScrollAfterEditRef.current = null;
+  }, []);
+
+  /** Call this when opening the edit modal so we restore scroll after save */
+  const saveScrollBeforeEdit = useCallback(() => {
+    try {
+      const containerScroll = scrollContainerRef.current?.scrollTop ?? 0;
+      let tableScroll = 0;
+      const tableContainer = tableScrollRef.current as ContainerWithListRef | null;
+      if (tableContainer) {
+        const listEl = tableContainer.__virtualizedListRef?.current?.element;
+        tableScroll = (listEl ?? tableContainer).scrollTop ?? 0;
+      }
+      let detailListScroll = 0;
+      const containerWithList = scrollContainerRef.current as ContainerWithListRef | null;
+      if (containerWithList?.__virtualizedListRef?.current?.element) {
+        detailListScroll = containerWithList.__virtualizedListRef.current.element.scrollTop ?? 0;
+      }
+      pendingScrollAfterEditRef.current = { container: containerScroll, table: tableScroll, detailList: detailListScroll };
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const handleGameUpdate = (updatedGame: GameItem) => {
+    const pending = pendingScrollAfterEditRef.current;
+    if (pending) pendingScrollAfterEditRef.current = null;
     contextUpdateGame(updatedGame);
     window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
+    if (!pending) return;
+    const restore = () => {
+      if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = pending.container;
+      const containerWithList = scrollContainerRef.current as ContainerWithListRef | null;
+      if (containerWithList?.__virtualizedListRef?.current?.element) {
+        containerWithList.__virtualizedListRef.current.element.scrollTop = pending.detailList;
+      }
+      const tableContainer = tableScrollRef.current as ContainerWithListRef | null;
+      if (tableContainer) {
+        const listEl = tableContainer.__virtualizedListRef?.current?.element;
+        if (listEl) listEl.scrollTop = pending.table;
+        else tableContainer.scrollTop = pending.table;
+      }
+    };
+    restore();
+    setTimeout(restore, 50);
+    setTimeout(restore, 150);
+    setTimeout(restore, 350);
+    setTimeout(restore, 600);
   };
 
   const handleGameDelete = (deletedGame: GameItem) => {
@@ -957,5 +1008,7 @@ export function useGamesListPage(
     toggleColumn,
     handleGameUpdate,
     handleGameDelete,
+    saveScrollBeforeEdit,
+    clearScrollAfterEditRef,
   };
 }

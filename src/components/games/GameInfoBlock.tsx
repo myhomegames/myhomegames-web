@@ -92,7 +92,8 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
     routeBase: string,
     getLabel: (id: string) => string,
     getSearchParams?: (id: string) => string,
-    isClickable?: (id: string) => boolean
+    isClickable?: (id: string) => boolean,
+    getItemClassName?: (id: string) => string | undefined
   ) => (
     <InlineTagList
       items={ids}
@@ -101,11 +102,28 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
         navigate(`${routeBase}/${encodeURIComponent(id)}${getSearchParams ? getSearchParams(id) : ""}`)
       }
       isClickable={isClickable}
+      getItemClassName={getItemClassName}
       useInfoStyles
       showMoreMinCount={5}
       showMoreLabel={t("gameDetail.andMore", ", and more")}
     />
   );
+
+  /** Platform IDs that appear in executable filenames (NN-label-platformId.ext). Used to highlight those platforms in yellow. */
+  const platformIdsFromExecutables = useMemo(() => {
+    const names = "executableFileNames" in game && Array.isArray(game.executableFileNames) ? game.executableFileNames : [];
+    const set = new Set<string>();
+    for (const fullName of names) {
+      if (typeof fullName !== "string" || !fullName) continue;
+      const baseNoExt = fullName.replace(/\.(sh|bat)$/i, "");
+      const withoutPrefix = baseNoExt.replace(/^\d+-/, "");
+      if (withoutPrefix.includes("-")) {
+        const platformId = withoutPrefix.slice(withoutPrefix.lastIndexOf("-") + 1);
+        if (platformId && /^\d+$/.test(platformId)) set.add(platformId);
+      }
+    }
+    return set;
+  }, ["executableFileNames" in game ? game.executableFileNames : null]);
 
   // Names from game payload (e.g. IGDB response has { id, name }) so we show names even when not in library
   const developerNamesFromGame = useMemo(() => {
@@ -231,7 +249,8 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
               return t(`platforms.${displayName}`, displayName);
             },
             platformLinkInfo.getSearchParams,
-            (id) => tagLabels.platforms.has(id)
+            (id) => tagLabels.platforms.has(id),
+            (id) => (!platformIdsFromExecutables.has(id) ? "game-info-list-item--platform-no-executable" : undefined)
           )}
         </div>
       )}
