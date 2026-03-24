@@ -6,6 +6,7 @@ import { useLoading } from "../../contexts/LoadingContext";
 import Cover from "../games/Cover";
 import type { TagItem } from "../../types";
 import { buildApiUrl } from "../../utils/api";
+import { normalizeWideImage } from "../../utils/imageUploadNormalize";
 import "./EditTagModal.css";
 
 type EditTagModalProps = {
@@ -151,23 +152,27 @@ export default function EditTagModal({
 
   const handleCoverFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        setError(t("gameDetail.invalidImageType", "File must be an image"));
-        e.target.value = "";
-        return;
-      }
-      // Create preview and store file for later upload
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setCoverPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      setCoverFile(file);
-      setCoverRemoved(false);
-      setError(null);
-      e.target.value = "";
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError(t("gameDetail.invalidImageType", "File must be an image"));
+      return;
     }
+    void (async () => {
+      try {
+        const out = await normalizeWideImage(file);
+        const reader = new FileReader();
+        reader.onloadend = () => setCoverPreview(reader.result as string);
+        reader.readAsDataURL(out);
+        setCoverFile(out);
+        setCoverRemoved(false);
+        setError(null);
+      } catch {
+        setError(
+          t("gameDetail.imageProcessFailed", "Could not process the image. Try another format (e.g. JPEG or PNG).")
+        );
+      }
+    })();
   };
 
   const handleCoverRemoveSuccess = () => {

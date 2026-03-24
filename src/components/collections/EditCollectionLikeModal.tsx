@@ -6,6 +6,7 @@ import { useLoading } from "../../contexts/LoadingContext";
 import Cover from "../games/Cover";
 import type { CollectionInfo } from "../../types";
 import { buildApiUrl } from "../../utils/api";
+import { normalizeGameCoverImage, normalizeWideImage } from "../../utils/imageUploadNormalize";
 import "../games/edit/EditGameMediaTab.css";
 import "./EditCollectionLikeModal.css";
 
@@ -234,32 +235,52 @@ export default function EditCollectionLikeModal({
 
   const handleCoverFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file?.type.startsWith("image/")) {
-      const reader = new FileReader();
-      reader.onloadend = () => setCoverPreview(reader.result as string);
-      reader.readAsDataURL(file);
-      setCoverFile(file);
-      setCoverRemoved(false);
-      setError(null);
-    } else {
-      setError(t("gameDetail.invalidImageType", "File must be an image"));
-    }
     e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError(t("gameDetail.invalidImageType", "File must be an image"));
+      return;
+    }
+    void (async () => {
+      try {
+        const out = await normalizeGameCoverImage(file);
+        const reader = new FileReader();
+        reader.onloadend = () => setCoverPreview(reader.result as string);
+        reader.readAsDataURL(out);
+        setCoverFile(out);
+        setCoverRemoved(false);
+        setError(null);
+      } catch {
+        setError(
+          t("gameDetail.imageProcessFailed", "Could not process the image. Try another format (e.g. JPEG or PNG).")
+        );
+      }
+    })();
   };
 
   const handleBackgroundFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file?.type.startsWith("image/")) {
-      const reader = new FileReader();
-      reader.onloadend = () => setBackgroundPreview(reader.result as string);
-      reader.readAsDataURL(file);
-      setBackgroundFile(file);
-      setBackgroundRemoved(false);
-      setError(null);
-    } else {
-      setError(t("gameDetail.invalidImageType", "File must be an image"));
-    }
     e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError(t("gameDetail.invalidImageType", "File must be an image"));
+      return;
+    }
+    void (async () => {
+      try {
+        const out = await normalizeWideImage(file);
+        const reader = new FileReader();
+        reader.onloadend = () => setBackgroundPreview(reader.result as string);
+        reader.readAsDataURL(out);
+        setBackgroundFile(out);
+        setBackgroundRemoved(false);
+        setError(null);
+      } catch {
+        setError(
+          t("gameDetail.imageProcessFailed", "Could not process the image. Try another format (e.g. JPEG or PNG).")
+        );
+      }
+    })();
   };
 
   const handleCoverRemoveSuccess = () => {

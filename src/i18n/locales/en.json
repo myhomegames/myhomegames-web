@@ -192,6 +192,7 @@
     "removeCover": "Remove cover",
     "removeBackground": "Remove background",
     "invalidImageType": "File must be an image",
+    "imageProcessFailed": "Could not process the image. Try another format (e.g. JPEG or PNG).",
     "invalidCriticRating": "Critic rating must be between 0 and 100",
     "invalidUserRating": "User rating must be between 0 and 100",
     "coverFormat": "Recommended ratio: 3:4 (e.g., 400x533px)",
