@@ -126,6 +126,7 @@ export default function EditGameTagsTab({
             onTagsChange={setSelectedThemes}
             disabled={saving}
             placeholder={t("gameDetail.addTheme", "Add theme...")}
+            getDisplayName={(value) => t(`themes.${value}`, value)}
             availableTags={availableThemes}
           />
         )}
