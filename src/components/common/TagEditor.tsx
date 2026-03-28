@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useId } from "react";
 import { useTranslation } from "react-i18next";
 import { API_BASE, getApiToken } from "../../config";
 import { buildApiUrl } from "../../utils/api";
@@ -15,6 +15,8 @@ type TagEditorProps = {
   availableTags?: string[];
   getDisplayName?: (tag: string) => string;
   allowCreate?: boolean;
+  /** Optional; use with a parent `<label htmlFor={sameId}>`. If omitted, a unique id is generated. */
+  inputId?: string;
 };
 
 export default function TagEditor({
@@ -26,7 +28,11 @@ export default function TagEditor({
   availableTags,
   getDisplayName,
   allowCreate = true,
+  inputId: inputIdProp,
 }: TagEditorProps) {
+  const generatedInputId = useId();
+  const inputId = inputIdProp ?? generatedInputId;
+  const inputName = `tag-editor${inputId.replace(/:/g, "-")}`;
   const { t } = useTranslation();
   const { setLoading } = useLoading();
   const { tagLabels, refreshTagLists } = useTagLists();
@@ -174,8 +180,8 @@ export default function TagEditor({
           </span>
         ))}
         <input
-          id="tag-editor-input"
-          name="tag"
+          id={inputId}
+          name={inputName}
           type="text"
           value={tagSearch}
           onChange={(e) => setTagSearch(e.target.value)}
@@ -184,6 +190,7 @@ export default function TagEditor({
           placeholder={placeholder || t("gameDetail.addTag", "Add tag...")}
           className="tag-editor-input"
           aria-label={placeholder || t("gameDetail.addTag", "Add tag...")}
+          autoComplete="off"
         />
       </div>
       {tagSearch && filteredSuggestions.length > 0 && (

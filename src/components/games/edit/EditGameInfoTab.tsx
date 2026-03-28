@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useId } from "react";
 import type { TFunction } from "i18next";
 import GameSearchModal from "../GameSearchModal";
 import type { GameItem } from "../../../types";
@@ -66,6 +66,10 @@ export default function EditGameInfoTab({
   setMonth,
   setDay,
 }: EditGameInfoTabProps) {
+  const ageRatingCategoryId = useId();
+  const ageRatingValueId = useId();
+  const newAlternativeNameId = useId();
+  const newWebsiteUrlId = useId();
   const [newAlternativeName, setNewAlternativeName] = useState("");
   const [newWebsiteUrl, setNewWebsiteUrl] = useState("");
   const [isGameSearchOpen, setIsGameSearchOpen] = useState(false);
@@ -241,10 +245,10 @@ export default function EditGameInfoTab({
         </div>
       </div>
 
-      <div className="edit-game-modal-field">
-        <label className="edit-game-modal-label">
+      <fieldset className="edit-game-modal-field">
+        <legend className="edit-game-modal-label">
           {t("gameDetail.ageRatings", "Classificazioni di età")}
-        </label>
+        </legend>
         {ageRatings.map((ar, index) => (
           <div key={`age-${index}`} className="edit-game-modal-alt-names-row">
             <span className="edit-game-modal-similar-name">
@@ -266,6 +270,8 @@ export default function EditGameInfoTab({
         ))}
         <div className="edit-game-modal-alt-names-row edit-game-modal-alt-names-add" style={{ gap: "8px", flexWrap: "wrap" }}>
           <select
+            id={ageRatingCategoryId}
+            name="ageRatingCategory"
             value={newAgeRatingCategory}
             onChange={(e) => {
               setNewAgeRatingCategory(e.target.value);
@@ -273,6 +279,7 @@ export default function EditGameInfoTab({
             }}
             disabled={saving}
             className="edit-game-modal-age-rating-select"
+            aria-label={t("gameDetail.ageRatingOrganization", "Organismo classificazione")}
           >
             {Object.entries(AGE_RATING_CATEGORIES).map(([cat, name]) => (
               <option key={cat} value={cat}>
@@ -281,10 +288,13 @@ export default function EditGameInfoTab({
             ))}
           </select>
           <select
+            id={ageRatingValueId}
+            name="ageRatingValue"
             value={newAgeRatingValue}
             onChange={(e) => setNewAgeRatingValue(e.target.value)}
             disabled={saving}
             className="edit-game-modal-age-rating-select"
+            aria-label={t("gameDetail.selectRating", "Seleziona classificazione...")}
           >
             <option value="">{t("gameDetail.selectRating", "Seleziona classificazione...")}</option>
             {AGE_RATING_VALUES_BY_ORG[parseInt(newAgeRatingCategory, 10)] &&
@@ -305,15 +315,17 @@ export default function EditGameInfoTab({
             {t("gameDetail.add", "Aggiungi")}
           </button>
         </div>
-      </div>
+      </fieldset>
 
-      <div className="edit-game-modal-field">
-        <label className="edit-game-modal-label">
+      <fieldset className="edit-game-modal-field">
+        <legend className="edit-game-modal-label">
           {t("gameDetail.alternativeNames", "Nomi alternativi")}
-        </label>
+        </legend>
         {alternativeNames.map((name, index) => (
           <div key={`alt-${index}`} className="edit-game-modal-alt-names-row">
             <input
+              id={`edit-game-alt-name-${index}`}
+              name={`alternativeName-${index}`}
               type="text"
               value={name}
               onChange={(e) => handleAlternativeNameChange(index, e.target.value)}
@@ -342,6 +354,8 @@ export default function EditGameInfoTab({
         ))}
         <div className="edit-game-modal-alt-names-row edit-game-modal-alt-names-add">
           <input
+            id={newAlternativeNameId}
+            name="newAlternativeName"
             type="text"
             value={newAlternativeName}
             onChange={(e) => setNewAlternativeName(e.target.value)}
@@ -349,6 +363,7 @@ export default function EditGameInfoTab({
             disabled={saving}
             placeholder={t("gameDetail.addAlternativeName", "Aggiungi nome alternativo...")}
             className="edit-game-modal-alt-names-input"
+            autoComplete="off"
           />
           <button
             type="button"
@@ -359,15 +374,17 @@ export default function EditGameInfoTab({
             {t("gameDetail.add", "Aggiungi")}
           </button>
         </div>
-      </div>
+      </fieldset>
 
-      <div className="edit-game-modal-field">
-        <label className="edit-game-modal-label">
+      <fieldset className="edit-game-modal-field">
+        <legend className="edit-game-modal-label">
           {t("gameDetail.websites", "Siti web")}
-        </label>
+        </legend>
         {websites.map((website, index) => (
           <div key={`web-${index}`} className="edit-game-modal-alt-names-row">
             <input
+              id={`edit-game-website-${index}`}
+              name={`websiteUrl-${index}`}
               type="url"
               value={website.url}
               onChange={(e) => handleWebsiteUrlChange(index, e.target.value)}
@@ -396,6 +413,8 @@ export default function EditGameInfoTab({
         ))}
         <div className="edit-game-modal-alt-names-row edit-game-modal-alt-names-add">
           <input
+            id={newWebsiteUrlId}
+            name="newWebsiteUrl"
             type="url"
             value={newWebsiteUrl}
             onChange={(e) => setNewWebsiteUrl(e.target.value)}
@@ -403,6 +422,7 @@ export default function EditGameInfoTab({
             disabled={saving}
             placeholder={t("gameDetail.addWebsiteUrl", "Add website URL...")}
             className="edit-game-modal-alt-names-input"
+            autoComplete="url"
           />
           <button
             type="button"
@@ -413,12 +433,12 @@ export default function EditGameInfoTab({
             {t("gameDetail.add", "Aggiungi")}
           </button>
         </div>
-      </div>
+      </fieldset>
 
-      <div className="edit-game-modal-field">
-        <label className="edit-game-modal-label">
+      <fieldset className="edit-game-modal-field">
+        <legend className="edit-game-modal-label">
           {t("gameDetail.similarGames", "Giochi simili")}
-        </label>
+        </legend>
         {resolvedSimilarGames.map((sg, index) => (
           <div key={`similar-${sg.id}`} className="edit-game-modal-alt-names-row">
             <span className="edit-game-modal-similar-name">{sg.name}</span>
@@ -446,7 +466,7 @@ export default function EditGameInfoTab({
             {t("gameDetail.addSimilarGame", "Aggiungi gioco")}
           </button>
         </div>
-      </div>
+      </fieldset>
 
       <GameSearchModal
         isOpen={isGameSearchOpen}

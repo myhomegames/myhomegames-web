@@ -60,6 +60,7 @@
 }
 
 .game-search-modal-search {
+  position: relative;
   padding: 16px 24px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -97,4 +98,17 @@
   text-align: center;
   color: rgba(255, 255, 255, 0.5);
   font-size: 0.875rem;
+}
+
+/* Visually hidden label for search input (a11y / autofill) */
+.game-search-modal-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

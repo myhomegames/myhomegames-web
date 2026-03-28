@@ -1,3 +1,4 @@
+import { useId } from "react";
 import "./CoverSizeSlider.css";
 
 type CoverSizeSliderProps = {
@@ -13,11 +14,12 @@ export default function CoverSizeSlider({
   min = 100,
   max = 200,
 }: CoverSizeSliderProps) {
+  const sliderId = useId();
   return (
     <div className="cover-size-slider-container">
       <input
-        id="cover-size-slider"
-        name="coverSize"
+        id={sliderId}
+        name={`coverSize-${sliderId.replace(/:/g, "-")}`}
         type="range"
         min={min}
         max={max}

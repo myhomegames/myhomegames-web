@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useId } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useLibraryGames } from "../../contexts/LibraryGamesContext";
@@ -21,6 +21,7 @@ export default function GameSearchModal({
   excludeGameIds = [],
   title,
 }: GameSearchModalProps) {
+  const searchInputId = useId();
   const { t } = useTranslation();
   const { games: allGames } = useLibraryGames();
   const [searchQuery, setSearchQuery] = useState("");
@@ -59,11 +60,17 @@ export default function GameSearchModal({
           </button>
         </div>
         <div className="game-search-modal-search">
+          <label htmlFor={searchInputId} className="game-search-modal-sr-only">
+            {t("gameDetail.searchGamePlaceholder", "Cerca per titolo...")}
+          </label>
           <input
-            type="text"
+            id={searchInputId}
+            name="gameSearchModalQuery"
+            type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t("gameDetail.searchGamePlaceholder", "Cerca per titolo...")}
+            autoComplete="off"
             autoFocus
           />
         </div>
