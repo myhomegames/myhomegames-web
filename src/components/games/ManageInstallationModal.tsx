@@ -37,9 +37,30 @@ export default function ManageInstallationModal({
   const { t } = useTranslation();
   const { setLoading } = useLoading();
   const { tagLabels } = useTagLists();
+
+  // Platforms actually associated with this game (by id), resolved to titles
+  const gamePlatformTitles = useMemo(() => {
+    const raw = Array.isArray(game.platforms) ? game.platforms : game.platforms != null ? [game.platforms] : [];
+    const titles: string[] = [];
+    for (const x of raw as any[]) {
+      let id: string | null = null;
+      if (typeof x === "number" || typeof x === "string") {
+        id = String(x);
+      } else if (x && typeof x === "object" && "id" in x) {
+        id = String((x as { id: number | string }).id);
+      }
+      if (!id) continue;
+      const title = tagLabels.platforms.get(id) ?? id;
+      titles.push(title);
+    }
+    // De-duplicate while preserving order
+    return Array.from(new Set(titles));
+  }, [game.platforms, tagLabels.platforms]);
+
+  // Options shown in the dropdown: only this game's platforms if present, otherwise all
   const availablePlatforms = useMemo(
-    () => Array.from(tagLabels.platforms.values()),
-    [tagLabels.platforms]
+    () => (gamePlatformTitles.length ? gamePlatformTitles : Array.from(tagLabels.platforms.values())),
+    [gamePlatformTitles, tagLabels.platforms]
   );
   /** Map platform title -> id for building label-platformId filename */
   const platformTitleToId = useMemo(() => {
