@@ -92,11 +92,16 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 4px;
   margin-bottom: 12px;
-  cursor: grab;
   transition: opacity 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
 }
 
-.manage-installation-executable-item:active {
+/* Drag only from the handle — whole row was draggable and stole text selection + showed bad drag ghosts */
+.manage-installation-drag-handle {
+  cursor: grab;
+  touch-action: none;
+}
+
+.manage-installation-drag-handle:active {
   cursor: grabbing;
 }
 

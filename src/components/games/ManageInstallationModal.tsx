@@ -207,20 +207,13 @@ export default function ManageInstallationModal({
   };
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
-    // Prevent drag when clicking on inputs or buttons
-    const target = e.target as HTMLElement;
-    if (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.closest('input') || target.closest('button')) {
-      e.preventDefault();
-      return;
-    }
     setDraggedIndex(index);
-    // Set drag image to empty image for better visual feedback
-    const dragImage = document.createElement('div');
-    dragImage.style.position = 'absolute';
-    dragImage.style.top = '-1000px';
-    document.body.appendChild(dragImage);
-    e.dataTransfer.setDragImage(dragImage, 0, 0);
-    setTimeout(() => document.body.removeChild(dragImage), 0);
+    e.dataTransfer.effectAllowed = "move";
+    // Invisible 1×1 drag ghost — empty/zero-size elements cause broken previews (odd tiny icons).
+    const canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+    e.dataTransfer.setDragImage(canvas, 0, 0);
   };
 
   const handleDragOver = (e: React.DragEvent, index: number) => {
@@ -446,20 +439,16 @@ export default function ManageInstallationModal({
                   key={index}
                   data-index={index}
                   className={`manage-installation-executable-item ${isDragOver ? 'manage-installation-executable-item-drag-over' : ''}`}
-                  draggable={true}
-                  onDragStart={(e) => handleDragStart(e, index)}
                   onDragOver={(e) => handleDragOver(e, index)}
-                  onDragEnd={handleDragEnd}
                   onDragLeave={handleDragLeave}
-                  onMouseDown={(e) => {
-                    // Prevent drag when clicking on inputs or buttons
-                    const target = e.target as HTMLElement;
-                    if (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.closest('input') || target.closest('button')) {
-                      e.stopPropagation();
-                    }
-                  }}
                 >
-                  <div className="manage-installation-executable-order-controls">
+                  <div
+                    className="manage-installation-executable-order-controls manage-installation-drag-handle"
+                    draggable
+                    title={t("manageInstallation.dragToReorder", "Drag to reorder")}
+                    onDragStart={(e) => handleDragStart(e, index)}
+                    onDragEnd={handleDragEnd}
+                  >
                     <div className="manage-installation-executable-number">{index + 1}</div>
                   </div>
                 <div className="manage-installation-executable-fields">
