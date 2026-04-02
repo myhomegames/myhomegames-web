@@ -363,18 +363,31 @@ export default function ManageInstallationModal({
         }
       }
 
+      // Keep game platforms in sync with executables: union of existing game platforms and each row's platform title.
+      const platformTitlesFromExecutables = executables
+        .map((e) => (e.platform && e.platform.trim()) || "")
+        .filter((p): p is string => p.length > 0);
+      const mergedPlatformTitles = Array.from(
+        new Set<string>([...gamePlatformTitles, ...platformTitlesFromExecutables])
+      );
+
       const updateUrl = buildApiUrl(API_BASE, `/games/${game.id}`);
+      const updatePayload: Record<string, unknown> = {
+        executables: finalExecutables.length > 0 ? finalExecutables : null,
+        executablePlatformIds: finalExecutables.length > 0 ? executablePlatformIds : null,
+        executablePreviousFileNames: finalExecutables.length > 0 ? executablePreviousFileNames : null,
+      };
+      if (mergedPlatformTitles.length > 0) {
+        updatePayload.platforms = mergedPlatformTitles;
+      }
+
       const updateResponse = await fetch(updateUrl, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'X-Auth-Token': getApiToken() || '',
         },
-        body: JSON.stringify({
-          executables: finalExecutables.length > 0 ? finalExecutables : null,
-          executablePlatformIds: finalExecutables.length > 0 ? executablePlatformIds : null,
-          executablePreviousFileNames: finalExecutables.length > 0 ? executablePreviousFileNames : null,
-        }),
+        body: JSON.stringify(updatePayload),
       });
 
       if (!updateResponse.ok) {
