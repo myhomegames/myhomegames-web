@@ -312,10 +312,10 @@ export default function VirtualizedCollectionsList({
       <div
         style={{
           ...style,
-          paddingLeft: columnIndex === 0 ? 0 : GAP / 2,
-          paddingRight: columnIndex === columnCount - 1 ? 0 : GAP / 2,
-          paddingTop: rowIndex === 0 ? 0 : GAP / 2,
-          paddingBottom: rowIndex === rowCount - 1 ? 0 : GAP / 2,
+          paddingLeft: GAP / 2,
+          paddingRight: GAP / 2,
+          paddingTop: GAP / 2,
+          paddingBottom: GAP / 2,
         }}
       >
         <CollectionListItem

@@ -325,10 +325,11 @@ export default function VirtualizedGamesList({
       <div
         style={{
           ...style,
-          paddingLeft: columnIndex === 0 ? 0 : GAP / 2,
-          paddingRight: columnIndex === columnCount - 1 ? 0 : GAP / 2,
-          paddingTop: rowIndex === 0 ? 0 : GAP / 2,
-          paddingBottom: rowIndex === rowCount - 1 ? 0 : GAP / 2,
+          // Uniform GAP/2 on every side so spacing between adjacent covers is always GAP (asymmetric edges made the first column gap wider).
+          paddingLeft: GAP / 2,
+          paddingRight: GAP / 2,
+          paddingTop: GAP / 2,
+          paddingBottom: GAP / 2,
         }}
       >
         <GameListItem
