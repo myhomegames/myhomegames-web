@@ -91,6 +91,43 @@
   font-size: 1.2rem;
 }
 
+/* Game row: title + IGDB type pill (matches Add Game search results) */
+.search-result-game-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  align-self: flex-start;
+}
+
+.search-result-game-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.search-result-type-label {
+  display: inline-block;
+  padding: 4px 8px;
+  background: rgba(249, 115, 22, 0.12);
+  border: 1px solid rgba(249, 115, 22, 0.45);
+  border-radius: 4px;
+  color: #fb923c;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  flex-shrink: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Common date styles */
 .search-result-date,
 .search-results-list-date {

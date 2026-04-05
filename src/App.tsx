@@ -790,6 +790,7 @@ function GameDetailPage({
         keywords: updatedGame.keywords ?? undefined,
         alternativeNames: updatedGame.alternativeNames ?? undefined,
         similarGames: updatedGame.similarGames ?? undefined,
+        type: updatedGame.type ?? undefined,
       };
       setGame(parsed);
     };
@@ -864,6 +865,7 @@ function GameDetailPage({
         keywords: found.keywords || null,
         alternativeNames: found.alternativeNames || null,
         similarGames: found.similarGames || null,
+        type: found.type ?? null,
       };
       setGame(parsed);
     } catch (err: any) {

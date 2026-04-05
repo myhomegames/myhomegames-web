@@ -65,6 +65,7 @@ function parseGamesFromJson(json: { games?: any[] }) {
     keywords: v.keywords || null,
     alternativeNames: v.alternativeNames || null,
     similarGames: v.similarGames || null,
+    type: v.type ?? null,
   }));
 }
 

@@ -40,6 +40,8 @@ export type GameItem = {
   keywords?: string[];
   alternativeNames?: string[];
   similarGames?: Array<{ id: number; name: string }>;
+  /** IGDB game_type id (0–14); label via i18n `igdbGameTypes.{id}`. */
+  type?: number | null;
   /** True when game is from IGDB only (not in library); click navigates to igdb-game page, cover shows "Nuovo" badge */
   isIgdbOnly?: boolean;
 };
@@ -110,6 +112,8 @@ export type IGDBGame = {
   similarGames?: Array<{ id: number; name: string }>;
   criticRating?: number | null;
   userRating?: number | null;
+  /** IGDB game_type id (0–14) */
+  type?: number | null;
 };
 
 export type SortField = "title" | "year" | "stars" | "releaseDate" | "criticRating" | "userRating" | "ageRating";

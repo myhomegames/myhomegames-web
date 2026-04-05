@@ -436,6 +436,7 @@
   },
   "igdbInfo": {
     "gameId": "ID",
+    "gameType": "Tipo",
     "themes": "Temas",
     "platforms": "Plataformas",
     "gameModes": "Modos de jogo",
@@ -520,5 +521,22 @@
     "ratings": "Avaliações",
     "criticRating": "Avaliação da crítica",
     "userRating": "Avaliação dos usuários"
+  },
+  "igdbGameTypes": {
+    "0": "Jogo principal",
+    "1": "DLC",
+    "2": "Expansão",
+    "3": "Pacote",
+    "4": "Expansão independente",
+    "5": "Mod",
+    "6": "Episódio",
+    "7": "Temporada",
+    "8": "Remake",
+    "9": "Remaster",
+    "10": "Jogo ampliado",
+    "11": "Port",
+    "12": "Fork",
+    "13": "Pacote",
+    "14": "Atualização"
   }
 }

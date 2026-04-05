@@ -12,6 +12,8 @@ import { useNavigate } from "react-router-dom";
 import { useCollectionHasPlayableGame } from "../common/hooks/useCollectionHasPlayableGame";
 import type { GameItem, CollectionItem, CollectionInfo } from "../../types";
 import { formatGameDate } from "../../utils/date";
+import { displayGameType } from "../../utils/igdbGameType";
+import Tooltip from "../common/Tooltip";
 import "./SearchResultsList.css";
 
 type SearchResultType = "game" | "collection" | "developer" | "publisher";
@@ -174,6 +176,11 @@ function SearchResultItem({
         ? t("search.publisher")
         : t("search.collection");
 
+  const gameItem = isGame ? (item as GameItem) : null;
+  const showCoverTitle = (item as { showTitle?: boolean }).showTitle !== false;
+  const typeLabel =
+    gameItem != null && gameItem.type != null ? displayGameType(gameItem.type) : "";
+
   return (
     <div
       key={item.id}
@@ -184,20 +191,64 @@ function SearchResultItem({
       tabIndex={isPopup ? 0 : undefined}
       style={isPopup ? { display: "flex", alignItems: "center", gap: "16px" } : undefined}
     >
-      <Cover
-        key={`${item.id}-${item.cover}`}
-        title={item.title}
-        coverUrl={buildCoverUrl(API_BASE, item.cover, true)}
-        width={actualCoverSize}
-        height={coverHeight}
-        onClick={handleClick}
-        showTitle={(item as { showTitle?: boolean }).showTitle !== false}
-        subtitle={subtitle}
-        titlePosition="bottom"
-        detail={true}
-        play={false}
-        showBorder={false}
-      />
+      {isGame ? (
+        <>
+          <Cover
+            key={`${item.id}-${item.cover}`}
+            title={item.title}
+            coverUrl={buildCoverUrl(API_BASE, item.cover, true)}
+            width={actualCoverSize}
+            height={coverHeight}
+            onClick={handleClick}
+            showTitle={false}
+            subtitle={null}
+            titlePosition="bottom"
+            detail={true}
+            play={false}
+            showBorder={false}
+          />
+          <div className="search-result-game-text">
+            {(showCoverTitle || typeLabel) && (
+              <div className="search-result-game-title-row">
+                {showCoverTitle && (
+                  <Tooltip text={item.title} position="bottom">
+                    <div
+                      className="search-result-title truncate games-list-title-clickable"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleClick();
+                      }}
+                    >
+                      {item.title}
+                    </div>
+                  </Tooltip>
+                )}
+                {typeLabel ? (
+                  <span className="search-result-type-label">{typeLabel}</span>
+                ) : null}
+              </div>
+            )}
+            {subtitle ? (
+              <div className="search-result-date games-list-year">{subtitle}</div>
+            ) : null}
+          </div>
+        </>
+      ) : (
+        <Cover
+          key={`${item.id}-${item.cover}`}
+          title={item.title}
+          coverUrl={buildCoverUrl(API_BASE, item.cover, true)}
+          width={actualCoverSize}
+          height={coverHeight}
+          onClick={handleClick}
+          showTitle={showCoverTitle}
+          subtitle={subtitle}
+          titlePosition="bottom"
+          detail={true}
+          play={false}
+          showBorder={false}
+        />
+      )}
       {(onPlay || onEditClick) && (
         <div className="search-result-right-actions" onClick={(e) => e.stopPropagation()}>
           {onPlay && (isGame ? ((item as GameItem).executables && (item as GameItem).executables!.length > 0) : hasPlayableGame === true) && (

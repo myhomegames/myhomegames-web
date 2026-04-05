@@ -8,6 +8,7 @@ import {
   AGE_RATING_VALUES_BY_ORG,
   formatAgeRating,
 } from "../AgeRatings";
+import { displayGameType, IGDB_GAME_TYPE_IDS } from "../../../utils/igdbGameType";
 
 type AgeRatingEntry = { category: number; rating: number };
 
@@ -37,6 +38,8 @@ type EditGameInfoTabProps = {
   setYear: (value: string) => void;
   setMonth: (value: string) => void;
   setDay: (value: string) => void;
+  gameType: number | null;
+  onGameTypeChange: (value: number | null) => void;
 };
 
 export default function EditGameInfoTab({
@@ -65,7 +68,10 @@ export default function EditGameInfoTab({
   setYear,
   setMonth,
   setDay,
+  gameType,
+  onGameTypeChange,
 }: EditGameInfoTabProps) {
+  const gameTypeSelectId = useId();
   const ageRatingCategoryId = useId();
   const ageRatingValueId = useId();
   const newAlternativeNameId = useId();
@@ -164,6 +170,27 @@ export default function EditGameInfoTab({
           disabled={saving}
           rows={5}
         />
+      </div>
+
+      <div className="edit-game-modal-field">
+        <label htmlFor={gameTypeSelectId}>{t("gameDetail.gameType", "Game type")}</label>
+        <select
+          id={gameTypeSelectId}
+          name="gameType"
+          value={gameType === null ? "" : String(gameType)}
+          onChange={(e) => {
+            const v = e.target.value;
+            onGameTypeChange(v === "" ? null : parseInt(v, 10));
+          }}
+          disabled={saving}
+        >
+          <option value="">{t("gameDetail.gameTypeNotSet", "Not set")}</option>
+          {IGDB_GAME_TYPE_IDS.map((id) => (
+            <option key={id} value={String(id)}>
+              {displayGameType(id)}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="edit-game-modal-row">

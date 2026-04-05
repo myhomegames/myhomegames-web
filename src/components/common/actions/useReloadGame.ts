@@ -99,6 +99,7 @@ export function useReloadGame({
               keywords: data.game.keywords || null,
               alternativeNames: data.game.alternativeNames || null,
               similarGames: data.game.similarGames || null,
+              type: data.game.type ?? null,
             };
             onGameUpdate(updatedGame);
             setIsReloading(false);

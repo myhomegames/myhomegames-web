@@ -32,6 +32,11 @@ function initialExternalBackgroundUrl(g: GameItem): string {
   return b.startsWith("http") ? b : "";
 }
 
+function gameTypeFromGame(g: GameItem): number | null {
+  if (g.type != null && typeof g.type === "number" && !Number.isNaN(g.type)) return g.type;
+  return null;
+}
+
 type EditGameModalProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -109,6 +114,7 @@ export default function EditGameModal({
   const [localUserRating, setLocalUserRating] = useState("");
   const [localExternalCover, setLocalExternalCover] = useState("");
   const [localExternalBackground, setLocalExternalBackground] = useState("");
+  const [localGameType, setLocalGameType] = useState<number | null>(() => gameTypeFromGame(game));
 
   // Memoize cover and background URLs with timestamp when modal opens
   // NEVER show IGDB images in edit modal - only show local images
@@ -205,6 +211,7 @@ export default function EditGameModal({
       );
       setLocalExternalCover(initialExternalCoverUrl(game));
       setLocalExternalBackground(initialExternalBackgroundUrl(game));
+      setLocalGameType(gameTypeFromGame(game));
       // Generate new timestamp to force image reload when modal opens
       setImageTimestamp(Date.now());
     }
@@ -264,6 +271,7 @@ export default function EditGameModal({
     if (year !== (game.year?.toString() || "")) return true;
     if (month !== (game.month?.toString() || "")) return true;
     if (day !== (game.day?.toString() || "")) return true;
+    if (localGameType !== gameTypeFromGame(game)) return true;
     const expectedCritic = game.criticratings != null && !Number.isNaN(game.criticratings) ? String(Math.round(game.criticratings * 10)) : "";
     const expectedUser = game.userratings != null && !Number.isNaN(game.userratings) ? String(Math.round(game.userratings * 10)) : "";
     if (localCriticRating !== expectedCritic || localUserRating !== expectedUser) return true;
@@ -618,6 +626,10 @@ export default function EditGameModal({
           : null;
       }
 
+      if (localGameType !== gameTypeFromGame(game)) {
+        updates.type = localGameType;
+      }
+
       // Only make PUT request if there are updates (images were already uploaded)
       if (Object.keys(updates).length > 0) {
         const url = buildApiUrl(API_BASE, `/games/${game.id}`);
@@ -713,6 +725,7 @@ export default function EditGameModal({
             result.game.externalBackgroundUrl !== undefined
               ? result.game.externalBackgroundUrl
               : (game.externalBackgroundUrl ?? null),
+          type: result.game.type !== undefined ? result.game.type : (game.type ?? null),
         };
 
         // Check if any genres were removed and delete unused categories
@@ -1004,6 +1017,8 @@ export default function EditGameModal({
               setYear={setYear}
               setMonth={setMonth}
               setDay={setDay}
+              gameType={localGameType}
+              onGameTypeChange={setLocalGameType}
             />
           )}
 

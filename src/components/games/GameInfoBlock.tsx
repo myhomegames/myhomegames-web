@@ -8,6 +8,7 @@ import { usePublishers } from "../../contexts/PublishersContext";
 import { useTagLists } from "../../contexts/TagListsContext";
 import WebsitesList from "./WebsitesList";
 import InlineTagList from "../common/InlineTagList";
+import { displayGameType } from "../../utils/igdbGameType";
 import "./GameInfoBlock.css";
 
 type GameInfoBlockProps = {
@@ -81,7 +82,8 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
     seriesIds.length > 0 ||
     (game.screenshots && game.screenshots.length > 0) ||
     (game.gameEngines && game.gameEngines.length > 0) ||
-    (game.alternativeNames && game.alternativeNames.length > 0);
+    (game.alternativeNames && game.alternativeNames.length > 0) ||
+    (game.type != null && displayGameType(game.type) !== "");
 
   if (!hasInfo) {
     return null;
@@ -207,6 +209,16 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
 
   return (
     <div className="game-info-block">
+
+      {/* Game type (IGDB: Main Game, Port, Remake, …) */}
+      {game.type != null && displayGameType(game.type) && (
+        <div className="game-info-field">
+          <div className="text-white game-info-label">
+            {t("igdbInfo.gameType", "Type")}
+          </div>
+          <div className="game-info-value">{displayGameType(game.type)}</div>
+        </div>
+      )}
 
       {/* Themes */}
       {game.themes && game.themes.length > 0 && (

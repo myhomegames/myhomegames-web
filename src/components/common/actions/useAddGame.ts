@@ -3,6 +3,7 @@ import { API_BASE, getApiToken } from "../../../config";
 import { buildApiUrl } from "../../../utils/api";
 import { useLoading } from "../../../contexts/LoadingContext";
 import type { IGDBGame, GameItem } from "../../../types";
+import { toGameTypeId } from "../../../utils/igdbGameType";
 
 type UseAddGameParams = {
   onGameAdded?: (game: any) => void;
@@ -73,6 +74,7 @@ export function useAddGame({
           keywords: igdbGame.keywords,
           alternativeNames: igdbGame.alternativeNames,
           similarGames: igdbGame.similarGames,
+          type: toGameTypeId(igdbGame.type),
         }),
       });
 
@@ -87,7 +89,15 @@ export function useAddGame({
       }
 
       const json = await res.json();
-      
+
+      const st = json.game?.type;
+      const resolvedGameType: number | null =
+        typeof st === "number"
+          ? st
+          : st === null
+            ? null
+            : (toGameTypeId(st as number | { id: number } | undefined) ?? toGameTypeId(igdbGame.type) ?? null);
+
       // Convert server response to GameItem format (matching the format used in App.tsx when loading games)
       const gameId = json.gameId || json.game?.id;
       const addedGame: GameItem = {
@@ -121,6 +131,7 @@ export function useAddGame({
         keywords: json.game?.keywords || igdbGame.keywords || null,
         alternativeNames: json.game?.alternativeNames || igdbGame.alternativeNames || null,
         similarGames: json.game?.similarGames || igdbGame.similarGames || null,
+        type: resolvedGameType,
       };
 
       // Emit custom event to notify App.tsx and other components

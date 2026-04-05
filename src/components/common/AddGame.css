@@ -67,6 +67,19 @@
   background: #1a1a1a;
 }
 
+/* Visually hidden labels (a11y / DevTools form field checks) */
+.add-game-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .add-game-create-from-scratch {
   margin-bottom: 20px;
   padding-bottom: 20px;
@@ -264,27 +277,13 @@
   opacity: 1;
 }
 
-.add-game-result-cover {
-  width: 80px;
-  height: 112px;
-  object-fit: cover;
-  border-radius: 8px;
+.add-game-result-cover-wrap {
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.add-game-result-placeholder {
-  width: 80px;
-  height: 112px;
-  background: linear-gradient(135deg, rgba(42, 42, 42, 0.8) 0%, rgba(26, 26, 26, 0.8) 100%);
+.add-game-result-cover-wrap .games-list-cover {
   border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .add-game-result-content {
@@ -311,6 +310,24 @@
   line-height: 1.3;
 }
 
+.add-game-result-type-label {
+  display: inline-block;
+  padding: 4px 8px;
+  background: rgba(249, 115, 22, 0.12);
+  border: 1px solid rgba(249, 115, 22, 0.45);
+  border-radius: 4px;
+  color: #fb923c;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  flex-shrink: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .add-game-result-new-label {
   display: inline-block;
   padding: 4px 8px;
@@ -323,6 +340,7 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  flex-shrink: 0;
 }
 
 .add-game-result-date {

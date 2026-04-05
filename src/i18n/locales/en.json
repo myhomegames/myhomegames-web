@@ -155,6 +155,8 @@
     "year": "Year",
     "month": "Month",
     "day": "Day",
+    "gameType": "Game type",
+    "gameTypeNotSet": "Not set",
     "genre": "Genre",
     "addGenre": "Add genre...",
     "themes": "Themes",
@@ -438,6 +440,7 @@
   },
   "igdbInfo": {
     "gameId": "ID",
+    "gameType": "Type",
     "themes": "Themes",
     "platforms": "Platforms",
     "gameModes": "Game Modes",
@@ -531,5 +534,22 @@
     "ratings": "Ratings",
     "criticRating": "Critic Rating",
     "userRating": "User Rating"
+  },
+  "igdbGameTypes": {
+    "0": "Main Game",
+    "1": "DLC",
+    "2": "Expansion",
+    "3": "Bundle",
+    "4": "Standalone Expansion",
+    "5": "Mod",
+    "6": "Episode",
+    "7": "Season",
+    "8": "Remake",
+    "9": "Remaster",
+    "10": "Expanded Game",
+    "11": "Port",
+    "12": "Fork",
+    "13": "Pack",
+    "14": "Update"
   }
 }
