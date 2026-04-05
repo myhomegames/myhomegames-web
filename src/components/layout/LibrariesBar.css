@@ -46,7 +46,6 @@
 .mhg-libraries-actions-background-toggle-container {
   display: flex;
   align-items: center;
-  margin-right: 3px;
   transform: translateY(3px);
 }
 
@@ -54,14 +53,12 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0 4px;
-  margin-right: 26px;
+  gap: 8px;
 }
 
 .mhg-libraries-actions-new-games-container {
   display: flex;
   align-items: center;
-  margin-right: 0;
 }
 
 .mhg-libraries-actions-main-games-container {

@@ -234,7 +234,7 @@ body:has(.launch-modal-overlay) {
 .mhg-libraries-actions {
   display: flex;
   align-items: center;
-  gap: 0px;
+  gap: 8px;
   flex-shrink: 0;
   margin-left: auto;
 }
