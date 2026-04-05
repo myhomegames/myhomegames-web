@@ -142,6 +142,7 @@
     "stars": "Bewertung",
     "criticRating": "Kritikerbewertung",
     "ageRating": "Inhaltsbewertung",
+    "gameType": "Spieltyp",
     "noGames": "Keine Spiele gefunden"
   },
   "gameDetail": {
@@ -312,6 +313,7 @@
       "developers": "Entwickler",
       "playerPerspectives": "Perspektiven",
       "gameEngines": "Game Engines",
+      "gameType": "Spieltyp",
       "year": "Jahr",
       "decade": "Jahrzehnt",
       "collection": "Sammlung",
@@ -328,6 +330,7 @@
       "searchDevelopers": "Filter Entwickler",
       "searchPlayerPerspectives": "Filter Perspektiven",
       "searchGameEngines": "Filter Game Engines",
+      "searchGameType": "Spieltyp filtern",
       "searchDecade": "Filter Jahrzehnt",
       "searchCollection": "Filter Sammlung",
       "searchSeries": "Serie filtern",
@@ -340,6 +343,7 @@
       "year": "Jahr",
       "stars": "Bewertung",
       "releaseDate": "Veröffentlichungsdatum",
+      "gameType": "Spieltyp",
       "criticRating": "Kritikerbewertung",
       "userRating": "Publikumsbewertung",
       "ageRating": "Inhaltsbewertung"

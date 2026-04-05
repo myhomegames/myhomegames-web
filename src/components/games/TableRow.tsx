@@ -8,9 +8,11 @@ import Tooltip from "../common/Tooltip";
 import AgeRatings from "./AgeRatings";
 import type { GameItem, CollectionItem } from "../../types";
 import { gameHasExecutableForPlatform, getExecutablesForPlatform } from "../../utils/gameExecutables";
+import { displayGameType, toGameTypeId } from "../../utils/igdbGameType";
 
 type ColumnVisibility = {
   title: boolean;
+  gameType: boolean;
   releaseDate: boolean;
   year: boolean;
   stars: boolean;
@@ -102,6 +104,8 @@ export default function TableRow({
   // Determine the first visible column
   const firstVisibleColumn = columnVisibility.title
     ? "title"
+    : columnVisibility.gameType
+    ? "gameType"
     : columnVisibility.releaseDate
     ? "releaseDate"
     : columnVisibility.stars
@@ -113,6 +117,20 @@ export default function TableRow({
     : columnVisibility.ageRating
     ? "ageRating"
     : null;
+
+  const hasAnyColumnAfterTitle =
+    columnVisibility.gameType ||
+    columnVisibility.releaseDate ||
+    columnVisibility.stars ||
+    columnVisibility.year ||
+    columnVisibility.criticRating ||
+    columnVisibility.ageRating;
+  const hasAnyColumnAfterGameType =
+    columnVisibility.releaseDate ||
+    columnVisibility.stars ||
+    columnVisibility.year ||
+    columnVisibility.criticRating ||
+    columnVisibility.ageRating;
 
   const PlayIcon = () => {
     if (!hasPlay) return null;
@@ -164,7 +182,11 @@ export default function TableRow({
     >
       <CellTag className="column-menu-cell" style={cellStyle} role={useDiv ? "cell" : undefined}></CellTag>
       {columnVisibility.title && (
-        <CellTag className={`title-cell ${rowClass} ${firstVisibleColumn === "title" ? "first-visible-cell" : ""}`} style={cellStyle} role={useDiv ? "cell" : undefined}>
+        <CellTag
+          className={`title-cell ${rowClass} ${hasAnyColumnAfterTitle ? "has-border-right" : ""} ${firstVisibleColumn === "title" ? "first-visible-cell" : ""}`}
+          style={cellStyle}
+          role={useDiv ? "cell" : undefined}
+        >
           {firstVisibleColumn === "title" && onPlay && <PlayIcon />}
           <Tooltip text={game.title} delay={1000}>
             <span 
@@ -174,6 +196,18 @@ export default function TableRow({
               {game.title}
             </span>
           </Tooltip>
+        </CellTag>
+      )}
+      {columnVisibility.gameType && (
+        <CellTag
+          className={`game-type-cell ${rowClass} ${hasAnyColumnAfterGameType ? "has-border-right" : ""} ${firstVisibleColumn === "gameType" ? "first-visible-cell" : ""}`}
+          style={cellStyle}
+          role={useDiv ? "cell" : undefined}
+        >
+          {firstVisibleColumn === "gameType" && onPlay && <PlayIcon />}
+          <span className={firstVisibleColumn === "gameType" ? "first-cell-text" : ""}>
+            {displayGameType(toGameTypeId(game.type)) || "-"}
+          </span>
         </CellTag>
       )}
       {columnVisibility.releaseDate && (

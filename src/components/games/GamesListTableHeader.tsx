@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import type { SortField } from "../../types";
 import "./GamesListTable.css";
 
 type ColumnVisibility = {
   title: boolean;
+  gameType: boolean;
   releaseDate: boolean;
   year: boolean;
   stars: boolean;
@@ -14,9 +16,9 @@ type ColumnVisibility = {
 type GamesListTableHeaderProps = {
   columnVisibility: ColumnVisibility;
   onToggleColumn: (column: keyof ColumnVisibility) => void;
-  sortField?: "title" | "year" | "stars" | "releaseDate" | "criticRating" | "userRating" | "ageRating";
+  sortField?: SortField;
   sortAscending?: boolean;
-  onSort: (field: "title" | "year" | "stars" | "releaseDate" | "criticRating" | "userRating" | "ageRating") => void;
+  onSort: (field: SortField) => void;
 };
 
 export default function GamesListTableHeader({
@@ -42,7 +44,7 @@ export default function GamesListTableHeader({
     };
   }, []);
 
-  const getSortIcon = (field: "title" | "year" | "stars" | "releaseDate" | "criticRating" | "ageRating") => {
+  const getSortIcon = (field: SortField) => {
     if (sortField !== field) return "";
     return sortAscending ? "↑" : "↓";
   };
@@ -52,6 +54,10 @@ export default function GamesListTableHeader({
       {
         key: "title" as keyof ColumnVisibility,
         label: t("table.title"),
+      },
+      {
+        key: "gameType" as keyof ColumnVisibility,
+        label: t("table.gameType", "Game type"),
       },
       {
         key: "releaseDate" as keyof ColumnVisibility,
@@ -80,6 +86,8 @@ export default function GamesListTableHeader({
   // Determine the first visible column for header alignment
   const firstVisibleColumn = columnVisibility.title
     ? "title"
+    : columnVisibility.gameType
+    ? "gameType"
     : columnVisibility.releaseDate
     ? "releaseDate"
     : columnVisibility.stars
@@ -91,6 +99,20 @@ export default function GamesListTableHeader({
     : columnVisibility.ageRating
     ? "ageRating"
     : null;
+
+  const hasAnyColumnAfterTitle =
+    columnVisibility.gameType ||
+    columnVisibility.releaseDate ||
+    columnVisibility.stars ||
+    columnVisibility.year ||
+    columnVisibility.criticRating ||
+    columnVisibility.ageRating;
+  const hasAnyColumnAfterGameType =
+    columnVisibility.releaseDate ||
+    columnVisibility.stars ||
+    columnVisibility.year ||
+    columnVisibility.criticRating ||
+    columnVisibility.ageRating;
 
   return (
     <div className="games-table-header-section">
@@ -170,10 +192,19 @@ export default function GamesListTableHeader({
             {columnVisibility.title && (
               <th
                 onClick={() => onSort("title")}
-                className={`title-cell has-border-right ${firstVisibleColumn === "title" ? "first-visible-cell" : ""} ${sortField === "title" ? "sorted" : ""}`}
+                className={`title-cell ${hasAnyColumnAfterTitle ? "has-border-right" : ""} ${firstVisibleColumn === "title" ? "first-visible-cell" : ""} ${sortField === "title" ? "sorted" : ""}`}
               >
                 <span>{t("table.title")}</span>
                 <span className="sort-indicator">{getSortIcon("title")}</span>
+              </th>
+            )}
+            {columnVisibility.gameType && (
+              <th
+                onClick={() => onSort("gameType")}
+                className={`game-type-cell ${hasAnyColumnAfterGameType ? "has-border-right" : ""} ${firstVisibleColumn === "gameType" ? "first-visible-cell" : ""} ${sortField === "gameType" ? "sorted" : ""}`}
+              >
+                <span>{t("table.gameType", "Game type")}</span>
+                <span className="sort-indicator">{getSortIcon("gameType")}</span>
               </th>
             )}
             {columnVisibility.releaseDate && (

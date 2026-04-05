@@ -142,6 +142,7 @@
     "stars": "评分",
     "criticRating": "评论家评分",
     "ageRating": "内容分级",
+    "gameType": "游戏类型",
     "noGames": "未找到"
   },
   "gameDetail": {
@@ -312,6 +313,7 @@
       "developers": "开发者",
       "playerPerspectives": "视角",
       "gameEngines": "游戏引擎",
+      "gameType": "游戏类型",
       "year": "年份",
       "decade": "年代",
       "collection": "收藏",
@@ -328,6 +330,7 @@
       "searchDevelopers": "筛选开发者",
       "searchPlayerPerspectives": "筛选视角",
       "searchGameEngines": "筛选游戏引擎",
+      "searchGameType": "筛选游戏类型",
       "searchDecade": "筛选年代",
       "searchCollection": "筛选收藏",
       "searchSeries": "筛选系列",
@@ -340,6 +343,7 @@
       "year": "年份",
       "stars": "评分",
       "releaseDate": "发布日期",
+      "gameType": "游戏类型",
       "criticRating": "评论家评分",
       "userRating": "用户评分",
       "ageRating": "内容分级"

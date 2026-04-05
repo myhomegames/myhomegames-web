@@ -59,6 +59,7 @@ export default function SortPopup({
     { value: "title", label: t("gamesListToolbar.sort.title") },
     { value: "year", label: t("gamesListToolbar.sort.year") },
     { value: "releaseDate", label: t("gamesListToolbar.sort.releaseDate") },
+    { value: "gameType", label: t("gamesListToolbar.sort.gameType") },
     { value: "criticRating", label: t("gamesListToolbar.sort.criticRating") },
     { value: "userRating", label: t("gamesListToolbar.sort.userRating") },
     { value: "stars", label: t("gamesListToolbar.sort.stars") },

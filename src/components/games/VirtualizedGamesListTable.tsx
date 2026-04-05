@@ -35,6 +35,7 @@ type VirtualizedGamesListTableProps = {
   allCollections?: CollectionItem[];
   columnVisibility: {
     title: boolean;
+    gameType: boolean;
     releaseDate: boolean;
     year: boolean;
     stars: boolean;

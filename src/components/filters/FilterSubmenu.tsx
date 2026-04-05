@@ -15,6 +15,7 @@ import {
   SeriesFilter,
   FranchiseFilter,
   AgeRatingFilter,
+  GameTypeFilter,
 } from "./index";
 
 type FilterSubmenuProps = {
@@ -88,6 +89,8 @@ export default function FilterSubmenu({
       return <FranchiseFilter {...commonProps} availableFranchises={availableFranchises} />;
     case "ageRating":
       return <AgeRatingFilter {...commonProps} />;
+    case "gameType":
+      return <GameTypeFilter {...commonProps} />;
     default:
       return null;
   }

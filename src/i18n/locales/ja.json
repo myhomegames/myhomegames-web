@@ -142,6 +142,7 @@
     "stars": "評価",
     "criticRating": "批評家評価",
     "ageRating": "コンテンツレーティング",
+    "gameType": "ゲームタイプ",
     "noGames": "ゲームが見つかりません"
   },
   "gameDetail": {
@@ -312,6 +313,7 @@
       "developers": "開発者",
       "playerPerspectives": "視点",
       "gameEngines": "ゲームエンジン",
+      "gameType": "ゲームタイプ",
       "year": "年",
       "decade": "年代",
       "collection": "コレクション",
@@ -328,6 +330,7 @@
       "searchDevelopers": "フィルター開発者",
       "searchPlayerPerspectives": "フィルター視点",
       "searchGameEngines": "フィルターゲームエンジン",
+      "searchGameType": "ゲームタイプを絞り込む",
       "searchDecade": "フィルター年代",
       "searchCollection": "フィルターコレクション",
       "searchSeries": "シリーズで絞り込み",
@@ -340,6 +343,7 @@
       "year": "年",
       "stars": "評価",
       "releaseDate": "リリース日",
+      "gameType": "ゲームタイプ",
       "criticRating": "批評家評価",
       "userRating": "ユーザー評価",
       "ageRating": "コンテンツレーティング"

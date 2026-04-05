@@ -176,8 +176,9 @@ function SearchResultItem({
         ? t("search.publisher")
         : t("search.collection");
 
-  const gameItem = isGame ? (item as GameItem) : null;
   const showCoverTitle = (item as { showTitle?: boolean }).showTitle !== false;
+  const showGameTypeInRow = isGame && !isPopup;
+  const gameItem = showGameTypeInRow ? (item as GameItem) : null;
   const typeLabel =
     gameItem != null && gameItem.type != null ? displayGameType(gameItem.type) : "";
 
@@ -191,7 +192,7 @@ function SearchResultItem({
       tabIndex={isPopup ? 0 : undefined}
       style={isPopup ? { display: "flex", alignItems: "center", gap: "16px" } : undefined}
     >
-      {isGame ? (
+      {showGameTypeInRow ? (
         <>
           <Cover
             key={`${item.id}-${item.cover}`}

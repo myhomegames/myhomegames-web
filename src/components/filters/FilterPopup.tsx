@@ -23,6 +23,7 @@ type FilterPopupProps = {
   selectedSeries: string | null;
   selectedFranchise: string | null;
   selectedAgeRating: string | null;
+  selectedGameType: string | null;
   onFilterChange?: (field: FilterField) => void;
   onYearFilterChange?: (year: number | null) => void;
   onGenreFilterChange?: (genre: string | null) => void;
@@ -39,6 +40,7 @@ type FilterPopupProps = {
   onSeriesFilterChange?: (series: string | null) => void;
   onFranchiseFilterChange?: (franchise: string | null) => void;
   onAgeRatingFilterChange?: (ageRating: string | null) => void;
+  onGameTypeFilterChange?: (gameType: string | null) => void;
   games?: GameItem[];
   availableGenres?: Array<{ id: string; title: string }>;
   availableCollections?: Array<{ id: string; title: string }>;
@@ -67,6 +69,7 @@ export default function FilterPopup({
   selectedSeries,
   selectedFranchise,
   selectedAgeRating,
+  selectedGameType,
   onFilterChange,
   onYearFilterChange,
   onGenreFilterChange,
@@ -83,6 +86,7 @@ export default function FilterPopup({
   onSeriesFilterChange,
   onFranchiseFilterChange,
   onAgeRatingFilterChange,
+  onGameTypeFilterChange,
   games = [],
   availableGenres = [],
   availableCollections = [],
@@ -136,6 +140,8 @@ export default function FilterPopup({
           lastOpenSubmenuRef.current = "franchise";
         } else if (currentFilter === "ageRating") {
           lastOpenSubmenuRef.current = "ageRating";
+        } else if (currentFilter === "gameType") {
+          lastOpenSubmenuRef.current = "gameType";
         } else {
           lastOpenSubmenuRef.current = null;
         }
@@ -176,6 +182,8 @@ export default function FilterPopup({
             lastOpenSubmenuRef.current = "franchise";
           } else if (currentFilter === "ageRating") {
             lastOpenSubmenuRef.current = "ageRating";
+          } else if (currentFilter === "gameType") {
+            lastOpenSubmenuRef.current = "gameType";
           }
         } else if (currentFilter === "year") {
           setOpenSubmenu("year");
@@ -222,6 +230,9 @@ export default function FilterPopup({
         } else if (currentFilter === "ageRating") {
           setOpenSubmenu("ageRating");
           lastOpenSubmenuRef.current = "ageRating";
+        } else if (currentFilter === "gameType") {
+          setOpenSubmenu("gameType");
+          lastOpenSubmenuRef.current = "gameType";
         } else if (lastOpenSubmenuRef.current) {
           // Restore the last open submenu even if no filter is active
           setOpenSubmenu(lastOpenSubmenuRef.current);
@@ -346,6 +357,10 @@ export default function FilterPopup({
       setOpenSubmenu("ageRating");
       lastOpenSubmenuRef.current = "ageRating";
       wentBackRef.current = false; // Reset went back flag when selecting a filter
+    } else if (field === "gameType") {
+      setOpenSubmenu("gameType");
+      lastOpenSubmenuRef.current = "gameType";
+      wentBackRef.current = false;
     } else {
       onFilterChange?.(field);
       if (onYearFilterChange) {
@@ -392,6 +407,9 @@ export default function FilterPopup({
       }
       if (onAgeRatingFilterChange) {
         onAgeRatingFilterChange(null);
+      }
+      if (onGameTypeFilterChange) {
+        onGameTypeFilterChange(null);
       }
       setOpenSubmenu(null);
       lastOpenSubmenuRef.current = null;
@@ -461,6 +479,9 @@ export default function FilterPopup({
     }
     if (exclude !== "ageRating") {
       onAgeRatingFilterChange?.(null);
+    }
+    if (exclude !== "gameType") {
+      onGameTypeFilterChange?.(null);
     }
   };
 
@@ -707,6 +728,24 @@ export default function FilterPopup({
     }
   };
 
+  const handleGameTypeSelect = (value: number | string | null) => {
+    const typeId =
+      typeof value === "string" ? value : value !== null && value !== undefined ? String(value) : null;
+    if (typeId === null) {
+      onFilterChange?.("all");
+      onGameTypeFilterChange?.(null);
+      setOpenSubmenu(null);
+      lastOpenSubmenuRef.current = null;
+      onClose();
+    } else {
+      onFilterChange?.("gameType");
+      onGameTypeFilterChange?.(typeId);
+      resetOtherFilters("gameType");
+      lastOpenSubmenuRef.current = "gameType";
+      onClose();
+    }
+  };
+
   const handleSubmenuClose = () => {
     setOpenSubmenu(null);
     lastOpenSubmenuRef.current = null; // Reset state when going back to main menu
@@ -939,6 +978,20 @@ export default function FilterPopup({
     );
   }
 
+  if (isOpen && openSubmenu === "gameType") {
+    return (
+      <FilterSubmenu
+        type="gameType"
+        isOpen={true}
+        onClose={handleSubmenuClose}
+        onCloseCompletely={handleSubmenuCloseCompletely}
+        selectedValue={selectedGameType}
+        onSelect={handleGameTypeSelect}
+        games={games}
+      />
+    );
+  }
+
   // Only show main menu if popup is open and no submenu is active
   if (!isOpen || openSubmenu) return null;
 
@@ -1161,6 +1214,29 @@ export default function FilterPopup({
       >
         <span>{t("gamesListToolbar.filter.gameEngines")}</span>
         {currentFilter === "gameEngines" && (
+          <svg
+            className="filter-popup-check"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"
+              fill="#E5A00D"
+            />
+          </svg>
+        )}
+      </button>
+      <button
+        className={`filter-popup-item ${
+          currentFilter === "gameType" ? "selected" : ""
+        }`}
+        onClick={() => handleFilterSelect("gameType")}
+      >
+        <span>{t("gamesListToolbar.filter.gameType")}</span>
+        {currentFilter === "gameType" && (
           <svg
             className="filter-popup-check"
             width="16"

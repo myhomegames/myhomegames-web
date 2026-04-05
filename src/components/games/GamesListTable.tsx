@@ -15,6 +15,7 @@ const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are mo
 
 type ColumnVisibility = {
   title: boolean;
+  gameType: boolean;
   releaseDate: boolean;
   year: boolean;
   stars: boolean;

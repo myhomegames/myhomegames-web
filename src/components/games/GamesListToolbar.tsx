@@ -5,6 +5,7 @@ import SortPopup from "../toolbar/SortPopup";
 import type { FilterField, GameItem } from "../filters/types";
 import type { SortField } from "../../types";
 import { formatAgeRating } from "./AgeRatings";
+import { getIgdbGameTypeLabel } from "../../utils/igdbGameType";
 import { useTagLists } from "../../contexts/TagListsContext";
 import "./GamesListToolbar.css";
 
@@ -68,6 +69,7 @@ type GamesListToolbarProps = {
   onSeriesFilterChange?: (series: string | null) => void;
   onFranchiseFilterChange?: (franchise: string | null) => void;
   onAgeRatingFilterChange?: (ageRating: string | null) => void;
+  onGameTypeFilterChange?: (gameType: string | null) => void;
   onSortChange?: (field: SortField) => void;
   onSortDirectionChange?: (ascending: boolean) => void;
   currentFilter?: FilterField;
@@ -86,6 +88,7 @@ type GamesListToolbarProps = {
   selectedSeries?: string | null;
   selectedFranchise?: string | null;
   selectedAgeRating?: string | null;
+  selectedGameType?: string | null;
   currentSort?: SortField;
   sortAscending?: boolean;
   viewMode?: "grid" | "detail" | "table";
@@ -118,6 +121,7 @@ export default function GamesListToolbar({
   onSeriesFilterChange,
   onFranchiseFilterChange,
   onAgeRatingFilterChange,
+  onGameTypeFilterChange,
   onSortChange,
   onSortDirectionChange,
   currentFilter = "all",
@@ -136,6 +140,7 @@ export default function GamesListToolbar({
   selectedSeries = null,
   selectedFranchise = null,
   selectedAgeRating = null,
+  selectedGameType = null,
   currentSort = "title",
   sortAscending = true,
   viewMode = "grid",
@@ -264,6 +269,11 @@ export default function GamesListToolbar({
       const [category, rating] = selectedAgeRating.split('-').map(Number);
       return formatAgeRating(category, rating, t) || selectedAgeRating;
     }
+    if (currentFilter === "gameType" && selectedGameType !== null) {
+      const n = parseInt(selectedGameType, 10);
+      if (!Number.isNaN(n)) return getIgdbGameTypeLabel(n);
+      return String(selectedGameType);
+    }
     const filterOptions = [
       { value: "all" as FilterField, label: t("gamesListToolbar.filter.all") },
       { value: "genre" as FilterField, label: t("gamesListToolbar.filter.genre") },
@@ -275,6 +285,7 @@ export default function GamesListToolbar({
       { value: "developers" as FilterField, label: t("gamesListToolbar.filter.developers") },
       { value: "playerPerspectives" as FilterField, label: t("gamesListToolbar.filter.playerPerspectives") },
       { value: "gameEngines" as FilterField, label: t("gamesListToolbar.filter.gameEngines") },
+      { value: "gameType" as FilterField, label: t("gamesListToolbar.filter.gameType") },
       { value: "year" as FilterField, label: t("gamesListToolbar.filter.year") },
       { value: "decade" as FilterField, label: t("gamesListToolbar.filter.decade") },
       { value: "collection" as FilterField, label: t("gamesListToolbar.filter.collection") },
@@ -290,6 +301,7 @@ export default function GamesListToolbar({
     { value: "title" as SortField, label: t("gamesListToolbar.sort.title") },
     { value: "year" as SortField, label: t("gamesListToolbar.sort.year") },
     { value: "releaseDate" as SortField, label: t("gamesListToolbar.sort.releaseDate") },
+    { value: "gameType" as SortField, label: t("gamesListToolbar.sort.gameType") },
     { value: "criticRating" as SortField, label: t("gamesListToolbar.sort.criticRating") },
     { value: "userRating" as SortField, label: t("gamesListToolbar.sort.userRating") },
     { value: "stars" as SortField, label: t("gamesListToolbar.sort.stars") },
@@ -353,6 +365,9 @@ export default function GamesListToolbar({
                   if (onAgeRatingFilterChange) {
                     onAgeRatingFilterChange(null);
                   }
+                  if (onGameTypeFilterChange) {
+                    onGameTypeFilterChange(null);
+                  }
                   setIsFilterOpen(false);
                 }}
                 role="button"
@@ -400,6 +415,9 @@ export default function GamesListToolbar({
                     }
                     if (onAgeRatingFilterChange) {
                       onAgeRatingFilterChange(null);
+                    }
+                    if (onGameTypeFilterChange) {
+                      onGameTypeFilterChange(null);
                     }
                     setIsFilterOpen(false);
                   }
@@ -456,6 +474,7 @@ export default function GamesListToolbar({
             selectedSeries={selectedSeries}
             selectedFranchise={selectedFranchise}
             selectedAgeRating={selectedAgeRating}
+            selectedGameType={selectedGameType}
             onFilterChange={onFilterChange}
             onYearFilterChange={onYearFilterChange}
             onGenreFilterChange={onGenreFilterChange}
@@ -472,6 +491,7 @@ export default function GamesListToolbar({
             onSeriesFilterChange={onSeriesFilterChange}
             onFranchiseFilterChange={onFranchiseFilterChange}
             onAgeRatingFilterChange={onAgeRatingFilterChange}
+            onGameTypeFilterChange={onGameTypeFilterChange}
             games={games}
             availableGenres={availableGenres}
             availableCollections={availableCollections}

@@ -12,6 +12,7 @@ import { useEditGame } from "../common/actions";
 import VirtualizedGamesListDetail from "./VirtualizedGamesListDetail";
 import type { GameItem, CollectionItem } from "../../types";
 import { formatGameDate } from "../../utils/date";
+import { displayGameType, toGameTypeId } from "../../utils/igdbGameType";
 import { gameHasExecutableForPlatform, getExecutablesForPlatform } from "../../utils/gameExecutables";
 import "./GamesListDetail.css";
 
@@ -94,6 +95,11 @@ export function GameDetailItem({
     return buildCoverUrl(API_BASE, game.cover, coverChanged);
   }, [game.cover, coverChanged, buildCoverUrl]);
 
+  const gameTypeLabel = useMemo(
+    () => displayGameType(toGameTypeId(game.type)),
+    [game.type]
+  );
+
   const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onEditClick(game);
@@ -152,8 +158,11 @@ export function GameDetailItem({
         overlayContent={isIgdbOnly ? <span className="game-detail-similar-cover-badge">{t("addGame.new", "New")}</span> : undefined}
       />
       <div className="games-list-detail-content">
-        <div className="text-white mb-2 games-list-detail-title">
-          {game.title}
+        <div className="games-list-detail-title-row mb-2">
+          <div className="text-white games-list-detail-title">{game.title}</div>
+          {gameTypeLabel ? (
+            <span className="games-list-detail-type">{gameTypeLabel}</span>
+          ) : null}
         </div>
         {(game.year !== null && game.year !== undefined) || (game.stars !== null && game.stars !== undefined) ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>

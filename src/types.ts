@@ -116,7 +116,15 @@ export type IGDBGame = {
   type?: number | null;
 };
 
-export type SortField = "title" | "year" | "stars" | "releaseDate" | "criticRating" | "userRating" | "ageRating";
+export type SortField =
+  | "title"
+  | "year"
+  | "stars"
+  | "releaseDate"
+  | "gameType"
+  | "criticRating"
+  | "userRating"
+  | "ageRating";
 
 export type ViewMode = "grid" | "detail" | "table";
 

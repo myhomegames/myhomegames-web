@@ -40,12 +40,29 @@
   min-width: 0;
 }
 
+.games-list-detail-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+}
+
 .games-list-detail-title {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 0.9rem;
   font-weight: 600;
   color: #f8f8f8;
   cursor: pointer;
+}
+
+.games-list-detail-type {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.55);
+  padding: 2px 8px;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 .games-list-detail-actions {

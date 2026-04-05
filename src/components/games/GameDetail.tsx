@@ -19,6 +19,7 @@ import LibrariesBar from "../layout/LibrariesBar";
 import { useEditGame } from "../common/actions";
 import type { GameItem, CollectionItem } from "../../types";
 import { formatGameDate } from "../../utils/date";
+import { displayGameType, toGameTypeId } from "../../utils/igdbGameType";
 import { buildApiUrl, buildBackgroundUrl } from "../../utils/api";
 import { API_BASE, getApiToken } from "../../config";
 import { useSettings } from "../../contexts/SettingsContext";
@@ -371,6 +372,11 @@ function GameDetailContent({
     return raw.map((id) => tagLabels.categories.get(String(id)) ?? String(id));
   }, [game.genre, tagLabels.categories]);
 
+  const gameTypeLabel = useMemo(
+    () => displayGameType(toGameTypeId(game.type)),
+    [game.type]
+  );
+
   return (
     <>
       <div className={`game-detail-libraries-bar-wrapper ${hasBackground && isBackgroundVisible ? 'game-detail-libraries-bar-transparent' : ''}`}>
@@ -412,9 +418,14 @@ function GameDetailContent({
           {/* Game Info Panel */}
           <div className="game-detail-info-panel" style={{ minHeight: `${coverHeight}px` }}>
             <div className="game-detail-info-content">
-              <h1 className="text-white game-detail-title">
-                {game.title}
-              </h1>
+              <div className="game-detail-title-row">
+                <h1 className="text-white game-detail-title">
+                  {game.title}
+                </h1>
+                {gameTypeLabel ? (
+                  <span className="game-detail-type-label">{gameTypeLabel}</span>
+                ) : null}
+              </div>
               {(() => {
                 const validAgeRatings = game.ageRatings && game.ageRatings.length > 0
                   ? filterAgeRatingsByLocale(game.ageRatings, i18n.language)

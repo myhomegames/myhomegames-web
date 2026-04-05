@@ -8,6 +8,7 @@ import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import type { ViewMode, GameItem, SortField } from "../types";
 import type { FilterField, FilterValue } from "../components/filters/types";
 import { compareTitles } from "../utils/stringUtils";
+import { toGameTypeId } from "../utils/igdbGameType";
 import { API_BASE, getApiToken } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 import { useSettings } from "../contexts/SettingsContext";
@@ -55,6 +56,14 @@ export function sortGamesList(
         }
         break;
       }
+      case "gameType": {
+        const idA = toGameTypeId(a.type);
+        const idB = toGameTypeId(b.type);
+        const keyA = idA === undefined ? 999 : idA;
+        const keyB = idB === undefined ? 999 : idB;
+        compareResult = keyA - keyB;
+        break;
+      }
       case "criticRating": {
         const criticA = a.criticratings ?? 0;
         const criticB = b.criticratings ?? 0;
@@ -99,11 +108,22 @@ type GameEventType = "gameUpdated" | "gameDeleted" | "gameAdded";
 
 type ColumnVisibility = {
   title: boolean;
+  gameType: boolean;
   releaseDate: boolean;
   year: boolean;
   stars: boolean;
   criticRating: boolean;
   ageRating: boolean;
+};
+
+const DEFAULT_TABLE_COLUMN_VISIBILITY: ColumnVisibility = {
+  title: true,
+  gameType: true,
+  releaseDate: true,
+  year: false,
+  stars: false,
+  criticRating: false,
+  ageRating: false,
 };
 
 type UseGamesListPageOptions = {
@@ -166,6 +186,8 @@ export type UseGamesListPageReturn = {
   setSelectedSeries: React.Dispatch<React.SetStateAction<string | null>>;
   selectedFranchise: string | null;
   setSelectedFranchise: React.Dispatch<React.SetStateAction<string | null>>;
+  selectedGameType: string | null;
+  setSelectedGameType: React.Dispatch<React.SetStateAction<string | null>>;
   allGenres: Array<{ id: string; title: string }>;
   availableGenres: Array<{ id: string; title: string }>;
   availableCollections: Array<{ id: string; title: string }>;
@@ -187,7 +209,7 @@ export type UseGamesListPageReturn = {
   itemRefs: React.RefObject<Map<string, HTMLElement>>;
   
   // Handlers
-  handleTableSort: (field: "title" | "year" | "stars" | "releaseDate" | "criticRating" | "userRating" | "ageRating") => void;
+  handleTableSort: (field: SortField) => void;
   toggleColumn: (column: keyof ColumnVisibility) => void;
   handleGameUpdate: (updatedGame: GameItem) => void;
   handleGameDelete: (deletedGame: GameItem) => void;
@@ -327,6 +349,13 @@ export function useGamesListPage(
     }
     return null;
   });
+  const [selectedGameType, setSelectedGameType] = useState<string | null>(() => {
+    if (localStoragePrefix) {
+      const saved = localStorage.getItem(`${localStoragePrefix}SelectedGameType`);
+      return saved || null;
+    }
+    return null;
+  });
   const { tagLabels } = useTagLists();
   const allGenres = useMemo(
     () => Array.from(tagLabels.categories.entries()).map(([id, title]) => ({ id, title })),
@@ -400,19 +429,13 @@ export function useGamesListPage(
     const saved = localStorage.getItem("tableColumnVisibility");
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved) as Partial<ColumnVisibility>;
+        return { ...DEFAULT_TABLE_COLUMN_VISIBILITY, ...parsed };
       } catch {
-        return {
-          title: true,
-          releaseDate: true,
-          year: false,
-          stars: false,
-          criticRating: false,
-          ageRating: false,
-        };
+        return { ...DEFAULT_TABLE_COLUMN_VISIBILITY };
       }
     }
-    return { title: true, releaseDate: true, criticRating: false, ageRating: false };
+    return { ...DEFAULT_TABLE_COLUMN_VISIBILITY };
   });
 
   /** Compare selected filter (id or legacy title) with game tag field (ids, or objects with id). */
@@ -562,6 +585,14 @@ export function useGamesListPage(
   }, [selectedAgeRating, localStoragePrefix]);
 
   useEffect(() => {
+    if (localStoragePrefix && selectedGameType !== null) {
+      localStorage.setItem(`${localStoragePrefix}SelectedGameType`, selectedGameType);
+    } else if (localStoragePrefix) {
+      localStorage.removeItem(`${localStoragePrefix}SelectedGameType`);
+    }
+  }, [selectedGameType, localStoragePrefix]);
+
+  useEffect(() => {
     if (localStoragePrefix) {
       localStorage.setItem(`${localStoragePrefix}SortField`, sortField);
     }
@@ -693,6 +724,12 @@ export function useGamesListPage(
               return false;
             }
             return false;
+          case "gameType":
+            if (selectedGameType === null) return true;
+            {
+              const gid = toGameTypeId(game.type);
+              return gid !== undefined && String(gid) === String(selectedGameType);
+            }
           default:
             return true;
         }
@@ -736,6 +773,14 @@ export function useGamesListPage(
             }
           }
           break;
+        case "gameType": {
+          const gtA = toGameTypeId(a.type);
+          const gtB = toGameTypeId(b.type);
+          const keyA = gtA === undefined ? 999 : gtA;
+          const keyB = gtB === undefined ? 999 : gtB;
+          compareResult = keyA - keyB;
+          break;
+        }
         case "criticRating":
           const criticA = a.criticratings ?? 0;
           const criticB = b.criticratings ?? 0;
@@ -791,6 +836,7 @@ export function useGamesListPage(
     selectedSeries,
     selectedFranchise,
     selectedAgeRating,
+    selectedGameType,
     contextCollectionGameIds,
     sortField,
     sortAscending,
@@ -874,7 +920,7 @@ export function useGamesListPage(
     }
   }, [games, allGenres, selectedGenre, filterField]);
 
-  const handleTableSort = (field: "title" | "year" | "stars" | "releaseDate" | "criticRating" | "userRating" | "ageRating") => {
+  const handleTableSort = (field: SortField) => {
     if (sortField === field) {
       setSortAscending(!sortAscending);
     } else {
@@ -987,6 +1033,8 @@ export function useGamesListPage(
     setSelectedSeries,
     selectedFranchise,
     setSelectedFranchise,
+    selectedGameType,
+    setSelectedGameType,
     allGenres,
     availableGenres,
     availableCollections,

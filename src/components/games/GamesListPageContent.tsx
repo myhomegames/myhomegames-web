@@ -67,6 +67,8 @@ export default function GamesListPageContent({
     setSelectedFranchise,
     selectedAgeRating,
     setSelectedAgeRating,
+    selectedGameType,
+    setSelectedGameType,
     selectedGenre,
     setSelectedGenre,
     selectedThemes,
@@ -130,6 +132,7 @@ export default function GamesListPageContent({
         setSelectedPlayerPerspectives(null);
         setSelectedGameEngines(null);
         setSelectedAgeRating(null);
+        setSelectedGameType(null);
       }
       setFilterField(field);
     },
@@ -150,6 +153,7 @@ export default function GamesListPageContent({
       setSelectedPlayerPerspectives,
       setSelectedGameEngines,
       setSelectedAgeRating,
+      setSelectedGameType,
     ]
   );
 
@@ -216,6 +220,8 @@ export default function GamesListPageContent({
           onFranchiseFilterChange={setSelectedFranchise}
           selectedAgeRating={selectedAgeRating}
           onAgeRatingFilterChange={setSelectedAgeRating}
+          selectedGameType={selectedGameType}
+          onGameTypeFilterChange={setSelectedGameType}
           selectedThemes={selectedThemes}
           selectedKeywords={selectedKeywords}
           selectedPlatforms={selectedPlatforms}

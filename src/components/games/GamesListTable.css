@@ -54,6 +54,7 @@
 
 .games-table-header-table th.sorted,
 .games-table-header-table th.title-cell.sorted,
+.games-table-header-table th.game-type-cell.sorted,
 .games-table-header-table th.date-cell.sorted,
 .games-table-header-table th.stars-cell.sorted,
 .games-table-header-table th.year-cell.sorted,
@@ -87,6 +88,14 @@
   color: rgba(255, 255, 255, 0.7);
   min-width: 180px;
   width: 40%;
+}
+
+.games-table-header-table th.game-type-cell {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  width: 11%;
+  min-width: 88px;
+  max-width: 140px;
 }
 
 .games-table-header-table th.date-cell {
@@ -346,6 +355,18 @@
   white-space: nowrap;
   vertical-align: middle;
   cursor: pointer;
+}
+
+.games-table td.game-type-cell {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  width: 11%;
+  min-width: 88px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 .games-table td.title-cell .tooltip-wrapper {
@@ -653,6 +674,18 @@
 }
 
 /* Cella data virtualizzata: come .games-table td.date-cell, wrap così la riga può crescere in altezza */
+.virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.game-type-cell {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  width: 11%;
+  min-width: 88px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
 .virtualized-games-table-list .virtualized-table-row-wrapper > div[role="row"] > div.date-cell {
   font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.6);
