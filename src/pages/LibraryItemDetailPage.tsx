@@ -21,6 +21,7 @@ import DropdownMenu from "../components/common/DropdownMenu";
 import Tooltip from "../components/common/Tooltip";
 import BackgroundManager, { useBackground } from "../components/common/BackgroundManager";
 import { compareTitles, filterRootCollectionLikes } from "../utils/stringUtils";
+import { isMainGameType } from "../utils/igdbGameType";
 import { buildApiUrl, buildCoverUrl, buildBackgroundUrl } from "../utils/api";
 import { API_BASE, getApiToken } from "../config";
 import type { GameItem, CollectionInfo, CollectionItem } from "../types";
@@ -152,6 +153,18 @@ export default function LibraryItemDetailPage({
     if (!canShowNewGamesToggle) return;
     localStorage.setItem(`showNewGames_${storageKeyForNewGames}`, String(showNewGames));
   }, [canShowNewGamesToggle, showNewGames, storageKeyForNewGames]);
+
+  const [mainGamesOnly, setMainGamesOnly] = useState(false);
+  useEffect(() => {
+    if (!id) return;
+    const key = `mainGamesOnly_${resourceType}_${id}`;
+    const saved = localStorage.getItem(key);
+    setMainGamesOnly(saved === "true");
+  }, [id, resourceType]);
+  useEffect(() => {
+    if (!id) return;
+    localStorage.setItem(`mainGamesOnly_${resourceType}_${id}`, String(mainGamesOnly));
+  }, [id, resourceType, mainGamesOnly]);
 
   useScrollRestoration(scrollContainerRef);
 
@@ -694,6 +707,11 @@ export default function LibraryItemDetailPage({
     return sorted;
   }, [gamesToShow, customOrder, resourceType]);
 
+  const gridGames = useMemo(() => {
+    if (!mainGamesOnly) return sortedGames;
+    return sortedGames.filter((g) => isMainGameType(g));
+  }, [sortedGames, mainGamesOnly]);
+
   const handleGameUpdate = (updatedGame: GameItem) => {
     if (scrollContainerRef.current) scrollPositionToRestoreRef.current = scrollContainerRef.current.scrollTop;
     setGames((prev) => prev.map((g) => (String(g.id) === String(updatedGame.id) ? updatedGame : g)));
@@ -880,6 +898,9 @@ export default function LibraryItemDetailPage({
         onShowNewGamesChange={setShowNewGames}
         showNewGamesLabel={canShowNewGamesToggle ? t("tagGames.showNewGames") : undefined}
         listLoadTimestamp={listLoadTimestamp}
+        gridGames={gridGames}
+        mainGamesOnly={mainGamesOnly}
+        onMainGamesOnlyChange={setMainGamesOnly}
       />
     </BackgroundManager>
   );
@@ -933,6 +954,9 @@ type LibraryItemDetailContentProps = {
   onShowNewGamesChange?: (value: boolean) => void;
   showNewGamesLabel?: string;
   listLoadTimestamp?: number;
+  gridGames: GameItem[];
+  mainGamesOnly: boolean;
+  onMainGamesOnlyChange: (value: boolean) => void;
 };
 
 function LibraryItemDetailContent({
@@ -983,6 +1007,9 @@ function LibraryItemDetailContent({
   onShowNewGamesChange,
   showNewGamesLabel,
   listLoadTimestamp,
+  gridGames,
+  mainGamesOnly,
+  onMainGamesOnlyChange,
 }: LibraryItemDetailContentProps) {
   const { hasBackground, isBackgroundVisible } = useBackground();
   const { isLoading } = useLoading();
@@ -1112,6 +1139,9 @@ function LibraryItemDetailContent({
           showNewGames={showNewGames}
           onShowNewGamesChange={onShowNewGamesChange ?? (() => {})}
           showNewGamesLabel={showNewGamesLabel}
+          showMainGamesToggle={viewMode === "grid" && sortedGames.length > 0}
+          mainGamesOnly={mainGamesOnly}
+          onMainGamesOnlyChange={onMainGamesOnlyChange}
         />
       </div>
       <div style={{ position: "relative", zIndex: 2, height: "100vh", display: "flex", flexDirection: "column" }}>
@@ -1440,7 +1470,7 @@ function LibraryItemDetailContent({
                                 fontWeight: 600,
                               }}
                             >
-                              {sortedGames.length} {t("common.games")}
+                              {gridGames.length} {t("common.games")}
                             </h2>
                           </div>
                           <style>{`
@@ -1450,7 +1480,7 @@ function LibraryItemDetailContent({
                           `}</style>
                           <div className="library-item-detail-games-list">
                             <GamesList
-                              games={sortedGames}
+                              games={gridGames}
                               onGameClick={(game) => {
                                 const g = game as GameItem & { isIgdbOnly?: boolean };
                                 if (g.isIgdbOnly && onIgdbGameClick) {
@@ -1466,8 +1496,8 @@ function LibraryItemDetailContent({
                               coverCacheBustTimestamp={listLoadTimestamp}
                               coverSize={coverSize}
                               itemRefs={itemRefs}
-                              draggable={isCollection}
-                              onDragEnd={isCollection ? handleDragEnd : undefined}
+                              draggable={isCollection && !mainGamesOnly}
+                              onDragEnd={isCollection && !mainGamesOnly ? handleDragEnd : undefined}
                               allCollections={isCollection ? allCollections : undefined}
                               collectionId={collectionId}
                               onRemoveFromCollection={onRemoveFromCollection}

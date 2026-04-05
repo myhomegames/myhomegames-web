@@ -50,10 +50,23 @@
   transform: translateY(3px);
 }
 
+.mhg-libraries-actions-grid-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 4px;
+  margin-right: 26px;
+}
+
 .mhg-libraries-actions-new-games-container {
   display: flex;
   align-items: center;
-  margin-right: 26px;
+  margin-right: 0;
+}
+
+.mhg-libraries-actions-main-games-container {
+  display: flex;
+  align-items: center;
 }
 
 .mhg-libraries-actions-view-mode-container {

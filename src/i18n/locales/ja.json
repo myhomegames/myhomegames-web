@@ -51,7 +51,10 @@
     "igdbGamesNotInLibrary": "ライブラリにないゲーム",
     "showNewGames": "新規ゲーム",
     "hideNewGames": "新規ゲームを非表示",
-    "newGamesTooltip": "新規ゲームも表示する"
+    "newGamesTooltip": "新規ゲームも表示する",
+    "mainGamesTooltip": "メインゲームのみ表示（DLC・リマスターなどを非表示）",
+    "mainGamesOnly": "メインゲームのみ",
+    "showAllGameTypes": "すべてのタイプを表示"
   },
   "header": {
     "home": "ホーム",

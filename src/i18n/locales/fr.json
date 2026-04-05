@@ -51,7 +51,10 @@
     "igdbGamesNotInLibrary": "Jeux non présents dans la bibliothèque",
     "showNewGames": "Nouveaux jeux",
     "hideNewGames": "Masquer les nouveaux jeux",
-    "newGamesTooltip": "Afficher aussi les nouveaux jeux"
+    "newGamesTooltip": "Afficher aussi les nouveaux jeux",
+    "mainGamesTooltip": "Afficher uniquement les jeux principaux (masque DLC, remasters, etc.)",
+    "mainGamesOnly": "Jeux principaux uniquement",
+    "showAllGameTypes": "Afficher tous les types"
   },
   "header": {
     "home": "Accueil",

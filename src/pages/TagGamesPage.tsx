@@ -16,6 +16,7 @@ import type { GameItem, CollectionItem } from "../types";
 import type { FilterField } from "../components/filters/types";
 import type { TagKey } from "../utils/tagPages";
 import { buildCoverUrl } from "../utils/api";
+import { isMainGameType } from "../utils/igdbGameType";
 
 type TagGamesPageProps = {
   onGameClick: (game: GameItem) => void;
@@ -84,6 +85,7 @@ export default function TagGamesPage({
   })();
 
   const hook = useGamesListPage({
+    localStoragePrefix: `tag_${storageKey}`,
     defaultFilterField: tagField,
     listenToGameDeleted: true,
     gameEvents: ["gameUpdated", "gameDeleted"],
@@ -219,7 +221,11 @@ export default function TagGamesPage({
     (isSeriesOrFranchise || isIgdbTag) && !!twitchLoginEnabled && hook.filterField !== "all";
   const effectiveGamesOverride =
     canShowNewGamesToggle && showNewGames ? mergedGamesOverride : null;
-  const gamesForList = effectiveGamesOverride ?? hook.filteredAndSortedGames;
+  const gamesForList = useMemo(() => {
+    const base = effectiveGamesOverride ?? hook.filteredAndSortedGames;
+    if (!hook.mainGamesOnly) return base;
+    return base.filter((g) => isMainGameType(g));
+  }, [effectiveGamesOverride, hook.filteredAndSortedGames, hook.mainGamesOnly]);
 
   const { libraryGamesLoading, setFilterField, setSelectedThemes,
     setSelectedKeywords,
@@ -331,6 +337,9 @@ export default function TagGamesPage({
         showNewGames={showNewGames}
         onShowNewGamesChange={setShowNewGames}
         showNewGamesLabel={canShowNewGamesToggle ? t("tagGames.showNewGames") : undefined}
+        showMainGamesToggle={viewMode === "grid"}
+        mainGamesOnly={hook.mainGamesOnly}
+        onMainGamesOnlyChange={hook.setMainGamesOnly}
       />
       <div className="bg-[#1a1a1a] home-page-main-container">
         <main className="flex-1 home-page-content">

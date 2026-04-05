@@ -5,6 +5,7 @@ import CoverSizeSlider from "../ui/CoverSizeSlider";
 import ViewModeSelector from "../ui/ViewModeSelector";
 import BackgroundToggle from "../ui/BackgroundToggle";
 import NewGamesToggle from "../ui/NewGamesToggle";
+import MainGamesToggle from "../ui/MainGamesToggle";
 import DropdownMenu from "../common/DropdownMenu";
 import { useBackground } from "../common/BackgroundManager";
 import { API_BASE, getApiToken } from "../../config";
@@ -28,6 +29,10 @@ type LibrariesBarProps = {
   showNewGames?: boolean;
   onShowNewGamesChange?: (value: boolean) => void;
   showNewGamesLabel?: string;
+  /** Grid filter: show only IGDB main games (type 0) */
+  showMainGamesToggle?: boolean;
+  mainGamesOnly?: boolean;
+  onMainGamesOnlyChange?: (value: boolean) => void;
 };
 
 export default function LibrariesBar({
@@ -46,6 +51,9 @@ export default function LibrariesBar({
   showNewGames = false,
   onShowNewGamesChange,
   showNewGamesLabel: _showNewGamesLabel,
+  showMainGamesToggle = false,
+  mainGamesOnly = false,
+  onMainGamesOnlyChange,
 }: LibrariesBarProps) {
   const { t } = useTranslation();
   const { isLoading: globalLoading } = useLoading();
@@ -171,14 +179,26 @@ export default function LibrariesBar({
               />
             </div>
           )}
-          {showNewGamesToggle && onShowNewGamesChange && (
-            <div className="mhg-libraries-actions-new-games-container">
-              <NewGamesToggle
-                showNewGames={showNewGames}
-                onChange={onShowNewGamesChange}
-              />
+          {(showNewGamesToggle && onShowNewGamesChange) || (showMainGamesToggle && onMainGamesOnlyChange) ? (
+            <div className="mhg-libraries-actions-grid-filters">
+              {showNewGamesToggle && onShowNewGamesChange && (
+                <div className="mhg-libraries-actions-new-games-container">
+                  <NewGamesToggle
+                    showNewGames={showNewGames}
+                    onChange={onShowNewGamesChange}
+                  />
+                </div>
+              )}
+              {showMainGamesToggle && onMainGamesOnlyChange && (
+                <div className="mhg-libraries-actions-main-games-container">
+                  <MainGamesToggle
+                    mainGamesOnly={mainGamesOnly}
+                    onChange={onMainGamesOnlyChange}
+                  />
+                </div>
+              )}
             </div>
-          )}
+          ) : null}
           {onCoverSizeChange && (
             <div
               className={`mhg-libraries-actions-slider-container ${

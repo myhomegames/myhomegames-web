@@ -1,4 +1,5 @@
 import { useCallback, useEffect } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { useLoading } from "../contexts/LoadingContext";
 import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import { useGamesListPage } from "../hooks/useGamesListPage";
@@ -15,6 +16,8 @@ type LibraryPageProps = {
   coverSize: number;
   viewMode: ViewMode;
   allCollections?: CollectionItem[];
+  mainGamesOnly?: boolean;
+  setMainGamesOnly?: Dispatch<SetStateAction<boolean>>;
 };
 
 export default function LibraryPage({
@@ -24,6 +27,8 @@ export default function LibraryPage({
   coverSize,
   viewMode,
   allCollections = [],
+  mainGamesOnly,
+  setMainGamesOnly,
 }: LibraryPageProps) {
   const { isLoading, setLoading } = useLoading();
   const { isLoading: libraryGamesLoading } = useLibraryGames();
@@ -35,6 +40,9 @@ export default function LibraryPage({
     listenToMetadataReload: true,
     gameEvents: ["gameUpdated"],
     scrollRestorationMode: viewMode === "table" ? undefined : viewMode,
+    ...(mainGamesOnly !== undefined && setMainGamesOnly
+      ? { mainGamesOnly, setMainGamesOnly }
+      : {}),
   });
 
   // Sync library games loading state and rendering state with global loading context

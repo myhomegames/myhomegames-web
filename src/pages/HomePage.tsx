@@ -44,6 +44,13 @@ export default function HomePage({
     return saved ? parseInt(saved, 10) : 150;
   });
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [mainGamesOnly, setMainGamesOnly] = useState<boolean>(() => {
+    return localStorage.getItem("libraryMainGamesOnly") === "true";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("libraryMainGamesOnly", String(mainGamesOnly));
+  }, [mainGamesOnly]);
 
   // Function to save view mode for a library
   const saveViewModeForLibrary = (libraryKey: string, mode: ViewMode) => {
@@ -191,6 +198,9 @@ export default function HomePage({
         viewMode={viewMode}
         onViewModeChange={handleViewModeChange}
         onReloadMetadata={onReloadMetadata}
+        showMainGamesToggle={activeLibrary?.key === "library" && viewMode === "grid"}
+        mainGamesOnly={mainGamesOnly}
+        onMainGamesOnlyChange={setMainGamesOnly}
       />
 
       <div className="bg-[#1a1a1a] home-page-main-container">
@@ -207,6 +217,8 @@ export default function HomePage({
                 coverSize={coverSize}
                 viewMode={viewMode}
                 allCollections={allCollections}
+                mainGamesOnly={mainGamesOnly}
+                setMainGamesOnly={setMainGamesOnly}
               />
             )}
             {activeLibrary.key === "recommended" && (

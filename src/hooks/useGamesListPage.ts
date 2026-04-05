@@ -8,7 +8,7 @@ import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import type { ViewMode, GameItem, SortField } from "../types";
 import type { FilterField, FilterValue } from "../components/filters/types";
 import { compareTitles } from "../utils/stringUtils";
-import { toGameTypeId } from "../utils/igdbGameType";
+import { isMainGameType, toGameTypeId } from "../utils/igdbGameType";
 import { API_BASE, getApiToken } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 import { useSettings } from "../contexts/SettingsContext";
@@ -146,6 +146,10 @@ type UseGamesListPageOptions = {
   
   // Scroll restoration
   scrollRestorationMode?: ViewMode | undefined;
+
+  /** When set with mainGamesOnly, parent controls the “main games only” grid filter */
+  mainGamesOnly?: boolean;
+  setMainGamesOnly?: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export type UseGamesListPageReturn = {
@@ -202,7 +206,9 @@ export type UseGamesListPageReturn = {
   columnVisibility: ColumnVisibility;
   setColumnVisibility: React.Dispatch<React.SetStateAction<ColumnVisibility>>;
   filteredAndSortedGames: GameItem[];
-  
+  mainGamesOnly: boolean;
+  setMainGamesOnly: React.Dispatch<React.SetStateAction<boolean>>;
+
   // Refs
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
   tableScrollRef: React.RefObject<HTMLDivElement | null>;
@@ -231,7 +237,11 @@ export function useGamesListPage(
     categoryId = null,
     onCategoryIdChange,
     scrollRestorationMode,
+    mainGamesOnly: mainGamesOnlyProp,
+    setMainGamesOnly: setMainGamesOnlyProp,
   } = options;
+
+  const isMainGamesControlled = setMainGamesOnlyProp !== undefined;
 
   const { games: libraryGames, isLoading: libraryGamesLoading, updateGame: contextUpdateGame, removeGame: contextRemoveGame } = useLibraryGames();
   const games = libraryGames;
@@ -356,6 +366,27 @@ export function useGamesListPage(
     }
     return null;
   });
+  const [internalMainGamesOnly, setInternalMainGamesOnly] = useState<boolean>(() => {
+    if (!localStoragePrefix) return false;
+    return localStorage.getItem(`${localStoragePrefix}MainGamesOnly`) === "true";
+  });
+  const showMainGamesOnly = isMainGamesControlled ? Boolean(mainGamesOnlyProp) : internalMainGamesOnly;
+  const setShowMainGamesOnly = useCallback(
+    (v: React.SetStateAction<boolean>) => {
+      if (isMainGamesControlled && setMainGamesOnlyProp) {
+        setMainGamesOnlyProp(v);
+      } else {
+        setInternalMainGamesOnly((prev) => {
+          const next = typeof v === "function" ? (v as (p: boolean) => boolean)(prev) : v;
+          if (localStoragePrefix) {
+            localStorage.setItem(`${localStoragePrefix}MainGamesOnly`, String(next));
+          }
+          return next;
+        });
+      }
+    },
+    [isMainGamesControlled, setMainGamesOnlyProp, localStoragePrefix]
+  );
   const { tagLabels } = useTagLists();
   const allGenres = useMemo(
     () => Array.from(tagLabels.categories.entries()).map(([id, title]) => ({ id, title })),
@@ -817,6 +848,10 @@ export function useGamesListPage(
     });
     }
 
+    if (showMainGamesOnly) {
+      filtered = filtered.filter((g) => isMainGameType(g));
+    }
+
     return filtered;
   }, [
     games,
@@ -840,6 +875,7 @@ export function useGamesListPage(
     contextCollectionGameIds,
     sortField,
     sortAscending,
+    showMainGamesOnly,
   ]);
 
   // Hide content until fully rendered
@@ -1049,6 +1085,8 @@ export function useGamesListPage(
     columnVisibility,
     setColumnVisibility,
     filteredAndSortedGames,
+    mainGamesOnly: showMainGamesOnly,
+    setMainGamesOnly: setShowMainGamesOnly,
     scrollContainerRef,
     tableScrollRef,
     itemRefs,
