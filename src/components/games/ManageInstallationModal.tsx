@@ -16,6 +16,8 @@ type ExecutableState = {
   existingPath: string | null;
   /** Full filename on server (e.g. Play-1.sh) when row loaded from game.executables */
   existingFileName?: string | null;
+  /** When user picks a new file to replace an existing script, server overwrites this basename instead of creating a new N- file. */
+  replaceFileName?: string | null;
   isExisting?: boolean;
 };
 
@@ -113,6 +115,7 @@ export default function ManageInstallationModal({
           file: null,
           existingPath: null,
           existingFileName: fullName ?? null,
+          replaceFileName: null,
           isExisting: true,
         };
       });
@@ -134,7 +137,9 @@ export default function ManageInstallationModal({
       const initial = getInitialExecutables();
       setInitialExecutables(initial);
       setExecutables(
-        initial.length > 0 ? initial : [{ label: "", platform: "", file: null, existingPath: null, existingFileName: null, isExisting: false }]
+        initial.length > 0
+          ? initial
+          : [{ label: "", platform: "", file: null, existingPath: null, existingFileName: null, replaceFileName: null, isExisting: false }]
       );
       setError(null);
     }
@@ -199,7 +204,10 @@ export default function ManageInstallationModal({
 
   const handleAddExecutable = () => {
     shouldScrollToBottomRef.current = true;
-    setExecutables([...executables, { label: "", platform: "", file: null, existingPath: null, existingFileName: null, isExisting: false }]);
+    setExecutables([
+      ...executables,
+      { label: "", platform: "", file: null, existingPath: null, existingFileName: null, replaceFileName: null, isExisting: false },
+    ]);
   };
 
   const handleRemoveExecutable = (index: number) => {
@@ -273,11 +281,14 @@ export default function ManageInstallationModal({
           return;
         }
         const updated = [...executables];
-        updated[index] = { 
-          ...updated[index], 
-          file: file,
+        const row = updated[index];
+        const replaceTarget = row.existingFileName || row.replaceFileName || null;
+        updated[index] = {
+          ...row,
+          file,
           existingPath: null,
           existingFileName: null,
+          replaceFileName: replaceTarget,
         };
         setExecutables(updated);
       }
@@ -331,6 +342,9 @@ export default function ManageInstallationModal({
         formData.append('platformId', platformId);
         if (exec.platform && exec.platform.trim()) {
           formData.append('platform', exec.platform.trim());
+        }
+        if (exec.replaceFileName && exec.replaceFileName.trim()) {
+          formData.append('replaceFileName', exec.replaceFileName.trim());
         }
 
         const uploadUrl = buildApiUrl(API_BASE, `/games/${game.id}/upload-executable`);
