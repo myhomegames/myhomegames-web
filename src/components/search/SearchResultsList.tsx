@@ -178,21 +178,25 @@ function SearchResultItem({
 
   const showCoverTitle = (item as { showTitle?: boolean }).showTitle !== false;
   const showGameTypeInRow = isGame && !isPopup;
+  const showCollectionSummaryInRow = resultType === "collection" && !isPopup;
+  const showTextRow = showGameTypeInRow || showCollectionSummaryInRow;
   const gameItem = showGameTypeInRow ? (item as GameItem) : null;
   const typeLabel =
     gameItem != null && gameItem.type != null ? displayGameType(gameItem.type) : "";
+  const itemSummary =
+    showTextRow && typeof item.summary === "string" ? item.summary.trim() : "";
 
   return (
     <div
       key={item.id}
-      className={`group cursor-pointer ${isPopup ? `mhg-dropdown-item search-dropdown-item ${hasBorder ? "has-border" : ""}` : "mb-6 search-results-list-item"}`}
+      className={`group cursor-pointer ${isPopup ? `mhg-dropdown-item search-dropdown-item ${hasBorder ? "has-border" : ""}` : `mb-6 search-results-list-item${showTextRow ? " search-results-list-item--game-row" : ""}`}`}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       role={isPopup ? "button" : undefined}
       tabIndex={isPopup ? 0 : undefined}
       style={isPopup ? { display: "flex", alignItems: "center", gap: "16px" } : undefined}
     >
-      {showGameTypeInRow ? (
+      {showTextRow ? (
         <>
           <Cover
             key={`${item.id}-${item.cover}`}
@@ -209,7 +213,7 @@ function SearchResultItem({
             showBorder={false}
           />
           <div className="search-result-game-text">
-            {(showCoverTitle || typeLabel) && (
+            {(showCoverTitle || typeLabel || showCollectionSummaryInRow) && (
               <div className="search-result-game-title-row">
                 {showCoverTitle && (
                   <Tooltip text={item.title} position="bottom">
@@ -231,6 +235,9 @@ function SearchResultItem({
             )}
             {subtitle ? (
               <div className="search-result-date games-list-year">{subtitle}</div>
+            ) : null}
+            {itemSummary ? (
+              <p className="search-result-game-summary">{itemSummary}</p>
             ) : null}
           </div>
         </>
