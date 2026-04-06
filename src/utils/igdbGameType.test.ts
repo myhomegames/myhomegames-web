@@ -43,8 +43,8 @@ describe("displayGameType", () => {
     expect(displayGameType(Number.NaN)).toBe("");
   });
 
-  it("returns a non-empty label for known ids", () => {
-    expect(displayGameType(0).length).toBeGreaterThan(0);
+  it("hides main game and keeps other known ids visible", () => {
+    expect(displayGameType(0)).toBe("");
     expect(displayGameType(1).length).toBeGreaterThan(0);
   });
 });

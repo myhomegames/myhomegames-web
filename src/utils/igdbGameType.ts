@@ -44,6 +44,8 @@ export function toGameTypeId(
 /** Display label for info UI from stored id (uses current i18n language). */
 export function displayGameType(type: number | null | undefined): string {
   if (type == null || typeof type !== "number" || Number.isNaN(type)) return "";
+  // Main Game is the implicit default, so we never render it as an explicit badge/label.
+  if (type === 0) return "";
   return getIgdbGameTypeLabel(type);
 }
 

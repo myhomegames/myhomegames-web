@@ -185,7 +185,7 @@ export default function EditGameInfoTab({
           disabled={saving}
         >
           <option value="">{t("gameDetail.gameTypeNotSet", "Not set")}</option>
-          {IGDB_GAME_TYPE_IDS.map((id) => (
+          {IGDB_GAME_TYPE_IDS.filter((id) => id !== 0).map((id) => (
             <option key={id} value={String(id)}>
               {displayGameType(id)}
             </option>
