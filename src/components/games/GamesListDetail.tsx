@@ -32,6 +32,7 @@ type GamesListDetailProps = {
   platformIdForPlay?: string;
   saveScrollBeforeEdit?: () => void;
   clearScrollAfterEditRef?: () => void;
+  hideGameType?: boolean;
 };
 
 const FIXED_COVER_SIZE = 100; // Fixed size corresponding to minimum slider position
@@ -49,6 +50,7 @@ type GameDetailItemProps = {
   index: number;
   allCollections?: CollectionItem[];
   platformIdForPlay?: string;
+  hideGameType?: boolean;
 };
 
 export function GameDetailItem({
@@ -64,6 +66,7 @@ export function GameDetailItem({
   index,
   allCollections = [],
   platformIdForPlay,
+  hideGameType = false,
 }: GameDetailItemProps) {
   const { t, i18n } = useTranslation();
   const isIgdbOnly = (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly;
@@ -160,7 +163,7 @@ export function GameDetailItem({
       <div className="games-list-detail-content">
         <div className="games-list-detail-title-row mb-2">
           <div className="text-white games-list-detail-title">{game.title}</div>
-          {gameTypeLabel ? (
+          {!hideGameType && gameTypeLabel ? (
             <span className="games-list-detail-type">{gameTypeLabel}</span>
           ) : null}
         </div>
@@ -259,6 +262,7 @@ export default function GamesListDetail({
   platformIdForPlay,
   saveScrollBeforeEdit,
   clearScrollAfterEditRef,
+  hideGameType = false,
 }: GamesListDetailProps) {
   const { t } = useTranslation();
   const editGame = useEditGame();
@@ -309,6 +313,7 @@ export default function GamesListDetail({
             buildCoverUrl={buildCoverUrl}
             allCollections={allCollections}
             platformIdForPlay={platformIdForPlay}
+            hideGameType={hideGameType}
           />
         ) : (
           games.map((game, index) => (
@@ -326,6 +331,7 @@ export default function GamesListDetail({
               index={index}
               allCollections={allCollections}
               platformIdForPlay={platformIdForPlay}
+              hideGameType={hideGameType}
             />
           ))
         )}

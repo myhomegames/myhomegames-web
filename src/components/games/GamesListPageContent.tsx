@@ -95,6 +95,7 @@ export default function GamesListPageContent({
     toggleColumn,
     handleTableSort,
     filteredAndSortedGames,
+    mainGamesOnly,
     scrollContainerRef,
     tableScrollRef,
     itemRefs,
@@ -301,6 +302,7 @@ export default function GamesListPageContent({
                     allCollections={allCollections}
                     scrollContainerRef={scrollContainerRef}
                     platformIdForPlay={platformIdForPlay}
+                    hideGameType={mainGamesOnly}
                   />
                 )}
                 {viewMode === "table" && (

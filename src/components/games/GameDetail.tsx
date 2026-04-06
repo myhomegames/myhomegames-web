@@ -422,21 +422,24 @@ function GameDetailContent({
                 <h1 className="text-white game-detail-title">
                   {game.title}
                 </h1>
-                {gameTypeLabel ? (
-                  <span className="game-detail-type-label">{gameTypeLabel}</span>
-                ) : null}
               </div>
               {(() => {
                 const validAgeRatings = game.ageRatings && game.ageRatings.length > 0
                   ? filterAgeRatingsByLocale(game.ageRatings, i18n.language)
                   : [];
                 const hasValidAgeRatings = validAgeRatings.length > 0;
-                const hasReleaseOrAgeRatings = releaseDate || hasValidAgeRatings;
-                if (!hasReleaseOrAgeRatings) return null;
+                const hasReleaseTypeOrAgeRatings = !!releaseDate || !!gameTypeLabel || hasValidAgeRatings;
+                if (!hasReleaseTypeOrAgeRatings) return null;
                 return (
                   <div className="text-white game-detail-release-date">
-                    {releaseDate}
-                    {releaseDate && hasValidAgeRatings && (
+                    {releaseDate ? <span>{releaseDate}</span> : null}
+                    {releaseDate && gameTypeLabel ? (
+                      <span className="game-detail-age-ratings-inline">{" • "}</span>
+                    ) : null}
+                    {gameTypeLabel ? (
+                      <span className="game-detail-type-label">{gameTypeLabel}</span>
+                    ) : null}
+                    {(releaseDate || gameTypeLabel) && hasValidAgeRatings && (
                       <span className="game-detail-age-ratings-inline">
                         {" • "}
                       </span>

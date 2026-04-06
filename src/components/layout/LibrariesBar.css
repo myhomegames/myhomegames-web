@@ -46,14 +46,13 @@
 .mhg-libraries-actions-background-toggle-container {
   display: flex;
   align-items: center;
-  transform: translateY(3px);
 }
 
-.mhg-libraries-actions-grid-filters {
+/* Background + new-games + main-games in one row so spacing matches (no extra gap vs slider/views). */
+.mhg-libraries-actions-icon-cluster {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-wrap: nowrap;
 }
 
 .mhg-libraries-actions-new-games-container {

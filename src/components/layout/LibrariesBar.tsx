@@ -114,6 +114,10 @@ export default function LibrariesBar({
     }
   };
 
+  const showIconCluster =
+    (hasBackground && !hideBackgroundToggle) ||
+    (showNewGamesToggle && !!onShowNewGamesChange) ||
+    (showMainGamesToggle && !!onMainGamesOnlyChange);
 
   return (
     <div className="mhg-libraries-bar">
@@ -171,16 +175,16 @@ export default function LibrariesBar({
         )}
 
         <div className="mhg-libraries-actions" ref={actionsRef}>
-          {hasBackground && !hideBackgroundToggle && (
-            <div className="mhg-libraries-actions-background-toggle-container">
-              <BackgroundToggle
-                isVisible={isBackgroundVisible}
-                onChange={setBackgroundVisible}
-              />
-            </div>
-          )}
-          {(showNewGamesToggle && onShowNewGamesChange) || (showMainGamesToggle && onMainGamesOnlyChange) ? (
-            <div className="mhg-libraries-actions-grid-filters">
+          {showIconCluster ? (
+            <div className="mhg-libraries-actions-icon-cluster">
+              {hasBackground && !hideBackgroundToggle && (
+                <div className="mhg-libraries-actions-background-toggle-container">
+                  <BackgroundToggle
+                    isVisible={isBackgroundVisible}
+                    onChange={setBackgroundVisible}
+                  />
+                </div>
+              )}
               {showNewGamesToggle && onShowNewGamesChange && (
                 <div className="mhg-libraries-actions-new-games-container">
                   <NewGamesToggle

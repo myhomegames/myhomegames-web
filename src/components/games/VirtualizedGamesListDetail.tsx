@@ -36,6 +36,7 @@ type VirtualizedGamesListDetailProps = {
   buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean) => string;
   allCollections?: CollectionItem[];
   platformIdForPlay?: string;
+  hideGameType?: boolean;
 };
 
 const ITEM_HEIGHT = 144; // Height of each detail item (120px content + 24px margin-bottom)
@@ -54,6 +55,7 @@ export default function VirtualizedGamesListDetail({
   buildCoverUrl,
   allCollections = [],
   platformIdForPlay,
+  hideGameType = false,
 }: VirtualizedGamesListDetailProps) {
   const location = useLocation();
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -269,6 +271,7 @@ export default function VirtualizedGamesListDetail({
           index={index}
           allCollections={allCollections}
           platformIdForPlay={platformIdForPlay}
+          hideGameType={hideGameType}
         />
       </div>
     );
