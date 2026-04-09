@@ -1219,6 +1219,78 @@ function LibraryItemDetailContent({
         return;
       }
       const token = getApiToken() || "";
+      const childRangeCache = new Map<string, string>();
+
+      const toYearRange = (games: GameItem[]): string => {
+        const years = games
+          .map((g) => g.year)
+          .filter((y): y is number => typeof y === "number" && y > 0);
+        if (years.length === 0) return "";
+        const min = Math.min(...years);
+        const max = Math.max(...years);
+        return min === max ? String(min) : `${min} - ${max}`;
+      };
+
+      const loadChildCollectionLikeItems = async (parent: CollectionItem): Promise<GameItem[]> => {
+        const parentChildIds = Array.isArray(parent.childs) ? parent.childs.map((id) => String(id)) : [];
+        const childCollectionLikes = parentChildIds
+          .map((childId) => completeCollectionLikes.find((c) => String(c.id) === childId))
+          .filter((c): c is CollectionItem => Boolean(c))
+          .sort((a, b) => compareTitles(a.title || "", b.title || ""));
+
+        const childItems = await Promise.all(
+          childCollectionLikes.map(async (child) => {
+            const childId = String(child.id);
+            let range =
+              (child as any).yearRange ??
+              (child as any).dateRange ??
+              (child as any).releaseRange ??
+              "";
+            if (typeof range !== "string") range = "";
+            range = range.trim();
+
+            if (!range) {
+              const cached = childRangeCache.get(childId);
+              if (cached !== undefined) {
+                range = cached;
+              } else {
+                try {
+                  const childUrl = buildApiUrl(
+                    API_BASE,
+                    `/${resourceType}/${encodeURIComponent(childId)}/games`
+                  );
+                  const childRes = await fetch(childUrl, {
+                    headers: { Accept: "application/json", "X-Auth-Token": token },
+                  });
+                  if (childRes.ok) {
+                    const childJson = await childRes.json();
+                    range = toYearRange(parseGamesFromJson(childJson));
+                  }
+                } catch {
+                  // ignore child range fetch errors
+                }
+                childRangeCache.set(childId, range);
+              }
+            }
+
+            return {
+              id: `collectionlike:${resourceType}:${childId}`,
+              title: child.title,
+              subtitle: range || null,
+              summary: child.summary || "",
+              cover: child.cover,
+              year: null,
+              month: null,
+              day: null,
+              executables: null,
+              stars: null,
+            } as GameItem;
+          })
+        );
+
+        return childItems;
+      };
+
       const loaded = await Promise.all(
         parentCollectionLikes.map(async (parent) => {
           try {
@@ -1229,22 +1301,7 @@ function LibraryItemDetailContent({
             const res = await fetch(url, {
               headers: { Accept: "application/json", "X-Auth-Token": token },
             });
-            const parentChildIds = Array.isArray(parent.childs) ? parent.childs.map((id) => String(id)) : [];
-            const childCollectionLikes = parentChildIds
-              .map((childId) => completeCollectionLikes.find((c) => String(c.id) === childId))
-              .filter((c): c is CollectionItem => Boolean(c))
-              .sort((a, b) => compareTitles(a.title || "", b.title || ""));
-            const childCollectionLikeItems: GameItem[] = childCollectionLikes.map((child) => ({
-              id: `collectionlike:${resourceType}:${String(child.id)}`,
-              title: child.title,
-              summary: child.summary || "",
-              cover: child.cover,
-              year: null,
-              month: null,
-              day: null,
-              executables: null,
-              stars: null,
-            }));
+            const childCollectionLikeItems = await loadChildCollectionLikeItems(parent);
 
             if (!res.ok) {
               return {
@@ -1261,22 +1318,7 @@ function LibraryItemDetailContent({
               slideItems: [...childCollectionLikeItems, ...games],
             };
           } catch {
-            const parentChildIds = Array.isArray(parent.childs) ? parent.childs.map((id) => String(id)) : [];
-            const childCollectionLikes = parentChildIds
-              .map((childId) => completeCollectionLikes.find((c) => String(c.id) === childId))
-              .filter((c): c is CollectionItem => Boolean(c))
-              .sort((a, b) => compareTitles(a.title || "", b.title || ""));
-            const childCollectionLikeItems: GameItem[] = childCollectionLikes.map((child) => ({
-              id: `collectionlike:${resourceType}:${String(child.id)}`,
-              title: child.title,
-              summary: child.summary || "",
-              cover: child.cover,
-              year: null,
-              month: null,
-              day: null,
-              executables: null,
-              stars: null,
-            }));
+            const childCollectionLikeItems = await loadChildCollectionLikeItems(parent);
             return {
               parent,
               games: [] as GameItem[],

@@ -206,7 +206,7 @@ export function GameListItem({
         onRemoveFromDeveloper={!isIgdbOnly && onRemoveFromDeveloper ? () => onRemoveFromDeveloper(game.id) : undefined}
         onRemoveFromPublisher={!isIgdbOnly && onRemoveFromPublisher ? () => onRemoveFromPublisher(game.id) : undefined}
         showTitle={game.showTitle !== false}
-        subtitle={game.year}
+        subtitle={game.subtitle ?? game.year}
         detail={true}
         play={platformIdForPlay ? gameHasExecutableForPlatform(game, platformIdForPlay) : !!(game.executables && game.executables.length > 0)}
         showBorder={viewMode !== "detail"}

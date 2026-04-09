@@ -3,6 +3,7 @@
 export type GameItem = {
   id: string;
   title: string;
+  subtitle?: string | number | null;
   summary?: string;
   cover?: string;
   background?: string;
