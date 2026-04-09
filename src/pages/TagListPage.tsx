@@ -70,7 +70,8 @@ export default function TagListPage({
     setLoading(gamesLoading || listLoading || !isReady);
   }, [gamesLoading, listLoading, isReady, setLoading]);
 
-  useScrollRestoration(scrollContainerRef);
+  const scrollStorageKey = `${window.location.pathname}:${routeBase}`;
+  useScrollRestoration(scrollContainerRef, routeBase);
 
   useEffect(() => {
     if (!listResponseKey) {
@@ -268,13 +269,13 @@ export default function TagListPage({
       if (container.scrollHeight > 0) {
         container.scrollTop = saved;
         try {
-          sessionStorage.setItem(window.location.pathname, saved.toString());
+          sessionStorage.setItem(scrollStorageKey, saved.toString());
         } catch {
           // Ignore
         }
       }
     }
-  }, [editingItem]);
+  }, [editingItem, scrollStorageKey]);
 
   return (
     <main className="flex-1 home-page-content">

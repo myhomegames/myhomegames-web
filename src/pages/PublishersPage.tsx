@@ -27,7 +27,7 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
     setLoading(publishersLoading || !isReady);
   }, [publishersLoading, isReady, setLoading]);
 
-  useScrollRestoration(scrollContainerRef);
+  useScrollRestoration(scrollContainerRef, "publishers");
 
   function handlePublisherClick(publisher: CollectionItem) {
     navigate(`/publishers/${publisher.id}`);

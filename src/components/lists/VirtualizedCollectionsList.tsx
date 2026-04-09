@@ -68,7 +68,7 @@ export default function VirtualizedCollectionsList({
   const gridRef = useRef<any>(null);
   const isRestoringRef = useRef(false);
   const lastSavedScrollRef = useRef<{ scrollTop: number; scrollLeft: number } | null>(null);
-  const storageKey = `${location.pathname}:collections`;
+  const storageKey = `${location.pathname}:collections:${gamesPath}`;
 
   // Calculate column count based on container width
   const columnCount = useMemo(() => {

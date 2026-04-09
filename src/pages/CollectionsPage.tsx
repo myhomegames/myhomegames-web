@@ -32,7 +32,7 @@ export default function CollectionsPage({
   }, [collectionsLoading, isReady, setLoading]);
   
   // Restore scroll position
-  useScrollRestoration(scrollContainerRef);
+  useScrollRestoration(scrollContainerRef, "collections");
 
   function handleCollectionClick(collection: CollectionItem) {
     navigate(`/collections/${collection.id}`);

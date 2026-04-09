@@ -27,7 +27,7 @@ export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProp
     setLoading(developersLoading || !isReady);
   }, [developersLoading, isReady, setLoading]);
 
-  useScrollRestoration(scrollContainerRef);
+  useScrollRestoration(scrollContainerRef, "developers");
 
   function handleDeveloperClick(developer: CollectionItem) {
     navigate(`/developers/${developer.id}`);
