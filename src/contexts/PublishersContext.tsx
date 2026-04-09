@@ -49,6 +49,7 @@ export function PublishersProvider({ children }: { children: ReactNode }) {
         gameCount: v.gameCount,
         background: v.background,
         showTitle: v.showTitle !== false,
+        childs: Array.isArray(v.childs) ? v.childs : [],
       }));
       setPublishers(items);
     } catch (err: any) {

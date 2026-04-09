@@ -55,6 +55,7 @@ export type CollectionItem = {
   externalCoverUrl?: string | null;
   showTitle?: boolean;
   gameCount?: number;
+  childs?: Array<string | number>;
 };
 
 export type TagItem = {
@@ -77,6 +78,7 @@ export type CollectionInfo = {
   /** Remote background URL in metadata when no local background.webp */
   externalBackgroundUrl?: string | null;
   showTitle?: boolean;
+  childs?: Array<string | number>;
 };
 
 export type IGDBGame = {

@@ -49,6 +49,7 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
         gameCount: v.gameCount,
         background: v.background,
         showTitle: v.showTitle !== false,
+        childs: Array.isArray(v.childs) ? v.childs : [],
       }));
       setDevelopers(items);
     } catch (err: any) {

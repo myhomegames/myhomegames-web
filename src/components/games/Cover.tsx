@@ -6,6 +6,7 @@ import AddToCollectionDropdown from "./AddToCollectionDropdown";
 import AdditionalExecutablesDropdown from "./AdditionalExecutablesDropdown";
 import Tooltip from "../common/Tooltip";
 import type { CollectionItem, GameItem } from "../../types";
+import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 import "./Cover.css";
 
 type CoverProps = {
@@ -17,6 +18,7 @@ type CoverProps = {
   onClick?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  onAddToCollection?: (parentId?: string) => void;
   gameId?: string;
   gameTitle?: string;
   game?: GameItem;
@@ -34,6 +36,10 @@ type CoverProps = {
   publisherId?: string;
   onRemoveFromDeveloper?: () => void;
   onRemoveFromPublisher?: () => void;
+  onRemoveFromParent?: () => void;
+  sourceCollectionLike?: CollectionItem;
+  allCollectionLikes?: CollectionItem[];
+  collectionLikeResourceType?: CollectionLikeResourceType;
   showTitle?: boolean;
   subtitle?: string | number | null;
   detail?: boolean;
@@ -78,6 +84,7 @@ export default function Cover({
   onClick,
   onEdit,
   onDelete,
+  onAddToCollection,
   gameId,
   gameTitle,
   game,
@@ -94,6 +101,10 @@ export default function Cover({
   publisherId,
   onRemoveFromDeveloper,
   onRemoveFromPublisher,
+  onRemoveFromParent,
+  sourceCollectionLike,
+  allCollectionLikes,
+  collectionLikeResourceType,
   showTitle = false,
   subtitle,
   detail = true,
@@ -462,7 +473,7 @@ export default function Cover({
               gameExecutables={game?.executables}
               fullGame={fullGameForActions ?? game}
               platformIdForPlay={platformIdForPlay}
-              onAddToCollection={gameId && game ? () => {} : undefined}
+              onAddToCollection={onAddToCollection ?? (gameId && game ? () => {} : undefined)}
               onRemoveFromCollection={onRemoveFromCollection}
               onGameDelete={onGameDelete}
               onGameUpdate={onGameUpdate}
@@ -474,6 +485,10 @@ export default function Cover({
               publisherId={publisherId}
               onRemoveFromDeveloper={onRemoveFromDeveloper}
               onRemoveFromPublisher={onRemoveFromPublisher}
+              onRemoveFromParent={onRemoveFromParent}
+              sourceCollectionLike={sourceCollectionLike}
+              allCollectionLikes={allCollectionLikes}
+              collectionLikeResourceType={collectionLikeResourceType}
               horizontal={dropdownHorizontal}
               toolTipDelay={dropdownToolTipDelay}
               className="games-list-dropdown-menu"

@@ -37,6 +37,8 @@ type VirtualizedCollectionsListProps = {
   onEditClick?: (collection: CollectionItem) => void;
   onCollectionDelete?: (deletedCollection: CollectionItem) => void;
   onCollectionUpdate?: (updatedCollection: CollectionItem) => void;
+  onAddToCollectionLike?: (collection: CollectionItem, parentId?: string) => void;
+  allCollectionLikes?: CollectionItem[];
   gamesPath?: GamesPathType;
   buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean) => string;
 };
@@ -55,6 +57,8 @@ export default function VirtualizedCollectionsList({
   onEditClick,
   onCollectionDelete,
   onCollectionUpdate,
+  onAddToCollectionLike,
+  allCollectionLikes = [],
   gamesPath = "collections",
   buildCoverUrl,
 }: VirtualizedCollectionsListProps) {
@@ -326,6 +330,8 @@ export default function VirtualizedCollectionsList({
           onEditClick={onEditClick}
           onCollectionDelete={onCollectionDelete}
           onCollectionUpdate={onCollectionUpdate}
+          onAddToCollectionLike={onAddToCollectionLike}
+          allCollectionLikes={allCollectionLikes}
           gamesPath={gamesPath}
           buildCoverUrl={buildCoverUrl}
           coverSize={coverSize}

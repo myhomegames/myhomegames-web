@@ -22,39 +22,23 @@ export function compareTitles(a: string, b: string): number {
   return normalizedA.localeCompare(normalizedB);
 }
 
-/** Separators that indicate a sub-collection title (e.g. "Parent: Child") */
-const SUBTITLE_SEPARATORS = [":", "-", ";", "_", "/", "\\", "@", "#"];
-
-/**
- * Returns true if childTitle is a sub-collection-style title of parentTitle
- * (e.g. "Acme" and "Acme: Sports" or "Acme - Action").
- */
-export function isSubCollectionTitle(parentTitle: string, childTitle: string): boolean {
-  const parent = parentTitle.trim();
-  const child = childTitle.trim();
-  if (!parent || !child || child.length <= parent.length) return false;
-  if (!child.startsWith(parent)) return false;
-  const rest = child.slice(parent.length);
-  const restTrimmed = rest.replace(/^\s+/, "");
-  if (!restTrimmed) return false;
-  const first = restTrimmed[0];
-  return SUBTITLE_SEPARATORS.includes(first);
-}
-
 /**
  * Returns only items that are not "children" of any other item in the list.
- * Children are detected by title (e.g. "Nintendo: America" is child of "Nintendo").
+ * Children are detected by explicit `childs` ids in metadata.
  * Use this for root-level lists (Collections, Developers, Publishers pages) so
  * sub-items are only shown inside their parent's detail page.
  */
-export function filterRootCollectionLikes<T extends { id: string | number; title?: string | null }>(items: T[]): T[] {
+export function filterRootCollectionLikes<T extends { id: string | number; childs?: Array<string | number> | null }>(items: T[]): T[] {
+  const childIds = new Set<string>();
+  for (const item of items) {
+    const childs = Array.isArray(item.childs) ? item.childs : [];
+    for (const childId of childs) {
+      if (childId == null) continue;
+      childIds.add(String(childId));
+    }
+  }
   return items.filter((item) => {
-    const itemTitle = (item.title || "").trim();
-    if (!itemTitle) return true;
-    const isChildOfSomeOther = items.some(
-      (other) => String(other.id) !== String(item.id) && isSubCollectionTitle((other.title || "").trim(), itemTitle)
-    );
-    return !isChildOfSomeOther;
+    return !childIds.has(String(item.id));
   });
 }
 
