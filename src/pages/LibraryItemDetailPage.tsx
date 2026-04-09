@@ -21,6 +21,7 @@ import AddCollectionLikeToCollectionLikeModal from "../components/collections/Ad
 import DropdownMenu from "../components/common/DropdownMenu";
 import Tooltip from "../components/common/Tooltip";
 import BackgroundManager, { useBackground } from "../components/common/BackgroundManager";
+import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
 import { compareTitles } from "../utils/stringUtils";
 import { isMainGameType } from "../utils/igdbGameType";
 import { buildApiUrl, buildCoverUrl, buildBackgroundUrl } from "../utils/api";
@@ -168,6 +169,35 @@ export default function LibraryItemDetailPage({
   }, [id, resourceType, mainGamesOnly]);
 
   useScrollRestoration(scrollContainerRef);
+
+  useEffect(() => {
+    const navState = (location.state as { resetScrollToTop?: boolean } | null) ?? null;
+    if (!navState?.resetScrollToTop) return;
+
+    const clearAndScrollTop = () => {
+      const container = scrollContainerRef.current;
+      if (container) {
+        container.scrollTop = 0;
+      }
+      try {
+        sessionStorage.removeItem(location.pathname);
+        sessionStorage.removeItem(`${location.pathname}:modalScroll`);
+        sessionStorage.removeItem(`${location.pathname}:collections`);
+      } catch {
+        // Ignore storage errors
+      }
+    };
+
+    clearAndScrollTop();
+    const t0 = setTimeout(clearAndScrollTop, 0);
+    const t50 = setTimeout(clearAndScrollTop, 50);
+    const t150 = setTimeout(clearAndScrollTop, 150);
+    return () => {
+      clearTimeout(t0);
+      clearTimeout(t50);
+      clearTimeout(t150);
+    };
+  }, [location.pathname, location.state]);
 
   // Keep scroll position ref updated on scroll (when modal closed) so we have it before click on Edit.
   // Re-run when item is set so we attach the listener once the scroll container is in the DOM.
@@ -881,7 +911,17 @@ export default function LibraryItemDetailPage({
               : resourceType === "developers"
                 ? "developers"
                 : "publishers";
-          navigate(`/${base}/${cid}`);
+          const targetPath = `/${base}/${cid}`;
+          try {
+            // Ensure destination detail opens from top instead of restoring previous scroll.
+            sessionStorage.removeItem(targetPath);
+            sessionStorage.removeItem(`${targetPath}:modalScroll`);
+            sessionStorage.removeItem(`${targetPath}:collections`);
+            sessionStorage.removeItem(`${targetPath}:collections:${base}`);
+          } catch {
+            // Ignore storage errors
+          }
+          navigate(targetPath, { state: { resetScrollToTop: true } });
         }}
         onPlayFirstInCollectionLike={async (type: string, cid: string) => {
           if (!onPlay) return;
@@ -1037,19 +1077,49 @@ function LibraryItemDetailContent({
 
   const isCollection = resourceType === "collections";
   const showDeleteInMenu = resourceType === "developers" || resourceType === "publishers";
+  const [editingChild, setEditingChild] = useState<CollectionInfo | null>(null);
+  const [isEditChildModalOpen, setIsEditChildModalOpen] = useState(false);
+  const [linkSourceCollectionLike, setLinkSourceCollectionLike] = useState<CollectionItem | null>(null);
+  const [hydratedCollectionLikes, setHydratedCollectionLikes] = useState<CollectionItem[]>([]);
+  const [parentCollectionLikesWithGames, setParentCollectionLikesWithGames] = useState<
+    Array<{ parent: CollectionItem; games: GameItem[]; slideItems: GameItem[] }>
+  >([]);
+
+  const completeCollectionLikes = useMemo(() => {
+    const byId = new Map<string, CollectionItem>();
+    for (const item of allCollectionLikes) byId.set(String(item.id), item);
+    for (const item of hydratedCollectionLikes) {
+      const id = String(item.id);
+      const existing = byId.get(id);
+      byId.set(id, existing ? { ...existing, ...item } : item);
+    }
+    return Array.from(byId.values());
+  }, [allCollectionLikes, hydratedCollectionLikes]);
 
   const subCollectionLikes = useMemo(() => {
     if (!item || !Array.isArray(item.childs) || item.childs.length === 0) return [];
     const childIds = new Set(item.childs.map((id) => String(id)));
-    const children = allCollectionLikes.filter((c) => childIds.has(String(c.id)));
+    const children = completeCollectionLikes.filter((c) => childIds.has(String(c.id)));
     children.sort((a, b) => compareTitles(a.title || "", b.title || ""));
     return children;
-  }, [item, allCollectionLikes]);
+  }, [item, completeCollectionLikes]);
+
+  const parentCollectionLikes = useMemo(() => {
+    if (!item) return [];
+    const itemId = String(item.id);
+    const parents = completeCollectionLikes.filter((candidate) => {
+      if (String(candidate.id) === itemId) return false;
+      const childs = Array.isArray(candidate.childs) ? candidate.childs.map((id) => String(id)) : [];
+      return childs.includes(itemId);
+    });
+    parents.sort((a, b) => compareTitles(a.title || "", b.title || ""));
+    return parents;
+  }, [item, completeCollectionLikes]);
 
   // Display count for each sub-collection card: games assigned directly + first-level sub-collections only (aligned with CollectionsList).
   const subCollectionDisplayCountById = useMemo(() => {
     const map: Record<string, number> = {};
-    const byId = new Map(allCollectionLikes.map((c) => [String(c.id), c]));
+    const byId = new Map(completeCollectionLikes.map((c) => [String(c.id), c]));
     for (const col of subCollectionLikes) {
       const directChilds = Array.isArray(col.childs)
         ? col.childs
@@ -1059,11 +1129,171 @@ function LibraryItemDetailContent({
       map[String(col.id)] = (col.gameCount ?? 0) + directChilds.length;
     }
     return map;
-  }, [subCollectionLikes, allCollectionLikes]);
+  }, [subCollectionLikes, completeCollectionLikes]);
 
-  const [editingChild, setEditingChild] = useState<CollectionInfo | null>(null);
-  const [isEditChildModalOpen, setIsEditChildModalOpen] = useState(false);
-  const [linkSourceCollectionLike, setLinkSourceCollectionLike] = useState<CollectionItem | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const loadMissingCollectionLikes = async () => {
+      if (!item) {
+        setHydratedCollectionLikes([]);
+        return;
+      }
+
+      const byId = new Map<string, CollectionItem>(
+        allCollectionLikes.map((entry) => [String(entry.id), entry])
+      );
+      const queue: string[] = [];
+      const queued = new Set<string>();
+
+      const pushMissing = (ids: Array<string | number> | undefined | null) => {
+        if (!Array.isArray(ids)) return;
+        for (const rawId of ids) {
+          const id = String(rawId);
+          if (!id || byId.has(id) || queued.has(id)) continue;
+          queued.add(id);
+          queue.push(id);
+        }
+      };
+
+      for (const entry of byId.values()) pushMissing(entry.childs);
+
+      const targetId = String(item.id);
+      let foundParent = Array.from(byId.values()).some((entry) => {
+        const childs = Array.isArray(entry.childs) ? entry.childs.map((id) => String(id)) : [];
+        return childs.includes(targetId);
+      });
+
+      const maxFetches = 10000;
+      let fetchCount = 0;
+      while (queue.length > 0 && fetchCount < maxFetches && !foundParent) {
+        const id = queue.shift() as string;
+        fetchCount += 1;
+        try {
+          const url = buildApiUrl(API_BASE, `/${resourceType}/${encodeURIComponent(id)}`);
+          const res = await fetch(url, {
+            headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
+          });
+          if (!res.ok) continue;
+          const data = await res.json();
+          const parsed: CollectionItem = {
+            id: String(data.id),
+            title: data.title,
+            summary: data.summary,
+            cover: data.cover,
+            background: data.background,
+            gameCount: data.gameCount,
+            showTitle: data.showTitle !== false,
+            childs: Array.isArray(data.childs) ? data.childs : [],
+          };
+          byId.set(String(parsed.id), parsed);
+          if (!foundParent) {
+            const parsedChilds = Array.isArray(parsed.childs) ? parsed.childs.map((child) => String(child)) : [];
+            foundParent = parsedChilds.includes(targetId);
+          }
+          pushMissing(parsed.childs);
+        } catch {
+          // Ignore missing/inaccessible nodes and continue traversal
+        }
+      }
+
+      if (!cancelled) {
+        setHydratedCollectionLikes(
+          Array.from(byId.values()).filter(
+            (entry) => !allCollectionLikes.some((base) => String(base.id) === String(entry.id))
+          )
+        );
+      }
+    };
+
+    loadMissingCollectionLikes();
+    return () => {
+      cancelled = true;
+    };
+  }, [item, resourceType, allCollectionLikes]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadParentCollectionLikeGames = async () => {
+      if (parentCollectionLikes.length === 0) {
+        setParentCollectionLikesWithGames([]);
+        return;
+      }
+      const token = getApiToken() || "";
+      const loaded = await Promise.all(
+        parentCollectionLikes.map(async (parent) => {
+          try {
+            const url = buildApiUrl(
+              API_BASE,
+              `/${resourceType}/${encodeURIComponent(String(parent.id))}/games`
+            );
+            const res = await fetch(url, {
+              headers: { Accept: "application/json", "X-Auth-Token": token },
+            });
+            const parentChildIds = Array.isArray(parent.childs) ? parent.childs.map((id) => String(id)) : [];
+            const childCollectionLikes = parentChildIds
+              .map((childId) => completeCollectionLikes.find((c) => String(c.id) === childId))
+              .filter((c): c is CollectionItem => Boolean(c))
+              .sort((a, b) => compareTitles(a.title || "", b.title || ""));
+            const childCollectionLikeItems: GameItem[] = childCollectionLikes.map((child) => ({
+              id: `collectionlike:${resourceType}:${String(child.id)}`,
+              title: child.title,
+              summary: child.summary || "",
+              cover: child.cover,
+              year: null,
+              month: null,
+              day: null,
+              executables: null,
+              stars: null,
+            }));
+
+            if (!res.ok) {
+              return {
+                parent,
+                games: [] as GameItem[],
+                slideItems: childCollectionLikeItems,
+              };
+            }
+            const json = await res.json();
+            const games = parseGamesFromJson(json);
+            return {
+              parent,
+              games,
+              slideItems: [...childCollectionLikeItems, ...games],
+            };
+          } catch {
+            const parentChildIds = Array.isArray(parent.childs) ? parent.childs.map((id) => String(id)) : [];
+            const childCollectionLikes = parentChildIds
+              .map((childId) => completeCollectionLikes.find((c) => String(c.id) === childId))
+              .filter((c): c is CollectionItem => Boolean(c))
+              .sort((a, b) => compareTitles(a.title || "", b.title || ""));
+            const childCollectionLikeItems: GameItem[] = childCollectionLikes.map((child) => ({
+              id: `collectionlike:${resourceType}:${String(child.id)}`,
+              title: child.title,
+              summary: child.summary || "",
+              cover: child.cover,
+              year: null,
+              month: null,
+              day: null,
+              executables: null,
+              stars: null,
+            }));
+            return {
+              parent,
+              games: [] as GameItem[],
+              slideItems: childCollectionLikeItems,
+            };
+          }
+        })
+      );
+      if (!cancelled) {
+        setParentCollectionLikesWithGames(loaded);
+      }
+    };
+    loadParentCollectionLikeGames();
+    return () => {
+      cancelled = true;
+    };
+  }, [parentCollectionLikes, resourceType, completeCollectionLikes]);
 
   const dispatchCollectionLikeUpdated = (updatedItem: CollectionInfo) => {
     if (resourceType === "collections") {
@@ -1584,6 +1814,56 @@ function LibraryItemDetailContent({
                             />
                           </div>
                         </>
+                      )}
+                      {parentCollectionLikesWithGames.length > 0 && (
+                        <div className="game-detail-collections-section">
+                          <h3 className="game-detail-section-title">
+                            {resourceType === "collections"
+                              ? t("libraries.collections", "Collections")
+                              : resourceType === "developers"
+                                ? t("igdbInfo.developers", "Developers")
+                                : t("igdbInfo.publishers", "Publishers")}
+                          </h3>
+                          <div className="game-detail-collections-list">
+                            {parentCollectionLikesWithGames.map(({ parent, slideItems }) => (
+                              <div key={String(parent.id)} className="game-detail-collection-group">
+                                <ScrollableGamesSection
+                                  sectionId={`parent-${resourceType}-${String(parent.id)}`}
+                                  titleOverride={parent.title}
+                                  titleHref={
+                                    onCollectionClick
+                                      ? `/${
+                                          resourceType === "collections"
+                                            ? "collections"
+                                            : resourceType === "developers"
+                                              ? "developers"
+                                              : "publishers"
+                                        }/${encodeURIComponent(String(parent.id))}`
+                                      : undefined
+                                  }
+                                  disableAutoTranslate
+                                  games={slideItems}
+                                  onGameClick={(selected) => {
+                                    const rawId = String(selected.id ?? "");
+                                    if (rawId.startsWith("collectionlike:")) {
+                                      const parts = rawId.split(":");
+                                      const linkedId = parts[2];
+                                      if (linkedId && onCollectionClick) {
+                                        onCollectionClick(linkedId);
+                                        return;
+                                      }
+                                    }
+                                    onGameClick(selected);
+                                  }}
+                                  onPlay={onPlay}
+                                  onGameUpdate={onGameUpdate}
+                                  coverSize={140}
+                                  allCollections={allCollections}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
                   )}
