@@ -113,6 +113,7 @@ export default function LibraryItemDetailPage({
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [listLoadTimestamp, setListLoadTimestamp] = useState(() => Date.now());
+  const initialCoverTimestampRef = useRef<number>(Date.now());
   const [scrollRestoreTrigger, setScrollRestoreTrigger] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
@@ -828,7 +829,8 @@ export default function LibraryItemDetailPage({
     );
   }
 
-  const itemCoverUrl = item?.cover ? buildCoverUrl(API_BASE, item.cover, true) : "";
+  const itemCoverTimestamp = listLoadTimestamp ?? initialCoverTimestampRef.current;
+  const itemCoverUrl = item?.cover ? buildCoverUrl(API_BASE, item.cover, true, itemCoverTimestamp) : "";
   const coverWidth = 240;
   const coverHeight = 360;
   const backgroundUrl = buildBackgroundUrl(API_BASE, item?.background);
@@ -1065,6 +1067,8 @@ function LibraryItemDetailContent({
 }: LibraryItemDetailContentProps) {
   const { hasBackground, isBackgroundVisible } = useBackground();
   const { isLoading } = useLoading();
+  const stableCoverTimestampRef = useRef<number>(Date.now());
+  const coverTimestampForUrls = listLoadTimestamp ?? stableCoverTimestampRef.current;
 
   const calculateSummaryMaxLines = (): number => {
     let fieldCount = 1;
@@ -1728,7 +1732,7 @@ function LibraryItemDetailContent({
                             >
                               {subCollectionLikes.map((col) => {
                                 const colCoverUrl = col.cover
-                                  ? buildCoverUrl(API_BASE, col.cover, true)
+                                  ? buildCoverUrl(API_BASE, col.cover, true, coverTimestampForUrls)
                                   : "";
                                 const handleClick = () => {
                                   if (onCollectionClick) {
