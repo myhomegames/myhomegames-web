@@ -53,6 +53,10 @@ export default function TagGamesPage({
     () => (rawParam ? decodeURIComponent(rawParam) : null),
     [rawParam]
   );
+  const scopedStorageKey = useMemo(
+    () => `${storageKey}_${tagValue ?? "__all__"}`,
+    [storageKey, tagValue]
+  );
   const libraryGameIds = useMemo(
     () => libraryGames.map((g) => (typeof g.id === "number" ? g.id : parseInt(String(g.id), 10))).filter((id) => !Number.isNaN(id)),
     [libraryGames]
@@ -70,14 +74,17 @@ export default function TagGamesPage({
   const igdbTagNameForFetch = tagNameFromUrl ?? tagNameFromLabels ?? undefined;
 
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    const saved = localStorage.getItem(`viewMode_${storageKey}`);
+    const saved = localStorage.getItem(`viewMode_${scopedStorageKey}`);
     return (saved as ViewMode) || "grid";
   });
   const [showNewGames, setShowNewGames] = useState<boolean>(() => {
-    const saved = localStorage.getItem(`showNewGames_${storageKey}`);
+    const saved = localStorage.getItem(`showNewGames_${scopedStorageKey}`);
     if (saved === "false") return false;
     if (saved === "true") return true;
     return false;
+  });
+  const [mainGamesOnly, setMainGamesOnly] = useState<boolean>(() => {
+    return localStorage.getItem(`mainGamesOnly_${scopedStorageKey}`) === "true";
   });
   const coverSize = (() => {
     const saved = localStorage.getItem("coverSize");
@@ -85,20 +92,38 @@ export default function TagGamesPage({
   })();
 
   const hook = useGamesListPage({
-    localStoragePrefix: `tag_${storageKey}`,
+    localStoragePrefix: `tag_${scopedStorageKey}`,
     defaultFilterField: tagField,
     listenToGameDeleted: true,
     gameEvents: ["gameUpdated", "gameDeleted"],
     scrollRestorationMode: viewMode === "table" ? undefined : viewMode,
+    mainGamesOnly,
+    setMainGamesOnly,
   });
 
   useEffect(() => {
-    localStorage.setItem(`viewMode_${storageKey}`, viewMode);
-  }, [viewMode, storageKey]);
+    localStorage.setItem(`viewMode_${scopedStorageKey}`, viewMode);
+  }, [viewMode, scopedStorageKey]);
 
   useEffect(() => {
-    localStorage.setItem(`showNewGames_${storageKey}`, String(showNewGames));
-  }, [showNewGames, storageKey]);
+    localStorage.setItem(`showNewGames_${scopedStorageKey}`, String(showNewGames));
+  }, [showNewGames, scopedStorageKey]);
+
+  useEffect(() => {
+    localStorage.setItem(`mainGamesOnly_${scopedStorageKey}`, String(mainGamesOnly));
+  }, [mainGamesOnly, scopedStorageKey]);
+
+  useEffect(() => {
+    const savedViewMode = localStorage.getItem(`viewMode_${scopedStorageKey}`);
+    setViewMode((savedViewMode as ViewMode) || "grid");
+
+    const savedNewGames = localStorage.getItem(`showNewGames_${scopedStorageKey}`);
+    if (savedNewGames === "true") setShowNewGames(true);
+    else if (savedNewGames === "false") setShowNewGames(false);
+    else setShowNewGames(false);
+
+    setMainGamesOnly(localStorage.getItem(`mainGamesOnly_${scopedStorageKey}`) === "true");
+  }, [scopedStorageKey]);
 
   const EFFECTIVE_TAG_FIELDS: FilterField[] = ["themes", "platforms", "gameModes", "playerPerspectives", "gameEngines", "developers", "publishers", "series", "franchise"];
   const effectiveTagKey = hook.filterField !== "all" && EFFECTIVE_TAG_FIELDS.includes(hook.filterField) ? hook.filterField : null;
