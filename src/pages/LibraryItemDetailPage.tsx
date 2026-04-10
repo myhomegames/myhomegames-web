@@ -1088,6 +1088,7 @@ function LibraryItemDetailContent({
   const [parentCollectionLikesWithGames, setParentCollectionLikesWithGames] = useState<
     Array<{ parent: CollectionItem; games: GameItem[]; slideItems: GameItem[] }>
   >([]);
+  const [singleSubCollectionGames, setSingleSubCollectionGames] = useState<GameItem[]>([]);
 
   const completeCollectionLikes = useMemo(() => {
     const byId = new Map<string, CollectionItem>();
@@ -1340,6 +1341,36 @@ function LibraryItemDetailContent({
       cancelled = true;
     };
   }, [parentCollectionLikes, resourceType, completeCollectionLikes]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadSingleSubCollectionGames = async () => {
+      if (subCollectionLikes.length !== 1) {
+        setSingleSubCollectionGames([]);
+        return;
+      }
+      const onlyChild = subCollectionLikes[0];
+      try {
+        const url = buildApiUrl(API_BASE, `/${resourceType}/${encodeURIComponent(String(onlyChild.id))}/games`);
+        const res = await fetch(url, {
+          headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
+        });
+        if (!res.ok) {
+          if (!cancelled) setSingleSubCollectionGames([]);
+          return;
+        }
+        const json = await res.json();
+        const parsed = parseGamesFromJson(json);
+        if (!cancelled) setSingleSubCollectionGames(parsed);
+      } catch {
+        if (!cancelled) setSingleSubCollectionGames([]);
+      }
+    };
+    loadSingleSubCollectionGames();
+    return () => {
+      cancelled = true;
+    };
+  }, [subCollectionLikes, resourceType]);
 
   const dispatchCollectionLikeUpdated = (updatedItem: CollectionInfo) => {
     if (resourceType === "collections") {
@@ -1715,79 +1746,127 @@ function LibraryItemDetailContent({
                                     : t("igdbInfo.subPublishers", { count: subCollectionLikes.length });
                               return label.replace(/(\p{L})/u, (_, c) => c.toUpperCase());
                             })()}
+                            {subCollectionLikes.length === 1 && (
+                              <>
+                                {": "}
+                                <button
+                                  type="button"
+                                  onClick={() => onCollectionClick?.(String(subCollectionLikes[0].id))}
+                                  style={{
+                                    color: "#ffffff",
+                                    textDecoration: "none",
+                                    background: "none",
+                                    border: "none",
+                                    padding: 0,
+                                    margin: 0,
+                                    cursor: "pointer",
+                                    font: "inherit",
+                                  }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+                                  onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+                                >
+                                  {subCollectionLikes[0].title}
+                                </button>
+                              </>
+                            )}
                           </h2>
-                          <div
-                            className="library-item-detail-collections-list"
-                            style={{ marginTop: "24px" }}
-                          >
-                            <div
-                              className="collections-list-container"
-                              style={{
-                                display: "grid",
-                                gridTemplateColumns: `repeat(auto-fill, ${coverSize}px)`,
-                                gap: 40,
-                                justifyContent: "flex-start",
-                                maxWidth: "100%",
-                              }}
-                            >
-                              {subCollectionLikes.map((col) => {
-                                const colCoverUrl = col.cover
-                                  ? buildCoverUrl(API_BASE, col.cover, true, coverTimestampForUrls)
-                                  : "";
-                                const handleClick = () => {
-                                  if (onCollectionClick) {
-                                    onCollectionClick(String(col.id));
+                          {subCollectionLikes.length === 1 ? (
+                            <div className="library-item-detail-games-list" style={{ marginTop: "24px" }}>
+                              <GamesList
+                                games={singleSubCollectionGames}
+                                onGameClick={(game) => {
+                                  const g = game as GameItem & { isIgdbOnly?: boolean };
+                                  if (g.isIgdbOnly && onIgdbGameClick) {
+                                    onIgdbGameClick(Number(game.id));
+                                  } else {
+                                    onGameClick(game);
                                   }
-                                };
-                                return (
-                                  <div
-                                    key={String(col.id)}
-                                    className="group cursor-pointer collections-list-item"
-                                    style={{ width: `${coverSize}px`, minWidth: `${coverSize}px` }}
-                                  >
-                                    <Cover
-                                      title={col.title}
-                                      coverUrl={colCoverUrl}
-                                      width={coverSize}
-                                      height={coverSize * 1.5}
-                                      onClick={handleClick}
-                                      subtitle={
-                                        (subCollectionDisplayCountById[String(col.id)] ?? col.gameCount) != null
-                                          ? t("common.elements", { count: subCollectionDisplayCountById[String(col.id)] ?? col.gameCount })
-                                          : undefined
-                                      }
-                                      onPlay={
-                                        onPlayFirstInCollectionLike
-                                          ? () => onPlayFirstInCollectionLike(resourceType, String(col.id))
-                                          : undefined
-                                      }
-                                      onEdit={() => openChildEditModal(col)}
-                                      onAddToCollection={(parentId) => addChildToParent(col, parentId)}
-                                      onRemoveFromParent={() => removeChildFromParent(String(col.id))}
-                                      sourceCollectionLike={col}
-                                      allCollectionLikes={allCollectionLikes}
-                                      collectionLikeResourceType={resourceType}
-                                      dropdownHorizontal={false}
-                                      dropdownToolTipDelay={200}
-                                      collectionId={resourceType === "collections" ? String(col.id) : undefined}
-                                      developerId={resourceType === "developers" ? String(col.id) : undefined}
-                                      publisherId={resourceType === "publishers" ? String(col.id) : undefined}
-                                      collectionTitle={col.title}
-                                      onCollectionUpdate={
-                                        resourceType === "collections"
-                                          ? (updated) => dispatchCollectionLikeUpdated(updated)
-                                          : undefined
-                                      }
-                                      showTitle={(col as any).showTitle !== false}
-                                      detail={true}
-                                      play={!!onPlayFirstInCollectionLike}
-                                      showBorder={true}
-                                    />
-                                  </div>
-                                );
-                              })}
+                                }}
+                                onPlay={onPlay}
+                                onGameUpdate={onGameUpdate}
+                                onGameDelete={onGameDelete}
+                                buildCoverUrl={buildCoverUrl}
+                                coverCacheBustTimestamp={listLoadTimestamp}
+                                coverSize={coverSize}
+                                itemRefs={itemRefs}
+                                draggable={false}
+                                allCollections={isCollection ? allCollections : undefined}
+                              />
                             </div>
-                          </div>
+                          ) : (
+                            <div
+                              className="library-item-detail-collections-list"
+                              style={{ marginTop: "24px" }}
+                            >
+                              <div
+                                className="collections-list-container"
+                                style={{
+                                  display: "grid",
+                                  gridTemplateColumns: `repeat(auto-fill, ${coverSize}px)`,
+                                  gap: 40,
+                                  justifyContent: "flex-start",
+                                  maxWidth: "100%",
+                                }}
+                              >
+                                {subCollectionLikes.map((col) => {
+                                  const colCoverUrl = col.cover
+                                    ? buildCoverUrl(API_BASE, col.cover, true, coverTimestampForUrls)
+                                    : "";
+                                  const handleClick = () => {
+                                    if (onCollectionClick) {
+                                      onCollectionClick(String(col.id));
+                                    }
+                                  };
+                                  return (
+                                    <div
+                                      key={String(col.id)}
+                                      className="group cursor-pointer collections-list-item"
+                                      style={{ width: `${coverSize}px`, minWidth: `${coverSize}px` }}
+                                    >
+                                      <Cover
+                                        title={col.title}
+                                        coverUrl={colCoverUrl}
+                                        width={coverSize}
+                                        height={coverSize * 1.5}
+                                        onClick={handleClick}
+                                        subtitle={
+                                          (subCollectionDisplayCountById[String(col.id)] ?? col.gameCount) != null
+                                            ? t("common.elements", { count: subCollectionDisplayCountById[String(col.id)] ?? col.gameCount })
+                                            : undefined
+                                        }
+                                        onPlay={
+                                          onPlayFirstInCollectionLike
+                                            ? () => onPlayFirstInCollectionLike(resourceType, String(col.id))
+                                            : undefined
+                                        }
+                                        onEdit={() => openChildEditModal(col)}
+                                        onAddToCollection={(parentId) => addChildToParent(col, parentId)}
+                                        onRemoveFromParent={() => removeChildFromParent(String(col.id))}
+                                        sourceCollectionLike={col}
+                                        allCollectionLikes={allCollectionLikes}
+                                        collectionLikeResourceType={resourceType}
+                                        dropdownHorizontal={false}
+                                        dropdownToolTipDelay={200}
+                                        collectionId={resourceType === "collections" ? String(col.id) : undefined}
+                                        developerId={resourceType === "developers" ? String(col.id) : undefined}
+                                        publisherId={resourceType === "publishers" ? String(col.id) : undefined}
+                                        collectionTitle={col.title}
+                                        onCollectionUpdate={
+                                          resourceType === "collections"
+                                            ? (updated) => dispatchCollectionLikeUpdated(updated)
+                                            : undefined
+                                        }
+                                        showTitle={(col as any).showTitle !== false}
+                                        detail={true}
+                                        play={!!onPlayFirstInCollectionLike}
+                                        showBorder={true}
+                                      />
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                       {editingChild && (
