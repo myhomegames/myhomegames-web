@@ -39,7 +39,7 @@ export default function AddToCollectionDropdown({
     const handleOpenDropdown = (event: Event) => {
       const customEvent = event as CustomEvent<{ gameId?: string; menuItem?: HTMLElement }>;
       // Only open if the event is for this specific game and modal is not open
-      if (customEvent.detail?.gameId === game.id && !isModalOpen) {
+      if (String(customEvent.detail?.gameId ?? "") === String(game.id) && !isModalOpen) {
         // Store the menu item reference if provided
         if (customEvent.detail.menuItem) {
           menuItemRef.current = customEvent.detail.menuItem;
@@ -65,7 +65,10 @@ export default function AddToCollectionDropdown({
       const customEvent = event as CustomEvent<{ gameId?: string }>;
       // Only close if the event is for this specific game or if no gameId is specified (close all)
       // But don't close if modal is open
-      if ((!customEvent.detail?.gameId || customEvent.detail.gameId === game.id) && !isModalOpen) {
+      if (
+        (!customEvent.detail?.gameId || String(customEvent.detail.gameId) === String(game.id)) &&
+        !isModalOpen
+      ) {
         setIsOpen(false);
       }
     };

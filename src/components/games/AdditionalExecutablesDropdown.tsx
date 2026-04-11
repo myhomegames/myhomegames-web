@@ -43,7 +43,7 @@ export default function AdditionalExecutablesDropdown({
     const handleOpenDropdown = (event: Event) => {
       const customEvent = event as CustomEvent<{ gameId?: string }>;
       // Only open if the event is for this specific game
-      if (customEvent.detail?.gameId === gameId) {
+      if (String(customEvent.detail?.gameId ?? "") === String(gameId ?? "")) {
         setIsOpen(true);
       }
     };
@@ -51,7 +51,10 @@ export default function AdditionalExecutablesDropdown({
     const handleCloseDropdown = (event: Event) => {
       const customEvent = event as CustomEvent<{ gameId?: string }>;
       // Only close if the event is for this specific game or if no gameId is specified (close all)
-      if (!customEvent.detail?.gameId || customEvent.detail.gameId === gameId) {
+      if (
+        !customEvent.detail?.gameId ||
+        String(customEvent.detail.gameId) === String(gameId ?? "")
+      ) {
         setIsOpen(false);
       }
     };

@@ -1,7 +1,8 @@
 import { useRef, useEffect, useState, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import { Grid } from "react-window";
-import type { GameItem } from "../../types";
+import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
+import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 import { GameListItem } from "./GamesList";
 import "./VirtualizedGamesList.css";
 
@@ -45,6 +46,14 @@ type VirtualizedGamesListProps = {
   onRemoveFromDeveloper?: (gameId: string) => void;
   onRemoveFromPublisher?: (gameId: string) => void;
   platformIdForPlay?: string;
+  allCollectionLikes?: CollectionItem[];
+  collectionLikeResourceType?: CollectionLikeResourceType;
+  sliderParentCollectionLikeId?: string;
+  onRemoveChildFromSliderParent?: (childId: string) => void | Promise<void>;
+  onCollectionLikePseudoEdit?: (game: GameItem) => void;
+  onPlayFirstInCollectionLike?: (resourceType: string, cid: string) => void | Promise<void>;
+  onCollectionLikePseudoAddToParent?: (source: CollectionItem, parentId?: string) => void | Promise<void>;
+  onCollectionLikePseudoUpdated?: (updated: CollectionInfo) => void;
 };
 
 const GAP = 40; // Gap between items in grid
@@ -70,6 +79,14 @@ export default function VirtualizedGamesList({
   onRemoveFromDeveloper,
   onRemoveFromPublisher,
   platformIdForPlay,
+  allCollectionLikes,
+  collectionLikeResourceType,
+  sliderParentCollectionLikeId,
+  onRemoveChildFromSliderParent,
+  onCollectionLikePseudoEdit,
+  onPlayFirstInCollectionLike,
+  onCollectionLikePseudoAddToParent,
+  onCollectionLikePseudoUpdated,
 }: VirtualizedGamesListProps) {
   const location = useLocation();
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -358,6 +375,14 @@ export default function VirtualizedGamesList({
           onRemoveFromDeveloper={onRemoveFromDeveloper}
           onRemoveFromPublisher={onRemoveFromPublisher}
           platformIdForPlay={platformIdForPlay}
+          allCollectionLikes={allCollectionLikes}
+          collectionLikeResourceType={collectionLikeResourceType}
+          sliderParentCollectionLikeId={sliderParentCollectionLikeId}
+          onRemoveChildFromSliderParent={onRemoveChildFromSliderParent}
+          onCollectionLikePseudoEdit={onCollectionLikePseudoEdit}
+          onPlayFirstInCollectionLike={onPlayFirstInCollectionLike}
+          onCollectionLikePseudoAddToParent={onCollectionLikePseudoAddToParent}
+          onCollectionLikePseudoUpdated={onCollectionLikePseudoUpdated}
         />
       </div>
     );

@@ -23,6 +23,7 @@ import Tooltip from "../components/common/Tooltip";
 import BackgroundManager, { useBackground } from "../components/common/BackgroundManager";
 import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
 import { compareTitles } from "../utils/stringUtils";
+import { parseCollectionLikePseudoGameId } from "../utils/collectionLikePseudoGame";
 import { isMainGameType } from "../utils/igdbGameType";
 import { buildApiUrl, buildCoverUrl, buildBackgroundUrl } from "../utils/api";
 import { API_BASE, getApiToken } from "../config";
@@ -1428,6 +1429,50 @@ function LibraryItemDetailContent({
     }
   };
 
+  const removeChildFromSliderParent = async (parentId: string, childId: string) => {
+    const token = getApiToken();
+    if (!token) return;
+    try {
+      const url = buildApiUrl(
+        API_BASE,
+        `/${resourceType}/${encodeURIComponent(parentId)}/childs/${encodeURIComponent(childId)}`
+      );
+      const res = await fetch(url, {
+        method: "DELETE",
+        headers: { "X-Auth-Token": token },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      if (resourceType === "collections") {
+        window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collectionId: String(parentId) } }));
+      } else if (resourceType === "developers") {
+        window.dispatchEvent(new CustomEvent("developerUpdated", { detail: {} }));
+      } else {
+        window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: {} }));
+      }
+    } catch (err) {
+      console.error("Error removing child from slider parent:", err);
+    }
+  };
+
+  const handleCollectionLikePseudoEdit = (g: GameItem) => {
+    const p = parseCollectionLikePseudoGameId(g.id);
+    if (!p) return;
+    const existing = completeCollectionLikes.find((c) => String(c.id) === p.childId);
+    if (existing) {
+      openChildEditModal(existing);
+    } else {
+      openChildEditModal({
+        id: p.childId,
+        title: g.title,
+        summary: typeof g.summary === "string" ? g.summary : "",
+        cover: g.cover,
+        childs: [],
+        showTitle: (g as { showTitle?: boolean }).showTitle !== false,
+      });
+    }
+  };
+
   const addChildToParent = async (source: CollectionItem, parentId?: string) => {
     if (!parentId) {
       setLinkSourceCollectionLike(source);
@@ -1984,6 +2029,16 @@ function LibraryItemDetailContent({
                                   onGameUpdate={onGameUpdate}
                                   coverSize={140}
                                   allCollections={allCollections}
+                                  allCollectionLikes={allCollectionLikes}
+                                  collectionLikeResourceType={resourceType}
+                                  sliderParentCollectionLikeId={String(parent.id)}
+                                  onRemoveChildFromSliderParent={(childId) =>
+                                    removeChildFromSliderParent(String(parent.id), childId)
+                                  }
+                                  onCollectionLikePseudoEdit={handleCollectionLikePseudoEdit}
+                                  onPlayFirstInCollectionLike={onPlayFirstInCollectionLike}
+                                  onCollectionLikePseudoAddToParent={addChildToParent}
+                                  onCollectionLikePseudoUpdated={dispatchCollectionLikeUpdated}
                                 />
                               </div>
                             ))}
