@@ -8,7 +8,6 @@ import { API_BASE, API_TOKEN, getTwitchClientId, getTwitchClientSecret } from ".
 import { useSettings } from "../../contexts/SettingsContext";
 import { useCreateGame } from "./actions";
 import type { GameItem, IGDBGame } from "../../types";
-import "./AddGame.css";
 import Cover from "../games/Cover";
 
 type AddGameProps = {

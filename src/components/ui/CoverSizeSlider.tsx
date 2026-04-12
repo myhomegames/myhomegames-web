@@ -1,6 +1,4 @@
 import { useId } from "react";
-import "./CoverSizeSlider.css";
-
 type CoverSizeSliderProps = {
   value: number;
   onChange: (value: number) => void;

@@ -2,8 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import FilterSubmenu from "./FilterSubmenu";
 import type { FilterField, FilterType, GameItem } from "./types";
-import "./FilterPopup.css";
-
 type FilterPopupProps = {
   isOpen: boolean;
   onClose: () => void;

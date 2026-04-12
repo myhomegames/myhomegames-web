@@ -12,8 +12,6 @@ import type { GameItem, TagItem, GameLibrarySection, CollectionItem } from "../t
 import { API_BASE } from "../config";
 import { buildApiHeaders } from "../utils/api";
 import { buildLibrarySections, normalizeVisibleLibraries } from "../utils/librarySections";
-import "./HomePage.css";
-
 export type { GameItem, TagItem };
 
 type HomePageProps = {

@@ -1,8 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { ViewMode } from "../../types";
-import "./ViewModeSelector.css";
-
 type ViewModeSelectorProps = {
   value: ViewMode;
   onChange: (mode: ViewMode) => void;
@@ -78,23 +76,22 @@ export default function ViewModeSelector({
         <span className={`view-mode-icon ${iconHover && !disabled ? "hover" : ""}`}>
           {currentMode.icon}
         </span>
-        {!disabled && (
-          <svg
-            width="12"
-            height="12"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            className={`view-mode-arrow ${isOpen ? "open" : ""}`}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
-        )}
+        <svg
+          width="12"
+          height="12"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          strokeWidth={2}
+          className={`view-mode-arrow ${isOpen ? "open" : ""}${disabled ? " view-mode-arrow--inactive" : ""}`}
+          aria-hidden={disabled}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M19 9l-7 7-7-7"
+          />
+        </svg>
       </button>
 
       {isOpen && !disabled && (

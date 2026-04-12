@@ -6,8 +6,6 @@ import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 import { buildCoverUrl } from "../../utils/api";
 import { useAutoTranslate } from "../../hooks/useAutoTranslate";
-import "./ScrollableGamesSection.css";
-
 // Helper per sessionStorage
 function getScrollPosition(key: string): number {
   try {

@@ -3,8 +3,6 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import Tooltip from "../common/Tooltip";
 import { useAuth } from "../../contexts/AuthContext";
-import "./ProfileDropdown.css";
-
 type ProfileDropdownProps = {
   onViewProfile?: () => void;
   onChangeUser?: () => void;

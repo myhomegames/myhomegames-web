@@ -9,8 +9,6 @@ import TableRow from "./TableRow";
 import type { GameItem, CollectionItem } from "../../types";
 import { buildApiUrl } from "../../utils/api";
 import { formatGameDate } from "../../utils/date";
-import "./GamesListTable.css";
-
 const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are more than this many items
 
 type ColumnVisibility = {

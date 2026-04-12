@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { getEmbedVideoUrl } from "../../utils/api";
-import "./MediaGallery.css";
-
 type MediaGalleryProps = {
   screenshots?: string[];
   videos?: string[];

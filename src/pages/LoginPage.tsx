@@ -2,8 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useTranslation } from "react-i18next";
-import "./LoginPage.css";
-
 export default function LoginPage() {
   const { user, login, isLoading } = useAuth();
   const navigate = useNavigate();

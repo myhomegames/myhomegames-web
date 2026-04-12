@@ -4,9 +4,6 @@ import { Grid } from "react-window";
 import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 import { GameListItem } from "./GamesList";
-import "../common/virtualized-common.css";
-import "./VirtualizedGamesList.css";
-
 // Helper functions for scroll restoration
 function getScrollPosition(key: string): { scrollTop: number; scrollLeft: number } | null {
   try {

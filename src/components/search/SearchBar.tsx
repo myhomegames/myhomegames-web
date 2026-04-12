@@ -4,9 +4,6 @@ import { useTranslation } from "react-i18next";
 import SearchResultsList from "./SearchResultsList";
 import { filterRootCollectionLikes } from "../../utils/stringUtils";
 import type { GameItem, CollectionItem } from "../../types";
-import "./SearchBar.css";
-import "./SearchResultsList.css";
-
 type SearchBarProps = {
   games: GameItem[];
   collections: CollectionItem[];

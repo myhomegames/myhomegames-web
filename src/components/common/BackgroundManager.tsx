@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, createContext, useContext } from "react";
 import type { CSSProperties } from "react";
-import "./BackgroundManager.css";
-
 type BackgroundContextType = {
   hasBackground: boolean;
   isBackgroundVisible: boolean;

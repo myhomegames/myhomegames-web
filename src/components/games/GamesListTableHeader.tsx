@@ -1,8 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { SortField } from "../../types";
-import "./GamesListTable.css";
-
 type ColumnVisibility = {
   title: boolean;
   gameType: boolean;

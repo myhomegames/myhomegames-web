@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import "./AdditionalExecutablesDropdown.css";
-
 type AdditionalExecutablesDropdownProps = {
   gameId: string;
   gameExecutables: string[];

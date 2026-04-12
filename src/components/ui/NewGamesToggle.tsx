@@ -1,7 +1,5 @@
 import { useTranslation } from "react-i18next";
 import Tooltip from "../common/Tooltip";
-import "./NewGamesToggle.css";
-
 type NewGamesToggleProps = {
   showNewGames: boolean;
   onChange: (show: boolean) => void;

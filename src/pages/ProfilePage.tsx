@@ -1,7 +1,5 @@
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
-import "./ProfilePage.css";
-
 export default function ProfilePage() {
   const { t } = useTranslation();
   const { user } = useAuth();

@@ -3,9 +3,6 @@ import { useLocation } from "react-router-dom";
 import { List } from "react-window";
 import type { GameItem, CollectionItem } from "../../types";
 import { GameDetailItem } from "./GamesListDetail";
-import "../common/virtualized-common.css";
-import "./VirtualizedGamesListDetail.css";
-
 // Helper functions for scroll restoration
 function getScrollPosition(key: string): number | null {
   try {

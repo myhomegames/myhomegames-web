@@ -2,8 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import Tooltip from "../common/Tooltip";
 import { useLatestRelease, type OsKind } from "../../hooks/useLatestRelease";
-import "./UpdateNotification.css";
-
 const OS_LABEL_KEY: Record<OsKind, string> = {
   win: "header.downloadWindows",
   "mac-arm64": "header.downloadMacArm",

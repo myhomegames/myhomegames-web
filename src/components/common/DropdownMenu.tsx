@@ -4,7 +4,6 @@ import { createPortal } from "react-dom";
 import { getApiToken } from "../../config";
 import { useDeleteGame, useReloadGame, useUnlinkExecutable, useRemoveGameFromCollection } from "./actions";
 import Tooltip from "./Tooltip";
-import "./DropdownMenu.css";
 import type { CollectionItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 

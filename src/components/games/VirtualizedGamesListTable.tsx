@@ -3,9 +3,6 @@ import { useLocation } from "react-router-dom";
 import { List, useDynamicRowHeight } from "react-window";
 import type { GameItem, CollectionItem } from "../../types";
 import TableRow from "./TableRow";
-import "../common/virtualized-common.css";
-import "./VirtualizedGamesListTable.css";
-
 // Scroll restoration: we store the first visible row INDEX (from onRowsRendered), not scrollTop.
 function getSavedScrollIndex(key: string): number | null {
   try {

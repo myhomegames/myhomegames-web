@@ -1,5 +1,3 @@
-import "./WebsitesList.css";
-
 type Website = {
   url: string;
   category?: number;

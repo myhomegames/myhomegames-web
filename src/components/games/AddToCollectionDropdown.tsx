@@ -5,8 +5,6 @@ import type { CollectionItem, GameItem } from "../../types";
 import AddToCollectionLikeModal, { type AddToResourceType } from "./AddToCollectionLikeModal";
 import { useAddGameToCollection } from "../common/actions";
 import { useCollections } from "../../contexts/CollectionsContext";
-import "./AddToCollectionDropdown.css";
-
 type AddToCollectionDropdownProps = {
   game: GameItem;
   allCollections: CollectionItem[];

@@ -14,8 +14,6 @@ import {
 } from "../../utils/imageUploadNormalize";
 import { normalizeWebsites, areWebsitesEqual, normalizeSimilarGames, areSimilarGamesEqual } from "../../utils/editGameUtils";
 import { toTagTitles as toTagTitlesUtil } from "../filters/tagFilterUtils";
-import "./EditGameModal.css";
-
 function normExt(s: string | null | undefined) {
   return (s ?? "").trim();
 }

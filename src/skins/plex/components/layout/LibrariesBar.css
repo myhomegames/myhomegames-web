@@ -39,8 +39,20 @@
   pointer-events: auto;
 }
 
+/* Detail/table: remove slider from layout so it does not leave flex gaps */
 .mhg-libraries-actions-slider-container.hidden {
-  visibility: hidden;
+  display: none;
+}
+
+/* No extra column-gap between icon cluster and view mode when slider is hidden */
+.mhg-libraries-actions:has(> .mhg-libraries-actions-slider-container.hidden) {
+  gap: 0;
+}
+
+/* Tuck view mode toward “solo principali” (still clears icon cluster) */
+.mhg-libraries-actions:has(> .mhg-libraries-actions-slider-container.hidden)
+  .mhg-libraries-actions-view-mode-container {
+  margin-left: -10px;
 }
 
 .mhg-libraries-actions-background-toggle-container {

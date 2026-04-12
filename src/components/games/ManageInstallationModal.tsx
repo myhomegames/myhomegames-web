@@ -7,8 +7,6 @@ import { useTagLists } from "../../contexts/TagListsContext";
 import TagEditor from "../common/TagEditor";
 import type { GameItem } from "../../types";
 import { buildApiUrl } from "../../utils/api";
-import "./ManageInstallationModal.css";
-
 type ExecutableState = {
   label: string;
   platform: string;

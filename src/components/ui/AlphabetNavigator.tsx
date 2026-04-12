@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import type { GameItem } from "../../types";
-import "./AlphabetNavigator.css";
-
 type AlphabetNavigatorProps = {
   games: GameItem[];
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;

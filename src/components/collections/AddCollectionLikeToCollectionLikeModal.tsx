@@ -5,8 +5,6 @@ import { API_BASE, getApiToken } from "../../config";
 import { buildApiUrl } from "../../utils/api";
 import type { CollectionItem } from "../../types";
 import type { CollectionLikeResourceType } from "./EditCollectionLikeModal";
-import "./../games/AddToCollectionModal.css";
-
 type AddCollectionLikeToCollectionLikeModalProps = {
   isOpen: boolean;
   onClose: () => void;

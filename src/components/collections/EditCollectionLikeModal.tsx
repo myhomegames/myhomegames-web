@@ -7,9 +7,6 @@ import Cover from "../games/Cover";
 import type { CollectionInfo } from "../../types";
 import { buildApiUrl } from "../../utils/api";
 import { normalizeGameCoverImage, normalizeWideImage } from "../../utils/imageUploadNormalize";
-import "../games/edit/EditGameMediaTab.css";
-import "./EditCollectionLikeModal.css";
-
 function normExt(s: string | null | undefined) {
   return (s ?? "").trim();
 }
@@ -647,7 +644,7 @@ export default function EditCollectionLikeModal({
                             ref={coverInputRef}
                             type="file"
                             accept="image/*"
-                            className="hidden"
+                            hidden
                             onChange={handleCoverFileSelect}
                             aria-label={t("gameDetail.cover", "Cover")}
                           />
@@ -720,7 +717,7 @@ export default function EditCollectionLikeModal({
                               ref={backgroundInputRef}
                               type="file"
                               accept="image/*"
-                              className="hidden"
+                              hidden
                               onChange={handleBackgroundFileSelect}
                               aria-label={t("gameDetail.background", "Background")}
                             />

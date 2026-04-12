@@ -1,6 +1,4 @@
 import { useState, type CSSProperties, type MouseEvent } from "react";
-import "./StarRating.css";
-
 type StarRatingProps = {
   rating: number; // Rating from 0 to 5
   starSize?: number;

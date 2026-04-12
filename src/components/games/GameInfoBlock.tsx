@@ -8,8 +8,6 @@ import { usePublishers } from "../../contexts/PublishersContext";
 import { useTagLists } from "../../contexts/TagListsContext";
 import WebsitesList from "./WebsitesList";
 import InlineTagList from "../common/InlineTagList";
-import "./GameInfoBlock.css";
-
 type GameInfoBlockProps = {
   game: IGDBGame | GameItem;
 };

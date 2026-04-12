@@ -4,8 +4,6 @@ import { useTranslation } from "react-i18next";
 import { useLibraryGames } from "../../contexts/LibraryGamesContext";
 import SearchResultsList from "../search/SearchResultsList";
 import type { GameItem } from "../../types";
-import "./GameSearchModal.css";
-
 type GameSearchModalProps = {
   isOpen: boolean;
   onClose: () => void;

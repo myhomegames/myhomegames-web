@@ -8,8 +8,6 @@ import AdditionalExecutablesDropdown from "./AdditionalExecutablesDropdown";
 import Tooltip from "../common/Tooltip";
 import type { CollectionItem, GameItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
-import "./Cover.css";
-
 type CoverProps = {
   title: string;
   coverUrl: string;

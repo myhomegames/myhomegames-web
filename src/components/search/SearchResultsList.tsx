@@ -14,8 +14,6 @@ import type { GameItem, CollectionItem, CollectionInfo } from "../../types";
 import { formatGameDate } from "../../utils/date";
 import { displayGameType } from "../../utils/igdbGameType";
 import Tooltip from "../common/Tooltip";
-import "./SearchResultsList.css";
-
 type SearchResultType = "game" | "collection" | "developer" | "publisher";
 
 type SearchResultsListProps = {

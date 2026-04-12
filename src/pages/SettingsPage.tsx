@@ -5,7 +5,7 @@ import { useSettings } from "../contexts/SettingsContext";
 import { API_BASE } from "../config";
 import { buildApiHeaders } from "../utils/api";
 import { LIBRARY_ORDER, normalizeVisibleLibraries } from "../utils/librarySections";
-import "./SettingsPage.css";
+import SettingsSkinSection from "../components/settings/SettingsSkinSection";
 
 export default function SettingsPage() {
   const { t, i18n } = useTranslation();
@@ -299,7 +299,7 @@ export default function SettingsPage() {
             <div className="settings-actions">
               {saveError && (
                 <p className="settings-help-text settings-help-text--error">
-                  {t("settings.saveError", "Impossibile salvare sul server")}: {saveError}
+                  {t("settings.saveError")}: {saveError}
                 </p>
               )}
               <button
@@ -312,6 +312,8 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+
+        <SettingsSkinSection />
 
         {/* Twitch OAuth Settings */}
         <div className="bg-[#1a1a1a] settings-card settings-card--spaced-top">

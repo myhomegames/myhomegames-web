@@ -7,7 +7,6 @@ import {
   useParams,
 } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import "./App.css";
 import Favicon from "./components/common/Favicon";
 import Header from "./components/layout/Header";
 import AddGame from "./components/common/AddGame";

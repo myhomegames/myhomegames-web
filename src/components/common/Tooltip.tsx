@@ -1,7 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import "./Tooltip.css";
-
 type TooltipProps = {
   text: string;
   position?: "top" | "bottom" | "left" | "right";

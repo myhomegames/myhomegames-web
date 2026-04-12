@@ -9,8 +9,6 @@ import AgeRatings from "./AgeRatings";
 import type { GameItem, CollectionItem } from "../../types";
 import { gameHasExecutableForPlatform, getExecutablesForPlatform } from "../../utils/gameExecutables";
 import { displayGameType, toGameTypeId } from "../../utils/igdbGameType";
-import "./TableRow.css";
-
 type ColumnVisibility = {
   title: boolean;
   gameType: boolean;

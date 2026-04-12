@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import "./InlineTagList.css";
-
 type InlineTagListProps<TItem> = {
   items: TItem[];
   getLabel: (item: TItem) => string;

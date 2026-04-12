@@ -23,8 +23,6 @@ import type { IGDBGame } from "../types";
 import { formatIGDBGameDate } from "../utils/date";
 import { displayGameType, toGameTypeId } from "../utils/igdbGameType";
 import type { TFunction } from "i18next";
-import "./IGDBGameDetailPage.css";
-
 export default function IGDBGameDetailPage() {
   const { t, i18n } = useTranslation();
   const { igdbId } = useParams<{ igdbId: string }>();

@@ -29,8 +29,6 @@ import { buildApiUrl, buildCoverUrl, buildBackgroundUrl } from "../utils/api";
 import { API_BASE, getApiToken } from "../config";
 import type { GameItem, CollectionInfo, CollectionItem } from "../types";
 import type { CollectionLikeResourceType } from "../components/collections/EditCollectionLikeModal";
-import "./LibraryItemDetail.css";
-
 type LibraryItemDetailPageProps = {
   onGameClick: (game: GameItem) => void;
   onIgdbGameClick?: (igdbId: number) => void;

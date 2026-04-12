@@ -18,7 +18,9 @@
 
 .view-mode-button {
   padding: 6px 12px;
-  min-width: 56px;
+  /* Icon (28) + gap (8) + chevron (12) + padding — fixed width so bar layout matches library vs other pages */
+  min-width: 76px;
+  box-sizing: border-box;
   background: transparent;
   border: none;
   border-radius: 6px;
@@ -29,13 +31,16 @@
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 8px;
 }
 
-.view-mode-button.disabled {
+.view-mode-button.disabled,
+.view-mode-button:disabled {
   cursor: not-allowed;
   pointer-events: none;
+  color: #ffffff;
+  opacity: 1;
 }
 
 .view-mode-icon {
@@ -52,7 +57,15 @@
 }
 
 .view-mode-arrow {
-  transition: transform 0.2s ease;
+  flex-shrink: 0;
+  margin-left: auto;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+/* Chevron stays in layout (same position as library) but hidden when selector is disabled */
+.view-mode-arrow.view-mode-arrow--inactive {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .view-mode-arrow.open {

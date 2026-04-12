@@ -1,6 +1,4 @@
 import { useTranslation } from "react-i18next";
-import "./BackgroundToggle.css";
-
 type BackgroundToggleProps = {
   isVisible: boolean;
   onChange: (visible: boolean) => void;

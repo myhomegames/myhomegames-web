@@ -4,8 +4,6 @@ import { useState, useEffect, useMemo } from "react";
 import { API_BASE } from "../../../config";
 import { buildApiUrl, getEmbedVideoUrl } from "../../../utils/api";
 import MediaGallery from "../MediaGallery";
-import "./EditGameMediaTab.css";
-
 type ScreenshotsAndVideosEditorProps = {
   t: TFunction;
   screenshots: string[];
@@ -225,7 +223,7 @@ export default function ScreenshotsAndVideosEditor({
             ref={screenshotInputRef}
             type="file"
             accept="image/*"
-            className="hidden"
+            hidden
             onChange={handleScreenshotFileSelect}
             aria-label={t("gameDetail.uploadScreenshot", "Carica screenshot")}
           />

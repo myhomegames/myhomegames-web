@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Cover from "../games/Cover";
 import type { TagItem } from "../../types";
-import "./TagList.css";
-
 type TagListProps = {
   items: TagItem[];
   coverSize?: number;

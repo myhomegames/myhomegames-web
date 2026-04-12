@@ -10,8 +10,6 @@ import { useCollectionHasPlayableGame } from "../common/hooks/useCollectionHasPl
 import VirtualizedCollectionsList from "./VirtualizedCollectionsList";
 import type { CollectionItem, CollectionInfo, GameItem } from "../../types";
 import { filterRootCollectionLikes } from "../../utils/stringUtils";
-import "./CollectionsList.css";
-
 const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are more than this many items
 
 export type GamesPathType = "collections" | "developers" | "publishers";

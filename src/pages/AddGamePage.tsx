@@ -6,8 +6,6 @@ import { displayGameType } from "../utils/igdbGameType";
 import { API_BASE, getApiToken, getTwitchClientId, getTwitchClientSecret } from "../config";
 import type { IGDBGame } from "../types";
 import Cover from "../components/games/Cover";
-import "./AddGamePage.css";
-
 type AddGamePageProps = {
   onGameSelected: (game: IGDBGame) => void;
 };

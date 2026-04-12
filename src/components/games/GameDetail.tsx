@@ -33,8 +33,6 @@ import EditCollectionLikeModal from "../collections/EditCollectionLikeModal";
 import AddCollectionLikeToCollectionLikeModal from "../collections/AddCollectionLikeToCollectionLikeModal";
 import { parseCollectionLikePseudoGameId } from "../../utils/collectionLikePseudoGame";
 import { buildChildCollectionLikeSlideItems, parseGamesFromJson } from "../../utils/collectionChildSlideItems";
-import "./GameDetail.css";
-
 type GameDetailProps = {
   game: GameItem;
   coverUrl: string;

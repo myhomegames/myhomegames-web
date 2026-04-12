@@ -14,8 +14,6 @@ import type { GameItem, CollectionItem } from "../../types";
 import { formatGameDate } from "../../utils/date";
 import { displayGameType, toGameTypeId } from "../../utils/igdbGameType";
 import { gameHasExecutableForPlatform, getExecutablesForPlatform } from "../../utils/gameExecutables";
-import "./GamesListDetail.css";
-
 const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are more than this many items
 
 type GamesListDetailProps = {

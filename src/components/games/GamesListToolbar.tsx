@@ -7,8 +7,6 @@ import type { SortField } from "../../types";
 import { formatAgeRating } from "./AgeRatings";
 import { getIgdbGameTypeLabel } from "../../utils/igdbGameType";
 import { useTagLists } from "../../contexts/TagListsContext";
-import "./GamesListToolbar.css";
-
 type TagItem = { id: number; title: string } | string;
 
 function buildTagLabelMap(

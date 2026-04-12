@@ -5,8 +5,6 @@ import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useGameEvents } from "../hooks/useGameEvents";
 import SearchResultsList from "../components/search/SearchResultsList";
 import type { GameItem, CollectionItem } from "../types";
-import "./SearchResultsPage.css";
-
 type SearchResultsPageProps = {
   onGameClick: (game: GameItem) => void;
   onPlay?: (item: GameItem | CollectionItem) => void;

@@ -10,8 +10,6 @@ import DropdownMenu from "../common/DropdownMenu";
 import { useBackground } from "../common/BackgroundManager";
 import { API_BASE, getApiToken } from "../../config";
 import type { ViewMode, GameLibrarySection } from "../../types";
-import "./LibrariesBar.css";
-
 type LibrariesBarProps = {
   libraries: GameLibrarySection[];
   activeLibrary: GameLibrarySection | null;
@@ -217,7 +215,7 @@ export default function LibrariesBar({
               <ViewModeSelector 
                 value={viewMode} 
                 onChange={onViewModeChange}
-                disabled={activeLibrary ? activeLibrary.key !== "library" && activeLibrary.key !== "categories" && activeLibrary.key !== "series" && activeLibrary.key !== "franchise" : false}
+                disabled={!activeLibrary || activeLibrary.key !== "library"}
               />
             </div>
           )}

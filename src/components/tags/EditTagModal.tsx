@@ -7,8 +7,6 @@ import Cover from "../games/Cover";
 import type { TagItem } from "../../types";
 import { buildApiUrl } from "../../utils/api";
 import { normalizeWideImage } from "../../utils/imageUploadNormalize";
-import "./EditTagModal.css";
-
 type EditTagModalProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -467,7 +465,7 @@ export default function EditTagModal({
                         name="cover"
                         type="file"
                         accept="image/*"
-                        className="hidden"
+                        hidden
                         onChange={handleCoverFileSelect}
                         aria-label={t("gameDetail.cover", "Cover")}
                       />

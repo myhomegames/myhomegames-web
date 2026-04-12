@@ -3,8 +3,6 @@ import type { ChangeEvent, RefObject } from "react";
 import type { GameItem } from "../../../types";
 import Cover from "../Cover";
 import ScreenshotsAndVideosEditor from "./ScreenshotsAndVideosEditor";
-import "./EditGameMediaTab.css";
-
 type EditGameMediaTabProps = {
   t: TFunction;
   game: GameItem;
@@ -145,7 +143,7 @@ export default function EditGameMediaTab({
                     name="cover"
                     type="file"
                     accept="image/*"
-                    className="hidden"
+                    hidden
                     onChange={handleCoverFileSelect}
                     aria-label={t("gameDetail.cover", "Cover")}
                   />
@@ -221,7 +219,7 @@ export default function EditGameMediaTab({
                     name="background"
                     type="file"
                     accept="image/*"
-                    className="hidden"
+                    hidden
                     onChange={handleBackgroundFileSelect}
                     aria-label={t("gameDetail.background", "Background")}
                   />

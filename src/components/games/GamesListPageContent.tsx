@@ -8,8 +8,6 @@ import GamesListToolbar from "./GamesListToolbar";
 import type { ViewMode, GameItem, CollectionItem } from "../../types";
 import { buildCoverUrl } from "../../utils/api";
 import type { UseGamesListPageReturn } from "../../hooks/useGamesListPage";
-import "./GamesListPageContent.css";
-
 type GamesListPageContentProps = {
   // Hook return values
   hook: UseGamesListPageReturn;

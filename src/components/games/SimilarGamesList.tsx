@@ -7,10 +7,6 @@ import { buildCoverUrl } from "../../utils/api";
 import ScrollableGamesSectionNav from "../common/ScrollableGamesSectionNav";
 import type { CSSProperties } from "react";
 import type { GameItem, CollectionItem } from "../../types";
-import "./GamesList.css";
-import "./SimilarGamesList.css";
-import "../common/ScrollableGamesSection.css";
-
 export type SimilarGameDisplayItem =
   | { type: "library"; game: GameItem }
   | { type: "igdb"; id: number; name: string; cover?: string; year?: number | null };

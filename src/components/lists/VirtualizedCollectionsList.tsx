@@ -3,9 +3,6 @@ import { useLocation } from "react-router-dom";
 import { Grid } from "react-window";
 import type { CollectionItem, GameItem } from "../../types";
 import { CollectionListItem, type GamesPathType } from "./CollectionsList";
-import "../common/virtualized-common.css";
-import "./VirtualizedCollectionsList.css";
-
 // Helper functions for scroll restoration
 function getScrollPosition(key: string): { scrollTop: number; scrollLeft: number } | null {
   try {

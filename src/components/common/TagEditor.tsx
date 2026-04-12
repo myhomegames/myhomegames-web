@@ -4,8 +4,6 @@ import { API_BASE, getApiToken } from "../../config";
 import { buildApiUrl } from "../../utils/api";
 import { useLoading } from "../../contexts/LoadingContext";
 import { useTagLists } from "../../contexts/TagListsContext";
-import "./TagEditor.css";
-
 type TagEditorProps = {
   selectedTags: string[];
   onTagsChange: (tags: string[]) => void;

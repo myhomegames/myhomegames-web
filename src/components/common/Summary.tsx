@@ -1,8 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
-import "./Summary.css";
-
 type SummaryProps = {
   summary: string;
   truncateOnly?: boolean;
