@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import "./index.css";
+import "virtual:tailwind-entry.css";
 import "./i18n/config";
 import "./utils/unauthorizedInterceptor";
 import App from "./App.tsx";

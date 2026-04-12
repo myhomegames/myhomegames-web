@@ -7,3 +7,5 @@ declare module "*.css?raw" {
   export default content;
 }
 
+declare module "virtual:tailwind-entry.css";
+
