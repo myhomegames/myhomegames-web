@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { List } from "react-window";
 import type { GameItem, CollectionItem } from "../../types";
 import { GameDetailItem } from "./GamesListDetail";
+import "../common/virtualized-common.css";
 import "./VirtualizedGamesListDetail.css";
 
 // Helper functions for scroll restoration
@@ -278,7 +279,7 @@ export default function VirtualizedGamesListDetail({
   };
 
   if (dimensions.width === 0 || dimensions.height === 0) {
-    return <div style={{ width: "100%", height: "100%" }} />;
+    return <div className="virtualized-list-fill" />;
   }
 
   return (

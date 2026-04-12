@@ -198,11 +198,7 @@ export default function AdditionalExecutablesDropdown({
   const menuContent = isOpen ? (
     <div
       ref={menuRef}
-      className={`additional-executables-dropdown-menu ${isInSearchPopup ? 'additional-executables-dropdown-menu-in-popup' : ''}`}
-      style={{
-        visibility: isPositionReady ? 'visible' : 'hidden',
-        pointerEvents: isPositionReady ? 'auto' : 'none',
-      }}
+      className={`additional-executables-dropdown-menu additional-executables-dropdown-menu--positioning${isPositionReady ? " is-position-ready" : ""} ${isInSearchPopup ? "additional-executables-dropdown-menu-in-popup" : ""}`}
           onMouseLeave={(e) => {
             // Use setTimeout to delay closing to allow moving to menu item
             setTimeout(() => {

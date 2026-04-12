@@ -94,3 +94,18 @@ body {
   align-items: center;
   justify-content: center;
 }
+
+/* Home/list pages: fade-in when content is ready */
+.home-page-content-wrapper.home-page-fade-in {
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.home-page-content-wrapper.home-page-fade-in.home-page-fade-in--ready {
+  opacity: 1;
+}
+
+.recommended-page-scroll {
+  padding-top: 16px;
+  padding-bottom: 32px;
+}

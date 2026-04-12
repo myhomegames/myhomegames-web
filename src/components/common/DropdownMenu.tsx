@@ -793,7 +793,6 @@ export default function DropdownMenu({
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  style={{ marginRight: "8px", verticalAlign: "middle" }}
                 >
                   <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
                   <path d="M21 3v5h-5" />
@@ -852,7 +851,6 @@ export default function DropdownMenu({
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  style={{ marginRight: "8px", verticalAlign: "middle" }}
                 >
                   <path d="M3 6h18" />
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />

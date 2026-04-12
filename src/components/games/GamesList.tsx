@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef } from "react";
+import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { API_BASE } from "../../config";
 import Cover from "./Cover";
@@ -234,8 +235,7 @@ export function GameListItem({
           itemRefs.current.set(game.id, el);
         }
       }}
-      className={`group cursor-pointer games-list-item ${draggable ? 'games-list-item-draggable' : ''} ${isDragOver ? 'games-list-item-drag-over' : ''}`}
-      style={{ width: `${coverSize}px`, minWidth: `${coverSize}px` }}
+      className={`group cursor-pointer games-list-item games-list-item--cover-sized ${draggable ? "games-list-item-draggable" : ""} ${isDragOver ? "games-list-item-drag-over" : ""}`}
       draggable={draggable}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
@@ -428,12 +428,8 @@ export default function GamesList({
     <>
       <div
         ref={containerRef}
-        className="games-list-container"
-        style={{
-          gridTemplateColumns: useVirtualization ? undefined : `repeat(auto-fill, ${coverSize}px)`,
-          height: useVirtualization ? "100%" : undefined,
-          ...style,
-        }}
+        className={`games-list-container${useVirtualization ? " games-list-container--virtualized" : ""}`}
+        style={{ ["--games-list-cover-size" as string]: `${coverSize}px`, ...style } as CSSProperties}
       >
         {useVirtualization ? (
           <VirtualizedGamesList

@@ -123,6 +123,23 @@
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+.settings-help-text--error {
+  color: #f87171;
+  margin-bottom: 12px;
+}
+
+.settings-help-text--twitch-intro {
+  margin-bottom: 24px;
+}
+
+.settings-card--spaced-top {
+  margin-top: 24px;
+}
+
+.settings-input--tight-top {
+  margin-top: 8px;
+}
+
 .settings-library-options {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -137,6 +154,7 @@
   font-size: 14px;
   color: rgba(255, 255, 255, 0.9);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  cursor: pointer;
 }
 
 .settings-library-option-disabled {

@@ -168,9 +168,9 @@ export function GameDetailItem({
           ) : null}
         </div>
         {(game.year !== null && game.year !== undefined) || (game.stars !== null && game.stars !== undefined) ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <div className="games-list-detail-meta-row">
             {game.year !== null && game.year !== undefined && (
-              <div className="text-gray-500" style={{ fontSize: "0.85rem" }}>
+              <div className="text-gray-500 games-list-detail-year">
                 {formatGameDate(game, t, i18n) || game.year.toString()}
               </div>
             )}
@@ -186,6 +186,7 @@ export function GameDetailItem({
       <div className="games-list-detail-actions">
         {!isIgdbOnly && (
         <button
+          type="button"
           onClick={handleEditClick}
           className="games-list-detail-edit-button"
           aria-label="Edit"
@@ -292,12 +293,9 @@ export default function GamesListDetail({
 
   return (
     <>
-      <div 
+      <div
         ref={containerRef}
-        className="games-list-detail-container"
-        style={{
-          height: useVirtualization ? "100%" : undefined,
-        }}
+        className={`games-list-detail-container${useVirtualization ? " games-list-detail-container--virtualized" : ""}`}
       >
         {useVirtualization ? (
           <VirtualizedGamesListDetail

@@ -145,7 +145,7 @@ export default function EditGameMediaTab({
                     name="cover"
                     type="file"
                     accept="image/*"
-                    style={{ display: "none" }}
+                    className="hidden"
                     onChange={handleCoverFileSelect}
                     aria-label={t("gameDetail.cover", "Cover")}
                   />
@@ -221,7 +221,7 @@ export default function EditGameMediaTab({
                     name="background"
                     type="file"
                     accept="image/*"
-                    style={{ display: "none" }}
+                    className="hidden"
                     onChange={handleBackgroundFileSelect}
                     aria-label={t("gameDetail.background", "Background")}
                   />

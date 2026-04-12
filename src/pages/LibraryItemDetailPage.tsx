@@ -822,7 +822,7 @@ export default function LibraryItemDetailPage({
 
   if (!id) {
     return (
-      <div className="bg-[#1a1a1a] text-white flex items-center justify-center" style={{ width: "100%", height: "100%" }}>
+      <div className="library-item-detail-not-found bg-[#1a1a1a] text-white flex items-center justify-center">
         <div className="text-center">
           <div className="text-gray-400">{notFoundMessage}</div>
         </div>
@@ -1511,8 +1511,7 @@ function LibraryItemDetailContent({
   return (
     <>
       <div
-        className={hasBackground && isBackgroundVisible ? "game-detail-libraries-bar-transparent" : ""}
-        style={{ position: "relative", zIndex: 1000, pointerEvents: "auto" }}
+        className={`library-item-detail-libraries-bar-host${hasBackground && isBackgroundVisible ? " game-detail-libraries-bar-transparent" : ""}`}
       >
         <LibrariesBar
           libraries={[]}
@@ -1533,49 +1532,27 @@ function LibraryItemDetailContent({
           onMainGamesOnlyChange={onMainGamesOnlyChange}
         />
       </div>
-      <div style={{ position: "relative", zIndex: 2, height: "100vh", display: "flex", flexDirection: "column" }}>
-        <div
-          className="home-page-main-container"
-          style={{
-            backgroundColor: "transparent",
-            position: "relative",
-            flex: 1,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            minHeight: 0,
-          }}
-        >
-          <main className="flex-1 home-page-content" style={{ minHeight: 0 }}>
-            <div className="home-page-layout" style={{ minHeight: 0 }}>
+      <div className="library-item-detail-page-shell">
+        <div className="home-page-main-container library-item-detail-main-inner">
+          <main className="flex-1 home-page-content library-item-detail-main-min-h">
+            <div className="home-page-layout library-item-detail-layout-min-h">
               <div
-                className="home-page-content-wrapper"
-                style={{
-                  opacity: isReady ? 1 : 0,
-                  transition: "opacity 0.2s ease-in-out",
-                  minHeight: 0,
-                }}
+                className={`home-page-content-wrapper library-item-detail-content-wrapper${isReady ? " library-item-detail-content-wrapper--ready" : ""}`}
               >
                 <div
                   ref={scrollContainerRef}
-                  className="home-page-scroll-container"
+                  className="home-page-scroll-container library-item-detail-scroll"
                   tabIndex={-1}
-                  style={{ paddingLeft: "64px", paddingRight: "64px", paddingTop: "5px", paddingBottom: "16px" }}
+                  style={
+                    {
+                      ["--lid-cover-size" as string]: `${coverSize}px`,
+                      ["--lid-cover-h" as string]: `${coverHeight}px`,
+                    } as React.CSSProperties
+                  }
                 >
                   {item && (
-                    <div
-                      className="pt-8"
-                      style={{
-                        display: "flex",
-                        flexDirection: "row",
-                        gap: "48px",
-                        alignItems: "flex-start",
-                        width: "100%",
-                        boxSizing: "border-box",
-                        marginBottom: "16px",
-                      }}
-                    >
-                      <div style={{ flexShrink: 0 }}>
+                    <div className="pt-8 library-item-detail-hero">
+                      <div className="library-item-detail-hero-cover">
                         <Cover
                           title={item.title}
                           coverUrl={itemCoverUrl}
@@ -1595,65 +1572,26 @@ function LibraryItemDetailContent({
                           showBorder={true}
                         />
                       </div>
-                      <div
-                        style={{
-                          flex: 1,
-                          display: "flex",
-                          flexDirection: "column",
-                          justifyContent: "flex-start",
-                          gap: "16px",
-                          minHeight: `${coverHeight}px`,
-                          minWidth: 0,
-                          visibility: "visible",
-                        }}
-                      >
-                        <div style={{ display: "flex", flexDirection: "column", gap: "8px", visibility: "visible" }}>
-                          <h1
-                            className="text-white"
-                            style={{
-                              fontFamily: "var(--font-heading-1-font-family)",
-                              fontSize: "var(--font-heading-1-font-size)",
-                              lineHeight: "var(--font-heading-1-line-height)",
-                            }}
-                          >
+                      <div className="library-item-detail-meta">
+                        <div className="library-item-detail-meta-header">
+                          <h1 className="library-item-detail-title text-white">
                             {item.title}
                           </h1>
                           {yearRange && (
-                            <div
-                              className="text-white"
-                              style={{
-                                opacity: 0.8,
-                                fontFamily: "var(--font-body-2-font-family)",
-                                fontSize: "var(--font-body-2-font-size)",
-                                lineHeight: "var(--font-body-2-line-height)",
-                              }}
-                            >
+                            <div className="library-item-detail-year-range text-white">
                               {yearRange}
                             </div>
                           )}
                           {averageRating !== null && <StarRating rating={averageRating} />}
-                          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "16px" }}>
+                          <div className="library-item-detail-actions">
                             {onPlay && sortedGames.some((g) => g.executables?.length) && (
                               <button
+                                type="button"
+                                className="library-item-detail-play-btn"
                                 onClick={() => {
                                   const g = sortedGames.find((x) => x.executables?.length);
                                   if (g) onPlay(g);
                                 }}
-                                style={{
-                                  backgroundColor: "#E5A00D",
-                                  color: "#000000",
-                                  border: "none",
-                                  borderRadius: "4px",
-                                  padding: "6px 12px 6px 8px",
-                                  fontSize: "1.25rem",
-                                  fontWeight: 600,
-                                  cursor: "pointer",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: "6px",
-                                }}
-                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F5B041")}
-                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#E5A00D")}
                               >
                                 <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
                                   <path d="M8 5v14l11-7z" />
@@ -1766,22 +1704,10 @@ function LibraryItemDetailContent({
                   )}
 
                   {!isLoading && (
-                    <div style={{ width: "100%" }}>
-                      <style>{`
-                        .library-item-detail-games-list .games-list-container {
-                          justify-content: flex-start !important;
-                        }
-                      `}</style>
+                    <div className="library-item-detail-section-full">
                       {subCollectionLikes.length > 0 && (
-                        <div style={{ marginBottom: "32px", marginTop: "0" }}>
-                          <h2
-                            className="text-white"
-                            style={{
-                              fontFamily: "var(--font-heading-2-font-family)",
-                              fontSize: "var(--font-heading-2-font-size)",
-                              fontWeight: 600,
-                            }}
-                          >
+                        <div className="library-item-detail-subsection">
+                          <h2 className="library-item-detail-heading-2 text-white">
                             {(() => {
                               const label =
                                 resourceType === "collections"
@@ -1796,19 +1722,8 @@ function LibraryItemDetailContent({
                                 {": "}
                                 <button
                                   type="button"
+                                  className="library-item-detail-subcollection-title-link"
                                   onClick={() => onCollectionClick?.(String(subCollectionLikes[0].id))}
-                                  style={{
-                                    color: "#ffffff",
-                                    textDecoration: "none",
-                                    background: "none",
-                                    border: "none",
-                                    padding: 0,
-                                    margin: 0,
-                                    cursor: "pointer",
-                                    font: "inherit",
-                                  }}
-                                  onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
-                                  onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
                                 >
                                   {subCollectionLikes[0].title}
                                 </button>
@@ -1816,7 +1731,7 @@ function LibraryItemDetailContent({
                             )}
                           </h2>
                           {subCollectionLikes.length === 1 ? (
-                            <div className="library-item-detail-games-list" style={{ marginTop: "24px" }}>
+                            <div className="library-item-detail-games-list library-item-detail-mt-games-list">
                               <GamesList
                                 games={singleSubCollectionGames}
                                 onGameClick={(game) => {
@@ -1839,20 +1754,8 @@ function LibraryItemDetailContent({
                               />
                             </div>
                           ) : (
-                            <div
-                              className="library-item-detail-collections-list"
-                              style={{ marginTop: "24px" }}
-                            >
-                              <div
-                                className="collections-list-container"
-                                style={{
-                                  display: "grid",
-                                  gridTemplateColumns: `repeat(auto-fill, ${coverSize}px)`,
-                                  gap: 40,
-                                  justifyContent: "flex-start",
-                                  maxWidth: "100%",
-                                }}
-                              >
+                            <div className="library-item-detail-collections-list library-item-detail-collections-list-mt">
+                              <div className="collections-list-container library-item-detail-subcollections-grid">
                                 {subCollectionLikes.map((col) => {
                                   const colCoverUrl = col.cover
                                     ? buildCoverUrl(API_BASE, col.cover, true, coverTimestampForUrls)
@@ -1865,8 +1768,7 @@ function LibraryItemDetailContent({
                                   return (
                                     <div
                                       key={String(col.id)}
-                                      className="group cursor-pointer collections-list-item"
-                                      style={{ width: `${coverSize}px`, minWidth: `${coverSize}px` }}
+                                      className="group cursor-pointer collections-list-item library-item-detail-subcollection-cell"
                                     >
                                       <Cover
                                         title={col.title}
@@ -1937,23 +1839,11 @@ function LibraryItemDetailContent({
                       )}
                       {sortedGames.length > 0 && (
                         <>
-                          <div style={{ paddingLeft: "0", marginBottom: "32px", marginTop: "0" }}>
-                            <h2
-                              className="text-white"
-                              style={{
-                                fontFamily: "var(--font-heading-2-font-family)",
-                                fontSize: "var(--font-heading-2-font-size)",
-                                fontWeight: 600,
-                              }}
-                            >
+                          <div className="library-item-detail-games-heading-block">
+                            <h2 className="library-item-detail-heading-2 text-white">
                               {gridGames.length} {t("common.games")}
                             </h2>
                           </div>
-                          <style>{`
-                            .library-item-detail-games-list .games-list-container {
-                              justify-content: flex-start !important;
-                            }
-                          `}</style>
                           <div className="library-item-detail-games-list">
                             <GamesList
                               games={gridGames}

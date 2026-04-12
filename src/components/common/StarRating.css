@@ -1,0 +1,46 @@
+.star-rating {
+  display: flex;
+  align-items: center;
+  gap: var(--sr-gap, 4px);
+}
+
+.star-rating-star {
+  position: relative;
+  width: var(--sr-star-size, 16px);
+  height: var(--sr-star-size, 16px);
+  cursor: default;
+}
+
+.star-rating-star--interactive {
+  cursor: pointer;
+}
+
+.star-rating-star-svg-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.star-rating-star-half-hit {
+  position: absolute;
+  top: 0;
+  width: calc(var(--sr-star-size, 16px) / 2);
+  height: var(--sr-star-size, 16px);
+  cursor: pointer;
+  z-index: 10;
+}
+
+.star-rating-star-half-hit--left {
+  left: 0;
+}
+
+.star-rating-star-half-hit--right {
+  right: 0;
+}
+
+.star-rating-star-svg-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}

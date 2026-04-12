@@ -61,10 +61,7 @@ export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProp
   return (
     <main className="flex-1 home-page-content">
       <div className="home-page-layout">
-        <div
-          className="home-page-content-wrapper"
-          style={{ opacity: isReady ? 1 : 0, transition: "opacity 0.2s ease-in-out" }}
-        >
+        <div className={`home-page-content-wrapper home-page-fade-in${isReady ? " home-page-fade-in--ready" : ""}`}>
           <div ref={scrollContainerRef} className="home-page-scroll-container">
             <CollectionsList
               collections={sortedDevelopers}

@@ -4,6 +4,7 @@ import { Grid } from "react-window";
 import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 import { GameListItem } from "./GamesList";
+import "../common/virtualized-common.css";
 import "./VirtualizedGamesList.css";
 
 // Helper functions for scroll restoration
@@ -339,16 +340,8 @@ export default function VirtualizedGamesList({
     const game = games[index];
 
     return (
-      <div
-        style={{
-          ...style,
-          // Uniform GAP/2 on every side so spacing between adjacent covers is always GAP (asymmetric edges made the first column gap wider).
-          paddingLeft: GAP / 2,
-          paddingRight: GAP / 2,
-          paddingTop: GAP / 2,
-          paddingBottom: GAP / 2,
-        }}
-      >
+      <div style={style}>
+        <div className="virtualized-grid-cell-pad">
         <GameListItem
           game={game}
           onGameClick={onGameClick}
@@ -384,16 +377,19 @@ export default function VirtualizedGamesList({
           onCollectionLikePseudoAddToParent={onCollectionLikePseudoAddToParent}
           onCollectionLikePseudoUpdated={onCollectionLikePseudoUpdated}
         />
+        </div>
       </div>
     );
   };
 
   if (dimensions.width === 0 || dimensions.height === 0) {
-    return <div style={{ width: "100%", height: "100%" }} />;
+    return <div className="virtualized-list-fill" />;
   }
 
   return (
-    <div style={{ opacity: isScrollRestored ? 1 : 0, transition: isScrollRestored ? 'opacity 0.1s' : 'none' }}>
+    <div
+      className={`virtualized-list-fade${isScrollRestored ? " virtualized-list-fade--ready" : ""}`}
+    >
       <Grid
       gridRef={gridRef}
       className="virtualized-games-grid"

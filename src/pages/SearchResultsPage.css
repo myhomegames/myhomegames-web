@@ -7,6 +7,15 @@
   padding-top: 64px;
 }
 
+.search-results-page--fade {
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.search-results-page--fade.search-results-page--fade-ready {
+  opacity: 1;
+}
+
 .search-results-page-empty {
   width: 100%;
   height: 100%;

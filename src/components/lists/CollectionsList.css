@@ -4,10 +4,28 @@
   display: grid;
   gap: 40px;
   justify-content: center;
+  grid-template-columns: repeat(auto-fill, var(--collections-list-cover-size, 150px));
+}
+
+.collections-list-container--virtualized {
+  display: block;
+  height: 100%;
 }
 
 .collections-list-item {
   flex-shrink: 0;
 }
 
+.collections-list-item--sized {
+  width: var(--collections-list-cover-size, 150px);
+  min-width: var(--collections-list-cover-size, 150px);
+}
+
+.collections-list-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 400px;
+}
 

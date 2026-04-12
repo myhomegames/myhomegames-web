@@ -1,3 +1,183 @@
+.library-item-detail-not-found {
+  width: 100%;
+  height: 100%;
+}
+
+.library-item-detail-libraries-bar-host {
+  position: relative;
+  z-index: 1000;
+  pointer-events: auto;
+}
+
+.library-item-detail-page-shell {
+  position: relative;
+  z-index: 2;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.library-item-detail-main-inner {
+  background-color: transparent;
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.library-item-detail-main-min-h,
+.library-item-detail-layout-min-h {
+  min-height: 0;
+}
+
+.library-item-detail-content-wrapper {
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  min-height: 0;
+}
+
+.library-item-detail-content-wrapper--ready {
+  opacity: 1;
+}
+
+.library-item-detail-scroll {
+  --lid-cover-size: 150px;
+  --lid-cover-h: 360px;
+  padding: 5px 64px 16px;
+}
+
+.library-item-detail-hero {
+  display: flex;
+  flex-direction: row;
+  gap: 48px;
+  align-items: flex-start;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 16px;
+}
+
+.library-item-detail-hero-cover {
+  flex-shrink: 0;
+}
+
+.library-item-detail-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 16px;
+  min-height: var(--lid-cover-h);
+  min-width: 0;
+  visibility: visible;
+}
+
+.library-item-detail-meta-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  visibility: visible;
+}
+
+.library-item-detail-title {
+  font-family: var(--font-heading-1-font-family);
+  font-size: var(--font-heading-1-font-size);
+  line-height: var(--font-heading-1-line-height);
+}
+
+.library-item-detail-year-range {
+  opacity: 0.8;
+  font-family: var(--font-body-2-font-family);
+  font-size: var(--font-body-2-font-size);
+  line-height: var(--font-body-2-line-height);
+}
+
+.library-item-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.library-item-detail-play-btn {
+  background-color: #e5a00d;
+  color: #000000;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px 6px 8px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.library-item-detail-play-btn:hover {
+  background-color: #f5b041;
+}
+
+.library-item-detail-section-full {
+  width: 100%;
+}
+
+.library-item-detail-games-list .games-list-container {
+  justify-content: flex-start !important;
+}
+
+.library-item-detail-subsection {
+  margin-bottom: 32px;
+  margin-top: 0;
+}
+
+.library-item-detail-heading-2 {
+  font-family: var(--font-heading-2-font-family);
+  font-size: var(--font-heading-2-font-size);
+  font-weight: 600;
+}
+
+.library-item-detail-subcollection-title-link {
+  color: #ffffff;
+  text-decoration: none;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.library-item-detail-subcollection-title-link:hover {
+  text-decoration: underline;
+}
+
+.library-item-detail-mt-games-list {
+  margin-top: 24px;
+}
+
+.library-item-detail-collections-list-mt {
+  margin-top: 24px;
+}
+
+.library-item-detail-subcollections-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, var(--lid-cover-size));
+  gap: 40px;
+  justify-content: flex-start;
+  max-width: 100%;
+}
+
+.library-item-detail-subcollection-cell {
+  width: var(--lid-cover-size);
+  min-width: var(--lid-cover-size);
+}
+
+.library-item-detail-games-heading-block {
+  padding-left: 0;
+  margin-bottom: 32px;
+  margin-top: 0;
+}
 
 .game-detail-libraries-bar-transparent .mhg-libraries-bar {
   background-color: transparent !important;

@@ -55,6 +55,21 @@
   cursor: pointer;
 }
 
+.games-list-detail-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.games-list-detail-year {
+  font-size: 0.85rem;
+}
+
+.games-list-detail-container--virtualized {
+  height: 100%;
+}
+
 .games-list-detail-type {
   flex-shrink: 0;
   font-size: 0.72rem;

@@ -5,8 +5,10 @@ import { API_BASE } from "../../config";
 import Cover from "./Cover";
 import { buildCoverUrl } from "../../utils/api";
 import ScrollableGamesSectionNav from "../common/ScrollableGamesSectionNav";
+import type { CSSProperties } from "react";
 import type { GameItem, CollectionItem } from "../../types";
 import "./GamesList.css";
+import "./SimilarGamesList.css";
 import "../common/ScrollableGamesSection.css";
 
 export type SimilarGameDisplayItem =
@@ -150,17 +152,16 @@ export default function SimilarGamesList({
         />
       )}
       <div ref={scrollRef} className={`scrollable-section-scroll ${isRestoring ? "restoring" : ""}`}>
-        <div className="games-list-container" style={{ display: "flex", flexDirection: "row", gap: 24 }}>
+        <div
+          className="similar-games-inline-row"
+          style={{ ["--similar-cover-size" as string]: `${coverSize}px` } as CSSProperties}
+        >
         {items.map((item) => {
           if (item.type === "library") {
             const game = item.game;
             const coverUrl = game.cover ? buildCoverUrl(API_BASE, game.cover, true) : "";
             return (
-              <div
-                key={`lib-${game.id}`}
-                className="games-list-item"
-                style={{ width: coverSize, minWidth: coverSize }}
-              >
+              <div key={`lib-${game.id}`} className="games-list-item similar-games-cover-cell">
                 <Cover
                   title={game.title}
                   coverUrl={coverUrl}
@@ -184,11 +185,7 @@ export default function SimilarGamesList({
           }
           const coverUrl = item.cover || "";
           return (
-            <div
-              key={`igdb-${item.id}`}
-              className="games-list-item"
-              style={{ width: coverSize, minWidth: coverSize }}
-            >
+            <div key={`igdb-${item.id}`} className="games-list-item similar-games-cover-cell">
               <Cover
                 title={item.name}
                 coverUrl={coverUrl}

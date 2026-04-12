@@ -45,3 +45,13 @@ body .search-dropdown-item .additional-executables-dropdown-menu,
   background-color: rgba(255, 255, 255, 0.05);
   color: rgba(255, 255, 255, 1);
 }
+
+.additional-executables-dropdown-menu--positioning {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.additional-executables-dropdown-menu--positioning.is-position-ready {
+  visibility: visible;
+  pointer-events: auto;
+}

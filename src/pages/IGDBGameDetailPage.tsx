@@ -318,7 +318,7 @@ function IGDBGameDetailContent({
           </div>
 
           {/* Game Info Panel */}
-          <div className="igdb-game-detail-info-panel" style={{ minHeight: `${coverHeight}px` }}>
+          <div className="igdb-game-detail-info-panel">
             <div className="igdb-game-detail-info-content">
               <h1 className="text-white igdb-game-detail-title">
                 {game.name}

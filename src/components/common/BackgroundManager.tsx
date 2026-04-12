@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, createContext, useContext } from "react";
+import type { CSSProperties } from "react";
+import "./BackgroundManager.css";
 
 type BackgroundContextType = {
   hasBackground: boolean;
@@ -79,24 +81,16 @@ export default function BackgroundManager({
     setBackgroundVisible: handleVisibilityChange,
   }), [hasBackground, isBackgroundVisible, handleVisibilityChange]);
 
+  const bgLayerStyle = {
+    backgroundColor: hasBackground && isBackgroundVisible ? "transparent" : "#1a1a1a",
+    backgroundImage: hasBackground && isBackgroundVisible ? `url(${backgroundUrl})` : undefined,
+  } as CSSProperties;
+
   return (
     <BackgroundContext.Provider value={contextValue}>
       <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: hasBackground && isBackgroundVisible ? 'transparent' : '#1a1a1a',
-          backgroundImage: hasBackground && isBackgroundVisible ? `url(${backgroundUrl})` : undefined,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          backgroundAttachment: 'fixed',
-          zIndex: 0,
-          cursor: hasBackground && isBackgroundVisible ? 'pointer' : 'default'
-        }}
+        className={`background-manager-root${hasBackground && isBackgroundVisible ? " background-manager-root--clickable" : " background-manager-root--solid"}`}
+        style={bgLayerStyle}
         onClick={() => {
           if (hasBackground && isBackgroundVisible) {
             handleVisibilityChange(false);
@@ -105,28 +99,12 @@ export default function BackgroundManager({
       >
         {hasBackground && isBackgroundVisible && (
           <>
-            <div
-              style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'rgba(26, 26, 26, 0.85)',
-                zIndex: 1
-              }}
-            />
-            <img
-              src={backgroundUrl}
-              alt=""
-              style={{ display: 'none' }}
-            />
+            <div className="background-manager-overlay" />
+            <img src={backgroundUrl} alt="" className="hidden" />
           </>
         )}
       </div>
-      <div style={{ position: 'relative', zIndex: 2 }}>
-        {children}
-      </div>
+      <div className="background-manager-foreground">{children}</div>
     </BackgroundContext.Provider>
   );
 }

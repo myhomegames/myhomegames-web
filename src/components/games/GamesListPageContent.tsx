@@ -8,6 +8,7 @@ import GamesListToolbar from "./GamesListToolbar";
 import type { ViewMode, GameItem, CollectionItem } from "../../types";
 import { buildCoverUrl } from "../../utils/api";
 import type { UseGamesListPageReturn } from "../../hooks/useGamesListPage";
+import "./GamesListPageContent.css";
 
 type GamesListPageContentProps = {
   // Hook return values
@@ -183,12 +184,8 @@ export default function GamesListPageContent({
   );
 
   return (
-    <div 
-      className={`home-page-content-wrapper ${!isLoading && displayGames.length > 0 ? "has-toolbar" : ""}`}
-      style={{
-        opacity: isReady ? 1 : 0,
-        transition: 'opacity 0.2s ease-in-out',
-      }}
+    <div
+      className={`home-page-content-wrapper games-list-page-fade${isReady ? " games-list-page-fade--ready" : ""} ${!isLoading && displayGames.length > 0 ? "has-toolbar" : ""}`}
     >
       {/* Toolbar with filter and sort */}
       {!isLoading && displayGames.length > 0 && (
@@ -261,7 +258,7 @@ export default function GamesListPageContent({
         } ${!isReady || displayGames.length === 0 ? "centered-content min-h-[400px]" : ""}`}
       >
         {!isReady && (
-          <div className="text-gray-400 text-center" style={{ padding: "2rem" }}>
+          <div className="text-gray-400 text-center games-list-page-loading">
             {t("common.loading", "Loading...")}
           </div>
         )}

@@ -6,6 +6,7 @@ import { displayGameType } from "../utils/igdbGameType";
 import { API_BASE, getApiToken, getTwitchClientId, getTwitchClientSecret } from "../config";
 import type { IGDBGame } from "../types";
 import Cover from "../components/games/Cover";
+import "./AddGamePage.css";
 
 type AddGamePageProps = {
   onGameSelected: (game: IGDBGame) => void;
@@ -98,15 +99,7 @@ export default function AddGamePage({
   }
 
   return (
-    <div
-      className="bg-[#1a1a1a] text-white"
-      style={{
-        width: "100%",
-        height: "100%",
-        overflowY: "auto",
-        overflowX: "hidden",
-      }}
-    >
+    <div className="bg-[#1a1a1a] text-white add-game-page-root">
       <div className="max-w-4xl mx-auto px-8 py-8">
         <div className="bg-[#1a1a1a] rounded-lg shadow-2xl overflow-hidden border border-[#2a2a2a] max-h-[80vh] flex flex-col">
           <div className="p-6 border-b border-[#2a2a2a] bg-[#0d0d0d]">
@@ -131,22 +124,9 @@ export default function AddGamePage({
 
             <div className="flex-1 overflow-y-auto">
               {isSearching ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 24px' }}>
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    border: '3px solid rgba(255, 255, 255, 0.1)',
-                    borderTopColor: '#FFB300',
-                    borderRadius: '50%',
-                    animation: 'spin 0.8s linear infinite',
-                    marginBottom: '16px'
-                  }}></div>
-                  <div style={{ color: 'rgba(255, 255, 255, 0.5)' }}>{t("addGame.loading", "Searching...")}</div>
-                  <style>{`
-                    @keyframes spin {
-                      to { transform: rotate(360deg); }
-                    }
-                  `}</style>
+                <div className="add-game-page-loading">
+                  <div className="add-game-page-spinner" />
+                  <div className="add-game-page-loading-text">{t("addGame.loading", "Searching...")}</div>
                 </div>
               ) : results.length === 0 && searchQuery.trim().length >= 2 ? (
                 <div className="text-center text-gray-400 py-8">

@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo } from "react";
+import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { API_BASE, getApiToken } from "../../config";
 import { buildApiUrl } from "../../utils/api";
@@ -132,8 +133,7 @@ export function CollectionListItem({
           itemRefs.current.set(String(collection.id), el);
         }
       }}
-      className="group cursor-pointer collections-list-item"
-      style={{ width: `${coverSize}px`, minWidth: `${coverSize}px` }}
+      className="group cursor-pointer collections-list-item collections-list-item--sized"
     >
       <Cover
         key={`${collection.id}-${collection.cover}`}
@@ -230,15 +230,7 @@ export default function CollectionsList({
           ? "igdbInfo.noPublishersFound"
           : "collections.noCollectionsFound";
     return (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100%',
-          minHeight: '400px',
-        }}
-      >
+      <div className="collections-list-empty">
         <div className="text-gray-400 text-center">{t(emptyMessageKey)}</div>
       </div>
     );
@@ -323,11 +315,8 @@ export default function CollectionsList({
     <>
       <div
         ref={containerRef}
-        className="collections-list-container"
-        style={{
-          gridTemplateColumns: useVirtualization ? undefined : `repeat(auto-fill, ${coverSize}px)`,
-          height: useVirtualization ? "100%" : undefined,
-        }}
+        className={`collections-list-container${useVirtualization ? " collections-list-container--virtualized" : ""}`}
+        style={{ ["--collections-list-cover-size" as string]: `${coverSize}px` } as CSSProperties}
       >
         {useVirtualization ? (
           <VirtualizedCollectionsList

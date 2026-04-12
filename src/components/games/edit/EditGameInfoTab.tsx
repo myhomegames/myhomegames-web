@@ -295,7 +295,7 @@ export default function EditGameInfoTab({
             </button>
           </div>
         ))}
-        <div className="edit-game-modal-alt-names-row edit-game-modal-alt-names-add" style={{ gap: "8px", flexWrap: "wrap" }}>
+        <div className="edit-game-modal-alt-names-row edit-game-modal-alt-names-add">
           <select
             id={ageRatingCategoryId}
             name="ageRatingCategory"

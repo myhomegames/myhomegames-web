@@ -39,6 +39,11 @@
   align-items: center;
 }
 
+.edit-collection-modal-header h2 svg {
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
 .edit-collection-modal-close {
   background: transparent;
   border: none;

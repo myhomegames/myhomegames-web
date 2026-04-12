@@ -4,10 +4,21 @@
   display: grid;
   gap: 40px;
   justify-content: center;
+  grid-template-columns: repeat(auto-fill, var(--games-list-cover-size, 150px));
+}
+
+.games-list-container--virtualized {
+  display: block;
+  height: 100%;
 }
 
 .games-list-item {
   flex-shrink: 0;
+}
+
+.games-list-item--cover-sized {
+  width: var(--games-list-cover-size, 150px);
+  min-width: var(--games-list-cover-size, 150px);
 }
 
 .games-list-item-draggable {

@@ -298,7 +298,7 @@ export default function SettingsPage() {
 
             <div className="settings-actions">
               {saveError && (
-                <p className="settings-help-text" style={{ color: "#f87171", marginBottom: "12px" }}>
+                <p className="settings-help-text settings-help-text--error">
                   {t("settings.saveError", "Impossibile salvare sul server")}: {saveError}
                 </p>
               )}
@@ -314,14 +314,14 @@ export default function SettingsPage() {
         </div>
 
         {/* Twitch OAuth Settings */}
-        <div className="bg-[#1a1a1a] settings-card" style={{ marginTop: "24px" }}>
+        <div className="bg-[#1a1a1a] settings-card settings-card--spaced-top">
           <div className="settings-card-header">
             <h2 className="settings-card-title">{t("settings.twitch.title", "Twitch OAuth")}</h2>
           </div>
 
           <div className="settings-card-content">
             <div className="settings-field">
-              <label className="settings-library-option" style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+              <label className="settings-library-option">
                 <input
                   type="checkbox"
                   checked={twitchLoginEnabled}
@@ -337,7 +337,7 @@ export default function SettingsPage() {
 
             {twitchLoginEnabled && (
               <>
-                <p className="settings-help-text" style={{ marginBottom: "24px" }}>
+                <p className="settings-help-text settings-help-text--twitch-intro">
                   {t("settings.twitch.description", "Configure your Twitch OAuth application credentials. You can get these from the Twitch Developer Console.")}
                 </p>
 
@@ -350,9 +350,8 @@ export default function SettingsPage() {
                     type="text"
                     value={twitchClientId}
                     onChange={(e) => setTwitchClientId(e.target.value)}
-                    className="settings-input"
+                    className="settings-input settings-input--tight-top"
                     placeholder={t("settings.twitch.clientIdPlaceholder", "Enter your Twitch Client ID")}
-                    style={{ marginTop: "8px" }}
                   />
                   <p className="settings-help-text">
                     {t("settings.twitch.clientIdHelp", "Your Twitch application Client ID")}
@@ -368,9 +367,8 @@ export default function SettingsPage() {
                     type="password"
                     value={twitchClientSecret}
                     onChange={(e) => setTwitchClientSecret(e.target.value)}
-                    className="settings-input"
+                    className="settings-input settings-input--tight-top"
                     placeholder={t("settings.twitch.clientSecretPlaceholder", "Enter your Twitch Client Secret")}
-                    style={{ marginTop: "8px" }}
                   />
                   <p className="settings-help-text">
                     {t("settings.twitch.clientSecretHelp", "Your Twitch application Client Secret (keep this secure)")}

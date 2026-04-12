@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type React from "react";
+import type { CSSProperties } from "react";
 import DropdownMenu from "../common/DropdownMenu";
 import AddToCollectionDropdown from "./AddToCollectionDropdown";
 import AdditionalExecutablesDropdown from "./AdditionalExecutablesDropdown";
@@ -291,50 +292,25 @@ export default function Cover({
   const shouldShowUploadButton = onUpload !== undefined;
   const isClickable = detail || play || shouldShowUploadButton;
 
+  const coverStyle = {
+    width: `${width}px`,
+    aspectRatio,
+    "--cover-text-pad": `${padding}px`,
+    "--cover-text-fs": `${calculatedFontSize}px`,
+    "--cover-line-clamp": String(lineClamp),
+  } as CSSProperties;
+
   return (
     <>
       <div
         ref={coverRef}
-        className={`games-list-cover relative bg-[#2a2a2a] rounded overflow-hidden transition-all ${showBorder ? 'cover-hover-effect' : ''} ${play ? 'games-list-cover-play' : ''} ${detail ? 'games-list-cover-detail' : ''} ${shouldShowUploadButton ? 'games-list-cover-upload' : ''} ${isDropdownOpen ? 'cover-dropdown-open' : ''} ${isPopupOverlay ? 'cover-popup-overlay' : ''}`}
-        style={{ 
-          width: `${width}px`, 
-          aspectRatio: aspectRatio,
-          cursor: isClickable && !shouldShowUploadButton ? 'pointer' : (shouldShowUploadButton ? 'pointer' : 'default')
-        }}
+        className={`games-list-cover relative bg-[#2a2a2a] rounded overflow-hidden transition-all ${showBorder ? "cover-hover-effect" : ""} ${play ? "games-list-cover-play" : ""} ${detail ? "games-list-cover-detail" : ""} ${shouldShowUploadButton ? "games-list-cover-upload" : ""} ${isDropdownOpen ? "cover-dropdown-open" : ""} ${isPopupOverlay ? "cover-popup-overlay" : ""}${isClickable ? " games-list-cover--clickable" : ""}`}
+        style={coverStyle}
         onClick={shouldShowUploadButton ? handleUploadClick : handleCoverClick}
       >
         {showPlaceholder ? (
-          <div
-            className="cover-placeholder"
-            style={{
-              width: "100%",
-              height: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: "#2a2a2a",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
-              boxSizing: "border-box",
-            }}
-          >
-            <div
-              className="cover-placeholder-text"
-              style={{
-                padding: `${padding}px`,
-                fontSize: `${calculatedFontSize}px`,
-                textAlign: "center",
-                color: "rgba(255, 255, 255, 0.85)",
-                fontWeight: 600,
-                lineHeight: 1.3,
-                wordBreak: "break-word",
-                overflow: "hidden",
-                display: "-webkit-box",
-                WebkitLineClamp: lineClamp,
-                WebkitBoxOrient: "vertical",
-                width: "100%",
-                maxHeight: "100%",
-              }}
-            >
+          <div className="cover-placeholder">
+            <div className="cover-placeholder-text">
               {title}
             </div>
           </div>
@@ -388,9 +364,6 @@ export default function Cover({
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
                 className="spinning"
-                style={{
-                  animation: "spin 1s linear infinite"
-                }}
               >
                 <circle
                   cx="12"
@@ -518,29 +491,8 @@ export default function Cover({
           </div>
         )}
         {titlePosition === "overlay" && showTitle && !showPlaceholder && (
-          <div className="cover-overlay-content" style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: `${padding}px`,
-          }}>
-            <div
-              style={{
-                textAlign: "center",
-                color: "rgba(255, 255, 255, 0.95)",
-                fontWeight: 600,
-                fontSize: `${calculatedFontSize}px`,
-                lineHeight: 1.3,
-                wordBreak: "break-word",
-                overflow: "hidden",
-                display: "-webkit-box",
-                WebkitLineClamp: lineClamp,
-                WebkitBoxOrient: "vertical",
-                textShadow: "2px 2px 4px rgba(0, 0, 0, 0.8)",
-              }}
-            >
-              {title}
-            </div>
+          <div className="cover-overlay-content cover-overlay-title-layer">
+            <div className="cover-overlay-title-text">{title}</div>
           </div>
         )}
       </div>

@@ -9,6 +9,7 @@ import AgeRatings from "./AgeRatings";
 import type { GameItem, CollectionItem } from "../../types";
 import { gameHasExecutableForPlatform, getExecutablesForPlatform } from "../../utils/gameExecutables";
 import { displayGameType, toGameTypeId } from "../../utils/igdbGameType";
+import "./TableRow.css";
 
 type ColumnVisibility = {
   title: boolean;
@@ -80,8 +81,8 @@ export default function TableRow({
   const rowClass = isEven ? "even-row" : "odd-row";
   const RowTag = useDiv ? "div" : "tr";
   const CellTag = useDiv ? "div" : "td";
-  const rowStyle = useDiv ? { display: "table-row" as const } : undefined;
-  const cellStyle = useDiv ? { display: "table-cell" as const } : undefined;
+  const rowDivClass = useDiv ? "games-table-row-div" : "";
+  const cellDivClass = useDiv ? "games-table-cell-div" : "";
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   useEffect(() => {
@@ -147,8 +148,9 @@ export default function TableRow({
     };
 
     return (
-      <button 
-        className="first-cell-play-button" 
+      <button
+        type="button"
+        className="first-cell-play-button"
         aria-label="Play game"
         onClick={handlePlayClick}
       >
@@ -176,15 +178,13 @@ export default function TableRow({
           itemRefs.current.set(game.id, el as HTMLElement);
         }
       }}
-      style={rowStyle}
       role={useDiv ? "row" : undefined}
-      className={[isDropdownOpen && "row-dropdown-open", isIgdbOnly && "igdb-only-row"].filter(Boolean).join(" ") || undefined}
+      className={[rowDivClass, isDropdownOpen && "row-dropdown-open", isIgdbOnly && "igdb-only-row"].filter(Boolean).join(" ") || undefined}
     >
-      <CellTag className="column-menu-cell" style={cellStyle} role={useDiv ? "cell" : undefined}></CellTag>
+      <CellTag className={`column-menu-cell ${cellDivClass}`.trim()} role={useDiv ? "cell" : undefined}></CellTag>
       {columnVisibility.title && (
         <CellTag
-          className={`title-cell ${rowClass} ${hasAnyColumnAfterTitle ? "has-border-right" : ""} ${firstVisibleColumn === "title" ? "first-visible-cell" : ""}`}
-          style={cellStyle}
+          className={`title-cell ${rowClass} ${hasAnyColumnAfterTitle ? "has-border-right" : ""} ${firstVisibleColumn === "title" ? "first-visible-cell" : ""} ${cellDivClass}`.trim()}
           role={useDiv ? "cell" : undefined}
         >
           {firstVisibleColumn === "title" && onPlay && <PlayIcon />}
@@ -200,8 +200,7 @@ export default function TableRow({
       )}
       {columnVisibility.gameType && (
         <CellTag
-          className={`game-type-cell ${rowClass} ${hasAnyColumnAfterGameType ? "has-border-right" : ""} ${firstVisibleColumn === "gameType" ? "first-visible-cell" : ""}`}
-          style={cellStyle}
+          className={`game-type-cell ${rowClass} ${hasAnyColumnAfterGameType ? "has-border-right" : ""} ${firstVisibleColumn === "gameType" ? "first-visible-cell" : ""} ${cellDivClass}`.trim()}
           role={useDiv ? "cell" : undefined}
         >
           {firstVisibleColumn === "gameType" && onPlay && <PlayIcon />}
@@ -216,8 +215,7 @@ export default function TableRow({
             columnVisibility.stars || columnVisibility.year || columnVisibility.criticRating
               ? "has-border-right"
               : ""
-          } ${firstVisibleColumn === "releaseDate" ? "first-visible-cell" : ""}`}
-          style={cellStyle}
+          } ${firstVisibleColumn === "releaseDate" ? "first-visible-cell" : ""} ${cellDivClass}`.trim()}
           role={useDiv ? "cell" : undefined}
         >
           {firstVisibleColumn === "releaseDate" && onPlay && <PlayIcon />}
@@ -227,9 +225,12 @@ export default function TableRow({
         </CellTag>
       )}
       {columnVisibility.stars && (
-        <CellTag className={`stars-cell ${rowClass} ${firstVisibleColumn === "stars" ? "first-visible-cell" : ""}`} style={cellStyle} role={useDiv ? "cell" : undefined}>
+        <CellTag
+          className={`stars-cell ${rowClass} ${firstVisibleColumn === "stars" ? "first-visible-cell" : ""} ${cellDivClass}`.trim()}
+          role={useDiv ? "cell" : undefined}
+        >
           {firstVisibleColumn === "stars" && onPlay && <PlayIcon />}
-          <div className={firstVisibleColumn === "stars" ? "first-cell-text" : ""} style={{ display: 'flex', alignItems: 'center' }}>
+          <div className={`table-row-stars-inner ${firstVisibleColumn === "stars" ? "first-cell-text" : ""}`.trim()}>
             <StarRating 
               rating={game.stars ? (game.stars / 10) * 5 : 0} 
               starSize={14} 
@@ -243,7 +244,10 @@ export default function TableRow({
         </CellTag>
       )}
       {columnVisibility.year && (
-        <CellTag className={`year-cell ${rowClass} has-border-right ${firstVisibleColumn === "year" ? "first-visible-cell" : ""}`} style={cellStyle} role={useDiv ? "cell" : undefined}>
+        <CellTag
+          className={`year-cell ${rowClass} has-border-right ${firstVisibleColumn === "year" ? "first-visible-cell" : ""} ${cellDivClass}`.trim()}
+          role={useDiv ? "cell" : undefined}
+        >
           {firstVisibleColumn === "year" && onPlay && <PlayIcon />}
           <span className={firstVisibleColumn === "year" ? "first-cell-text" : ""}>
             {game.year || "-"}
@@ -251,9 +255,12 @@ export default function TableRow({
         </CellTag>
       )}
       {columnVisibility.criticRating && (
-        <CellTag className={`critic-rating-cell ${rowClass} has-border-right ${firstVisibleColumn === "criticRating" ? "first-visible-cell" : ""}`} style={cellStyle} role={useDiv ? "cell" : undefined}>
+        <CellTag
+          className={`critic-rating-cell ${rowClass} has-border-right ${firstVisibleColumn === "criticRating" ? "first-visible-cell" : ""} ${cellDivClass}`.trim()}
+          role={useDiv ? "cell" : undefined}
+        >
           {firstVisibleColumn === "criticRating" && onPlay && <PlayIcon />}
-          <div className={firstVisibleColumn === "criticRating" ? "first-cell-text" : ""} style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <div className={`table-row-critic-inner ${firstVisibleColumn === "criticRating" ? "first-cell-text" : ""}`.trim()}>
             {(() => {
               const criticRating = formatRating(game.criticratings);
               const userRating = formatRating(game.userratings);
@@ -266,19 +273,9 @@ export default function TableRow({
                 <>
                   {criticRating !== null && (
                     <Tooltip text={t("gameDetail.criticRating")}>
-                      <div 
-                        className="text-white" 
-                        style={{ 
-                          opacity: 0.8,
-                          fontFamily: 'var(--font-body-2-font-family)',
-                          fontSize: 'var(--font-body-2-font-size)',
-                          lineHeight: 'var(--font-body-2-line-height)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px'
-                        }}
-                      >
+                      <div className="table-row-rating-line text-white">
                         <svg
+                          className="table-row-rating-line__icon"
                           width="16"
                           height="16"
                           viewBox="0 0 24 24"
@@ -287,7 +284,6 @@ export default function TableRow({
                           strokeWidth="1.5"
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          style={{ flexShrink: 0 }}
                         >
                           <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
                         </svg>
@@ -297,19 +293,9 @@ export default function TableRow({
                   )}
                   {userRating !== null && (
                     <Tooltip text={t("gameDetail.userRating")}>
-                      <div 
-                        className="text-white" 
-                        style={{ 
-                          opacity: 0.8,
-                          fontFamily: 'var(--font-body-2-font-family)',
-                          fontSize: 'var(--font-body-2-font-size)',
-                          lineHeight: 'var(--font-body-2-line-height)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px'
-                        }}
-                      >
+                      <div className="table-row-rating-line text-white">
                         <svg
+                          className="table-row-rating-line__icon"
                           width="16"
                           height="16"
                           viewBox="0 0 24 24"
@@ -318,7 +304,6 @@ export default function TableRow({
                           strokeWidth="1.5"
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          style={{ flexShrink: 0 }}
                         >
                           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                           <circle cx="9" cy="7" r="4" />
@@ -336,7 +321,10 @@ export default function TableRow({
         </CellTag>
       )}
       {columnVisibility.ageRating && (
-        <CellTag className={`age-rating-cell ${rowClass} has-border-right ${firstVisibleColumn === "ageRating" ? "first-visible-cell" : ""}`} style={cellStyle} role={useDiv ? "cell" : undefined}>
+        <CellTag
+          className={`age-rating-cell ${rowClass} has-border-right ${firstVisibleColumn === "ageRating" ? "first-visible-cell" : ""} ${cellDivClass}`.trim()}
+          role={useDiv ? "cell" : undefined}
+        >
           {firstVisibleColumn === "ageRating" && onPlay && <PlayIcon />}
           <div className={firstVisibleColumn === "ageRating" ? "first-cell-text" : ""}>
             {game.ageRatings && game.ageRatings.length > 0 ? (
@@ -347,10 +335,11 @@ export default function TableRow({
           </div>
         </CellTag>
       )}
-      <CellTag className={`games-table-edit-cell ${rowClass}`} style={cellStyle} role={useDiv ? "cell" : undefined}>
+      <CellTag className={`games-table-edit-cell ${rowClass} ${cellDivClass}`.trim()} role={useDiv ? "cell" : undefined}>
         {!isIgdbOnly && (
         <div className="games-table-actions">
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               editGame.openEditModal(game);

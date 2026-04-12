@@ -225,7 +225,7 @@ export default function ScreenshotsAndVideosEditor({
             ref={screenshotInputRef}
             type="file"
             accept="image/*"
-            style={{ display: "none" }}
+            className="hidden"
             onChange={handleScreenshotFileSelect}
             aria-label={t("gameDetail.uploadScreenshot", "Carica screenshot")}
           />

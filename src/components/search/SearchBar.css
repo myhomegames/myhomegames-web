@@ -79,6 +79,11 @@
   overflow: hidden;
 }
 
+/* Hide results dropdown while a child modal is open (keeps mount/layout logic in TSX) */
+.search-dropdown.search-dropdown--modal-hidden {
+  display: none;
+}
+
 .search-dropdown-scroll {
   flex: 1;
   overflow-y: auto;
@@ -90,6 +95,7 @@
   align-items: center;
   gap: 12px;
   position: relative;
+  cursor: pointer;
 }
 
 .search-recent-icon {

@@ -532,7 +532,7 @@ function GameDetailContent({
           </div>
 
           {/* Game Info Panel */}
-          <div className="game-detail-info-panel" style={{ minHeight: `${coverHeight}px` }}>
+          <div className="game-detail-info-panel">
             <div className="game-detail-info-content">
               <div className="game-detail-title-row">
                 <h1 className="text-white game-detail-title">

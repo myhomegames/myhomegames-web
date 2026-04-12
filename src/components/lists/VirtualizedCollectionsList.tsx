@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { Grid } from "react-window";
 import type { CollectionItem, GameItem } from "../../types";
 import { CollectionListItem, type GamesPathType } from "./CollectionsList";
+import "../common/virtualized-common.css";
 import "./VirtualizedCollectionsList.css";
 
 // Helper functions for scroll restoration
@@ -313,15 +314,8 @@ export default function VirtualizedCollectionsList({
     const collection = collections[index];
 
     return (
-      <div
-        style={{
-          ...style,
-          paddingLeft: GAP / 2,
-          paddingRight: GAP / 2,
-          paddingTop: GAP / 2,
-          paddingBottom: GAP / 2,
-        }}
-      >
+      <div style={style}>
+        <div className="virtualized-grid-cell-pad">
         <CollectionListItem
           collection={collection}
           displayCount={displayCountById?.[String(collection.id)]}
@@ -337,16 +331,17 @@ export default function VirtualizedCollectionsList({
           coverSize={coverSize}
           itemRefs={itemRefs}
         />
+        </div>
       </div>
     );
   };
 
   if (dimensions.width === 0 || dimensions.height === 0) {
-    return <div style={{ width: "100%", height: "100%" }} />;
+    return <div className="virtualized-list-fill" />;
   }
 
   return (
-    <div style={{ opacity: isScrollRestored ? 1 : 0, transition: isScrollRestored ? 'opacity 0.1s' : 'none' }}>
+    <div className={`virtualized-list-fade${isScrollRestored ? " virtualized-list-fade--ready" : ""}`}>
       <Grid
         gridRef={gridRef}
         className="virtualized-collections-grid"

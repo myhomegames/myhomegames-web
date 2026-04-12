@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { List, useDynamicRowHeight } from "react-window";
 import type { GameItem, CollectionItem } from "../../types";
 import TableRow from "./TableRow";
+import "../common/virtualized-common.css";
 import "./VirtualizedGamesListTable.css";
 
 // Scroll restoration: we store the first visible row INDEX (from onRowsRendered), not scrollTop.
@@ -213,11 +214,11 @@ export default function VirtualizedGamesListTable({
   };
 
   if (dimensions.height === 0 || games.length === 0) {
-    return <div style={{ width: "100%", height: "100%" }} />;
+    return <div className="virtualized-list-fill" />;
   }
 
   return (
-    <div style={{ opacity: isScrollRestored ? 1 : 0, transition: isScrollRestored ? 'opacity 0.1s' : 'none' }}>
+    <div className={`virtualized-list-fade${isScrollRestored ? " virtualized-list-fade--ready" : ""}`}>
       <div className="virtualized-games-table-wrapper">
         <List
           listRef={listRef}

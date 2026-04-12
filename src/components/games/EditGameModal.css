@@ -47,6 +47,11 @@ fieldset.edit-game-modal-field {
   align-items: center;
 }
 
+.edit-game-modal-header h2 svg {
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
 .edit-game-modal-close {
   background: transparent;
   border: none;
@@ -296,6 +301,10 @@ fieldset.edit-game-modal-field {
 .edit-game-modal-alt-names-add {
   margin-top: 4px;
   margin-bottom: 0;
+}
+
+.edit-game-modal-alt-names-row.edit-game-modal-alt-names-add {
+  flex-wrap: wrap;
 }
 
 .edit-game-modal-add-btn {

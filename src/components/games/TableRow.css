@@ -1,0 +1,34 @@
+/* Div-based table semantics (virtualized list): real <tr>/<td> use browser defaults */
+.games-table-row-div {
+  display: table-row;
+}
+
+.games-table-cell-div {
+  display: table-cell;
+}
+
+.table-row-stars-inner {
+  display: flex;
+  align-items: center;
+}
+
+.table-row-critic-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.table-row-rating-line {
+  opacity: 0.8;
+  font-family: var(--font-body-2-font-family);
+  font-size: var(--font-body-2-font-size);
+  line-height: var(--font-body-2-line-height);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-row-rating-line__icon {
+  flex-shrink: 0;
+}

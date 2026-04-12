@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
+import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
+import "./Summary.css";
 
 type SummaryProps = {
   summary: string;
@@ -29,55 +31,30 @@ export default function Summary({ summary, truncateOnly = false, maxLines = 4, f
     return null;
   }
 
+  const textStyle = {
+    ["--summary-max-lines" as string]: String(maxLines),
+    ...(fontSize ? { ["--summary-font-size" as string]: fontSize } : {}),
+  } as CSSProperties;
+
   return (
-    <div style={{ marginTop: '16px' }}>
-      <div 
+    <div className="summary-root">
+      <div
         ref={textRef}
-        className="text-white" 
-        style={{ 
-          opacity: 0.8,
-          fontFamily: 'var(--font-body-1-font-family)',
-          fontSize: fontSize || 'var(--font-body-1-font-size)',
-          lineHeight: 'var(--font-body-1-line-height)',
-          display: '-webkit-box',
-          WebkitLineClamp: isExpanded ? 'none' : maxLines,
-          WebkitBoxOrient: 'vertical',
-          overflow: isExpanded ? 'visible' : 'hidden',
-          textOverflow: isExpanded ? 'clip' : 'ellipsis',
-          whiteSpace: 'pre-line'
-        }}
+        className={`text-white summary-text${isExpanded ? " summary-text--expanded" : ""}`}
+        style={textStyle}
       >
         {summary}
       </div>
       {showExpandButton && !truncateOnly && (
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          style={{
-            backgroundColor: 'transparent',
-            border: 'none',
-            color: '#E5A00D',
-            cursor: 'pointer',
-            padding: 0,
-            marginTop: '8px',
-            fontFamily: 'var(--font-body-1-font-family)',
-            fontSize: 'var(--font-body-1-font-size)',
-            lineHeight: 'var(--font-body-1-line-height)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px'
-          }}
-        >
+        <button type="button" className="summary-toggle" onClick={() => setIsExpanded(!isExpanded)}>
           <span>{isExpanded ? t("common.less") : t("common.more")}</span>
           <svg
+            className={`summary-toggle-chevron${isExpanded ? " summary-toggle-chevron--expanded" : ""}`}
             width="16"
             height="16"
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            style={{
-              transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.2s ease'
-            }}
           >
             <path
               d="M7 10l5 5 5-5"

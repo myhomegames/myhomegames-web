@@ -1,3 +1,8 @@
+.dropdown-menu-confirm-header h2 svg {
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
 .dropdown-menu-wrapper {
   position: relative;
   display: inline-block;

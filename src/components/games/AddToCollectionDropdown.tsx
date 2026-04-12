@@ -290,9 +290,8 @@ export default function AddToCollectionDropdown({
   };
 
   const submenuContent = isOpen ? (
-    <div 
-      className="add-to-collection-dropdown-menu"
-      style={{ opacity: isPositionReady ? 1 : 0, pointerEvents: isPositionReady ? 'auto' : 'none' }}
+    <div
+      className={`add-to-collection-dropdown-menu add-to-collection-dropdown-menu--positioning${isPositionReady ? " is-position-ready" : ""}`}
       onMouseEnter={() => setIsOpen(true)}
       onMouseLeave={(e) => {
         // Don't close if mouse is moving to another menu item or the main dropdown

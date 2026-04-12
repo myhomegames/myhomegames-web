@@ -52,3 +52,12 @@
   text-align: left;
 }
 
+.add-to-collection-dropdown-menu--positioning {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.add-to-collection-dropdown-menu--positioning.is-position-ready {
+  opacity: 1;
+  pointer-events: auto;
+}
