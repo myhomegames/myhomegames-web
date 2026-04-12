@@ -12,22 +12,23 @@ import { PublishersProvider } from "./contexts/PublishersContext";
 import { LibraryGamesProvider } from "./contexts/LibraryGamesContext";
 import { TagListsProvider } from "./contexts/TagListsContext";
 import { SkinProvider } from "./contexts/SkinContext";
-import { PLEX_SKIN_CSS } from "./skins/plex/bundle";
-import { applyActiveSkinFromStorage, applySkinCss } from "./skins/skinRuntime";
+import { getCachedSkinCss } from "./skins/skinCssCache";
+import { isServerSkinId } from "./skins/skinIds";
 import { getActiveSkinId } from "./skins/skinStorage";
-import { isBuiltinSkinId } from "./skins/skinIds";
+import { applySkinCss } from "./skins/skinRuntime";
 
-const bundledSkinCss = { plex: PLEX_SKIN_CSS };
-if (isBuiltinSkinId(getActiveSkinId())) {
-  applyActiveSkinFromStorage(bundledSkinCss);
+const activeSkinId = getActiveSkinId();
+if (isServerSkinId(activeSkinId)) {
+  const cached = getCachedSkinCss(activeSkinId);
+  applySkinCss(cached ?? "");
 } else {
-  applySkinCss(PLEX_SKIN_CSS);
+  applySkinCss("");
 }
 
 createRoot(document.getElementById("root")!).render(
   <SettingsProvider>
     <AuthProvider>
-      <SkinProvider plexCss={PLEX_SKIN_CSS}>
+      <SkinProvider>
         <LoadingProvider>
           <CollectionsProvider>
             <DevelopersProvider>

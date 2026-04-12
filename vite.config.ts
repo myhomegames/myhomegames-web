@@ -99,8 +99,8 @@ export default defineConfig(({ mode }) => {
               // Other node_modules will be included in the main bundle or page chunks
               return null;
             }
-            // Page chunks - split by app routes only (not skins/plex/pages/*.css)
-            if (id.includes('/pages/') && !id.includes('/skins/plex/')) {
+            // Page chunks - split by app routes only (src/pages/*)
+            if (id.includes('/pages/') && id.includes('src/pages')) {
               const pageName = id.split('/pages/')[1]?.split('/')[0];
               if (pageName) {
                 return `page-${pageName}`;

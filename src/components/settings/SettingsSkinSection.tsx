@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSkin } from "../../contexts/SkinContext";
-import { BUILTIN_SKIN_PLEX_ID } from "../../skins/skinIds";
 
 function isZipSkinFile(file: File): boolean {
   const n = file.name.toLowerCase();
@@ -66,19 +65,30 @@ export default function SettingsSkinSection() {
           <label className="settings-label" htmlFor="skin-active-select">
             {t("settings.skin.active")}
           </label>
-          <select
-            id="skin-active-select"
-            className="settings-select settings-select--skin"
-            value={activeSkinId}
-            onChange={(e) => void selectSkin(e.target.value)}
-          >
-            {skins.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-                {s.id === BUILTIN_SKIN_PLEX_ID ? ` (${t("settings.skin.defaultBuiltIn")})` : ""}
-              </option>
-            ))}
-          </select>
+          {skins.length === 0 ? (
+            <select
+              id="skin-active-select"
+              className="settings-select settings-select--skin"
+              disabled
+              value=""
+            >
+              <option value="">{t("settings.skin.noSkinsYet")}</option>
+            </select>
+          ) : (
+            <select
+              id="skin-active-select"
+              className="settings-select settings-select--skin"
+              value={activeSkinId}
+              onChange={(e) => void selectSkin(e.target.value)}
+            >
+              <option value="">{t("settings.skin.noneSelected")}</option>
+              {skins.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         <div className="settings-skin-upload-block">
@@ -107,28 +117,26 @@ export default function SettingsSkinSection() {
           {uploadError && <p className="settings-help-text settings-help-text--error">{uploadError}</p>}
         </div>
 
-        {skins.filter((s) => !s.builtin).length > 0 && (
+        {skins.length > 0 && (
           <div className="settings-skin-list">
             <div className="settings-label">{t("settings.skin.installed")}</div>
             <ul className="settings-skin-installed">
-              {skins
-                .filter((s) => !s.builtin)
-                .map((s) => (
-                  <li key={s.id} className="settings-skin-installed-item">
-                    <span className="settings-skin-installed-name">{s.name}</span>
-                    <button
-                      type="button"
-                      className="settings-skin-remove"
-                      onClick={() => {
-                        if (window.confirm(t("settings.skin.confirmRemove", { name: s.name }))) {
-                          void deleteSkin(s.id);
-                        }
-                      }}
-                    >
-                      {t("settings.skin.remove")}
-                    </button>
-                  </li>
-                ))}
+              {skins.map((s) => (
+                <li key={s.id} className="settings-skin-installed-item">
+                  <span className="settings-skin-installed-name">{s.name}</span>
+                  <button
+                    type="button"
+                    className="settings-skin-remove"
+                    onClick={() => {
+                      if (window.confirm(t("settings.skin.confirmRemove", { name: s.name }))) {
+                        void deleteSkin(s.id);
+                      }
+                    }}
+                  >
+                    {t("settings.skin.remove")}
+                  </button>
+                </li>
+              ))}
             </ul>
           </div>
         )}
