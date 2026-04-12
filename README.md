@@ -6,6 +6,8 @@ React + TypeScript + Vite application for managing and browsing game collections
 
 For development setup instructions, see [DEVELOPMENT.md](DEVELOPMENT.md).
 
+For creating themes, uploading custom CSS, and wiring built-in skins, see [SKINS.md](SKINS.md).
+
 ### Building for Production
 
 To create a production bundle:
