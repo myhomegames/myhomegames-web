@@ -1,20 +1,18 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import {
-  BUILTIN_SKIN_EMPTY_ID,
-  BUILTIN_SKIN_EMPTY_NAME,
-  BUILTIN_SKIN_PLEX_ID,
-  BUILTIN_SKIN_PLEX_NAME,
-  isBuiltinSkinId,
-} from "../skins/skinIds";
-import {
-  addCustomSkin,
-  getActiveSkinId,
-  getCustomSkins,
-  removeCustomSkin,
-  setActiveSkinId,
-  type CustomSkinRecord,
-} from "../skins/skinStorage";
-import { applyActiveSkinFromStorage } from "../skins/skinRuntime";
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import { useAuth } from "./AuthContext";
+import { BUILTIN_SKIN_PLEX_ID, BUILTIN_SKIN_PLEX_NAME, isBuiltinSkinId, isServerSkinId } from "../skins/skinIds";
+import { getActiveSkinId, setActiveSkinId } from "../skins/skinStorage";
+import { applyActiveSkinFromStorage, applySkinCss } from "../skins/skinRuntime";
+import { getApiToken } from "../config";
+import { deleteSkinOnServer, fetchServerSkinCss, fetchSkinList, uploadSkinArchive } from "../skins/skinApi";
 
 type SkinOption = {
   id: string;
@@ -25,80 +23,113 @@ type SkinOption = {
 type SkinContextValue = {
   activeSkinId: string;
   skins: SkinOption[];
-  customSkins: CustomSkinRecord[];
-  selectSkin: (id: string) => void;
-  uploadSkin: (name: string, css: string) => void;
-  deleteSkin: (id: string) => void;
-  plexCss: string;
-  emptySkinCss: string;
+  selectSkin: (id: string) => Promise<void>;
+  uploadSkin: (file: File, displayName?: string) => Promise<void>;
+  deleteSkin: (id: string) => Promise<void>;
+  refreshInstalledSkins: () => Promise<void>;
 };
 
 const SkinContext = createContext<SkinContextValue | null>(null);
 
-export function SkinProvider({
-  children,
-  plexCss,
-  emptySkinCss,
-}: {
-  children: ReactNode;
-  /** Bundled default skin (import with ?raw from main). */
-  plexCss: string;
-  /** Bundled empty skin for testing skin switching (?raw). */
-  emptySkinCss: string;
-}) {
+export function SkinProvider({ children, plexCss }: { children: ReactNode; plexCss: string }) {
+  const { token, isLoading } = useAuth();
   const [activeSkinId, setActive] = useState(() => getActiveSkinId());
-  const [customSkins, setCustomSkinsState] = useState<CustomSkinRecord[]>(() => getCustomSkins());
+  const [serverSkins, setServerSkins] = useState<{ id: string; name: string }[]>([]);
+
+  const bundled = useMemo(() => ({ plex: plexCss }), [plexCss]);
+
+  const refreshInstalledSkins = useCallback(async () => {
+    const list = await fetchSkinList();
+    setServerSkins(list);
+  }, []);
+
+  useEffect(() => {
+    if (isLoading) return;
+    void refreshInstalledSkins();
+  }, [isLoading, token, refreshInstalledSkins]);
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isServerSkinId(activeSkinId)) return;
+    let cancelled = false;
+    void (async () => {
+      const css = await fetchServerSkinCss(activeSkinId);
+      if (cancelled) return;
+      if (css?.trim()) {
+        applySkinCss(css);
+      } else if (getActiveSkinId() === activeSkinId && getApiToken()) {
+        setActiveSkinId(BUILTIN_SKIN_PLEX_ID);
+        setActive(BUILTIN_SKIN_PLEX_ID);
+        applyActiveSkinFromStorage(bundled);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoading, token, activeSkinId, bundled]);
 
   const skins: SkinOption[] = useMemo(() => {
-    const built: SkinOption[] = [
-      { id: BUILTIN_SKIN_PLEX_ID, name: BUILTIN_SKIN_PLEX_NAME, builtin: true },
-      { id: BUILTIN_SKIN_EMPTY_ID, name: BUILTIN_SKIN_EMPTY_NAME, builtin: true },
-    ];
-    const customs = customSkins.map((s) => ({ id: s.id, name: s.name, builtin: false }));
-    return [...built, ...customs];
-  }, [customSkins]);
+    const built: SkinOption[] = [{ id: BUILTIN_SKIN_PLEX_ID, name: BUILTIN_SKIN_PLEX_NAME, builtin: true }];
+    const fromServer = serverSkins.map((s) => ({ id: s.id, name: s.name, builtin: false }));
+    return [...built, ...fromServer];
+  }, [serverSkins]);
 
   const selectSkin = useCallback(
-    (id: string) => {
+    async (id: string) => {
       setActiveSkinId(id);
       setActive(id);
-      applyActiveSkinFromStorage({ plex: plexCss, empty: emptySkinCss });
+      if (isBuiltinSkinId(id)) {
+        applyActiveSkinFromStorage(bundled);
+        return;
+      }
+      if (isServerSkinId(id)) {
+        const css = await fetchServerSkinCss(id);
+        if (css?.trim()) {
+          applySkinCss(css);
+        } else if (getApiToken()) {
+          setActiveSkinId(BUILTIN_SKIN_PLEX_ID);
+          setActive(BUILTIN_SKIN_PLEX_ID);
+          applyActiveSkinFromStorage(bundled);
+        }
+      }
     },
-    [plexCss, emptySkinCss]
+    [bundled]
   );
 
   const uploadSkin = useCallback(
-    (name: string, css: string) => {
-      const rec = addCustomSkin(name, css);
-      setCustomSkinsState(getCustomSkins());
-      selectSkin(rec.id);
+    async (file: File, displayName?: string) => {
+      const { id } = await uploadSkinArchive(file, displayName);
+      await refreshInstalledSkins();
+      await selectSkin(id);
     },
-    [selectSkin]
+    [refreshInstalledSkins, selectSkin]
   );
 
   const deleteSkin = useCallback(
-    (id: string) => {
+    async (id: string) => {
       if (isBuiltinSkinId(id)) return;
-      removeCustomSkin(id);
-      setCustomSkinsState(getCustomSkins());
-      setActive(getActiveSkinId());
-      applyActiveSkinFromStorage({ plex: plexCss, empty: emptySkinCss });
+      if (!isServerSkinId(id)) return;
+      await deleteSkinOnServer(id);
+      await refreshInstalledSkins();
+      if (getActiveSkinId() === id) {
+        setActiveSkinId(BUILTIN_SKIN_PLEX_ID);
+        setActive(BUILTIN_SKIN_PLEX_ID);
+        applyActiveSkinFromStorage(bundled);
+      }
     },
-    [plexCss, emptySkinCss]
+    [bundled, refreshInstalledSkins]
   );
 
   const value = useMemo(
     () => ({
       activeSkinId,
       skins,
-      customSkins,
       selectSkin,
       uploadSkin,
       deleteSkin,
-      plexCss,
-      emptySkinCss,
+      refreshInstalledSkins,
     }),
-    [activeSkinId, skins, customSkins, selectSkin, uploadSkin, deleteSkin, plexCss, emptySkinCss]
+    [activeSkinId, skins, selectSkin, uploadSkin, deleteSkin, refreshInstalledSkins]
   );
 
   return <SkinContext.Provider value={value}>{children}</SkinContext.Provider>;
@@ -112,7 +143,6 @@ export function useSkin(): SkinContextValue {
   return ctx;
 }
 
-/** Optional hook when SkinProvider is not mounted (e.g. tests). */
 export function useSkinOptional(): SkinContextValue | null {
   return useContext(SkinContext);
 }

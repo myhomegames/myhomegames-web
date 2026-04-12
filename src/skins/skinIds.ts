@@ -3,13 +3,16 @@ export const BUILTIN_SKIN_PLEX_ID = "builtin-plex";
 
 export const BUILTIN_SKIN_PLEX_NAME = "Plex";
 
-/** Built-in empty bundle to verify skin switching (no theme rules). */
-export const BUILTIN_SKIN_EMPTY_ID = "builtin-empty";
-
-export const BUILTIN_SKIN_EMPTY_NAME = "Empty";
-
-const BUILTIN_IDS = new Set<string>([BUILTIN_SKIN_PLEX_ID, BUILTIN_SKIN_EMPTY_ID]);
+const BUILTIN_IDS = new Set<string>([BUILTIN_SKIN_PLEX_ID]);
 
 export function isBuiltinSkinId(id: string): boolean {
   return BUILTIN_IDS.has(id);
+}
+
+/** Installed skins use a UUID folder id under METADATA_PATH/content/skins. */
+const SERVER_SKIN_UUID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function isServerSkinId(id: string): boolean {
+  return SERVER_SKIN_UUID.test(id);
 }

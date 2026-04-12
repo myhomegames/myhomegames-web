@@ -13,16 +13,21 @@ import { LibraryGamesProvider } from "./contexts/LibraryGamesContext";
 import { TagListsProvider } from "./contexts/TagListsContext";
 import { SkinProvider } from "./contexts/SkinContext";
 import { PLEX_SKIN_CSS } from "./skins/plex/bundle";
-import emptySkinCss from "./skins/empty/empty-skin.css?raw";
-import { applyActiveSkinFromStorage } from "./skins/skinRuntime";
+import { applyActiveSkinFromStorage, applySkinCss } from "./skins/skinRuntime";
+import { getActiveSkinId } from "./skins/skinStorage";
+import { isBuiltinSkinId } from "./skins/skinIds";
 
-const bundledSkinCss = { plex: PLEX_SKIN_CSS, empty: emptySkinCss };
-applyActiveSkinFromStorage(bundledSkinCss);
+const bundledSkinCss = { plex: PLEX_SKIN_CSS };
+if (isBuiltinSkinId(getActiveSkinId())) {
+  applyActiveSkinFromStorage(bundledSkinCss);
+} else {
+  applySkinCss(PLEX_SKIN_CSS);
+}
 
 createRoot(document.getElementById("root")!).render(
-  <SkinProvider plexCss={PLEX_SKIN_CSS} emptySkinCss={emptySkinCss}>
-    <SettingsProvider>
-      <AuthProvider>
+  <SettingsProvider>
+    <AuthProvider>
+      <SkinProvider plexCss={PLEX_SKIN_CSS}>
         <LoadingProvider>
           <CollectionsProvider>
             <DevelopersProvider>
@@ -36,7 +41,7 @@ createRoot(document.getElementById("root")!).render(
             </DevelopersProvider>
           </CollectionsProvider>
         </LoadingProvider>
-      </AuthProvider>
-    </SettingsProvider>
-  </SkinProvider>
+      </SkinProvider>
+    </AuthProvider>
+  </SettingsProvider>
 );

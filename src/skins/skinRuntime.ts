@@ -1,11 +1,10 @@
-import { BUILTIN_SKIN_EMPTY_ID, BUILTIN_SKIN_PLEX_ID } from "./skinIds";
-import { getActiveSkinId, getCustomSkinCss } from "./skinStorage";
+import { BUILTIN_SKIN_PLEX_ID, isServerSkinId } from "./skinIds";
+import { getActiveSkinId } from "./skinStorage";
 
 export const SKIN_STYLE_ELEMENT_ID = "mhg-active-skin-bundle";
 
 export type BundledSkinCss = {
   plex: string;
-  empty: string;
 };
 
 export function getSkinStyleElement(): HTMLStyleElement {
@@ -26,11 +25,11 @@ export function applySkinCss(css: string): void {
   el.textContent = css;
   const active = getActiveSkinId();
   document.documentElement.dataset.mhgSkin =
-    active === BUILTIN_SKIN_PLEX_ID ? "plex" : active === BUILTIN_SKIN_EMPTY_ID ? "empty" : "custom";
+    active === BUILTIN_SKIN_PLEX_ID ? "plex" : isServerSkinId(active) ? "server" : "plex";
 }
 
 /**
- * Resolve active skin from storage and apply bundled built-ins or custom CSS.
+ * Resolve active skin from storage and apply bundled built-ins or server-skin placeholder.
  */
 export function applyActiveSkinFromStorage(bundled: BundledSkinCss): void {
   const active = getActiveSkinId();
@@ -38,14 +37,9 @@ export function applyActiveSkinFromStorage(bundled: BundledSkinCss): void {
     applySkinCss(bundled.plex);
     return;
   }
-  if (active === BUILTIN_SKIN_EMPTY_ID) {
-    applySkinCss(bundled.empty);
+  if (isServerSkinId(active)) {
+    applySkinCss(bundled.plex);
     return;
   }
-  const custom = getCustomSkinCss(active);
-  if (custom != null) {
-    applySkinCss(custom);
-  } else {
-    applySkinCss(bundled.plex);
-  }
+  applySkinCss(bundled.plex);
 }

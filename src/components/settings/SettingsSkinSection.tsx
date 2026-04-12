@@ -1,7 +1,12 @@
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSkin } from "../../contexts/SkinContext";
-import { BUILTIN_SKIN_EMPTY_ID, BUILTIN_SKIN_PLEX_ID } from "../../skins/skinIds";
+import { BUILTIN_SKIN_PLEX_ID } from "../../skins/skinIds";
+
+function isZipSkinFile(file: File): boolean {
+  const n = file.name.toLowerCase();
+  return n.endsWith(".zip") || n.endsWith(".mhg-skin.zip");
+}
 
 export default function SettingsSkinSection() {
   const { t } = useTranslation();
@@ -20,23 +25,29 @@ export default function SettingsSkinSection() {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (!file.name.toLowerCase().endsWith(".css")) {
-      setUploadError(t("settings.skin.errorNotCss"));
+    if (!isZipSkinFile(file)) {
+      setUploadError(t("settings.skin.errorNotZip"));
       return;
     }
     setBusy(true);
     setUploadError(null);
     try {
-      const text = await file.text();
-      const name = newName.trim() || file.name.replace(/\.css$/i, "") || t("settings.skin.unnamed");
-      uploadSkin(name, text);
+      await uploadSkin(file, newName.trim() || undefined);
       setNewName("");
     } catch (err: unknown) {
       const code = err instanceof Error ? err.message : "";
-      if (code === "empty_css") setUploadError(t("settings.skin.errorEmpty"));
-      else if (code === "css_too_large") setUploadError(t("settings.skin.errorTooLarge"));
-      else if (code === "too_many_skins") setUploadError(t("settings.skin.errorTooMany"));
-      else setUploadError(t("settings.skin.errorRead"));
+      const map: Record<string, string> = {
+        missing_archive: "settings.skin.errorMissingArchive",
+        invalid_archive_type: "settings.skin.errorInvalidArchiveType",
+        missing_skin_json: "settings.skin.errorMissingSkinJson",
+        missing_css: "settings.skin.errorMissingCss",
+        too_many_skins: "settings.skin.errorTooMany",
+        invalid_zip_path: "settings.skin.errorInvalidZip",
+        skin_install_failed: "settings.skin.errorInstallFailed",
+        upload_failed: "settings.skin.errorUploadFailed",
+      };
+      const key = map[code];
+      setUploadError(key ? t(key) : t("settings.skin.errorUploadFailed"));
     } finally {
       setBusy(false);
     }
@@ -59,13 +70,12 @@ export default function SettingsSkinSection() {
             id="skin-active-select"
             className="settings-select settings-select--skin"
             value={activeSkinId}
-            onChange={(e) => selectSkin(e.target.value)}
+            onChange={(e) => void selectSkin(e.target.value)}
           >
             {skins.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
                 {s.id === BUILTIN_SKIN_PLEX_ID ? ` (${t("settings.skin.defaultBuiltIn")})` : ""}
-                {s.id === BUILTIN_SKIN_EMPTY_ID ? ` (${t("settings.skin.emptyTestBuiltIn")})` : ""}
               </option>
             ))}
           </select>
@@ -83,7 +93,13 @@ export default function SettingsSkinSection() {
               onChange={(e) => setNewName(e.target.value)}
               aria-label={t("settings.skin.displayName")}
             />
-            <input ref={fileRef} type="file" accept=".css,text/css" hidden onChange={handleFileChange} />
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".zip,.mhg-skin.zip,application/zip"
+              hidden
+              onChange={handleFileChange}
+            />
             <button type="button" className="settings-button settings-skin-file-btn" onClick={handlePickFile} disabled={busy}>
               {t("settings.skin.chooseFile")}
             </button>
@@ -105,7 +121,7 @@ export default function SettingsSkinSection() {
                       className="settings-skin-remove"
                       onClick={() => {
                         if (window.confirm(t("settings.skin.confirmRemove", { name: s.name }))) {
-                          deleteSkin(s.id);
+                          void deleteSkin(s.id);
                         }
                       }}
                     >
