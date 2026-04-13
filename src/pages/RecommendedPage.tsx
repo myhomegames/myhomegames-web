@@ -2,12 +2,13 @@ import { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallback } fr
 import { useNavigate } from "react-router-dom";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useAutoTranslateBatch } from "../hooks/useAutoTranslate";
+import { useAuth } from "../contexts/AuthContext";
 import { useLoading } from "../contexts/LoadingContext";
 import { useSettings } from "../contexts/SettingsContext";
 import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
 import type { GameItem, CollectionItem } from "../types";
 import { API_BASE } from "../config";
-import { getApiToken, getTwitchClientId, getTwitchClientSecret } from "../config";
+import { getTwitchClientId, getTwitchClientSecret } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 
 type RecommendedSection = {
@@ -31,7 +32,8 @@ export default function RecommendedPage({
   allCollections = [],
 }: RecommendedPageProps) {
   const navigate = useNavigate();
-  const { twitchLoginEnabled } = useSettings();
+  const { token } = useAuth();
+  const { twitchLoginEnabled, settingsLoaded } = useSettings();
   const { setLoading } = useLoading();
   const [sections, setSections] = useState<RecommendedSection[]>([]);
   const [isReady, setIsReady] = useState(false);
@@ -39,6 +41,10 @@ export default function RecommendedPage({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const fetchingRef = useRef<boolean>(false);
   const fetchGenerationRef = useRef(0);
+  const onGamesLoadedRef = useRef(onGamesLoaded);
+  const setLoadingRef = useRef(setLoading);
+  onGamesLoadedRef.current = onGamesLoaded;
+  setLoadingRef.current = setLoading;
 
   const handleGameClick = useCallback(
     (game: GameItem) => {
@@ -91,8 +97,16 @@ export default function RecommendedPage({
   }, []);
 
   useEffect(() => {
+    if (!settingsLoaded) return;
+    if (twitchLoginEnabled && !token) {
+      setSections([]);
+      onGamesLoadedRef.current([]);
+      setLoadingRef.current(false);
+      navigate("/login", { replace: true });
+      return;
+    }
     fetchRecommendedSections();
-  }, [twitchLoginEnabled]);
+  }, [twitchLoginEnabled, token, settingsLoaded, navigate]);
 
   // Listen for metadata reload event
   useEffect(() => {
@@ -140,10 +154,19 @@ export default function RecommendedPage({
     if (fetchingRef.current) {
       return;
     }
+    if (!settingsLoaded) return;
+    if (twitchLoginEnabled && !token) {
+      setSections([]);
+      onGamesLoadedRef.current([]);
+      setIsFetching(false);
+      setLoadingRef.current(false);
+      navigate("/login", { replace: true });
+      return;
+    }
     fetchingRef.current = true;
     const generation = ++fetchGenerationRef.current;
     setIsFetching(true);
-    setLoading(true);
+    setLoadingRef.current(true);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90000);
     try {
@@ -176,9 +199,9 @@ export default function RecommendedPage({
 
       // Show library data immediately so the page is fast
       setSections(parsedSections);
-      onGamesLoaded(parsedSections.flatMap((s) => s.games));
+      onGamesLoadedRef.current(parsedSections.flatMap((s) => s.games));
       setIsFetching(false);
-      setLoading(false);
+      setLoadingRef.current(false);
 
       if (twitchLoginEnabled) {
         const clientId = getTwitchClientId();
@@ -194,9 +217,10 @@ export default function RecommendedPage({
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                "X-Auth-Token": getApiToken() || "",
-                "X-Twitch-Client-Id": clientId,
-                "X-Twitch-Client-Secret": clientSecret,
+                ...buildApiHeaders({
+                  "X-Twitch-Client-Id": clientId,
+                  "X-Twitch-Client-Secret": clientSecret,
+                }),
               },
               body: JSON.stringify({ keyword: section.id, excludeIds }),
             })
@@ -223,7 +247,7 @@ export default function RecommendedPage({
                   const next = prev.map((s) =>
                     s.id === section.id ? { ...s, games: [...s.games, ...igdbGames] } : s
                   );
-                  onGamesLoaded(next.flatMap((s) => s.games));
+                  onGamesLoadedRef.current(next.flatMap((s) => s.games));
                   return next;
                 });
               })

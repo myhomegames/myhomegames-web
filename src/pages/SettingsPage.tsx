@@ -41,14 +41,6 @@ export default function SettingsPage() {
     (initialTwitchClientSecret !== null && twitchClientSecret !== initialTwitchClientSecret);
 
   useEffect(() => {
-    // Load Twitch credentials from localStorage
-    const storedClientId = localStorage.getItem("twitch_client_id") || "";
-    const storedClientSecret = localStorage.getItem("twitch_client_secret") || "";
-    setTwitchClientId(storedClientId);
-    setTwitchClientSecret(storedClientSecret);
-    setInitialTwitchClientId(storedClientId);
-    setInitialTwitchClientSecret(storedClientSecret);
-    
     // Load settings from server
     const parseStoredLibraries = () => {
       const storedLibraries = localStorage.getItem("visibleLibraries");
@@ -86,6 +78,12 @@ export default function SettingsPage() {
           const twitchEnabled = !!data.twitchLoginEnabled;
           setTwitchLoginEnabled(twitchEnabled);
           setInitialTwitchLoginEnabled(twitchEnabled);
+          const loadedClientId = typeof data.twitchClientId === "string" ? data.twitchClientId : "";
+          const loadedClientSecret = typeof data.twitchClientSecret === "string" ? data.twitchClientSecret : "";
+          setTwitchClientId(loadedClientId);
+          setTwitchClientSecret(loadedClientSecret);
+          setInitialTwitchClientId(loadedClientId);
+          setInitialTwitchClientSecret(loadedClientSecret);
         } else {
           // Fallback to localStorage
           const saved = localStorage.getItem("language") || "en";
@@ -96,6 +94,8 @@ export default function SettingsPage() {
           setVisibleLibraries(normalized);
           setInitialVisibleLibraries(normalized);
           setInitialTwitchLoginEnabled(false);
+          setInitialTwitchClientId("");
+          setInitialTwitchClientSecret("");
         }
       } catch (err) {
         clearTimeout(timeoutId);
@@ -109,6 +109,8 @@ export default function SettingsPage() {
         setVisibleLibraries(normalized);
         setInitialVisibleLibraries(normalized);
         setInitialTwitchLoginEnabled(false);
+        setInitialTwitchClientId("");
+        setInitialTwitchClientSecret("");
       } finally {
         setLoading(false);
       }
@@ -191,43 +193,37 @@ export default function SettingsPage() {
   async function handleSaveTwitchCredentials() {
     const didToggleLogin = hasTwitchLoginEnabledChange;
     const didChangeCredentials = hasTwitchChanges;
-
-    if (didToggleLogin) {
-      setSavingTwitch(true);
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 90000);
-      try {
-        const res = await fetch(new URL("/settings", API_BASE).toString(), {
-          method: "PUT",
-          headers: buildApiHeaders({ "Content-Type": "application/json" }),
-          body: JSON.stringify({ twitchLoginEnabled: twitchLoginEnabled }),
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-        if (!res.ok) throw new Error("Failed to save settings");
-        setInitialTwitchLoginEnabled(twitchLoginEnabled);
-        await refreshSettings();
-      } catch (err) {
-        clearTimeout(timeoutId);
-        console.error("Failed to save Twitch login setting:", err);
-      } finally {
-        setSavingTwitch(false);
+    if (!didToggleLogin && !didChangeCredentials) return;
+    setSavingTwitch(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
+    try {
+      const payload: Record<string, unknown> = {
+        twitchLoginEnabled,
+      };
+      if (didChangeCredentials) {
+        payload.twitchClientId = twitchClientId.trim();
+        payload.twitchClientSecret = twitchClientSecret.trim();
       }
-    }
-
-    if (didChangeCredentials && twitchClientId.trim() && twitchClientSecret.trim()) {
-      if (!didToggleLogin) setSavingTwitch(true);
-      try {
-        localStorage.setItem("twitch_client_id", twitchClientId.trim());
-        localStorage.setItem("twitch_client_secret", twitchClientSecret.trim());
+      const res = await fetch(new URL("/settings", API_BASE).toString(), {
+        method: "PUT",
+        headers: buildApiHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!res.ok) throw new Error("Failed to save settings");
+      setInitialTwitchLoginEnabled(twitchLoginEnabled);
+      if (didChangeCredentials) {
         setInitialTwitchClientId(twitchClientId.trim());
         setInitialTwitchClientSecret(twitchClientSecret.trim());
-        const serverUrl = API_BASE.replace(/\/$/, '');
-        window.location.href = serverUrl;
-      } catch (err) {
-        console.error("Failed to save Twitch credentials:", err);
-        if (!didToggleLogin) setSavingTwitch(false);
       }
+      await refreshSettings();
+    } catch (err) {
+      clearTimeout(timeoutId);
+      console.error("Failed to save Twitch settings:", err);
+    } finally {
+      setSavingTwitch(false);
     }
   }
 

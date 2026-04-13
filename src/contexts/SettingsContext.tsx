@@ -6,6 +6,8 @@ import { buildApiHeaders } from "../utils/api";
 interface SettingsContextType {
   twitchLoginEnabled: boolean;
   setTwitchLoginEnabled: (value: boolean) => void;
+  twitchClientId: string;
+  twitchClientSecret: string;
   refreshSettings: () => Promise<void>;
   settingsLoaded: boolean;
 }
@@ -14,6 +16,8 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [twitchLoginEnabled, setTwitchLoginEnabled] = useState(false);
+  const [twitchClientId, setTwitchClientId] = useState("");
+  const [twitchClientSecret, setTwitchClientSecret] = useState("");
   const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   const refreshSettings = useCallback(async () => {
@@ -25,6 +29,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (res.ok) {
         const data = await res.json();
         setTwitchLoginEnabled(!!data.twitchLoginEnabled);
+        const serverClientId = typeof data.twitchClientId === "string" ? data.twitchClientId : "";
+        const serverClientSecret = typeof data.twitchClientSecret === "string" ? data.twitchClientSecret : "";
+        setTwitchClientId(serverClientId);
+        setTwitchClientSecret(serverClientSecret);
+        // Keep localStorage in sync for existing code paths that still read from it.
+        if (serverClientId) localStorage.setItem("twitch_client_id", serverClientId);
+        else localStorage.removeItem("twitch_client_id");
+        if (serverClientSecret) localStorage.setItem("twitch_client_secret", serverClientSecret);
+        else localStorage.removeItem("twitch_client_secret");
       }
     } catch (err) {
       console.error("Failed to refresh settings:", err);
@@ -40,7 +53,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   return (
     <SettingsContext.Provider
-      value={{ twitchLoginEnabled, setTwitchLoginEnabled, refreshSettings, settingsLoaded }}
+      value={{
+        twitchLoginEnabled,
+        setTwitchLoginEnabled,
+        twitchClientId,
+        twitchClientSecret,
+        refreshSettings,
+        settingsLoaded,
+      }}
     >
       {children}
     </SettingsContext.Provider>

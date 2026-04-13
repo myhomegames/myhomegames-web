@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { useAuth } from "./AuthContext";
+import { useSettings } from "./SettingsContext";
 import { isServerSkinId } from "../skins/skinIds";
 import { clearCachedSkinCss, setCachedSkinCss } from "../skins/skinCssCache";
 import { getActiveSkinId, setActiveSkinId } from "../skins/skinStorage";
@@ -15,8 +16,10 @@ import { applySkinCss } from "../skins/skinRuntime";
 import { getApiToken } from "../config";
 import {
   deleteSkinOnServer,
+  fetchServerActiveSkinId,
   fetchServerSkinCss,
   fetchSkinList,
+  saveServerActiveSkinId,
   uploadSkinArchive,
   type ServerSkinInfo,
 } from "../skins/skinApi";
@@ -39,6 +42,7 @@ const SkinContext = createContext<SkinContextValue | null>(null);
 
 export function SkinProvider({ children }: { children: ReactNode }) {
   const { token, isLoading } = useAuth();
+  const { twitchLoginEnabled, settingsLoaded } = useSettings();
   const [activeSkinId, setActive] = useState(() => getActiveSkinId());
   const [serverSkins, setServerSkins] = useState<{ id: string; name: string }[]>([]);
 
@@ -55,14 +59,33 @@ export function SkinProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (isLoading) return;
+    if (!settingsLoaded) return;
+    if (twitchLoginEnabled && !token) {
+      setServerSkins([]);
+      return;
+    }
     let cancelled = false;
 
     void (async () => {
       const list = await refreshInstalledSkins();
       if (cancelled) return;
 
-      const cur = getActiveSkinId();
-      if (isServerSkinId(cur) && !list.some((s) => s.id === cur)) {
+      const serverActiveId = await fetchServerActiveSkinId().catch(() => "");
+      if (cancelled) return;
+
+      const nextActiveId = serverActiveId || getActiveSkinId();
+      const hasNextSkin = isServerSkinId(nextActiveId) && list.some((s) => s.id === nextActiveId);
+
+      if (hasNextSkin) {
+        setActiveSkinId(nextActiveId);
+        setActive(nextActiveId);
+        return;
+      }
+
+      if (nextActiveId) {
+        void saveServerActiveSkinId("");
+      }
+      if (isServerSkinId(nextActiveId)) {
         setActiveSkinId("");
         setActive("");
         clearCachedSkinCss();
@@ -73,10 +96,12 @@ export function SkinProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [isLoading, token, refreshInstalledSkins]);
+  }, [isLoading, settingsLoaded, twitchLoginEnabled, token, refreshInstalledSkins]);
 
   useEffect(() => {
     if (isLoading) return;
+    if (!settingsLoaded) return;
+    if (twitchLoginEnabled && !token) return;
     if (!isServerSkinId(activeSkinId)) return;
     let cancelled = false;
     void (async () => {
@@ -95,7 +120,7 @@ export function SkinProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [isLoading, token, activeSkinId]);
+  }, [isLoading, settingsLoaded, twitchLoginEnabled, token, activeSkinId]);
 
   const skins: SkinOption[] = useMemo(
     () => serverSkins.map((s) => ({ id: s.id, name: s.name })),
@@ -105,6 +130,7 @@ export function SkinProvider({ children }: { children: ReactNode }) {
   const selectSkin = useCallback(async (id: string) => {
     setActiveSkinId(id);
     setActive(id);
+    void saveServerActiveSkinId(id);
     if (!id.trim()) {
       clearCachedSkinCss();
       applySkinCss("");
@@ -139,6 +165,7 @@ export function SkinProvider({ children }: { children: ReactNode }) {
       await deleteSkinOnServer(id);
       await refreshInstalledSkins();
       if (getActiveSkinId() === id) {
+        void saveServerActiveSkinId("");
         clearCachedSkinCss();
         setActiveSkinId("");
         setActive("");

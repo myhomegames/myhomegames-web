@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { twitchLoginEnabled } = useSettings();
+  const { twitchLoginEnabled, twitchClientId, twitchClientSecret } = useSettings();
 
   // Check authentication status
   const checkAuth = async () => {
@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const storedToken = localStorage.getItem("twitch_token");
       if (storedToken) {
         // Check if we have client_id (required for Twitch token validation)
-        const clientId = localStorage.getItem("twitch_client_id");
+        const clientId = localStorage.getItem("twitch_client_id") || twitchClientId;
         if (!clientId) {
           // No client_id means we can't validate the Twitch token
           // Clear it and continue to check dev token
@@ -111,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Returns true if authentication succeeded, false otherwise
   const fetchUserInfo = async (authToken: string): Promise<boolean> => {
     // Get clientId from localStorage for Twitch token validation
-    const clientId = localStorage.getItem("twitch_client_id");
+    const clientId = localStorage.getItem("twitch_client_id") || twitchClientId;
     
     // Check if this is a dev token (don't require clientId for dev tokens)
     const isDevToken = DEV_TOKEN && authToken === DEV_TOKEN;
@@ -196,8 +196,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Initiate Twitch login
   const login = async (forceVerify = false) => {
     // Get credentials from localStorage
-    const clientId = localStorage.getItem("twitch_client_id");
-    const clientSecret = localStorage.getItem("twitch_client_secret");
+    const clientId = localStorage.getItem("twitch_client_id") || twitchClientId;
+    const clientSecret = localStorage.getItem("twitch_client_secret") || twitchClientSecret;
     
     if (!clientId || !clientSecret) {
       // Don't show alert - let the LoginPage handle it

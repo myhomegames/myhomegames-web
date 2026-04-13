@@ -1,11 +1,16 @@
 import { API_BASE, getApiToken } from "../config";
+import { buildApiHeaders } from "../utils/api";
 
 export type ServerSkinInfo = { id: string; name: string };
+
+type ServerSettingsPayload = {
+  activeSkinId?: string;
+};
 
 export async function fetchSkinList(): Promise<ServerSkinInfo[]> {
   const url = new URL("/skins", API_BASE).toString();
   const res = await fetch(url, {
-    headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
+    headers: buildApiHeaders({ Accept: "application/json" }),
   });
   if (!res.ok) return [];
   const data = (await res.json()) as { skins?: ServerSkinInfo[] };
@@ -15,7 +20,7 @@ export async function fetchSkinList(): Promise<ServerSkinInfo[]> {
 export async function fetchServerSkinCss(skinId: string): Promise<string | null> {
   const url = new URL(`/skins/${encodeURIComponent(skinId)}/bundle.css`, API_BASE).toString();
   const res = await fetch(url, {
-    headers: { Accept: "text/css", "X-Auth-Token": getApiToken() || "" },
+    headers: buildApiHeaders({ Accept: "text/css" }),
   });
   if (!res.ok) return null;
   return res.text();
@@ -52,4 +57,23 @@ export async function deleteSkinOnServer(skinId: string): Promise<void> {
     const data = (await res.json().catch(() => ({}))) as { error?: string };
     throw new Error(data.error || "delete_failed");
   }
+}
+
+export async function fetchServerActiveSkinId(): Promise<string> {
+  const url = new URL("/settings", API_BASE).toString();
+  const res = await fetch(url, {
+    headers: buildApiHeaders({ Accept: "application/json" }),
+  });
+  if (!res.ok) return "";
+  const data = (await res.json().catch(() => ({}))) as ServerSettingsPayload;
+  return typeof data.activeSkinId === "string" ? data.activeSkinId : "";
+}
+
+export async function saveServerActiveSkinId(activeSkinId: string): Promise<void> {
+  const url = new URL("/settings", API_BASE).toString();
+  await fetch(url, {
+    method: "PUT",
+    headers: buildApiHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ activeSkinId }),
+  });
 }

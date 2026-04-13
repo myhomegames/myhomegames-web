@@ -1,25 +1,17 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useSettings } from "../contexts/SettingsContext";
 import { useTranslation } from "react-i18next";
 export default function LoginPage() {
   const { user, login, isLoading } = useAuth();
+  const { twitchClientId, twitchClientSecret } = useSettings();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  
-  const [hasCredentials, setHasCredentials] = useState(() => {
-    if (typeof window === "undefined") return false;
-    const storedClientId = localStorage.getItem("twitch_client_id");
-    const storedClientSecret = localStorage.getItem("twitch_client_secret");
-    return !!(storedClientId && storedClientSecret);
-  });
-
-  // Update hasCredentials if localStorage changes (e.g. user added credentials in Settings in another tab)
+  const [hasCredentials, setHasCredentials] = useState(false);
   useEffect(() => {
-    const storedClientId = localStorage.getItem("twitch_client_id");
-    const storedClientSecret = localStorage.getItem("twitch_client_secret");
-    setHasCredentials(!!(storedClientId && storedClientSecret));
-  }, []);
+    setHasCredentials(!!(twitchClientId && twitchClientSecret));
+  }, [twitchClientId, twitchClientSecret]);
 
   // Redirect to home if already authenticated
   useEffect(() => {
