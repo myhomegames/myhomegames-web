@@ -234,7 +234,7 @@ function AppContent() {
   return (
     <>
       <Favicon />
-      <div className="text-white app-main-container">
+      <div className="min-h-screen bg-neutral-950 text-white app-main-container">
         <Routes>
           {/* Login page - public, no header */}
           <Route path="/login" element={<LoginPage />} />
