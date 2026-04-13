@@ -43,6 +43,7 @@ type VirtualizedCollectionsListProps = {
 
 const GAP = 40; // Gap between items in grid
 const OVERSCAN_COUNT = 2; // Number of items to render outside visible area
+const MIN_SIDE_GUTTER = 56; // Keep a visible left/right breathing space
 
 export default function VirtualizedCollectionsList({
   collections,
@@ -71,8 +72,9 @@ export default function VirtualizedCollectionsList({
   // Calculate column count based on container width
   const columnCount = useMemo(() => {
     if (dimensions.width === 0) return 1;
-    const itemWidth = coverSize + GAP;
-    return Math.max(1, Math.floor((dimensions.width + GAP) / itemWidth));
+    const itemWidthWithGap = coverSize + GAP;
+    const usableWidth = Math.max(coverSize, dimensions.width - MIN_SIDE_GUTTER * 2);
+    return Math.max(1, Math.floor((usableWidth + GAP) / itemWidthWithGap));
   }, [dimensions.width, coverSize]);
 
   // Calculate row count
@@ -83,6 +85,14 @@ export default function VirtualizedCollectionsList({
   // Item dimensions
   const itemWidth = coverSize;
   const itemHeight = coverSize * 1.5 + GAP;
+  const gridContentWidth = useMemo(
+    () => Math.max(itemWidth + GAP, columnCount * (itemWidth + GAP)),
+    [columnCount, itemWidth]
+  );
+  const horizontalGutter = useMemo(
+    () => Math.max(MIN_SIDE_GUTTER, Math.floor((dimensions.width - gridContentWidth) / 2)),
+    [dimensions.width, gridContentWidth]
+  );
 
   // Update dimensions when container size changes
   useEffect(() => {
@@ -90,7 +100,7 @@ export default function VirtualizedCollectionsList({
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
         setDimensions({
-          width: rect.width - 40,
+          width: rect.width,
           height: rect.height || window.innerHeight - 200, // Fallback height
         });
       }
@@ -338,23 +348,23 @@ export default function VirtualizedCollectionsList({
   }
 
   return (
-    <div className={`virtualized-list-fade${isScrollRestored ? " virtualized-list-fade--ready" : ""}`}>
+    <div
+      className={`virtualized-list-fade${isScrollRestored ? " virtualized-list-fade--ready" : ""}`}
+      style={{ paddingLeft: `${horizontalGutter}px`, paddingRight: `${horizontalGutter}px`, boxSizing: "border-box" }}
+    >
       <Grid
         gridRef={gridRef}
         className="virtualized-collections-grid"
         columnCount={columnCount}
         columnWidth={itemWidth + GAP}
         defaultHeight={dimensions.height}
-        defaultWidth={dimensions.width}
+        defaultWidth={gridContentWidth}
         rowCount={rowCount}
         rowHeight={itemHeight}
         overscanCount={OVERSCAN_COUNT}
         cellComponent={Cell}
         cellProps={{} as any}
-        style={{ height: dimensions.height, width: dimensions.width }}
-        onResize={(size) => {
-          setDimensions({ width: size.width, height: size.height });
-        }}
+        style={{ height: dimensions.height, width: gridContentWidth }}
       />
     </div>
   );
