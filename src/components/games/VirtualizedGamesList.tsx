@@ -58,7 +58,7 @@ const GAP = 40; // Gap between items in grid
 const OVERSCAN_COUNT = 2; // Number of items to render outside visible area
 const MIN_SIDE_GUTTER = 56; // Keep a visible left/right breathing space
 /** When the A-Z rail is shown, nudge the grid slightly left (fixed px, no width math). */
-const LEFT_GUTTER_TRIM_WHEN_ALPHABET_NAV = 20;
+const LEFT_GUTTER_TRIM_WHEN_ALPHABET_NAV = 8;
 
 export default function VirtualizedGamesList({
   games,
