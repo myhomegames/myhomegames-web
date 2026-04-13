@@ -44,6 +44,8 @@ type VirtualizedCollectionsListProps = {
 const GAP = 40; // Gap between items in grid
 const OVERSCAN_COUNT = 2; // Number of items to render outside visible area
 const MIN_SIDE_GUTTER = 56; // Keep a visible left/right breathing space
+/** When the A-Z rail is shown, nudge the grid slightly left (fixed px, no width math). */
+const LEFT_GUTTER_TRIM_WHEN_ALPHABET_NAV = 20;
 
 export default function VirtualizedCollectionsList({
   collections,
@@ -63,6 +65,7 @@ export default function VirtualizedCollectionsList({
 }: VirtualizedCollectionsListProps) {
   const location = useLocation();
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [alphabetNavPresent, setAlphabetNavPresent] = useState(false);
   const [isScrollRestored, setIsScrollRestored] = useState(false);
   const gridRef = useRef<any>(null);
   const isRestoringRef = useRef(false);
@@ -93,6 +96,23 @@ export default function VirtualizedCollectionsList({
     () => Math.max(MIN_SIDE_GUTTER, Math.floor((dimensions.width - gridContentWidth) / 2)),
     [dimensions.width, gridContentWidth]
   );
+  const leftGutter = Math.max(
+    alphabetNavPresent ? MIN_SIDE_GUTTER - LEFT_GUTTER_TRIM_WHEN_ALPHABET_NAV : MIN_SIDE_GUTTER,
+    horizontalGutter - (alphabetNavPresent ? LEFT_GUTTER_TRIM_WHEN_ALPHABET_NAV : 0)
+  );
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const layout = el.closest(".home-page-layout");
+    if (!layout) return;
+    const sync = () =>
+      setAlphabetNavPresent(!!layout.querySelector(".home-page-alphabet-container"));
+    sync();
+    const mo = new MutationObserver(sync);
+    mo.observe(layout, { childList: true, subtree: true });
+    return () => mo.disconnect();
+  }, [containerRef, collections.length]);
 
   // Update dimensions when container size changes
   useEffect(() => {
@@ -350,7 +370,11 @@ export default function VirtualizedCollectionsList({
   return (
     <div
       className={`virtualized-list-fade${isScrollRestored ? " virtualized-list-fade--ready" : ""}`}
-      style={{ paddingLeft: `${horizontalGutter}px`, paddingRight: `${horizontalGutter}px`, boxSizing: "border-box" }}
+      style={{
+        paddingLeft: `${leftGutter}px`,
+        paddingRight: `${horizontalGutter}px`,
+        boxSizing: "border-box",
+      }}
     >
       <Grid
         gridRef={gridRef}
