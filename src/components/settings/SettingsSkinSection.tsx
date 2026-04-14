@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSkin } from "../../contexts/SkinContext";
+import { API_BASE } from "../../config";
 
 function isZipSkinFile(file: File): boolean {
   const n = file.name.toLowerCase();
@@ -11,9 +12,9 @@ export default function SettingsSkinSection() {
   const { t } = useTranslation();
   const { activeSkinId, skins, selectSkin, uploadSkin, deleteSkin } = useSkin();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [newName, setNewName] = useState("");
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [snapshotErrorIds, setSnapshotErrorIds] = useState<Record<string, boolean>>({});
 
   const handlePickFile = () => {
     setUploadError(null);
@@ -31,8 +32,7 @@ export default function SettingsSkinSection() {
     setBusy(true);
     setUploadError(null);
     try {
-      await uploadSkin(file, newName.trim() || undefined);
-      setNewName("");
+      await uploadSkin(file);
     } catch (err: unknown) {
       const code = err instanceof Error ? err.message : "";
       const map: Record<string, string> = {
@@ -58,51 +58,10 @@ export default function SettingsSkinSection() {
         <h2 className="settings-card-title">{t("settings.skin.title")}</h2>
       </div>
       <div className="settings-card-content">
-        <p className="settings-help-text settings-help-text--twitch-intro">{t("settings.skin.subtitle")}</p>
-        <p className="settings-help-text">{t("settings.skin.saveNote")}</p>
-
-        <div className="settings-field settings-field-row">
-          <label className="settings-label" htmlFor="skin-active-select">
-            {t("settings.skin.active")}
-          </label>
-          {skins.length === 0 ? (
-            <select
-              id="skin-active-select"
-              className="settings-select settings-select--skin"
-              disabled
-              value=""
-            >
-              <option value="">{t("settings.skin.noSkinsYet")}</option>
-            </select>
-          ) : (
-            <select
-              id="skin-active-select"
-              className="settings-select settings-select--skin"
-              value={activeSkinId}
-              onChange={(e) => void selectSkin(e.target.value)}
-            >
-              <option value="">{t("settings.skin.noneSelected")}</option>
-              {skins.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-
         <div className="settings-skin-upload-block">
           <div className="settings-label">{t("settings.skin.uploadTitle")}</div>
           <p className="settings-help-text">{t("settings.skin.uploadHint")}</p>
           <div className="settings-skin-upload-row">
-            <input
-              type="text"
-              className="settings-input"
-              placeholder={t("settings.skin.displayNamePlaceholder")}
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              aria-label={t("settings.skin.displayName")}
-            />
             <input
               ref={fileRef}
               type="file"
@@ -120,20 +79,112 @@ export default function SettingsSkinSection() {
         {skins.length > 0 && (
           <div className="settings-skin-list">
             <div className="settings-label">{t("settings.skin.installed")}</div>
-            <ul className="settings-skin-installed">
+            <ul
+              className="settings-skin-installed"
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                gap: "10px",
+                overflowX: "auto",
+                paddingBottom: "6px",
+              }}
+            >
               {skins.map((s) => (
-                <li key={s.id} className="settings-skin-installed-item">
-                  <span className="settings-skin-installed-name">{s.name}</span>
+                <li
+                  key={s.id}
+                  className="settings-skin-installed-item"
+                  style={{ minWidth: "156px", maxWidth: "156px", position: "relative", flex: "0 0 auto" }}
+                >
                   <button
                     type="button"
-                    className="settings-skin-remove"
-                    onClick={() => {
+                    className="settings-button"
+                    onClick={() => void selectSkin(s.id)}
+                    style={{
+                      width: "100%",
+                      padding: "6px",
+                      border:
+                        s.id === activeSkinId
+                          ? "2px solid var(--mhg-primary, #4f46e5)"
+                          : "1px solid rgba(255, 255, 255, 0.2)",
+                      background: "rgba(0,0,0,0.2)",
+                    }}
+                    title={s.name}
+                  >
+                    {s.snapshotUrl && !snapshotErrorIds[s.id] ? (
+                      <img
+                        src={new URL(s.snapshotUrl, API_BASE).toString()}
+                        alt={s.name}
+                        style={{
+                          width: "100%",
+                          height: "82px",
+                          objectFit: "cover",
+                          borderRadius: "6px",
+                          marginBottom: "6px",
+                        }}
+                        onError={() =>
+                          setSnapshotErrorIds((prev) => ({
+                            ...prev,
+                            [s.id]: true,
+                          }))
+                        }
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: "100%",
+                          height: "82px",
+                          borderRadius: "6px",
+                          marginBottom: "6px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          background: "rgba(255,255,255,0.08)",
+                          fontSize: "11px",
+                          opacity: 0.8,
+                        }}
+                      >
+                        No snapshot
+                      </div>
+                    )}
+                    <span
+                      className="settings-skin-installed-name"
+                      style={{
+                        fontSize: "12px",
+                        display: "block",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {s.name}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
                       if (window.confirm(t("settings.skin.confirmRemove", { name: s.name }))) {
                         void deleteSkin(s.id);
                       }
                     }}
+                    aria-label={t("settings.skin.remove")}
+                    title={t("settings.skin.remove")}
+                    style={{
+                      position: "absolute",
+                      top: "10px",
+                      right: "10px",
+                      width: "22px",
+                      height: "22px",
+                      borderRadius: "999px",
+                      border: "1px solid rgba(255,255,255,0.28)",
+                      background: "rgba(0,0,0,0.68)",
+                      color: "#fff",
+                      fontWeight: 700,
+                      lineHeight: 1,
+                      cursor: "pointer",
+                    }}
                   >
-                    {t("settings.skin.remove")}
+                    ×
                   </button>
                 </li>
               ))}

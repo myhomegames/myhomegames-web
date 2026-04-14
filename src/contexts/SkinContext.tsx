@@ -27,6 +27,7 @@ import {
 type SkinOption = {
   id: string;
   name: string;
+  snapshotUrl?: string;
 };
 
 type SkinContextValue = {
@@ -118,7 +119,7 @@ export function SkinProvider({ children }: { children: ReactNode }) {
   }, [isLoading, settingsLoaded, token, activeSkinId]);
 
   const skins: SkinOption[] = useMemo(
-    () => serverSkins.map((s) => ({ id: s.id, name: s.name })),
+    () => serverSkins.map((s) => ({ id: s.id, name: s.name, snapshotUrl: s.snapshotUrl })),
     [serverSkins]
   );
 

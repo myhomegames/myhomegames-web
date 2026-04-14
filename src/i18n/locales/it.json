@@ -35,7 +35,7 @@
       "uploadHint": "Carica un .zip (o .mhg-skin.zip) con skin.json e un bundle.css completo (tema intero, non solo override). Vedi SKINS.md nel repository myhomegames-skins.",
       "displayName": "Nome visualizzato (opzionale)",
       "displayNamePlaceholder": "es. Scuro minimale",
-      "chooseFile": "Scegli archivio",
+      "chooseFile": "Installa archivio",
       "installed": "Skin installati",
       "remove": "Rimuovi",
       "errorNotZip": "Scegli un file .zip o .mhg-skin.zip.",

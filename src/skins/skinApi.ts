@@ -1,7 +1,7 @@
 import { API_BASE, getApiToken } from "../config";
 import { buildApiHeaders } from "../utils/api";
 
-export type ServerSkinInfo = { id: string; name: string };
+export type ServerSkinInfo = { id: string; name: string; snapshotUrl?: string };
 
 type ServerSettingsPayload = {
   activeSkinId?: string;
@@ -14,7 +14,14 @@ export async function fetchSkinList(): Promise<ServerSkinInfo[]> {
   });
   if (!res.ok) return [];
   const data = (await res.json()) as { skins?: ServerSkinInfo[] };
-  return Array.isArray(data.skins) ? data.skins : [];
+  if (!Array.isArray(data.skins)) return [];
+  return data.skins
+    .filter((s) => s && typeof s.id === "string" && typeof s.name === "string")
+    .map((s) => ({
+      id: s.id,
+      name: s.name,
+      snapshotUrl: typeof s.snapshotUrl === "string" ? s.snapshotUrl : undefined,
+    }));
 }
 
 export async function fetchServerSkinCss(skinId: string): Promise<string | null> {
