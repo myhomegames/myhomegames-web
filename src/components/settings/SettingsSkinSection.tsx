@@ -15,6 +15,7 @@ export default function SettingsSkinSection() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [snapshotErrorIds, setSnapshotErrorIds] = useState<Record<string, boolean>>({});
+  const canRemoveSkins = skins.length > 1;
 
   const handlePickFile = () => {
     setUploadError(null);
@@ -159,33 +160,35 @@ export default function SettingsSkinSection() {
                       {s.name}
                     </span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (window.confirm(t("settings.skin.confirmRemove", { name: s.name }))) {
-                        void deleteSkin(s.id);
-                      }
-                    }}
-                    aria-label={t("settings.skin.remove")}
-                    title={t("settings.skin.remove")}
-                    style={{
-                      position: "absolute",
-                      top: "10px",
-                      right: "10px",
-                      width: "22px",
-                      height: "22px",
-                      borderRadius: "999px",
-                      border: "1px solid rgba(255,255,255,0.28)",
-                      background: "rgba(0,0,0,0.68)",
-                      color: "#fff",
-                      fontWeight: 700,
-                      lineHeight: 1,
-                      cursor: "pointer",
-                    }}
-                  >
-                    ×
-                  </button>
+                  {canRemoveSkins && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm(t("settings.skin.confirmRemove", { name: s.name }))) {
+                          void deleteSkin(s.id);
+                        }
+                      }}
+                      aria-label={t("settings.skin.remove")}
+                      title={t("settings.skin.remove")}
+                      style={{
+                        position: "absolute",
+                        top: "10px",
+                        right: "10px",
+                        width: "22px",
+                        height: "22px",
+                        borderRadius: "999px",
+                        border: "1px solid rgba(255,255,255,0.28)",
+                        background: "rgba(0,0,0,0.68)",
+                        color: "#fff",
+                        fontWeight: 700,
+                        lineHeight: 1,
+                        cursor: "pointer",
+                      }}
+                    >
+                      ×
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>

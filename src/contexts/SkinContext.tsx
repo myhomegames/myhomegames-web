@@ -158,9 +158,30 @@ export function SkinProvider({ children }: { children: ReactNode }) {
   const deleteSkin = useCallback(
     async (id: string) => {
       if (!isServerSkinId(id)) return;
+      const orderBefore = serverSkins.map((s) => s.id);
+      const idx = orderBefore.indexOf(id);
+      const wasActive = getActiveSkinId() === id;
+      let preferredNextId = "";
+      if (idx > 0) {
+        preferredNextId = orderBefore[idx - 1];
+      } else if (idx === 0 && orderBefore.length > 1) {
+        preferredNextId = orderBefore[1];
+      }
+
       await deleteSkinOnServer(id);
-      await refreshInstalledSkins();
-      if (getActiveSkinId() === id) {
+      const newList = await refreshInstalledSkins();
+
+      if (!wasActive) return;
+
+      const stillThere =
+        preferredNextId &&
+        preferredNextId !== id &&
+        newList.some((s) => s.id === preferredNextId);
+      if (stillThere) {
+        await selectSkin(preferredNextId);
+      } else if (newList.length > 0) {
+        await selectSkin(newList[0].id);
+      } else {
         void saveServerActiveSkinId("");
         clearCachedSkinCss();
         setActiveSkinId("");
@@ -168,7 +189,7 @@ export function SkinProvider({ children }: { children: ReactNode }) {
         applySkinCss("");
       }
     },
-    [refreshInstalledSkins]
+    [refreshInstalledSkins, serverSkins, selectSkin]
   );
 
   const value = useMemo(
