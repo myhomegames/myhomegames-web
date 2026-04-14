@@ -12,10 +12,7 @@ export default function SettingsPage() {
   const { setLoading, isLoading } = useLoading();
   const { refreshSettings } = useSettings();
   const [language, setLanguage] = useState("en");
-  const [initialLanguage, setInitialLanguage] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
   const [visibleLibraries, setVisibleLibraries] = useState<string[]>([...LIBRARY_ORDER]);
-  const [initialVisibleLibraries, setInitialVisibleLibraries] = useState<string[] | null>(null);
   const [twitchLoginEnabled, setTwitchLoginEnabled] = useState(false);
   const [initialTwitchLoginEnabled, setInitialTwitchLoginEnabled] = useState<boolean | null>(null);
   
@@ -27,13 +24,6 @@ export default function SettingsPage() {
   const [savingTwitch, setSavingTwitch] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  // Check if there are unsaved changes
-  const hasLibraryChanges =
-    initialVisibleLibraries !== null &&
-    (visibleLibraries.length !== initialVisibleLibraries.length ||
-      visibleLibraries.some((key, index) => key !== initialVisibleLibraries[index]));
-  const hasChanges =
-    (initialLanguage !== null && language !== initialLanguage) || hasLibraryChanges;
   const hasTwitchLoginEnabledChange =
     initialTwitchLoginEnabled !== null && twitchLoginEnabled !== initialTwitchLoginEnabled;
   const hasTwitchChanges = 
@@ -69,11 +59,9 @@ export default function SettingsPage() {
           const data = await res.json();
           const loadedLanguage = data.language || "en";
           setLanguage(loadedLanguage);
-          setInitialLanguage(loadedLanguage);
           i18n.changeLanguage(loadedLanguage);
           const loadedVisibleLibraries = normalizeVisibleLibraries(data.visibleLibraries);
           setVisibleLibraries(loadedVisibleLibraries);
-          setInitialVisibleLibraries(loadedVisibleLibraries);
           localStorage.setItem("visibleLibraries", JSON.stringify(loadedVisibleLibraries));
           const twitchEnabled = !!data.twitchLoginEnabled;
           setTwitchLoginEnabled(twitchEnabled);
@@ -88,11 +76,9 @@ export default function SettingsPage() {
           // Fallback to localStorage
           const saved = localStorage.getItem("language") || "en";
           setLanguage(saved);
-          setInitialLanguage(saved);
           i18n.changeLanguage(saved);
           const normalized = normalizeVisibleLibraries(parseStoredLibraries());
           setVisibleLibraries(normalized);
-          setInitialVisibleLibraries(normalized);
           setInitialTwitchLoginEnabled(false);
           setInitialTwitchClientId("");
           setInitialTwitchClientSecret("");
@@ -103,11 +89,9 @@ export default function SettingsPage() {
         // Fallback to localStorage
         const saved = localStorage.getItem("language") || "en";
         setLanguage(saved);
-        setInitialLanguage(saved);
         i18n.changeLanguage(saved);
         const normalized = normalizeVisibleLibraries(parseStoredLibraries());
         setVisibleLibraries(normalized);
-        setInitialVisibleLibraries(normalized);
         setInitialTwitchLoginEnabled(false);
         setInitialTwitchClientId("");
         setInitialTwitchClientSecret("");
@@ -116,22 +100,20 @@ export default function SettingsPage() {
       }
     }
     loadSettings();
-  }, [setLoading]);
+  }, [setLoading, i18n]);
 
-  async function handleSave() {
+  async function persistGeneralSettings(nextLanguage: string, nextVisibleLibraries: string[]) {
     setSaveError(null);
-    setSaving(true);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90000);
     try {
-      // Save settings to server
       const url = new URL("/settings", API_BASE);
       const res = await fetch(url.toString(), {
         method: "PUT",
         headers: buildApiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
-          language: language,
-          visibleLibraries: visibleLibraries,
+          language: nextLanguage,
+          visibleLibraries: nextVisibleLibraries,
         }),
         signal: controller.signal,
       });
@@ -141,15 +123,6 @@ export default function SettingsPage() {
         const errBody = await res.text();
         throw new Error(errBody || `HTTP ${res.status}`);
       }
-
-      // Also save to localStorage as fallback
-      localStorage.setItem("language", language);
-      localStorage.setItem("visibleLibraries", JSON.stringify(visibleLibraries));
-      // Change i18n language
-      i18n.changeLanguage(language);
-      // Update initial language to reflect saved state
-      setInitialLanguage(language);
-      setInitialVisibleLibraries(visibleLibraries);
     } catch (err) {
       clearTimeout(timeoutId);
       const message = err instanceof Error ? err.message : "Failed to save settings";
@@ -165,29 +138,27 @@ export default function SettingsPage() {
         return;
       }
       setSaveError(message);
-      // Fallback to localStorage
-      localStorage.setItem("language", language);
-      localStorage.setItem("visibleLibraries", JSON.stringify(visibleLibraries));
-      // Change i18n language
-      i18n.changeLanguage(language);
-      // Update initial language to reflect saved state
-      setInitialLanguage(language);
-      setInitialVisibleLibraries(visibleLibraries);
-    } finally {
-      setSaving(false);
     }
   }
 
+  function applyGeneralSettings(nextLanguage: string, nextVisibleLibraries: string[]) {
+    setLanguage(nextLanguage);
+    setVisibleLibraries(nextVisibleLibraries);
+    localStorage.setItem("language", nextLanguage);
+    localStorage.setItem("visibleLibraries", JSON.stringify(nextVisibleLibraries));
+    i18n.changeLanguage(nextLanguage);
+    void persistGeneralSettings(nextLanguage, nextVisibleLibraries);
+  }
+
   const toggleLibraryVisibility = (key: string) => {
-    setVisibleLibraries((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return normalizeVisibleLibraries(Array.from(next));
-    });
+    const next = new Set(visibleLibraries);
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
+    const normalized = normalizeVisibleLibraries(Array.from(next));
+    applyGeneralSettings(language, normalized);
   };
 
   async function handleSaveTwitchCredentials() {
@@ -254,7 +225,7 @@ export default function SettingsPage() {
                   id="language-select"
                   name="language"
                   value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
+                  onChange={(e) => applyGeneralSettings(e.target.value, visibleLibraries)}
                   className="settings-select"
                 >
                   <option value="en">{t("settings.english")}</option>
@@ -292,20 +263,11 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="settings-actions">
-              {saveError && (
-                <p className="settings-help-text settings-help-text--error">
-                  {t("settings.saveError")}: {saveError}
-                </p>
-              )}
-              <button
-                onClick={handleSave}
-                className={`settings-button ${hasChanges ? "settings-button-active" : ""}`}
-                disabled={isLoading || saving || !hasChanges}
-              >
-                {saving ? t("settings.saving") : t("settings.save")}
-              </button>
-            </div>
+            {saveError && (
+              <p className="settings-help-text settings-help-text--error">
+                {t("settings.saveError")}: {saveError}
+              </p>
+            )}
           </div>
         </div>
 
