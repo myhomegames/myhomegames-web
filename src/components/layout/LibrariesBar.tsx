@@ -9,8 +9,17 @@ import MainGamesToggle from "../ui/MainGamesToggle";
 import DropdownMenu from "../common/DropdownMenu";
 import { useBackground } from "../common/BackgroundManager";
 import { API_BASE, getApiToken } from "../../config";
+import { useSkin } from "../../contexts/SkinContext";
 import type { ViewMode, GameLibrarySection } from "../../types";
+
+type CollectionShortcut = {
+  id: string;
+  title: string;
+};
+
 type LibrariesBarProps = {
+  /** Full nav column vs slim in-content controls (detail pages when skin uses detailLibrariesToolbar). */
+  layoutMode?: "nav" | "toolbar";
   libraries: GameLibrarySection[];
   activeLibrary: GameLibrarySection | null;
   onSelectLibrary: (library: GameLibrarySection) => void;
@@ -31,9 +40,12 @@ type LibrariesBarProps = {
   showMainGamesToggle?: boolean;
   mainGamesOnly?: boolean;
   onMainGamesOnlyChange?: (value: boolean) => void;
+  collectionShortcuts?: CollectionShortcut[];
+  onSelectCollectionShortcut?: (collectionId: string) => void;
 };
 
 export default function LibrariesBar({
+  layoutMode = "nav",
   libraries,
   activeLibrary,
   onSelectLibrary,
@@ -52,8 +64,11 @@ export default function LibrariesBar({
   showMainGamesToggle = false,
   mainGamesOnly = false,
   onMainGamesOnlyChange,
+  collectionShortcuts = [],
+  onSelectCollectionShortcut,
 }: LibrariesBarProps) {
   const { t } = useTranslation();
+  const { activeSkinWeb } = useSkin();
   const { isLoading: globalLoading } = useLoading();
   const { hasBackground, isBackgroundVisible, setBackgroundVisible } = useBackground();
   // Use global loading if prop is not provided, otherwise use prop
@@ -62,7 +77,11 @@ export default function LibrariesBar({
   const containerRef = useRef<HTMLDivElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
 
-  useLayoutEffect(() => {
+   useLayoutEffect(() => {
+    if (layoutMode === "toolbar") {
+      setIsNarrow(false);
+      return;
+    }
     if (!activeLibrary) {
       setIsNarrow(false);
       return;
@@ -72,6 +91,25 @@ export default function LibrariesBar({
 
     const checkWidth = () => {
       if (cancelled) return;
+
+      if (activeSkinWeb.libraryPagesVerticalList) {
+        setIsNarrow(false);
+        return;
+      }
+
+      const forceListValue = getComputedStyle(document.documentElement)
+        .getPropertyValue("--mhg-libraries-force-list")
+        .trim()
+        .toLowerCase();
+      const forceList =
+        forceListValue === "1" ||
+        forceListValue === "true" ||
+        forceListValue === "yes" ||
+        forceListValue === "on";
+      if (forceList) {
+        setIsNarrow(false);
+        return;
+      }
 
       const windowWidth = window.innerWidth;
 
@@ -106,7 +144,9 @@ export default function LibrariesBar({
             checkWidth();
           })
         : null;
-    resizeObserver?.observe(containerEl);
+    if (resizeObserver && containerEl) {
+      resizeObserver.observe(containerEl);
+    }
 
     checkWidth();
     const timeoutId = window.setTimeout(checkWidth, 100);
@@ -128,7 +168,7 @@ export default function LibrariesBar({
       cancelAnimationFrame(rafOuter);
       window.removeEventListener("resize", checkWidth);
     };
-  }, [libraries, viewMode, coverSize, activeLibrary]);
+  }, [layoutMode, libraries, viewMode, coverSize, activeLibrary, activeSkinWeb.libraryPagesVerticalList]);
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedLibrary = libraries.find((lib) => lib.key === e.target.value);
@@ -143,7 +183,13 @@ export default function LibrariesBar({
     (showMainGamesToggle && !!onMainGamesOnlyChange);
 
   return (
-    <div className="mhg-libraries-bar">
+    <div
+      className={
+        layoutMode === "toolbar"
+          ? "mhg-libraries-bar mhg-libraries-bar--toolbar"
+          : "mhg-libraries-bar"
+      }
+    >
       <div className="mhg-libraries-bar-container" ref={containerRef}>
         {/* Menu dropdown in fondo a sinistra */}
         {API_BASE && getApiToken() && (
@@ -155,7 +201,7 @@ export default function LibrariesBar({
           </div>
         )}
         
-        {activeLibrary && (
+        {layoutMode === "nav" && activeLibrary && (
           <>
             {isNarrow ? (
               <div className="mhg-libraries-combobox-container">
@@ -190,6 +236,24 @@ export default function LibrariesBar({
                       {s.title || t(`libraries.${s.key}`)}
                     </button>
                   ))
+                )}
+                {collectionShortcuts.length > 0 && onSelectCollectionShortcut && (
+                  <div className="mhg-collections-shortcuts">
+                    <div className="mhg-collections-shortcuts-title">
+                      {t("libraries.collections")}
+                    </div>
+                    {collectionShortcuts.map((collection) => (
+                      <button
+                        key={collection.id}
+                        type="button"
+                        className="mhg-collection-shortcut-button"
+                        onClick={() => onSelectCollectionShortcut(collection.id)}
+                        title={collection.title}
+                      >
+                        {collection.title}
+                      </button>
+                    ))}
+                  </div>
                 )}
                 {error && <div className="mhg-libraries-error">{error}</div>}
               </div>

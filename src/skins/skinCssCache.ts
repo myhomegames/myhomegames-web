@@ -1,4 +1,5 @@
 import { isServerSkinId } from "./skinIds";
+import { clearCachedSkinWeb } from "./skinWebCache";
 
 const CACHE_ID_KEY = "mhg_skin_css_cache_id";
 const CACHE_BODY_KEY = "mhg_skin_css_cache_body";
@@ -44,4 +45,5 @@ export function clearCachedSkinCss(): void {
   } catch {
     /* ignore */
   }
+  clearCachedSkinWeb();
 }

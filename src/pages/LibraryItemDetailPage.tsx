@@ -14,6 +14,7 @@ import { useIgdbGamesForTag, type IgdbTagKey } from "../hooks/useIgdbGamesForTag
 import GamesList from "../components/games/GamesList";
 import Cover from "../components/games/Cover";
 import LibrariesBar from "../components/layout/LibrariesBar";
+import { useSkin } from "../contexts/SkinContext";
 import StarRating from "../components/common/StarRating";
 import Summary from "../components/common/Summary";
 import EditCollectionLikeModal from "../components/collections/EditCollectionLikeModal";
@@ -1064,6 +1065,7 @@ function LibraryItemDetailContent({
   mainGamesOnly,
   onMainGamesOnlyChange,
 }: LibraryItemDetailContentProps) {
+  const { activeSkinWeb } = useSkin();
   const { hasBackground, isBackgroundVisible } = useBackground();
   const { isLoading } = useLoading();
   const stableCoverTimestampRef = useRef<number>(Date.now());
@@ -1512,6 +1514,7 @@ function LibraryItemDetailContent({
         className={`library-item-detail-libraries-bar-host${hasBackground && isBackgroundVisible ? " game-detail-libraries-bar-transparent" : ""}`}
       >
         <LibrariesBar
+          layoutMode={activeSkinWeb.detailLibrariesToolbar ? "toolbar" : "nav"}
           libraries={[]}
           activeLibrary={isCollection ? { key: "collection", type: "collection" } : null}
           onSelectLibrary={() => {}}

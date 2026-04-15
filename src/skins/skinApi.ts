@@ -1,7 +1,13 @@
 import { API_BASE, getApiToken } from "../config";
 import { buildApiHeaders } from "../utils/api";
+import { normalizeSkinWebManifest, type SkinWebManifest } from "./skinWebManifest";
 
-export type ServerSkinInfo = { id: string; name: string; snapshotUrl?: string };
+export type ServerSkinInfo = {
+  id: string;
+  name: string;
+  snapshotUrl?: string;
+  web: SkinWebManifest;
+};
 
 type ServerSettingsPayload = {
   activeSkinId?: string;
@@ -21,6 +27,7 @@ export async function fetchSkinList(): Promise<ServerSkinInfo[]> {
       id: s.id,
       name: s.name,
       snapshotUrl: typeof s.snapshotUrl === "string" ? s.snapshotUrl : undefined,
+      web: normalizeSkinWebManifest((s as { web?: unknown }).web),
     }));
 }
 

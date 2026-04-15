@@ -9,6 +9,7 @@ import MediaGallery from "../components/games/MediaGallery";
 import AgeRatings, { filterAgeRatingsByLocale } from "../components/games/AgeRatings";
 import BackgroundManager, { useBackground } from "../components/common/BackgroundManager";
 import LibrariesBar from "../components/layout/LibrariesBar";
+import { useSkin } from "../contexts/SkinContext";
 import Tooltip from "../components/common/Tooltip";
 import { useAddGame } from "../components/common/actions";
 import { buildApiUrl } from "../utils/api";
@@ -178,6 +179,7 @@ function IGDBGameDetailContent({
   t: TFunction;
   i18n: import("i18next").i18n;
 }) {
+  const { activeSkinWeb } = useSkin();
   // Helper function to format release date
   const formatReleaseDate = (game: IGDBGame): string | null => {
     return formatIGDBGameDate(game, t, i18n);
@@ -281,6 +283,7 @@ function IGDBGameDetailContent({
         className={`igdb-game-detail-libraries-bar-wrapper ${hasBackground && isBackgroundVisible ? 'game-detail-libraries-bar-transparent' : ''}`}
       >
         <LibrariesBar
+          layoutMode={activeSkinWeb.detailLibrariesToolbar ? "toolbar" : "nav"}
           libraries={[]}
           activeLibrary={{ key: "game", type: "game" }}
           onSelectLibrary={() => {}}
