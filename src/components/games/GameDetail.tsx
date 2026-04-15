@@ -523,6 +523,7 @@ function GameDetailContent({
               coverUrl={coverUrl}
               width={coverWidth}
               height={coverHeight}
+              imageFit="fill"
               onPlay={(executableName?: string) => (executableName !== undefined ? (onPlay as (g: typeof game, ex?: string) => void)(game, executableName) : onPlay(game))}
               showTitle={false}
               titlePosition="overlay"

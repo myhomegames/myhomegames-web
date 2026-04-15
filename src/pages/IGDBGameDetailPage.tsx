@@ -310,6 +310,7 @@ function IGDBGameDetailContent({
               coverUrl={coverUrl}
               width={coverWidth}
               height={coverHeight}
+              imageFit="fill"
               showTitle={false}
               titlePosition="overlay"
               detail={false}

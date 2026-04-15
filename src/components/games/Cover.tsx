@@ -44,6 +44,11 @@ type CoverProps = {
   detail?: boolean;
   play?: boolean;
   showBorder?: boolean;
+  /**
+   * `cover`: proporzioni rispettate, ritaglio (default, elenchi).
+   * `fill`: stesso riquadro che con `cover` (width + aspectRatio), ma l’immagine usa `object-fit: fill` così riempie il box anche deformandosi.
+   */
+  imageFit?: "cover" | "fill";
   aspectRatio?: string; // e.g., "2/3" or "16/9"
   overlayContent?: React.ReactNode; // Content to overlay on the cover
   titlePosition?: "bottom" | "overlay"; // Position of title: below cover or inside image (default: "bottom")
@@ -109,6 +114,7 @@ export default function Cover({
   detail = true,
   play = true,
   showBorder = true,
+  imageFit = "cover",
   aspectRatio = "3/4",
   overlayContent,
   titlePosition = "bottom",
@@ -296,13 +302,13 @@ export default function Cover({
     "--cover-text-pad": `${padding}px`,
     "--cover-text-fs": `${calculatedFontSize}px`,
     "--cover-line-clamp": String(lineClamp),
-  } as CSSProperties;
+  } as unknown as CSSProperties;
 
   return (
     <>
       <div
         ref={coverRef}
-        className={`games-list-cover relative bg-[#2a2a2a] rounded overflow-hidden transition-all ${showBorder ? "cover-hover-effect" : ""} ${play ? "games-list-cover-play" : ""} ${detail ? "games-list-cover-detail" : ""} ${shouldShowUploadButton ? "games-list-cover-upload" : ""} ${isDropdownOpen ? "cover-dropdown-open" : ""} ${isPopupOverlay ? "cover-popup-overlay" : ""}${isClickable ? " games-list-cover--clickable" : ""}`}
+        className={`games-list-cover relative bg-[#2a2a2a] rounded overflow-hidden transition-all ${imageFit === "fill" ? "games-list-cover--image-fill " : ""}${showBorder ? "cover-hover-effect" : ""} ${play ? "games-list-cover-play" : ""} ${detail ? "games-list-cover-detail" : ""} ${shouldShowUploadButton ? "games-list-cover-upload" : ""} ${isDropdownOpen ? "cover-dropdown-open" : ""} ${isPopupOverlay ? "cover-popup-overlay" : ""}${isClickable ? " games-list-cover--clickable" : ""}`}
         style={coverStyle}
         onClick={shouldShowUploadButton ? handleUploadClick : handleCoverClick}
       >
@@ -317,7 +323,19 @@ export default function Cover({
             key={coverUrl || 'cover-image'}
             src={coverUrl}
             alt={title}
-            className="object-cover w-full h-full"
+            className={
+              imageFit === "fill"
+                ? "block h-full w-full min-h-0 max-h-none max-w-none"
+                : "h-full w-full object-cover"
+            }
+            style={
+              imageFit === "fill"
+                ? {
+                    objectFit: "fill",
+                    objectPosition: "center",
+                  }
+                : undefined
+            }
             loading={coverUrl.startsWith('data:') ? undefined : "lazy"}
             onError={() => {
               setImageError(true);

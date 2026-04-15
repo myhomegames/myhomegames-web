@@ -1559,6 +1559,7 @@ function LibraryItemDetailContent({
                           coverUrl={itemCoverUrl}
                           width={coverWidth}
                           height={coverHeight}
+                          imageFit="fill"
                           onPlay={
                             onPlay && sortedGames.some((g) => g.executables?.length)
                               ? () => {
