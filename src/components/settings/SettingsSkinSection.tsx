@@ -113,7 +113,11 @@ export default function SettingsSkinSection() {
                   >
                     {s.snapshotUrl && !snapshotErrorIds[s.id] ? (
                       <img
-                        src={new URL(s.snapshotUrl, API_BASE).toString()}
+                        src={(() => {
+                          const url = new URL(s.snapshotUrl, API_BASE);
+                          url.searchParams.set("v", String(s.snapshotVersion));
+                          return url.toString();
+                        })()}
                         alt={s.name}
                         style={{
                           width: "100%",

@@ -28,6 +28,7 @@ type SkinOption = {
   id: string;
   name: string;
   snapshotUrl?: string;
+  snapshotVersion: number;
 };
 
 type SkinContextValue = {
@@ -45,15 +46,18 @@ export function SkinProvider({ children }: { children: ReactNode }) {
   const { token, isLoading } = useAuth();
   const { settingsLoaded } = useSettings();
   const [activeSkinId, setActive] = useState(() => getActiveSkinId());
-  const [serverSkins, setServerSkins] = useState<{ id: string; name: string }[]>([]);
+  const [serverSkins, setServerSkins] = useState<{ id: string; name: string; snapshotUrl?: string }[]>([]);
+  const [snapshotVersion, setSnapshotVersion] = useState(() => Date.now());
 
   const refreshInstalledSkins = useCallback(async () => {
     try {
       const list = await fetchSkinList();
       setServerSkins(list);
+      setSnapshotVersion(Date.now());
       return list;
     } catch {
       setServerSkins([]);
+      setSnapshotVersion(Date.now());
       return [];
     }
   }, []);
@@ -119,8 +123,14 @@ export function SkinProvider({ children }: { children: ReactNode }) {
   }, [isLoading, settingsLoaded, token, activeSkinId]);
 
   const skins: SkinOption[] = useMemo(
-    () => serverSkins.map((s) => ({ id: s.id, name: s.name, snapshotUrl: s.snapshotUrl })),
-    [serverSkins]
+    () =>
+      serverSkins.map((s) => ({
+        id: s.id,
+        name: s.name,
+        snapshotUrl: s.snapshotUrl,
+        snapshotVersion,
+      })),
+    [serverSkins, snapshotVersion]
   );
 
   const selectSkin = useCallback(async (id: string) => {
