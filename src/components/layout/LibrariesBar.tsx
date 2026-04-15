@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useLoading } from "../../contexts/LoadingContext";
 import CoverSizeSlider from "../ui/CoverSizeSlider";
@@ -62,45 +62,70 @@ export default function LibrariesBar({
   const containerRef = useRef<HTMLDivElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    // Only check width if activeLibrary is present (LibrariesBar is actually being used)
+  useLayoutEffect(() => {
     if (!activeLibrary) {
       setIsNarrow(false);
       return;
     }
 
+    let cancelled = false;
+
     const checkWidth = () => {
-      // Use window width as primary check
+      if (cancelled) return;
+
       const windowWidth = window.innerWidth;
-      
-      // Show combobox if window is narrower than 800px
+
       if (windowWidth < 800) {
         setIsNarrow(true);
         return;
       }
 
-      // Otherwise, check if buttons would fit
-      if (containerRef.current && actionsRef.current) {
-        const containerWidth = containerRef.current.offsetWidth;
-        const actionsWidth = actionsRef.current.offsetWidth;
-        // Calculate available width for library buttons
-        const availableWidth = containerWidth - actionsWidth - 180; // 180px for margins and spacing
-        // Estimate minimum width needed (approximately 110px per button)
-        const minButtonsWidth = libraries.length * 110;
-        // Show combobox if available width is less than minimum needed
-        setIsNarrow(availableWidth < minButtonsWidth);
+      const containerEl = containerRef.current;
+      const actionsEl = actionsRef.current;
+      if (!containerEl || !actionsEl) {
+        return;
       }
+
+      const containerWidth = containerEl.offsetWidth;
+      const actionsWidth = actionsEl.offsetWidth;
+
+      // Before layout is committed, widths can be 0 or tiny and falsely trigger the combobox.
+      if (containerWidth < 120) {
+        return;
+      }
+
+      const availableWidth = containerWidth - actionsWidth - 180;
+      const minButtonsWidth = libraries.length * 110;
+      setIsNarrow(availableWidth < minButtonsWidth);
     };
 
-    // Initial check
+    const containerEl = containerRef.current;
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined" && containerEl
+        ? new ResizeObserver(() => {
+            checkWidth();
+          })
+        : null;
+    resizeObserver?.observe(containerEl);
+
     checkWidth();
-    
-    // Check again after a short delay to ensure DOM is ready
-    const timeoutId = setTimeout(checkWidth, 100);
+    const timeoutId = window.setTimeout(checkWidth, 100);
+
+    let rafOuter = 0;
+    rafOuter = requestAnimationFrame(() => {
+      checkWidth();
+      requestAnimationFrame(() => {
+        if (!cancelled) checkWidth();
+      });
+    });
 
     window.addEventListener("resize", checkWidth);
+
     return () => {
-      clearTimeout(timeoutId);
+      cancelled = true;
+      resizeObserver?.disconnect();
+      window.clearTimeout(timeoutId);
+      cancelAnimationFrame(rafOuter);
       window.removeEventListener("resize", checkWidth);
     };
   }, [libraries, viewMode, coverSize, activeLibrary]);
