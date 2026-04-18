@@ -40,6 +40,7 @@ type LibrariesBarProps = {
   onMainGamesOnlyChange?: (value: boolean) => void;
   collectionShortcuts?: CollectionShortcut[];
   onSelectCollectionShortcut?: (collectionId: string) => void;
+  activeCollectionShortcutId?: string | null;
 };
 
 export default function LibrariesBar({
@@ -63,6 +64,7 @@ export default function LibrariesBar({
   onMainGamesOnlyChange,
   collectionShortcuts = [],
   onSelectCollectionShortcut,
+  activeCollectionShortcutId = null,
 }: LibrariesBarProps) {
   const { t } = useTranslation();
   const { activeSkinWeb } = useSkin();
@@ -215,12 +217,16 @@ export default function LibrariesBar({
                   libraries.map((s) => (
                     <button
                       key={s.key}
-                      className={`mhg-library-button ${
+                      type="button"
+                      data-mhg-library-key={s.key}
+                      className={`mhg-library-button flex min-w-0 items-center gap-2 text-left ${
                         activeLibrary?.key === s.key ? "mhg-library-active" : ""
                       }`}
                       onClick={() => onSelectLibrary(s)}
                     >
-                      {s.title || t(`libraries.${s.key}`)}
+                      <span className="mhg-library-button-label min-w-0 flex-1 truncate">
+                        {s.title || t(`libraries.${s.key}`)}
+                      </span>
                     </button>
                   ))
                 )}
@@ -229,17 +235,26 @@ export default function LibrariesBar({
                     <div className="mhg-collections-shortcuts-title">
                       {t("libraries.collections")}
                     </div>
-                    {collectionShortcuts.map((collection) => (
-                      <button
-                        key={collection.id}
-                        type="button"
-                        className="mhg-collection-shortcut-button"
-                        onClick={() => onSelectCollectionShortcut(collection.id)}
-                        title={collection.title}
-                      >
-                        {collection.title}
-                      </button>
-                    ))}
+                    {collectionShortcuts.map((collection) => {
+                      const isCollectionSelected =
+                        activeCollectionShortcutId != null &&
+                        activeCollectionShortcutId === collection.id;
+                      return (
+                        <button
+                          key={collection.id}
+                          type="button"
+                          className={`mhg-collection-shortcut-button min-w-0 text-left${
+                            isCollectionSelected
+                              ? " mhg-collection-shortcut-button--selected"
+                              : ""
+                          }`}
+                          onClick={() => onSelectCollectionShortcut(collection.id)}
+                          title={collection.title}
+                        >
+                          <span className="min-w-0 flex-1 truncate">{collection.title}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
                 {error && <div className="mhg-libraries-error">{error}</div>}

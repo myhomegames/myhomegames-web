@@ -1,10 +1,22 @@
 import { useMemo, type Dispatch, type SetStateAction } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/layout/Header";
 import LibrariesBar from "../components/layout/LibrariesBar";
 import { useSkin } from "../contexts/SkinContext";
 import type { CollectionItem, GameItem, GameLibrarySection, ViewMode } from "../types";
 import { useLibrariesShellState } from "./useLibrariesShellState";
+
+function activeCollectionShortcutIdFromPathname(pathname: string): string | null {
+  const prefix = "/collections/";
+  if (!pathname.startsWith(prefix)) return null;
+  const segment = pathname.slice(prefix.length).split("/")[0];
+  if (!segment) return null;
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+}
 
 export type MainAppOutletContext = {
   onGameClick: (game: GameItem) => void;
@@ -47,6 +59,7 @@ export default function MainAppLayout({
   onAddGameClick,
 }: MainAppLayoutProps) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { activeSkinWeb } = useSkin();
   const {
     libraries,
@@ -130,6 +143,11 @@ export default function MainAppLayout({
             ? (collectionId) =>
                 navigate(`/collections/${encodeURIComponent(collectionId)}`)
             : undefined
+        }
+        activeCollectionShortcutId={
+          activeSkinWeb.collectionsShortcutList
+            ? activeCollectionShortcutIdFromPathname(pathname)
+            : null
         }
       />
       <Outlet context={outletContext} />
