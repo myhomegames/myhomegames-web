@@ -177,6 +177,9 @@ export default function LibrariesBar({
     (showNewGamesToggle && !!onShowNewGamesChange) ||
     (showMainGamesToggle && !!onMainGamesOnlyChange);
 
+  /* Su /collections/:id evidenziare solo la raccolta, non anche una voce "pagina" */
+  const showLibraryActiveHighlight = activeCollectionShortcutId == null;
+
   return (
     <div className="mhg-libraries-bar">
       <div className="mhg-libraries-bar-container" ref={containerRef}>
@@ -220,7 +223,9 @@ export default function LibrariesBar({
                       type="button"
                       data-mhg-library-key={s.key}
                       className={`mhg-library-button flex min-w-0 items-center gap-2 text-left ${
-                        activeLibrary?.key === s.key ? "mhg-library-active" : ""
+                        showLibraryActiveHighlight && activeLibrary?.key === s.key
+                          ? "mhg-library-active"
+                          : ""
                       }`}
                       onClick={() => onSelectLibrary(s)}
                     >
