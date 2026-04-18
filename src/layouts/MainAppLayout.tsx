@@ -105,7 +105,6 @@ export default function MainAppLayout({
         onAddGameClick={onAddGameClick}
       />
       <LibrariesBar
-        layoutMode="nav"
         libraries={libraries}
         activeLibrary={activeLibrary}
         onSelectLibrary={onSelectLibrary}

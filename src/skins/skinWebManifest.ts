@@ -7,8 +7,6 @@ export type SkinWebManifest = {
   persistentLibraryShell: boolean;
   /** Show per-collection shortcut buttons in the libraries bar. */
   collectionsShortcutList: boolean;
-  /** On game/tag detail, render the libraries bar as a slim in-content toolbar. */
-  detailLibrariesToolbar: boolean;
   /** Always show library page tabs as a vertical list (never the narrow combobox). */
   libraryPagesVerticalList: boolean;
 };
@@ -16,14 +14,12 @@ export type SkinWebManifest = {
 export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
   persistentLibraryShell: false,
   collectionsShortcutList: false,
-  detailLibrariesToolbar: false,
   libraryPagesVerticalList: false,
 };
 
 const WEB_KEYS = [
   "persistentLibraryShell",
   "collectionsShortcutList",
-  "detailLibrariesToolbar",
   "libraryPagesVerticalList",
 ] as const satisfies readonly (keyof SkinWebManifest)[];
 

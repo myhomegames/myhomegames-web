@@ -11,7 +11,6 @@ import { useIgdbGamesForTag, type IgdbTagKey } from "../hooks/useIgdbGamesForTag
 import GamesListPageContent from "../components/games/GamesListPageContent";
 import AlphabetNavigator from "../components/ui/AlphabetNavigator";
 import LibrariesBar from "../components/layout/LibrariesBar";
-import { useSkin } from "../contexts/SkinContext";
 import type { ViewMode } from "../types";
 import type { GameItem, CollectionItem } from "../types";
 import type { FilterField } from "../components/filters/types";
@@ -42,7 +41,6 @@ export default function TagGamesPage({
   tagKey,
   onIgdbGameClick,
 }: TagGamesPageProps) {
-  const { activeSkinWeb } = useSkin();
   const { t } = useTranslation();
   const { games: libraryGames } = useLibraryGames();
   const { twitchLoginEnabled } = useSettings();
@@ -353,7 +351,6 @@ export default function TagGamesPage({
   return (
     <>
       <LibrariesBar
-        layoutMode={activeSkinWeb.detailLibrariesToolbar ? "toolbar" : "nav"}
         libraries={[]}
         activeLibrary={null}
         onSelectLibrary={() => {}}

@@ -16,7 +16,6 @@ import AdditionalExecutablesDropdown from "./AdditionalExecutablesDropdown";
 import Tooltip from "../common/Tooltip";
 import BackgroundManager, { useBackground } from "../common/BackgroundManager";
 import LibrariesBar from "../layout/LibrariesBar";
-import { useSkin } from "../../contexts/SkinContext";
 import { useEditGame } from "../common/actions";
 import type { GameItem, CollectionItem, CollectionInfo } from "../../types";
 import { formatGameDate } from "../../utils/date";
@@ -222,7 +221,6 @@ function GameDetailContent({
   t: (key: string, defaultValue?: string) => string;
   i18n: { language: string };
 }) {
-  const { activeSkinWeb } = useSkin();
   const navigate = useNavigate();
   const { twitchLoginEnabled } = useSettings();
   const { tagLabels, tagLabelsReady } = useTagLists();
@@ -497,7 +495,6 @@ function GameDetailContent({
     <>
       <div className={`game-detail-libraries-bar-wrapper ${hasBackground && isBackgroundVisible ? 'game-detail-libraries-bar-transparent' : ''}`}>
         <LibrariesBar
-          layoutMode={activeSkinWeb.detailLibrariesToolbar ? "toolbar" : "nav"}
           libraries={[]}
           activeLibrary={{ key: "game", type: "game" }}
           onSelectLibrary={() => {}}

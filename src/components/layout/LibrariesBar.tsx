@@ -18,8 +18,6 @@ type CollectionShortcut = {
 };
 
 type LibrariesBarProps = {
-  /** Full nav column vs slim in-content controls (detail pages when skin uses detailLibrariesToolbar). */
-  layoutMode?: "nav" | "toolbar";
   libraries: GameLibrarySection[];
   activeLibrary: GameLibrarySection | null;
   onSelectLibrary: (library: GameLibrarySection) => void;
@@ -45,7 +43,6 @@ type LibrariesBarProps = {
 };
 
 export default function LibrariesBar({
-  layoutMode = "nav",
   libraries,
   activeLibrary,
   onSelectLibrary,
@@ -77,11 +74,7 @@ export default function LibrariesBar({
   const containerRef = useRef<HTMLDivElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
 
-   useLayoutEffect(() => {
-    if (layoutMode === "toolbar") {
-      setIsNarrow(false);
-      return;
-    }
+  useLayoutEffect(() => {
     if (!activeLibrary) {
       setIsNarrow(false);
       return;
@@ -168,7 +161,7 @@ export default function LibrariesBar({
       cancelAnimationFrame(rafOuter);
       window.removeEventListener("resize", checkWidth);
     };
-  }, [layoutMode, libraries, viewMode, coverSize, activeLibrary, activeSkinWeb.libraryPagesVerticalList]);
+  }, [libraries, viewMode, coverSize, activeLibrary, activeSkinWeb.libraryPagesVerticalList]);
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedLibrary = libraries.find((lib) => lib.key === e.target.value);
@@ -183,13 +176,7 @@ export default function LibrariesBar({
     (showMainGamesToggle && !!onMainGamesOnlyChange);
 
   return (
-    <div
-      className={
-        layoutMode === "toolbar"
-          ? "mhg-libraries-bar mhg-libraries-bar--toolbar"
-          : "mhg-libraries-bar"
-      }
-    >
+    <div className="mhg-libraries-bar">
       <div className="mhg-libraries-bar-container" ref={containerRef}>
         {/* Menu dropdown in fondo a sinistra */}
         {API_BASE && getApiToken() && (
@@ -201,7 +188,7 @@ export default function LibrariesBar({
           </div>
         )}
         
-        {layoutMode === "nav" && activeLibrary && (
+        {activeLibrary && (
           <>
             {isNarrow ? (
               <div className="mhg-libraries-combobox-container">

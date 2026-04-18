@@ -125,6 +125,12 @@ export default function BackgroundManager({
 
   const bgLayerStyle = {
     backgroundColor: hasBackground && isBackgroundVisible ? "transparent" : "#1a1a1a",
+    /*
+     * Full-screen fixed layer sits after the persistent shell LibrariesBar in the DOM; with the
+     * same stacking level it would paint on top and steal all clicks (header stays usable only
+     * because it uses a higher z-index). Let events reach the shell and the foreground content.
+     */
+    pointerEvents: "none",
   } as CSSProperties;
 
   const showPortalPaint =
@@ -155,15 +161,12 @@ export default function BackgroundManager({
       <div
         className={`background-manager-root${hasBackground && isBackgroundVisible ? " background-manager-root--clickable" : " background-manager-root--solid"}`}
         style={bgLayerStyle}
-        onClick={() => {
-          if (hasBackground && isBackgroundVisible) {
-            handleVisibilityChange(false);
-          }
-        }}
       >
         {hasBackground && isBackgroundVisible && <div className="background-manager-overlay" />}
       </div>
-      <div className="background-manager-foreground">{children}</div>
+      <div className="background-manager-foreground">
+        {children}
+      </div>
     </BackgroundContext.Provider>
   );
 }
