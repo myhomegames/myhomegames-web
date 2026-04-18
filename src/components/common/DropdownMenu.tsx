@@ -129,6 +129,8 @@ export default function DropdownMenu({
   const isInCover = className.includes('games-list-dropdown-menu');
   // Check if we're in the games table (virtualized or not) - use portal to escape overflow and stay on top
   const isInGamesTable = className.includes('games-table-dropdown-menu');
+  /** GOG shell: three-dots in fixed libraries strip — same escape as table/search (stacking / overflow) */
+  const isLibrariesTopMenu = className.includes('mhg-libraries-menu-dropdown');
   
   // Check if we're in search (popup or results page) to use portal so menu isn't clipped and clicks work
   const [isInSearchDropdown, setIsInSearchDropdown] = useState(false);
@@ -459,7 +461,7 @@ export default function DropdownMenu({
         const popupContent = (
           <div 
             ref={popupRef} 
-            className={`dropdown-menu-popup ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''} ${isInGamesTable ? 'dropdown-menu-popup-in-games-table' : ''}`}
+            className={`dropdown-menu-popup ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''} ${isInGamesTable ? 'dropdown-menu-popup-in-games-table' : ''} ${isLibrariesTopMenu ? 'dropdown-menu-popup-in-libraries-top' : ''}`}
             onMouseLeave={handlePopupMouseLeave}
             style={(() => {
               if (!menuRef.current) return undefined;
@@ -493,6 +495,35 @@ export default function DropdownMenu({
                   right: `${window.innerWidth - rect.right}px`,
                   left: 'auto',
                   zIndex: 10002,
+                };
+              }
+
+              if (isLibrariesTopMenu) {
+                const rect = menuRef.current.getBoundingClientRect();
+                const margin = 8;
+                // Match .dropdown-menu-popup min-width — right-align under the ⋮ like default absolute layout
+                const minWidth = 200;
+                const top = rect.bottom + 4;
+                const wouldClipLeft = rect.right - minWidth < margin;
+                if (!wouldClipLeft) {
+                  return {
+                    position: 'fixed',
+                    top: `${top}px`,
+                    right: `${window.innerWidth - rect.right}px`,
+                    left: 'auto',
+                    zIndex: 10008,
+                  };
+                }
+                let left = margin;
+                if (left + minWidth > window.innerWidth - margin) {
+                  left = Math.max(margin, window.innerWidth - margin - minWidth);
+                }
+                return {
+                  position: 'fixed',
+                  top: `${top}px`,
+                  left: `${left}px`,
+                  right: 'auto',
+                  zIndex: 10008,
                 };
               }
               
@@ -774,7 +805,7 @@ export default function DropdownMenu({
         );
         
         // Use portal for search dropdown, cover, or games table (escape overflow and stay on top)
-        return (isInSearchDropdown || isInCover || isInGamesTable) ? createPortal(popupContent, document.body) : popupContent;
+        return (isInSearchDropdown || isInCover || isInGamesTable || isLibrariesTopMenu) ? createPortal(popupContent, document.body) : popupContent;
       })()}
 
       {/* Reload Confirmation Modal */}
