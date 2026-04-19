@@ -149,6 +149,12 @@ export default function MainAppLayout({
             ? activeCollectionShortcutIdFromPathname(pathname)
             : null
         }
+        sidebarSearchGames={allGames}
+        sidebarSearchCollections={allCollections}
+        sidebarSearchDevelopers={allDevelopers}
+        sidebarSearchPublishers={allPublishers}
+        onSidebarSearchGameSelect={onGameSelect}
+        onSidebarSearchPlay={onPlay}
       />
       <Outlet context={outletContext} />
     </>

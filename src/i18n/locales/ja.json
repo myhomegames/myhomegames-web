@@ -12,7 +12,9 @@
     "publishers": "パブリッシャー",
     "gameEngines": "ゲームエンジン",
     "gameModes": "ゲームモード",
-    "playerPerspectives": "視点"
+    "playerPerspectives": "視点",
+    "sidebarSearch": "検索",
+    "ownedGames": "所持ゲーム"
   },
   "settings": {
     "title": "設定",

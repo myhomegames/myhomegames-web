@@ -12,7 +12,9 @@
     "publishers": "Publisher",
     "gameEngines": "Spiel-Engines",
     "gameModes": "Spielmodi",
-    "playerPerspectives": "Spielperspektiven"
+    "playerPerspectives": "Spielperspektiven",
+    "sidebarSearch": "Suche",
+    "ownedGames": "Eigene Spiele"
   },
   "settings": {
     "title": "Einstellungen",

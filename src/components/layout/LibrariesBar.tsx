@@ -1,4 +1,4 @@
-import { useState, useLayoutEffect, useRef } from "react";
+import { useState, useLayoutEffect, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useLoading } from "../../contexts/LoadingContext";
 import CoverSizeSlider from "../ui/CoverSizeSlider";
@@ -10,7 +10,8 @@ import DropdownMenu from "../common/DropdownMenu";
 import { useBackground } from "../common/BackgroundManager";
 import { API_BASE, getApiToken } from "../../config";
 import { useSkin } from "../../contexts/SkinContext";
-import type { ViewMode, GameLibrarySection } from "../../types";
+import type { ViewMode, GameLibrarySection, GameItem, CollectionItem } from "../../types";
+import SidebarSearchOverlay from "./SidebarSearchOverlay";
 
 type CollectionShortcut = {
   id: string;
@@ -41,6 +42,13 @@ type LibrariesBarProps = {
   collectionShortcuts?: CollectionShortcut[];
   onSelectCollectionShortcut?: (collectionId: string) => void;
   activeCollectionShortcutId?: string | null;
+  /** When skin `web.sidebarSearchPopup` is true, pass data for the sidebar search modal. */
+  sidebarSearchGames?: GameItem[];
+  sidebarSearchCollections?: CollectionItem[];
+  sidebarSearchDevelopers?: CollectionItem[];
+  sidebarSearchPublishers?: CollectionItem[];
+  onSidebarSearchGameSelect?: (game: GameItem) => void;
+  onSidebarSearchPlay?: (game: GameItem) => void;
 };
 
 export default function LibrariesBar({
@@ -65,14 +73,46 @@ export default function LibrariesBar({
   collectionShortcuts = [],
   onSelectCollectionShortcut,
   activeCollectionShortcutId = null,
+  sidebarSearchGames = [],
+  sidebarSearchCollections = [],
+  sidebarSearchDevelopers = [],
+  sidebarSearchPublishers = [],
+  onSidebarSearchGameSelect,
+  onSidebarSearchPlay,
 }: LibrariesBarProps) {
   const { t } = useTranslation();
   const { activeSkinWeb } = useSkin();
+  const ownedGamesInGamesSidebar = activeSkinWeb.ownedGamesFirstInGamesSidebar;
+
+  const libraryForGamesSidebar = useMemo(
+    () => libraries.find((s) => s.key === "library") ?? null,
+    [libraries]
+  );
+
+  const mainSidebarLibraries = useMemo(() => {
+    if (!ownedGamesInGamesSidebar) {
+      return libraries;
+    }
+    return libraries.filter((s) => s.key !== "library");
+  }, [libraries, ownedGamesInGamesSidebar]);
+
+  const showGamesShortcutsSection =
+    (collectionShortcuts.length > 0 && !!onSelectCollectionShortcut) ||
+    (!!libraryForGamesSidebar && ownedGamesInGamesSidebar);
+
+  const comboboxLibraries = useMemo(() => {
+    if (!ownedGamesInGamesSidebar || !libraryForGamesSidebar) {
+      return libraries;
+    }
+    return [libraryForGamesSidebar, ...mainSidebarLibraries];
+  }, [libraries, ownedGamesInGamesSidebar, libraryForGamesSidebar, mainSidebarLibraries]);
+
   const { isLoading: globalLoading } = useLoading();
   const { hasBackground, isBackgroundVisible, setBackgroundVisible } = useBackground();
   // Use global loading if prop is not provided, otherwise use prop
   const isLoading = loading !== undefined ? loading : globalLoading;
   const [isNarrow, setIsNarrow] = useState(false);
+  const [sidebarSearchOpen, setSidebarSearchOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
 
@@ -128,7 +168,7 @@ export default function LibrariesBar({
       }
 
       const availableWidth = containerWidth - actionsWidth - 180;
-      const minButtonsWidth = libraries.length * 110;
+      const minButtonsWidth = mainSidebarLibraries.length * 110;
       setIsNarrow(availableWidth < minButtonsWidth);
     };
 
@@ -163,7 +203,13 @@ export default function LibrariesBar({
       cancelAnimationFrame(rafOuter);
       window.removeEventListener("resize", checkWidth);
     };
-  }, [libraries, viewMode, coverSize, activeLibrary, activeSkinWeb.libraryPagesVerticalList]);
+  }, [
+    mainSidebarLibraries,
+    viewMode,
+    coverSize,
+    activeLibrary,
+    activeSkinWeb.libraryPagesVerticalList,
+  ]);
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedLibrary = libraries.find((lib) => lib.key === e.target.value);
@@ -176,6 +222,11 @@ export default function LibrariesBar({
     (hasBackground && !hideBackgroundToggle) ||
     (showNewGamesToggle && !!onShowNewGamesChange) ||
     (showMainGamesToggle && !!onMainGamesOnlyChange);
+
+  const showSidebarSearchPopup =
+    activeSkinWeb.sidebarSearchPopup &&
+    !isNarrow &&
+    !!onSidebarSearchGameSelect;
 
   /* Su /collections/:id evidenziare solo la raccolta, non anche una voce "pagina" */
   const showLibraryActiveHighlight = activeCollectionShortcutId == null;
@@ -193,7 +244,7 @@ export default function LibrariesBar({
           </div>
         )}
         
-        {activeLibrary && (
+        {libraries.length > 0 && (
           <>
             {isNarrow ? (
               <div className="mhg-libraries-combobox-container">
@@ -202,12 +253,14 @@ export default function LibrariesBar({
                     id="libraries-select"
                     name="library"
                     className="mhg-libraries-combobox"
-                    value={activeLibrary?.key || ""}
+                    value={(activeLibrary ?? libraries[0])?.key || ""}
                     onChange={handleSelectChange}
                   >
-                    {libraries.map((s) => (
+                    {comboboxLibraries.map((s) => (
                       <option key={s.key} value={s.key}>
-                        {s.title || t(`libraries.${s.key}`)}
+                        {ownedGamesInGamesSidebar && s.key === "library"
+                          ? t("libraries.ownedGames")
+                          : s.title || t(`libraries.${s.key}`)}
                       </option>
                     ))}
                   </select>
@@ -217,7 +270,7 @@ export default function LibrariesBar({
             ) : (
               <div className="mhg-libraries-container">
                 {isLoading && libraries.length === 0 ? null : (
-                  libraries.map((s) => (
+                  mainSidebarLibraries.map((s) => (
                     <button
                       key={s.key}
                       type="button"
@@ -235,31 +288,67 @@ export default function LibrariesBar({
                     </button>
                   ))
                 )}
-                {collectionShortcuts.length > 0 && onSelectCollectionShortcut && (
+                {showSidebarSearchPopup && (
+                  <button
+                    type="button"
+                    data-mhg-sidebar-action="search"
+                    className={`mhg-library-button mhg-sidebar-search-trigger flex min-w-0 items-center gap-2 text-left ${
+                      sidebarSearchOpen ? "mhg-sidebar-search-trigger--open" : ""
+                    }`}
+                    aria-expanded={sidebarSearchOpen}
+                    aria-controls="mhg-sidebar-search-dialog"
+                    onClick={() => setSidebarSearchOpen(true)}
+                  >
+                    <span className="mhg-library-button-label min-w-0 flex-1 truncate">
+                      {t("libraries.sidebarSearch")}
+                    </span>
+                  </button>
+                )}
+                {showGamesShortcutsSection && (
                   <div className="mhg-collections-shortcuts">
                     <div className="mhg-collections-shortcuts-title">
                       {t("libraries.collections")}
                     </div>
-                    {collectionShortcuts.map((collection) => {
-                      const isCollectionSelected =
-                        activeCollectionShortcutId != null &&
-                        activeCollectionShortcutId === collection.id;
-                      return (
-                        <button
-                          key={collection.id}
-                          type="button"
-                          className={`mhg-collection-shortcut-button min-w-0 text-left${
-                            isCollectionSelected
-                              ? " mhg-collection-shortcut-button--selected"
-                              : ""
-                          }`}
-                          onClick={() => onSelectCollectionShortcut(collection.id)}
-                          title={collection.title}
-                        >
-                          <span className="min-w-0 flex-1 truncate">{collection.title}</span>
-                        </button>
-                      );
-                    })}
+                    {ownedGamesInGamesSidebar && libraryForGamesSidebar && (
+                      <button
+                        type="button"
+                        data-mhg-library-key="library"
+                        className={`mhg-library-button flex min-w-0 items-center gap-2 text-left${
+                          showLibraryActiveHighlight &&
+                          activeLibrary?.key === "library" &&
+                          activeCollectionShortcutId == null
+                            ? " mhg-library-active"
+                            : ""
+                        }`}
+                        onClick={() => onSelectLibrary(libraryForGamesSidebar)}
+                      >
+                        <span className="mhg-library-button-label min-w-0 flex-1 truncate">
+                          {t("libraries.ownedGames")}
+                        </span>
+                      </button>
+                    )}
+                    {collectionShortcuts.length > 0 &&
+                      onSelectCollectionShortcut &&
+                      collectionShortcuts.map((collection) => {
+                        const isCollectionSelected =
+                          activeCollectionShortcutId != null &&
+                          activeCollectionShortcutId === collection.id;
+                        return (
+                          <button
+                            key={collection.id}
+                            type="button"
+                            className={`mhg-collection-shortcut-button min-w-0 text-left${
+                              isCollectionSelected
+                                ? " mhg-collection-shortcut-button--selected"
+                                : ""
+                            }`}
+                            onClick={() => onSelectCollectionShortcut(collection.id)}
+                            title={collection.title}
+                          >
+                            <span className="min-w-0 flex-1 truncate">{collection.title}</span>
+                          </button>
+                        );
+                      })}
                   </div>
                 )}
                 {error && <div className="mhg-libraries-error">{error}</div>}
@@ -317,6 +406,18 @@ export default function LibrariesBar({
           )}
         </div>
       </div>
+      {showSidebarSearchPopup && (
+        <SidebarSearchOverlay
+          open={sidebarSearchOpen}
+          onClose={() => setSidebarSearchOpen(false)}
+          games={sidebarSearchGames}
+          collections={sidebarSearchCollections}
+          developers={sidebarSearchDevelopers}
+          publishers={sidebarSearchPublishers}
+          onGameSelect={onSidebarSearchGameSelect}
+          onPlay={onSidebarSearchPlay}
+        />
+      )}
     </div>
   );
 }

@@ -5,7 +5,7 @@ import {
   type SkinWebManifest,
 } from "./skinWebManifest";
 
-const CACHE_KEY = "mhg_skin_web_manifest_v1";
+const CACHE_KEY = "mhg_skin_web_manifest_v2";
 
 type Stored = { skinId: string; web: SkinWebManifest };
 
