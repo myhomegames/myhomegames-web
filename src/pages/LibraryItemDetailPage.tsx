@@ -315,9 +315,9 @@ export default function LibraryItemDetailPage({
           showTitle: (foundInContext as any).showTitle !== false,
           childs: (foundInContext as any).childs || [],
         });
-      } else {
-        fetchCollectionInfo(collectionId);
       }
+      // Always refresh the single item from API so cover/background are never stale.
+      fetchCollectionInfo(collectionId);
       if (!fetchingGamesRef.current) fetchCollectionGames(collectionId);
     }
   }, [collectionId, resourceType, allCollectionsFromContext]);
@@ -384,9 +384,8 @@ export default function LibraryItemDetailPage({
           showTitle: (foundInContext as any).showTitle !== false,
           childs: (foundInContext as any).childs || [],
         });
-      } else {
-        fetchDeveloperInfo(developerId);
       }
+      fetchDeveloperInfo(developerId);
       if (!fetchingGamesRef.current) fetchDeveloperGames(developerId);
     }
   }, [developerId, resourceType, allDevelopers]);
@@ -425,9 +424,8 @@ export default function LibraryItemDetailPage({
           showTitle: (foundInContext as any).showTitle !== false,
           childs: (foundInContext as any).childs || [],
         });
-      } else {
-        fetchPublisherInfo(publisherId);
       }
+      fetchPublisherInfo(publisherId);
       if (!fetchingGamesRef.current) fetchPublisherGames(publisherId);
     }
   }, [publisherId, resourceType, allPublishers]);
@@ -848,8 +846,10 @@ export default function LibraryItemDetailPage({
   const backgroundUrl = buildBackgroundUrl(API_BASE, item?.background);
   const hasBackground = Boolean(backgroundUrl && backgroundUrl.trim() !== "");
 
+  const backgroundStateKey = `${id}:${item?.background ?? ""}`;
+
   return (
-    <BackgroundManager backgroundUrl={backgroundUrl} hasBackground={hasBackground} elementId={id}>
+    <BackgroundManager backgroundUrl={backgroundUrl} hasBackground={hasBackground} elementId={backgroundStateKey}>
       <LibraryItemDetailContent
         item={item}
         itemCoverUrl={itemCoverUrl}
