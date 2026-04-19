@@ -10,6 +10,7 @@ import { useCollections } from "../contexts/CollectionsContext";
 import { useDevelopers } from "../contexts/DevelopersContext";
 import { usePublishers } from "../contexts/PublishersContext";
 import { useLibraryGames } from "../contexts/LibraryGamesContext";
+import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
 import { useIgdbGamesForTag, type IgdbTagKey } from "../hooks/useIgdbGamesForTag";
 import GamesList from "../components/games/GamesList";
 import Cover from "../components/games/Cover";
@@ -23,6 +24,7 @@ import Tooltip from "../components/common/Tooltip";
 import BackgroundManager, { useBackground } from "../components/common/BackgroundManager";
 import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
 import { compareTitles } from "../utils/stringUtils";
+import { titleMatchesFilter } from "../utils/titleFilter";
 import { parseCollectionLikePseudoGameId } from "../utils/collectionLikePseudoGame";
 import { isMainGameType } from "../utils/igdbGameType";
 import { buildApiUrl, buildCoverUrl, buildBackgroundUrl } from "../utils/api";
@@ -86,6 +88,7 @@ export default function LibraryItemDetailPage({
   const { developers: allDevelopers, updateDeveloper } = useDevelopers();
   const { publishers: allPublishers, updatePublisher } = usePublishers();
   const { twitchLoginEnabled } = useSettings();
+  const titleFilterQuery = useTitleFilterQuery();
   const { games: libraryGames } = useLibraryGames();
   const params = useParams<{ collectionId?: string; developerId?: string; publisherId?: string }>();
   const collectionId = params.collectionId;
@@ -749,9 +752,11 @@ export default function LibraryItemDetailPage({
   }, [gamesToShow, customOrder, resourceType]);
 
   const gridGames = useMemo(() => {
-    if (!mainGamesOnly) return sortedGames;
-    return sortedGames.filter((g) => isMainGameType(g));
-  }, [sortedGames, mainGamesOnly]);
+    const base = !mainGamesOnly ? sortedGames : sortedGames.filter((g) => isMainGameType(g));
+    return base.filter((g) => titleMatchesFilter(g.title, titleFilterQuery));
+  }, [sortedGames, mainGamesOnly, titleFilterQuery]);
+
+  const titleFilterActive = titleFilterQuery.trim().length > 0;
 
   const handleGameUpdate = (updatedGame: GameItem) => {
     if (scrollContainerRef.current) scrollPositionToRestoreRef.current = scrollContainerRef.current.scrollTop;
@@ -954,6 +959,7 @@ export default function LibraryItemDetailPage({
         gridGames={gridGames}
         mainGamesOnly={mainGamesOnly}
         onMainGamesOnlyChange={setMainGamesOnly}
+        collectionDragEnabled={resourceType === "collections" && !mainGamesOnly && !titleFilterActive}
       />
     </BackgroundManager>
   );
@@ -1010,6 +1016,8 @@ type LibraryItemDetailContentProps = {
   gridGames: GameItem[];
   mainGamesOnly: boolean;
   onMainGamesOnlyChange: (value: boolean) => void;
+  /** Reorder is disabled while a title filter is active (indices would not match full list). */
+  collectionDragEnabled: boolean;
 };
 
 function LibraryItemDetailContent({
@@ -1063,6 +1071,7 @@ function LibraryItemDetailContent({
   gridGames,
   mainGamesOnly,
   onMainGamesOnlyChange,
+  collectionDragEnabled,
 }: LibraryItemDetailContentProps) {
   const { hasBackground, isBackgroundVisible } = useBackground();
   const { isLoading } = useLoading();
@@ -1119,6 +1128,30 @@ function LibraryItemDetailContent({
     parents.sort((a, b) => compareTitles(a.title || "", b.title || ""));
     return parents;
   }, [item, completeCollectionLikes]);
+
+  const titleFilterQuery = useTitleFilterQuery();
+
+  const subCollectionLikesFiltered = useMemo(
+    () => subCollectionLikes.filter((c) => titleMatchesFilter(c.title, titleFilterQuery)),
+    [subCollectionLikes, titleFilterQuery]
+  );
+
+  const parentCollectionLikesWithGamesForDisplay = useMemo(
+    () =>
+      parentCollectionLikesWithGames
+        .filter(({ parent }) => titleMatchesFilter(parent.title, titleFilterQuery))
+        .map(({ parent, games, slideItems }) => ({
+          parent,
+          games: games.filter((g) => titleMatchesFilter(g.title, titleFilterQuery)),
+          slideItems: slideItems.filter((g) => titleMatchesFilter(g.title, titleFilterQuery)),
+        })),
+    [parentCollectionLikesWithGames, titleFilterQuery]
+  );
+
+  const singleSubCollectionGamesFiltered = useMemo(
+    () => singleSubCollectionGames.filter((g) => titleMatchesFilter(g.title, titleFilterQuery)),
+    [singleSubCollectionGames, titleFilterQuery]
+  );
 
   // Display count for each sub-collection card: games assigned directly + first-level sub-collections only (aligned with CollectionsList).
   const subCollectionDisplayCountById = useMemo(() => {
@@ -1704,35 +1737,35 @@ function LibraryItemDetailContent({
 
                   {!isLoading && (
                     <div className="library-item-detail-section-full">
-                      {subCollectionLikes.length > 0 && (
+                      {subCollectionLikesFiltered.length > 0 && (
                         <div className="library-item-detail-subsection">
                           <h2 className="library-item-detail-heading-2 text-white">
                             {(() => {
                               const label =
                                 resourceType === "collections"
-                                  ? t("collections.subcollections", { count: subCollectionLikes.length })
+                                  ? t("collections.subcollections", { count: subCollectionLikesFiltered.length })
                                   : resourceType === "developers"
-                                    ? t("igdbInfo.subDevelopers", { count: subCollectionLikes.length })
-                                    : t("igdbInfo.subPublishers", { count: subCollectionLikes.length });
+                                    ? t("igdbInfo.subDevelopers", { count: subCollectionLikesFiltered.length })
+                                    : t("igdbInfo.subPublishers", { count: subCollectionLikesFiltered.length });
                               return label.replace(/(\p{L})/u, (_, c) => c.toUpperCase());
                             })()}
-                            {subCollectionLikes.length === 1 && (
+                            {subCollectionLikes.length === 1 && subCollectionLikesFiltered.length === 1 && (
                               <>
                                 {": "}
                                 <button
                                   type="button"
                                   className="library-item-detail-subcollection-title-link"
-                                  onClick={() => onCollectionClick?.(String(subCollectionLikes[0].id))}
+                                  onClick={() => onCollectionClick?.(String(subCollectionLikesFiltered[0].id))}
                                 >
-                                  {subCollectionLikes[0].title}
+                                  {subCollectionLikesFiltered[0].title}
                                 </button>
                               </>
                             )}
                           </h2>
-                          {subCollectionLikes.length === 1 ? (
+                          {subCollectionLikes.length === 1 && subCollectionLikesFiltered.length === 1 ? (
                             <div className="library-item-detail-games-list library-item-detail-mt-games-list">
                               <GamesList
-                                games={singleSubCollectionGames}
+                                games={singleSubCollectionGamesFiltered}
                                 onGameClick={(game) => {
                                   const g = game as GameItem & { isIgdbOnly?: boolean };
                                   if (g.isIgdbOnly && onIgdbGameClick) {
@@ -1755,7 +1788,7 @@ function LibraryItemDetailContent({
                           ) : (
                             <div className="library-item-detail-collections-list library-item-detail-collections-list-mt">
                               <div className="collections-list-container library-item-detail-subcollections-grid">
-                                {subCollectionLikes.map((col) => {
+                                {subCollectionLikesFiltered.map((col) => {
                                   const colCoverUrl = col.cover
                                     ? buildCoverUrl(API_BASE, col.cover, true, coverTimestampForUrls)
                                     : "";
@@ -1861,8 +1894,8 @@ function LibraryItemDetailContent({
                               coverCacheBustTimestamp={listLoadTimestamp}
                               coverSize={coverSize}
                               itemRefs={itemRefs}
-                              draggable={isCollection && !mainGamesOnly}
-                              onDragEnd={isCollection && !mainGamesOnly ? handleDragEnd : undefined}
+                              draggable={collectionDragEnabled}
+                              onDragEnd={collectionDragEnabled ? handleDragEnd : undefined}
                               allCollections={isCollection ? allCollections : undefined}
                               collectionId={collectionId}
                               onRemoveFromCollection={onRemoveFromCollection}
@@ -1874,7 +1907,7 @@ function LibraryItemDetailContent({
                           </div>
                         </>
                       )}
-                      {parentCollectionLikesWithGames.length > 0 && (
+                      {parentCollectionLikesWithGamesForDisplay.length > 0 && (
                         <div className="game-detail-collections-section">
                           <h3 className="game-detail-section-title">
                             {resourceType === "collections"
@@ -1884,7 +1917,7 @@ function LibraryItemDetailContent({
                                 : t("igdbInfo.publishers", "Publishers")}
                           </h3>
                           <div className="game-detail-collections-list">
-                            {parentCollectionLikesWithGames.map(({ parent, slideItems }) => (
+                            {parentCollectionLikesWithGamesForDisplay.map(({ parent, slideItems }) => (
                               <div key={String(parent.id)} className="game-detail-collection-group">
                                 <ScrollableGamesSection
                                   sectionId={`parent-${resourceType}-${String(parent.id)}`}

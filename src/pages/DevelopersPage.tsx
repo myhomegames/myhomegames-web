@@ -3,9 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useLoading } from "../contexts/LoadingContext";
 import { useDevelopers } from "../contexts/DevelopersContext";
+import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
+import { useSkin } from "../contexts/SkinContext";
 import CollectionsList from "../components/lists/CollectionsList";
 import AlphabetNavigator from "../components/ui/AlphabetNavigator";
 import { compareTitles, filterRootCollectionLikes } from "../utils/stringUtils";
+import { titleMatchesFilter } from "../utils/titleFilter";
 import type { CollectionItem } from "../types";
 import { buildCoverUrl } from "../utils/api";
 
@@ -17,6 +20,8 @@ type DevelopersPageProps = {
 export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProps) {
   const { setLoading } = useLoading();
   const { developers, isLoading: developersLoading, updateDeveloper } = useDevelopers();
+  const titleFilterQuery = useTitleFilterQuery();
+  const { activeSkinWeb } = useSkin();
   const navigate = useNavigate();
   const [isReady, setIsReady] = useState(false);
   const [sortAscending] = useState(true);
@@ -38,10 +43,11 @@ export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProp
       i === self.findIndex((x) => String(x.id) === String(d.id))
     );
     const rootOnly = filterRootCollectionLikes(unique);
-    return [...rootOnly].sort((a, b) =>
+    const sorted = [...rootOnly].sort((a, b) =>
       sortAscending ? compareTitles(a.title || "", b.title || "") : -compareTitles(a.title || "", b.title || "")
     );
-  }, [developers, sortAscending]);
+    return sorted.filter((d) => titleMatchesFilter(d.title, titleFilterQuery));
+  }, [developers, sortAscending, titleFilterQuery]);
 
   const allDevelopersForCount = useMemo(() => {
     return developers.filter((d, i, self) =>
@@ -79,7 +85,7 @@ export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProp
             />
           </div>
         </div>
-        {isReady && (
+        {isReady && !activeSkinWeb.disableAlphabetNavigator && (
           <AlphabetNavigator
             games={sortedDevelopers as any}
             scrollContainerRef={scrollContainerRef}

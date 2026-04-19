@@ -1,12 +1,16 @@
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import Logo from "../common/Logo";
 import SearchBar from "../search/SearchBar";
+import HeaderTitleFilter from "./HeaderTitleFilter";
 import ProfileDropdown from "./ProfileDropdown";
 import UpdateNotification from "./UpdateNotification";
 import Tooltip from "../common/Tooltip";
 import { useLoading } from "../../contexts/LoadingContext";
 import { useSettings } from "../../contexts/SettingsContext";
 import { getApiToken } from "../../config";
+import { useSkin } from "../../contexts/SkinContext";
+import { useTitleFilter } from "../../contexts/TitleFilterContext";
 import type { GameItem, CollectionItem } from "../../types";
 
 type HeaderProps = {
@@ -35,8 +39,16 @@ export default function Header({
   const { t } = useTranslation();
   const { isLoading } = useLoading();
   const { twitchLoginEnabled } = useSettings();
+  const { activeSkinWeb } = useSkin();
+  const { setQuery: setTitleFilterQuery } = useTitleFilter();
   const hasToken = !!getApiToken();
   const showProfile = twitchLoginEnabled && hasToken;
+
+  useEffect(() => {
+    if (!activeSkinWeb.headerTitleFilter) {
+      setTitleFilterQuery("");
+    }
+  }, [activeSkinWeb.headerTitleFilter, setTitleFilterQuery]);
 
   return (
     <header className="mhg-header">
@@ -50,9 +62,20 @@ export default function Header({
           <Logo />
         </button>
 
-        {/* SearchBar in the center */}
+        {/* Search or per-page title filter (skin `web.headerTitleFilter`) */}
         <div className="mhg-search-container">
-          <SearchBar games={allGames} collections={allCollections} developers={allDevelopers} publishers={allPublishers} onGameSelect={onGameSelect} onPlay={onPlay} />
+          {activeSkinWeb.headerTitleFilter ? (
+            <HeaderTitleFilter />
+          ) : (
+            <SearchBar
+              games={allGames}
+              collections={allCollections}
+              developers={allDevelopers}
+              publishers={allPublishers}
+              onGameSelect={onGameSelect}
+              onPlay={onPlay}
+            />
+          )}
         </div>
 
         {/* Buttons on the right */}

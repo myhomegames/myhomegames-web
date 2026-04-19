@@ -96,7 +96,9 @@
     "downloadWindows": "Windows",
     "downloadMacArm": "macOS (Apple Silicon)",
     "downloadMacIntel": "macOS (Intel)",
-    "downloadLinux": "Linux"
+    "downloadLinux": "Linux",
+    "titleFilterPlaceholder": "Filtra per titolo…",
+    "titleFilterAria": "Filtra l’elenco corrente per titolo"
   },
   "profile": {
     "viewProfile": "Visualizza profilo",

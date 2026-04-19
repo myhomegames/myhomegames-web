@@ -12,6 +12,8 @@ import { isMainGameType, toGameTypeId } from "../utils/igdbGameType";
 import { API_BASE, getApiToken } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 import { useSettings } from "../contexts/SettingsContext";
+import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
+import { titleMatchesFilter } from "../utils/titleFilter";
 
 /** Shared sort for merged lists (e.g. tag pages with IGDB + library games). */
 export function sortGamesList(
@@ -228,6 +230,7 @@ export type UseGamesListPageReturn = {
 export function useGamesListPage(
   options: UseGamesListPageOptions = {}
 ): UseGamesListPageReturn {
+  const titleFilterQuery = useTitleFilterQuery();
   const {
     localStoragePrefix = "",
     defaultFilterField = "all",
@@ -767,6 +770,10 @@ export function useGamesListPage(
       });
     }
 
+    if (titleFilterQuery.trim()) {
+      filtered = filtered.filter((game) => titleMatchesFilter(game.title, titleFilterQuery));
+    }
+
     // Apply sort (skip when server already returned title-asc and no filter is applied)
     const serverOrderMatches =
       filterField === "all" && sortField === "title" && sortAscending === true;
@@ -876,6 +883,7 @@ export function useGamesListPage(
     sortField,
     sortAscending,
     showMainGamesOnly,
+    titleFilterQuery,
   ]);
 
   // Hide content until fully rendered

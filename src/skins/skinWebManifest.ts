@@ -9,18 +9,30 @@ export type SkinWebManifest = {
   collectionsShortcutList: boolean;
   /** Always show library page tabs as a vertical list (never the narrow combobox). */
   libraryPagesVerticalList: boolean;
+  /**
+   * Replace the global search header control with a title filter that narrows the current page’s
+   * lists as the user types: games (library, tag games, detail, recommended), collection-like
+   * rows (collections, developers, publishers, sub/parent blocks on detail), and tag index pages.
+   */
+  headerTitleFilter: boolean;
+  /** When true, the A–Z side navigator is hidden on library, tag, and collection-like lists. */
+  disableAlphabetNavigator: boolean;
 };
 
 export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
   persistentLibraryShell: false,
   collectionsShortcutList: false,
   libraryPagesVerticalList: false,
+  headerTitleFilter: false,
+  disableAlphabetNavigator: false,
 };
 
 const WEB_KEYS = [
   "persistentLibraryShell",
   "collectionsShortcutList",
   "libraryPagesVerticalList",
+  "headerTitleFilter",
+  "disableAlphabetNavigator",
 ] as const satisfies readonly (keyof SkinWebManifest)[];
 
 /** Normalize API/JSON `web` payload to a safe manifest (unknown keys ignored). */

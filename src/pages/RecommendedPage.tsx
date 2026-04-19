@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useAutoTranslateBatch } from "../hooks/useAutoTranslate";
 import { useAuth } from "../contexts/AuthContext";
+import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
 import { useLoading } from "../contexts/LoadingContext";
 import { useSettings } from "../contexts/SettingsContext";
 import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
@@ -10,6 +11,7 @@ import type { GameItem, CollectionItem } from "../types";
 import { API_BASE } from "../config";
 import { getTwitchClientId, getTwitchClientSecret } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
+import { titleMatchesFilter } from "../utils/titleFilter";
 
 type RecommendedSection = {
   id: string;
@@ -32,6 +34,7 @@ export default function RecommendedPage({
   allCollections = [],
 }: RecommendedPageProps) {
   const navigate = useNavigate();
+  const titleFilterQuery = useTitleFilterQuery();
   const { token } = useAuth();
   const { twitchLoginEnabled, settingsLoaded } = useSettings();
   const { setLoading } = useLoading();
@@ -59,6 +62,17 @@ export default function RecommendedPage({
   
   // Restore scroll position
   useScrollRestoration(scrollContainerRef);
+
+  const sectionsForDisplay = useMemo(() => {
+    const q = titleFilterQuery.trim();
+    if (!q) return sections;
+    return sections
+      .map((section) => ({
+        ...section,
+        games: section.games.filter((g) => titleMatchesFilter(g.title, q)),
+      }))
+      .filter((s) => s.games.length > 0);
+  }, [sections, titleFilterQuery]);
 
   const handleGameUpdate = (updatedGame: GameItem) => {
     setSections((prevSections) =>
@@ -271,7 +285,7 @@ export default function RecommendedPage({
       <div className="home-page-layout">
       <div className={`home-page-content-wrapper home-page-fade-in${isReady ? " home-page-fade-in--ready" : ""}`}>
         <div ref={scrollContainerRef} className="home-page-scroll-container recommended-page-scroll">
-          {!isFetching && sections.map((section) => (
+          {!isFetching && sectionsForDisplay.map((section) => (
             <ScrollableGamesSection
               key={section.id}
               sectionId={section.id}

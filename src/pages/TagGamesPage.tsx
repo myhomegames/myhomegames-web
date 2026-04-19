@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useLoading } from "../contexts/LoadingContext";
+import { useSkin } from "../contexts/SkinContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import { useTagLists } from "../contexts/TagListsContext";
@@ -42,6 +43,7 @@ export default function TagGamesPage({
   onIgdbGameClick,
 }: TagGamesPageProps) {
   const { t } = useTranslation();
+  const { activeSkinWeb } = useSkin();
   const { games: libraryGames } = useLibraryGames();
   const { twitchLoginEnabled } = useSettings();
   const { tagLabels } = useTagLists();
@@ -384,7 +386,7 @@ export default function TagGamesPage({
               onIgdbGameClick={onIgdbGameClick}
               selectedFilterValueLabel={isIgdbTag && selectedValueMatchesTag ? (igdbTagName ?? undefined) : undefined}
             />
-            {hook.sortField === "title" && hook.isReady && (
+            {hook.sortField === "title" && hook.isReady && !activeSkinWeb.disableAlphabetNavigator && (
               <AlphabetNavigator
                 games={gamesForList}
                 scrollContainerRef={

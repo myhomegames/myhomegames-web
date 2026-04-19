@@ -38,6 +38,7 @@ import { useDevelopers } from "./contexts/DevelopersContext";
 import { usePublishers } from "./contexts/PublishersContext";
 import { useLibraryGames } from "./contexts/LibraryGamesContext";
 import { useSkin } from "./contexts/SkinContext";
+import { TitleFilterProvider } from "./contexts/TitleFilterContext";
 
 // Wrapper function for buildApiUrl that uses API_BASE
 function buildApiUrlWithBase(
@@ -1117,7 +1118,9 @@ function GameDetailPage({
 export default function App() {
   return (
     <BrowserRouter basename="/app/">
-      <AppContent />
+      <TitleFilterProvider>
+        <AppContent />
+      </TitleFilterProvider>
     </BrowserRouter>
   );
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { useLoading } from "../contexts/LoadingContext";
+import { useSkin } from "../contexts/SkinContext";
 import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import { useGamesListPage } from "../hooks/useGamesListPage";
 import GamesListPageContent from "../components/games/GamesListPageContent";
@@ -31,6 +32,7 @@ export default function LibraryPage({
   setMainGamesOnly,
 }: LibraryPageProps) {
   const { isLoading, setLoading } = useLoading();
+  const { activeSkinWeb } = useSkin();
   const { isLoading: libraryGamesLoading } = useLibraryGames();
 
   const hook = useGamesListPage({
@@ -59,7 +61,8 @@ export default function LibraryPage({
     onGamesLoaded(games);
   }, [onGamesLoaded]);
 
-  const hasAlphabetNav = hook.sortField === "title" && hook.isReady;
+  const hasAlphabetNav =
+    hook.sortField === "title" && hook.isReady && !activeSkinWeb.disableAlphabetNavigator;
 
   return (
     <main className="flex-1 home-page-content">

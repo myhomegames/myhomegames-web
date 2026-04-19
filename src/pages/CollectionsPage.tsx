@@ -3,9 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useLoading } from "../contexts/LoadingContext";
 import { useCollections } from "../contexts/CollectionsContext";
+import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
+import { useSkin } from "../contexts/SkinContext";
 import CollectionsList from "../components/lists/CollectionsList";
 import AlphabetNavigator from "../components/ui/AlphabetNavigator";
 import { compareTitles, filterRootCollectionLikes } from "../utils/stringUtils";
+import { titleMatchesFilter } from "../utils/titleFilter";
 import type { CollectionItem } from "../types";
 import { buildCoverUrl } from "../utils/api";
 
@@ -20,6 +23,8 @@ export default function CollectionsPage({
 }: CollectionsPageProps) {
   const { setLoading } = useLoading();
   const { collections, isLoading: collectionsLoading, updateCollection, removeCollection } = useCollections();
+  const titleFilterQuery = useTitleFilterQuery();
+  const { activeSkinWeb } = useSkin();
   const navigate = useNavigate();
   const [isReady, setIsReady] = useState(false);
   const [sortAscending] = useState(true);
@@ -59,8 +64,8 @@ export default function CollectionsPage({
       const compareResult = compareTitles(a.title || "", b.title || "");
       return sortAscending ? compareResult : -compareResult;
     });
-    return sorted;
-  }, [collections, sortAscending]);
+    return sorted.filter((c) => titleMatchesFilter(c.title, titleFilterQuery));
+  }, [collections, sortAscending, titleFilterQuery]);
 
   const allCollectionsForCount = useMemo(() => {
     return collections.filter((collection, index, self) =>
@@ -107,7 +112,7 @@ export default function CollectionsPage({
         </div>
       </div>
 
-      {isReady && (
+      {isReady && !activeSkinWeb.disableAlphabetNavigator && (
         <AlphabetNavigator
           games={sortedCollections as any}
           scrollContainerRef={scrollContainerRef}
