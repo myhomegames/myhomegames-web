@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   BrowserRouter,
   Routes,
   Route,
   useNavigate,
   useParams,
+  useLocation,
 } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Favicon from "./components/common/Favicon";
@@ -57,6 +58,7 @@ function AppContent() {
   const [isLaunching, setIsLaunching] = useState(false);
   const [addGameOpen, setAddGameOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { i18n } = useTranslation();
   const { setLoading } = useLoading();
   const { isLoading: authLoading } = useAuth();
@@ -227,12 +229,14 @@ function AppContent() {
 
   function handleGameClick(game: GameItem) {
     navigate(`/game/${game.id}`, {
-      state: { from: window.location.pathname }
+      state: { from: location.pathname + location.search },
     });
   }
 
   function handleGameSelect(game: GameItem) {
-    navigate(`/game/${game.id}`);
+    navigate(`/game/${game.id}`, {
+      state: { from: location.pathname + location.search },
+    });
   }
 
   const { activeSkinWeb } = useSkin();
@@ -909,6 +913,8 @@ function GameDetailPage({
 }) {
   const { t } = useTranslation();
   const { setLoading, isLoading } = useLoading();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { gameId } = useParams<{ gameId: string }>();
   const [game, setGame] = useState<GameItem | null>(null);
   const isDeletingLocallyRef = useRef(false);
@@ -926,6 +932,21 @@ function GameDetailPage({
     }
   }, [game?.id, game?.cover]);
 
+  const leaveAfterCurrentGameRemoved = useCallback(() => {
+    const rawFrom = (location.state as { from?: string } | null)?.from;
+    const currentPath = location.pathname + location.search;
+    if (typeof rawFrom === "string" && rawFrom.trim() !== "" && rawFrom !== currentPath) {
+      navigate(rawFrom, { replace: true });
+      return;
+    }
+    const idx = (window.history.state as { idx?: number } | null)?.idx;
+    if (typeof idx === "number" && idx > 0) {
+      navigate(-1);
+      return;
+    }
+    navigate("/", { replace: true });
+  }, [navigate, location.pathname, location.search, location.state]);
+
   // Listen for game deletion events - if the current game is deleted from elsewhere, navigate back
   useEffect(() => {
     const handleGameDeleted = (event: Event) => {
@@ -933,8 +954,7 @@ function GameDetailPage({
       const deletedGameId = customEvent.detail?.gameId;
       // Only navigate if the game was deleted from elsewhere (not from this page)
       if (deletedGameId && game && String(game.id) === String(deletedGameId) && !isDeletingLocallyRef.current) {
-        // The current game was deleted from elsewhere (e.g., search popup), navigate back
-        window.history.back();
+        leaveAfterCurrentGameRemoved();
       }
       // Reset the flag after a short delay to allow the event to propagate
       setTimeout(() => {
@@ -946,7 +966,7 @@ function GameDetailPage({
     return () => {
       window.removeEventListener("gameDeleted", handleGameDeleted as EventListener);
     };
-  }, [game]);
+  }, [game, leaveAfterCurrentGameRemoved]);
 
   // Listen for game updates (e.g. add to developer/publisher) so the detail view reflects changes
   useEffect(() => {
@@ -1106,10 +1126,8 @@ function GameDetailPage({
         setGame(updatedGame);
       }}
       onGameDelete={() => {
-        // Mark that deletion is happening locally
         isDeletingLocallyRef.current = true;
-        // Navigate back after deletion
-        window.history.back();
+        leaveAfterCurrentGameRemoved();
       }}
     />
   );

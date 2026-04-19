@@ -83,6 +83,14 @@ export default function LibraryItemDetailPage({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+  const goBackOrHome = () => {
+    const idx = (window.history.state as { idx?: number } | null)?.idx;
+    if (typeof idx === "number" && idx > 0) {
+      navigate(-1);
+    } else {
+      navigate("/", { replace: true });
+    }
+  };
   const { setLoading, isLoading } = useLoading();
   const { collections: allCollectionsFromContext } = useCollections();
   const { developers: allDevelopers, updateDeveloper } = useDevelopers();
@@ -627,7 +635,7 @@ export default function LibraryItemDetailPage({
       const detailKey = resourceType === "collections" ? "collectionId" : resourceType === "developers" ? "developerId" : "publisherId";
       window.dispatchEvent(new CustomEvent(eventName, { detail: { [detailKey]: id } }));
       setShowDeleteModal(false);
-      navigate(-1);
+      goBackOrHome();
     } catch (err) {
       setDeleteError(String((err as Error).message));
     } finally {
@@ -960,6 +968,7 @@ export default function LibraryItemDetailPage({
         mainGamesOnly={mainGamesOnly}
         onMainGamesOnlyChange={setMainGamesOnly}
         collectionDragEnabled={resourceType === "collections" && !mainGamesOnly && !titleFilterActive}
+        onAfterDeleteSelfNavigate={goBackOrHome}
       />
     </BackgroundManager>
   );
@@ -1018,6 +1027,8 @@ type LibraryItemDetailContentProps = {
   onMainGamesOnlyChange: (value: boolean) => void;
   /** Reorder is disabled while a title filter is active (indices would not match full list). */
   collectionDragEnabled: boolean;
+  /** After deleting this collection/developer/publisher from the menu, leave the page (back or home). */
+  onAfterDeleteSelfNavigate: () => void;
 };
 
 function LibraryItemDetailContent({
@@ -1072,6 +1083,7 @@ function LibraryItemDetailContent({
   mainGamesOnly,
   onMainGamesOnlyChange,
   collectionDragEnabled,
+  onAfterDeleteSelfNavigate,
 }: LibraryItemDetailContentProps) {
   const { hasBackground, isBackgroundVisible } = useBackground();
   const { isLoading } = useLoading();
@@ -1646,7 +1658,7 @@ function LibraryItemDetailContent({
                                 developerId={resourceType === "developers" ? item.id : undefined}
                                 publisherId={resourceType === "publishers" ? item.id : undefined}
                                 onCollectionDelete={(deletedId: string) => {
-                                  if (item.id === deletedId) window.history.back();
+                                  if (item.id === deletedId) onAfterDeleteSelfNavigate();
                                 }}
                                 onCollectionUpdate={onItemUpdate}
                                 onAddToCollection={(parentId) =>
