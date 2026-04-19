@@ -152,6 +152,11 @@ export default function SearchBar({ games, collections, developers = [], publish
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as HTMLElement;
+
+      // Sidebar search dialog: header/close sit outside the SearchBar root; treat whole dialog as in-bounds
+      if (target.closest("[data-mhg-sidebar-search-dialog]")) {
+        return;
+      }
       
       // Don't close if clicking on a modal (edit or delete)
       if (

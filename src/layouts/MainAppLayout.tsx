@@ -78,6 +78,10 @@ export default function MainAppLayout({
     navigateHomeWhenLibraryChanges: true,
   });
 
+  const collectionsPageEnabled = libraries.some((lib) => lib.key === "collections");
+  const showCollectionShortcuts =
+    activeSkinWeb.collectionsShortcutList && collectionsPageEnabled;
+
   const outletContext = useMemo<MainAppOutletContext>(
     () => ({
       onGameClick,
@@ -134,20 +138,18 @@ export default function MainAppLayout({
         mainGamesOnly={mainGamesOnly}
         onMainGamesOnlyChange={setMainGamesOnly}
         collectionShortcuts={
-          activeSkinWeb.collectionsShortcutList
+          showCollectionShortcuts
             ? allCollections.map((c) => ({ id: c.id, title: c.title }))
             : []
         }
         onSelectCollectionShortcut={
-          activeSkinWeb.collectionsShortcutList
+          showCollectionShortcuts
             ? (collectionId) =>
                 navigate(`/collections/${encodeURIComponent(collectionId)}`)
             : undefined
         }
         activeCollectionShortcutId={
-          activeSkinWeb.collectionsShortcutList
-            ? activeCollectionShortcutIdFromPathname(pathname)
-            : null
+          showCollectionShortcuts ? activeCollectionShortcutIdFromPathname(pathname) : null
         }
         sidebarSearchGames={allGames}
         sidebarSearchCollections={allCollections}

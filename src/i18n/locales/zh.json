@@ -14,7 +14,8 @@
     "gameModes": "游戏模式",
     "playerPerspectives": "视角",
     "sidebarSearch": "搜索",
-    "ownedGames": "拥有的游戏"
+    "ownedGames": "拥有的游戏",
+    "gamesSidebar": "游戏"
   },
   "settings": {
     "title": "设置",

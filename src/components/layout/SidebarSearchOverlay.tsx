@@ -49,7 +49,7 @@ export default function SidebarSearchOverlay({
     if (!open) return;
     const id = window.requestAnimationFrame(() => {
       const el = document.querySelector<HTMLElement>(
-        ".mhg-sidebar-search-overlay-panel .mhg-search-input"
+        "[data-mhg-sidebar-search-dialog] .mhg-search-input"
       );
       el?.focus();
     });
@@ -65,39 +65,42 @@ export default function SidebarSearchOverlay({
 
   return createPortal(
     <div
-      className="mhg-sidebar-search-overlay fixed inset-0 z-[22000] flex items-start justify-center bg-black/55 px-4 pt-20 pb-8 backdrop-blur-sm"
+      className="game-search-modal-overlay mhg-sidebar-search-overlay !z-[22100] !items-start !justify-center px-4 pb-8 pt-20"
       role="presentation"
-      onMouseDown={(e) => {
+      onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
         id="mhg-sidebar-search-dialog"
+        data-mhg-sidebar-search-dialog
         role="dialog"
         aria-modal="true"
         aria-label={t("libraries.sidebarSearch")}
-        className="mhg-sidebar-search-overlay-panel w-full max-w-lg overflow-visible rounded-xl border border-white/10 bg-[#1a1a1a] p-4 shadow-2xl"
-        onMouseDown={(e) => e.stopPropagation()}
+        className="game-search-modal mhg-sidebar-search-modal !h-auto !min-h-[360px] !max-h-[min(85vh,720px)] !w-full !max-w-[640px]"
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-base font-semibold text-white">{t("libraries.sidebarSearch")}</h2>
+        <div className="game-search-modal-header">
+          <h2>{t("libraries.sidebarSearch")}</h2>
           <button
             type="button"
-            className="rounded-md px-2 py-1 text-sm text-white/80 hover:bg-white/10 hover:text-white"
+            className="game-search-modal-close"
             onClick={onClose}
             aria-label={t("common.close")}
           >
             ×
           </button>
         </div>
-        <SearchBar
-          games={games}
-          collections={collections}
-          developers={developers}
-          publishers={publishers}
-          onGameSelect={handleGameSelect}
-          onPlay={onPlay}
-        />
+        <div className="game-search-modal-list mhg-sidebar-search-modal-list !min-h-0 flex-1 !overflow-visible px-6 pb-4 pt-4">
+          <SearchBar
+            games={games}
+            collections={collections}
+            developers={developers}
+            publishers={publishers}
+            onGameSelect={handleGameSelect}
+            onPlay={onPlay}
+          />
+        </div>
       </div>
     </div>,
     document.body

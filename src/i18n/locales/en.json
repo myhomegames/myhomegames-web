@@ -14,7 +14,8 @@
     "gameModes": "Game Modes",
     "playerPerspectives": "Player Perspectives",
     "sidebarSearch": "Search",
-    "ownedGames": "Owned games"
+    "ownedGames": "Owned games",
+    "gamesSidebar": "Games"
   },
   "settings": {
     "title": "Settings",

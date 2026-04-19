@@ -14,7 +14,8 @@
     "gameModes": "ゲームモード",
     "playerPerspectives": "視点",
     "sidebarSearch": "検索",
-    "ownedGames": "所持ゲーム"
+    "ownedGames": "所持ゲーム",
+    "gamesSidebar": "ゲーム"
   },
   "settings": {
     "title": "設定",

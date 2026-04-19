@@ -175,6 +175,10 @@ export default function HomePageClassic({
     onGamesLoaded(loadedGames);
   }
 
+  const collectionsPageEnabled = libraries.some((lib) => lib.key === "collections");
+  const showCollectionShortcuts =
+    activeSkinWeb.collectionsShortcutList && collectionsPageEnabled;
+
   return (
     <>
       <LibrariesBar
@@ -192,7 +196,7 @@ export default function HomePageClassic({
         mainGamesOnly={mainGamesOnly}
         onMainGamesOnlyChange={setMainGamesOnly}
         collectionShortcuts={
-          activeSkinWeb.collectionsShortcutList
+          showCollectionShortcuts
             ? allCollections.map((collection) => ({
                 id: collection.id,
                 title: collection.title,
@@ -200,7 +204,7 @@ export default function HomePageClassic({
             : []
         }
         onSelectCollectionShortcut={
-          activeSkinWeb.collectionsShortcutList ? onOpenCollection : undefined
+          showCollectionShortcuts ? onOpenCollection : undefined
         }
       />
 

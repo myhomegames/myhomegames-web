@@ -14,7 +14,8 @@
     "gameModes": "Modalità di gioco",
     "playerPerspectives": "Prospettive di gioco",
     "sidebarSearch": "Ricerca",
-    "ownedGames": "Giochi posseduti"
+    "ownedGames": "I miei giochi",
+    "gamesSidebar": "Giochi"
   },
   "settings": {
     "title": "Impostazioni",

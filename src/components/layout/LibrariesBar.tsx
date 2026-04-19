@@ -96,16 +96,34 @@ export default function LibrariesBar({
     return libraries.filter((s) => s.key !== "library");
   }, [libraries, ownedGamesInGamesSidebar]);
 
+  /** With sidebar collection shortcuts, do not show the “all collections” overview row (no “Raccolte” in the bar). */
+  const collectionShortcutsActive =
+    collectionShortcuts.length > 0 && !!onSelectCollectionShortcut;
+  const hideCollectionsOverviewRow =
+    activeSkinWeb.collectionsShortcutList && collectionShortcutsActive;
+
+  const mainNavPageLibraries = useMemo(() => {
+    if (!hideCollectionsOverviewRow) {
+      return mainSidebarLibraries;
+    }
+    return mainSidebarLibraries.filter((s) => s.key !== "collections");
+  }, [mainSidebarLibraries, hideCollectionsOverviewRow]);
+
   const showGamesShortcutsSection =
     (collectionShortcuts.length > 0 && !!onSelectCollectionShortcut) ||
     (!!libraryForGamesSidebar && ownedGamesInGamesSidebar);
 
   const comboboxLibraries = useMemo(() => {
-    if (!ownedGamesInGamesSidebar || !libraryForGamesSidebar) {
-      return libraries;
+    let base = libraries;
+    if (hideCollectionsOverviewRow) {
+      base = base.filter((s) => s.key !== "collections");
     }
-    return [libraryForGamesSidebar, ...mainSidebarLibraries];
-  }, [libraries, ownedGamesInGamesSidebar, libraryForGamesSidebar, mainSidebarLibraries]);
+    if (!ownedGamesInGamesSidebar || !libraryForGamesSidebar) {
+      return base;
+    }
+    const rest = base.filter((s) => s.key !== "library");
+    return [libraryForGamesSidebar, ...rest];
+  }, [libraries, hideCollectionsOverviewRow, ownedGamesInGamesSidebar, libraryForGamesSidebar]);
 
   const { isLoading: globalLoading } = useLoading();
   const { hasBackground, isBackgroundVisible, setBackgroundVisible } = useBackground();
@@ -168,7 +186,7 @@ export default function LibrariesBar({
       }
 
       const availableWidth = containerWidth - actionsWidth - 180;
-      const minButtonsWidth = mainSidebarLibraries.length * 110;
+      const minButtonsWidth = mainNavPageLibraries.length * 110;
       setIsNarrow(availableWidth < minButtonsWidth);
     };
 
@@ -204,7 +222,7 @@ export default function LibrariesBar({
       window.removeEventListener("resize", checkWidth);
     };
   }, [
-    mainSidebarLibraries,
+    mainNavPageLibraries,
     viewMode,
     coverSize,
     activeLibrary,
@@ -270,7 +288,7 @@ export default function LibrariesBar({
             ) : (
               <div className="mhg-libraries-container">
                 {isLoading && libraries.length === 0 ? null : (
-                  mainSidebarLibraries.map((s) => (
+                  mainNavPageLibraries.map((s) => (
                     <button
                       key={s.key}
                       type="button"
@@ -307,7 +325,11 @@ export default function LibrariesBar({
                 {showGamesShortcutsSection && (
                   <div className="mhg-collections-shortcuts">
                     <div className="mhg-collections-shortcuts-title">
-                      {t("libraries.collections")}
+                      {t(
+                        activeSkinWeb.collectionsShortcutList
+                          ? "libraries.gamesSidebar"
+                          : "libraries.collections"
+                      )}
                     </div>
                     {ownedGamesInGamesSidebar && libraryForGamesSidebar && (
                       <button
