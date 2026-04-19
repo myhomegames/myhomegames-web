@@ -1149,15 +1149,10 @@ function LibraryItemDetailContent({
   );
 
   const parentCollectionLikesWithGamesForDisplay = useMemo(
-    () =>
-      parentCollectionLikesWithGames
-        .filter(({ parent }) => titleMatchesFilter(parent.title, titleFilterQuery))
-        .map(({ parent, games, slideItems }) => ({
-          parent,
-          games: games.filter((g) => titleMatchesFilter(g.title, titleFilterQuery)),
-          slideItems: slideItems.filter((g) => titleMatchesFilter(g.title, titleFilterQuery)),
-        })),
-    [parentCollectionLikesWithGames, titleFilterQuery]
+    // Title filter must affect only the current collection-like scope (its children and games),
+    // not parent collection-like blocks rendered for context.
+    () => parentCollectionLikesWithGames,
+    [parentCollectionLikesWithGames]
   );
 
   const singleSubCollectionGamesFiltered = useMemo(
