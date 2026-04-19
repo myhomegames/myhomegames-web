@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "react-router-dom";
 import Logo from "../common/Logo";
 import SearchBar from "../search/SearchBar";
 import HeaderTitleFilter from "./HeaderTitleFilter";
@@ -37,6 +38,7 @@ export default function Header({
   onAddGameClick,
 }: HeaderProps) {
   const { t } = useTranslation();
+  const { pathname } = useLocation();
   const { isLoading } = useLoading();
   const { twitchLoginEnabled } = useSettings();
   const { activeSkinWeb } = useSkin();
@@ -44,11 +46,14 @@ export default function Header({
   const hasToken = !!getApiToken();
   const showProfile = twitchLoginEnabled && hasToken;
 
+  const hideHeaderTitleFilter =
+    pathname === "/settings" || pathname.startsWith("/game/");
+
   useEffect(() => {
-    if (!activeSkinWeb.headerTitleFilter) {
+    if (!activeSkinWeb.headerTitleFilter || hideHeaderTitleFilter) {
       setTitleFilterQuery("");
     }
-  }, [activeSkinWeb.headerTitleFilter, setTitleFilterQuery]);
+  }, [activeSkinWeb.headerTitleFilter, hideHeaderTitleFilter, setTitleFilterQuery]);
 
   return (
     <header className="mhg-header">
@@ -62,10 +67,10 @@ export default function Header({
           <Logo />
         </button>
 
-        {/* Search or per-page title filter (skin `web.headerTitleFilter`) */}
+        {/* Search or per-page title filter (skin `web.headerTitleFilter`); on settings/game detail leave empty, no search */}
         <div className="mhg-search-container">
           {activeSkinWeb.headerTitleFilter ? (
-            <HeaderTitleFilter />
+            hideHeaderTitleFilter ? null : <HeaderTitleFilter />
           ) : (
             <SearchBar
               games={allGames}
