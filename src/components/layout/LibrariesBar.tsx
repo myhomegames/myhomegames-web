@@ -131,6 +131,8 @@ export default function LibrariesBar({
   const isLoading = loading !== undefined ? loading : globalLoading;
   const [isNarrow, setIsNarrow] = useState(false);
   const [sidebarSearchOpen, setSidebarSearchOpen] = useState(false);
+  /** Collapsible “Giochi” / games sidebar block (GOG skin: full-width row + chevron). */
+  const [gamesSidebarExpanded, setGamesSidebarExpanded] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
 
@@ -324,53 +326,85 @@ export default function LibrariesBar({
                 )}
                 {showGamesShortcutsSection && (
                   <div className="mhg-collections-shortcuts">
-                    <div className="mhg-collections-shortcuts-title">
-                      {t(
-                        activeSkinWeb.collectionsShortcutList
-                          ? "libraries.gamesSidebar"
-                          : "libraries.collections"
-                      )}
-                    </div>
-                    {ownedGamesInGamesSidebar && libraryForGamesSidebar && (
-                      <button
-                        type="button"
-                        data-mhg-library-key="library"
-                        className={`mhg-library-button flex min-w-0 items-center gap-2 text-left${
-                          showLibraryActiveHighlight &&
-                          activeLibrary?.key === "library" &&
-                          activeCollectionShortcutId == null
-                            ? " mhg-library-active"
+                    <button
+                      type="button"
+                      className="mhg-collections-shortcuts-title flex w-full min-w-0 items-center justify-between gap-2 border-0 bg-transparent py-1.5 text-left font-[inherit]"
+                      aria-expanded={gamesSidebarExpanded}
+                      onClick={() => setGamesSidebarExpanded((v) => !v)}
+                    >
+                      <span className="mhg-collections-shortcuts-heading-text min-w-0 flex-1 truncate">
+                        {t(
+                          activeSkinWeb.collectionsShortcutList
+                            ? "libraries.gamesSidebar"
+                            : "libraries.collections"
+                        )}
+                      </span>
+                      <span
+                        className={`mhg-collections-shortcuts-chevron${
+                          gamesSidebarExpanded
+                            ? " mhg-collections-shortcuts-chevron--expanded"
                             : ""
                         }`}
-                        onClick={() => onSelectLibrary(libraryForGamesSidebar)}
+                        aria-hidden
                       >
-                        <span className="mhg-library-button-label min-w-0 flex-1 truncate">
-                          {t("libraries.ownedGames")}
-                        </span>
-                      </button>
-                    )}
-                    {collectionShortcuts.length > 0 &&
-                      onSelectCollectionShortcut &&
-                      collectionShortcuts.map((collection) => {
-                        const isCollectionSelected =
-                          activeCollectionShortcutId != null &&
-                          activeCollectionShortcutId === collection.id;
-                        return (
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M6 9l6 6 6-6" />
+                        </svg>
+                      </span>
+                    </button>
+                    {gamesSidebarExpanded && (
+                      <>
+                        {ownedGamesInGamesSidebar && libraryForGamesSidebar && (
                           <button
-                            key={collection.id}
                             type="button"
-                            className={`mhg-collection-shortcut-button min-w-0 text-left${
-                              isCollectionSelected
-                                ? " mhg-collection-shortcut-button--selected"
+                            data-mhg-library-key="library"
+                            className={`mhg-library-button flex min-w-0 items-center gap-2 text-left${
+                              showLibraryActiveHighlight &&
+                              activeLibrary?.key === "library" &&
+                              activeCollectionShortcutId == null
+                                ? " mhg-library-active"
                                 : ""
                             }`}
-                            onClick={() => onSelectCollectionShortcut(collection.id)}
-                            title={collection.title}
+                            onClick={() => onSelectLibrary(libraryForGamesSidebar)}
                           >
-                            <span className="min-w-0 flex-1 truncate">{collection.title}</span>
+                            <span className="mhg-library-button-label min-w-0 flex-1 truncate">
+                              {t("libraries.ownedGames")}
+                            </span>
                           </button>
-                        );
-                      })}
+                        )}
+                        {collectionShortcuts.length > 0 &&
+                          onSelectCollectionShortcut &&
+                          collectionShortcuts.map((collection) => {
+                            const isCollectionSelected =
+                              activeCollectionShortcutId != null &&
+                              activeCollectionShortcutId === collection.id;
+                            return (
+                              <button
+                                key={collection.id}
+                                type="button"
+                                className={`mhg-collection-shortcut-button min-w-0 text-left${
+                                  isCollectionSelected
+                                    ? " mhg-collection-shortcut-button--selected"
+                                    : ""
+                                }`}
+                                onClick={() => onSelectCollectionShortcut(collection.id)}
+                                title={collection.title}
+                              >
+                                <span className="min-w-0 flex-1 truncate">{collection.title}</span>
+                              </button>
+                            );
+                          })}
+                      </>
+                    )}
                   </div>
                 )}
                 {error && <div className="mhg-libraries-error">{error}</div>}
