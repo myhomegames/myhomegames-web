@@ -676,6 +676,8 @@ export function useGamesListPage(
     if (filterField !== "all") {
       filtered = filtered.filter((game) => {
         switch (filterField) {
+          case "installed":
+            return Array.isArray(game.executables) && game.executables.length > 0;
           case "genre":
             if (selectedGenre !== null) {
               if (Array.isArray(game.genre)) {

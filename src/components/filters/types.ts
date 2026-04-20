@@ -2,6 +2,7 @@ import type { GameItem } from "../../types";
 
 export type FilterField =
   | "all"
+  | "installed"
   | "genre"
   | "themes"
   | "keywords"

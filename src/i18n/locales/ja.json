@@ -336,6 +336,7 @@
   "gamesListToolbar": {
     "filter": {
       "all": "すべて",
+      "installed": "インストール済み",
       "genre": "ジャンル",
       "themes": "テーマ",
       "keywords": "おすすめ",

@@ -336,6 +336,7 @@
   "gamesListToolbar": {
     "filter": {
       "all": "Todo",
+      "installed": "Instalados",
       "genre": "Gênero",
       "themes": "Temas",
       "keywords": "Recomendados",

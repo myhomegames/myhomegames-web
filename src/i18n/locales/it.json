@@ -342,6 +342,7 @@
   "gamesListToolbar": {
     "filter": {
       "all": "Tutto",
+      "installed": "Installati",
       "genre": "Genere",
       "themes": "Temi",
       "keywords": "Consigliati",

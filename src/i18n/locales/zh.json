@@ -336,6 +336,7 @@
   "gamesListToolbar": {
     "filter": {
       "all": "全部",
+      "installed": "已安装",
       "genre": "类型",
       "themes": "主题",
       "keywords": "推荐",

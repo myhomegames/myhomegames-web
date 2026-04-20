@@ -274,6 +274,7 @@ export default function GamesListToolbar({
     }
     const filterOptions = [
       { value: "all" as FilterField, label: t("gamesListToolbar.filter.all") },
+      { value: "installed" as FilterField, label: t("gamesListToolbar.filter.installed") },
       { value: "genre" as FilterField, label: t("gamesListToolbar.filter.genre") },
       { value: "themes" as FilterField, label: t("gamesListToolbar.filter.themes") },
       { value: "keywords" as FilterField, label: t("gamesListToolbar.filter.keywords") },
