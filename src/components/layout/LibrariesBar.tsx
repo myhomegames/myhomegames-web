@@ -10,6 +10,7 @@ import DropdownMenu from "../common/DropdownMenu";
 import { useBackground } from "../common/BackgroundManager";
 import { API_BASE, getApiToken } from "../../config";
 import { useSkin } from "../../contexts/SkinContext";
+import { useLibraryGames } from "../../contexts/LibraryGamesContext";
 import type { ViewMode, GameLibrarySection, GameItem, CollectionItem } from "../../types";
 import SidebarSearchOverlay from "./SidebarSearchOverlay";
 
@@ -82,6 +83,8 @@ export default function LibrariesBar({
 }: LibrariesBarProps) {
   const { t } = useTranslation();
   const { activeSkinWeb } = useSkin();
+  const { games: libraryGamesAll } = useLibraryGames();
+  const libraryGamesCount = libraryGamesAll.length;
   const ownedGamesInGamesSidebar = activeSkinWeb.ownedGamesFirstInGamesSidebar;
 
   const libraryForGamesSidebar = useMemo(
@@ -379,6 +382,11 @@ export default function LibrariesBar({
                             <span className="mhg-library-button-label min-w-0 flex-1 truncate">
                               {t("libraries.ownedGames")}
                             </span>
+                            {libraryGamesCount > 0 && (
+                              <span className="mhg-library-button-count">
+                                {libraryGamesCount}
+                              </span>
+                            )}
                           </button>
                         )}
                         {collectionShortcuts.length > 0 &&
