@@ -4,6 +4,7 @@ import { Grid } from "react-window";
 import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 import { GameListItem } from "./GamesList";
+import { useSkin } from "../../contexts/SkinContext";
 // Helper functions for scroll restoration
 function getScrollPosition(key: string): { scrollTop: number; scrollLeft: number } | null {
   try {
@@ -54,11 +55,28 @@ type VirtualizedGamesListProps = {
   onCollectionLikePseudoUpdated?: (updated: CollectionInfo) => void;
 };
 
-const GAP = 40; // Gap between items in grid
+const DEFAULT_GAP = 40; // Fallback gap between items in grid
 const OVERSCAN_COUNT = 2; // Number of items to render outside visible area
-const MIN_SIDE_GUTTER = 56; // Keep a visible left/right breathing space
+const DEFAULT_MIN_SIDE_GUTTER = 56; // Fallback left/right breathing space
 /** When the A-Z rail is shown, nudge the grid slightly left (fixed px, no width math). */
 const LEFT_GUTTER_TRIM_WHEN_ALPHABET_NAV = 8;
+
+/**
+ * Resolve grid spacing from CSS custom properties so skins can override density:
+ * `--vgrid-gap-half` (half of the inter-item gap) and `--vgrid-side-gutter`.
+ */
+function readGridSpacing(): { gap: number; minSideGutter: number } {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return { gap: DEFAULT_GAP, minSideGutter: DEFAULT_MIN_SIDE_GUTTER };
+  }
+  const style = getComputedStyle(document.documentElement);
+  const gapHalf = parseFloat(style.getPropertyValue("--vgrid-gap-half"));
+  const gutter = parseFloat(style.getPropertyValue("--vgrid-side-gutter"));
+  return {
+    gap: Number.isFinite(gapHalf) ? gapHalf * 2 : DEFAULT_GAP,
+    minSideGutter: Number.isFinite(gutter) ? gutter : DEFAULT_MIN_SIDE_GUTTER,
+  };
+}
 
 export default function VirtualizedGamesList({
   games,
@@ -93,6 +111,8 @@ export default function VirtualizedGamesList({
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [alphabetNavPresent, setAlphabetNavPresent] = useState(false);
   const [isScrollRestored, setIsScrollRestored] = useState(false);
+  const [spacing, setSpacing] = useState(() => readGridSpacing());
+  const { gap: GAP, minSideGutter: MIN_SIDE_GUTTER } = spacing;
   const gridRef = useRef<any>(null);
   const isRestoringRef = useRef(false);
   const lastSavedScrollRef = useRef<{ scrollTop: number; scrollLeft: number } | null>(null);
@@ -112,7 +132,7 @@ export default function VirtualizedGamesList({
     const itemWidthWithGap = coverSize + GAP;
     const usableWidth = Math.max(coverSize, dimensions.width - MIN_SIDE_GUTTER * 2);
     return Math.max(1, Math.floor((usableWidth + GAP) / itemWidthWithGap));
-  }, [dimensions.width, coverSize]);
+  }, [dimensions.width, coverSize, GAP, MIN_SIDE_GUTTER]);
 
   // Calculate row count
   const rowCount = useMemo(() => {
@@ -124,11 +144,11 @@ export default function VirtualizedGamesList({
   const itemHeight = coverSize * 1.5 + GAP;
   const gridContentWidth = useMemo(
     () => Math.max(itemWidth + GAP, columnCount * (itemWidth + GAP)),
-    [columnCount, itemWidth]
+    [columnCount, itemWidth, GAP]
   );
   const horizontalGutter = useMemo(
     () => Math.max(MIN_SIDE_GUTTER, Math.floor((dimensions.width - gridContentWidth) / 2)),
-    [dimensions.width, gridContentWidth]
+    [dimensions.width, gridContentWidth, MIN_SIDE_GUTTER]
   );
   const leftGutter = Math.max(
     alphabetNavPresent ? MIN_SIDE_GUTTER - LEFT_GUTTER_TRIM_WHEN_ALPHABET_NAV : MIN_SIDE_GUTTER,
@@ -147,6 +167,15 @@ export default function VirtualizedGamesList({
     mo.observe(layout, { childList: true, subtree: true });
     return () => mo.disconnect();
   }, [containerRef, games.length]);
+
+  const { activeSkinId } = useSkin();
+  // Re-read grid spacing when the active skin changes (bundle.css is swapped).
+  // A small delay lets the new stylesheet apply before we measure CSS vars.
+  useEffect(() => {
+    setSpacing(readGridSpacing());
+    const t = window.setTimeout(() => setSpacing(readGridSpacing()), 50);
+    return () => window.clearTimeout(t);
+  }, [activeSkinId]);
 
   // Update dimensions when container size changes
   useEffect(() => {
