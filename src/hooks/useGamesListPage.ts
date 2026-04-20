@@ -495,8 +495,26 @@ export function useGamesListPage(
   useEffect(() => {
     if (localStoragePrefix) {
       localStorage.setItem(`${localStoragePrefix}FilterField`, filterField);
+      window.dispatchEvent(
+        new CustomEvent("mhg-list-filter-changed", {
+          detail: { prefix: localStoragePrefix, filterField },
+        })
+      );
     }
   }, [filterField, localStoragePrefix]);
+
+  // Allow external components (e.g., sidebar quick-filters) to change the
+  // current filterField via a custom window event.
+  useEffect(() => {
+    if (!localStoragePrefix) return;
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ prefix?: string; filterField?: FilterField }>).detail;
+      if (!detail || detail.prefix !== localStoragePrefix || !detail.filterField) return;
+      setFilterField(detail.filterField);
+    };
+    window.addEventListener("mhg-set-list-filter", handler as EventListener);
+    return () => window.removeEventListener("mhg-set-list-filter", handler as EventListener);
+  }, [localStoragePrefix]);
 
   useEffect(() => {
     if (localStoragePrefix && selectedYear !== null) {

@@ -1,4 +1,4 @@
-import { useState, useLayoutEffect, useRef, useMemo } from "react";
+import { useState, useLayoutEffect, useRef, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useLoading } from "../../contexts/LoadingContext";
 import CoverSizeSlider from "../ui/CoverSizeSlider";
@@ -85,7 +85,36 @@ export default function LibrariesBar({
   const { activeSkinWeb } = useSkin();
   const { games: libraryGamesAll } = useLibraryGames();
   const libraryGamesCount = libraryGamesAll.length;
+  const installedGamesCount = useMemo(
+    () =>
+      libraryGamesAll.reduce(
+        (count, game) =>
+          count + (Array.isArray(game.executables) && game.executables.length > 0 ? 1 : 0),
+        0
+      ),
+    [libraryGamesAll]
+  );
   const ownedGamesInGamesSidebar = activeSkinWeb.ownedGamesFirstInGamesSidebar;
+
+  /**
+   * Tracks the current filter applied on the Library page so that sidebar
+   * quick-filter entries (e.g. "Installati") can be highlighted when active.
+   * Updated via a window event dispatched from `useGamesListPage` and, as
+   * a fallback, from the initial localStorage value on mount.
+   */
+  const [currentLibraryFilterField, setCurrentLibraryFilterField] = useState<string>(() => {
+    if (typeof window === "undefined") return "all";
+    return window.localStorage.getItem("libraryFilterField") || "all";
+  });
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ prefix?: string; filterField?: string }>).detail;
+      if (!detail || detail.prefix !== "library" || !detail.filterField) return;
+      setCurrentLibraryFilterField(detail.filterField);
+    };
+    window.addEventListener("mhg-list-filter-changed", handler as EventListener);
+    return () => window.removeEventListener("mhg-list-filter-changed", handler as EventListener);
+  }, []);
 
   const libraryForGamesSidebar = useMemo(
     () => libraries.find((s) => s.key === "library") ?? null,
@@ -373,11 +402,21 @@ export default function LibrariesBar({
                             className={`mhg-library-button flex min-w-0 items-center gap-2 text-left${
                               showLibraryActiveHighlight &&
                               activeLibrary?.key === "library" &&
-                              activeCollectionShortcutId == null
+                              activeCollectionShortcutId == null &&
+                              currentLibraryFilterField !== "installed"
                                 ? " mhg-library-active"
                                 : ""
                             }`}
-                            onClick={() => onSelectLibrary(libraryForGamesSidebar)}
+                            onClick={() => {
+                              window.localStorage.setItem("libraryFilterField", "all");
+                              window.dispatchEvent(
+                                new CustomEvent("mhg-set-list-filter", {
+                                  detail: { prefix: "library", filterField: "all" },
+                                })
+                              );
+                              setCurrentLibraryFilterField("all");
+                              onSelectLibrary(libraryForGamesSidebar);
+                            }}
                           >
                             <span className="mhg-library-button-label min-w-0 flex-1 truncate">
                               {t("libraries.ownedGames")}
@@ -385,6 +424,39 @@ export default function LibrariesBar({
                             {libraryGamesCount > 0 && (
                               <span className="mhg-library-button-count">
                                 {libraryGamesCount}
+                              </span>
+                            )}
+                          </button>
+                        )}
+                        {ownedGamesInGamesSidebar && libraryForGamesSidebar && (
+                          <button
+                            type="button"
+                            data-mhg-library-key="library-installed"
+                            className={`mhg-library-button flex min-w-0 items-center gap-2 text-left${
+                              showLibraryActiveHighlight &&
+                              activeLibrary?.key === "library" &&
+                              activeCollectionShortcutId == null &&
+                              currentLibraryFilterField === "installed"
+                                ? " mhg-library-active"
+                                : ""
+                            }`}
+                            onClick={() => {
+                              window.localStorage.setItem("libraryFilterField", "installed");
+                              window.dispatchEvent(
+                                new CustomEvent("mhg-set-list-filter", {
+                                  detail: { prefix: "library", filterField: "installed" },
+                                })
+                              );
+                              setCurrentLibraryFilterField("installed");
+                              onSelectLibrary(libraryForGamesSidebar);
+                            }}
+                          >
+                            <span className="mhg-library-button-label min-w-0 flex-1 truncate">
+                              {t("libraries.installedGames")}
+                            </span>
+                            {installedGamesCount > 0 && (
+                              <span className="mhg-library-button-count">
+                                {installedGamesCount}
                               </span>
                             )}
                           </button>
