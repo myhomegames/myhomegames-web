@@ -296,7 +296,31 @@ export default function LibraryItemDetailPage({
   const handleCoverSizeChange = (size: number) => {
     setCoverSize(size);
     localStorage.setItem("coverSize", size.toString());
+    window.dispatchEvent(
+      new CustomEvent("mhg-cover-size-changed", { detail: { size } })
+    );
   };
+
+  /*
+   * Nel guscio persistente (skin con persistentLibraryShell: true, es. GOG) la
+   * LibrariesBar è montata in MainAppLayout con un proprio coverSize; quando l'utente
+   * muove lì lo slider qui non arriva nulla perché il nostro coverSize locale è stato
+   * inizializzato una volta sola da localStorage. Ascoltiamo l'evento emesso da
+   * useLibrariesShellState (e dal nostro stesso handler) per tenere in sync la
+   * dimensione delle cover mostrate nella pagina di dettaglio.
+   */
+  useEffect(() => {
+    function handler(event: Event) {
+      const detail = (event as CustomEvent<{ size?: number }>).detail;
+      const next = detail?.size;
+      if (typeof next === "number" && Number.isFinite(next)) {
+        setCoverSize((prev) => (prev === next ? prev : next));
+      }
+    }
+    window.addEventListener("mhg-cover-size-changed", handler as EventListener);
+    return () =>
+      window.removeEventListener("mhg-cover-size-changed", handler as EventListener);
+  }, []);
 
   // Load item info when id changes (collections)
   useEffect(() => {

@@ -65,6 +65,16 @@ export function useLibrariesShellState(options: Options) {
   const handleCoverSizeChange = useCallback((size: number) => {
     setCoverSize(size);
     localStorage.setItem("coverSize", size.toString());
+    /*
+     * Nel guscio persistente (es. skin GOG) la LibrariesBar è montata una sola volta in
+     * MainAppLayout e lo stato della cover size vive qui; i figli dell'Outlet (pagine
+     * dettaglio raccolta / developer / publisher / tag) tengono però un proprio state di
+     * coverSize inizializzato da localStorage. Segnaliamo via evento così possono
+     * sincronizzarsi in tempo reale quando si muove lo slider nella barra persistente.
+     */
+    window.dispatchEvent(
+      new CustomEvent("mhg-cover-size-changed", { detail: { size } })
+    );
   }, []);
 
   useEffect(() => {
