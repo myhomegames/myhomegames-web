@@ -101,8 +101,8 @@
     "downloadMacArm": "macOS (Apple Silicon)",
     "downloadMacIntel": "macOS (Intel)",
     "downloadLinux": "Linux",
-    "titleFilterPlaceholder": "Filtra per titolo…",
-    "titleFilterAria": "Filtra l’elenco corrente per titolo"
+    "titleFilterPlaceholder": "Cerca…",
+    "titleFilterAria": "Cerca nell’elenco corrente"
   },
   "profile": {
     "viewProfile": "Visualizza profilo",

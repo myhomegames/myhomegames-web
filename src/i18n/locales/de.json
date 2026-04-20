@@ -100,7 +100,9 @@
     "downloadWindows": "Windows",
     "downloadMacArm": "macOS (Apple Silicon)",
     "downloadMacIntel": "macOS (Intel)",
-    "downloadLinux": "Linux"
+    "downloadLinux": "Linux",
+    "titleFilterPlaceholder": "Suchen…",
+    "titleFilterAria": "Aktuelle Liste durchsuchen"
   },
   "profile": {
     "viewProfile": "Profil anzeigen",

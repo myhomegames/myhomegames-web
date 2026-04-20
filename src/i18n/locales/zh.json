@@ -100,7 +100,9 @@
     "downloadWindows": "Windows",
     "downloadMacArm": "macOS (Apple Silicon)",
     "downloadMacIntel": "macOS (Intel)",
-    "downloadLinux": "Linux"
+    "downloadLinux": "Linux",
+    "titleFilterPlaceholder": "搜索…",
+    "titleFilterAria": "搜索当前列表"
   },
   "profile": {
     "viewProfile": "查看个人资料",
