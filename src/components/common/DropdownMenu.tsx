@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import { getApiToken } from "../../config";
+import { useSettings } from "../../contexts/SettingsContext";
 import { useDeleteGame, useReloadGame, useUnlinkExecutable, useRemoveGameFromCollection } from "./actions";
 import Tooltip from "./Tooltip";
 import type { CollectionItem } from "../../types";
@@ -74,6 +75,12 @@ export default function DropdownMenu({
   toolTipDelay = 0,
 }: DropdownMenuProps) {
   const { t } = useTranslation();
+  const { twitchLoginEnabled } = useSettings();
+  /**
+   * When Twitch auth is disabled the server accepts mutations without a token,
+   * so delete/reload entries should remain available even without `getApiToken()`.
+   */
+  const hasBackendAuth = !twitchLoginEnabled || !!getApiToken();
   const [isOpen, setIsOpen] = useState(false);
   const [isCollectionLikeSubmenuOpen, setIsCollectionLikeSubmenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -685,7 +692,7 @@ export default function DropdownMenu({
               (onEdit ||
                 (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !developerId && !publisherId && !onEdit && !onDelete)) ||
                 (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) ||
-                (onDelete || (getApiToken() && (gameId || collectionId || developerId || publisherId)))) && (
+                (onDelete || (hasBackendAuth && (gameId || collectionId || developerId || publisherId)))) && (
               <div 
                 className="dropdown-menu-divider"
                 onMouseEnter={handleOtherMenuItemMouseEnter}
@@ -753,7 +760,7 @@ export default function DropdownMenu({
                 </span>
               </button>
             )}
-            {((onRemoveFromCollection && gameId && collectionId) || (onRemoveFromDeveloper && gameId && developerId) || (onRemoveFromPublisher && gameId && publisherId) || (onRemoveFromParent && !gameId && (collectionId || developerId || publisherId))) && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !developerId && !publisherId && !onEdit && !onDelete)) || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (getApiToken() && (gameId || collectionId || developerId || publisherId)))) && (
+            {((onRemoveFromCollection && gameId && collectionId) || (onRemoveFromDeveloper && gameId && developerId) || (onRemoveFromPublisher && gameId && publisherId) || (onRemoveFromParent && !gameId && (collectionId || developerId || publisherId))) && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !developerId && !publisherId && !onEdit && !onDelete)) || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (hasBackendAuth && (gameId || collectionId || developerId || publisherId)))) && (
               <div className="dropdown-menu-divider" />
             )}
             
@@ -793,7 +800,7 @@ export default function DropdownMenu({
                 </span>
               </button>
             )}
-            {(onDelete || (getApiToken() && (gameId || collectionId || developerId || publisherId))) && (
+            {(onDelete || (hasBackendAuth && (gameId || collectionId || developerId || publisherId))) && (
               <button
                 onClick={handleDeleteClick}
                 className="dropdown-menu-item dropdown-menu-item-danger"
