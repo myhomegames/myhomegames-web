@@ -21,6 +21,8 @@ type CollectionShortcut = {
 
 /** Prefisso valore `<option>` per le scorciatoie raccolte (evita collisioni con `library.key`). */
 const COMBOBOX_COLLECTION_SHORTCUT_PREFIX = "mhg:collection:";
+/** Due voci distinte (tutti / installati) quando `ownedGamesFirstInGamesSidebar` sposta la libreria nel menu Giochi. */
+const COMBOBOX_LIBRARY_FILTER_PREFIX = "mhg:libraryFilter:";
 
 type LibrariesBarProps = {
   libraries: GameLibrarySection[];
@@ -144,9 +146,24 @@ export default function LibrariesBar({
     return mainSidebarLibraries.filter((s) => s.key !== "collections");
   }, [mainSidebarLibraries, hideCollectionsOverviewRow]);
 
-  const showGamesShortcutsSection =
-    (collectionShortcuts.length > 0 && !!onSelectCollectionShortcut) ||
-    (!!libraryForGamesSidebar && ownedGamesInGamesSidebar);
+  const hasCollectionShortcutsUi =
+    collectionShortcuts.length > 0 && !!onSelectCollectionShortcut;
+
+  /**
+   * Barra verticale (es. GOG): “I miei giochi” / Installati restano nel blocco Giochi collassabile.
+   * Barra orizzontale (es. Plex): quelle due voci sono in riga con le altre pagine; qui restano solo
+   * le scorciatoie raccolte (se attive).
+   */
+  const showCollapsibleGamesSection =
+    hasCollectionShortcutsUi ||
+    (!!libraryForGamesSidebar &&
+      ownedGamesInGamesSidebar &&
+      activeSkinWeb.libraryPagesVerticalList);
+
+  const inlineOwnedGamesInBar =
+    !!libraryForGamesSidebar &&
+    ownedGamesInGamesSidebar &&
+    !activeSkinWeb.libraryPagesVerticalList;
 
   const comboboxLibraries = useMemo(() => {
     let base = libraries;
@@ -176,6 +193,7 @@ export default function LibrariesBar({
   );
   const isFirstLibrariesLayoutRef = useRef(true);
   const prevCollectionShortcutCountRef = useRef(collectionShortcuts.length);
+  const prevOwnedGamesInSidebarRef = useRef(ownedGamesInGamesSidebar);
   const [sidebarSearchOpen, setSidebarSearchOpen] = useState(false);
   /** Collapsible “Giochi” / games sidebar block (GOG skin: full-width row + chevron). */
   const [gamesSidebarExpanded, setGamesSidebarExpanded] = useState(true);
@@ -192,12 +210,16 @@ export default function LibrariesBar({
     if (!activeSkinWeb.libraryPagesVerticalList) {
       const shortcutCountChanged =
         prevCollectionShortcutCountRef.current !== collectionShortcuts.length;
+      const ownedGamesInSidebarChanged =
+        prevOwnedGamesInSidebarRef.current !== ownedGamesInGamesSidebar;
       if (
         isFirstLibrariesLayoutRef.current ||
-        shortcutCountChanged
+        shortcutCountChanged ||
+        ownedGamesInSidebarChanged
       ) {
         setLibrariesBarLayoutReady(false);
         prevCollectionShortcutCountRef.current = collectionShortcuts.length;
+        prevOwnedGamesInSidebarRef.current = ownedGamesInGamesSidebar;
       }
     }
     isFirstLibrariesLayoutRef.current = false;
@@ -274,12 +296,25 @@ export default function LibrariesBar({
       }
       const hasCollectionShortcuts =
         collectionShortcuts.length > 0 && !!onSelectCollectionShortcut;
-      const gamesShortcutsSectionVisible =
+      const collapsibleGamesBlockVisible =
         hasCollectionShortcuts ||
-        (!!libraryForGamesSidebar && ownedGamesInGamesSidebar);
-      if (gamesShortcutsSectionVisible) {
+        (!!libraryForGamesSidebar &&
+          ownedGamesInGamesSidebar &&
+          activeSkinWeb.libraryPagesVerticalList);
+      const inlineOwnedGamesButtons =
+        !!libraryForGamesSidebar &&
+        ownedGamesInGamesSidebar &&
+        !activeSkinWeb.libraryPagesVerticalList;
+      if (inlineOwnedGamesButtons) {
+        estimatedItems += 2;
+      }
+      if (collapsibleGamesBlockVisible) {
         estimatedItems += 1;
-        if (ownedGamesInGamesSidebar && libraryForGamesSidebar) {
+        if (
+          activeSkinWeb.libraryPagesVerticalList &&
+          ownedGamesInGamesSidebar &&
+          libraryForGamesSidebar
+        ) {
           estimatedItems += 2;
         }
         estimatedItems += collectionShortcuts.length;
@@ -347,6 +382,16 @@ export default function LibrariesBar({
     ) {
       return `${COMBOBOX_COLLECTION_SHORTCUT_PREFIX}${activeCollectionShortcutId}`;
     }
+    if (
+      ownedGamesInGamesSidebar &&
+      libraryForGamesSidebar &&
+      activeLibrary?.key === "library" &&
+      activeCollectionShortcutId == null
+    ) {
+      return currentLibraryFilterField === "installed"
+        ? `${COMBOBOX_LIBRARY_FILTER_PREFIX}installed`
+        : `${COMBOBOX_LIBRARY_FILTER_PREFIX}all`;
+    }
     return (activeLibrary ?? libraries[0])?.key ?? "";
   }, [
     activeCollectionShortcutId,
@@ -354,10 +399,30 @@ export default function LibrariesBar({
     collectionShortcuts,
     activeLibrary,
     libraries,
+    ownedGamesInGamesSidebar,
+    libraryForGamesSidebar,
+    currentLibraryFilterField,
   ]);
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const v = e.target.value;
+    if (v.startsWith(COMBOBOX_LIBRARY_FILTER_PREFIX)) {
+      const suffix = v.slice(COMBOBOX_LIBRARY_FILTER_PREFIX.length);
+      if (suffix === "all" || suffix === "installed") {
+        const filterField = suffix === "installed" ? "installed" : "all";
+        window.localStorage.setItem("libraryFilterField", filterField);
+        window.dispatchEvent(
+          new CustomEvent("mhg-set-list-filter", {
+            detail: { prefix: "library", filterField },
+          })
+        );
+        setCurrentLibraryFilterField(filterField);
+        if (libraryForGamesSidebar) {
+          onSelectLibrary(libraryForGamesSidebar);
+        }
+      }
+      return;
+    }
     if (v.startsWith(COMBOBOX_COLLECTION_SHORTCUT_PREFIX)) {
       const id = v.slice(COMBOBOX_COLLECTION_SHORTCUT_PREFIX.length);
       onSelectCollectionShortcut?.(id);
@@ -415,13 +480,35 @@ export default function LibrariesBar({
                     value={comboboxSelectValue}
                     onChange={handleSelectChange}
                   >
-                    {comboboxLibraries.map((s) => (
-                      <option key={s.key} value={s.key}>
-                        {ownedGamesInGamesSidebar && s.key === "library"
-                          ? t("libraries.ownedGames")
-                          : s.title || t(`libraries.${s.key}`)}
-                      </option>
-                    ))}
+                    {comboboxLibraries.flatMap((s) => {
+                      if (
+                        ownedGamesInGamesSidebar &&
+                        s.key === "library" &&
+                        libraryForGamesSidebar
+                      ) {
+                        return [
+                          <option
+                            key="mhg-combobox-library-all"
+                            value={`${COMBOBOX_LIBRARY_FILTER_PREFIX}all`}
+                          >
+                            {t("libraries.ownedGames")}
+                            {libraryGamesCount > 0 ? ` ${libraryGamesCount}` : ""}
+                          </option>,
+                          <option
+                            key="mhg-combobox-library-installed"
+                            value={`${COMBOBOX_LIBRARY_FILTER_PREFIX}installed`}
+                          >
+                            {t("libraries.installedGames")}
+                            {installedGamesCount > 0 ? ` ${installedGamesCount}` : ""}
+                          </option>,
+                        ];
+                      }
+                      return [
+                        <option key={s.key} value={s.key}>
+                          {s.title || t(`libraries.${s.key}`)}
+                        </option>,
+                      ];
+                    })}
                     {collectionShortcuts.length > 0 &&
                       onSelectCollectionShortcut &&
                       collectionShortcuts.map((c) => (
@@ -473,7 +560,69 @@ export default function LibrariesBar({
                     </span>
                   </button>
                 )}
-                {showGamesShortcutsSection && (
+                {inlineOwnedGamesInBar && libraryForGamesSidebar && (
+                  <>
+                    <button
+                      type="button"
+                      data-mhg-library-key="library"
+                      className={`mhg-library-button flex min-w-0 shrink-0 items-center gap-2 text-left${
+                        showLibraryActiveHighlight &&
+                        activeLibrary?.key === "library" &&
+                        activeCollectionShortcutId == null &&
+                        currentLibraryFilterField !== "installed"
+                          ? " mhg-library-active"
+                          : ""
+                      }`}
+                      onClick={() => {
+                        window.localStorage.setItem("libraryFilterField", "all");
+                        window.dispatchEvent(
+                          new CustomEvent("mhg-set-list-filter", {
+                            detail: { prefix: "library", filterField: "all" },
+                          })
+                        );
+                        setCurrentLibraryFilterField("all");
+                        onSelectLibrary(libraryForGamesSidebar);
+                      }}
+                    >
+                      <span className="mhg-library-button-label min-w-0 flex-1 truncate">
+                        {t("libraries.ownedGames")}
+                      </span>
+                      {libraryGamesCount > 0 && (
+                        <span className="mhg-library-button-count">{libraryGamesCount}</span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      data-mhg-library-key="library-installed"
+                      className={`mhg-library-button flex min-w-0 shrink-0 items-center gap-2 text-left${
+                        showLibraryActiveHighlight &&
+                        activeLibrary?.key === "library" &&
+                        activeCollectionShortcutId == null &&
+                        currentLibraryFilterField === "installed"
+                          ? " mhg-library-active"
+                          : ""
+                      }`}
+                      onClick={() => {
+                        window.localStorage.setItem("libraryFilterField", "installed");
+                        window.dispatchEvent(
+                          new CustomEvent("mhg-set-list-filter", {
+                            detail: { prefix: "library", filterField: "installed" },
+                          })
+                        );
+                        setCurrentLibraryFilterField("installed");
+                        onSelectLibrary(libraryForGamesSidebar);
+                      }}
+                    >
+                      <span className="mhg-library-button-label min-w-0 flex-1 truncate">
+                        {t("libraries.installedGames")}
+                      </span>
+                      {installedGamesCount > 0 && (
+                        <span className="mhg-library-button-count">{installedGamesCount}</span>
+                      )}
+                    </button>
+                  </>
+                )}
+                {showCollapsibleGamesSection && (
                   <div className="mhg-collections-shortcuts">
                     <button
                       type="button"
@@ -512,72 +661,76 @@ export default function LibrariesBar({
                     </button>
                     {gamesSidebarExpanded && (
                       <>
-                        {ownedGamesInGamesSidebar && libraryForGamesSidebar && (
-                          <button
-                            type="button"
-                            data-mhg-library-key="library"
-                            className={`mhg-library-button flex min-w-0 items-center gap-2 text-left${
-                              showLibraryActiveHighlight &&
-                              activeLibrary?.key === "library" &&
-                              activeCollectionShortcutId == null &&
-                              currentLibraryFilterField !== "installed"
-                                ? " mhg-library-active"
-                                : ""
-                            }`}
-                            onClick={() => {
-                              window.localStorage.setItem("libraryFilterField", "all");
-                              window.dispatchEvent(
-                                new CustomEvent("mhg-set-list-filter", {
-                                  detail: { prefix: "library", filterField: "all" },
-                                })
-                              );
-                              setCurrentLibraryFilterField("all");
-                              onSelectLibrary(libraryForGamesSidebar);
-                            }}
-                          >
-                            <span className="mhg-library-button-label min-w-0 flex-1 truncate">
-                              {t("libraries.ownedGames")}
-                            </span>
-                            {libraryGamesCount > 0 && (
-                              <span className="mhg-library-button-count">
-                                {libraryGamesCount}
+                        {activeSkinWeb.libraryPagesVerticalList &&
+                          ownedGamesInGamesSidebar &&
+                          libraryForGamesSidebar && (
+                            <button
+                              type="button"
+                              data-mhg-library-key="library"
+                              className={`mhg-library-button flex min-w-0 items-center gap-2 text-left${
+                                showLibraryActiveHighlight &&
+                                activeLibrary?.key === "library" &&
+                                activeCollectionShortcutId == null &&
+                                currentLibraryFilterField !== "installed"
+                                  ? " mhg-library-active"
+                                  : ""
+                              }`}
+                              onClick={() => {
+                                window.localStorage.setItem("libraryFilterField", "all");
+                                window.dispatchEvent(
+                                  new CustomEvent("mhg-set-list-filter", {
+                                    detail: { prefix: "library", filterField: "all" },
+                                  })
+                                );
+                                setCurrentLibraryFilterField("all");
+                                onSelectLibrary(libraryForGamesSidebar);
+                              }}
+                            >
+                              <span className="mhg-library-button-label min-w-0 flex-1 truncate">
+                                {t("libraries.ownedGames")}
                               </span>
-                            )}
-                          </button>
-                        )}
-                        {ownedGamesInGamesSidebar && libraryForGamesSidebar && (
-                          <button
-                            type="button"
-                            data-mhg-library-key="library-installed"
-                            className={`mhg-library-button flex min-w-0 items-center gap-2 text-left${
-                              showLibraryActiveHighlight &&
-                              activeLibrary?.key === "library" &&
-                              activeCollectionShortcutId == null &&
-                              currentLibraryFilterField === "installed"
-                                ? " mhg-library-active"
-                                : ""
-                            }`}
-                            onClick={() => {
-                              window.localStorage.setItem("libraryFilterField", "installed");
-                              window.dispatchEvent(
-                                new CustomEvent("mhg-set-list-filter", {
-                                  detail: { prefix: "library", filterField: "installed" },
-                                })
-                              );
-                              setCurrentLibraryFilterField("installed");
-                              onSelectLibrary(libraryForGamesSidebar);
-                            }}
-                          >
-                            <span className="mhg-library-button-label min-w-0 flex-1 truncate">
-                              {t("libraries.installedGames")}
-                            </span>
-                            {installedGamesCount > 0 && (
-                              <span className="mhg-library-button-count">
-                                {installedGamesCount}
+                              {libraryGamesCount > 0 && (
+                                <span className="mhg-library-button-count">
+                                  {libraryGamesCount}
+                                </span>
+                              )}
+                            </button>
+                          )}
+                        {activeSkinWeb.libraryPagesVerticalList &&
+                          ownedGamesInGamesSidebar &&
+                          libraryForGamesSidebar && (
+                            <button
+                              type="button"
+                              data-mhg-library-key="library-installed"
+                              className={`mhg-library-button flex min-w-0 items-center gap-2 text-left${
+                                showLibraryActiveHighlight &&
+                                activeLibrary?.key === "library" &&
+                                activeCollectionShortcutId == null &&
+                                currentLibraryFilterField === "installed"
+                                  ? " mhg-library-active"
+                                  : ""
+                              }`}
+                              onClick={() => {
+                                window.localStorage.setItem("libraryFilterField", "installed");
+                                window.dispatchEvent(
+                                  new CustomEvent("mhg-set-list-filter", {
+                                    detail: { prefix: "library", filterField: "installed" },
+                                  })
+                                );
+                                setCurrentLibraryFilterField("installed");
+                                onSelectLibrary(libraryForGamesSidebar);
+                              }}
+                            >
+                              <span className="mhg-library-button-label min-w-0 flex-1 truncate">
+                                {t("libraries.installedGames")}
                               </span>
-                            )}
-                          </button>
-                        )}
+                              {installedGamesCount > 0 && (
+                                <span className="mhg-library-button-count">
+                                  {installedGamesCount}
+                                </span>
+                              )}
+                            </button>
+                          )}
                         {collectionShortcuts.length > 0 &&
                           onSelectCollectionShortcut &&
                           collectionShortcuts.map((collection) => {
