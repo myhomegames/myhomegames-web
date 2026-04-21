@@ -6,6 +6,7 @@ import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useGameEvents } from "../hooks/useGameEvents";
 import { useLoading } from "../contexts/LoadingContext";
 import { useSettings } from "../contexts/SettingsContext";
+import { useSkin } from "../contexts/SkinContext";
 import { useCollections } from "../contexts/CollectionsContext";
 import { useDevelopers } from "../contexts/DevelopersContext";
 import { usePublishers } from "../contexts/PublishersContext";
@@ -1111,6 +1112,15 @@ function LibraryItemDetailContent({
 }: LibraryItemDetailContentProps) {
   const { hasBackground, isBackgroundVisible } = useBackground();
   const { isLoading } = useLoading();
+  const { activeSkinWeb } = useSkin();
+  /*
+   * In "compact" mode (opt-in per skin, es. GOG) il dettaglio del collection-like nasconde la
+   * hero (cover, titolo, rating, summary, azioni), le intestazioni di sezione e la fascia dei
+   * collection-like padre: restano solo i controlli nella barra in alto e gli elenchi dei figli
+   * (sotto-collezioni e giochi diretti). Le azioni edit/delete/play vivono comunque nella
+   * libraries bar persistente e nelle voci della sidebar, quindi restano accessibili.
+   */
+  const compactDetail = activeSkinWeb.compactCollectionLikeDetail;
   const stableCoverTimestampRef = useRef<number>(Date.now());
   const coverTimestampForUrls = listLoadTimestamp ?? stableCoverTimestampRef.current;
 
@@ -1612,7 +1622,7 @@ function LibraryItemDetailContent({
                     } as React.CSSProperties
                   }
                 >
-                  {item && (
+                  {item && !compactDetail && (
                     <div className="pt-8 library-item-detail-hero">
                       <div className="library-item-detail-hero-cover">
                         <Cover
@@ -1770,29 +1780,31 @@ function LibraryItemDetailContent({
                     <div className="library-item-detail-section-full">
                       {subCollectionLikesFiltered.length > 0 && (
                         <div className="library-item-detail-subsection">
-                          <h2 className="library-item-detail-heading-2 text-white">
-                            {(() => {
-                              const label =
-                                resourceType === "collections"
-                                  ? t("collections.subcollections", { count: subCollectionLikesFiltered.length })
-                                  : resourceType === "developers"
-                                    ? t("igdbInfo.subDevelopers", { count: subCollectionLikesFiltered.length })
-                                    : t("igdbInfo.subPublishers", { count: subCollectionLikesFiltered.length });
-                              return label.replace(/(\p{L})/u, (_, c) => c.toUpperCase());
-                            })()}
-                            {subCollectionLikes.length === 1 && subCollectionLikesFiltered.length === 1 && (
-                              <>
-                                {": "}
-                                <button
-                                  type="button"
-                                  className="library-item-detail-subcollection-title-link"
-                                  onClick={() => onCollectionClick?.(String(subCollectionLikesFiltered[0].id))}
-                                >
-                                  {subCollectionLikesFiltered[0].title}
-                                </button>
-                              </>
-                            )}
-                          </h2>
+                          {!compactDetail && (
+                            <h2 className="library-item-detail-heading-2 text-white">
+                              {(() => {
+                                const label =
+                                  resourceType === "collections"
+                                    ? t("collections.subcollections", { count: subCollectionLikesFiltered.length })
+                                    : resourceType === "developers"
+                                      ? t("igdbInfo.subDevelopers", { count: subCollectionLikesFiltered.length })
+                                      : t("igdbInfo.subPublishers", { count: subCollectionLikesFiltered.length });
+                                return label.replace(/(\p{L})/u, (_, c) => c.toUpperCase());
+                              })()}
+                              {subCollectionLikes.length === 1 && subCollectionLikesFiltered.length === 1 && (
+                                <>
+                                  {": "}
+                                  <button
+                                    type="button"
+                                    className="library-item-detail-subcollection-title-link"
+                                    onClick={() => onCollectionClick?.(String(subCollectionLikesFiltered[0].id))}
+                                  >
+                                    {subCollectionLikesFiltered[0].title}
+                                  </button>
+                                </>
+                              )}
+                            </h2>
+                          )}
                           {subCollectionLikes.length === 1 && subCollectionLikesFiltered.length === 1 ? (
                             <div className="library-item-detail-games-list library-item-detail-mt-games-list">
                               <GamesList
@@ -1902,11 +1914,13 @@ function LibraryItemDetailContent({
                       )}
                       {sortedGames.length > 0 && (
                         <>
-                          <div className="library-item-detail-games-heading-block">
-                            <h2 className="library-item-detail-heading-2 text-white">
-                              {gridGames.length} {t("common.games")}
-                            </h2>
-                          </div>
+                          {!compactDetail && (
+                            <div className="library-item-detail-games-heading-block">
+                              <h2 className="library-item-detail-heading-2 text-white">
+                                {gridGames.length} {t("common.games")}
+                              </h2>
+                            </div>
+                          )}
                           <div className="library-item-detail-games-list">
                             <GamesList
                               games={gridGames}
@@ -1938,7 +1952,7 @@ function LibraryItemDetailContent({
                           </div>
                         </>
                       )}
-                      {parentCollectionLikesWithGamesForDisplay.length > 0 && (
+                      {!compactDetail && parentCollectionLikesWithGamesForDisplay.length > 0 && (
                         <div className="game-detail-collections-section">
                           <h3 className="game-detail-section-title">
                             {resourceType === "collections"

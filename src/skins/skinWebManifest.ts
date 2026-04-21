@@ -28,6 +28,14 @@ export type SkinWebManifest = {
    * skins), labeled “Owned games”. Intended with `collectionsShortcutList` for GOG-style sidebars.
    */
   ownedGamesFirstInGamesSidebar: boolean;
+  /**
+   * Renders the collection-like detail page (collections, developers, publishers) in a compact
+   * form that hides the hero (cover, title, rating, summary, actions), list section headings,
+   * and the parent collection-like strip. Only the top bar controls and the lists of children
+   * (sub-collections and games) remain visible. Intended for skins that already expose edit /
+   * delete / play actions from the persistent libraries sidebar.
+   */
+  compactCollectionLikeDetail: boolean;
 };
 
 export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
@@ -38,6 +46,7 @@ export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
   disableAlphabetNavigator: false,
   sidebarSearchPopup: false,
   ownedGamesFirstInGamesSidebar: false,
+  compactCollectionLikeDetail: false,
 };
 
 const WEB_KEYS = [
@@ -48,6 +57,7 @@ const WEB_KEYS = [
   "disableAlphabetNavigator",
   "sidebarSearchPopup",
   "ownedGamesFirstInGamesSidebar",
+  "compactCollectionLikeDetail",
 ] as const satisfies readonly (keyof SkinWebManifest)[];
 
 /** Normalize API/JSON `web` payload to a safe manifest (unknown keys ignored). */
