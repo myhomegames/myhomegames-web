@@ -19,6 +19,9 @@ type CollectionShortcut = {
   title: string;
 };
 
+/** Prefisso valore `<option>` per le scorciatoie raccolte (evita collisioni con `library.key`). */
+const COMBOBOX_COLLECTION_SHORTCUT_PREFIX = "mhg:collection:";
+
 type LibrariesBarProps = {
   libraries: GameLibrarySection[];
   activeLibrary: GameLibrarySection | null;
@@ -162,6 +165,17 @@ export default function LibrariesBar({
   // Use global loading if prop is not provided, otherwise use prop
   const isLoading = loading !== undefined ? loading : globalLoading;
   const [isNarrow, setIsNarrow] = useState(false);
+  /**
+   * Barra orizzontale: il primo render usa `isNarrow === false` e mostrerebbe l’elenco
+   * completo; un attimo dopo `useLayoutEffect` imposta la combobox → flash visivo.
+   * Teniamo nascosto il contenuto finché non abbiamo misurato (prima del paint).
+   * Con `libraryPagesVerticalList` non serve (nessuna combobox).
+   */
+  const [librariesBarLayoutReady, setLibrariesBarLayoutReady] = useState(
+    () => activeSkinWeb.libraryPagesVerticalList
+  );
+  const isFirstLibrariesLayoutRef = useRef(true);
+  const prevCollectionShortcutCountRef = useRef(collectionShortcuts.length);
   const [sidebarSearchOpen, setSidebarSearchOpen] = useState(false);
   /** Collapsible “Giochi” / games sidebar block (GOG skin: full-width row + chevron). */
   const [gamesSidebarExpanded, setGamesSidebarExpanded] = useState(true);
@@ -171,8 +185,22 @@ export default function LibrariesBar({
   useLayoutEffect(() => {
     if (!activeLibrary) {
       setIsNarrow(false);
+      setLibrariesBarLayoutReady(true);
       return;
     }
+
+    if (!activeSkinWeb.libraryPagesVerticalList) {
+      const shortcutCountChanged =
+        prevCollectionShortcutCountRef.current !== collectionShortcuts.length;
+      if (
+        isFirstLibrariesLayoutRef.current ||
+        shortcutCountChanged
+      ) {
+        setLibrariesBarLayoutReady(false);
+        prevCollectionShortcutCountRef.current = collectionShortcuts.length;
+      }
+    }
+    isFirstLibrariesLayoutRef.current = false;
 
     let cancelled = false;
 
@@ -181,6 +209,7 @@ export default function LibrariesBar({
 
       if (activeSkinWeb.libraryPagesVerticalList) {
         setIsNarrow(false);
+        setLibrariesBarLayoutReady(true);
         return;
       }
 
@@ -195,6 +224,7 @@ export default function LibrariesBar({
         forceListValue === "on";
       if (forceList) {
         setIsNarrow(false);
+        setLibrariesBarLayoutReady(true);
         return;
       }
 
@@ -202,12 +232,16 @@ export default function LibrariesBar({
 
       if (windowWidth < 800) {
         setIsNarrow(true);
+        setLibrariesBarLayoutReady(true);
         return;
       }
 
       const containerEl = containerRef.current;
       const actionsEl = actionsRef.current;
       if (!containerEl || !actionsEl) {
+        requestAnimationFrame(() => {
+          if (!cancelled) checkWidth();
+        });
         return;
       }
 
@@ -216,12 +250,43 @@ export default function LibrariesBar({
 
       // Before layout is committed, widths can be 0 or tiny and falsely trigger the combobox.
       if (containerWidth < 120) {
+        requestAnimationFrame(() => {
+          if (!cancelled) checkWidth();
+        });
         return;
       }
 
       const availableWidth = containerWidth - actionsWidth - 180;
-      const minButtonsWidth = mainNavPageLibraries.length * 110;
+      /*
+       * Estima la larghezza minima necessaria per mostrare inline tutti gli
+       * elementi della barra. Oltre alle pagine principali teniamo conto,
+       * quando presenti, anche del trigger di ricerca nella sidebar e della
+       * sezione "Giochi / Raccolte" (intestazione + eventuali voci "I miei
+       * giochi" / "Installati" + scorciatoie delle collezioni). In skin
+       * orizzontali come Plex questo evita che il numero di collezioni
+       * venga ignorato quando si decide se passare alla combobox.
+       */
+      let estimatedItems = mainNavPageLibraries.length;
+      const sidebarSearchPopupEnabled =
+        !!activeSkinWeb.sidebarSearchPopup && !!onSidebarSearchGameSelect;
+      if (sidebarSearchPopupEnabled) {
+        estimatedItems += 1;
+      }
+      const hasCollectionShortcuts =
+        collectionShortcuts.length > 0 && !!onSelectCollectionShortcut;
+      const gamesShortcutsSectionVisible =
+        hasCollectionShortcuts ||
+        (!!libraryForGamesSidebar && ownedGamesInGamesSidebar);
+      if (gamesShortcutsSectionVisible) {
+        estimatedItems += 1;
+        if (ownedGamesInGamesSidebar && libraryForGamesSidebar) {
+          estimatedItems += 2;
+        }
+        estimatedItems += collectionShortcuts.length;
+      }
+      const minButtonsWidth = estimatedItems * 110;
       setIsNarrow(availableWidth < minButtonsWidth);
+      setLibrariesBarLayoutReady(true);
     };
 
     const containerEl = containerRef.current;
@@ -248,8 +313,13 @@ export default function LibrariesBar({
 
     window.addEventListener("resize", checkWidth);
 
+    const safetyLayoutReadyId = window.setTimeout(() => {
+      setLibrariesBarLayoutReady(true);
+    }, 400);
+
     return () => {
       cancelled = true;
+      window.clearTimeout(safetyLayoutReadyId);
       resizeObserver?.disconnect();
       window.clearTimeout(timeoutId);
       cancelAnimationFrame(rafOuter);
@@ -261,10 +331,39 @@ export default function LibrariesBar({
     coverSize,
     activeLibrary,
     activeSkinWeb.libraryPagesVerticalList,
+    activeSkinWeb.sidebarSearchPopup,
+    onSidebarSearchGameSelect,
+    onSelectCollectionShortcut,
+    ownedGamesInGamesSidebar,
+    libraryForGamesSidebar,
+    collectionShortcuts.length,
+  ]);
+
+  const comboboxSelectValue = useMemo(() => {
+    if (
+      activeCollectionShortcutId != null &&
+      onSelectCollectionShortcut &&
+      collectionShortcuts.some((c) => c.id === activeCollectionShortcutId)
+    ) {
+      return `${COMBOBOX_COLLECTION_SHORTCUT_PREFIX}${activeCollectionShortcutId}`;
+    }
+    return (activeLibrary ?? libraries[0])?.key ?? "";
+  }, [
+    activeCollectionShortcutId,
+    onSelectCollectionShortcut,
+    collectionShortcuts,
+    activeLibrary,
+    libraries,
   ]);
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedLibrary = libraries.find((lib) => lib.key === e.target.value);
+    const v = e.target.value;
+    if (v.startsWith(COMBOBOX_COLLECTION_SHORTCUT_PREFIX)) {
+      const id = v.slice(COMBOBOX_COLLECTION_SHORTCUT_PREFIX.length);
+      onSelectCollectionShortcut?.(id);
+      return;
+    }
+    const selectedLibrary = libraries.find((lib) => lib.key === v);
     if (selectedLibrary) {
       onSelectLibrary(selectedLibrary);
     }
@@ -278,6 +377,7 @@ export default function LibrariesBar({
   const showSidebarSearchPopup =
     activeSkinWeb.sidebarSearchPopup &&
     !isNarrow &&
+    librariesBarLayoutReady &&
     !!onSidebarSearchGameSelect;
 
   /* Su /collections/:id evidenziare solo la raccolta, non anche una voce "pagina" */
@@ -298,14 +398,21 @@ export default function LibrariesBar({
         
         {libraries.length > 0 && (
           <>
-            {isNarrow ? (
+            {!librariesBarLayoutReady && !activeSkinWeb.libraryPagesVerticalList ? (
+              <div
+                className="mhg-libraries-bar-measure-hold"
+                aria-hidden
+                aria-busy="true"
+                style={{ minHeight: 64, visibility: "hidden" }}
+              />
+            ) : isNarrow ? (
               <div className="mhg-libraries-combobox-container">
                 {isLoading && libraries.length === 0 ? null : (
                   <select
                     id="libraries-select"
                     name="library"
                     className="mhg-libraries-combobox"
-                    value={(activeLibrary ?? libraries[0])?.key || ""}
+                    value={comboboxSelectValue}
                     onChange={handleSelectChange}
                   >
                     {comboboxLibraries.map((s) => (
@@ -315,6 +422,16 @@ export default function LibrariesBar({
                           : s.title || t(`libraries.${s.key}`)}
                       </option>
                     ))}
+                    {collectionShortcuts.length > 0 &&
+                      onSelectCollectionShortcut &&
+                      collectionShortcuts.map((c) => (
+                        <option
+                          key={`mhg-combobox-collection-${c.id}`}
+                          value={`${COMBOBOX_COLLECTION_SHORTCUT_PREFIX}${c.id}`}
+                        >
+                          {c.title}
+                        </option>
+                      ))}
                   </select>
                 )}
                 {error && <div className="mhg-libraries-error">{error}</div>}

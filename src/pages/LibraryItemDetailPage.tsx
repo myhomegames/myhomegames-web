@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useLayoutEffect } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useLocation, useOutletContext } from "react-router-dom";
+import type { MainAppOutletContext } from "../layouts/MainAppLayout";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
@@ -168,17 +169,32 @@ export default function LibraryItemDetailPage({
     localStorage.setItem(`showNewGames_${storageKeyForNewGames}`, String(showNewGames));
   }, [canShowNewGamesToggle, showNewGames, storageKeyForNewGames]);
 
-  const [mainGamesOnly, setMainGamesOnly] = useState(false);
+  /*
+   * Local per-item `mainGamesOnly` used only by the classic shell (each detail page owns its
+   * state and persists it per collection/developer/publisher).
+   *
+   * Under the persistent shell (skin `persistentLibraryShell`, e.g. GOG) the in-page
+   * LibrariesBar is hidden via CSS and the visible toggle lives on the shell bar mounted by
+   * MainAppLayout. In that case we reuse the shared outlet-context state so the shell toggle
+   * actually filters the detail view, and a single user choice stays active while navigating
+   * across library/collections/developers/publishers.
+   */
+  const outletContext = useOutletContext<MainAppOutletContext | null>();
+  const [localMainGamesOnly, setLocalMainGamesOnly] = useState(false);
   useEffect(() => {
+    if (outletContext) return;
     if (!id) return;
     const key = `mainGamesOnly_${resourceType}_${id}`;
     const saved = localStorage.getItem(key);
-    setMainGamesOnly(saved === "true");
-  }, [id, resourceType]);
+    setLocalMainGamesOnly(saved === "true");
+  }, [id, resourceType, outletContext]);
   useEffect(() => {
+    if (outletContext) return;
     if (!id) return;
-    localStorage.setItem(`mainGamesOnly_${resourceType}_${id}`, String(mainGamesOnly));
-  }, [id, resourceType, mainGamesOnly]);
+    localStorage.setItem(`mainGamesOnly_${resourceType}_${id}`, String(localMainGamesOnly));
+  }, [id, resourceType, localMainGamesOnly, outletContext]);
+  const mainGamesOnly = outletContext ? outletContext.mainGamesOnly : localMainGamesOnly;
+  const setMainGamesOnly = outletContext ? outletContext.setMainGamesOnly : setLocalMainGamesOnly;
 
   useScrollRestoration(scrollContainerRef);
 

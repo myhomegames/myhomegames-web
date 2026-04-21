@@ -81,6 +81,19 @@ export default function MainAppLayout({
   const collectionsPageEnabled = libraries.some((lib) => lib.key === "collections");
   const showCollectionShortcuts =
     activeSkinWeb.collectionsShortcutList && collectionsPageEnabled;
+  /*
+   * Collection-like detail pages (/collections/:id, /developers/:id, /publishers/:id) hide
+   * their own in-page LibrariesBar under the persistent shell, so the MainGamesToggle must
+   * be exposed by the shell bar too. Without this, users landing on a detail from a
+   * non-library page (e.g. Collections → detail) would never see the toggle.
+   */
+  const isCollectionLikeDetailRoute = useMemo(
+    () =>
+      /^\/collections\/[^/]+/.test(pathname) ||
+      /^\/developers\/[^/]+/.test(pathname) ||
+      /^\/publishers\/[^/]+/.test(pathname),
+    [pathname]
+  );
 
   const outletContext = useMemo<MainAppOutletContext>(
     () => ({
@@ -133,7 +146,8 @@ export default function MainAppLayout({
         onViewModeChange={handleViewModeChange}
         onReloadMetadata={onReloadMetadata}
         showMainGamesToggle={
-          activeLibrary?.key === "library" && (viewMode === "grid" || viewMode === "detail")
+          (activeLibrary?.key === "library" || isCollectionLikeDetailRoute) &&
+          (viewMode === "grid" || viewMode === "detail")
         }
         mainGamesOnly={mainGamesOnly}
         onMainGamesOnlyChange={setMainGamesOnly}
