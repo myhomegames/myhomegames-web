@@ -49,7 +49,7 @@ export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
   compactCollectionLikeDetail: false,
 };
 
-const WEB_KEYS = [
+export const SKIN_WEB_KEYS = [
   "persistentLibraryShell",
   "collectionsShortcutList",
   "libraryPagesVerticalList",
@@ -59,6 +59,9 @@ const WEB_KEYS = [
   "ownedGamesFirstInGamesSidebar",
   "compactCollectionLikeDetail",
 ] as const satisfies readonly (keyof SkinWebManifest)[];
+
+/** @deprecated renamed to `SKIN_WEB_KEYS`, kept as alias to avoid churning internal imports. */
+const WEB_KEYS = SKIN_WEB_KEYS;
 
 /** Normalize API/JSON `web` payload to a safe manifest (unknown keys ignored). */
 export function normalizeSkinWebManifest(raw: unknown): SkinWebManifest {

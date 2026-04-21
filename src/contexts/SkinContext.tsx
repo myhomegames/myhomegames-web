@@ -48,7 +48,7 @@ const SkinContext = createContext<SkinContextValue | null>(null);
 
 export function SkinProvider({ children }: { children: ReactNode }) {
   const { token, isLoading } = useAuth();
-  const { settingsLoaded } = useSettings();
+  const { settingsLoaded, skinWeb: settingsSkinWeb, refreshSettings } = useSettings();
   const [activeSkinId, setActive] = useState(() => getActiveSkinId());
   const [serverSkins, setServerSkins] = useState<ServerSkinInfo[]>([]);
   const [snapshotVersion, setSnapshotVersion] = useState(() => Date.now());
@@ -126,16 +126,26 @@ export function SkinProvider({ children }: { children: ReactNode }) {
     };
   }, [isLoading, settingsLoaded, token, activeSkinId]);
 
+  /*
+   * `settings.skinWeb` is the authoritative source of the flags consumed by the SPA: the
+   * server hydrates it from the active skin's skin.json every time `activeSkinId` changes
+   * (see PUT /settings), and keeps user toggles on top of that. We fall back to the skin's
+   * declared flags (or the per-skin local cache) only before `settingsLoaded`, so the initial
+   * paint reflects the skin instead of the all-false default.
+   */
   const activeSkinWeb = useMemo((): SkinWebManifest => {
     if (!isServerSkinId(activeSkinId)) {
       return normalizeSkinWebManifest(undefined);
+    }
+    if (settingsLoaded) {
+      return settingsSkinWeb;
     }
     const fromList = serverSkins.find((s) => s.id === activeSkinId)?.web;
     if (fromList) {
       return normalizeSkinWebManifest(fromList);
     }
     return getCachedSkinWebOrDefault(activeSkinId);
-  }, [activeSkinId, serverSkins]);
+  }, [activeSkinId, settingsLoaded, settingsSkinWeb, serverSkins]);
 
   useEffect(() => {
     if (!isServerSkinId(activeSkinId)) return;
@@ -156,28 +166,37 @@ export function SkinProvider({ children }: { children: ReactNode }) {
     [serverSkins, snapshotVersion]
   );
 
-  const selectSkin = useCallback(async (id: string) => {
-    setActiveSkinId(id);
-    setActive(id);
-    void saveServerActiveSkinId(id);
-    if (!id.trim()) {
-      clearCachedSkinCss();
-      applySkinCss("");
-      return;
-    }
-    if (isServerSkinId(id)) {
-      const css = await fetchServerSkinCss(id);
-      if (css?.trim()) {
-        setCachedSkinCss(id, css);
-        applySkinCss(css);
-      } else if (getApiToken()) {
+  const selectSkin = useCallback(
+    async (id: string) => {
+      setActiveSkinId(id);
+      setActive(id);
+      /*
+       * Server-side PUT /settings hydrates `settings.skinWeb` from the newly active skin's
+       * skin.json; wait for it to complete, then refresh the client-side SettingsContext so
+       * the merged manifest becomes visible to consumers (SkinContext.activeSkinWeb, etc.).
+       */
+      await saveServerActiveSkinId(id);
+      void refreshSettings();
+      if (!id.trim()) {
         clearCachedSkinCss();
-        setActiveSkinId("");
-        setActive("");
         applySkinCss("");
+        return;
       }
-    }
-  }, []);
+      if (isServerSkinId(id)) {
+        const css = await fetchServerSkinCss(id);
+        if (css?.trim()) {
+          setCachedSkinCss(id, css);
+          applySkinCss(css);
+        } else if (getApiToken()) {
+          clearCachedSkinCss();
+          setActiveSkinId("");
+          setActive("");
+          applySkinCss("");
+        }
+      }
+    },
+    [refreshSettings]
+  );
 
   const uploadSkin = useCallback(
     async (file: File, displayName?: string) => {

@@ -72,6 +72,21 @@
       "clientSecretPlaceholder": "Digite seu Twitch Client Secret",
       "clientIdHelp": "Seu Client ID da aplicação Twitch",
       "clientSecretHelp": "Seu Client Secret da aplicação Twitch (mantenha isso seguro)"
+    },
+    "skinOptions": {
+      "title": "Opções",
+      "description": "Ajuste o comportamento do tema ativo. Ao instalar ou trocar de tema, essas opções são redefinidas para os valores declarados pelo tema em seu manifesto.",
+      "noActiveSkin": "Selecione primeiro um tema para personalizar suas opções.",
+      "flags": {
+        "persistentLibraryShell": "Shell de biblioteca persistente (cabeçalho e barra lateral sempre montados)",
+        "collectionsShortcutList": "Atalhos de coleções na barra lateral",
+        "libraryPagesVerticalList": "Abas da biblioteca como lista vertical",
+        "headerTitleFilter": "Filtro por título no cabeçalho (em vez da busca global)",
+        "disableAlphabetNavigator": "Ocultar o navegador A–Z lateral",
+        "sidebarSearchPopup": "Popup de busca na barra lateral",
+        "ownedGamesFirstInGamesSidebar": "\"Meus jogos\" no topo do menu Jogos",
+        "compactCollectionLikeDetail": "Detalhe de coleção compacto (oculta o hero e os títulos)"
+      }
     }
   },
   "tags": {

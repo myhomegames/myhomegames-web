@@ -72,6 +72,21 @@
       "clientSecretPlaceholder": "输入您的Twitch客户端密钥",
       "clientIdHelp": "您的Twitch应用程序客户端ID",
       "clientSecretHelp": "您的Twitch应用程序客户端密钥（请妥善保管）"
+    },
+    "skinOptions": {
+      "title": "选项",
+      "description": "微调当前皮肤的界面呈现方式。安装或切换皮肤时，这些选项会重置为该皮肤清单中声明的值。",
+      "noActiveSkin": "请先选择一个皮肤以自定义其选项。",
+      "flags": {
+        "persistentLibraryShell": "持久化媒体库外壳（始终保留标题和侧边栏）",
+        "collectionsShortcutList": "侧边栏中的合集快捷方式",
+        "libraryPagesVerticalList": "媒体库标签以垂直列表显示",
+        "headerTitleFilter": "在标题栏中使用标题过滤（代替全局搜索）",
+        "disableAlphabetNavigator": "隐藏 A–Z 侧边导航",
+        "sidebarSearchPopup": "侧边栏中的搜索弹窗",
+        "ownedGamesFirstInGamesSidebar": "“我的游戏”置于游戏菜单顶部",
+        "compactCollectionLikeDetail": "紧凑的合集详情（隐藏封面区和标题）"
+      }
     }
   },
   "tags": {

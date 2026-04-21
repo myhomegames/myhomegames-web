@@ -72,6 +72,21 @@
       "clientSecretPlaceholder": "Enter your Twitch Client Secret",
       "clientIdHelp": "Your Twitch application Client ID",
       "clientSecretHelp": "Your Twitch application Client Secret (keep this secure)"
+    },
+    "skinOptions": {
+      "title": "Options",
+      "description": "Fine-tune how the active skin renders the interface. When you install or switch to a skin, these options are reset to the values that skin declares in its manifest.",
+      "noActiveSkin": "Select a skin first to customize its options.",
+      "flags": {
+        "persistentLibraryShell": "Persistent library shell (header and sidebar stay mounted)",
+        "collectionsShortcutList": "Collection shortcuts in the sidebar",
+        "libraryPagesVerticalList": "Library tabs as a vertical list",
+        "headerTitleFilter": "Title filter in the header (instead of global search)",
+        "disableAlphabetNavigator": "Hide the A–Z side navigator",
+        "sidebarSearchPopup": "Search popup in the sidebar",
+        "ownedGamesFirstInGamesSidebar": "\"Owned games\" at the top of the Games menu",
+        "compactCollectionLikeDetail": "Compact collection detail (hide hero and headings)"
+      }
     }
   },
   "tags": {

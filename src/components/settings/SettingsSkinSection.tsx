@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSkin } from "../../contexts/SkinContext";
+import { useSettings } from "../../contexts/SettingsContext";
+import { SKIN_WEB_KEYS, type SkinWebManifest } from "../../skins/skinWebManifest";
 import { API_BASE } from "../../config";
 
 function isZipSkinFile(file: File): boolean {
@@ -11,6 +13,7 @@ function isZipSkinFile(file: File): boolean {
 export default function SettingsSkinSection() {
   const { t } = useTranslation();
   const { activeSkinId, skins, selectSkin, uploadSkin, deleteSkin } = useSkin();
+  const { skinWeb, updateSkinWebFlags } = useSettings();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -196,6 +199,40 @@ export default function SettingsSkinSection() {
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {activeSkinId && (
+          /*
+           * `.settings-skin-list` ships with `margin-top: 8px` but no bottom margin in the skin
+           * bundles, and `.settings-field` only contributes `margin-bottom`, so without an
+           * explicit top margin the options block collapses against the installed skins row.
+           * Keep the gap inline so it stays consistent across skins (Plex, GOG, …).
+           */
+          <div className="settings-field settings-skin-options" style={{ marginTop: 32 }}>
+            <div className="settings-label">{t("settings.skinOptions.title", "Options")}</div>
+            <p className="settings-help-text">
+              {t(
+                "settings.skinOptions.description",
+                "Fine-tune how the active skin renders the interface. When you install or switch to a skin, these options are reset to the values that skin declares in its manifest."
+              )}
+            </p>
+            <div className="settings-library-options">
+              {SKIN_WEB_KEYS.map((key) => (
+                <label key={key} className="settings-library-option">
+                  <input
+                    type="checkbox"
+                    checked={skinWeb[key]}
+                    onChange={(e) => {
+                      const partial: Partial<SkinWebManifest> = { [key]: e.target.checked };
+                      void updateSkinWebFlags(partial);
+                    }}
+                    className="settings-checkbox"
+                  />
+                  <span>{t(`settings.skinOptions.flags.${key}`, key)}</span>
+                </label>
+              ))}
+            </div>
           </div>
         )}
       </div>
