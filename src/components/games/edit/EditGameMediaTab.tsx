@@ -100,7 +100,7 @@ export default function EditGameMediaTab({
           <span>{t("gameDetail.showTitle", "Show title on cover")}</span>
         </label>
       </div>
-      {/* Cover + external URL (label allineata alla colonna Cover/Background) */}
+      {/* Cover + external URL (label aligned with Cover/Background column) */}
       <div className="edit-game-modal-media-block">
         <div className="edit-game-modal-media-row">
           <div className="edit-game-modal-media-info">

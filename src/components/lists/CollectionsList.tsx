@@ -22,7 +22,7 @@ type CollectionsListProps = {
   onPlay?: (game: GameItem) => void;
   onCollectionUpdate?: (updatedCollection: CollectionItem) => void;
   onCollectionDelete?: (deletedCollection: CollectionItem) => void;
-  /** Quando true, non mostrare il messaggio "nessun *** trovato" (come in Library) */
+  /** When true, suppress the “no *** found” empty state (same as Library) */
   isLoading?: boolean;
   /** When false, hide edit/delete (e.g. for developers/publishers list) */
   showEdit?: boolean;
@@ -158,7 +158,7 @@ export function CollectionListItem({
             title: updatedCollection.title,
             summary: updatedCollection.summary,
             cover: updatedCollection.cover,
-            gameCount: collection.gameCount, // Mantieni il gameCount esistente
+            gameCount: collection.gameCount, // Keep existing gameCount
           };
           if (updatedItem.id === collection.id) {
             onCollectionUpdate(updatedItem);
@@ -217,9 +217,9 @@ export default function CollectionsList({
     return map;
   }, [collections, allItemsForCount]);
 
-  // Durante il caricamento non mostrare nulla (come in Library)
+  // While loading, show nothing (same as Library)
   if (isLoading && collections.length === 0) return null;
-  // Messaggio "nessun *** trovato" solo a caricamento finito
+  // “No *** found” message only after loading finishes
   if (!isLoading && collections.length === 0) {
     const emptyMessageKey =
       gamesPath === "developers"

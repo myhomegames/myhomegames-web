@@ -66,11 +66,10 @@ export function useLibrariesShellState(options: Options) {
     setCoverSize(size);
     localStorage.setItem("coverSize", size.toString());
     /*
-     * Nel guscio persistente (es. skin GOG) la LibrariesBar è montata una sola volta in
-     * MainAppLayout e lo stato della cover size vive qui; i figli dell'Outlet (pagine
-     * dettaglio raccolta / developer / publisher / tag) tengono però un proprio state di
-     * coverSize inizializzato da localStorage. Segnaliamo via evento così possono
-     * sincronizzarsi in tempo reale quando si muove lo slider nella barra persistente.
+     * In the persistent shell (e.g. GOG skin) LibrariesBar mounts once in MainAppLayout and
+     * cover size state lives here; Outlet children (collection/developer/publisher/tag detail
+     * pages) still keep their own coverSize state initialized from localStorage. Dispatch an
+     * event so they stay in sync when the slider moves in the persistent bar.
      */
     window.dispatchEvent(
       new CustomEvent("mhg-cover-size-changed", { detail: { size } })

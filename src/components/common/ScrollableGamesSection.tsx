@@ -76,7 +76,7 @@ export default function ScrollableGamesSection({
   const [isRestoring, setIsRestoring] = useState(true);
 
   const titleKey = `recommended.${sectionId}`;
-  // Usa traduzione automatica se non esiste nei file di localizzazione
+  // Auto-translate when the string is missing from locale files
   const autoTitle = useAutoTranslate(sectionId, titleKey, {
     disabled: disableAutoTranslate,
   });

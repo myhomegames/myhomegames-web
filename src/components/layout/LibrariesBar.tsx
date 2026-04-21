@@ -19,9 +19,9 @@ type CollectionShortcut = {
   title: string;
 };
 
-/** Prefisso valore `<option>` per le scorciatoie raccolte (evita collisioni con `library.key`). */
+/** `<option>` value prefix for collection shortcuts (avoids collisions with `library.key`). */
 const COMBOBOX_COLLECTION_SHORTCUT_PREFIX = "mhg:collection:";
-/** Due voci distinte (tutti / installati) quando `ownedGamesFirstInGamesSidebar` sposta la libreria nel menu Giochi. */
+/** Two distinct entries (all vs installed) when `ownedGamesFirstInGamesSidebar` moves the library into the Games menu. */
 const COMBOBOX_LIBRARY_FILTER_PREFIX = "mhg:libraryFilter:";
 
 type LibrariesBarProps = {
@@ -133,7 +133,7 @@ export default function LibrariesBar({
     return libraries.filter((s) => s.key !== "library");
   }, [libraries, ownedGamesInGamesSidebar]);
 
-  /** With sidebar collection shortcuts, do not show the “all collections” overview row (no “Raccolte” in the bar). */
+  /** With sidebar collection shortcuts, hide the “all collections” overview row (no top-level Collections tab). */
   const collectionShortcutsActive =
     collectionShortcuts.length > 0 && !!onSelectCollectionShortcut;
   const hideCollectionsOverviewRow =
@@ -150,9 +150,9 @@ export default function LibrariesBar({
     collectionShortcuts.length > 0 && !!onSelectCollectionShortcut;
 
   /**
-   * Barra verticale (es. GOG): “I miei giochi” / Installati restano nel blocco Giochi collassabile.
-   * Barra orizzontale (es. Plex): quelle due voci sono in riga con le altre pagine; qui restano solo
-   * le scorciatoie raccolte (se attive).
+   * Vertical bar (e.g. GOG): “Owned games” / “Installed” stay inside the collapsible Games block.
+   * Horizontal bar (e.g. Plex): those two entries are inline with the other page tabs; this block
+   * only holds collection shortcuts (when enabled).
    */
   const showCollapsibleGamesSection =
     hasCollectionShortcutsUi ||
@@ -183,10 +183,10 @@ export default function LibrariesBar({
   const isLoading = loading !== undefined ? loading : globalLoading;
   const [isNarrow, setIsNarrow] = useState(false);
   /**
-   * Barra orizzontale: il primo render usa `isNarrow === false` e mostrerebbe l’elenco
-   * completo; un attimo dopo `useLayoutEffect` imposta la combobox → flash visivo.
-   * Teniamo nascosto il contenuto finché non abbiamo misurato (prima del paint).
-   * Con `libraryPagesVerticalList` non serve (nessuna combobox).
+   * Horizontal bar: first render uses `isNarrow === false` and would show the full inline list;
+   * `useLayoutEffect` then switches to the combobox → visible flash.
+   * Hide bar content until measured (before paint). Not needed when `libraryPagesVerticalList`
+   * is true (no combobox).
    */
   const [librariesBarLayoutReady, setLibrariesBarLayoutReady] = useState(
     () => activeSkinWeb.libraryPagesVerticalList
@@ -195,7 +195,7 @@ export default function LibrariesBar({
   const prevCollectionShortcutCountRef = useRef(collectionShortcuts.length);
   const prevOwnedGamesInSidebarRef = useRef(ownedGamesInGamesSidebar);
   const [sidebarSearchOpen, setSidebarSearchOpen] = useState(false);
-  /** Collapsible “Giochi” / games sidebar block (GOG skin: full-width row + chevron). */
+  /** Collapsible Games / collections sidebar block (GOG skin: full-width row + chevron). */
   const [gamesSidebarExpanded, setGamesSidebarExpanded] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
@@ -280,13 +280,10 @@ export default function LibrariesBar({
 
       const availableWidth = containerWidth - actionsWidth - 180;
       /*
-       * Estima la larghezza minima necessaria per mostrare inline tutti gli
-       * elementi della barra. Oltre alle pagine principali teniamo conto,
-       * quando presenti, anche del trigger di ricerca nella sidebar e della
-       * sezione "Giochi / Raccolte" (intestazione + eventuali voci "I miei
-       * giochi" / "Installati" + scorciatoie delle collezioni). In skin
-       * orizzontali come Plex questo evita che il numero di collezioni
-       * venga ignorato quando si decide se passare alla combobox.
+       * Estimate minimum width to fit all inline bar items. Besides main page tabs, count the
+       * sidebar search trigger when present, and the Games / Collections block (heading plus
+       * optional “Owned games” / “Installed” and collection shortcuts). On horizontal skins
+       * (e.g. Plex) this ensures collection count is not ignored when choosing combobox mode.
        */
       let estimatedItems = mainNavPageLibraries.length;
       const sidebarSearchPopupEnabled =
@@ -445,13 +442,13 @@ export default function LibrariesBar({
     librariesBarLayoutReady &&
     !!onSidebarSearchGameSelect;
 
-  /* Su /collections/:id evidenziare solo la raccolta, non anche una voce "pagina" */
+  /* On /collections/:id, highlight only the collection, not a “page” tab as well */
   const showLibraryActiveHighlight = activeCollectionShortcutId == null;
 
   return (
     <div className="mhg-libraries-bar">
       <div className="mhg-libraries-bar-container" ref={containerRef}>
-        {/* Menu dropdown in fondo a sinistra */}
+        {/* Menu dropdown bottom-left */}
         {API_BASE && getApiToken() && (
           <div className="mhg-libraries-menu-container">
             <DropdownMenu
@@ -525,41 +522,7 @@ export default function LibrariesBar({
               </div>
             ) : (
               <div className="mhg-libraries-container">
-                {isLoading && libraries.length === 0 ? null : (
-                  mainNavPageLibraries.map((s) => (
-                    <button
-                      key={s.key}
-                      type="button"
-                      data-mhg-library-key={s.key}
-                      className={`mhg-library-button flex min-w-0 items-center gap-2 text-left ${
-                        showLibraryActiveHighlight && activeLibrary?.key === s.key
-                          ? "mhg-library-active"
-                          : ""
-                      }`}
-                      onClick={() => onSelectLibrary(s)}
-                    >
-                      <span className="mhg-library-button-label min-w-0 flex-1 truncate">
-                        {s.title || t(`libraries.${s.key}`)}
-                      </span>
-                    </button>
-                  ))
-                )}
-                {showSidebarSearchPopup && (
-                  <button
-                    type="button"
-                    data-mhg-sidebar-action="search"
-                    className={`mhg-library-button mhg-sidebar-search-trigger flex min-w-0 items-center gap-2 text-left ${
-                      sidebarSearchOpen ? "mhg-sidebar-search-trigger--open" : ""
-                    }`}
-                    aria-expanded={sidebarSearchOpen}
-                    aria-controls="mhg-sidebar-search-dialog"
-                    onClick={() => setSidebarSearchOpen(true)}
-                  >
-                    <span className="mhg-library-button-label min-w-0 flex-1 truncate">
-                      {t("libraries.sidebarSearch")}
-                    </span>
-                  </button>
-                )}
+                {/* Same order as combobox: library (all / installed) before other page tabs */}
                 {inlineOwnedGamesInBar && libraryForGamesSidebar && (
                   <>
                     <button
@@ -621,6 +584,41 @@ export default function LibrariesBar({
                       )}
                     </button>
                   </>
+                )}
+                {isLoading && libraries.length === 0 ? null : (
+                  mainNavPageLibraries.map((s) => (
+                    <button
+                      key={s.key}
+                      type="button"
+                      data-mhg-library-key={s.key}
+                      className={`mhg-library-button flex min-w-0 items-center gap-2 text-left ${
+                        showLibraryActiveHighlight && activeLibrary?.key === s.key
+                          ? "mhg-library-active"
+                          : ""
+                      }`}
+                      onClick={() => onSelectLibrary(s)}
+                    >
+                      <span className="mhg-library-button-label min-w-0 flex-1 truncate">
+                        {s.title || t(`libraries.${s.key}`)}
+                      </span>
+                    </button>
+                  ))
+                )}
+                {showSidebarSearchPopup && (
+                  <button
+                    type="button"
+                    data-mhg-sidebar-action="search"
+                    className={`mhg-library-button mhg-sidebar-search-trigger flex min-w-0 items-center gap-2 text-left ${
+                      sidebarSearchOpen ? "mhg-sidebar-search-trigger--open" : ""
+                    }`}
+                    aria-expanded={sidebarSearchOpen}
+                    aria-controls="mhg-sidebar-search-dialog"
+                    onClick={() => setSidebarSearchOpen(true)}
+                  >
+                    <span className="mhg-library-button-label min-w-0 flex-1 truncate">
+                      {t("libraries.sidebarSearch")}
+                    </span>
+                  </button>
                 )}
                 {showCollapsibleGamesSection && (
                   <div className="mhg-collections-shortcuts">

@@ -319,12 +319,10 @@ export default function LibraryItemDetailPage({
   };
 
   /*
-   * Nel guscio persistente (skin con persistentLibraryShell: true, es. GOG) la
-   * LibrariesBar è montata in MainAppLayout con un proprio coverSize; quando l'utente
-   * muove lì lo slider qui non arriva nulla perché il nostro coverSize locale è stato
-   * inizializzato una volta sola da localStorage. Ascoltiamo l'evento emesso da
-   * useLibrariesShellState (e dal nostro stesso handler) per tenere in sync la
-   * dimensione delle cover mostrate nella pagina di dettaglio.
+   * In the persistent shell (`persistentLibraryShell`, e.g. GOG), LibrariesBar in
+   * MainAppLayout owns coverSize; moving the slider there does not update this page’s local
+   * coverSize (initialized once from localStorage). Listen for the event from
+   * useLibrariesShellState (and from our own handler) to keep detail-page cover size in sync.
    */
   useEffect(() => {
     function handler(event: Event) {
@@ -1130,11 +1128,10 @@ function LibraryItemDetailContent({
   const { isLoading } = useLoading();
   const { activeSkinWeb } = useSkin();
   /*
-   * In "compact" mode (opt-in per skin, es. GOG) il dettaglio del collection-like nasconde la
-   * hero (cover, titolo, rating, summary, azioni), le intestazioni di sezione, la griglia delle
-   * sotto-collezioni e la fascia dei collection-like padre: restano solo i controlli nella barra
-   * in alto e l'elenco dei giochi diretti. Le azioni edit/delete/play vivono comunque nella
-   * libraries bar persistente e nelle voci della sidebar, quindi restano accessibili.
+   * In compact mode (skin opt-in, e.g. GOG) the collection-like detail hides the hero
+   * (cover, title, rating, summary, actions), section headings, the sub-collections grid, and
+   * the parent collection-like strip: only top-bar controls and the direct games list remain.
+   * Edit/delete/play still live on the persistent libraries bar and sidebar entries.
    */
   const compactDetail = activeSkinWeb.compactCollectionLikeDetail;
   const stableCoverTimestampRef = useRef<number>(Date.now());
