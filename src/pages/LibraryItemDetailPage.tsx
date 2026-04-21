@@ -1115,9 +1115,9 @@ function LibraryItemDetailContent({
   const { activeSkinWeb } = useSkin();
   /*
    * In "compact" mode (opt-in per skin, es. GOG) il dettaglio del collection-like nasconde la
-   * hero (cover, titolo, rating, summary, azioni), le intestazioni di sezione e la fascia dei
-   * collection-like padre: restano solo i controlli nella barra in alto e gli elenchi dei figli
-   * (sotto-collezioni e giochi diretti). Le azioni edit/delete/play vivono comunque nella
+   * hero (cover, titolo, rating, summary, azioni), le intestazioni di sezione, la griglia delle
+   * sotto-collezioni e la fascia dei collection-like padre: restano solo i controlli nella barra
+   * in alto e l'elenco dei giochi diretti. Le azioni edit/delete/play vivono comunque nella
    * libraries bar persistente e nelle voci della sidebar, quindi restano accessibili.
    */
   const compactDetail = activeSkinWeb.compactCollectionLikeDetail;
@@ -1778,33 +1778,31 @@ function LibraryItemDetailContent({
 
                   {!isLoading && (
                     <div className="library-item-detail-section-full">
-                      {subCollectionLikesFiltered.length > 0 && (
+                      {!compactDetail && subCollectionLikesFiltered.length > 0 && (
                         <div className="library-item-detail-subsection">
-                          {!compactDetail && (
-                            <h2 className="library-item-detail-heading-2 text-white">
-                              {(() => {
-                                const label =
-                                  resourceType === "collections"
-                                    ? t("collections.subcollections", { count: subCollectionLikesFiltered.length })
-                                    : resourceType === "developers"
-                                      ? t("igdbInfo.subDevelopers", { count: subCollectionLikesFiltered.length })
-                                      : t("igdbInfo.subPublishers", { count: subCollectionLikesFiltered.length });
-                                return label.replace(/(\p{L})/u, (_, c) => c.toUpperCase());
-                              })()}
-                              {subCollectionLikes.length === 1 && subCollectionLikesFiltered.length === 1 && (
-                                <>
-                                  {": "}
-                                  <button
-                                    type="button"
-                                    className="library-item-detail-subcollection-title-link"
-                                    onClick={() => onCollectionClick?.(String(subCollectionLikesFiltered[0].id))}
-                                  >
-                                    {subCollectionLikesFiltered[0].title}
-                                  </button>
-                                </>
-                              )}
-                            </h2>
-                          )}
+                          <h2 className="library-item-detail-heading-2 text-white">
+                            {(() => {
+                              const label =
+                                resourceType === "collections"
+                                  ? t("collections.subcollections", { count: subCollectionLikesFiltered.length })
+                                  : resourceType === "developers"
+                                    ? t("igdbInfo.subDevelopers", { count: subCollectionLikesFiltered.length })
+                                    : t("igdbInfo.subPublishers", { count: subCollectionLikesFiltered.length });
+                              return label.replace(/(\p{L})/u, (_, c) => c.toUpperCase());
+                            })()}
+                            {subCollectionLikes.length === 1 && subCollectionLikesFiltered.length === 1 && (
+                              <>
+                                {": "}
+                                <button
+                                  type="button"
+                                  className="library-item-detail-subcollection-title-link"
+                                  onClick={() => onCollectionClick?.(String(subCollectionLikesFiltered[0].id))}
+                                >
+                                  {subCollectionLikesFiltered[0].title}
+                                </button>
+                              </>
+                            )}
+                          </h2>
                           {subCollectionLikes.length === 1 && subCollectionLikesFiltered.length === 1 ? (
                             <div className="library-item-detail-games-list library-item-detail-mt-games-list">
                               <GamesList
