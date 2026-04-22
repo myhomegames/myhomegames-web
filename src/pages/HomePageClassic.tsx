@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import LibrariesBar from "../components/layout/LibrariesBar";
 import { useLoading } from "../contexts/LoadingContext";
 import { useSkin } from "../contexts/SkinContext";
+import { useLibraryGames } from "../contexts/LibraryGamesContext";
+import { useDevelopers } from "../contexts/DevelopersContext";
+import { usePublishers } from "../contexts/PublishersContext";
 import type { ViewMode } from "../types";
 import LibraryPage from "./LibraryPage";
 import RecommendedPage from "./RecommendedPage";
@@ -33,8 +37,13 @@ export default function HomePageClassic({
   allCollections = [],
   onOpenCollection,
 }: HomePageClassicProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { activeSkinWeb } = useSkin();
   const { isLoading } = useLoading();
+  const { games: allGamesForSearch } = useLibraryGames();
+  const { developers: allDevelopersForSearch } = useDevelopers();
+  const { publishers: allPublishersForSearch } = usePublishers();
   const [libraries, setLibraries] = useState<GameLibrarySection[]>(() =>
     buildLibrarySections(normalizeVisibleLibraries([]))
   );
@@ -206,6 +215,16 @@ export default function HomePageClassic({
         onSelectCollectionShortcut={
           showCollectionShortcuts ? onOpenCollection : undefined
         }
+        sidebarSearchGames={allGamesForSearch}
+        sidebarSearchCollections={allCollections}
+        sidebarSearchDevelopers={allDevelopersForSearch}
+        sidebarSearchPublishers={allPublishersForSearch}
+        onSidebarSearchGameSelect={(game) =>
+          navigate(`/game/${game.id}`, {
+            state: { from: location.pathname + location.search },
+          })
+        }
+        onSidebarSearchPlay={onPlay}
       />
 
       <div className="bg-[#1a1a1a] home-page-main-container">

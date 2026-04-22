@@ -245,7 +245,12 @@ function AppContent() {
   return (
     <>
       <Favicon />
-      <div className="min-h-screen text-white app-main-container">
+      <div
+        className="min-h-screen text-white app-main-container"
+        {...(persistentLibraryShell
+          ? { "data-mhg-persistent-library-shell": "true" }
+          : {})}
+      >
         <Routes>
           {/* Login page - public, no header */}
           <Route path="/login" element={<LoginPage />} />

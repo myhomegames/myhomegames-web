@@ -13,6 +13,7 @@ import { useSkin } from "../../contexts/SkinContext";
 import { useLibraryGames } from "../../contexts/LibraryGamesContext";
 import type { ViewMode, GameLibrarySection, GameItem, CollectionItem } from "../../types";
 import SidebarSearchOverlay from "./SidebarSearchOverlay";
+import "./LibrariesBar.css";
 
 type CollectionShortcut = {
   id: string;
@@ -445,8 +446,22 @@ export default function LibrariesBar({
   /* On /collections/:id, highlight only the collection, not a “page” tab as well */
   const showLibraryActiveHighlight = activeCollectionShortcutId == null;
 
+  /** Top-strip layout only; full sidebars (e.g. GOG) ship column layout in skin CSS. */
+  const verticalPageTabsLayout =
+    activeSkinWeb.libraryPagesVerticalList && !activeSkinWeb.persistentLibraryShell;
+
   return (
-    <div className="mhg-libraries-bar">
+    <div
+      className={[
+        "mhg-libraries-bar",
+        verticalPageTabsLayout ? "mhg-libraries-bar--vertical-page-tabs" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      {...(activeSkinWeb.libraryPagesVerticalList
+        ? { "data-mhg-library-pages-vertical-list": "true" }
+        : {})}
+    >
       <div className="mhg-libraries-bar-container" ref={containerRef}>
         {/* Menu dropdown bottom-left */}
         {API_BASE && getApiToken() && (
