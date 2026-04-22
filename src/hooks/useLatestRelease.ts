@@ -34,10 +34,17 @@ function detectOs(): OsKind {
 
   if (ua.includes("win") || platform === "windows") return "win";
   if (ua.includes("mac") || platform === "macos") {
-    const isArmMac =
+    // Browsers on Apple Silicon can expose inconsistent UA strings (often "Intel Mac OS X")
+    // and sometimes omit/obfuscate architecture. Prefer arm64 unless x64 is explicit.
+    const isExplicitX64 =
+      (typeof arch === "string" && /x86|x64|amd64|intel/i.test(arch)) ||
+      /x86_64|amd64|wow64/.test(ua);
+    const isExplicitArm64 =
       (typeof arch === "string" && /arm|aarch64/i.test(arch)) ||
-      /arm64|aarch64|apple silicon/i.test(ua);
-    return isArmMac ? "mac-arm64" : "mac-x64";
+      /arm64|aarch64|apple silicon/.test(ua);
+    if (isExplicitArm64) return "mac-arm64";
+    if (isExplicitX64) return "mac-x64";
+    return "mac-arm64";
   }
   return "linux";
 }
