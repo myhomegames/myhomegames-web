@@ -34,7 +34,10 @@ function detectOs(): OsKind {
 
   if (ua.includes("win") || platform === "windows") return "win";
   if (ua.includes("mac") || platform === "macos") {
-    return arch === "arm" ? "mac-arm64" : "mac-x64";
+    const isArmMac =
+      (typeof arch === "string" && /arm|aarch64/i.test(arch)) ||
+      /arm64|aarch64|apple silicon/i.test(ua);
+    return isArmMac ? "mac-arm64" : "mac-x64";
   }
   return "linux";
 }
