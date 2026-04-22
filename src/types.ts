@@ -3,6 +3,7 @@
 export type GameItem = {
   id: string;
   title: string;
+  subtitle?: string | number | null;
   summary?: string;
   cover?: string;
   background?: string;
@@ -40,6 +41,8 @@ export type GameItem = {
   keywords?: string[];
   alternativeNames?: string[];
   similarGames?: Array<{ id: number; name: string }>;
+  /** IGDB game_type id (0–14); label via i18n `igdbGameTypes.{id}`. */
+  type?: number | null;
   /** True when game is from IGDB only (not in library); click navigates to igdb-game page, cover shows "Nuovo" badge */
   isIgdbOnly?: boolean;
 };
@@ -53,6 +56,7 @@ export type CollectionItem = {
   externalCoverUrl?: string | null;
   showTitle?: boolean;
   gameCount?: number;
+  childs?: Array<string | number>;
 };
 
 export type TagItem = {
@@ -75,6 +79,7 @@ export type CollectionInfo = {
   /** Remote background URL in metadata when no local background.webp */
   externalBackgroundUrl?: string | null;
   showTitle?: boolean;
+  childs?: Array<string | number>;
 };
 
 export type IGDBGame = {
@@ -110,9 +115,19 @@ export type IGDBGame = {
   similarGames?: Array<{ id: number; name: string }>;
   criticRating?: number | null;
   userRating?: number | null;
+  /** IGDB game_type id (0–14) */
+  type?: number | null;
 };
 
-export type SortField = "title" | "year" | "stars" | "releaseDate" | "criticRating" | "userRating" | "ageRating";
+export type SortField =
+  | "title"
+  | "year"
+  | "stars"
+  | "releaseDate"
+  | "gameType"
+  | "criticRating"
+  | "userRating"
+  | "ageRating";
 
 export type ViewMode = "grid" | "detail" | "table";
 

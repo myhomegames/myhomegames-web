@@ -8,13 +8,13 @@ type ProtectedRouteProps = {
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
-  const { twitchLoginEnabled } = useSettings();
+  const { twitchLoginEnabled, settingsLoaded } = useSettings();
   
   // Check if we're in development mode (VITE_API_TOKEN is set)
   const DEV_TOKEN = import.meta.env.VITE_API_TOKEN || "";
   const isDevMode = DEV_TOKEN !== "";
 
-  if (isLoading) {
+  if (isLoading || !settingsLoaded) {
     return null;
   }
 

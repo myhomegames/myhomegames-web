@@ -1,5 +1,4 @@
-import { useState, type MouseEvent } from "react";
-
+import { useState, type CSSProperties, type MouseEvent } from "react";
 type StarRatingProps = {
   rating: number; // Rating from 0 to 5
   starSize?: number;
@@ -49,35 +48,32 @@ export default function StarRating({
   // Use hoverRating for preview if available, otherwise use actual rating
   const displayRating = hoverRating !== null ? hoverRating : rating;
 
+  const rowStyle = {
+    "--sr-gap": `${gap}px`,
+    "--sr-star-size": `${starSize}px`,
+  } as CSSProperties;
+
   return (
-    <div 
-      style={{ display: 'flex', alignItems: 'center', gap: `${gap}px` }}
-      onMouseLeave={handleMouseLeave}
-    >
+    <div className="star-rating" style={rowStyle} onMouseLeave={handleMouseLeave}>
       {[1, 2, 3, 4, 5].map((star) => {
         const filled = displayRating >= star;
         const halfFilled = displayRating >= star - 0.5 && displayRating < star;
         const starId = `star-${star}-${displayRating}`;
         
         return (
-          <div 
-            key={star} 
-            style={{ 
-              position: 'relative', 
-              width: `${starSize}px`, 
-              height: `${starSize}px`,
-              cursor: readOnly ? 'default' : 'pointer'
-            }}
+          <div
+            key={star}
+            className={`star-rating-star${readOnly ? "" : " star-rating-star--interactive"}`}
           >
             {/* Background star (always visible) */}
             <svg
+              className="star-rating-star-svg-bg"
               width={starSize}
               height={starSize}
               viewBox="0 0 24 24"
               fill="none"
               stroke="rgba(255, 255, 255, 0.3)"
               strokeWidth="1.5"
-              style={{ position: 'absolute', top: 0, left: 0 }}
             >
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
             </svg>
@@ -85,15 +81,7 @@ export default function StarRating({
             {/* Left half for half star click/hover */}
             {!readOnly && (
               <div
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: `${starSize / 2}px`,
-                  height: `${starSize}px`,
-                  cursor: 'pointer',
-                  zIndex: 10
-                }}
+                className="star-rating-star-half-hit star-rating-star-half-hit--left"
                 onClick={(e) => handleStarClick(e, star, true)}
                 onMouseEnter={() => handleStarHover(star, true)}
               />
@@ -102,15 +90,7 @@ export default function StarRating({
             {/* Right half for full star click/hover */}
             {!readOnly && (
               <div
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  right: 0,
-                  width: `${starSize / 2}px`,
-                  height: `${starSize}px`,
-                  cursor: 'pointer',
-                  zIndex: 10
-                }}
+                className="star-rating-star-half-hit star-rating-star-half-hit--right"
                 onClick={(e) => handleStarClick(e, star, false)}
                 onMouseEnter={() => handleStarHover(star, false)}
               />
@@ -119,13 +99,13 @@ export default function StarRating({
             {/* Filled star */}
             {filled && (
               <svg
+                className="star-rating-star-svg-overlay"
                 width={starSize}
                 height={starSize}
                 viewBox="0 0 24 24"
                 fill={color}
                 stroke={noStroke ? "none" : color}
                 strokeWidth={noStroke ? "0" : "1.5"}
-                style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
               >
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
@@ -134,13 +114,13 @@ export default function StarRating({
             {/* Half filled star */}
             {halfFilled && (
               <svg
+                className="star-rating-star-svg-overlay"
                 width={starSize}
                 height={starSize}
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke={noStroke ? "none" : color}
                 strokeWidth={noStroke ? "0" : "1.5"}
-                style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
               >
                 <defs>
                   <linearGradient id={starId} x1="0%" y1="0%" x2="100%" y2="0%">

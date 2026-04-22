@@ -2,9 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { formatIGDBGameDate } from "../utils/date";
+import { displayGameType } from "../utils/igdbGameType";
 import { API_BASE, getApiToken, getTwitchClientId, getTwitchClientSecret } from "../config";
 import type { IGDBGame } from "../types";
-
+import Cover from "../components/games/Cover";
 type AddGamePageProps = {
   onGameSelected: (game: IGDBGame) => void;
 };
@@ -96,15 +97,7 @@ export default function AddGamePage({
   }
 
   return (
-    <div
-      className="bg-[#1a1a1a] text-white"
-      style={{
-        width: "100%",
-        height: "100%",
-        overflowY: "auto",
-        overflowX: "hidden",
-      }}
-    >
+    <div className="bg-[#1a1a1a] text-white add-game-page-root">
       <div className="max-w-4xl mx-auto px-8 py-8">
         <div className="bg-[#1a1a1a] rounded-lg shadow-2xl overflow-hidden border border-[#2a2a2a] max-h-[80vh] flex flex-col">
           <div className="p-6 border-b border-[#2a2a2a] bg-[#0d0d0d]">
@@ -129,22 +122,9 @@ export default function AddGamePage({
 
             <div className="flex-1 overflow-y-auto">
               {isSearching ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 24px' }}>
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    border: '3px solid rgba(255, 255, 255, 0.1)',
-                    borderTopColor: '#FFB300',
-                    borderRadius: '50%',
-                    animation: 'spin 0.8s linear infinite',
-                    marginBottom: '16px'
-                  }}></div>
-                  <div style={{ color: 'rgba(255, 255, 255, 0.5)' }}>{t("addGame.loading", "Searching...")}</div>
-                  <style>{`
-                    @keyframes spin {
-                      to { transform: rotate(360deg); }
-                    }
-                  `}</style>
+                <div className="add-game-page-loading">
+                  <div className="add-game-page-spinner" />
+                  <div className="add-game-page-loading-text">{t("addGame.loading", "Searching...")}</div>
                 </div>
               ) : results.length === 0 && searchQuery.trim().length >= 2 ? (
                 <div className="text-center text-gray-400 py-8">
@@ -156,30 +136,37 @@ export default function AddGamePage({
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-3">
-                  {results.map((game) => (
+                  {results.map((game) => {
+                    const typeLabel =
+                      game.type != null ? displayGameType(game.type) : "";
+                    return (
                     <button
                       key={game.id}
                       onClick={() => handleGameSelect(game)}
                       className="flex items-center gap-4 p-4 bg-[#2a2a2a] rounded hover:bg-[#3a3a3a] transition-colors text-left"
                     >
-                      {game.cover ? (
-                        <img
-                          src={game.cover}
-                          alt={game.name}
-                          className="w-20 h-28 object-cover rounded flex-shrink-0"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display =
-                              "none";
-                          }}
+                      <div className="shrink-0 w-20 [&_.games-list-cover]:rounded-lg">
+                        <Cover
+                          title={game.name}
+                          coverUrl={game.cover || ""}
+                          width={80}
+                          height={120}
+                          showTitle={false}
+                          detail={false}
+                          play={false}
+                          showBorder={false}
                         />
-                      ) : (
-                        <div className="w-20 h-28 bg-[#1a1a1a] rounded flex items-center justify-center flex-shrink-0">
-                          <div className="text-gray-500 text-2xl">🎮</div>
-                        </div>
-                      )}
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-white font-medium text-lg mb-1">
-                          {game.name}
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <div className="text-white font-medium text-lg min-w-0">
+                            {game.name}
+                          </div>
+                          {typeLabel ? (
+                            <span className="inline-block shrink-0 px-2 py-1 rounded text-xs font-semibold bg-orange-500/15 border border-orange-500/45 text-orange-400 max-w-full truncate">
+                              {typeLabel}
+                            </span>
+                          ) : null}
                         </div>
                         {formatIGDBGameDate(game, t, i18n) && (
                           <div className="text-gray-400 text-sm mb-2">
@@ -193,7 +180,8 @@ export default function AddGamePage({
                         )}
                       </div>
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

@@ -13,8 +13,6 @@ import {
 import { useCollections } from "../../contexts/CollectionsContext";
 import { useDevelopers } from "../../contexts/DevelopersContext";
 import { usePublishers } from "../../contexts/PublishersContext";
-import "./AddToCollectionModal.css";
-
 export type AddToResourceType = "collections" | "developers" | "publishers";
 
 const RESOURCE_CONFIG: Record<

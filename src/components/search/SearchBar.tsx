@@ -4,9 +4,6 @@ import { useTranslation } from "react-i18next";
 import SearchResultsList from "./SearchResultsList";
 import { filterRootCollectionLikes } from "../../utils/stringUtils";
 import type { GameItem, CollectionItem } from "../../types";
-import "./SearchBar.css";
-import "./SearchResultsList.css";
-
 type SearchBarProps = {
   games: GameItem[];
   collections: CollectionItem[];
@@ -155,6 +152,11 @@ export default function SearchBar({ games, collections, developers = [], publish
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as HTMLElement;
+
+      // Sidebar search dialog: header/close sit outside the SearchBar root; treat whole dialog as in-bounds
+      if (target.closest("[data-mhg-sidebar-search-dialog]")) {
+        return;
+      }
       
       // Don't close if clicking on a modal (edit or delete)
       if (
@@ -447,7 +449,9 @@ export default function SearchBar({ games, collections, developers = [], publish
       </div>
 
       {((isOpen && !isOnSearchResultsPage && searchQuery.trim().length >= 2 && (filteredGames.length > 0 || filteredCollections.length > 0 || filteredDevelopers.length > 0 || filteredPublishers.length > 0)) || isModalOpen) && (
-        <div className="mhg-dropdown search-dropdown" style={{ display: isModalOpen ? 'none' : 'flex' }}>
+        <div
+          className={`mhg-dropdown search-dropdown${isModalOpen ? " search-dropdown--modal-hidden" : ""}`}
+        >
           <div className="search-dropdown-scroll">
             <SearchResultsList
               games={filteredGames}
@@ -568,7 +572,6 @@ export default function SearchBar({ games, collections, developers = [], publish
                 className={`w-full mhg-dropdown-item search-dropdown-item search-recent-item ${
                   index < recentSearches.length - 1 ? "has-border" : ""
                 }`}
-                style={{ cursor: 'pointer' }}
               >
                 <svg
                   className="search-recent-icon"

@@ -12,9 +12,8 @@ import { useEditGame } from "../common/actions";
 import VirtualizedGamesListDetail from "./VirtualizedGamesListDetail";
 import type { GameItem, CollectionItem } from "../../types";
 import { formatGameDate } from "../../utils/date";
+import { displayGameType, toGameTypeId } from "../../utils/igdbGameType";
 import { gameHasExecutableForPlatform, getExecutablesForPlatform } from "../../utils/gameExecutables";
-import "./GamesListDetail.css";
-
 const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are more than this many items
 
 type GamesListDetailProps = {
@@ -31,6 +30,7 @@ type GamesListDetailProps = {
   platformIdForPlay?: string;
   saveScrollBeforeEdit?: () => void;
   clearScrollAfterEditRef?: () => void;
+  hideGameType?: boolean;
 };
 
 const FIXED_COVER_SIZE = 100; // Fixed size corresponding to minimum slider position
@@ -48,6 +48,7 @@ type GameDetailItemProps = {
   index: number;
   allCollections?: CollectionItem[];
   platformIdForPlay?: string;
+  hideGameType?: boolean;
 };
 
 export function GameDetailItem({
@@ -63,6 +64,7 @@ export function GameDetailItem({
   index,
   allCollections = [],
   platformIdForPlay,
+  hideGameType = false,
 }: GameDetailItemProps) {
   const { t, i18n } = useTranslation();
   const isIgdbOnly = (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly;
@@ -93,6 +95,11 @@ export function GameDetailItem({
   const coverUrl = useMemo(() => {
     return buildCoverUrl(API_BASE, game.cover, coverChanged);
   }, [game.cover, coverChanged, buildCoverUrl]);
+
+  const gameTypeLabel = useMemo(
+    () => displayGameType(toGameTypeId(game.type)),
+    [game.type]
+  );
 
   const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -152,13 +159,16 @@ export function GameDetailItem({
         overlayContent={isIgdbOnly ? <span className="game-detail-similar-cover-badge">{t("addGame.new", "New")}</span> : undefined}
       />
       <div className="games-list-detail-content">
-        <div className="text-white mb-2 games-list-detail-title">
-          {game.title}
+        <div className="games-list-detail-title-row mb-2">
+          <div className="text-white games-list-detail-title">{game.title}</div>
+          {!hideGameType && gameTypeLabel ? (
+            <span className="games-list-detail-type">{gameTypeLabel}</span>
+          ) : null}
         </div>
         {(game.year !== null && game.year !== undefined) || (game.stars !== null && game.stars !== undefined) ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <div className="games-list-detail-meta-row">
             {game.year !== null && game.year !== undefined && (
-              <div className="text-gray-500" style={{ fontSize: "0.85rem" }}>
+              <div className="text-gray-500 games-list-detail-year">
                 {formatGameDate(game, t, i18n) || game.year.toString()}
               </div>
             )}
@@ -174,6 +184,7 @@ export function GameDetailItem({
       <div className="games-list-detail-actions">
         {!isIgdbOnly && (
         <button
+          type="button"
           onClick={handleEditClick}
           className="games-list-detail-edit-button"
           aria-label="Edit"
@@ -250,6 +261,7 @@ export default function GamesListDetail({
   platformIdForPlay,
   saveScrollBeforeEdit,
   clearScrollAfterEditRef,
+  hideGameType = false,
 }: GamesListDetailProps) {
   const { t } = useTranslation();
   const editGame = useEditGame();
@@ -279,12 +291,9 @@ export default function GamesListDetail({
 
   return (
     <>
-      <div 
+      <div
         ref={containerRef}
-        className="games-list-detail-container"
-        style={{
-          height: useVirtualization ? "100%" : undefined,
-        }}
+        className={`games-list-detail-container${useVirtualization ? " games-list-detail-container--virtualized" : ""}`}
       >
         {useVirtualization ? (
           <VirtualizedGamesListDetail
@@ -300,6 +309,7 @@ export default function GamesListDetail({
             buildCoverUrl={buildCoverUrl}
             allCollections={allCollections}
             platformIdForPlay={platformIdForPlay}
+            hideGameType={hideGameType}
           />
         ) : (
           games.map((game, index) => (
@@ -317,6 +327,7 @@ export default function GamesListDetail({
               index={index}
               allCollections={allCollections}
               platformIdForPlay={platformIdForPlay}
+              hideGameType={hideGameType}
             />
           ))
         )}

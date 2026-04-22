@@ -1,22 +1,24 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   BrowserRouter,
   Routes,
   Route,
   useNavigate,
   useParams,
+  useLocation,
 } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import "./App.css";
 import Favicon from "./components/common/Favicon";
 import Header from "./components/layout/Header";
 import AddGame from "./components/common/AddGame";
 import GameDetail from "./components/games/GameDetail";
 import LaunchModal from "./components/common/LaunchModal";
 import ProtectedRoute from "./components/common/ProtectedRoute";
+import MainAppLayout from "./layouts/MainAppLayout";
 
 // Import pages normally - Vite will handle code splitting automatically via manualChunks config
 import HomePage from "./pages/HomePage";
+import HomePageClassic from "./pages/HomePageClassic";
 import SettingsPage from "./pages/SettingsPage";
 import ProfilePage from "./pages/ProfilePage";
 import AddGamePage from "./pages/AddGamePage";
@@ -36,6 +38,8 @@ import { useCollections } from "./contexts/CollectionsContext";
 import { useDevelopers } from "./contexts/DevelopersContext";
 import { usePublishers } from "./contexts/PublishersContext";
 import { useLibraryGames } from "./contexts/LibraryGamesContext";
+import { useSkin } from "./contexts/SkinContext";
+import { TitleFilterProvider } from "./contexts/TitleFilterContext";
 
 // Wrapper function for buildApiUrl that uses API_BASE
 function buildApiUrlWithBase(
@@ -54,6 +58,7 @@ function AppContent() {
   const [isLaunching, setIsLaunching] = useState(false);
   const [addGameOpen, setAddGameOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { i18n } = useTranslation();
   const { setLoading } = useLoading();
   const { isLoading: authLoading } = useAuth();
@@ -224,22 +229,34 @@ function AppContent() {
 
   function handleGameClick(game: GameItem) {
     navigate(`/game/${game.id}`, {
-      state: { from: window.location.pathname }
+      state: { from: location.pathname + location.search },
     });
   }
 
   function handleGameSelect(game: GameItem) {
-    navigate(`/game/${game.id}`);
+    navigate(`/game/${game.id}`, {
+      state: { from: location.pathname + location.search },
+    });
   }
+
+  const { activeSkinWeb } = useSkin();
+  const persistentLibraryShell = activeSkinWeb.persistentLibraryShell;
 
   return (
     <>
       <Favicon />
-      <div className="bg-[#1a1a1a] text-white app-main-container">
+      <div
+        className="min-h-screen text-white app-main-container"
+        {...(persistentLibraryShell
+          ? { "data-mhg-persistent-library-shell": "true" }
+          : {})}
+      >
         <Routes>
           {/* Login page - public, no header */}
           <Route path="/login" element={<LoginPage />} />
-          
+
+          {!persistentLibraryShell ? (
+            <>
           {/* Protected routes - require authentication (unless VITE_API_TOKEN is set) */}
           <Route
             path="/"
@@ -256,7 +273,7 @@ function AppContent() {
                   onSettingsClick={() => navigate("/settings")}
                   onAddGameClick={() => setAddGameOpen(true)}
                 />
-                <HomePage
+                <HomePageClassic
                   onGameClick={handleGameClick}
                   onPlay={openLauncher}
                   onGamesLoaded={() => {
@@ -264,6 +281,9 @@ function AppContent() {
                   }}
                   onReloadMetadata={handleReloadAllMetadata}
                   allCollections={allCollections}
+                  onOpenCollection={(collectionId) =>
+                    navigate(`/collections/${encodeURIComponent(collectionId)}`)
+                  }
                 />
               </ProtectedRoute>
             }
@@ -582,6 +602,211 @@ function AppContent() {
             }
           />
           <Route
+            path="/igdb-game/:igdbId"
+            element={
+              <ProtectedRoute>
+                <Header
+                  onPlay={openLauncher}
+                  allGames={allGames}
+                  allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
+                  onGameSelect={handleGameSelect}
+                  onHomeClick={() => navigate("/")}
+                  onSettingsClick={() => navigate("/settings")}
+                  onAddGameClick={() => setAddGameOpen(true)}
+                />
+                <IGDBGameDetailPage />
+              </ProtectedRoute>
+            }
+          />
+            </>
+          ) : (
+            <>
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <MainAppLayout
+                      onPlay={openLauncher}
+                      onGameClick={handleGameClick}
+                      onGamesLoaded={() => {
+                        // Games are now managed by LibraryGamesContext, no need to update here
+                      }}
+                      onReloadMetadata={handleReloadAllMetadata}
+                      allCollections={allCollections}
+                      allGames={allGames}
+                      allDevelopers={allDevelopers}
+                      allPublishers={allPublishers}
+                      onGameSelect={handleGameSelect}
+                      onSettingsClick={() => navigate("/settings")}
+                      onAddGameClick={() => setAddGameOpen(true)}
+                    />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<HomePage />} />
+                <Route
+                  path="game/:gameId"
+                  element={<GameDetailPage onPlay={openLauncher} allCollections={allCollections} />}
+                />
+                <Route
+                  path="collections/:collectionId"
+                  element={
+                    <LibraryItemDetailPage
+                      onGameClick={handleGameClick}
+                      onIgdbGameClick={twitchLoginEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                      onGamesLoaded={() => {}}
+                      onPlay={openLauncher}
+                      allCollections={allCollections}
+                    />
+                  }
+                />
+                <Route
+                  path="category/:categoryId"
+                  element={
+                    <TagGamesRoutePage
+                      onGameClick={handleGameClick}
+                      onGamesLoaded={() => {
+                        // Games are now managed by LibraryGamesContext, no need to update here
+                      }}
+                      onPlay={openLauncher}
+                      allCollections={allCollections}
+                      tagKey="categories"
+                    />
+                  }
+                />
+                <Route
+                  path="series/:seriesId"
+                  element={
+                    <TagGamesRoutePage
+                      onGameClick={handleGameClick}
+                      onGamesLoaded={() => {}}
+                      onPlay={openLauncher}
+                      allCollections={allCollections}
+                      tagKey="series"
+                      onIgdbGameClick={twitchLoginEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                    />
+                  }
+                />
+                <Route
+                  path="franchise/:franchiseId"
+                  element={
+                    <TagGamesRoutePage
+                      onGameClick={handleGameClick}
+                      onGamesLoaded={() => {}}
+                      onPlay={openLauncher}
+                      allCollections={allCollections}
+                      tagKey="franchise"
+                      onIgdbGameClick={twitchLoginEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                    />
+                  }
+                />
+                <Route
+                  path="platforms/:platformId"
+                  element={
+                    <TagGamesRoutePage
+                      onGameClick={handleGameClick}
+                      onGamesLoaded={() => {
+                        // Games are now managed by LibraryGamesContext, no need to update here
+                      }}
+                      onPlay={openLauncher}
+                      allCollections={allCollections}
+                      tagKey="platforms"
+                      onIgdbGameClick={twitchLoginEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                    />
+                  }
+                />
+                <Route
+                  path="themes/:themeId"
+                  element={
+                    <TagGamesRoutePage
+                      onGameClick={handleGameClick}
+                      onGamesLoaded={() => {
+                        // Games are now managed by LibraryGamesContext, no need to update here
+                      }}
+                      onPlay={openLauncher}
+                      allCollections={allCollections}
+                      tagKey="themes"
+                      onIgdbGameClick={twitchLoginEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                    />
+                  }
+                />
+                <Route
+                  path="developers/:developerId"
+                  element={
+                    <LibraryItemDetailPage
+                      onGameClick={handleGameClick}
+                      onIgdbGameClick={twitchLoginEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                      onGamesLoaded={() => {}}
+                      onPlay={openLauncher}
+                      allCollections={allCollections}
+                    />
+                  }
+                />
+                <Route
+                  path="publishers/:publisherId"
+                  element={
+                    <LibraryItemDetailPage
+                      onGameClick={handleGameClick}
+                      onIgdbGameClick={twitchLoginEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                      onGamesLoaded={() => {}}
+                      onPlay={openLauncher}
+                      allCollections={allCollections}
+                    />
+                  }
+                />
+                <Route
+                  path="game-engines/:gameEngineId"
+                  element={
+                    <TagGamesRoutePage
+                      onGameClick={handleGameClick}
+                      onGamesLoaded={() => {
+                        // Games are now managed by LibraryGamesContext, no need to update here
+                      }}
+                      onPlay={openLauncher}
+                      allCollections={allCollections}
+                      tagKey="gameEngines"
+                      onIgdbGameClick={twitchLoginEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                    />
+                  }
+                />
+                <Route
+                  path="game-modes/:gameModeId"
+                  element={
+                    <TagGamesRoutePage
+                      onGameClick={handleGameClick}
+                      onGamesLoaded={() => {
+                        // Games are now managed by LibraryGamesContext, no need to update here
+                      }}
+                      onPlay={openLauncher}
+                      allCollections={allCollections}
+                      tagKey="gameModes"
+                      onIgdbGameClick={twitchLoginEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                    />
+                  }
+                />
+                <Route
+                  path="player-perspectives/:playerPerspectiveId"
+                  element={
+                    <TagGamesRoutePage
+                      onGameClick={handleGameClick}
+                      onGamesLoaded={() => {
+                        // Games are now managed by LibraryGamesContext, no need to update here
+                      }}
+                      onPlay={openLauncher}
+                      allCollections={allCollections}
+                      tagKey="playerPerspectives"
+                      onIgdbGameClick={twitchLoginEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                    />
+                  }
+                />
+                <Route path="igdb-game/:igdbId" element={<IGDBGameDetailPage />} />
+              </Route>
+            </>
+          )}
+
+          <Route
             path="/settings"
             element={
               <>
@@ -664,25 +889,6 @@ function AppContent() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/igdb-game/:igdbId"
-            element={
-              <ProtectedRoute>
-                <Header
-                  onPlay={openLauncher}
-                  allGames={allGames}
-                  allCollections={allCollections}
-                  allDevelopers={allDevelopers}
-                  allPublishers={allPublishers}
-                  onGameSelect={handleGameSelect}
-                  onHomeClick={() => navigate("/")}
-                  onSettingsClick={() => navigate("/settings")}
-                  onAddGameClick={() => setAddGameOpen(true)}
-                />
-                <IGDBGameDetailPage />
-              </ProtectedRoute>
-            }
-          />
         </Routes>
 
         {/* Add Game Modal */}
@@ -712,6 +918,8 @@ function GameDetailPage({
 }) {
   const { t } = useTranslation();
   const { setLoading, isLoading } = useLoading();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { gameId } = useParams<{ gameId: string }>();
   const [game, setGame] = useState<GameItem | null>(null);
   const isDeletingLocallyRef = useRef(false);
@@ -729,6 +937,21 @@ function GameDetailPage({
     }
   }, [game?.id, game?.cover]);
 
+  const leaveAfterCurrentGameRemoved = useCallback(() => {
+    const rawFrom = (location.state as { from?: string } | null)?.from;
+    const currentPath = location.pathname + location.search;
+    if (typeof rawFrom === "string" && rawFrom.trim() !== "" && rawFrom !== currentPath) {
+      navigate(rawFrom, { replace: true });
+      return;
+    }
+    const idx = (window.history.state as { idx?: number } | null)?.idx;
+    if (typeof idx === "number" && idx > 0) {
+      navigate(-1);
+      return;
+    }
+    navigate("/", { replace: true });
+  }, [navigate, location.pathname, location.search, location.state]);
+
   // Listen for game deletion events - if the current game is deleted from elsewhere, navigate back
   useEffect(() => {
     const handleGameDeleted = (event: Event) => {
@@ -736,8 +959,7 @@ function GameDetailPage({
       const deletedGameId = customEvent.detail?.gameId;
       // Only navigate if the game was deleted from elsewhere (not from this page)
       if (deletedGameId && game && String(game.id) === String(deletedGameId) && !isDeletingLocallyRef.current) {
-        // The current game was deleted from elsewhere (e.g., search popup), navigate back
-        window.history.back();
+        leaveAfterCurrentGameRemoved();
       }
       // Reset the flag after a short delay to allow the event to propagate
       setTimeout(() => {
@@ -749,7 +971,7 @@ function GameDetailPage({
     return () => {
       window.removeEventListener("gameDeleted", handleGameDeleted as EventListener);
     };
-  }, [game]);
+  }, [game, leaveAfterCurrentGameRemoved]);
 
   // Listen for game updates (e.g. add to developer/publisher) so the detail view reflects changes
   useEffect(() => {
@@ -790,6 +1012,7 @@ function GameDetailPage({
         keywords: updatedGame.keywords ?? undefined,
         alternativeNames: updatedGame.alternativeNames ?? undefined,
         similarGames: updatedGame.similarGames ?? undefined,
+        type: updatedGame.type ?? undefined,
       };
       setGame(parsed);
     };
@@ -864,6 +1087,7 @@ function GameDetailPage({
         keywords: found.keywords || null,
         alternativeNames: found.alternativeNames || null,
         similarGames: found.similarGames || null,
+        type: found.type ?? null,
       };
       setGame(parsed);
     } catch (err: any) {
@@ -907,10 +1131,8 @@ function GameDetailPage({
         setGame(updatedGame);
       }}
       onGameDelete={() => {
-        // Mark that deletion is happening locally
         isDeletingLocallyRef.current = true;
-        // Navigate back after deletion
-        window.history.back();
+        leaveAfterCurrentGameRemoved();
       }}
     />
   );
@@ -919,7 +1141,9 @@ function GameDetailPage({
 export default function App() {
   return (
     <BrowserRouter basename="/app/">
-      <AppContent />
+      <TitleFilterProvider>
+        <AppContent />
+      </TitleFilterProvider>
     </BrowserRouter>
   );
 }

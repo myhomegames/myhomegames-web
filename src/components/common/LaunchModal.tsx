@@ -1,8 +1,6 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import "./LaunchModal.css";
-
 type LaunchModalProps = {
   isLaunching: boolean;
   launchError: string | null;

@@ -2,11 +2,14 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useLoading } from "../contexts/LoadingContext";
 import { useLibraryGames } from "../contexts/LibraryGamesContext";
+import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
+import { useSkin } from "../contexts/SkinContext";
 import TagList from "../components/lists/TagList";
 import EditTagModal from "../components/tags/EditTagModal";
 import AlphabetNavigator from "../components/ui/AlphabetNavigator";
 import type { TagItem, GameItem } from "../types";
 import { compareTitles } from "../utils/stringUtils";
+import { titleMatchesFilter } from "../utils/titleFilter";
 import { API_BASE } from "../config";
 import { buildApiHeaders, buildApiUrl, buildCoverUrl } from "../utils/api";
 
@@ -56,6 +59,8 @@ export default function TagListPage({
   editConfig,
 }: TagListPageProps) {
   const { isLoading, setLoading } = useLoading();
+  const titleFilterQuery = useTitleFilterQuery();
+  const { activeSkinWeb } = useSkin();
   const { games, isLoading: gamesLoading } = useLibraryGames();
   const [items, setItems] = useState<TagItem[]>([]);
   const [serverItems, setServerItems] = useState<TagItem[] | null>(null);
@@ -70,7 +75,8 @@ export default function TagListPage({
     setLoading(gamesLoading || listLoading || !isReady);
   }, [gamesLoading, listLoading, isReady, setLoading]);
 
-  useScrollRestoration(scrollContainerRef);
+  const scrollStorageKey = `${window.location.pathname}:${routeBase}`;
+  useScrollRestoration(scrollContainerRef, routeBase);
 
   useEffect(() => {
     if (!listResponseKey) {
@@ -196,6 +202,15 @@ export default function TagListPage({
     return (item: TagItem) => buildCoverUrl(API_BASE, item.cover);
   }, []);
 
+  const displayItems = useMemo(() => {
+    const q = titleFilterQuery.trim();
+    if (!q) return items;
+    return items.filter((item) => {
+      const label = getDisplayName ? getDisplayName(item.title) : item.title;
+      return titleMatchesFilter(item.title, q) || titleMatchesFilter(label, q);
+    });
+  }, [items, titleFilterQuery, getDisplayName]);
+
   const handleItemUpdate = (updatedItem: TagItem) => {
     const isMatch = (item: TagItem) => String(item.id) === String(updatedItem.id);
 
@@ -268,28 +283,22 @@ export default function TagListPage({
       if (container.scrollHeight > 0) {
         container.scrollTop = saved;
         try {
-          sessionStorage.setItem(window.location.pathname, saved.toString());
+          sessionStorage.setItem(scrollStorageKey, saved.toString());
         } catch {
           // Ignore
         }
       }
     }
-  }, [editingItem]);
+  }, [editingItem, scrollStorageKey]);
 
   return (
     <main className="flex-1 home-page-content">
       <div className="home-page-layout">
-        <div
-          className="home-page-content-wrapper"
-          style={{
-            opacity: isReady ? 1 : 0,
-            transition: "opacity 0.2s ease-in-out",
-          }}
-        >
+        <div className={`home-page-content-wrapper home-page-fade-in${isReady ? " home-page-fade-in--ready" : ""}`}>
           <div ref={scrollContainerRef} className="home-page-scroll-container">
             {!isLoading && (
               <TagList
-                items={items}
+                items={displayItems}
                 coverSize={coverSize * 2}
                 itemRefs={itemRefs}
                 onItemEdit={editConfig ? handleItemEdit : undefined}
@@ -303,9 +312,12 @@ export default function TagListPage({
             )}
           </div>
         </div>
-        {showAlphabetNavigator && isReady && items.length > 0 && (
+        {showAlphabetNavigator &&
+          !activeSkinWeb.disableAlphabetNavigator &&
+          isReady &&
+          displayItems.length > 0 && (
           <AlphabetNavigator
-            games={items as { id: string; title: string }[]}
+            games={displayItems as { id: string; title: string }[]}
             scrollContainerRef={scrollContainerRef}
             itemRefs={itemRefs}
             ascending={true}

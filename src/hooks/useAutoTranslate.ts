@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
-// Cache per le traduzioni già ottenute (chiave: `${text}-${targetLang}`)
+// Cache for resolved translations (key: `${text}-${targetLang}`)
 const translationCache = new Map<string, string>();
 
-// Coda per gestire le traduzioni in modo sequenziale e rispettare il rate limiting
+// Queue translations sequentially to respect rate limiting
 const translationQueue: Array<{
   text: string;
   targetLang: string;
@@ -14,9 +14,9 @@ const translationQueue: Array<{
 }> = [];
 
 let isProcessingQueue = false;
-const QUEUE_DELAY = 500; // 500ms tra le richieste per evitare rate limiting
+const QUEUE_DELAY = 500; // 500ms between requests to avoid rate limiting
 
-// Mappa dei codici lingua per LibreTranslate
+// Language code map for translation backends
 const LANGUAGE_MAP: Record<string, string> = {
   'it': 'it',
   'fr': 'fr',
@@ -29,10 +29,10 @@ const LANGUAGE_MAP: Record<string, string> = {
 };
 
 /**
- * Hook per tradurre automaticamente un testo quando non c'è traduzione disponibile
- * @param text - Testo da tradurre
- * @param translationKey - Chiave di traduzione da controllare
- * @returns Testo tradotto o originale
+ * Auto-translate when no locale string is available.
+ * @param text - Source text
+ * @param translationKey - i18n key to check first
+ * @returns Translated or original text
  */
 type AutoTranslateOptions = {
   disabled?: boolean;
@@ -53,35 +53,35 @@ export function useAutoTranslate(
       return;
     }
 
-    // Controlla se esiste già una traduzione nei file di localizzazione
-    // Se la chiave non esiste, t() restituisce la chiave stessa
+    // Prefer an existing entry from locale files
+    // If the key is missing, t() may return the key itself
     const existingTranslation = t(translationKey, { defaultValue: '$$$$MISSING$$$$' });
     
-    // Se esiste una traduzione (non è il marker di mancante e non è uguale alla chiave), usala
+    // Use locale value when present (not the missing marker and not equal to the raw key)
     if (existingTranslation !== '$$$$MISSING$$$$' && existingTranslation !== translationKey && existingTranslation !== text) {
       setTranslatedText(existingTranslation);
       return;
     }
 
-    // Se la lingua corrente è inglese, non tradurre
+    // English UI: no machine translation
     if (i18n.language === 'en') {
       setTranslatedText(formatTranslation(text));
       return;
     }
 
-    // Controlla se abbiamo già tradotto questo testo nella cache
+    // Reuse cached translation for this text + language
     const cacheKey = `${text}-${i18n.language}`;
     if (translationCache.has(cacheKey)) {
       setTranslatedText(translationCache.get(cacheKey)!);
       return;
     }
 
-    // Se stiamo già traducendo, non fare una nuova richiesta
+    // Skip if a translation request is already in flight
     if (isTranslatingRef.current) {
       return;
     }
 
-    // Traduci usando Google Translate API con coda per gestire il rate limiting
+    // Translate via Google Translate API; queue enforces rate limiting
     isTranslatingRef.current = true;
     
     const translateText = async (): Promise<string> => {
@@ -124,8 +124,8 @@ type AutoTranslateBatchOptions = {
 };
 
 /**
- * Traduce più titoli con una sola chiamata HTTP.
- * Restituisce una mappa id -> titolo (tradotto o formattato).
+ * Translate multiple titles in one HTTP call.
+ * Returns a map id -> title (translated or formatted).
  */
 export function useAutoTranslateBatch(
   items: AutoTranslateBatchItem[],
@@ -191,7 +191,7 @@ export function useAutoTranslateBatch(
     }
     batchKeyRef.current = batchKey;
 
-    // Mostra subito i titoli già risolti (i18n/cache)
+    // Show titles already resolved from i18n/cache immediately
     setResults(next);
 
     tryGoogleTranslateBatch(
@@ -218,15 +218,14 @@ export function useAutoTranslateBatch(
 }
 
 /**
- * Formatta la traduzione in \"sentence case\":
- * tutto minuscolo tranne la prima lettera della frase.
+ * Format translation in sentence case: lowercase except the first letter.
  */
 function formatTranslation(text: string): string {
   if (!text || typeof text !== 'string') {
     return text;
   }
 
-  // Rimuovi trattini e sostituiscili con spazi
+  // Replace hyphens with spaces
   const normalized = text.replace(/-/g, ' ').trim();
   if (!normalized) return normalized;
 
@@ -237,12 +236,11 @@ function formatTranslation(text: string): string {
 const BATCH_SEP = '\n';
 
 /**
- * Usa Google Translate API (endpoint pubblico non ufficiale)
+ * Call Google Translate (unofficial public endpoint).
  */
 async function tryGoogleTranslate(text: string, targetLang: string): Promise<string | null> {
   try {
-    // Usa l'endpoint pubblico di Google Translate
-    // Nota: questo è un endpoint non ufficiale ma funzionante
+    // Public Google Translate endpoint (unofficial but commonly used)
     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
     
     const response = await fetch(url, {
@@ -259,8 +257,8 @@ async function tryGoogleTranslate(text: string, targetLang: string): Promise<str
 
     const data = await response.json();
     
-    // Google Translate restituisce un array complesso, estraiamo il testo tradotto
-    // Formato: [[["traduzione", "originale", null, null, 0]], null, "en"]
+    // Response is a nested array; extract translated segments
+    // Shape: [[["translation", "original", null, null, 0]], null, "en"]
     if (Array.isArray(data) && data[0] && Array.isArray(data[0])) {
       const translatedParts = data[0]
         .map((part: any[]) => part && part[0])
@@ -278,7 +276,7 @@ async function tryGoogleTranslate(text: string, targetLang: string): Promise<str
 }
 
 /**
- * Traduce più testi con una sola chiamata HTTP (join con separatore, poi split).
+ * Translate multiple strings in one HTTP call (join with separator, then split).
  */
 async function tryGoogleTranslateBatch(texts: string[], targetLang: string): Promise<(string | null)[]> {
   if (texts.length === 0) return [];
@@ -298,9 +296,7 @@ async function tryGoogleTranslateBatch(texts: string[], targetLang: string): Pro
   }
 }
 
-/**
- * Processa la coda di traduzioni in modo sequenziale per rispettare il rate limiting
- */
+/** Process the translation queue sequentially to respect rate limiting */
 async function processTranslationQueue() {
   if (isProcessingQueue || translationQueue.length === 0) {
     return;
@@ -313,15 +309,15 @@ async function processTranslationQueue() {
     if (!item) break;
 
     try {
-      // Aspetta prima di processare la prossima richiesta
+      // Delay before the next queued request
       if (translationQueue.length > 0) {
         await new Promise(resolve => setTimeout(resolve, QUEUE_DELAY));
       }
 
-      // Usa Google Translate API (endpoint pubblico)
+      // Google Translate (public endpoint)
       const targetLang = LANGUAGE_MAP[item.targetLang] || item.targetLang;
       
-      // Se la lingua non è supportata, usa il testo originale
+      // Unsupported language: return original text
       if (!targetLang || targetLang === 'en') {
         item.resolve(item.text);
         return;
@@ -335,15 +331,15 @@ async function processTranslationQueue() {
           const translated = await tryGoogleTranslate(item.text, targetLang);
           
           if (translated) {
-            // Formatta la traduzione: capitalizza ogni parola e rimuovi trattini
+            // Sentence-case the translation
             const formatted = formatTranslation(translated);
             
-            // Salva nella cache
+            // Store in cache
             translationCache.set(item.cacheKey, formatted);
             item.resolve(formatted);
             break;
           } else {
-            // Se la traduzione fallisce, usa il testo originale
+            // On empty response, fall back to source text
             item.resolve(item.text);
             break;
           }
@@ -351,18 +347,18 @@ async function processTranslationQueue() {
           lastError = error;
           retries--;
           if (retries > 0) {
-            const backoffDelay = Math.pow(2, 3 - retries) * 1000; // Backoff esponenziale
+            const backoffDelay = Math.pow(2, 3 - retries) * 1000; // exponential backoff
             await new Promise(resolve => setTimeout(resolve, backoffDelay));
           }
         }
       }
 
       if (retries === 0 && lastError) {
-        item.resolve(item.text); // Usa il testo originale in caso di errore
+        item.resolve(item.text); // fall back to source on persistent failure
       }
     } catch (error: any) {
       console.error(`[useAutoTranslate] Error processing translation queue:`, error);
-      item.resolve(item.text); // Usa il testo originale in caso di errore
+      item.resolve(item.text); // fall back to source on error
     }
   }
 

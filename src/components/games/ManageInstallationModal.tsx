@@ -7,8 +7,6 @@ import { useTagLists } from "../../contexts/TagListsContext";
 import TagEditor from "../common/TagEditor";
 import type { GameItem } from "../../types";
 import { buildApiUrl } from "../../utils/api";
-import "./ManageInstallationModal.css";
-
 type ExecutableState = {
   label: string;
   platform: string;
@@ -16,6 +14,8 @@ type ExecutableState = {
   existingPath: string | null;
   /** Full filename on server (e.g. Play-1.sh) when row loaded from game.executables */
   existingFileName?: string | null;
+  /** When user picks a new file to replace an existing script, server overwrites this basename instead of creating a new N- file. */
+  replaceFileName?: string | null;
   isExisting?: boolean;
 };
 
@@ -37,9 +37,30 @@ export default function ManageInstallationModal({
   const { t } = useTranslation();
   const { setLoading } = useLoading();
   const { tagLabels } = useTagLists();
+
+  // Platforms actually associated with this game (by id), resolved to titles
+  const gamePlatformTitles = useMemo(() => {
+    const raw = Array.isArray(game.platforms) ? game.platforms : game.platforms != null ? [game.platforms] : [];
+    const titles: string[] = [];
+    for (const x of raw as any[]) {
+      let id: string | null = null;
+      if (typeof x === "number" || typeof x === "string") {
+        id = String(x);
+      } else if (x && typeof x === "object" && "id" in x) {
+        id = String((x as { id: number | string }).id);
+      }
+      if (!id) continue;
+      const title = tagLabels.platforms.get(id) ?? id;
+      titles.push(title);
+    }
+    // De-duplicate while preserving order
+    return Array.from(new Set(titles));
+  }, [game.platforms, tagLabels.platforms]);
+
+  // Options shown in the dropdown: only this game's platforms if present, otherwise all
   const availablePlatforms = useMemo(
-    () => Array.from(tagLabels.platforms.values()),
-    [tagLabels.platforms]
+    () => (gamePlatformTitles.length ? gamePlatformTitles : Array.from(tagLabels.platforms.values())),
+    [gamePlatformTitles, tagLabels.platforms]
   );
   /** Map platform title -> id for building label-platformId filename */
   const platformTitleToId = useMemo(() => {
@@ -92,6 +113,7 @@ export default function ManageInstallationModal({
           file: null,
           existingPath: null,
           existingFileName: fullName ?? null,
+          replaceFileName: null,
           isExisting: true,
         };
       });
@@ -113,7 +135,9 @@ export default function ManageInstallationModal({
       const initial = getInitialExecutables();
       setInitialExecutables(initial);
       setExecutables(
-        initial.length > 0 ? initial : [{ label: "", platform: "", file: null, existingPath: null, existingFileName: null, isExisting: false }]
+        initial.length > 0
+          ? initial
+          : [{ label: "", platform: "", file: null, existingPath: null, existingFileName: null, replaceFileName: null, isExisting: false }]
       );
       setError(null);
     }
@@ -178,7 +202,10 @@ export default function ManageInstallationModal({
 
   const handleAddExecutable = () => {
     shouldScrollToBottomRef.current = true;
-    setExecutables([...executables, { label: "", platform: "", file: null, existingPath: null, existingFileName: null, isExisting: false }]);
+    setExecutables([
+      ...executables,
+      { label: "", platform: "", file: null, existingPath: null, existingFileName: null, replaceFileName: null, isExisting: false },
+    ]);
   };
 
   const handleRemoveExecutable = (index: number) => {
@@ -186,20 +213,13 @@ export default function ManageInstallationModal({
   };
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
-    // Prevent drag when clicking on inputs or buttons
-    const target = e.target as HTMLElement;
-    if (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.closest('input') || target.closest('button')) {
-      e.preventDefault();
-      return;
-    }
     setDraggedIndex(index);
-    // Set drag image to empty image for better visual feedback
-    const dragImage = document.createElement('div');
-    dragImage.style.position = 'absolute';
-    dragImage.style.top = '-1000px';
-    document.body.appendChild(dragImage);
-    e.dataTransfer.setDragImage(dragImage, 0, 0);
-    setTimeout(() => document.body.removeChild(dragImage), 0);
+    e.dataTransfer.effectAllowed = "move";
+    // Invisible 1×1 drag ghost — empty/zero-size elements cause broken previews (odd tiny icons).
+    const canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+    e.dataTransfer.setDragImage(canvas, 0, 0);
   };
 
   const handleDragOver = (e: React.DragEvent, index: number) => {
@@ -259,11 +279,14 @@ export default function ManageInstallationModal({
           return;
         }
         const updated = [...executables];
-        updated[index] = { 
-          ...updated[index], 
-          file: file,
+        const row = updated[index];
+        const replaceTarget = row.existingFileName || row.replaceFileName || null;
+        updated[index] = {
+          ...row,
+          file,
           existingPath: null,
           existingFileName: null,
+          replaceFileName: replaceTarget,
         };
         setExecutables(updated);
       }
@@ -318,6 +341,9 @@ export default function ManageInstallationModal({
         if (exec.platform && exec.platform.trim()) {
           formData.append('platform', exec.platform.trim());
         }
+        if (exec.replaceFileName && exec.replaceFileName.trim()) {
+          formData.append('replaceFileName', exec.replaceFileName.trim());
+        }
 
         const uploadUrl = buildApiUrl(API_BASE, `/games/${game.id}/upload-executable`);
         const uploadResponse = await fetch(uploadUrl, {
@@ -349,18 +375,31 @@ export default function ManageInstallationModal({
         }
       }
 
+      // Keep game platforms in sync with executables: union of existing game platforms and each row's platform title.
+      const platformTitlesFromExecutables = executables
+        .map((e) => (e.platform && e.platform.trim()) || "")
+        .filter((p): p is string => p.length > 0);
+      const mergedPlatformTitles = Array.from(
+        new Set<string>([...gamePlatformTitles, ...platformTitlesFromExecutables])
+      );
+
       const updateUrl = buildApiUrl(API_BASE, `/games/${game.id}`);
+      const updatePayload: Record<string, unknown> = {
+        executables: finalExecutables.length > 0 ? finalExecutables : null,
+        executablePlatformIds: finalExecutables.length > 0 ? executablePlatformIds : null,
+        executablePreviousFileNames: finalExecutables.length > 0 ? executablePreviousFileNames : null,
+      };
+      if (mergedPlatformTitles.length > 0) {
+        updatePayload.platforms = mergedPlatformTitles;
+      }
+
       const updateResponse = await fetch(updateUrl, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'X-Auth-Token': getApiToken() || '',
         },
-        body: JSON.stringify({
-          executables: finalExecutables.length > 0 ? finalExecutables : null,
-          executablePlatformIds: finalExecutables.length > 0 ? executablePlatformIds : null,
-          executablePreviousFileNames: finalExecutables.length > 0 ? executablePreviousFileNames : null,
-        }),
+        body: JSON.stringify(updatePayload),
       });
 
       if (!updateResponse.ok) {
@@ -425,20 +464,16 @@ export default function ManageInstallationModal({
                   key={index}
                   data-index={index}
                   className={`manage-installation-executable-item ${isDragOver ? 'manage-installation-executable-item-drag-over' : ''}`}
-                  draggable={true}
-                  onDragStart={(e) => handleDragStart(e, index)}
                   onDragOver={(e) => handleDragOver(e, index)}
-                  onDragEnd={handleDragEnd}
                   onDragLeave={handleDragLeave}
-                  onMouseDown={(e) => {
-                    // Prevent drag when clicking on inputs or buttons
-                    const target = e.target as HTMLElement;
-                    if (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.closest('input') || target.closest('button')) {
-                      e.stopPropagation();
-                    }
-                  }}
                 >
-                  <div className="manage-installation-executable-order-controls">
+                  <div
+                    className="manage-installation-executable-order-controls manage-installation-drag-handle"
+                    draggable
+                    title={t("manageInstallation.dragToReorder", "Drag to reorder")}
+                    onDragStart={(e) => handleDragStart(e, index)}
+                    onDragEnd={handleDragEnd}
+                  >
                     <div className="manage-installation-executable-number">{index + 1}</div>
                   </div>
                 <div className="manage-installation-executable-fields">

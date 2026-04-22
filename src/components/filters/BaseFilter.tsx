@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import "./FilterPopup.css";
 import type { FilterType, FilterValue, GameItem } from "./types";
 
 export type FilterConfig = {
@@ -131,7 +130,7 @@ export default function BaseFilter({
       <div className="filter-popup-search">
         <input
           id={`filter-search-${config.type}`}
-          name="filterSearch"
+          name={`filterSearch-${config.type}`}
           type="text"
           className="filter-popup-search-input"
           placeholder={t(config.searchPlaceholderKey)}

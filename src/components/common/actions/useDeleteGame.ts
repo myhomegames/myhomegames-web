@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { API_BASE, getApiToken } from "../../../config";
-import { buildApiUrl } from "../../../utils/api";
+import { buildApiUrl, buildApiHeaders } from "../../../utils/api";
 import { useLoading } from "../../../contexts/LoadingContext";
+import { useSettings } from "../../../contexts/SettingsContext";
 
 type UseDeleteGameParams = {
   gameId?: string;
@@ -38,6 +39,7 @@ export function useDeleteGame({
 }: UseDeleteGameParams): UseDeleteGameReturn {
   const { t } = useTranslation();
   const { setLoading } = useLoading();
+  const { twitchLoginEnabled } = useSettings();
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -47,8 +49,10 @@ export function useDeleteGame({
   };
 
   const handleConfirmDelete = async () => {
+    // When Twitch auth is disabled the server does not require a token, so we
+    // only bail out if auth is enabled and we have none.
     const apiToken = getApiToken();
-    if (!apiToken) return;
+    if (twitchLoginEnabled && !apiToken) return;
 
     setIsDeleting(true);
     setDeleteError(null);
@@ -64,10 +68,7 @@ export function useDeleteGame({
         try {
           const collectionsUrl = buildApiUrl(API_BASE, "/collections");
           const collectionsResponse = await fetch(collectionsUrl, {
-            headers: {
-              Accept: "application/json",
-              "X-Auth-Token": apiToken,
-            },
+            headers: buildApiHeaders({ Accept: "application/json" }),
           });
           
           if (collectionsResponse.ok) {
@@ -78,10 +79,7 @@ export function useDeleteGame({
             for (const collection of collections) {
               const gamesUrl = buildApiUrl(API_BASE, `/collections/${collection.id}/games`);
               const gamesResponse = await fetch(gamesUrl, {
-                headers: {
-                  Accept: "application/json",
-                  "X-Auth-Token": apiToken,
-                },
+                headers: buildApiHeaders({ Accept: "application/json" }),
               });
               
               if (gamesResponse.ok) {
@@ -112,9 +110,7 @@ export function useDeleteGame({
 
       const response = await fetch(url, {
         method: "DELETE",
-        headers: {
-          "X-Auth-Token": apiToken,
-        },
+        headers: buildApiHeaders(),
       });
 
       if (response.ok) {

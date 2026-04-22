@@ -12,7 +12,11 @@
     "publishers": "发行商",
     "gameEngines": "游戏引擎",
     "gameModes": "游戏模式",
-    "playerPerspectives": "视角"
+    "playerPerspectives": "视角",
+    "sidebarSearch": "搜索",
+    "ownedGames": "拥有的游戏",
+    "installedGames": "已安装",
+    "gamesSidebar": "游戏"
   },
   "settings": {
     "title": "设置",
@@ -23,6 +27,32 @@
     "pages": "页面",
     "pagesHelp": "选择主菜单中显示的栏目。",
     "selectLanguage": "选择应用程序语言",
+    "saveError": "Could not save to server",
+    "skin": {
+      "title": "Appearance",
+      "subtitle": "Install a UI skin (theme) from a zip archive. There is no default theme until you install one.",
+      "saveNote": "Installed skins are stored on the server under your metadata directory (skins/ next to content/). The active skin choice is saved in this browser.",
+      "active": "Active skin",
+      "noneSelected": "None (no theme CSS)",
+      "noSkinsYet": "No skins installed — upload a zip below",
+      "uploadTitle": "Install a skin",
+      "uploadHint": "Upload a .zip (or .mhg-skin.zip) with skin.json and a complete bundle.css (full theme replacement). See SKINS.md in the myhomegames-skins repository.",
+      "displayName": "Display name (optional)",
+      "displayNamePlaceholder": "e.g. Dark minimal",
+      "chooseFile": "Choose archive",
+      "installed": "Installed skins",
+      "remove": "Remove",
+      "errorNotZip": "Please choose a .zip or .mhg-skin.zip file.",
+      "errorMissingArchive": "No archive was uploaded.",
+      "errorInvalidArchiveType": "The server only accepts .zip archives.",
+      "errorMissingSkinJson": "The archive must include skin.json (at the root or inside a single top-level folder).",
+      "errorMissingCss": "No CSS found: add bundle.css or .css files next to skin.json.",
+      "errorTooMany": "Too many skins on the server. Remove one first.",
+      "errorInvalidZip": "The archive contains unsafe or invalid paths.",
+      "errorInstallFailed": "The server could not install this skin.",
+      "errorUploadFailed": "Upload failed. Check the archive format and try again.",
+      "confirmRemove": "Remove the skin \"{{name}}\" from the server?"
+    },
     "save": "保存",
     "saving": "保存中...",
     "english": "英语",
@@ -42,6 +72,21 @@
       "clientSecretPlaceholder": "输入您的Twitch客户端密钥",
       "clientIdHelp": "您的Twitch应用程序客户端ID",
       "clientSecretHelp": "您的Twitch应用程序客户端密钥（请妥善保管）"
+    },
+    "skinOptions": {
+      "title": "选项",
+      "description": "微调当前皮肤的界面呈现方式。安装或切换皮肤时，这些选项会重置为该皮肤清单中声明的值。",
+      "noActiveSkin": "请先选择一个皮肤以自定义其选项。",
+      "flags": {
+        "persistentLibraryShell": "持久化媒体库外壳（始终保留标题和侧边栏）",
+        "collectionsShortcutList": "侧边栏中的合集快捷方式",
+        "libraryPagesVerticalList": "媒体库标签以垂直列表显示",
+        "headerTitleFilter": "在标题栏中使用标题过滤（代替全局搜索）",
+        "disableAlphabetNavigator": "隐藏 A–Z 侧边导航",
+        "sidebarSearchPopup": "侧边栏中的搜索弹窗",
+        "ownedGamesFirstInGamesSidebar": "“我的游戏”置于游戏菜单顶部",
+        "compactCollectionLikeDetail": "紧凑的合集详情（隐藏封面区和标题）"
+      }
     }
   },
   "tags": {
@@ -51,7 +96,10 @@
     "igdbGamesNotInLibrary": "不在库中的游戏",
     "showNewGames": "新游戏",
     "hideNewGames": "隐藏新游戏",
-    "newGamesTooltip": "同时显示新游戏"
+    "newGamesTooltip": "同时显示新游戏",
+    "mainGamesTooltip": "仅显示主游戏（隐藏 DLC、重制版等）",
+    "mainGamesOnly": "仅主游戏",
+    "showAllGameTypes": "显示所有类型"
   },
   "header": {
     "home": "首页",
@@ -67,7 +115,9 @@
     "downloadWindows": "Windows",
     "downloadMacArm": "macOS (Apple Silicon)",
     "downloadMacIntel": "macOS (Intel)",
-    "downloadLinux": "Linux"
+    "downloadLinux": "Linux",
+    "titleFilterPlaceholder": "搜索…",
+    "titleFilterAria": "搜索当前列表"
   },
   "profile": {
     "viewProfile": "查看个人资料",
@@ -142,6 +192,7 @@
     "stars": "评分",
     "criticRating": "评论家评分",
     "ageRating": "内容分级",
+    "gameType": "游戏类型",
     "noGames": "未找到"
   },
   "gameDetail": {
@@ -303,6 +354,7 @@
   "gamesListToolbar": {
     "filter": {
       "all": "全部",
+      "installed": "已安装",
       "genre": "类型",
       "themes": "主题",
       "keywords": "推荐",
@@ -312,6 +364,7 @@
       "developers": "开发者",
       "playerPerspectives": "视角",
       "gameEngines": "游戏引擎",
+      "gameType": "游戏类型",
       "year": "年份",
       "decade": "年代",
       "collection": "收藏",
@@ -328,6 +381,7 @@
       "searchDevelopers": "筛选开发者",
       "searchPlayerPerspectives": "筛选视角",
       "searchGameEngines": "筛选游戏引擎",
+      "searchGameType": "筛选游戏类型",
       "searchDecade": "筛选年代",
       "searchCollection": "筛选收藏",
       "searchSeries": "筛选系列",
@@ -340,6 +394,7 @@
       "year": "年份",
       "stars": "评分",
       "releaseDate": "发布日期",
+      "gameType": "游戏类型",
       "criticRating": "评论家评分",
       "userRating": "用户评分",
       "ageRating": "内容分级"
@@ -436,6 +491,7 @@
   },
   "igdbInfo": {
     "gameId": "ID",
+    "gameType": "类型",
     "themes": "主题",
     "platforms": "平台",
     "gameModes": "模式",
@@ -520,5 +576,22 @@
     "ratings": "评分",
     "criticRating": "评论家评分",
     "userRating": "用户评分"
+  },
+  "igdbGameTypes": {
+    "0": "主游戏",
+    "1": "DLC",
+    "2": "资料片",
+    "3": "捆绑包",
+    "4": "独立资料片",
+    "5": "Mod",
+    "6": "章节",
+    "7": "季",
+    "8": "重制版",
+    "9": "复刻版",
+    "10": "扩展版游戏",
+    "11": "移植",
+    "12": "Fork",
+    "13": "合集",
+    "14": "更新"
   }
 }

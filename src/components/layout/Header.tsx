@@ -1,12 +1,17 @@
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "react-router-dom";
 import Logo from "../common/Logo";
 import SearchBar from "../search/SearchBar";
+import HeaderTitleFilter from "./HeaderTitleFilter";
 import ProfileDropdown from "./ProfileDropdown";
 import UpdateNotification from "./UpdateNotification";
 import Tooltip from "../common/Tooltip";
 import { useLoading } from "../../contexts/LoadingContext";
 import { useSettings } from "../../contexts/SettingsContext";
 import { getApiToken } from "../../config";
+import { useSkin } from "../../contexts/SkinContext";
+import { useTitleFilter } from "../../contexts/TitleFilterContext";
 import type { GameItem, CollectionItem } from "../../types";
 
 type HeaderProps = {
@@ -33,10 +38,22 @@ export default function Header({
   onAddGameClick,
 }: HeaderProps) {
   const { t } = useTranslation();
+  const { pathname } = useLocation();
   const { isLoading } = useLoading();
   const { twitchLoginEnabled } = useSettings();
+  const { activeSkinWeb } = useSkin();
+  const { setQuery: setTitleFilterQuery } = useTitleFilter();
   const hasToken = !!getApiToken();
   const showProfile = twitchLoginEnabled && hasToken;
+
+  const hideHeaderTitleFilter =
+    pathname === "/settings" || pathname.startsWith("/game/");
+
+  useEffect(() => {
+    if (!activeSkinWeb.headerTitleFilter || hideHeaderTitleFilter) {
+      setTitleFilterQuery("");
+    }
+  }, [activeSkinWeb.headerTitleFilter, hideHeaderTitleFilter, setTitleFilterQuery]);
 
   return (
     <header className="mhg-header">
@@ -50,33 +67,47 @@ export default function Header({
           <Logo />
         </button>
 
-        {/* SearchBar in the center */}
+        {/* Search or per-page title filter (skin `web.headerTitleFilter`); on settings/game detail leave empty, no search */}
         <div className="mhg-search-container">
-          <SearchBar games={allGames} collections={allCollections} developers={allDevelopers} publishers={allPublishers} onGameSelect={onGameSelect} onPlay={onPlay} />
+          {activeSkinWeb.headerTitleFilter ? (
+            hideHeaderTitleFilter ? null : <HeaderTitleFilter />
+          ) : (
+            <SearchBar
+              games={allGames}
+              collections={allCollections}
+              developers={allDevelopers}
+              publishers={allPublishers}
+              onGameSelect={onGameSelect}
+              onPlay={onPlay}
+            />
+          )}
         </div>
 
         {/* Buttons on the right */}
         <div className="mhg-header-actions">
           {/* Activity spinner */}
-          {isLoading && (
-            <div className="mhg-activity-spinner" aria-label={t("header.loading", "Loading")}>
-              <svg
-                width="20"
-                height="20"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-                className="mhg-spinner-icon"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
-                />
-              </svg>
-            </div>
-          )}
+          <div
+            className="mhg-activity-spinner"
+            aria-label={isLoading ? t("header.loading", "Loading") : undefined}
+            aria-hidden={!isLoading}
+            style={{ visibility: isLoading ? "visible" : "hidden" }}
+          >
+            <svg
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              className="mhg-spinner-icon"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+              />
+            </svg>
+          </div>
           <Tooltip text={t("header.addGame")} position="top" delay={200}>
             <button
               className="mhg-header-button"

@@ -14,8 +14,6 @@ import {
 } from "../../utils/imageUploadNormalize";
 import { normalizeWebsites, areWebsitesEqual, normalizeSimilarGames, areSimilarGamesEqual } from "../../utils/editGameUtils";
 import { toTagTitles as toTagTitlesUtil } from "../filters/tagFilterUtils";
-import "./EditGameModal.css";
-
 function normExt(s: string | null | undefined) {
   return (s ?? "").trim();
 }
@@ -30,6 +28,11 @@ function initialExternalBackgroundUrl(g: GameItem): string {
   if (e) return e;
   const b = g.background?.split("?")[0] ?? "";
   return b.startsWith("http") ? b : "";
+}
+
+function gameTypeFromGame(g: GameItem): number | null {
+  if (g.type != null && typeof g.type === "number" && !Number.isNaN(g.type)) return g.type;
+  return null;
 }
 
 type EditGameModalProps = {
@@ -109,6 +112,7 @@ export default function EditGameModal({
   const [localUserRating, setLocalUserRating] = useState("");
   const [localExternalCover, setLocalExternalCover] = useState("");
   const [localExternalBackground, setLocalExternalBackground] = useState("");
+  const [localGameType, setLocalGameType] = useState<number | null>(() => gameTypeFromGame(game));
 
   // Memoize cover and background URLs with timestamp when modal opens
   // NEVER show IGDB images in edit modal - only show local images
@@ -205,6 +209,7 @@ export default function EditGameModal({
       );
       setLocalExternalCover(initialExternalCoverUrl(game));
       setLocalExternalBackground(initialExternalBackgroundUrl(game));
+      setLocalGameType(gameTypeFromGame(game));
       // Generate new timestamp to force image reload when modal opens
       setImageTimestamp(Date.now());
     }
@@ -264,6 +269,7 @@ export default function EditGameModal({
     if (year !== (game.year?.toString() || "")) return true;
     if (month !== (game.month?.toString() || "")) return true;
     if (day !== (game.day?.toString() || "")) return true;
+    if (localGameType !== gameTypeFromGame(game)) return true;
     const expectedCritic = game.criticratings != null && !Number.isNaN(game.criticratings) ? String(Math.round(game.criticratings * 10)) : "";
     const expectedUser = game.userratings != null && !Number.isNaN(game.userratings) ? String(Math.round(game.userratings * 10)) : "";
     if (localCriticRating !== expectedCritic || localUserRating !== expectedUser) return true;
@@ -618,6 +624,10 @@ export default function EditGameModal({
           : null;
       }
 
+      if (localGameType !== gameTypeFromGame(game)) {
+        updates.type = localGameType;
+      }
+
       // Only make PUT request if there are updates (images were already uploaded)
       if (Object.keys(updates).length > 0) {
         const url = buildApiUrl(API_BASE, `/games/${game.id}`);
@@ -713,6 +723,7 @@ export default function EditGameModal({
             result.game.externalBackgroundUrl !== undefined
               ? result.game.externalBackgroundUrl
               : (game.externalBackgroundUrl ?? null),
+          type: result.game.type !== undefined ? result.game.type : (game.type ?? null),
         };
 
         // Check if any genres were removed and delete unused categories
@@ -920,7 +931,6 @@ export default function EditGameModal({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              style={{ marginRight: "8px", verticalAlign: "middle" }}
             >
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
@@ -1004,6 +1014,8 @@ export default function EditGameModal({
               setYear={setYear}
               setMonth={setMonth}
               setDay={setDay}
+              gameType={localGameType}
+              onGameTypeChange={setLocalGameType}
             />
           )}
 

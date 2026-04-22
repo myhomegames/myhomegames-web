@@ -2,13 +2,16 @@ import { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallback } fr
 import { useNavigate } from "react-router-dom";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useAutoTranslateBatch } from "../hooks/useAutoTranslate";
+import { useAuth } from "../contexts/AuthContext";
+import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
 import { useLoading } from "../contexts/LoadingContext";
 import { useSettings } from "../contexts/SettingsContext";
 import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
 import type { GameItem, CollectionItem } from "../types";
 import { API_BASE } from "../config";
-import { getApiToken, getTwitchClientId, getTwitchClientSecret } from "../config";
+import { getTwitchClientId, getTwitchClientSecret } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
+import { titleMatchesFilter } from "../utils/titleFilter";
 
 type RecommendedSection = {
   id: string;
@@ -31,7 +34,9 @@ export default function RecommendedPage({
   allCollections = [],
 }: RecommendedPageProps) {
   const navigate = useNavigate();
-  const { twitchLoginEnabled } = useSettings();
+  const titleFilterQuery = useTitleFilterQuery();
+  const { token } = useAuth();
+  const { twitchLoginEnabled, settingsLoaded } = useSettings();
   const { setLoading } = useLoading();
   const [sections, setSections] = useState<RecommendedSection[]>([]);
   const [isReady, setIsReady] = useState(false);
@@ -39,6 +44,10 @@ export default function RecommendedPage({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const fetchingRef = useRef<boolean>(false);
   const fetchGenerationRef = useRef(0);
+  const onGamesLoadedRef = useRef(onGamesLoaded);
+  const setLoadingRef = useRef(setLoading);
+  onGamesLoadedRef.current = onGamesLoaded;
+  setLoadingRef.current = setLoading;
 
   const handleGameClick = useCallback(
     (game: GameItem) => {
@@ -53,6 +62,17 @@ export default function RecommendedPage({
   
   // Restore scroll position
   useScrollRestoration(scrollContainerRef);
+
+  const sectionsForDisplay = useMemo(() => {
+    const q = titleFilterQuery.trim();
+    if (!q) return sections;
+    return sections
+      .map((section) => ({
+        ...section,
+        games: section.games.filter((g) => titleMatchesFilter(g.title, q)),
+      }))
+      .filter((s) => s.games.length > 0);
+  }, [sections, titleFilterQuery]);
 
   const handleGameUpdate = (updatedGame: GameItem) => {
     setSections((prevSections) =>
@@ -91,8 +111,16 @@ export default function RecommendedPage({
   }, []);
 
   useEffect(() => {
+    if (!settingsLoaded) return;
+    if (twitchLoginEnabled && !token) {
+      setSections([]);
+      onGamesLoadedRef.current([]);
+      setLoadingRef.current(false);
+      navigate("/login", { replace: true });
+      return;
+    }
     fetchRecommendedSections();
-  }, [twitchLoginEnabled]);
+  }, [twitchLoginEnabled, token, settingsLoaded, navigate]);
 
   // Listen for metadata reload event
   useEffect(() => {
@@ -140,10 +168,19 @@ export default function RecommendedPage({
     if (fetchingRef.current) {
       return;
     }
+    if (!settingsLoaded) return;
+    if (twitchLoginEnabled && !token) {
+      setSections([]);
+      onGamesLoadedRef.current([]);
+      setIsFetching(false);
+      setLoadingRef.current(false);
+      navigate("/login", { replace: true });
+      return;
+    }
     fetchingRef.current = true;
     const generation = ++fetchGenerationRef.current;
     setIsFetching(true);
-    setLoading(true);
+    setLoadingRef.current(true);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90000);
     try {
@@ -176,9 +213,9 @@ export default function RecommendedPage({
 
       // Show library data immediately so the page is fast
       setSections(parsedSections);
-      onGamesLoaded(parsedSections.flatMap((s) => s.games));
+      onGamesLoadedRef.current(parsedSections.flatMap((s) => s.games));
       setIsFetching(false);
-      setLoading(false);
+      setLoadingRef.current(false);
 
       if (twitchLoginEnabled) {
         const clientId = getTwitchClientId();
@@ -194,9 +231,10 @@ export default function RecommendedPage({
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                "X-Auth-Token": getApiToken() || "",
-                "X-Twitch-Client-Id": clientId,
-                "X-Twitch-Client-Secret": clientSecret,
+                ...buildApiHeaders({
+                  "X-Twitch-Client-Id": clientId,
+                  "X-Twitch-Client-Secret": clientSecret,
+                }),
               },
               body: JSON.stringify({ keyword: section.id, excludeIds }),
             })
@@ -223,7 +261,7 @@ export default function RecommendedPage({
                   const next = prev.map((s) =>
                     s.id === section.id ? { ...s, games: [...s.games, ...igdbGames] } : s
                   );
-                  onGamesLoaded(next.flatMap((s) => s.games));
+                  onGamesLoadedRef.current(next.flatMap((s) => s.games));
                   return next;
                 });
               })
@@ -245,19 +283,9 @@ export default function RecommendedPage({
   return (
     <main className="flex-1 home-page-content">
       <div className="home-page-layout">
-      <div 
-        className="home-page-content-wrapper"
-        style={{
-          opacity: isReady ? 1 : 0,
-          transition: 'opacity 0.2s ease-in-out',
-        }}
-      >
-        <div
-          ref={scrollContainerRef}
-          className="home-page-scroll-container"
-          style={{ paddingTop: '16px', paddingBottom: '32px' }}
-        >
-          {!isFetching && sections.map((section) => (
+      <div className={`home-page-content-wrapper home-page-fade-in${isReady ? " home-page-fade-in--ready" : ""}`}>
+        <div ref={scrollContainerRef} className="home-page-scroll-container recommended-page-scroll">
+          {!isFetching && sectionsForDisplay.map((section) => (
             <ScrollableGamesSection
               key={section.id}
               sectionId={section.id}

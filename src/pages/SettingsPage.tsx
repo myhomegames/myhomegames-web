@@ -1,21 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useLoading } from "../contexts/LoadingContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { API_BASE } from "../config";
 import { buildApiHeaders } from "../utils/api";
 import { LIBRARY_ORDER, normalizeVisibleLibraries } from "../utils/librarySections";
-import "./SettingsPage.css";
+import SettingsSkinSection from "../components/settings/SettingsSkinSection";
 
 export default function SettingsPage() {
   const { t, i18n } = useTranslation();
-  const { setLoading, isLoading } = useLoading();
+  const { setLoading } = useLoading();
   const { refreshSettings } = useSettings();
   const [language, setLanguage] = useState("en");
-  const [initialLanguage, setInitialLanguage] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
   const [visibleLibraries, setVisibleLibraries] = useState<string[]>([...LIBRARY_ORDER]);
-  const [initialVisibleLibraries, setInitialVisibleLibraries] = useState<string[] | null>(null);
   const [twitchLoginEnabled, setTwitchLoginEnabled] = useState(false);
   const [initialTwitchLoginEnabled, setInitialTwitchLoginEnabled] = useState<boolean | null>(null);
   
@@ -26,29 +23,35 @@ export default function SettingsPage() {
   const [initialTwitchClientSecret, setInitialTwitchClientSecret] = useState<string | null>(null);
   const [savingTwitch, setSavingTwitch] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [twitchSaveError, setTwitchSaveError] = useState<string | null>(null);
+  const twitchCredentialSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestTwitchRef = useRef({
+    twitchLoginEnabled,
+    twitchClientId,
+    twitchClientSecret,
+  });
+  latestTwitchRef.current = { twitchLoginEnabled, twitchClientId, twitchClientSecret };
+  const twitchInitialsRef = useRef({
+    initialTwitchLoginEnabled,
+    initialTwitchClientId,
+    initialTwitchClientSecret,
+  });
+  twitchInitialsRef.current = {
+    initialTwitchLoginEnabled,
+    initialTwitchClientId,
+    initialTwitchClientSecret,
+  };
 
-  // Check if there are unsaved changes
-  const hasLibraryChanges =
-    initialVisibleLibraries !== null &&
-    (visibleLibraries.length !== initialVisibleLibraries.length ||
-      visibleLibraries.some((key, index) => key !== initialVisibleLibraries[index]));
-  const hasChanges =
-    (initialLanguage !== null && language !== initialLanguage) || hasLibraryChanges;
-  const hasTwitchLoginEnabledChange =
-    initialTwitchLoginEnabled !== null && twitchLoginEnabled !== initialTwitchLoginEnabled;
-  const hasTwitchChanges = 
-    (initialTwitchClientId !== null && twitchClientId !== initialTwitchClientId) ||
-    (initialTwitchClientSecret !== null && twitchClientSecret !== initialTwitchClientSecret);
+  useEffect(
+    () => () => {
+      if (twitchCredentialSaveTimerRef.current) {
+        clearTimeout(twitchCredentialSaveTimerRef.current);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
-    // Load Twitch credentials from localStorage
-    const storedClientId = localStorage.getItem("twitch_client_id") || "";
-    const storedClientSecret = localStorage.getItem("twitch_client_secret") || "";
-    setTwitchClientId(storedClientId);
-    setTwitchClientSecret(storedClientSecret);
-    setInitialTwitchClientId(storedClientId);
-    setInitialTwitchClientSecret(storedClientSecret);
-    
     // Load settings from server
     const parseStoredLibraries = () => {
       const storedLibraries = localStorage.getItem("visibleLibraries");
@@ -77,25 +80,29 @@ export default function SettingsPage() {
           const data = await res.json();
           const loadedLanguage = data.language || "en";
           setLanguage(loadedLanguage);
-          setInitialLanguage(loadedLanguage);
           i18n.changeLanguage(loadedLanguage);
           const loadedVisibleLibraries = normalizeVisibleLibraries(data.visibleLibraries);
           setVisibleLibraries(loadedVisibleLibraries);
-          setInitialVisibleLibraries(loadedVisibleLibraries);
           localStorage.setItem("visibleLibraries", JSON.stringify(loadedVisibleLibraries));
           const twitchEnabled = !!data.twitchLoginEnabled;
           setTwitchLoginEnabled(twitchEnabled);
           setInitialTwitchLoginEnabled(twitchEnabled);
+          const loadedClientId = typeof data.twitchClientId === "string" ? data.twitchClientId : "";
+          const loadedClientSecret = typeof data.twitchClientSecret === "string" ? data.twitchClientSecret : "";
+          setTwitchClientId(loadedClientId);
+          setTwitchClientSecret(loadedClientSecret);
+          setInitialTwitchClientId(loadedClientId);
+          setInitialTwitchClientSecret(loadedClientSecret);
         } else {
           // Fallback to localStorage
           const saved = localStorage.getItem("language") || "en";
           setLanguage(saved);
-          setInitialLanguage(saved);
           i18n.changeLanguage(saved);
           const normalized = normalizeVisibleLibraries(parseStoredLibraries());
           setVisibleLibraries(normalized);
-          setInitialVisibleLibraries(normalized);
           setInitialTwitchLoginEnabled(false);
+          setInitialTwitchClientId("");
+          setInitialTwitchClientSecret("");
         }
       } catch (err) {
         clearTimeout(timeoutId);
@@ -103,33 +110,31 @@ export default function SettingsPage() {
         // Fallback to localStorage
         const saved = localStorage.getItem("language") || "en";
         setLanguage(saved);
-        setInitialLanguage(saved);
         i18n.changeLanguage(saved);
         const normalized = normalizeVisibleLibraries(parseStoredLibraries());
         setVisibleLibraries(normalized);
-        setInitialVisibleLibraries(normalized);
         setInitialTwitchLoginEnabled(false);
+        setInitialTwitchClientId("");
+        setInitialTwitchClientSecret("");
       } finally {
         setLoading(false);
       }
     }
     loadSettings();
-  }, [setLoading]);
+  }, [setLoading, i18n]);
 
-  async function handleSave() {
+  async function persistGeneralSettings(nextLanguage: string, nextVisibleLibraries: string[]) {
     setSaveError(null);
-    setSaving(true);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90000);
     try {
-      // Save settings to server
       const url = new URL("/settings", API_BASE);
       const res = await fetch(url.toString(), {
         method: "PUT",
         headers: buildApiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
-          language: language,
-          visibleLibraries: visibleLibraries,
+          language: nextLanguage,
+          visibleLibraries: nextVisibleLibraries,
         }),
         signal: controller.signal,
       });
@@ -139,15 +144,6 @@ export default function SettingsPage() {
         const errBody = await res.text();
         throw new Error(errBody || `HTTP ${res.status}`);
       }
-
-      // Also save to localStorage as fallback
-      localStorage.setItem("language", language);
-      localStorage.setItem("visibleLibraries", JSON.stringify(visibleLibraries));
-      // Change i18n language
-      i18n.changeLanguage(language);
-      // Update initial language to reflect saved state
-      setInitialLanguage(language);
-      setInitialVisibleLibraries(visibleLibraries);
     } catch (err) {
       clearTimeout(timeoutId);
       const message = err instanceof Error ? err.message : "Failed to save settings";
@@ -163,71 +159,129 @@ export default function SettingsPage() {
         return;
       }
       setSaveError(message);
-      // Fallback to localStorage
-      localStorage.setItem("language", language);
-      localStorage.setItem("visibleLibraries", JSON.stringify(visibleLibraries));
-      // Change i18n language
-      i18n.changeLanguage(language);
-      // Update initial language to reflect saved state
-      setInitialLanguage(language);
-      setInitialVisibleLibraries(visibleLibraries);
-    } finally {
-      setSaving(false);
     }
   }
 
+  function applyGeneralSettings(nextLanguage: string, nextVisibleLibraries: string[]) {
+    setLanguage(nextLanguage);
+    setVisibleLibraries(nextVisibleLibraries);
+    localStorage.setItem("language", nextLanguage);
+    localStorage.setItem("visibleLibraries", JSON.stringify(nextVisibleLibraries));
+    i18n.changeLanguage(nextLanguage);
+    void persistGeneralSettings(nextLanguage, nextVisibleLibraries);
+  }
+
   const toggleLibraryVisibility = (key: string) => {
-    setVisibleLibraries((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return normalizeVisibleLibraries(Array.from(next));
-    });
+    const next = new Set(visibleLibraries);
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
+    const normalized = normalizeVisibleLibraries(Array.from(next));
+    applyGeneralSettings(language, normalized);
   };
 
-  async function handleSaveTwitchCredentials() {
-    const didToggleLogin = hasTwitchLoginEnabledChange;
-    const didChangeCredentials = hasTwitchChanges;
+  function scheduleTwitchCredentialAutoSave() {
+    if (twitchCredentialSaveTimerRef.current) {
+      clearTimeout(twitchCredentialSaveTimerRef.current);
+    }
+    twitchCredentialSaveTimerRef.current = setTimeout(() => {
+      twitchCredentialSaveTimerRef.current = null;
+      const { twitchLoginEnabled: en, twitchClientId: id, twitchClientSecret: sec } =
+        latestTwitchRef.current;
+      const {
+        initialTwitchLoginEnabled: bEn,
+        initialTwitchClientId: bId,
+        initialTwitchClientSecret: bSec,
+      } = twitchInitialsRef.current;
+      void persistTwitchSettings({
+        twitchLoginEnabled: en,
+        twitchClientId: id,
+        twitchClientSecret: sec,
+        baselineEnabled: bEn,
+        baselineClientId: bId,
+        baselineClientSecret: bSec,
+      });
+    }, 600);
+  }
 
-    if (didToggleLogin) {
-      setSavingTwitch(true);
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 90000);
-      try {
-        const res = await fetch(new URL("/settings", API_BASE).toString(), {
-          method: "PUT",
-          headers: buildApiHeaders({ "Content-Type": "application/json" }),
-          body: JSON.stringify({ twitchLoginEnabled: twitchLoginEnabled }),
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-        if (!res.ok) throw new Error("Failed to save settings");
-        setInitialTwitchLoginEnabled(twitchLoginEnabled);
-        await refreshSettings();
-      } catch (err) {
-        clearTimeout(timeoutId);
-        console.error("Failed to save Twitch login setting:", err);
-      } finally {
-        setSavingTwitch(false);
-      }
+  async function persistTwitchSettings(params: {
+    twitchLoginEnabled: boolean;
+    twitchClientId: string;
+    twitchClientSecret: string;
+    baselineEnabled: boolean | null;
+    baselineClientId: string | null;
+    baselineClientSecret: string | null;
+  }) {
+    const {
+      twitchLoginEnabled: nextEnabled,
+      twitchClientId: nextClientId,
+      twitchClientSecret: nextClientSecret,
+      baselineEnabled,
+      baselineClientId,
+      baselineClientSecret,
+    } = params;
+
+    const didToggleLogin =
+      baselineEnabled !== null && nextEnabled !== baselineEnabled;
+    const didChangeCredentials =
+      (baselineClientId !== null && nextClientId.trim() !== baselineClientId) ||
+      (baselineClientSecret !== null && nextClientSecret.trim() !== baselineClientSecret);
+
+    if (!didToggleLogin && !didChangeCredentials) {
+      return;
     }
 
-    if (didChangeCredentials && twitchClientId.trim() && twitchClientSecret.trim()) {
-      if (!didToggleLogin) setSavingTwitch(true);
-      try {
-        localStorage.setItem("twitch_client_id", twitchClientId.trim());
-        localStorage.setItem("twitch_client_secret", twitchClientSecret.trim());
-        setInitialTwitchClientId(twitchClientId.trim());
-        setInitialTwitchClientSecret(twitchClientSecret.trim());
-        const serverUrl = API_BASE.replace(/\/$/, '');
-        window.location.href = serverUrl;
-      } catch (err) {
-        console.error("Failed to save Twitch credentials:", err);
-        if (!didToggleLogin) setSavingTwitch(false);
+    if (didChangeCredentials && (!nextClientId.trim() || !nextClientSecret.trim())) {
+      return;
+    }
+
+    setTwitchSaveError(null);
+    setSavingTwitch(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
+    try {
+      const payload: Record<string, unknown> = {
+        twitchLoginEnabled: nextEnabled,
+      };
+      if (didChangeCredentials) {
+        payload.twitchClientId = nextClientId.trim();
+        payload.twitchClientSecret = nextClientSecret.trim();
       }
+      const res = await fetch(new URL("/settings", API_BASE).toString(), {
+        method: "PUT",
+        headers: buildApiHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!res.ok) {
+        const errBody = await res.text();
+        throw new Error(errBody || `HTTP ${res.status}`);
+      }
+      setInitialTwitchLoginEnabled(nextEnabled);
+      if (didChangeCredentials) {
+        setInitialTwitchClientId(nextClientId.trim());
+        setInitialTwitchClientSecret(nextClientSecret.trim());
+      }
+      await refreshSettings();
+    } catch (err) {
+      clearTimeout(timeoutId);
+      const message = err instanceof Error ? err.message : "Failed to save settings";
+      console.error("Failed to save Twitch settings:", err);
+      const isFetchError =
+        message === "Failed to fetch" ||
+        message?.toLowerCase().includes("network") ||
+        message?.toLowerCase().includes("fetch");
+      if (isFetchError && API_BASE) {
+        const serverUrl = API_BASE.replace(/\/$/, "");
+        window.location.href = serverUrl;
+        return;
+      }
+      setTwitchSaveError(message);
+    } finally {
+      setSavingTwitch(false);
     }
   }
 
@@ -258,7 +312,7 @@ export default function SettingsPage() {
                   id="language-select"
                   name="language"
                   value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
+                  onChange={(e) => applyGeneralSettings(e.target.value, visibleLibraries)}
                   className="settings-select"
                 >
                   <option value="en">{t("settings.english")}</option>
@@ -296,36 +350,40 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="settings-actions">
-              {saveError && (
-                <p className="settings-help-text" style={{ color: "#f87171", marginBottom: "12px" }}>
-                  {t("settings.saveError", "Impossibile salvare sul server")}: {saveError}
-                </p>
-              )}
-              <button
-                onClick={handleSave}
-                className={`settings-button ${hasChanges ? "settings-button-active" : ""}`}
-                disabled={isLoading || saving || !hasChanges}
-              >
-                {saving ? t("settings.saving") : t("settings.save")}
-              </button>
-            </div>
+            {saveError && (
+              <p className="settings-help-text settings-help-text--error">
+                {t("settings.saveError")}: {saveError}
+              </p>
+            )}
           </div>
         </div>
 
+        <SettingsSkinSection />
+
         {/* Twitch OAuth Settings */}
-        <div className="bg-[#1a1a1a] settings-card" style={{ marginTop: "24px" }}>
+        <div className="bg-[#1a1a1a] settings-card settings-card--spaced-top">
           <div className="settings-card-header">
             <h2 className="settings-card-title">{t("settings.twitch.title", "Twitch OAuth")}</h2>
           </div>
 
           <div className="settings-card-content">
             <div className="settings-field">
-              <label className="settings-library-option" style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+              <label className="settings-library-option">
                 <input
                   type="checkbox"
                   checked={twitchLoginEnabled}
-                  onChange={(e) => setTwitchLoginEnabled(e.target.checked)}
+                  onChange={(e) => {
+                    const next = e.target.checked;
+                    setTwitchLoginEnabled(next);
+                    void persistTwitchSettings({
+                      twitchLoginEnabled: next,
+                      twitchClientId,
+                      twitchClientSecret,
+                      baselineEnabled: initialTwitchLoginEnabled,
+                      baselineClientId: initialTwitchClientId,
+                      baselineClientSecret: initialTwitchClientSecret,
+                    });
+                  }}
                   className="settings-checkbox"
                 />
                 <span>{t("settings.twitch.enableLogin", "Enable Twitch login")}</span>
@@ -337,7 +395,7 @@ export default function SettingsPage() {
 
             {twitchLoginEnabled && (
               <>
-                <p className="settings-help-text" style={{ marginBottom: "24px" }}>
+                <p className="settings-help-text settings-help-text--twitch-intro">
                   {t("settings.twitch.description", "Configure your Twitch OAuth application credentials. You can get these from the Twitch Developer Console.")}
                 </p>
 
@@ -349,10 +407,12 @@ export default function SettingsPage() {
                     id="twitch-client-id"
                     type="text"
                     value={twitchClientId}
-                    onChange={(e) => setTwitchClientId(e.target.value)}
-                    className="settings-input"
+                    onChange={(e) => {
+                      setTwitchClientId(e.target.value);
+                      scheduleTwitchCredentialAutoSave();
+                    }}
+                    className="settings-input settings-input--tight-top"
                     placeholder={t("settings.twitch.clientIdPlaceholder", "Enter your Twitch Client ID")}
-                    style={{ marginTop: "8px" }}
                   />
                   <p className="settings-help-text">
                     {t("settings.twitch.clientIdHelp", "Your Twitch application Client ID")}
@@ -367,10 +427,12 @@ export default function SettingsPage() {
                     id="twitch-client-secret"
                     type="password"
                     value={twitchClientSecret}
-                    onChange={(e) => setTwitchClientSecret(e.target.value)}
-                    className="settings-input"
+                    onChange={(e) => {
+                      setTwitchClientSecret(e.target.value);
+                      scheduleTwitchCredentialAutoSave();
+                    }}
+                    className="settings-input settings-input--tight-top"
                     placeholder={t("settings.twitch.clientSecretPlaceholder", "Enter your Twitch Client Secret")}
-                    style={{ marginTop: "8px" }}
                   />
                   <p className="settings-help-text">
                     {t("settings.twitch.clientSecretHelp", "Your Twitch application Client Secret (keep this secure)")}
@@ -379,19 +441,18 @@ export default function SettingsPage() {
               </>
             )}
 
-            <div className="settings-actions">
-              <button
-                onClick={handleSaveTwitchCredentials}
-                className={`settings-button ${(hasTwitchLoginEnabledChange || hasTwitchChanges) ? "settings-button-active" : ""}`}
-                disabled={
-                  isLoading ||
-                  savingTwitch ||
-                  (!hasTwitchLoginEnabledChange && (!hasTwitchChanges || !twitchClientId.trim() || !twitchClientSecret.trim()))
-                }
-              >
-                {savingTwitch ? t("settings.saving") : t("settings.save")}
-              </button>
-            </div>
+            {(savingTwitch || twitchSaveError) && (
+              <div className="settings-field">
+                {savingTwitch && (
+                  <p className="settings-help-text">{t("settings.saving")}</p>
+                )}
+                {twitchSaveError && (
+                  <p className="settings-help-text settings-help-text--error">
+                    {t("settings.saveError")}: {twitchSaveError}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -12,7 +12,11 @@
     "publishers": "Publisher",
     "gameEngines": "Spiel-Engines",
     "gameModes": "Spielmodi",
-    "playerPerspectives": "Spielperspektiven"
+    "playerPerspectives": "Spielperspektiven",
+    "sidebarSearch": "Suche",
+    "ownedGames": "Eigene Spiele",
+    "installedGames": "Installiert",
+    "gamesSidebar": "Spiele"
   },
   "settings": {
     "title": "Einstellungen",
@@ -23,6 +27,32 @@
     "pages": "Seiten",
     "pagesHelp": "Wähle, welche Bereiche im Hauptmenü angezeigt werden.",
     "selectLanguage": "Wählen Sie die Anwendungssprache",
+    "saveError": "Could not save to server",
+    "skin": {
+      "title": "Appearance",
+      "subtitle": "Install a UI skin (theme) from a zip archive. There is no default theme until you install one.",
+      "saveNote": "Installed skins are stored on the server under your metadata directory (skins/ next to content/). The active skin choice is saved in this browser.",
+      "active": "Active skin",
+      "noneSelected": "None (no theme CSS)",
+      "noSkinsYet": "No skins installed — upload a zip below",
+      "uploadTitle": "Install a skin",
+      "uploadHint": "Upload a .zip (or .mhg-skin.zip) with skin.json and a complete bundle.css (full theme replacement). See SKINS.md in the myhomegames-skins repository.",
+      "displayName": "Display name (optional)",
+      "displayNamePlaceholder": "e.g. Dark minimal",
+      "chooseFile": "Choose archive",
+      "installed": "Installed skins",
+      "remove": "Remove",
+      "errorNotZip": "Please choose a .zip or .mhg-skin.zip file.",
+      "errorMissingArchive": "No archive was uploaded.",
+      "errorInvalidArchiveType": "The server only accepts .zip archives.",
+      "errorMissingSkinJson": "The archive must include skin.json (at the root or inside a single top-level folder).",
+      "errorMissingCss": "No CSS found: add bundle.css or .css files next to skin.json.",
+      "errorTooMany": "Too many skins on the server. Remove one first.",
+      "errorInvalidZip": "The archive contains unsafe or invalid paths.",
+      "errorInstallFailed": "The server could not install this skin.",
+      "errorUploadFailed": "Upload failed. Check the archive format and try again.",
+      "confirmRemove": "Remove the skin \"{{name}}\" from the server?"
+    },
     "save": "Speichern",
     "saving": "Speichern...",
     "english": "Englisch",
@@ -42,6 +72,21 @@
       "clientSecretPlaceholder": "Geben Sie Ihr Twitch Client Secret ein",
       "clientIdHelp": "Ihre Twitch-Anwendungs-Client-ID",
       "clientSecretHelp": "Ihr Twitch-Anwendungs-Client-Secret (halten Sie dies sicher)"
+    },
+    "skinOptions": {
+      "title": "Optionen",
+      "description": "Feineinstellung der Darstellung des aktiven Skins. Beim Installieren oder Wechseln eines Skins werden diese Optionen auf die im Manifest des Skins deklarierten Werte zurückgesetzt.",
+      "noActiveSkin": "Wählen Sie zuerst einen Skin aus, um dessen Optionen anzupassen.",
+      "flags": {
+        "persistentLibraryShell": "Persistente Bibliotheks-Hülle (Kopfzeile und Seitenleiste bleiben geladen)",
+        "collectionsShortcutList": "Sammlungs-Verknüpfungen in der Seitenleiste",
+        "libraryPagesVerticalList": "Bibliothek-Tabs als vertikale Liste",
+        "headerTitleFilter": "Titelfilter in der Kopfzeile (statt globaler Suche)",
+        "disableAlphabetNavigator": "A–Z-Seitennavigator ausblenden",
+        "sidebarSearchPopup": "Such-Popup in der Seitenleiste",
+        "ownedGamesFirstInGamesSidebar": "„Eigene Spiele“ oben im Spiele-Menü",
+        "compactCollectionLikeDetail": "Kompakte Sammlungs-Detailansicht (ohne Hero und Überschriften)"
+      }
     }
   },
   "tags": {
@@ -51,7 +96,10 @@
     "igdbGamesNotInLibrary": "Spiele nicht in der Bibliothek",
     "showNewGames": "Neue Spiele",
     "hideNewGames": "Neue Spiele ausblenden",
-    "newGamesTooltip": "Auch neue Spiele anzeigen"
+    "newGamesTooltip": "Auch neue Spiele anzeigen",
+    "mainGamesTooltip": "Nur Hauptspiele anzeigen (keine DLCs, Remaster usw.)",
+    "mainGamesOnly": "Nur Hauptspiele",
+    "showAllGameTypes": "Alle Spieltypen anzeigen"
   },
   "header": {
     "home": "Startseite",
@@ -67,7 +115,9 @@
     "downloadWindows": "Windows",
     "downloadMacArm": "macOS (Apple Silicon)",
     "downloadMacIntel": "macOS (Intel)",
-    "downloadLinux": "Linux"
+    "downloadLinux": "Linux",
+    "titleFilterPlaceholder": "Suchen…",
+    "titleFilterAria": "Aktuelle Liste durchsuchen"
   },
   "profile": {
     "viewProfile": "Profil anzeigen",
@@ -142,6 +192,7 @@
     "stars": "Bewertung",
     "criticRating": "Kritikerbewertung",
     "ageRating": "Inhaltsbewertung",
+    "gameType": "Spieltyp",
     "noGames": "Keine Spiele gefunden"
   },
   "gameDetail": {
@@ -303,6 +354,7 @@
   "gamesListToolbar": {
     "filter": {
       "all": "Alle",
+      "installed": "Installiert",
       "genre": "Genre",
       "themes": "Themen",
       "keywords": "Empfohlen",
@@ -312,6 +364,7 @@
       "developers": "Entwickler",
       "playerPerspectives": "Perspektiven",
       "gameEngines": "Game Engines",
+      "gameType": "Spieltyp",
       "year": "Jahr",
       "decade": "Jahrzehnt",
       "collection": "Sammlung",
@@ -328,6 +381,7 @@
       "searchDevelopers": "Filter Entwickler",
       "searchPlayerPerspectives": "Filter Perspektiven",
       "searchGameEngines": "Filter Game Engines",
+      "searchGameType": "Spieltyp filtern",
       "searchDecade": "Filter Jahrzehnt",
       "searchCollection": "Filter Sammlung",
       "searchSeries": "Serie filtern",
@@ -340,6 +394,7 @@
       "year": "Jahr",
       "stars": "Bewertung",
       "releaseDate": "Veröffentlichungsdatum",
+      "gameType": "Spieltyp",
       "criticRating": "Kritikerbewertung",
       "userRating": "Publikumsbewertung",
       "ageRating": "Inhaltsbewertung"
@@ -436,6 +491,7 @@
   },
   "igdbInfo": {
     "gameId": "ID",
+    "gameType": "Typ",
     "themes": "Themen",
     "platforms": "Plattformen",
     "gameModes": "Spielmodi",
@@ -520,5 +576,22 @@
     "ratings": "Bewertungen",
     "criticRating": "Kritikerbewertung",
     "userRating": "Nutzerbewertung"
+  },
+  "igdbGameTypes": {
+    "0": "Hauptspiel",
+    "1": "DLC",
+    "2": "Erweiterung",
+    "3": "Bundle",
+    "4": "Eigenständige Erweiterung",
+    "5": "Mod",
+    "6": "Episode",
+    "7": "Staffel",
+    "8": "Remake",
+    "9": "Remaster",
+    "10": "Erweiterte Version",
+    "11": "Port",
+    "12": "Fork",
+    "13": "Pack",
+    "14": "Update"
   }
 }

@@ -21,9 +21,8 @@ import { useSimilarGamesDetails } from "../hooks/useSimilarGamesDetails";
 import SimilarGamesList, { type SimilarGameDisplayItem } from "../components/games/SimilarGamesList";
 import type { IGDBGame } from "../types";
 import { formatIGDBGameDate } from "../utils/date";
+import { displayGameType, toGameTypeId } from "../utils/igdbGameType";
 import type { TFunction } from "i18next";
-import "./IGDBGameDetailPage.css";
-
 export default function IGDBGameDetailPage() {
   const { t, i18n } = useTranslation();
   const { igdbId } = useParams<{ igdbId: string }>();
@@ -208,6 +207,7 @@ function IGDBGameDetailContent({
 
   const criticRatingFormatted = formatRating(game.criticRating);
   const userRatingFormatted = formatRating(game.userRating);
+  const gameTypeLabel = displayGameType(toGameTypeId(game.type));
   const { hasBackground, isBackgroundVisible } = useBackground();
   const navigate = useNavigate();
   const { tagLabels } = useTagLists();
@@ -307,6 +307,7 @@ function IGDBGameDetailContent({
               coverUrl={coverUrl}
               width={coverWidth}
               height={coverHeight}
+              imageFit="fill"
               showTitle={false}
               titlePosition="overlay"
               detail={false}
@@ -316,21 +317,30 @@ function IGDBGameDetailContent({
           </div>
 
           {/* Game Info Panel */}
-          <div className="igdb-game-detail-info-panel" style={{ minHeight: `${coverHeight}px` }}>
+          <div className="igdb-game-detail-info-panel">
             <div className="igdb-game-detail-info-content">
               <h1 className="text-white igdb-game-detail-title">
                 {game.name}
               </h1>
-              {formatReleaseDate(game) && (() => {
+              {(() => {
+                const releaseDate = formatReleaseDate(game);
                 const validAgeRatings = game.ageRatings && game.ageRatings.length > 0 
                   ? filterAgeRatingsByLocale(game.ageRatings, i18n.language)
                   : [];
                 const hasValidAgeRatings = validAgeRatings.length > 0;
+                const hasReleaseTypeOrAgeRatings = !!releaseDate || !!gameTypeLabel || hasValidAgeRatings;
+                if (!hasReleaseTypeOrAgeRatings) return null;
                 
                 return (
                   <div className="text-white igdb-game-detail-release-date">
-                    {formatReleaseDate(game)}
-                    {hasValidAgeRatings && (
+                    {releaseDate ? <span>{releaseDate}</span> : null}
+                    {releaseDate && gameTypeLabel ? (
+                      <span className="igdb-game-detail-age-ratings-inline">{" • "}</span>
+                    ) : null}
+                    {gameTypeLabel ? (
+                      <span className="igdb-game-detail-type-label">{gameTypeLabel}</span>
+                    ) : null}
+                    {(releaseDate || gameTypeLabel) && hasValidAgeRatings && (
                       <span className="igdb-game-detail-age-ratings-inline">
                         {"•   "}
                         <AgeRatings ageRatings={game.ageRatings || []} />

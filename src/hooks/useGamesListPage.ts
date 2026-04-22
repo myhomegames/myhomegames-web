@@ -8,9 +8,12 @@ import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import type { ViewMode, GameItem, SortField } from "../types";
 import type { FilterField, FilterValue } from "../components/filters/types";
 import { compareTitles } from "../utils/stringUtils";
+import { isMainGameType, toGameTypeId } from "../utils/igdbGameType";
 import { API_BASE, getApiToken } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 import { useSettings } from "../contexts/SettingsContext";
+import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
+import { titleMatchesFilter } from "../utils/titleFilter";
 
 /** Shared sort for merged lists (e.g. tag pages with IGDB + library games). */
 export function sortGamesList(
@@ -53,6 +56,14 @@ export function sortGamesList(
             compareResult = dayA - dayB;
           }
         }
+        break;
+      }
+      case "gameType": {
+        const idA = toGameTypeId(a.type);
+        const idB = toGameTypeId(b.type);
+        const keyA = idA === undefined ? 999 : idA;
+        const keyB = idB === undefined ? 999 : idB;
+        compareResult = keyA - keyB;
         break;
       }
       case "criticRating": {
@@ -99,11 +110,22 @@ type GameEventType = "gameUpdated" | "gameDeleted" | "gameAdded";
 
 type ColumnVisibility = {
   title: boolean;
+  gameType: boolean;
   releaseDate: boolean;
   year: boolean;
   stars: boolean;
   criticRating: boolean;
   ageRating: boolean;
+};
+
+const DEFAULT_TABLE_COLUMN_VISIBILITY: ColumnVisibility = {
+  title: true,
+  gameType: true,
+  releaseDate: true,
+  year: false,
+  stars: false,
+  criticRating: false,
+  ageRating: false,
 };
 
 type UseGamesListPageOptions = {
@@ -126,6 +148,10 @@ type UseGamesListPageOptions = {
   
   // Scroll restoration
   scrollRestorationMode?: ViewMode | undefined;
+
+  /** When set with mainGamesOnly, parent controls the “main games only” grid filter */
+  mainGamesOnly?: boolean;
+  setMainGamesOnly?: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export type UseGamesListPageReturn = {
@@ -166,6 +192,8 @@ export type UseGamesListPageReturn = {
   setSelectedSeries: React.Dispatch<React.SetStateAction<string | null>>;
   selectedFranchise: string | null;
   setSelectedFranchise: React.Dispatch<React.SetStateAction<string | null>>;
+  selectedGameType: string | null;
+  setSelectedGameType: React.Dispatch<React.SetStateAction<string | null>>;
   allGenres: Array<{ id: string; title: string }>;
   availableGenres: Array<{ id: string; title: string }>;
   availableCollections: Array<{ id: string; title: string }>;
@@ -180,14 +208,16 @@ export type UseGamesListPageReturn = {
   columnVisibility: ColumnVisibility;
   setColumnVisibility: React.Dispatch<React.SetStateAction<ColumnVisibility>>;
   filteredAndSortedGames: GameItem[];
-  
+  mainGamesOnly: boolean;
+  setMainGamesOnly: React.Dispatch<React.SetStateAction<boolean>>;
+
   // Refs
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
   tableScrollRef: React.RefObject<HTMLDivElement | null>;
   itemRefs: React.RefObject<Map<string, HTMLElement>>;
   
   // Handlers
-  handleTableSort: (field: "title" | "year" | "stars" | "releaseDate" | "criticRating" | "userRating" | "ageRating") => void;
+  handleTableSort: (field: SortField) => void;
   toggleColumn: (column: keyof ColumnVisibility) => void;
   handleGameUpdate: (updatedGame: GameItem) => void;
   handleGameDelete: (deletedGame: GameItem) => void;
@@ -200,6 +230,7 @@ export type UseGamesListPageReturn = {
 export function useGamesListPage(
   options: UseGamesListPageOptions = {}
 ): UseGamesListPageReturn {
+  const titleFilterQuery = useTitleFilterQuery();
   const {
     localStoragePrefix = "",
     defaultFilterField = "all",
@@ -209,7 +240,11 @@ export function useGamesListPage(
     categoryId = null,
     onCategoryIdChange,
     scrollRestorationMode,
+    mainGamesOnly: mainGamesOnlyProp,
+    setMainGamesOnly: setMainGamesOnlyProp,
   } = options;
+
+  const isMainGamesControlled = setMainGamesOnlyProp !== undefined;
 
   const { games: libraryGames, isLoading: libraryGamesLoading, updateGame: contextUpdateGame, removeGame: contextRemoveGame } = useLibraryGames();
   const games = libraryGames;
@@ -327,6 +362,34 @@ export function useGamesListPage(
     }
     return null;
   });
+  const [selectedGameType, setSelectedGameType] = useState<string | null>(() => {
+    if (localStoragePrefix) {
+      const saved = localStorage.getItem(`${localStoragePrefix}SelectedGameType`);
+      return saved || null;
+    }
+    return null;
+  });
+  const [internalMainGamesOnly, setInternalMainGamesOnly] = useState<boolean>(() => {
+    if (!localStoragePrefix) return false;
+    return localStorage.getItem(`${localStoragePrefix}MainGamesOnly`) === "true";
+  });
+  const showMainGamesOnly = isMainGamesControlled ? Boolean(mainGamesOnlyProp) : internalMainGamesOnly;
+  const setShowMainGamesOnly = useCallback(
+    (v: React.SetStateAction<boolean>) => {
+      if (isMainGamesControlled && setMainGamesOnlyProp) {
+        setMainGamesOnlyProp(v);
+      } else {
+        setInternalMainGamesOnly((prev) => {
+          const next = typeof v === "function" ? (v as (p: boolean) => boolean)(prev) : v;
+          if (localStoragePrefix) {
+            localStorage.setItem(`${localStoragePrefix}MainGamesOnly`, String(next));
+          }
+          return next;
+        });
+      }
+    },
+    [isMainGamesControlled, setMainGamesOnlyProp, localStoragePrefix]
+  );
   const { tagLabels } = useTagLists();
   const allGenres = useMemo(
     () => Array.from(tagLabels.categories.entries()).map(([id, title]) => ({ id, title })),
@@ -400,19 +463,13 @@ export function useGamesListPage(
     const saved = localStorage.getItem("tableColumnVisibility");
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved) as Partial<ColumnVisibility>;
+        return { ...DEFAULT_TABLE_COLUMN_VISIBILITY, ...parsed };
       } catch {
-        return {
-          title: true,
-          releaseDate: true,
-          year: false,
-          stars: false,
-          criticRating: false,
-          ageRating: false,
-        };
+        return { ...DEFAULT_TABLE_COLUMN_VISIBILITY };
       }
     }
-    return { title: true, releaseDate: true, criticRating: false, ageRating: false };
+    return { ...DEFAULT_TABLE_COLUMN_VISIBILITY };
   });
 
   /** Compare selected filter (id or legacy title) with game tag field (ids, or objects with id). */
@@ -438,8 +495,26 @@ export function useGamesListPage(
   useEffect(() => {
     if (localStoragePrefix) {
       localStorage.setItem(`${localStoragePrefix}FilterField`, filterField);
+      window.dispatchEvent(
+        new CustomEvent("mhg-list-filter-changed", {
+          detail: { prefix: localStoragePrefix, filterField },
+        })
+      );
     }
   }, [filterField, localStoragePrefix]);
+
+  // Allow external components (e.g., sidebar quick-filters) to change the
+  // current filterField via a custom window event.
+  useEffect(() => {
+    if (!localStoragePrefix) return;
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ prefix?: string; filterField?: FilterField }>).detail;
+      if (!detail || detail.prefix !== localStoragePrefix || !detail.filterField) return;
+      setFilterField(detail.filterField);
+    };
+    window.addEventListener("mhg-set-list-filter", handler as EventListener);
+    return () => window.removeEventListener("mhg-set-list-filter", handler as EventListener);
+  }, [localStoragePrefix]);
 
   useEffect(() => {
     if (localStoragePrefix && selectedYear !== null) {
@@ -562,6 +637,14 @@ export function useGamesListPage(
   }, [selectedAgeRating, localStoragePrefix]);
 
   useEffect(() => {
+    if (localStoragePrefix && selectedGameType !== null) {
+      localStorage.setItem(`${localStoragePrefix}SelectedGameType`, selectedGameType);
+    } else if (localStoragePrefix) {
+      localStorage.removeItem(`${localStoragePrefix}SelectedGameType`);
+    }
+  }, [selectedGameType, localStoragePrefix]);
+
+  useEffect(() => {
     if (localStoragePrefix) {
       localStorage.setItem(`${localStoragePrefix}SortField`, sortField);
     }
@@ -611,6 +694,8 @@ export function useGamesListPage(
     if (filterField !== "all") {
       filtered = filtered.filter((game) => {
         switch (filterField) {
+          case "installed":
+            return Array.isArray(game.executables) && game.executables.length > 0;
           case "genre":
             if (selectedGenre !== null) {
               if (Array.isArray(game.genre)) {
@@ -693,10 +778,20 @@ export function useGamesListPage(
               return false;
             }
             return false;
+          case "gameType":
+            if (selectedGameType === null) return true;
+            {
+              const gid = toGameTypeId(game.type);
+              return gid !== undefined && String(gid) === String(selectedGameType);
+            }
           default:
             return true;
         }
       });
+    }
+
+    if (titleFilterQuery.trim()) {
+      filtered = filtered.filter((game) => titleMatchesFilter(game.title, titleFilterQuery));
     }
 
     // Apply sort (skip when server already returned title-asc and no filter is applied)
@@ -736,6 +831,14 @@ export function useGamesListPage(
             }
           }
           break;
+        case "gameType": {
+          const gtA = toGameTypeId(a.type);
+          const gtB = toGameTypeId(b.type);
+          const keyA = gtA === undefined ? 999 : gtA;
+          const keyB = gtB === undefined ? 999 : gtB;
+          compareResult = keyA - keyB;
+          break;
+        }
         case "criticRating":
           const criticA = a.criticratings ?? 0;
           const criticB = b.criticratings ?? 0;
@@ -772,6 +875,10 @@ export function useGamesListPage(
     });
     }
 
+    if (showMainGamesOnly) {
+      filtered = filtered.filter((g) => isMainGameType(g));
+    }
+
     return filtered;
   }, [
     games,
@@ -791,9 +898,12 @@ export function useGamesListPage(
     selectedSeries,
     selectedFranchise,
     selectedAgeRating,
+    selectedGameType,
     contextCollectionGameIds,
     sortField,
     sortAscending,
+    showMainGamesOnly,
+    titleFilterQuery,
   ]);
 
   // Hide content until fully rendered
@@ -874,7 +984,7 @@ export function useGamesListPage(
     }
   }, [games, allGenres, selectedGenre, filterField]);
 
-  const handleTableSort = (field: "title" | "year" | "stars" | "releaseDate" | "criticRating" | "userRating" | "ageRating") => {
+  const handleTableSort = (field: SortField) => {
     if (sortField === field) {
       setSortAscending(!sortAscending);
     } else {
@@ -987,6 +1097,8 @@ export function useGamesListPage(
     setSelectedSeries,
     selectedFranchise,
     setSelectedFranchise,
+    selectedGameType,
+    setSelectedGameType,
     allGenres,
     availableGenres,
     availableCollections,
@@ -1001,6 +1113,8 @@ export function useGamesListPage(
     columnVisibility,
     setColumnVisibility,
     filteredAndSortedGames,
+    mainGamesOnly: showMainGamesOnly,
+    setMainGamesOnly: setShowMainGamesOnly,
     scrollContainerRef,
     tableScrollRef,
     itemRefs,

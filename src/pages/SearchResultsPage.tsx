@@ -5,8 +5,6 @@ import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useGameEvents } from "../hooks/useGameEvents";
 import SearchResultsList from "../components/search/SearchResultsList";
 import type { GameItem, CollectionItem } from "../types";
-import "./SearchResultsPage.css";
-
 type SearchResultsPageProps = {
   onGameClick: (game: GameItem) => void;
   onPlay?: (item: GameItem | CollectionItem) => void;
@@ -207,12 +205,8 @@ export default function SearchResultsPage({
   }
 
   return (
-    <div 
-      className="bg-[#1a1a1a] text-white search-results-page"
-      style={{
-        opacity: isReady ? 1 : 0,
-        transition: 'opacity 0.2s ease-in-out',
-      }}
+    <div
+      className={`bg-[#1a1a1a] text-white search-results-page search-results-page--fade${isReady ? " search-results-page--fade-ready" : ""}`}
     >
       <div className="search-results-header">
         <div className="search-results-header-content">

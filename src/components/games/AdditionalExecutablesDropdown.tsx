@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import "./AdditionalExecutablesDropdown.css";
-
 type AdditionalExecutablesDropdownProps = {
   gameId: string;
   gameExecutables: string[];
@@ -43,7 +41,7 @@ export default function AdditionalExecutablesDropdown({
     const handleOpenDropdown = (event: Event) => {
       const customEvent = event as CustomEvent<{ gameId?: string }>;
       // Only open if the event is for this specific game
-      if (customEvent.detail?.gameId === gameId) {
+      if (String(customEvent.detail?.gameId ?? "") === String(gameId ?? "")) {
         setIsOpen(true);
       }
     };
@@ -51,7 +49,10 @@ export default function AdditionalExecutablesDropdown({
     const handleCloseDropdown = (event: Event) => {
       const customEvent = event as CustomEvent<{ gameId?: string }>;
       // Only close if the event is for this specific game or if no gameId is specified (close all)
-      if (!customEvent.detail?.gameId || customEvent.detail.gameId === gameId) {
+      if (
+        !customEvent.detail?.gameId ||
+        String(customEvent.detail.gameId) === String(gameId ?? "")
+      ) {
         setIsOpen(false);
       }
     };
@@ -195,11 +196,7 @@ export default function AdditionalExecutablesDropdown({
   const menuContent = isOpen ? (
     <div
       ref={menuRef}
-      className={`additional-executables-dropdown-menu ${isInSearchPopup ? 'additional-executables-dropdown-menu-in-popup' : ''}`}
-      style={{
-        visibility: isPositionReady ? 'visible' : 'hidden',
-        pointerEvents: isPositionReady ? 'auto' : 'none',
-      }}
+      className={`additional-executables-dropdown-menu additional-executables-dropdown-menu--positioning${isPositionReady ? " is-position-ready" : ""} ${isInSearchPopup ? "additional-executables-dropdown-menu-in-popup" : ""}`}
           onMouseLeave={(e) => {
             // Use setTimeout to delay closing to allow moving to menu item
             setTimeout(() => {

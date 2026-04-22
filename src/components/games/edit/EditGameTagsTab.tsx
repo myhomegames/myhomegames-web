@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId } from "react";
 import type { TFunction } from "i18next";
 import TagEditor from "../../common/TagEditor";
 import type { IdNameItem } from "./FranchiseSeriesEditor";
@@ -67,6 +67,15 @@ export default function EditGameTagsTab({
   setSelectedFranchise,
   setSelectedSeries,
 }: EditGameTagsTabProps) {
+  const tagInputGenre = useId();
+  const tagInputThemes = useId();
+  const tagInputKeywords = useId();
+  const tagInputPlatforms = useId();
+  const tagInputGameModes = useId();
+  const tagInputPlayerPerspectives = useId();
+  const tagInputGameEngines = useId();
+  const tagInputFranchise = useId();
+  const tagInputSeries = useId();
   const { tagLabels } = useTagLists();
   const [availableThemes, setAvailableThemes] = useState<string[]>([]);
   const [availablePlatforms, setAvailablePlatforms] = useState<string[]>([]);
@@ -105,10 +114,13 @@ export default function EditGameTagsTab({
   return (
     <>
       <div className="edit-game-modal-field">
-        <div className="edit-game-modal-label">{t("gameDetail.genre", "Genre")}</div>
+        <label className="edit-game-modal-label" htmlFor={tagInputGenre}>
+          {t("gameDetail.genre", "Genre")}
+        </label>
         {isOpen && (
           <TagEditor
             key={`tag-editor-genres-${gameId}-${isOpen}`}
+            inputId={tagInputGenre}
             selectedTags={selectedGenres}
             onTagsChange={setSelectedGenres}
             disabled={saving}
@@ -117,24 +129,31 @@ export default function EditGameTagsTab({
         )}
       </div>
       <div className="edit-game-modal-field">
-        <div className="edit-game-modal-label">{t("gameDetail.themes", "Themes")}</div>
+        <label className="edit-game-modal-label" htmlFor={tagInputThemes}>
+          {t("gameDetail.themes", "Themes")}
+        </label>
         {isOpen && (
           <TagEditor
             key={`tag-editor-themes-${gameId}-${isOpen}`}
+            inputId={tagInputThemes}
             mode="freeform"
             selectedTags={selectedThemes}
             onTagsChange={setSelectedThemes}
             disabled={saving}
             placeholder={t("gameDetail.addTheme", "Add theme...")}
+            getDisplayName={(value) => t(`themes.${value}`, value)}
             availableTags={availableThemes}
           />
         )}
       </div>
       <div className="edit-game-modal-field">
-        <div className="edit-game-modal-label">{t("gameDetail.keywords", "Keywords")}</div>
+        <label className="edit-game-modal-label" htmlFor={tagInputKeywords}>
+          {t("gameDetail.keywords", "Keywords")}
+        </label>
         {isOpen && (
           <TagEditor
             key={`tag-editor-keywords-${gameId}-${isOpen}`}
+            inputId={tagInputKeywords}
             mode="freeform"
             selectedTags={selectedKeywords}
             onTagsChange={setSelectedKeywords}
@@ -145,10 +164,13 @@ export default function EditGameTagsTab({
         )}
       </div>
       <div className="edit-game-modal-field">
-        <div className="edit-game-modal-label">{t("gameDetail.platforms", "Platforms")}</div>
+        <label className="edit-game-modal-label" htmlFor={tagInputPlatforms}>
+          {t("gameDetail.platforms", "Platforms")}
+        </label>
         {isOpen && (
           <TagEditor
             key={`tag-editor-platforms-${gameId}-${isOpen}`}
+            inputId={tagInputPlatforms}
             mode="freeform"
             selectedTags={selectedPlatforms}
             onTagsChange={setSelectedPlatforms}
@@ -159,10 +181,13 @@ export default function EditGameTagsTab({
         )}
       </div>
       <div className="edit-game-modal-field">
-        <div className="edit-game-modal-label">{t("gameDetail.gameModes", "Game Modes")}</div>
+        <label className="edit-game-modal-label" htmlFor={tagInputGameModes}>
+          {t("gameDetail.gameModes", "Game Modes")}
+        </label>
         {isOpen && (
           <TagEditor
             key={`tag-editor-game-modes-${gameId}-${isOpen}`}
+            inputId={tagInputGameModes}
             mode="freeform"
             selectedTags={selectedGameModes}
             onTagsChange={setSelectedGameModes}
@@ -174,12 +199,13 @@ export default function EditGameTagsTab({
         )}
       </div>
       <div className="edit-game-modal-field">
-        <div className="edit-game-modal-label">
+        <label className="edit-game-modal-label" htmlFor={tagInputPlayerPerspectives}>
           {t("gameDetail.playerPerspectives", "Player Perspectives")}
-        </div>
+        </label>
         {isOpen && (
           <TagEditor
             key={`tag-editor-player-perspectives-${gameId}-${isOpen}`}
+            inputId={tagInputPlayerPerspectives}
             mode="freeform"
             selectedTags={selectedPlayerPerspectives}
             onTagsChange={setSelectedPlayerPerspectives}
@@ -191,10 +217,13 @@ export default function EditGameTagsTab({
         )}
       </div>
       <div className="edit-game-modal-field">
-        <div className="edit-game-modal-label">{t("gameDetail.gameEngines", "Game Engines")}</div>
+        <label className="edit-game-modal-label" htmlFor={tagInputGameEngines}>
+          {t("gameDetail.gameEngines", "Game Engines")}
+        </label>
         {isOpen && (
           <TagEditor
             key={`tag-editor-game-engines-${gameId}-${isOpen}`}
+            inputId={tagInputGameEngines}
             mode="freeform"
             selectedTags={selectedGameEngines}
             onTagsChange={setSelectedGameEngines}
@@ -205,10 +234,13 @@ export default function EditGameTagsTab({
         )}
       </div>
       <div className="edit-game-modal-field">
-        <div className="edit-game-modal-label">{t("igdbInfo.franchise", "Franchise")}</div>
+        <label className="edit-game-modal-label" htmlFor={tagInputFranchise}>
+          {t("igdbInfo.franchise", "Franchise")}
+        </label>
         {isOpen && (
           <TagEditor
             key={`tag-editor-franchise-${gameId}-${isOpen}`}
+            inputId={tagInputFranchise}
             mode="freeform"
             selectedTags={selectedFranchise.map((f) => f.name)}
             onTagsChange={(names) =>
@@ -232,10 +264,13 @@ export default function EditGameTagsTab({
         )}
       </div>
       <div className="edit-game-modal-field">
-        <div className="edit-game-modal-label">{t("igdbInfo.series", "Series")}</div>
+        <label className="edit-game-modal-label" htmlFor={tagInputSeries}>
+          {t("igdbInfo.series", "Series")}
+        </label>
         {isOpen && (
           <TagEditor
             key={`tag-editor-series-${gameId}-${isOpen}`}
+            inputId={tagInputSeries}
             mode="freeform"
             selectedTags={selectedSeries.map((s) => s.name)}
             onTagsChange={(names) =>

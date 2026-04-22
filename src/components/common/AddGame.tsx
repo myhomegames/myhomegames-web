@@ -3,11 +3,12 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { formatIGDBGameDate } from "../../utils/date";
+import { displayGameType } from "../../utils/igdbGameType";
 import { API_BASE, API_TOKEN, getTwitchClientId, getTwitchClientSecret } from "../../config";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useCreateGame } from "./actions";
 import type { GameItem, IGDBGame } from "../../types";
-import "./AddGame.css";
+import Cover from "../games/Cover";
 
 type AddGameProps = {
   isOpen: boolean;
@@ -370,17 +371,20 @@ export default function AddGame({
         <div className="add-game-content">
           {twitchLoginEnabled && (
             <div className="add-game-search-container">
+              <label htmlFor="add-game-search" className="add-game-sr-only">
+                {t("addGame.searchPlaceholder")}
+              </label>
               <input
                 ref={inputRef}
                 id="add-game-search"
-                name="search"
-                type="text"
+                name="igdbSearchQuery"
+                type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t("addGame.searchPlaceholder")}
                 className="add-game-search-input"
                 autoFocus
-                aria-label={t("addGame.searchPlaceholder")}
+                autoComplete="off"
               />
             </div>
           )}
@@ -399,7 +403,12 @@ export default function AddGame({
                 }
               }}
             >
+              <label htmlFor="add-game-create-title" className="add-game-sr-only">
+                {t("addGame.newGameTitle")}
+              </label>
               <input
+                id="add-game-create-title"
+                name="newGameTitle"
                 type="text"
                 value={createTitle}
                 onChange={(e) => setCreateTitle(e.target.value)}
@@ -413,7 +422,6 @@ export default function AddGame({
                 }}
                 placeholder={t("addGame.newGameTitlePlaceholder")}
                 className="add-game-search-input add-game-create-input"
-                aria-label={t("addGame.newGameTitle")}
                 disabled={isCreating}
               />
               <button
@@ -455,7 +463,9 @@ export default function AddGame({
                 {results.map((game) => {
                   const matchingGame = findMatchingLocalGame(game);
                   const isNew = !matchingGame;
-                  
+                  const typeLabel =
+                    game.type != null ? displayGameType(game.type) : "";
+
                   return (
                     <button
                       key={game.id}
@@ -474,25 +484,28 @@ export default function AddGame({
                       }}
                       className="add-game-result-item"
                     >
-                      {game.cover ? (
-                        <img
-                          src={game.cover}
-                          alt={game.name}
-                          className="add-game-result-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = "none";
-                          }}
+                      <div className="add-game-result-cover-wrap">
+                        <Cover
+                          title={game.name}
+                          coverUrl={game.cover || ""}
+                          width={80}
+                          height={120}
+                          showTitle={false}
+                          detail={false}
+                          play={false}
+                          showBorder={false}
                         />
-                      ) : (
-                        <div className="add-game-result-placeholder">
-                          🎮
-                        </div>
-                      )}
+                      </div>
                       <div className="add-game-result-content">
                         <div className="add-game-result-title-row">
                           <div className="add-game-result-title">
                             {game.name}
                           </div>
+                          {typeLabel ? (
+                            <span className="add-game-result-type-label">
+                              {typeLabel}
+                            </span>
+                          ) : null}
                           {isNew && (
                             <span className="add-game-result-new-label">
                               {t("addGame.new")}

@@ -1,109 +1,80 @@
-.mhg-libraries-menu-container {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  display: flex;
-  align-items: center;
-  z-index: 200;
-  padding: 0 24px;
-  height: 100%;
+/*
+ * Top-strip skins (e.g. Plex): when `libraryPagesVerticalList` is on but the shell is not a
+ * persistent sidebar (`!persistentLibraryShell`), stack library page tabs vertically. Lives in the
+ * web bundle so it works even if the server-hosted skin CSS is older than the app.
+ */
+.mhg-libraries-bar.mhg-libraries-bar--vertical-page-tabs {
+  min-height: auto;
 }
 
-.mhg-libraries-menu-dropdown .dropdown-menu-button {
-  opacity: 1;
+.mhg-libraries-bar.mhg-libraries-bar--vertical-page-tabs .mhg-libraries-bar-container {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 16px;
+  min-height: auto;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  /* Clear absolute-positioned main menu (when present) */
+  padding-left: 72px;
 }
 
-.mhg-libraries-menu-dropdown .dropdown-menu-popup {
-  left: 0;
-  right: auto;
-  top: 100%;
-  bottom: auto;
-  margin-top: 4px;
-}
-
-.mhg-libraries-actions {
-  transform: translateY(-2px);
+.mhg-libraries-bar.mhg-libraries-bar--vertical-page-tabs .mhg-libraries-container {
   position: relative;
-  z-index: 201;
-}
-
-.mhg-libraries-actions-slider-container {
-  visibility: visible;
-  width: 60px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  transform: translateY(2px);
-  position: relative;
-  z-index: 202;
-  pointer-events: auto;
-}
-
-.mhg-libraries-actions-slider-container.hidden {
-  visibility: hidden;
-}
-
-.mhg-libraries-actions-background-toggle-container {
-  display: flex;
-  align-items: center;
-  margin-right: 3px;
-  transform: translateY(3px);
-}
-
-.mhg-libraries-actions-new-games-container {
-  display: flex;
-  align-items: center;
-  margin-right: 26px;
-}
-
-.mhg-libraries-actions-view-mode-container {
-  display: flex;
-  align-items: center;
-  position: relative;
-  z-index: 998;
-}
-
-.mhg-libraries-combobox-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: calc(100% - 200px);
-}
-
-.mhg-libraries-combobox {
-  padding: 12px 24px 12px 0;
-  background-color: transparent;
-  border: none;
-  border-radius: 0;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
-  min-width: auto;
+  left: auto;
+  transform: none;
+  flex: 0 1 auto;
   width: auto;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 9L1 4h10L6 9z' fill='%23ffffff'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right center;
-  padding-right: 20px;
-  transition: color 0.2s ease;
+  min-width: 200px;
+  max-width: min(340px, 38vw);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 2px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: min(360px, 45vh, calc(100vh - 120px));
 }
 
-.mhg-libraries-combobox:hover {
-  color: rgba(255, 255, 255, 1);
+.mhg-libraries-bar.mhg-libraries-bar--vertical-page-tabs .mhg-library-button,
+.mhg-libraries-bar.mhg-libraries-bar--vertical-page-tabs .mhg-library-active {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+  white-space: normal;
+  border-bottom: none !important;
+  transform: none;
+  padding: 10px 16px;
 }
 
-.mhg-libraries-combobox:focus {
-  outline: none;
-  color: #E5A00D;
+.mhg-libraries-bar.mhg-libraries-bar--vertical-page-tabs .mhg-library-active::after {
+  display: none;
 }
 
-.mhg-libraries-combobox option {
-  background-color: #2a2a2a;
-  color: rgba(255, 255, 255, 0.9);
-  padding: 8px;
+.mhg-libraries-bar.mhg-libraries-bar--vertical-page-tabs .mhg-collections-shortcuts {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.mhg-libraries-bar.mhg-libraries-bar--vertical-page-tabs .mhg-collections-shortcuts-title {
+  width: 100%;
+}
+
+.mhg-libraries-bar.mhg-libraries-bar--vertical-page-tabs .mhg-collection-shortcut-button {
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+}
+
+.mhg-libraries-bar.mhg-libraries-bar--vertical-page-tabs .mhg-libraries-actions {
+  margin-left: auto;
+  flex-shrink: 0;
+  align-self: flex-start;
+  padding-top: 2px;
 }

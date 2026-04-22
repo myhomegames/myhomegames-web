@@ -12,7 +12,11 @@
     "publishers": "パブリッシャー",
     "gameEngines": "ゲームエンジン",
     "gameModes": "ゲームモード",
-    "playerPerspectives": "視点"
+    "playerPerspectives": "視点",
+    "sidebarSearch": "検索",
+    "ownedGames": "所持ゲーム",
+    "installedGames": "インストール済み",
+    "gamesSidebar": "ゲーム"
   },
   "settings": {
     "title": "設定",
@@ -23,6 +27,32 @@
     "pages": "ページ",
     "pagesHelp": "メインメニューに表示するセクションを選択します。",
     "selectLanguage": "アプリケーションの言語を選択",
+    "saveError": "Could not save to server",
+    "skin": {
+      "title": "Appearance",
+      "subtitle": "Install a UI skin (theme) from a zip archive. There is no default theme until you install one.",
+      "saveNote": "Installed skins are stored on the server under your metadata directory (skins/ next to content/). The active skin choice is saved in this browser.",
+      "active": "Active skin",
+      "noneSelected": "None (no theme CSS)",
+      "noSkinsYet": "No skins installed — upload a zip below",
+      "uploadTitle": "Install a skin",
+      "uploadHint": "Upload a .zip (or .mhg-skin.zip) with skin.json and a complete bundle.css (full theme replacement). See SKINS.md in the myhomegames-skins repository.",
+      "displayName": "Display name (optional)",
+      "displayNamePlaceholder": "e.g. Dark minimal",
+      "chooseFile": "Choose archive",
+      "installed": "Installed skins",
+      "remove": "Remove",
+      "errorNotZip": "Please choose a .zip or .mhg-skin.zip file.",
+      "errorMissingArchive": "No archive was uploaded.",
+      "errorInvalidArchiveType": "The server only accepts .zip archives.",
+      "errorMissingSkinJson": "The archive must include skin.json (at the root or inside a single top-level folder).",
+      "errorMissingCss": "No CSS found: add bundle.css or .css files next to skin.json.",
+      "errorTooMany": "Too many skins on the server. Remove one first.",
+      "errorInvalidZip": "The archive contains unsafe or invalid paths.",
+      "errorInstallFailed": "The server could not install this skin.",
+      "errorUploadFailed": "Upload failed. Check the archive format and try again.",
+      "confirmRemove": "Remove the skin \"{{name}}\" from the server?"
+    },
     "save": "保存",
     "saving": "保存中...",
     "english": "英語",
@@ -42,6 +72,21 @@
       "clientSecretPlaceholder": "Twitchクライアントシークレットを入力してください",
       "clientIdHelp": "TwitchアプリケーションのクライアントID",
       "clientSecretHelp": "Twitchアプリケーションのクライアントシークレット（安全に保管してください）"
+    },
+    "skinOptions": {
+      "title": "オプション",
+      "description": "アクティブなスキンの表示を細かく調整します。スキンをインストールまたは切り替えると、これらのオプションはそのスキンのマニフェストで宣言された値にリセットされます。",
+      "noActiveSkin": "オプションをカスタマイズするには、まずスキンを選択してください。",
+      "flags": {
+        "persistentLibraryShell": "永続的なライブラリシェル（ヘッダーとサイドバーを常駐）",
+        "collectionsShortcutList": "サイドバーにコレクションのショートカット",
+        "libraryPagesVerticalList": "ライブラリのタブを縦リストで表示",
+        "headerTitleFilter": "ヘッダーにタイトルフィルター（グローバル検索の代わりに）",
+        "disableAlphabetNavigator": "A–Z サイドナビゲーターを非表示",
+        "sidebarSearchPopup": "サイドバーに検索ポップアップ",
+        "ownedGamesFirstInGamesSidebar": "ゲームメニューの先頭に「所有ゲーム」",
+        "compactCollectionLikeDetail": "コンパクトなコレクション詳細（ヒーローと見出しを非表示）"
+      }
     }
   },
   "tags": {
@@ -51,7 +96,10 @@
     "igdbGamesNotInLibrary": "ライブラリにないゲーム",
     "showNewGames": "新規ゲーム",
     "hideNewGames": "新規ゲームを非表示",
-    "newGamesTooltip": "新規ゲームも表示する"
+    "newGamesTooltip": "新規ゲームも表示する",
+    "mainGamesTooltip": "メインゲームのみ表示（DLC・リマスターなどを非表示）",
+    "mainGamesOnly": "メインゲームのみ",
+    "showAllGameTypes": "すべてのタイプを表示"
   },
   "header": {
     "home": "ホーム",
@@ -67,7 +115,9 @@
     "downloadWindows": "Windows",
     "downloadMacArm": "macOS (Apple Silicon)",
     "downloadMacIntel": "macOS (Intel)",
-    "downloadLinux": "Linux"
+    "downloadLinux": "Linux",
+    "titleFilterPlaceholder": "検索…",
+    "titleFilterAria": "現在のリストを検索"
   },
   "profile": {
     "viewProfile": "プロフィールを表示",
@@ -142,6 +192,7 @@
     "stars": "評価",
     "criticRating": "批評家評価",
     "ageRating": "コンテンツレーティング",
+    "gameType": "ゲームタイプ",
     "noGames": "ゲームが見つかりません"
   },
   "gameDetail": {
@@ -303,6 +354,7 @@
   "gamesListToolbar": {
     "filter": {
       "all": "すべて",
+      "installed": "インストール済み",
       "genre": "ジャンル",
       "themes": "テーマ",
       "keywords": "おすすめ",
@@ -312,6 +364,7 @@
       "developers": "開発者",
       "playerPerspectives": "視点",
       "gameEngines": "ゲームエンジン",
+      "gameType": "ゲームタイプ",
       "year": "年",
       "decade": "年代",
       "collection": "コレクション",
@@ -328,6 +381,7 @@
       "searchDevelopers": "フィルター開発者",
       "searchPlayerPerspectives": "フィルター視点",
       "searchGameEngines": "フィルターゲームエンジン",
+      "searchGameType": "ゲームタイプを絞り込む",
       "searchDecade": "フィルター年代",
       "searchCollection": "フィルターコレクション",
       "searchSeries": "シリーズで絞り込み",
@@ -340,6 +394,7 @@
       "year": "年",
       "stars": "評価",
       "releaseDate": "リリース日",
+      "gameType": "ゲームタイプ",
       "criticRating": "批評家評価",
       "userRating": "ユーザー評価",
       "ageRating": "コンテンツレーティング"
@@ -436,6 +491,7 @@
   },
   "igdbInfo": {
     "gameId": "ID",
+    "gameType": "タイプ",
     "themes": "テーマ",
     "platforms": "プラットフォーム",
     "gameModes": "ゲームモード",
@@ -520,5 +576,22 @@
     "ratings": "評価",
     "criticRating": "批評家評価",
     "userRating": "ユーザー評価"
+  },
+  "igdbGameTypes": {
+    "0": "メインゲーム",
+    "1": "DLC",
+    "2": "拡張",
+    "3": "バンドル",
+    "4": "単体拡張",
+    "5": "Mod",
+    "6": "エピソード",
+    "7": "シーズン",
+    "8": "リメイク",
+    "9": "リマスター",
+    "10": "拡張版",
+    "11": "移植",
+    "12": "Fork",
+    "13": "パック",
+    "14": "アップデート"
   }
 }

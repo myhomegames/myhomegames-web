@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { getEmbedVideoUrl } from "../../utils/api";
-
 type MediaGalleryProps = {
   screenshots?: string[];
   videos?: string[];
@@ -116,51 +115,18 @@ export default function MediaGallery({ screenshots, videos, apiBase }: MediaGall
 
   return (
     <>
-      <div
-        ref={scrollRef}
-        style={{ 
-          display: 'flex', 
-          flexDirection: 'row',
-          gap: '12px',
-          overflowX: 'auto',
-          overflowY: 'hidden',
-          paddingBottom: '8px',
-          scrollbarWidth: 'thin',
-          scrollbarColor: 'rgba(255, 255, 255, 0.3) transparent',
-        }}>
+      <div ref={scrollRef} className="media-gallery-strip">
           {/* Videos first */}
           {videos && videos.map((video, index) => (
             <div
               key={`video-${index}`}
-                    onClick={() => openLightbox(screenshotsCount + index)}
-              style={{
-                flexShrink: 0,
-                width: '300px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                aspectRatio: '16/9',
-                transition: 'opacity 0.2s ease, transform 0.2s ease',
-                position: 'relative',
-                overflow: 'hidden',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.opacity = '0.8';
-                e.currentTarget.style.transform = 'scale(1.02)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.opacity = '1';
-                e.currentTarget.style.transform = 'scale(1)';
-              }}
+              className="media-gallery-tile"
+              onClick={() => openLightbox(screenshotsCount + index)}
             >
               <iframe
+                className="media-gallery-tile-iframe"
                 src={getEmbedVideoUrl(video)}
                 title={`Video ${index + 1}`}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  border: 'none',
-                  borderRadius: '4px',
-                }}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; compute-pressure"
                 allowFullScreen
               />
@@ -171,88 +137,26 @@ export default function MediaGallery({ screenshots, videos, apiBase }: MediaGall
           {resolvedScreenshots.map((screenshot, index) => (
             <img
               key={`screenshot-${index}`}
+              className="media-gallery-thumb"
               src={screenshot}
               alt={`Screenshot ${index + 1}`}
-                    onClick={() => openLightbox(index)}
-              style={{
-                flexShrink: 0,
-                width: '300px',
-                height: 'auto',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                objectFit: 'cover',
-                aspectRatio: '16/9',
-                transition: 'opacity 0.2s ease, transform 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.opacity = '0.8';
-                e.currentTarget.style.transform = 'scale(1.02)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.opacity = '1';
-                e.currentTarget.style.transform = 'scale(1)';
-              }}
+              onClick={() => openLightbox(index)}
             />
           ))}
       </div>
 
       {/* Lightbox Modal - rendered via portal to body */}
       {selectedIndex !== null && selectedMedia && createPortal(
-        <div
-          onClick={closeLightbox}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.9)',
-            zIndex: 10010,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              position: 'relative',
-              maxWidth: '90vw',
-              maxHeight: '90vh',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
+        <div className="media-gallery-lightbox-backdrop" onClick={closeLightbox}>
+          <div className="media-gallery-lightbox-inner" onClick={(e) => e.stopPropagation()}>
             {/* Previous Button */}
             {mediaItems.length > 1 && (
               <button
+                type="button"
+                className="media-gallery-lightbox-icon-btn media-gallery-lightbox-icon-btn--prev"
                 onClick={(e) => {
                   e.stopPropagation();
                   navigateMedia('prev');
-                }}
-                style={{
-                  position: 'absolute',
-                  left: '-60px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: '48px',
-                  height: '48px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: '24px',
-                  transition: 'background-color 0.2s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
                 }}
               >
                 ‹
@@ -262,26 +166,15 @@ export default function MediaGallery({ screenshots, videos, apiBase }: MediaGall
             {/* Media Content */}
             {selectedMedia.type === 'screenshot' ? (
               <img
+                className="media-gallery-lightbox-img"
                 src={selectedMedia.src}
                 alt={`Screenshot ${selectedIndex + 1}`}
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '90vh',
-                  borderRadius: '4px',
-                  objectFit: 'contain',
-                }}
               />
             ) : (
               <iframe
+                className="media-gallery-lightbox-iframe"
                 src={getEmbedVideoUrl(selectedMedia.src)}
                 title={`Video ${selectedIndex + 1}`}
-                style={{
-                  width: '90vw',
-                  maxWidth: '1600px',
-                  aspectRatio: '16/9',
-                  borderRadius: '4px',
-                  border: 'none',
-                }}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; compute-pressure"
                 allowFullScreen
               />
@@ -290,31 +183,11 @@ export default function MediaGallery({ screenshots, videos, apiBase }: MediaGall
             {/* Next Button */}
             {mediaItems.length > 1 && (
               <button
+                type="button"
+                className="media-gallery-lightbox-icon-btn media-gallery-lightbox-icon-btn--next"
                 onClick={(e) => {
                   e.stopPropagation();
                   navigateMedia('next');
-                }}
-                style={{
-                  position: 'absolute',
-                  right: '-60px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: '48px',
-                  height: '48px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: '24px',
-                  transition: 'background-color 0.2s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
                 }}
               >
                 ›
@@ -323,48 +196,16 @@ export default function MediaGallery({ screenshots, videos, apiBase }: MediaGall
 
             {/* Close Button */}
             <button
+              type="button"
+              className="media-gallery-lightbox-icon-btn media-gallery-lightbox-icon-btn--close"
               onClick={closeLightbox}
-              style={{
-                position: 'absolute',
-                top: '-60px',
-                right: '0',
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                border: 'none',
-                borderRadius: '50%',
-                width: '48px',
-                height: '48px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontSize: '24px',
-                transition: 'background-color 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-              }}
             >
               ×
             </button>
 
             {/* Media Counter */}
             {mediaItems.length > 1 && (
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: '-40px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  color: 'white',
-                  fontFamily: 'var(--font-body-2-font-family)',
-                  fontSize: 'var(--font-body-2-font-size)',
-                  opacity: 0.8,
-                }}
-              >
+              <div className="media-gallery-lightbox-counter">
                 {selectedIndex + 1} / {mediaItems.length}
               </div>
             )}

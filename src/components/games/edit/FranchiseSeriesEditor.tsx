@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { API_BASE } from "../../../config";
 import { buildApiUrl } from "../../../utils/api";
 import { buildApiHeaders } from "../../../utils/api";
-import "./FranchiseSeriesEditor.css";
-
 export type IdNameItem = { id: number; name: string };
 
 type FranchiseSeriesEditorProps = {

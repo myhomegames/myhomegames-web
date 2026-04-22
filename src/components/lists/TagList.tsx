@@ -1,9 +1,8 @@
+import type { CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Cover from "../games/Cover";
 import type { TagItem } from "../../types";
-import "./TagList.css";
-
 type TagListProps = {
   items: TagItem[];
   coverSize?: number;
@@ -59,7 +58,6 @@ function TagListItem({
         }
       }}
       className="group cursor-pointer tag-list-item"
-      style={{ width: `${coverSize}px`, minWidth: `${coverSize}px` }}
       onClick={handleClick}
     >
       <Cover
@@ -94,15 +92,7 @@ export default function TagList({
   
   if (items.length === 0) {
     return (
-      <div 
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100%',
-          minHeight: '400px',
-        }}
-      >
+      <div className="tag-list-empty">
         <div className="text-gray-400 text-center">
           {emptyMessage || t("categories.noCategoriesFound")}
         </div>
@@ -113,7 +103,7 @@ export default function TagList({
   return (
     <div
       className="tag-list-container"
-      style={{ gridTemplateColumns: `repeat(auto-fill, ${coverSize}px)` }}
+      style={{ ["--tag-list-cover-size" as string]: `${coverSize}px` } as CSSProperties}
     >
       {items.map((item) => (
         <TagListItem

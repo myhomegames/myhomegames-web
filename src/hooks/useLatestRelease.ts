@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { GITHUB_REPO, API_BASE } from "../config";
 import { buildApiUrl } from "../utils/api";
 
@@ -183,12 +183,40 @@ export function useLatestRelease(): LatestReleaseState {
 
   const latestVersion = data?.tag_name?.replace(/^v/i, "") ?? null;
   const currentVersion = serverVersion;
-  const updateAvailable = Boolean(
-    latestVersion &&
-      currentVersion &&
-      data?.assets?.length &&
-      versionGreater(latestVersion, currentVersion)
+  const updateAvailable = useMemo(
+    () =>
+      Boolean(
+        latestVersion &&
+          currentVersion &&
+          data?.assets?.length &&
+          versionGreater(latestVersion, currentVersion)
+      ),
+    [latestVersion, currentVersion, data?.assets?.length]
   );
+
+  // After upgrading the server, the SPA may still hold the old /version until we poll or the tab regains focus.
+  useEffect(() => {
+    if (!updateAvailable) return;
+    const id = window.setInterval(() => {
+      void fetchServerVersion();
+    }, 30_000);
+    return () => window.clearInterval(id);
+  }, [updateAvailable, fetchServerVersion]);
+
+  useEffect(() => {
+    if (!updateAvailable) return;
+    const refresh = () => {
+      if (document.visibilityState !== "visible") return;
+      void fetchServerVersion();
+    };
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [updateAvailable, fetchServerVersion]);
+
   const os = detectOs();
   const primary = data?.assets ? findAssetForOs(data.assets, os) : null;
   const allDownloads = data?.assets ? allDownloadOptions(data.assets) : [];

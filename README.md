@@ -6,6 +6,8 @@ React + TypeScript + Vite application for managing and browsing game collections
 
 For development setup instructions, see [DEVELOPMENT.md](DEVELOPMENT.md).
 
+For themes and skin archives, see **[SKINS.md](https://github.com/myhomegames/myhomegames-skins/blob/main/SKINS.md)** in the **myhomegames-skins** repository. Skins are installed manually from Settings; the web app does not ship a default theme.
+
 ### Building for Production
 
 To create a production bundle:

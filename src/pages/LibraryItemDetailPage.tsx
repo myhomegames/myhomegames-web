@@ -1,15 +1,18 @@
 import { useState, useEffect, useRef, useMemo, useLayoutEffect } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useLocation, useOutletContext } from "react-router-dom";
+import type { MainAppOutletContext } from "../layouts/MainAppLayout";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useGameEvents } from "../hooks/useGameEvents";
 import { useLoading } from "../contexts/LoadingContext";
 import { useSettings } from "../contexts/SettingsContext";
+import { useSkin } from "../contexts/SkinContext";
 import { useCollections } from "../contexts/CollectionsContext";
 import { useDevelopers } from "../contexts/DevelopersContext";
 import { usePublishers } from "../contexts/PublishersContext";
 import { useLibraryGames } from "../contexts/LibraryGamesContext";
+import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
 import { useIgdbGamesForTag, type IgdbTagKey } from "../hooks/useIgdbGamesForTag";
 import GamesList from "../components/games/GamesList";
 import Cover from "../components/games/Cover";
@@ -17,16 +20,19 @@ import LibrariesBar from "../components/layout/LibrariesBar";
 import StarRating from "../components/common/StarRating";
 import Summary from "../components/common/Summary";
 import EditCollectionLikeModal from "../components/collections/EditCollectionLikeModal";
+import AddCollectionLikeToCollectionLikeModal from "../components/collections/AddCollectionLikeToCollectionLikeModal";
 import DropdownMenu from "../components/common/DropdownMenu";
 import Tooltip from "../components/common/Tooltip";
 import BackgroundManager, { useBackground } from "../components/common/BackgroundManager";
-import { compareTitles, filterRootCollectionLikes } from "../utils/stringUtils";
+import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
+import { compareTitles } from "../utils/stringUtils";
+import { titleMatchesFilter } from "../utils/titleFilter";
+import { parseCollectionLikePseudoGameId } from "../utils/collectionLikePseudoGame";
+import { isMainGameType } from "../utils/igdbGameType";
 import { buildApiUrl, buildCoverUrl, buildBackgroundUrl } from "../utils/api";
 import { API_BASE, getApiToken } from "../config";
 import type { GameItem, CollectionInfo, CollectionItem } from "../types";
 import type { CollectionLikeResourceType } from "../components/collections/EditCollectionLikeModal";
-import "./LibraryItemDetail.css";
-
 type LibraryItemDetailPageProps = {
   onGameClick: (game: GameItem) => void;
   onIgdbGameClick?: (igdbId: number) => void;
@@ -65,6 +71,7 @@ function parseGamesFromJson(json: { games?: any[] }) {
     keywords: v.keywords || null,
     alternativeNames: v.alternativeNames || null,
     similarGames: v.similarGames || null,
+    type: v.type ?? null,
   }));
 }
 
@@ -78,11 +85,20 @@ export default function LibraryItemDetailPage({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+  const goBackOrHome = () => {
+    const idx = (window.history.state as { idx?: number } | null)?.idx;
+    if (typeof idx === "number" && idx > 0) {
+      navigate(-1);
+    } else {
+      navigate("/", { replace: true });
+    }
+  };
   const { setLoading, isLoading } = useLoading();
   const { collections: allCollectionsFromContext } = useCollections();
   const { developers: allDevelopers, updateDeveloper } = useDevelopers();
   const { publishers: allPublishers, updatePublisher } = usePublishers();
   const { twitchLoginEnabled } = useSettings();
+  const titleFilterQuery = useTitleFilterQuery();
   const { games: libraryGames } = useLibraryGames();
   const params = useParams<{ collectionId?: string; developerId?: string; publisherId?: string }>();
   const collectionId = params.collectionId;
@@ -109,6 +125,7 @@ export default function LibraryItemDetailPage({
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [listLoadTimestamp, setListLoadTimestamp] = useState(() => Date.now());
+  const initialCoverTimestampRef = useRef<number>(Date.now());
   const [scrollRestoreTrigger, setScrollRestoreTrigger] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
@@ -152,7 +169,63 @@ export default function LibraryItemDetailPage({
     localStorage.setItem(`showNewGames_${storageKeyForNewGames}`, String(showNewGames));
   }, [canShowNewGamesToggle, showNewGames, storageKeyForNewGames]);
 
+  /*
+   * Local per-item `mainGamesOnly` used only by the classic shell (each detail page owns its
+   * state and persists it per collection/developer/publisher).
+   *
+   * Under the persistent shell (skin `persistentLibraryShell`, e.g. GOG) the in-page
+   * LibrariesBar is hidden via CSS and the visible toggle lives on the shell bar mounted by
+   * MainAppLayout. In that case we reuse the shared outlet-context state so the shell toggle
+   * actually filters the detail view, and a single user choice stays active while navigating
+   * across library/collections/developers/publishers.
+   */
+  const outletContext = useOutletContext<MainAppOutletContext | null>();
+  const [localMainGamesOnly, setLocalMainGamesOnly] = useState(false);
+  useEffect(() => {
+    if (outletContext) return;
+    if (!id) return;
+    const key = `mainGamesOnly_${resourceType}_${id}`;
+    const saved = localStorage.getItem(key);
+    setLocalMainGamesOnly(saved === "true");
+  }, [id, resourceType, outletContext]);
+  useEffect(() => {
+    if (outletContext) return;
+    if (!id) return;
+    localStorage.setItem(`mainGamesOnly_${resourceType}_${id}`, String(localMainGamesOnly));
+  }, [id, resourceType, localMainGamesOnly, outletContext]);
+  const mainGamesOnly = outletContext ? outletContext.mainGamesOnly : localMainGamesOnly;
+  const setMainGamesOnly = outletContext ? outletContext.setMainGamesOnly : setLocalMainGamesOnly;
+
   useScrollRestoration(scrollContainerRef);
+
+  useEffect(() => {
+    const navState = (location.state as { resetScrollToTop?: boolean } | null) ?? null;
+    if (!navState?.resetScrollToTop) return;
+
+    const clearAndScrollTop = () => {
+      const container = scrollContainerRef.current;
+      if (container) {
+        container.scrollTop = 0;
+      }
+      try {
+        sessionStorage.removeItem(location.pathname);
+        sessionStorage.removeItem(`${location.pathname}:modalScroll`);
+        sessionStorage.removeItem(`${location.pathname}:collections`);
+      } catch {
+        // Ignore storage errors
+      }
+    };
+
+    clearAndScrollTop();
+    const t0 = setTimeout(clearAndScrollTop, 0);
+    const t50 = setTimeout(clearAndScrollTop, 50);
+    const t150 = setTimeout(clearAndScrollTop, 150);
+    return () => {
+      clearTimeout(t0);
+      clearTimeout(t50);
+      clearTimeout(t150);
+    };
+  }, [location.pathname, location.state]);
 
   // Keep scroll position ref updated on scroll (when modal closed) so we have it before click on Edit.
   // Re-run when item is set so we attach the listener once the scroll container is in the DOM.
@@ -240,7 +313,29 @@ export default function LibraryItemDetailPage({
   const handleCoverSizeChange = (size: number) => {
     setCoverSize(size);
     localStorage.setItem("coverSize", size.toString());
+    window.dispatchEvent(
+      new CustomEvent("mhg-cover-size-changed", { detail: { size } })
+    );
   };
+
+  /*
+   * In the persistent shell (`persistentLibraryShell`, e.g. GOG), LibrariesBar in
+   * MainAppLayout owns coverSize; moving the slider there does not update this page’s local
+   * coverSize (initialized once from localStorage). Listen for the event from
+   * useLibrariesShellState (and from our own handler) to keep detail-page cover size in sync.
+   */
+  useEffect(() => {
+    function handler(event: Event) {
+      const detail = (event as CustomEvent<{ size?: number }>).detail;
+      const next = detail?.size;
+      if (typeof next === "number" && Number.isFinite(next)) {
+        setCoverSize((prev) => (prev === next ? prev : next));
+      }
+    }
+    window.addEventListener("mhg-cover-size-changed", handler as EventListener);
+    return () =>
+      window.removeEventListener("mhg-cover-size-changed", handler as EventListener);
+  }, []);
 
   // Load item info when id changes (collections)
   useEffect(() => {
@@ -257,10 +352,11 @@ export default function LibraryItemDetailPage({
           cover: foundInContext.cover,
           background: foundInContext.background,
           showTitle: (foundInContext as any).showTitle !== false,
+          childs: (foundInContext as any).childs || [],
         });
-      } else {
-        fetchCollectionInfo(collectionId);
       }
+      // Always refresh the single item from API so cover/background are never stale.
+      fetchCollectionInfo(collectionId);
       if (!fetchingGamesRef.current) fetchCollectionGames(collectionId);
     }
   }, [collectionId, resourceType, allCollectionsFromContext]);
@@ -276,6 +372,7 @@ export default function LibraryItemDetailPage({
           cover: foundInContext.cover,
           background: foundInContext.background,
           showTitle: (foundInContext as any).showTitle !== false,
+          childs: (foundInContext as any).childs || [],
         });
       }
     }
@@ -324,10 +421,10 @@ export default function LibraryItemDetailPage({
           cover: foundInContext.cover,
           background: (foundInContext as any).background,
           showTitle: (foundInContext as any).showTitle !== false,
+          childs: (foundInContext as any).childs || [],
         });
-      } else {
-        fetchDeveloperInfo(developerId);
       }
+      fetchDeveloperInfo(developerId);
       if (!fetchingGamesRef.current) fetchDeveloperGames(developerId);
     }
   }, [developerId, resourceType, allDevelopers]);
@@ -343,6 +440,7 @@ export default function LibraryItemDetailPage({
           cover: foundInContext.cover,
           background: (foundInContext as any).background,
           showTitle: (foundInContext as any).showTitle !== false,
+          childs: (foundInContext as any).childs || [],
         });
       }
     }
@@ -363,10 +461,10 @@ export default function LibraryItemDetailPage({
           cover: foundInContext.cover,
           background: (foundInContext as any).background,
           showTitle: (foundInContext as any).showTitle !== false,
+          childs: (foundInContext as any).childs || [],
         });
-      } else {
-        fetchPublisherInfo(publisherId);
       }
+      fetchPublisherInfo(publisherId);
       if (!fetchingGamesRef.current) fetchPublisherGames(publisherId);
     }
   }, [publisherId, resourceType, allPublishers]);
@@ -382,6 +480,7 @@ export default function LibraryItemDetailPage({
           cover: foundInContext.cover,
           background: (foundInContext as any).background,
           showTitle: (foundInContext as any).showTitle !== false,
+          childs: (foundInContext as any).childs || [],
         });
       }
     }
@@ -410,6 +509,7 @@ export default function LibraryItemDetailPage({
           cover: found.cover,
           background: found.background,
           showTitle: found.showTitle !== false,
+          childs: found.childs || [],
         });
         return;
       }
@@ -422,6 +522,7 @@ export default function LibraryItemDetailPage({
           cover: found.cover,
           background: found.background,
           showTitle: (found as any).showTitle !== false,
+          childs: (found as any).childs || [],
         });
       }
     } catch (err: any) {
@@ -482,6 +583,7 @@ export default function LibraryItemDetailPage({
         cover: data.cover,
         background: data.background,
         showTitle: data.showTitle !== false,
+        childs: data.childs || [],
       });
     } catch (err) {
       console.error("Error fetching developer:", err);
@@ -525,6 +627,7 @@ export default function LibraryItemDetailPage({
         cover: data.cover,
         background: data.background,
         showTitle: data.showTitle !== false,
+        childs: data.childs || [],
       });
     } catch (err) {
       console.error("Error fetching publisher:", err);
@@ -569,7 +672,7 @@ export default function LibraryItemDetailPage({
       const detailKey = resourceType === "collections" ? "collectionId" : resourceType === "developers" ? "developerId" : "publisherId";
       window.dispatchEvent(new CustomEvent(eventName, { detail: { [detailKey]: id } }));
       setShowDeleteModal(false);
-      navigate(-1);
+      goBackOrHome();
     } catch (err) {
       setDeleteError(String((err as Error).message));
     } finally {
@@ -693,6 +796,13 @@ export default function LibraryItemDetailPage({
     return sorted;
   }, [gamesToShow, customOrder, resourceType]);
 
+  const gridGames = useMemo(() => {
+    const base = !mainGamesOnly ? sortedGames : sortedGames.filter((g) => isMainGameType(g));
+    return base.filter((g) => titleMatchesFilter(g.title, titleFilterQuery));
+  }, [sortedGames, mainGamesOnly, titleFilterQuery]);
+
+  const titleFilterActive = titleFilterQuery.trim().length > 0;
+
   const handleGameUpdate = (updatedGame: GameItem) => {
     if (scrollContainerRef.current) scrollPositionToRestoreRef.current = scrollContainerRef.current.scrollTop;
     setGames((prev) => prev.map((g) => (String(g.id) === String(updatedGame.id) ? updatedGame : g)));
@@ -760,7 +870,7 @@ export default function LibraryItemDetailPage({
 
   if (!id) {
     return (
-      <div className="bg-[#1a1a1a] text-white flex items-center justify-center" style={{ width: "100%", height: "100%" }}>
+      <div className="library-item-detail-not-found bg-[#1a1a1a] text-white flex items-center justify-center">
         <div className="text-center">
           <div className="text-gray-400">{notFoundMessage}</div>
         </div>
@@ -768,14 +878,17 @@ export default function LibraryItemDetailPage({
     );
   }
 
-  const itemCoverUrl = item?.cover ? buildCoverUrl(API_BASE, item.cover, true) : "";
+  const itemCoverTimestamp = listLoadTimestamp ?? initialCoverTimestampRef.current;
+  const itemCoverUrl = item?.cover ? buildCoverUrl(API_BASE, item.cover, true, itemCoverTimestamp) : "";
   const coverWidth = 240;
   const coverHeight = 360;
   const backgroundUrl = buildBackgroundUrl(API_BASE, item?.background);
   const hasBackground = Boolean(backgroundUrl && backgroundUrl.trim() !== "");
 
+  const backgroundStateKey = `${id}:${item?.background ?? ""}`;
+
   return (
-    <BackgroundManager backgroundUrl={backgroundUrl} hasBackground={hasBackground} elementId={id}>
+    <BackgroundManager backgroundUrl={backgroundUrl} hasBackground={hasBackground} elementId={backgroundStateKey}>
       <LibraryItemDetailContent
         item={item}
         itemCoverUrl={itemCoverUrl}
@@ -817,9 +930,10 @@ export default function LibraryItemDetailPage({
         }}
         onEditModalClose={() => setIsEditModalOpen(false)}
         onItemUpdate={(updated) => {
-          setItem(updated);
-          if (resourceType === "developers") updateDeveloper({ ...updated, gameCount: sortedGames.length });
-          if (resourceType === "publishers") updatePublisher({ ...updated, gameCount: sortedGames.length });
+          const merged = { ...item, ...updated, childs: updated.childs ?? item?.childs ?? [] } as CollectionInfo;
+          setItem(merged);
+          if (resourceType === "developers") updateDeveloper({ ...merged, gameCount: sortedGames.length });
+          if (resourceType === "publishers") updatePublisher({ ...merged, gameCount: sortedGames.length });
         }}
         t={t}
         allCollections={allCollections}
@@ -850,7 +964,17 @@ export default function LibraryItemDetailPage({
               : resourceType === "developers"
                 ? "developers"
                 : "publishers";
-          navigate(`/${base}/${cid}`);
+          const targetPath = `/${base}/${cid}`;
+          try {
+            // Ensure destination detail opens from top instead of restoring previous scroll.
+            sessionStorage.removeItem(targetPath);
+            sessionStorage.removeItem(`${targetPath}:modalScroll`);
+            sessionStorage.removeItem(`${targetPath}:collections`);
+            sessionStorage.removeItem(`${targetPath}:collections:${base}`);
+          } catch {
+            // Ignore storage errors
+          }
+          navigate(targetPath, { state: { resetScrollToTop: true } });
         }}
         onPlayFirstInCollectionLike={async (type: string, cid: string) => {
           if (!onPlay) return;
@@ -879,6 +1003,11 @@ export default function LibraryItemDetailPage({
         onShowNewGamesChange={setShowNewGames}
         showNewGamesLabel={canShowNewGamesToggle ? t("tagGames.showNewGames") : undefined}
         listLoadTimestamp={listLoadTimestamp}
+        gridGames={gridGames}
+        mainGamesOnly={mainGamesOnly}
+        onMainGamesOnlyChange={setMainGamesOnly}
+        collectionDragEnabled={resourceType === "collections" && !mainGamesOnly && !titleFilterActive}
+        onAfterDeleteSelfNavigate={goBackOrHome}
       />
     </BackgroundManager>
   );
@@ -932,6 +1061,13 @@ type LibraryItemDetailContentProps = {
   onShowNewGamesChange?: (value: boolean) => void;
   showNewGamesLabel?: string;
   listLoadTimestamp?: number;
+  gridGames: GameItem[];
+  mainGamesOnly: boolean;
+  onMainGamesOnlyChange: (value: boolean) => void;
+  /** Reorder is disabled while a title filter is active (indices would not match full list). */
+  collectionDragEnabled: boolean;
+  /** After deleting this collection/developer/publisher from the menu, leave the page (back or home). */
+  onAfterDeleteSelfNavigate: () => void;
 };
 
 function LibraryItemDetailContent({
@@ -982,9 +1118,24 @@ function LibraryItemDetailContent({
   onShowNewGamesChange,
   showNewGamesLabel,
   listLoadTimestamp,
+  gridGames,
+  mainGamesOnly,
+  onMainGamesOnlyChange,
+  collectionDragEnabled,
+  onAfterDeleteSelfNavigate,
 }: LibraryItemDetailContentProps) {
   const { hasBackground, isBackgroundVisible } = useBackground();
   const { isLoading } = useLoading();
+  const { activeSkinWeb } = useSkin();
+  /*
+   * In compact mode (skin opt-in, e.g. GOG) the collection-like detail hides the hero
+   * (cover, title, rating, summary, actions), section headings, the sub-collections grid, and
+   * the parent collection-like strip: only top-bar controls and the direct games list remain.
+   * Edit/delete/play still live on the persistent libraries bar and sidebar entries.
+   */
+  const compactDetail = activeSkinWeb.compactCollectionLikeDetail;
+  const stableCoverTimestampRef = useRef<number>(Date.now());
+  const coverTimestampForUrls = listLoadTimestamp ?? stableCoverTimestampRef.current;
 
   const calculateSummaryMaxLines = (): number => {
     let fieldCount = 1;
@@ -997,76 +1148,315 @@ function LibraryItemDetailContent({
 
   const isCollection = resourceType === "collections";
   const showDeleteInMenu = resourceType === "developers" || resourceType === "publishers";
+  const [editingChild, setEditingChild] = useState<CollectionInfo | null>(null);
+  const [isEditChildModalOpen, setIsEditChildModalOpen] = useState(false);
+  const [linkSourceCollectionLike, setLinkSourceCollectionLike] = useState<CollectionItem | null>(null);
+  const [hydratedCollectionLikes, setHydratedCollectionLikes] = useState<CollectionItem[]>([]);
+  const [parentCollectionLikesWithGames, setParentCollectionLikesWithGames] = useState<
+    Array<{ parent: CollectionItem; games: GameItem[]; slideItems: GameItem[] }>
+  >([]);
+  const [singleSubCollectionGames, setSingleSubCollectionGames] = useState<GameItem[]>([]);
 
-  const SUBTITLE_SEPARATORS = [":", "-", ";", "_", "/", "\\", "@", "#"];
-
-  const isSubCollectionTitle = (parentTitle: string, childTitle: string): boolean => {
-    const parent = parentTitle.trim();
-    const child = childTitle.trim();
-    if (!parent || !child || child.length <= parent.length) return false;
-    if (!child.startsWith(parent)) return false;
-    const rest = child.slice(parent.length);
-    const restTrimmed = rest.replace(/^\s+/, "");
-    if (!restTrimmed) return false;
-    const first = restTrimmed[0];
-    return SUBTITLE_SEPARATORS.includes(first);
-  };
-
-  const getSubCollectionLabel = (parentTitle: string, childTitle: string): string => {
-    const parent = parentTitle.trim();
-    const child = childTitle.trim();
-    if (!parent || !child || child.length <= parent.length) return childTitle;
-    if (!child.startsWith(parent)) return childTitle;
-    const rest = child.slice(parent.length).replace(/^\s+/, "");
-    if (!rest) return childTitle;
-    const first = rest[0];
-    if (!SUBTITLE_SEPARATORS.includes(first)) return childTitle;
-    const label = rest.slice(1).trim();
-    return label || childTitle;
-  };
+  const completeCollectionLikes = useMemo(() => {
+    const byId = new Map<string, CollectionItem>();
+    for (const item of allCollectionLikes) byId.set(String(item.id), item);
+    for (const item of hydratedCollectionLikes) {
+      const id = String(item.id);
+      const existing = byId.get(id);
+      byId.set(id, existing ? { ...existing, ...item } : item);
+    }
+    return Array.from(byId.values());
+  }, [allCollectionLikes, hydratedCollectionLikes]);
 
   const subCollectionLikes = useMemo(() => {
-    const currentId = collectionId ?? developerId ?? publisherId;
-    if (!item || !currentId) return [];
-    const parentTitle = (item.title || "").trim();
-    if (!parentTitle) return [];
+    if (!item || !Array.isArray(item.childs) || item.childs.length === 0) return [];
+    const childIds = new Set(item.childs.map((id) => String(id)));
+    const children = completeCollectionLikes.filter((c) => childIds.has(String(c.id)));
+    children.sort((a, b) => compareTitles(a.title || "", b.title || ""));
+    return children;
+  }, [item, completeCollectionLikes]);
 
-    const children = allCollectionLikes.filter((c) => {
-      const title = (c.title || "").trim();
-      if (!title || String(c.id) === String(currentId)) return false;
-      return isSubCollectionTitle(parentTitle, title);
+  const parentCollectionLikes = useMemo(() => {
+    if (!item) return [];
+    const itemId = String(item.id);
+    const parents = completeCollectionLikes.filter((candidate) => {
+      if (String(candidate.id) === itemId) return false;
+      const childs = Array.isArray(candidate.childs) ? candidate.childs.map((id) => String(id)) : [];
+      return childs.includes(itemId);
     });
+    parents.sort((a, b) => compareTitles(a.title || "", b.title || ""));
+    return parents;
+  }, [item, completeCollectionLikes]);
 
-    // Show only direct children (root within this list), not grandchildren
-    const rootChildren = filterRootCollectionLikes(children);
+  const titleFilterQuery = useTitleFilterQuery();
 
-    rootChildren.sort((a, b) => {
-      const aLabel = getSubCollectionLabel(parentTitle, a.title || "");
-      const bLabel = getSubCollectionLabel(parentTitle, b.title || "");
-      return compareTitles(aLabel || a.title || "", bLabel || b.title || "");
-    });
+  const subCollectionLikesFiltered = useMemo(
+    () => subCollectionLikes.filter((c) => titleMatchesFilter(c.title, titleFilterQuery)),
+    [subCollectionLikes, titleFilterQuery]
+  );
 
-    return rootChildren;
-  }, [collectionId, developerId, publisherId, item, allCollectionLikes]);
+  const parentCollectionLikesWithGamesForDisplay = useMemo(
+    // Title filter must affect only the current collection-like scope (its children and games),
+    // not parent collection-like blocks rendered for context.
+    () => parentCollectionLikesWithGames,
+    [parentCollectionLikesWithGames]
+  );
+
+  const singleSubCollectionGamesFiltered = useMemo(
+    () => singleSubCollectionGames.filter((g) => titleMatchesFilter(g.title, titleFilterQuery)),
+    [singleSubCollectionGames, titleFilterQuery]
+  );
 
   // Display count for each sub-collection card: games assigned directly + first-level sub-collections only (aligned with CollectionsList).
   const subCollectionDisplayCountById = useMemo(() => {
     const map: Record<string, number> = {};
+    const byId = new Map(completeCollectionLikes.map((c) => [String(c.id), c]));
     for (const col of subCollectionLikes) {
-      const parentTitle = (col.title || "").trim();
-      const children = allCollectionLikes.filter((c) => {
-        if (String(c.id) === String(col.id)) return false;
-        const title = (c.title || "").trim();
-        return isSubCollectionTitle(parentTitle, title);
-      });
-      const directOnly = filterRootCollectionLikes(children);
-      map[String(col.id)] = (col.gameCount ?? 0) + directOnly.length;
+      const directChilds = Array.isArray(col.childs)
+        ? col.childs
+            .map((id) => String(id))
+            .filter((id) => id !== String(col.id) && byId.has(id))
+        : [];
+      map[String(col.id)] = (col.gameCount ?? 0) + directChilds.length;
     }
     return map;
-  }, [subCollectionLikes, allCollectionLikes]);
+  }, [subCollectionLikes, completeCollectionLikes]);
 
-  const [editingChild, setEditingChild] = useState<CollectionInfo | null>(null);
-  const [isEditChildModalOpen, setIsEditChildModalOpen] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    const loadMissingCollectionLikes = async () => {
+      if (!item) {
+        setHydratedCollectionLikes([]);
+        return;
+      }
+
+      const byId = new Map<string, CollectionItem>(
+        allCollectionLikes.map((entry) => [String(entry.id), entry])
+      );
+      const queue: string[] = [];
+      const queued = new Set<string>();
+
+      const pushMissing = (ids: Array<string | number> | undefined | null) => {
+        if (!Array.isArray(ids)) return;
+        for (const rawId of ids) {
+          const id = String(rawId);
+          if (!id || byId.has(id) || queued.has(id)) continue;
+          queued.add(id);
+          queue.push(id);
+        }
+      };
+
+      for (const entry of byId.values()) pushMissing(entry.childs);
+
+      const targetId = String(item.id);
+      let foundParent = Array.from(byId.values()).some((entry) => {
+        const childs = Array.isArray(entry.childs) ? entry.childs.map((id) => String(id)) : [];
+        return childs.includes(targetId);
+      });
+
+      const maxFetches = 10000;
+      let fetchCount = 0;
+      while (queue.length > 0 && fetchCount < maxFetches && !foundParent) {
+        const id = queue.shift() as string;
+        fetchCount += 1;
+        try {
+          const url = buildApiUrl(API_BASE, `/${resourceType}/${encodeURIComponent(id)}`);
+          const res = await fetch(url, {
+            headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
+          });
+          if (!res.ok) continue;
+          const data = await res.json();
+          const parsed: CollectionItem = {
+            id: String(data.id),
+            title: data.title,
+            summary: data.summary,
+            cover: data.cover,
+            background: data.background,
+            gameCount: data.gameCount,
+            showTitle: data.showTitle !== false,
+            childs: Array.isArray(data.childs) ? data.childs : [],
+          };
+          byId.set(String(parsed.id), parsed);
+          if (!foundParent) {
+            const parsedChilds = Array.isArray(parsed.childs) ? parsed.childs.map((child) => String(child)) : [];
+            foundParent = parsedChilds.includes(targetId);
+          }
+          pushMissing(parsed.childs);
+        } catch {
+          // Ignore missing/inaccessible nodes and continue traversal
+        }
+      }
+
+      if (!cancelled) {
+        setHydratedCollectionLikes(
+          Array.from(byId.values()).filter(
+            (entry) => !allCollectionLikes.some((base) => String(base.id) === String(entry.id))
+          )
+        );
+      }
+    };
+
+    loadMissingCollectionLikes();
+    return () => {
+      cancelled = true;
+    };
+  }, [item, resourceType, allCollectionLikes]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadParentCollectionLikeGames = async () => {
+      if (parentCollectionLikes.length === 0) {
+        setParentCollectionLikesWithGames([]);
+        return;
+      }
+      const token = getApiToken() || "";
+      const childRangeCache = new Map<string, string>();
+
+      const toYearRange = (games: GameItem[]): string => {
+        const years = games
+          .map((g) => g.year)
+          .filter((y): y is number => typeof y === "number" && y > 0);
+        if (years.length === 0) return "";
+        const min = Math.min(...years);
+        const max = Math.max(...years);
+        return min === max ? String(min) : `${min} - ${max}`;
+      };
+
+      const loadChildCollectionLikeItems = async (parent: CollectionItem): Promise<GameItem[]> => {
+        const parentChildIds = Array.isArray(parent.childs) ? parent.childs.map((id) => String(id)) : [];
+        const childCollectionLikes = parentChildIds
+          .map((childId) => completeCollectionLikes.find((c) => String(c.id) === childId))
+          .filter((c): c is CollectionItem => Boolean(c))
+          .sort((a, b) => compareTitles(a.title || "", b.title || ""));
+
+        const childItems = await Promise.all(
+          childCollectionLikes.map(async (child) => {
+            const childId = String(child.id);
+            let range =
+              (child as any).yearRange ??
+              (child as any).dateRange ??
+              (child as any).releaseRange ??
+              "";
+            if (typeof range !== "string") range = "";
+            range = range.trim();
+
+            if (!range) {
+              const cached = childRangeCache.get(childId);
+              if (cached !== undefined) {
+                range = cached;
+              } else {
+                try {
+                  const childUrl = buildApiUrl(
+                    API_BASE,
+                    `/${resourceType}/${encodeURIComponent(childId)}/games`
+                  );
+                  const childRes = await fetch(childUrl, {
+                    headers: { Accept: "application/json", "X-Auth-Token": token },
+                  });
+                  if (childRes.ok) {
+                    const childJson = await childRes.json();
+                    range = toYearRange(parseGamesFromJson(childJson));
+                  }
+                } catch {
+                  // ignore child range fetch errors
+                }
+                childRangeCache.set(childId, range);
+              }
+            }
+
+            return {
+              id: `collectionlike:${resourceType}:${childId}`,
+              title: child.title,
+              subtitle: range || null,
+              summary: child.summary || "",
+              cover: child.cover,
+              year: null,
+              month: null,
+              day: null,
+              executables: null,
+              stars: null,
+            } as GameItem;
+          })
+        );
+
+        return childItems;
+      };
+
+      const loaded = await Promise.all(
+        parentCollectionLikes.map(async (parent) => {
+          try {
+            const url = buildApiUrl(
+              API_BASE,
+              `/${resourceType}/${encodeURIComponent(String(parent.id))}/games`
+            );
+            const res = await fetch(url, {
+              headers: { Accept: "application/json", "X-Auth-Token": token },
+            });
+            const childCollectionLikeItems = await loadChildCollectionLikeItems(parent);
+
+            if (!res.ok) {
+              return {
+                parent,
+                games: [] as GameItem[],
+                slideItems: childCollectionLikeItems,
+              };
+            }
+            const json = await res.json();
+            const games = parseGamesFromJson(json);
+            return {
+              parent,
+              games,
+              slideItems: [...childCollectionLikeItems, ...games],
+            };
+          } catch {
+            const childCollectionLikeItems = await loadChildCollectionLikeItems(parent);
+            return {
+              parent,
+              games: [] as GameItem[],
+              slideItems: childCollectionLikeItems,
+            };
+          }
+        })
+      );
+      if (!cancelled) {
+        setParentCollectionLikesWithGames(loaded);
+      }
+    };
+    loadParentCollectionLikeGames();
+    return () => {
+      cancelled = true;
+    };
+  }, [parentCollectionLikes, resourceType, completeCollectionLikes]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadSingleSubCollectionGames = async () => {
+      if (subCollectionLikes.length !== 1) {
+        setSingleSubCollectionGames([]);
+        return;
+      }
+      const onlyChild = subCollectionLikes[0];
+      try {
+        const url = buildApiUrl(API_BASE, `/${resourceType}/${encodeURIComponent(String(onlyChild.id))}/games`);
+        const res = await fetch(url, {
+          headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
+        });
+        if (!res.ok) {
+          if (!cancelled) setSingleSubCollectionGames([]);
+          return;
+        }
+        const json = await res.json();
+        const parsed = parseGamesFromJson(json);
+        if (!cancelled) setSingleSubCollectionGames(parsed);
+      } catch {
+        if (!cancelled) setSingleSubCollectionGames([]);
+      }
+    };
+    loadSingleSubCollectionGames();
+    return () => {
+      cancelled = true;
+    };
+  }, [subCollectionLikes, resourceType]);
 
   const dispatchCollectionLikeUpdated = (updatedItem: CollectionInfo) => {
     if (resourceType === "collections") {
@@ -1091,11 +1481,122 @@ function LibraryItemDetailContent({
     setIsEditChildModalOpen(true);
   };
 
+  const removeChildFromParent = async (childId: string) => {
+    if (!item?.id) return;
+    const token = getApiToken();
+    if (!token) return;
+    try {
+      const url = buildApiUrl(
+        API_BASE,
+        `/${resourceType}/${encodeURIComponent(String(item.id))}/childs/${encodeURIComponent(String(childId))}`
+      );
+      const res = await fetch(url, {
+        method: "DELETE",
+        headers: { "X-Auth-Token": token },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const prevChilds = Array.isArray(item.childs) ? item.childs : [];
+      onItemUpdate({
+        ...item,
+        childs: prevChilds.filter((id: string | number) => String(id) !== String(childId)),
+      });
+
+      if (resourceType === "collections") {
+        window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collectionId: String(item.id) } }));
+      } else if (resourceType === "developers") {
+        window.dispatchEvent(new CustomEvent("developerUpdated", { detail: {} }));
+      } else {
+        window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: {} }));
+      }
+    } catch (err) {
+      console.error("Error removing child from parent:", err);
+    }
+  };
+
+  const removeChildFromSliderParent = async (parentId: string, childId: string) => {
+    const token = getApiToken();
+    if (!token) return;
+    try {
+      const url = buildApiUrl(
+        API_BASE,
+        `/${resourceType}/${encodeURIComponent(parentId)}/childs/${encodeURIComponent(childId)}`
+      );
+      const res = await fetch(url, {
+        method: "DELETE",
+        headers: { "X-Auth-Token": token },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      if (resourceType === "collections") {
+        window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collectionId: String(parentId) } }));
+      } else if (resourceType === "developers") {
+        window.dispatchEvent(new CustomEvent("developerUpdated", { detail: {} }));
+      } else {
+        window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: {} }));
+      }
+    } catch (err) {
+      console.error("Error removing child from slider parent:", err);
+    }
+  };
+
+  const handleCollectionLikePseudoEdit = (g: GameItem) => {
+    const p = parseCollectionLikePseudoGameId(g.id);
+    if (!p) return;
+    const existing = completeCollectionLikes.find((c) => String(c.id) === p.childId);
+    if (existing) {
+      openChildEditModal(existing);
+    } else {
+      openChildEditModal({
+        id: p.childId,
+        title: g.title,
+        summary: typeof g.summary === "string" ? g.summary : "",
+        cover: g.cover,
+        childs: [],
+        showTitle: (g as { showTitle?: boolean }).showTitle !== false,
+      });
+    }
+  };
+
+  const addChildToParent = async (source: CollectionItem, parentId?: string) => {
+    if (!parentId) {
+      setLinkSourceCollectionLike(source);
+      return;
+    }
+    const token = getApiToken();
+    if (!token) return;
+    try {
+      const url = buildApiUrl(
+        API_BASE,
+        `/${resourceType}/${encodeURIComponent(String(parentId))}/childs/${encodeURIComponent(String(source.id))}`
+      );
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "X-Auth-Token": token },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const recentKey = `recentCollectionLikeParents_${resourceType}`;
+      const current = JSON.parse(localStorage.getItem(recentKey) || "[]") as string[];
+      const next = [String(parentId), ...current.filter((id) => String(id) !== String(parentId))].slice(0, 5);
+      localStorage.setItem(recentKey, JSON.stringify(next));
+
+      if (resourceType === "collections") {
+        window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collectionId: String(parentId) } }));
+      } else if (resourceType === "developers") {
+        window.dispatchEvent(new CustomEvent("developerUpdated", { detail: {} }));
+      } else {
+        window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: {} }));
+      }
+    } catch (err) {
+      console.error("Error adding child to parent:", err);
+    }
+  };
+
   return (
     <>
       <div
-        className={hasBackground && isBackgroundVisible ? "game-detail-libraries-bar-transparent" : ""}
-        style={{ position: "relative", zIndex: 1000, pointerEvents: "auto" }}
+        className={`library-item-detail-libraries-bar-host${hasBackground && isBackgroundVisible ? " game-detail-libraries-bar-transparent" : ""}`}
       >
         <LibrariesBar
           libraries={[]}
@@ -1111,56 +1612,38 @@ function LibraryItemDetailContent({
           showNewGames={showNewGames}
           onShowNewGamesChange={onShowNewGamesChange ?? (() => {})}
           showNewGamesLabel={showNewGamesLabel}
+          showMainGamesToggle={(viewMode === "grid" || viewMode === "detail") && sortedGames.length > 0}
+          mainGamesOnly={mainGamesOnly}
+          onMainGamesOnlyChange={onMainGamesOnlyChange}
         />
       </div>
-      <div style={{ position: "relative", zIndex: 2, height: "100vh", display: "flex", flexDirection: "column" }}>
-        <div
-          className="home-page-main-container"
-          style={{
-            backgroundColor: "transparent",
-            position: "relative",
-            flex: 1,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            minHeight: 0,
-          }}
-        >
-          <main className="flex-1 home-page-content" style={{ minHeight: 0 }}>
-            <div className="home-page-layout" style={{ minHeight: 0 }}>
+      <div className="library-item-detail-page-shell">
+        <div className="home-page-main-container library-item-detail-main-inner">
+          <main className="flex-1 home-page-content library-item-detail-main-min-h">
+            <div className="home-page-layout library-item-detail-layout-min-h">
               <div
-                className="home-page-content-wrapper"
-                style={{
-                  opacity: isReady ? 1 : 0,
-                  transition: "opacity 0.2s ease-in-out",
-                  minHeight: 0,
-                }}
+                className={`home-page-content-wrapper library-item-detail-content-wrapper${isReady ? " library-item-detail-content-wrapper--ready" : ""}`}
               >
                 <div
                   ref={scrollContainerRef}
-                  className="home-page-scroll-container"
+                  className="home-page-scroll-container library-item-detail-scroll"
                   tabIndex={-1}
-                  style={{ paddingLeft: "64px", paddingRight: "64px", paddingTop: "5px", paddingBottom: "16px" }}
+                  style={
+                    {
+                      ["--lid-cover-size" as string]: `${coverSize}px`,
+                      ["--lid-cover-h" as string]: `${coverHeight}px`,
+                    } as React.CSSProperties
+                  }
                 >
-                  {item && (
-                    <div
-                      className="pt-8"
-                      style={{
-                        display: "flex",
-                        flexDirection: "row",
-                        gap: "48px",
-                        alignItems: "flex-start",
-                        width: "100%",
-                        boxSizing: "border-box",
-                        marginBottom: "16px",
-                      }}
-                    >
-                      <div style={{ flexShrink: 0 }}>
+                  {item && !compactDetail && (
+                    <div className="pt-8 library-item-detail-hero">
+                      <div className="library-item-detail-hero-cover">
                         <Cover
                           title={item.title}
                           coverUrl={itemCoverUrl}
                           width={coverWidth}
                           height={coverHeight}
+                          imageFit="fill"
                           onPlay={
                             onPlay && sortedGames.some((g) => g.executables?.length)
                               ? () => {
@@ -1175,65 +1658,26 @@ function LibraryItemDetailContent({
                           showBorder={true}
                         />
                       </div>
-                      <div
-                        style={{
-                          flex: 1,
-                          display: "flex",
-                          flexDirection: "column",
-                          justifyContent: "flex-start",
-                          gap: "16px",
-                          minHeight: `${coverHeight}px`,
-                          minWidth: 0,
-                          visibility: "visible",
-                        }}
-                      >
-                        <div style={{ display: "flex", flexDirection: "column", gap: "8px", visibility: "visible" }}>
-                          <h1
-                            className="text-white"
-                            style={{
-                              fontFamily: "var(--font-heading-1-font-family)",
-                              fontSize: "var(--font-heading-1-font-size)",
-                              lineHeight: "var(--font-heading-1-line-height)",
-                            }}
-                          >
+                      <div className="library-item-detail-meta">
+                        <div className="library-item-detail-meta-header">
+                          <h1 className="library-item-detail-title text-white">
                             {item.title}
                           </h1>
                           {yearRange && (
-                            <div
-                              className="text-white"
-                              style={{
-                                opacity: 0.8,
-                                fontFamily: "var(--font-body-2-font-family)",
-                                fontSize: "var(--font-body-2-font-size)",
-                                lineHeight: "var(--font-body-2-line-height)",
-                              }}
-                            >
+                            <div className="library-item-detail-year-range text-white">
                               {yearRange}
                             </div>
                           )}
                           {averageRating !== null && <StarRating rating={averageRating} />}
-                          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "16px" }}>
+                          <div className="library-item-detail-actions">
                             {onPlay && sortedGames.some((g) => g.executables?.length) && (
                               <button
+                                type="button"
+                                className="library-item-detail-play-btn"
                                 onClick={() => {
                                   const g = sortedGames.find((x) => x.executables?.length);
                                   if (g) onPlay(g);
                                 }}
-                                style={{
-                                  backgroundColor: "#E5A00D",
-                                  color: "#000000",
-                                  border: "none",
-                                  borderRadius: "4px",
-                                  padding: "6px 12px 6px 8px",
-                                  fontSize: "1.25rem",
-                                  fontWeight: 600,
-                                  cursor: "pointer",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: "6px",
-                                }}
-                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F5B041")}
-                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#E5A00D")}
                               >
                                 <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
                                   <path d="M8 5v14l11-7z" />
@@ -1256,9 +1700,34 @@ function LibraryItemDetailContent({
                                 developerId={resourceType === "developers" ? item.id : undefined}
                                 publisherId={resourceType === "publishers" ? item.id : undefined}
                                 onCollectionDelete={(deletedId: string) => {
-                                  if (item.id === deletedId) window.history.back();
+                                  if (item.id === deletedId) onAfterDeleteSelfNavigate();
                                 }}
                                 onCollectionUpdate={onItemUpdate}
+                                onAddToCollection={(parentId) =>
+                                  addChildToParent(
+                                    {
+                                    id: item.id,
+                                    title: item.title,
+                                    summary: item.summary,
+                                    cover: item.cover,
+                                    background: item.background,
+                                    showTitle: item.showTitle,
+                                    childs: item.childs || [],
+                                    },
+                                    parentId
+                                  )
+                                }
+                                sourceCollectionLike={{
+                                  id: item.id,
+                                  title: item.title,
+                                  summary: item.summary,
+                                  cover: item.cover,
+                                  background: item.background,
+                                  showTitle: item.showTitle,
+                                  childs: item.childs || [],
+                                }}
+                                allCollectionLikes={allCollectionLikes}
+                                collectionLikeResourceType={resourceType}
                                 onDelete={showDeleteInMenu ? onDeleteClick : undefined}
                                 horizontal={true}
                                 className="library-item-detail-dropdown-menu"
@@ -1321,100 +1790,116 @@ function LibraryItemDetailContent({
                   )}
 
                   {!isLoading && (
-                    <div style={{ width: "100%" }}>
-                      <style>{`
-                        .library-item-detail-games-list .games-list-container {
-                          justify-content: flex-start !important;
-                        }
-                      `}</style>
-                      {subCollectionLikes.length > 0 && (
-                        <div style={{ marginBottom: "32px", marginTop: "0" }}>
-                          <h2
-                            className="text-white"
-                            style={{
-                              fontFamily: "var(--font-heading-2-font-family)",
-                              fontSize: "var(--font-heading-2-font-size)",
-                              fontWeight: 600,
-                            }}
-                          >
+                    <div className="library-item-detail-section-full">
+                      {!compactDetail && subCollectionLikesFiltered.length > 0 && (
+                        <div className="library-item-detail-subsection">
+                          <h2 className="library-item-detail-heading-2 text-white">
                             {(() => {
                               const label =
                                 resourceType === "collections"
-                                  ? t("collections.subcollections", { count: subCollectionLikes.length })
+                                  ? t("collections.subcollections", { count: subCollectionLikesFiltered.length })
                                   : resourceType === "developers"
-                                    ? t("igdbInfo.subDevelopers", { count: subCollectionLikes.length })
-                                    : t("igdbInfo.subPublishers", { count: subCollectionLikes.length });
+                                    ? t("igdbInfo.subDevelopers", { count: subCollectionLikesFiltered.length })
+                                    : t("igdbInfo.subPublishers", { count: subCollectionLikesFiltered.length });
                               return label.replace(/(\p{L})/u, (_, c) => c.toUpperCase());
                             })()}
+                            {subCollectionLikes.length === 1 && subCollectionLikesFiltered.length === 1 && (
+                              <>
+                                {": "}
+                                <button
+                                  type="button"
+                                  className="library-item-detail-subcollection-title-link"
+                                  onClick={() => onCollectionClick?.(String(subCollectionLikesFiltered[0].id))}
+                                >
+                                  {subCollectionLikesFiltered[0].title}
+                                </button>
+                              </>
+                            )}
                           </h2>
-                          <div
-                            className="library-item-detail-collections-list"
-                            style={{ marginTop: "24px" }}
-                          >
-                            <div
-                              className="collections-list-container"
-                              style={{
-                                display: "grid",
-                                gridTemplateColumns: `repeat(auto-fill, ${coverSize}px)`,
-                                gap: 40,
-                                justifyContent: "flex-start",
-                                maxWidth: "100%",
-                              }}
-                            >
-                              {subCollectionLikes.map((col) => {
-                                const displayTitle = getSubCollectionLabel(item?.title || "", col.title || "");
-                                const colCoverUrl = col.cover
-                                  ? buildCoverUrl(API_BASE, col.cover, true)
-                                  : "";
-                                const handleClick = () => {
-                                  if (onCollectionClick) {
-                                    onCollectionClick(String(col.id));
+                          {subCollectionLikes.length === 1 && subCollectionLikesFiltered.length === 1 ? (
+                            <div className="library-item-detail-games-list library-item-detail-mt-games-list">
+                              <GamesList
+                                games={singleSubCollectionGamesFiltered}
+                                onGameClick={(game) => {
+                                  const g = game as GameItem & { isIgdbOnly?: boolean };
+                                  if (g.isIgdbOnly && onIgdbGameClick) {
+                                    onIgdbGameClick(Number(game.id));
+                                  } else {
+                                    onGameClick(game);
                                   }
-                                };
-                                return (
-                                  <div
-                                    key={String(col.id)}
-                                    className="group cursor-pointer collections-list-item"
-                                    style={{ width: `${coverSize}px`, minWidth: `${coverSize}px` }}
-                                  >
-                                    <Cover
-                                      title={displayTitle || col.title}
-                                      coverUrl={colCoverUrl}
-                                      width={coverSize}
-                                      height={coverSize * 1.5}
-                                      onClick={handleClick}
-                                      subtitle={
-                                        (subCollectionDisplayCountById[String(col.id)] ?? col.gameCount) != null
-                                          ? t("common.elements", { count: subCollectionDisplayCountById[String(col.id)] ?? col.gameCount })
-                                          : undefined
-                                      }
-                                      onPlay={
-                                        onPlayFirstInCollectionLike
-                                          ? () => onPlayFirstInCollectionLike(resourceType, String(col.id))
-                                          : undefined
-                                      }
-                                      onEdit={() => openChildEditModal(col)}
-                                      dropdownHorizontal={false}
-                                      dropdownToolTipDelay={200}
-                                      collectionId={resourceType === "collections" ? String(col.id) : undefined}
-                                      developerId={resourceType === "developers" ? String(col.id) : undefined}
-                                      publisherId={resourceType === "publishers" ? String(col.id) : undefined}
-                                      collectionTitle={col.title}
-                                      onCollectionUpdate={
-                                        resourceType === "collections"
-                                          ? (updated) => dispatchCollectionLikeUpdated(updated)
-                                          : undefined
-                                      }
-                                      showTitle={(col as any).showTitle !== false}
-                                      detail={true}
-                                      play={!!onPlayFirstInCollectionLike}
-                                      showBorder={true}
-                                    />
-                                  </div>
-                                );
-                              })}
+                                }}
+                                onPlay={onPlay}
+                                onGameUpdate={onGameUpdate}
+                                onGameDelete={onGameDelete}
+                                buildCoverUrl={buildCoverUrl}
+                                coverCacheBustTimestamp={listLoadTimestamp}
+                                coverSize={coverSize}
+                                itemRefs={itemRefs}
+                                draggable={false}
+                                allCollections={isCollection ? allCollections : undefined}
+                              />
                             </div>
-                          </div>
+                          ) : (
+                            <div className="library-item-detail-collections-list library-item-detail-collections-list-mt">
+                              <div className="collections-list-container library-item-detail-subcollections-grid">
+                                {subCollectionLikesFiltered.map((col) => {
+                                  const colCoverUrl = col.cover
+                                    ? buildCoverUrl(API_BASE, col.cover, true, coverTimestampForUrls)
+                                    : "";
+                                  const handleClick = () => {
+                                    if (onCollectionClick) {
+                                      onCollectionClick(String(col.id));
+                                    }
+                                  };
+                                  return (
+                                    <div
+                                      key={String(col.id)}
+                                      className="group cursor-pointer collections-list-item library-item-detail-subcollection-cell"
+                                    >
+                                      <Cover
+                                        title={col.title}
+                                        coverUrl={colCoverUrl}
+                                        width={coverSize}
+                                        height={coverSize * 1.5}
+                                        onClick={handleClick}
+                                        subtitle={
+                                          (subCollectionDisplayCountById[String(col.id)] ?? col.gameCount) != null
+                                            ? t("common.elements", { count: subCollectionDisplayCountById[String(col.id)] ?? col.gameCount })
+                                            : undefined
+                                        }
+                                        onPlay={
+                                          onPlayFirstInCollectionLike
+                                            ? () => onPlayFirstInCollectionLike(resourceType, String(col.id))
+                                            : undefined
+                                        }
+                                        onEdit={() => openChildEditModal(col)}
+                                        onAddToCollection={(parentId) => addChildToParent(col, parentId)}
+                                        onRemoveFromParent={() => removeChildFromParent(String(col.id))}
+                                        sourceCollectionLike={col}
+                                        allCollectionLikes={allCollectionLikes}
+                                        collectionLikeResourceType={resourceType}
+                                        dropdownHorizontal={false}
+                                        dropdownToolTipDelay={200}
+                                        collectionId={resourceType === "collections" ? String(col.id) : undefined}
+                                        developerId={resourceType === "developers" ? String(col.id) : undefined}
+                                        publisherId={resourceType === "publishers" ? String(col.id) : undefined}
+                                        collectionTitle={col.title}
+                                        onCollectionUpdate={
+                                          resourceType === "collections"
+                                            ? (updated) => dispatchCollectionLikeUpdated(updated)
+                                            : undefined
+                                        }
+                                        showTitle={(col as any).showTitle !== false}
+                                        detail={true}
+                                        play={!!onPlayFirstInCollectionLike}
+                                        showBorder={true}
+                                      />
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                       {editingChild && (
@@ -1428,28 +1913,28 @@ function LibraryItemDetailContent({
                           }}
                         />
                       )}
+                      {linkSourceCollectionLike && (
+                        <AddCollectionLikeToCollectionLikeModal
+                          isOpen={true}
+                          onClose={() => setLinkSourceCollectionLike(null)}
+                          sourceItem={linkSourceCollectionLike}
+                          resourceType={resourceType}
+                          allItems={allCollectionLikes}
+                          onLinked={() => setLinkSourceCollectionLike(null)}
+                        />
+                      )}
                       {sortedGames.length > 0 && (
                         <>
-                          <div style={{ paddingLeft: "0", marginBottom: "32px", marginTop: "0" }}>
-                            <h2
-                              className="text-white"
-                              style={{
-                                fontFamily: "var(--font-heading-2-font-family)",
-                                fontSize: "var(--font-heading-2-font-size)",
-                                fontWeight: 600,
-                              }}
-                            >
-                              {sortedGames.length} {t("common.games")}
-                            </h2>
-                          </div>
-                          <style>{`
-                            .library-item-detail-games-list .games-list-container {
-                              justify-content: flex-start !important;
-                            }
-                          `}</style>
+                          {!compactDetail && (
+                            <div className="library-item-detail-games-heading-block">
+                              <h2 className="library-item-detail-heading-2 text-white">
+                                {gridGames.length} {t("common.games")}
+                              </h2>
+                            </div>
+                          )}
                           <div className="library-item-detail-games-list">
                             <GamesList
-                              games={sortedGames}
+                              games={gridGames}
                               onGameClick={(game) => {
                                 const g = game as GameItem & { isIgdbOnly?: boolean };
                                 if (g.isIgdbOnly && onIgdbGameClick) {
@@ -1465,8 +1950,8 @@ function LibraryItemDetailContent({
                               coverCacheBustTimestamp={listLoadTimestamp}
                               coverSize={coverSize}
                               itemRefs={itemRefs}
-                              draggable={isCollection}
-                              onDragEnd={isCollection ? handleDragEnd : undefined}
+                              draggable={collectionDragEnabled}
+                              onDragEnd={collectionDragEnabled ? handleDragEnd : undefined}
                               allCollections={isCollection ? allCollections : undefined}
                               collectionId={collectionId}
                               onRemoveFromCollection={onRemoveFromCollection}
@@ -1477,6 +1962,66 @@ function LibraryItemDetailContent({
                             />
                           </div>
                         </>
+                      )}
+                      {!compactDetail && parentCollectionLikesWithGamesForDisplay.length > 0 && (
+                        <div className="game-detail-collections-section">
+                          <h3 className="game-detail-section-title">
+                            {resourceType === "collections"
+                              ? t("libraries.collections", "Collections")
+                              : resourceType === "developers"
+                                ? t("igdbInfo.developers", "Developers")
+                                : t("igdbInfo.publishers", "Publishers")}
+                          </h3>
+                          <div className="game-detail-collections-list">
+                            {parentCollectionLikesWithGamesForDisplay.map(({ parent, slideItems }) => (
+                              <div key={String(parent.id)} className="game-detail-collection-group">
+                                <ScrollableGamesSection
+                                  sectionId={`parent-${resourceType}-${String(parent.id)}`}
+                                  titleOverride={parent.title}
+                                  titleHref={
+                                    onCollectionClick
+                                      ? `/${
+                                          resourceType === "collections"
+                                            ? "collections"
+                                            : resourceType === "developers"
+                                              ? "developers"
+                                              : "publishers"
+                                        }/${encodeURIComponent(String(parent.id))}`
+                                      : undefined
+                                  }
+                                  disableAutoTranslate
+                                  games={slideItems}
+                                  onGameClick={(selected) => {
+                                    const rawId = String(selected.id ?? "");
+                                    if (rawId.startsWith("collectionlike:")) {
+                                      const parts = rawId.split(":");
+                                      const linkedId = parts[2];
+                                      if (linkedId && onCollectionClick) {
+                                        onCollectionClick(linkedId);
+                                        return;
+                                      }
+                                    }
+                                    onGameClick(selected);
+                                  }}
+                                  onPlay={onPlay}
+                                  onGameUpdate={onGameUpdate}
+                                  coverSize={140}
+                                  allCollections={allCollections}
+                                  allCollectionLikes={allCollectionLikes}
+                                  collectionLikeResourceType={resourceType}
+                                  sliderParentCollectionLikeId={String(parent.id)}
+                                  onRemoveChildFromSliderParent={(childId) =>
+                                    removeChildFromSliderParent(String(parent.id), childId)
+                                  }
+                                  onCollectionLikePseudoEdit={handleCollectionLikePseudoEdit}
+                                  onPlayFirstInCollectionLike={onPlayFirstInCollectionLike}
+                                  onCollectionLikePseudoAddToParent={addChildToParent}
+                                  onCollectionLikePseudoUpdated={dispatchCollectionLikeUpdated}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
                   )}

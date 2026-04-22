@@ -1,14 +1,15 @@
 import { useState, useMemo, useRef } from "react";
+import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { API_BASE } from "../../config";
 import Cover from "./Cover";
 import EditGameModal from "./EditGameModal";
 import { useEditGame } from "../common/actions";
 import VirtualizedGamesList from "./VirtualizedGamesList";
-import type { GameItem } from "../../types";
+import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
+import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
+import { parseCollectionLikePseudoGameId } from "../../utils/collectionLikePseudoGame";
 import { gameHasExecutableForPlatform, getExecutablesForPlatform } from "../../utils/gameExecutables";
-import "./GamesList.css";
-
 const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are more than this many items
 
 type GamesListProps = {
@@ -35,6 +36,15 @@ type GamesListProps = {
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
   enableVirtualization?: boolean;
   platformIdForPlay?: string;
+  /** When games include `collectionlike:…` synthetic ids (e.g. parent sliders), wire collection-like actions */
+  allCollectionLikes?: CollectionItem[];
+  collectionLikeResourceType?: CollectionLikeResourceType;
+  sliderParentCollectionLikeId?: string;
+  onRemoveChildFromSliderParent?: (childId: string) => void | Promise<void>;
+  onCollectionLikePseudoEdit?: (game: GameItem) => void;
+  onPlayFirstInCollectionLike?: (resourceType: string, cid: string) => void | Promise<void>;
+  onCollectionLikePseudoAddToParent?: (source: CollectionItem, parentId?: string) => void | Promise<void>;
+  onCollectionLikePseudoUpdated?: (updated: CollectionInfo) => void;
 };
 
 
@@ -65,6 +75,14 @@ type GameListItemProps = {
   onRemoveFromDeveloper?: (gameId: string) => void;
   onRemoveFromPublisher?: (gameId: string) => void;
   platformIdForPlay?: string;
+  allCollectionLikes?: CollectionItem[];
+  collectionLikeResourceType?: CollectionLikeResourceType;
+  sliderParentCollectionLikeId?: string;
+  onRemoveChildFromSliderParent?: (childId: string) => void | Promise<void>;
+  onCollectionLikePseudoEdit?: (game: GameItem) => void;
+  onPlayFirstInCollectionLike?: (resourceType: string, cid: string) => void | Promise<void>;
+  onCollectionLikePseudoAddToParent?: (source: CollectionItem, parentId?: string) => void | Promise<void>;
+  onCollectionLikePseudoUpdated?: (updated: CollectionInfo) => void;
 };
 
 export function GameListItem({
@@ -94,6 +112,14 @@ export function GameListItem({
   onRemoveFromDeveloper,
   onRemoveFromPublisher,
   platformIdForPlay,
+  allCollectionLikes = [],
+  collectionLikeResourceType,
+  sliderParentCollectionLikeId,
+  onRemoveChildFromSliderParent,
+  onCollectionLikePseudoEdit,
+  onPlayFirstInCollectionLike,
+  onCollectionLikePseudoAddToParent,
+  onCollectionLikePseudoUpdated,
 }: GameListItemProps) {
   const { t } = useTranslation();
   const isIgdbOnly = (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly;
@@ -139,6 +165,67 @@ export function GameListItem({
 
   const isDragOver = dragOverIndex === index && isDragging;
 
+  const pseudo = parseCollectionLikePseudoGameId(game.id);
+  const isPseudoCollectionLikeCard = Boolean(
+    pseudo && collectionLikeResourceType && pseudo.resourceType === collectionLikeResourceType
+  );
+
+  const sourceCollectionLikeForPseudo: CollectionItem | undefined =
+    isPseudoCollectionLikeCard && pseudo
+      ? {
+          id: pseudo.childId,
+          title: game.title,
+          summary: typeof game.summary === "string" ? game.summary : "",
+          cover: game.cover,
+          childs: [],
+          showTitle: (game as { showTitle?: boolean }).showTitle !== false,
+        }
+      : undefined;
+
+  const handleEditClickForCover = () => {
+    if (isPseudoCollectionLikeCard) {
+      if (onCollectionLikePseudoEdit) {
+        onCollectionLikePseudoEdit(game);
+      }
+      return;
+    }
+    onEditClick(game);
+  };
+
+  const coverGameId = isPseudoCollectionLikeCard ? undefined : String(game.id);
+  const coverCollectionId = isPseudoCollectionLikeCard
+    ? pseudo!.resourceType === "collections"
+      ? pseudo!.childId
+      : undefined
+    : collectionId;
+  const coverDeveloperId = isPseudoCollectionLikeCard
+    ? pseudo!.resourceType === "developers"
+      ? pseudo!.childId
+      : undefined
+    : developerId;
+  const coverPublisherId = isPseudoCollectionLikeCard
+    ? pseudo!.resourceType === "publishers"
+      ? pseudo!.childId
+      : undefined
+    : publisherId;
+
+  const coverOnRemoveFromParent =
+    isPseudoCollectionLikeCard &&
+    pseudo &&
+    sliderParentCollectionLikeId &&
+    onRemoveChildFromSliderParent
+      ? () => {
+          void onRemoveChildFromSliderParent(pseudo.childId);
+        }
+      : undefined;
+
+  const coverOnAddToCollection =
+    isPseudoCollectionLikeCard && sourceCollectionLikeForPseudo && onCollectionLikePseudoAddToParent
+      ? (parentId?: string) => {
+          void onCollectionLikePseudoAddToParent(sourceCollectionLikeForPseudo, parentId);
+        }
+      : undefined;
+
   return (
     <div
       ref={(el) => {
@@ -146,8 +233,7 @@ export function GameListItem({
           itemRefs.current.set(game.id, el);
         }
       }}
-      className={`group cursor-pointer games-list-item ${draggable ? 'games-list-item-draggable' : ''} ${isDragOver ? 'games-list-item-drag-over' : ''}`}
-      style={{ width: `${coverSize}px`, minWidth: `${coverSize}px` }}
+      className={`group cursor-pointer games-list-item games-list-item--cover-sized ${draggable ? "games-list-item-draggable" : ""} ${isDragOver ? "games-list-item-drag-over" : ""}`}
       draggable={draggable}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
@@ -171,44 +257,88 @@ export function GameListItem({
         coverUrl={coverUrl}
         width={coverSize}
         height={coverHeight}
-        onPlay={!isIgdbOnly && onPlay ? (executableName?: string) => {
-          if (executableName !== undefined) {
-            (onPlay as (g: typeof game, ex?: string) => void)(game, executableName);
-          } else {
-            const ex = platformIdForPlay && gameForCover.executables?.length
-              ? gameForCover.executables[0]
-              : undefined;
-            (onPlay as (g: typeof game, ex?: string) => void)(gameForCover, ex);
-          }
-        } : undefined}
+        onPlay={
+          isPseudoCollectionLikeCard && onPlay && onPlayFirstInCollectionLike && pseudo
+            ? () => {
+                void onPlayFirstInCollectionLike(pseudo.resourceType, pseudo.childId);
+              }
+            : !isIgdbOnly && onPlay
+              ? (executableName?: string) => {
+                  if (executableName !== undefined) {
+                    (onPlay as (g: typeof game, ex?: string) => void)(game, executableName);
+                  } else {
+                    const ex =
+                      platformIdForPlay && gameForCover.executables?.length
+                        ? gameForCover.executables[0]
+                        : undefined;
+                    (onPlay as (g: typeof game, ex?: string) => void)(gameForCover, ex);
+                  }
+                }
+              : undefined
+        }
         onClick={() => onGameClick(game)}
-        onEdit={!isIgdbOnly ? () => onEditClick(game) : undefined}
-        gameId={game.id}
+        onEdit={
+          isPseudoCollectionLikeCard || !isIgdbOnly ? handleEditClickForCover : undefined
+        }
+        gameId={coverGameId}
         gameTitle={game.title}
-        game={isIgdbOnly ? undefined : gameForCover}
-        fullGameForActions={!isIgdbOnly ? game : undefined}
+        game={isPseudoCollectionLikeCard || isIgdbOnly ? undefined : gameForCover}
+        fullGameForActions={isPseudoCollectionLikeCard || isIgdbOnly ? undefined : game}
         platformIdForPlay={platformIdForPlay}
-        onGameDelete={!isIgdbOnly && onGameDelete ? (gameId: string) => {
-          const deletedGame = game.id === gameId ? game : null;
-          if (deletedGame) {
-            onGameDelete(deletedGame);
-          }
-        } : undefined}
-        onGameUpdate={!isIgdbOnly && onGameUpdate ? (updatedGame) => {
-          if (updatedGame.id === game.id) {
-            onGameUpdate(updatedGame);
-          }
-        } : undefined}
-        collectionId={collectionId}
-        onRemoveFromCollection={!isIgdbOnly && onRemoveFromCollection ? () => onRemoveFromCollection(game.id) : undefined}
-        developerId={developerId}
-        publisherId={publisherId}
-        onRemoveFromDeveloper={!isIgdbOnly && onRemoveFromDeveloper ? () => onRemoveFromDeveloper(game.id) : undefined}
-        onRemoveFromPublisher={!isIgdbOnly && onRemoveFromPublisher ? () => onRemoveFromPublisher(game.id) : undefined}
+        onGameDelete={
+          !isPseudoCollectionLikeCard && !isIgdbOnly && onGameDelete
+            ? (gameId: string) => {
+                const deletedGame = game.id === gameId ? game : null;
+                if (deletedGame) {
+                  onGameDelete(deletedGame);
+                }
+              }
+            : undefined
+        }
+        onGameUpdate={
+          !isPseudoCollectionLikeCard && !isIgdbOnly && onGameUpdate
+            ? (updatedGame) => {
+                if (updatedGame.id === game.id) {
+                  onGameUpdate(updatedGame);
+                }
+              }
+            : undefined
+        }
+        collectionId={coverCollectionId}
+        collectionTitle={isPseudoCollectionLikeCard ? game.title : undefined}
+        onRemoveFromCollection={
+          !isPseudoCollectionLikeCard && !isIgdbOnly && onRemoveFromCollection
+            ? () => onRemoveFromCollection(String(game.id))
+            : undefined
+        }
+        developerId={coverDeveloperId}
+        publisherId={coverPublisherId}
+        onRemoveFromDeveloper={
+          !isPseudoCollectionLikeCard && !isIgdbOnly && onRemoveFromDeveloper
+            ? () => onRemoveFromDeveloper(String(game.id))
+            : undefined
+        }
+        onRemoveFromPublisher={
+          !isPseudoCollectionLikeCard && !isIgdbOnly && onRemoveFromPublisher
+            ? () => onRemoveFromPublisher(String(game.id))
+            : undefined
+        }
+        onRemoveFromParent={coverOnRemoveFromParent}
+        sourceCollectionLike={isPseudoCollectionLikeCard ? sourceCollectionLikeForPseudo : undefined}
+        allCollectionLikes={isPseudoCollectionLikeCard ? (allCollectionLikes ?? []) : undefined}
+        collectionLikeResourceType={isPseudoCollectionLikeCard ? pseudo!.resourceType : undefined}
+        onCollectionUpdate={isPseudoCollectionLikeCard && onCollectionLikePseudoUpdated ? onCollectionLikePseudoUpdated : undefined}
+        onAddToCollection={coverOnAddToCollection}
         showTitle={game.showTitle !== false}
-        subtitle={game.year}
+        subtitle={game.subtitle ?? game.year}
         detail={true}
-        play={platformIdForPlay ? gameHasExecutableForPlatform(game, platformIdForPlay) : !!(game.executables && game.executables.length > 0)}
+        play={
+          isPseudoCollectionLikeCard
+            ? !!(onPlay && onPlayFirstInCollectionLike)
+            : platformIdForPlay
+              ? gameHasExecutableForPlatform(game, platformIdForPlay)
+              : !!(game.executables && game.executables.length > 0)
+        }
         showBorder={viewMode !== "detail"}
         allCollections={allCollections}
         overlayContent={isIgdbOnly ? <span className="game-detail-similar-cover-badge">{t("addGame.new", "New")}</span> : undefined}
@@ -241,6 +371,14 @@ export default function GamesList({
   scrollContainerRef,
   enableVirtualization = true,
   platformIdForPlay,
+  allCollectionLikes,
+  collectionLikeResourceType,
+  sliderParentCollectionLikeId,
+  onRemoveChildFromSliderParent,
+  onCollectionLikePseudoEdit,
+  onPlayFirstInCollectionLike,
+  onCollectionLikePseudoAddToParent,
+  onCollectionLikePseudoUpdated,
 }: GamesListProps) {
   const { t } = useTranslation();
   const editGame = useEditGame();
@@ -288,12 +426,8 @@ export default function GamesList({
     <>
       <div
         ref={containerRef}
-        className="games-list-container"
-        style={{
-          gridTemplateColumns: useVirtualization ? undefined : `repeat(auto-fill, ${coverSize}px)`,
-          height: useVirtualization ? "100%" : undefined,
-          ...style,
-        }}
+        className={`games-list-container${useVirtualization ? " games-list-container--virtualized" : ""}`}
+        style={{ ["--games-list-cover-size" as string]: `${coverSize}px`, ...style } as CSSProperties}
       >
         {useVirtualization ? (
           <VirtualizedGamesList
@@ -316,6 +450,14 @@ export default function GamesList({
             onRemoveFromDeveloper={onRemoveFromDeveloper}
             onRemoveFromPublisher={onRemoveFromPublisher}
             platformIdForPlay={platformIdForPlay}
+            allCollectionLikes={allCollectionLikes}
+            collectionLikeResourceType={collectionLikeResourceType}
+            sliderParentCollectionLikeId={sliderParentCollectionLikeId}
+            onRemoveChildFromSliderParent={onRemoveChildFromSliderParent}
+            onCollectionLikePseudoEdit={onCollectionLikePseudoEdit}
+            onPlayFirstInCollectionLike={onPlayFirstInCollectionLike}
+            onCollectionLikePseudoAddToParent={onCollectionLikePseudoAddToParent}
+            onCollectionLikePseudoUpdated={onCollectionLikePseudoUpdated}
           />
         ) : (
           games.map((game, index) => (
@@ -347,6 +489,14 @@ export default function GamesList({
               onRemoveFromDeveloper={onRemoveFromDeveloper}
               onRemoveFromPublisher={onRemoveFromPublisher}
               platformIdForPlay={platformIdForPlay}
+              allCollectionLikes={allCollectionLikes}
+              collectionLikeResourceType={collectionLikeResourceType}
+              sliderParentCollectionLikeId={sliderParentCollectionLikeId}
+              onRemoveChildFromSliderParent={onRemoveChildFromSliderParent}
+              onCollectionLikePseudoEdit={onCollectionLikePseudoEdit}
+              onPlayFirstInCollectionLike={onPlayFirstInCollectionLike}
+              onCollectionLikePseudoAddToParent={onCollectionLikePseudoAddToParent}
+              onCollectionLikePseudoUpdated={onCollectionLikePseudoUpdated}
             />
           ))
         )}

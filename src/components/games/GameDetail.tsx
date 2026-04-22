@@ -17,8 +17,9 @@ import Tooltip from "../common/Tooltip";
 import BackgroundManager, { useBackground } from "../common/BackgroundManager";
 import LibrariesBar from "../layout/LibrariesBar";
 import { useEditGame } from "../common/actions";
-import type { GameItem, CollectionItem } from "../../types";
+import type { GameItem, CollectionItem, CollectionInfo } from "../../types";
 import { formatGameDate } from "../../utils/date";
+import { displayGameType, toGameTypeId } from "../../utils/igdbGameType";
 import { buildApiUrl, buildBackgroundUrl } from "../../utils/api";
 import { API_BASE, getApiToken } from "../../config";
 import { useSettings } from "../../contexts/SettingsContext";
@@ -28,8 +29,10 @@ import { useLibraryGames } from "../../contexts/LibraryGamesContext";
 import { useSimilarGamesDetails } from "../../hooks/useSimilarGamesDetails";
 import SimilarGamesList, { type SimilarGameDisplayItem } from "./SimilarGamesList";
 import ScrollableGamesSection from "../common/ScrollableGamesSection";
-import "./GameDetail.css";
-
+import EditCollectionLikeModal from "../collections/EditCollectionLikeModal";
+import AddCollectionLikeToCollectionLikeModal from "../collections/AddCollectionLikeToCollectionLikeModal";
+import { parseCollectionLikePseudoGameId } from "../../utils/collectionLikePseudoGame";
+import { buildChildCollectionLikeSlideItems, parseGamesFromJson } from "../../utils/collectionChildSlideItems";
 type GameDetailProps = {
   game: GameItem;
   coverUrl: string;
@@ -228,9 +231,12 @@ function GameDetailContent({
   const { hasBackground, isBackgroundVisible } = useBackground();
   const { getCollectionGameIds } = useCollections();
   const { games: libraryGames, updateGame } = useLibraryGames();
-  const [collectionsWithGames, setCollectionsWithGames] = useState<
-    Array<{ collection: CollectionItem; games: GameItem[] }>
+  const [collectionsWithSlideItems, setCollectionsWithSlideItems] = useState<
+    Array<{ collection: CollectionItem; slideItems: GameItem[] }>
   >([]);
+  const [editingCollectionLike, setEditingCollectionLike] = useState<CollectionInfo | null>(null);
+  const [isEditCollectionLikeModalOpen, setIsEditCollectionLikeModalOpen] = useState(false);
+  const [linkSourceCollectionLike, setLinkSourceCollectionLike] = useState<CollectionItem | null>(null);
   
   // Helper function to format rating value (0-10 float)
   const formatRating = (value: number | null | undefined): string | null => {
@@ -268,12 +274,13 @@ function GameDetailContent({
     const loadCollectionsForGame = async () => {
       if (!allCollections.length) {
         if (isActive) {
-          setCollectionsWithGames([]);
+          setCollectionsWithSlideItems([]);
         }
         return;
       }
 
-      const results: Array<{ collection: CollectionItem; games: GameItem[] } | null> = [];
+      const token = getApiToken() || "";
+      const results: Array<{ collection: CollectionItem; slideItems: GameItem[] } | null> = [];
       for (const collection of allCollections) {
         try {
           const gameIds = await getCollectionGameIds(collection.id);
@@ -288,15 +295,17 @@ function GameDetailContent({
             results.push(null);
             continue;
           }
-          results.push({ collection, games });
+          const childSlideItems = await buildChildCollectionLikeSlideItems(collection, allCollections, token);
+          const slideItems = [...childSlideItems, ...games];
+          results.push({ collection, slideItems });
         } catch (error) {
           results.push(null);
         }
       }
 
       if (isActive) {
-        setCollectionsWithGames(
-          results.filter((entry): entry is { collection: CollectionItem; games: GameItem[] } => Boolean(entry))
+        setCollectionsWithSlideItems(
+          results.filter((entry): entry is { collection: CollectionItem; slideItems: GameItem[] } => Boolean(entry))
         );
       }
     };
@@ -348,7 +357,113 @@ function GameDetailContent({
     return allSimilarGamesOrdered.filter((item) => item.type === "library");
   }, [twitchLoginEnabled, allSimilarGamesOrdered]);
 
+  const dispatchCollectionLikeUpdated = (updatedItem: CollectionInfo) => {
+    window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collection: updatedItem } }));
+  };
+
+  const openCollectionLikeEditModal = (col: CollectionItem) => {
+    setEditingCollectionLike({
+      id: String(col.id),
+      title: col.title,
+      summary: col.summary || "",
+      cover: col.cover,
+      background: (col as { background?: string }).background,
+      showTitle: col.showTitle !== false,
+      childs: col.childs || [],
+    });
+    setIsEditCollectionLikeModalOpen(true);
+  };
+
+  const handleCollectionLikePseudoEdit = (g: GameItem) => {
+    const p = parseCollectionLikePseudoGameId(g.id);
+    if (!p || p.resourceType !== "collections") return;
+    const existing = allCollections.find((c) => String(c.id) === p.childId);
+    if (existing) {
+      openCollectionLikeEditModal(existing);
+    } else {
+      openCollectionLikeEditModal({
+        id: p.childId,
+        title: g.title,
+        summary: typeof g.summary === "string" ? g.summary : "",
+        cover: g.cover,
+        childs: [],
+        showTitle: (g as { showTitle?: boolean }).showTitle !== false,
+      });
+    }
+  };
+
+  const removeChildFromSliderParent = async (parentId: string, childId: string) => {
+    const token = getApiToken();
+    if (!token) return;
+    try {
+      const url = buildApiUrl(
+        API_BASE,
+        `/collections/${encodeURIComponent(parentId)}/childs/${encodeURIComponent(childId)}`
+      );
+      const res = await fetch(url, {
+        method: "DELETE",
+        headers: { "X-Auth-Token": token },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collectionId: String(parentId) } }));
+    } catch (err) {
+      console.error("Error removing child collection from parent:", err);
+    }
+  };
+
+  const addChildToParent = async (source: CollectionItem, parentId?: string) => {
+    if (!parentId) {
+      setLinkSourceCollectionLike(source);
+      return;
+    }
+    const token = getApiToken();
+    if (!token) return;
+    try {
+      const url = buildApiUrl(
+        API_BASE,
+        `/collections/${encodeURIComponent(String(parentId))}/childs/${encodeURIComponent(String(source.id))}`
+      );
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "X-Auth-Token": token },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const recentKey = "recentCollectionLikeParents_collections";
+      const current = JSON.parse(localStorage.getItem(recentKey) || "[]") as string[];
+      const next = [String(parentId), ...current.filter((id) => String(id) !== String(parentId))].slice(0, 5);
+      localStorage.setItem(recentKey, JSON.stringify(next));
+      window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collectionId: String(parentId) } }));
+    } catch (err) {
+      console.error("Error adding collection to parent:", err);
+    }
+  };
+
+  const playFirstInCollection = async (_type: string, cid: string) => {
+    try {
+      const url = buildApiUrl(API_BASE, `/collections/${encodeURIComponent(cid)}/games`);
+      const res = await fetch(url, {
+        headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
+      });
+      if (!res.ok) return;
+      const json = await res.json();
+      const gamesList = parseGamesFromJson(json);
+      const first = gamesList.find((g) => g.executables && g.executables.length > 0);
+      if (first) onPlay(first);
+    } catch (e) {
+      console.error("Error fetching collection games for play:", e);
+    }
+  };
+
   const handleRelatedGameClick = (selectedGame: GameItem) => {
+    const rawId = String(selectedGame.id ?? "");
+    if (rawId.startsWith("collectionlike:")) {
+      const parts = rawId.split(":");
+      const linkedId = parts[2];
+      if (linkedId) {
+        navigate(`/collections/${encodeURIComponent(linkedId)}`);
+      }
+      return;
+    }
     navigate(`/game/${selectedGame.id}`);
   };
   const handleRelatedGameUpdate = (updatedGame: GameItem) => {
@@ -370,6 +485,11 @@ function GameDetailContent({
     const raw = Array.isArray(game.genre) ? game.genre : game.genre != null ? [game.genre] : [];
     return raw.map((id) => tagLabels.categories.get(String(id)) ?? String(id));
   }, [game.genre, tagLabels.categories]);
+
+  const gameTypeLabel = useMemo(
+    () => displayGameType(toGameTypeId(game.type)),
+    [game.type]
+  );
 
   return (
     <>
@@ -400,6 +520,7 @@ function GameDetailContent({
               coverUrl={coverUrl}
               width={coverWidth}
               height={coverHeight}
+              imageFit="fill"
               onPlay={(executableName?: string) => (executableName !== undefined ? (onPlay as (g: typeof game, ex?: string) => void)(game, executableName) : onPlay(game))}
               showTitle={false}
               titlePosition="overlay"
@@ -410,22 +531,30 @@ function GameDetailContent({
           </div>
 
           {/* Game Info Panel */}
-          <div className="game-detail-info-panel" style={{ minHeight: `${coverHeight}px` }}>
+          <div className="game-detail-info-panel">
             <div className="game-detail-info-content">
-              <h1 className="text-white game-detail-title">
-                {game.title}
-              </h1>
+              <div className="game-detail-title-row">
+                <h1 className="text-white game-detail-title">
+                  {game.title}
+                </h1>
+              </div>
               {(() => {
                 const validAgeRatings = game.ageRatings && game.ageRatings.length > 0
                   ? filterAgeRatingsByLocale(game.ageRatings, i18n.language)
                   : [];
                 const hasValidAgeRatings = validAgeRatings.length > 0;
-                const hasReleaseOrAgeRatings = releaseDate || hasValidAgeRatings;
-                if (!hasReleaseOrAgeRatings) return null;
+                const hasReleaseTypeOrAgeRatings = !!releaseDate || !!gameTypeLabel || hasValidAgeRatings;
+                if (!hasReleaseTypeOrAgeRatings) return null;
                 return (
                   <div className="text-white game-detail-release-date">
-                    {releaseDate}
-                    {releaseDate && hasValidAgeRatings && (
+                    {releaseDate ? <span>{releaseDate}</span> : null}
+                    {releaseDate && gameTypeLabel ? (
+                      <span className="game-detail-age-ratings-inline">{" • "}</span>
+                    ) : null}
+                    {gameTypeLabel ? (
+                      <span className="game-detail-type-label">{gameTypeLabel}</span>
+                    ) : null}
+                    {(releaseDate || gameTypeLabel) && hasValidAgeRatings && (
                       <span className="game-detail-age-ratings-inline">
                         {" • "}
                       </span>
@@ -630,30 +759,65 @@ function GameDetailContent({
         <div className="game-detail-info-section">
           <GameInfoBlock game={game} />
         </div>
-        {collectionsWithGames.length > 0 && (
+        {collectionsWithSlideItems.length > 0 && (
           <div className="game-detail-collections-section">
             <h3 className="game-detail-section-title">
               {t("libraries.collections", "Collections")}
             </h3>
             <div className="game-detail-collections-list">
-              {collectionsWithGames.map(({ collection, games }) => (
+              {collectionsWithSlideItems.map(({ collection, slideItems }) => (
                 <div key={collection.id} className="game-detail-collection-group">
                   <ScrollableGamesSection
                     sectionId={`collection-${collection.id}`}
                     titleOverride={collection.title}
                     titleHref={`/collections/${collection.id}`}
                     disableAutoTranslate
-                    games={games}
+                    games={slideItems}
                     onGameClick={handleRelatedGameClick}
                     onPlay={onPlay}
                     onGameUpdate={handleRelatedGameUpdate}
                     coverSize={140}
                     allCollections={allCollections}
+                    allCollectionLikes={allCollections}
+                    collectionLikeResourceType="collections"
+                    sliderParentCollectionLikeId={String(collection.id)}
+                    onRemoveChildFromSliderParent={(childId) =>
+                      removeChildFromSliderParent(String(collection.id), childId)
+                    }
+                    onCollectionLikePseudoEdit={handleCollectionLikePseudoEdit}
+                    onPlayFirstInCollectionLike={playFirstInCollection}
+                    onCollectionLikePseudoAddToParent={addChildToParent}
+                    onCollectionLikePseudoUpdated={dispatchCollectionLikeUpdated}
                   />
                 </div>
               ))}
             </div>
           </div>
+        )}
+        {editingCollectionLike && (
+          <EditCollectionLikeModal
+            isOpen={isEditCollectionLikeModalOpen}
+            onClose={() => {
+              setIsEditCollectionLikeModalOpen(false);
+              setEditingCollectionLike(null);
+            }}
+            resourceType="collections"
+            item={editingCollectionLike}
+            onItemUpdate={(updated) => {
+              setEditingCollectionLike(updated);
+              dispatchCollectionLikeUpdated(updated);
+            }}
+          />
+        )}
+        {linkSourceCollectionLike && (
+          <AddCollectionLikeToCollectionLikeModal
+            isOpen={true}
+            onClose={() => setLinkSourceCollectionLike(null)}
+            sourceItem={linkSourceCollectionLike}
+            resourceType="collections"
+            allItems={allCollections}
+            onLinked={() => setLinkSourceCollectionLike(null)}
+          />
         )}
         {(game.similarGames && game.similarGames.length > 0) && similarGamesToShow.length > 0 && (
           <div className="game-detail-similar-section">

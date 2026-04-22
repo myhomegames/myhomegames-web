@@ -1,5 +1,3 @@
-import "./ScrollableGamesSectionNav.css";
-
 type ScrollableGamesSectionNavProps = {
   canScrollLeft: boolean;
   canScrollRight: boolean;

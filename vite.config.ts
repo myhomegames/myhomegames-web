@@ -1,10 +1,26 @@
 import { defineConfig, loadEnv } from 'vite'
+import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { readFileSync, writeFileSync } from 'fs'
 import path from 'path'
 
 // Read package.json to get version
 const packageJson = JSON.parse(readFileSync('./package.json', 'utf-8'))
+
+const VIRTUAL_TAILWIND_ENTRY = '\0virtual:tailwind-entry.css'
+
+/** Single Tailwind entry without a committed .css file in src/ (theme CSS lives in skins). */
+const tailwindEntryVirtualPlugin = () => ({
+  name: 'tailwind-entry-virtual',
+  resolveId(id: string) {
+    if (id === 'virtual:tailwind-entry.css') return VIRTUAL_TAILWIND_ENTRY
+    return undefined
+  },
+  load(id: string) {
+    if (id === VIRTUAL_TAILWIND_ENTRY) return '@import "tailwindcss";\n'
+    return undefined
+  },
+})
 
 // Plugin to generate 404.html for GitHub Pages SPA routing
 const githubPages404Plugin = () => {
@@ -64,7 +80,7 @@ export default defineConfig(({ mode }) => {
   return {
     base: '/app/',
     appType: 'spa',
-    plugins: [react(), githubPages404Plugin()],
+    plugins: [tailwindEntryVirtualPlugin(), tailwindcss(), react(), githubPages404Plugin()],
     define: {
       __APP_VERSION__: JSON.stringify(packageJson.version),
     },
@@ -99,8 +115,8 @@ export default defineConfig(({ mode }) => {
               // Other node_modules will be included in the main bundle or page chunks
               return null;
             }
-            // Page chunks - split by pages directory
-            if (id.includes('/pages/')) {
+            // Page chunks - split by app routes only (src/pages/*)
+            if (id.includes('/pages/') && id.includes('src/pages')) {
               const pageName = id.split('/pages/')[1]?.split('/')[0];
               if (pageName) {
                 return `page-${pageName}`;

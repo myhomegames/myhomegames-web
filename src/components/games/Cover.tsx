@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type React from "react";
+import type { CSSProperties } from "react";
 import DropdownMenu from "../common/DropdownMenu";
 import AddToCollectionDropdown from "./AddToCollectionDropdown";
 import AdditionalExecutablesDropdown from "./AdditionalExecutablesDropdown";
 import Tooltip from "../common/Tooltip";
 import type { CollectionItem, GameItem } from "../../types";
-import "./Cover.css";
-
+import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 type CoverProps = {
   title: string;
   coverUrl: string;
@@ -17,6 +17,7 @@ type CoverProps = {
   onClick?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  onAddToCollection?: (parentId?: string) => void;
   gameId?: string;
   gameTitle?: string;
   game?: GameItem;
@@ -34,11 +35,20 @@ type CoverProps = {
   publisherId?: string;
   onRemoveFromDeveloper?: () => void;
   onRemoveFromPublisher?: () => void;
+  onRemoveFromParent?: () => void;
+  sourceCollectionLike?: CollectionItem;
+  allCollectionLikes?: CollectionItem[];
+  collectionLikeResourceType?: CollectionLikeResourceType;
   showTitle?: boolean;
   subtitle?: string | number | null;
   detail?: boolean;
   play?: boolean;
   showBorder?: boolean;
+  /**
+   * `cover`: proporzioni rispettate, ritaglio (default, elenchi).
+   * `fill`: stesso riquadro che con `cover` (width + aspectRatio), ma l’immagine usa `object-fit: fill` così riempie il box anche deformandosi.
+   */
+  imageFit?: "cover" | "fill";
   aspectRatio?: string; // e.g., "2/3" or "16/9"
   overlayContent?: React.ReactNode; // Content to overlay on the cover
   titlePosition?: "bottom" | "overlay"; // Position of title: below cover or inside image (default: "bottom")
@@ -78,6 +88,7 @@ export default function Cover({
   onClick,
   onEdit,
   onDelete,
+  onAddToCollection,
   gameId,
   gameTitle,
   game,
@@ -94,11 +105,16 @@ export default function Cover({
   publisherId,
   onRemoveFromDeveloper,
   onRemoveFromPublisher,
+  onRemoveFromParent,
+  sourceCollectionLike,
+  allCollectionLikes,
+  collectionLikeResourceType,
   showTitle = false,
   subtitle,
   detail = true,
   play = true,
   showBorder = true,
+  imageFit = "cover",
   aspectRatio = "3/4",
   overlayContent,
   titlePosition = "bottom",
@@ -135,7 +151,7 @@ export default function Cover({
       const customEvent = event as CustomEvent<{ gameId?: string; collectionId?: string }>;
       // Only react to dropdown events for this specific game/collection Cover
       // Don't react to collection dropdown if this is a game Cover (games shouldn't highlight when collection dropdown opens)
-      if (gameId && customEvent.detail?.gameId === gameId) {
+      if (gameId && String(customEvent.detail?.gameId ?? "") === String(gameId)) {
         setIsDropdownOpen(true);
       } else if (collectionId && !gameId && customEvent.detail?.collectionId === collectionId) {
         // Only react to collection dropdown if this Cover represents a collection, not a game
@@ -147,7 +163,7 @@ export default function Cover({
       const customEvent = event as CustomEvent<{ gameId?: string; collectionId?: string }>;
       // Only react to dropdown events for this specific game/collection Cover
       // Don't react to collection dropdown if this is a game Cover
-      if (gameId && customEvent.detail?.gameId === gameId) {
+      if (gameId && String(customEvent.detail?.gameId ?? "") === String(gameId)) {
         setIsDropdownOpen(false);
       } else if (collectionId && !gameId && customEvent.detail?.collectionId === collectionId) {
         // Only react to collection dropdown if this Cover represents a collection, not a game
@@ -280,50 +296,25 @@ export default function Cover({
   const shouldShowUploadButton = onUpload !== undefined;
   const isClickable = detail || play || shouldShowUploadButton;
 
+  const coverStyle = {
+    width: `${width}px`,
+    aspectRatio,
+    "--cover-text-pad": `${padding}px`,
+    "--cover-text-fs": `${calculatedFontSize}px`,
+    "--cover-line-clamp": String(lineClamp),
+  } as unknown as CSSProperties;
+
   return (
     <>
       <div
         ref={coverRef}
-        className={`games-list-cover relative bg-[#2a2a2a] rounded overflow-hidden transition-all ${showBorder ? 'cover-hover-effect' : ''} ${play ? 'games-list-cover-play' : ''} ${detail ? 'games-list-cover-detail' : ''} ${shouldShowUploadButton ? 'games-list-cover-upload' : ''} ${isDropdownOpen ? 'cover-dropdown-open' : ''} ${isPopupOverlay ? 'cover-popup-overlay' : ''}`}
-        style={{ 
-          width: `${width}px`, 
-          aspectRatio: aspectRatio,
-          cursor: isClickable && !shouldShowUploadButton ? 'pointer' : (shouldShowUploadButton ? 'pointer' : 'default')
-        }}
+        className={`games-list-cover relative bg-[#2a2a2a] rounded overflow-hidden transition-all ${imageFit === "fill" ? "games-list-cover--image-fill " : ""}${showBorder ? "cover-hover-effect" : ""} ${play ? "games-list-cover-play" : ""} ${detail ? "games-list-cover-detail" : ""} ${shouldShowUploadButton ? "games-list-cover-upload" : ""} ${isDropdownOpen ? "cover-dropdown-open" : ""} ${isPopupOverlay ? "cover-popup-overlay" : ""}${isClickable ? " games-list-cover--clickable" : ""}`}
+        style={coverStyle}
         onClick={shouldShowUploadButton ? handleUploadClick : handleCoverClick}
       >
         {showPlaceholder ? (
-          <div
-            className="cover-placeholder"
-            style={{
-              width: "100%",
-              height: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: "#2a2a2a",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
-              boxSizing: "border-box",
-            }}
-          >
-            <div
-              className="cover-placeholder-text"
-              style={{
-                padding: `${padding}px`,
-                fontSize: `${calculatedFontSize}px`,
-                textAlign: "center",
-                color: "rgba(255, 255, 255, 0.85)",
-                fontWeight: 600,
-                lineHeight: 1.3,
-                wordBreak: "break-word",
-                overflow: "hidden",
-                display: "-webkit-box",
-                WebkitLineClamp: lineClamp,
-                WebkitBoxOrient: "vertical",
-                width: "100%",
-                maxHeight: "100%",
-              }}
-            >
+          <div className="cover-placeholder">
+            <div className="cover-placeholder-text">
               {title}
             </div>
           </div>
@@ -332,7 +323,19 @@ export default function Cover({
             key={coverUrl || 'cover-image'}
             src={coverUrl}
             alt={title}
-            className="object-cover w-full h-full"
+            className={
+              imageFit === "fill"
+                ? "block h-full w-full min-h-0 max-h-none max-w-none"
+                : "h-full w-full object-cover"
+            }
+            style={
+              imageFit === "fill"
+                ? {
+                    objectFit: "fill",
+                    objectPosition: "center",
+                  }
+                : undefined
+            }
             loading={coverUrl.startsWith('data:') ? undefined : "lazy"}
             onError={() => {
               setImageError(true);
@@ -377,9 +380,6 @@ export default function Cover({
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
                 className="spinning"
-                style={{
-                  animation: "spin 1s linear infinite"
-                }}
               >
                 <circle
                   cx="12"
@@ -462,7 +462,7 @@ export default function Cover({
               gameExecutables={game?.executables}
               fullGame={fullGameForActions ?? game}
               platformIdForPlay={platformIdForPlay}
-              onAddToCollection={gameId && game ? () => {} : undefined}
+              onAddToCollection={onAddToCollection ?? (gameId && game ? () => {} : undefined)}
               onRemoveFromCollection={onRemoveFromCollection}
               onGameDelete={onGameDelete}
               onGameUpdate={onGameUpdate}
@@ -474,6 +474,10 @@ export default function Cover({
               publisherId={publisherId}
               onRemoveFromDeveloper={onRemoveFromDeveloper}
               onRemoveFromPublisher={onRemoveFromPublisher}
+              onRemoveFromParent={onRemoveFromParent}
+              sourceCollectionLike={sourceCollectionLike}
+              allCollectionLikes={allCollectionLikes}
+              collectionLikeResourceType={collectionLikeResourceType}
               horizontal={dropdownHorizontal}
               toolTipDelay={dropdownToolTipDelay}
               className="games-list-dropdown-menu"
@@ -503,29 +507,8 @@ export default function Cover({
           </div>
         )}
         {titlePosition === "overlay" && showTitle && !showPlaceholder && (
-          <div className="cover-overlay-content" style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: `${padding}px`,
-          }}>
-            <div
-              style={{
-                textAlign: "center",
-                color: "rgba(255, 255, 255, 0.95)",
-                fontWeight: 600,
-                fontSize: `${calculatedFontSize}px`,
-                lineHeight: 1.3,
-                wordBreak: "break-word",
-                overflow: "hidden",
-                display: "-webkit-box",
-                WebkitLineClamp: lineClamp,
-                WebkitBoxOrient: "vertical",
-                textShadow: "2px 2px 4px rgba(0, 0, 0, 0.8)",
-              }}
-            >
-              {title}
-            </div>
+          <div className="cover-overlay-content cover-overlay-title-layer">
+            <div className="cover-overlay-title-text">{title}</div>
           </div>
         )}
       </div>

@@ -83,6 +83,7 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
         keywords: v.keywords || null,
         alternativeNames: v.alternativeNames || null,
         similarGames: v.similarGames || null,
+        type: v.type ?? null,
       }));
       setGames(parsed);
     } catch (err: any) {

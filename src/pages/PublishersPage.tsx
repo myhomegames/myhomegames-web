@@ -3,9 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useLoading } from "../contexts/LoadingContext";
 import { usePublishers } from "../contexts/PublishersContext";
+import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
+import { useSkin } from "../contexts/SkinContext";
 import CollectionsList from "../components/lists/CollectionsList";
 import AlphabetNavigator from "../components/ui/AlphabetNavigator";
 import { compareTitles, filterRootCollectionLikes } from "../utils/stringUtils";
+import { titleMatchesFilter } from "../utils/titleFilter";
 import type { CollectionItem } from "../types";
 import { buildCoverUrl } from "../utils/api";
 
@@ -17,6 +20,8 @@ type PublishersPageProps = {
 export default function PublishersPage({ onPlay, coverSize }: PublishersPageProps) {
   const { setLoading } = useLoading();
   const { publishers, isLoading: publishersLoading, updatePublisher } = usePublishers();
+  const titleFilterQuery = useTitleFilterQuery();
+  const { activeSkinWeb } = useSkin();
   const navigate = useNavigate();
   const [isReady, setIsReady] = useState(false);
   const [sortAscending] = useState(true);
@@ -27,7 +32,7 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
     setLoading(publishersLoading || !isReady);
   }, [publishersLoading, isReady, setLoading]);
 
-  useScrollRestoration(scrollContainerRef);
+  useScrollRestoration(scrollContainerRef, "publishers");
 
   function handlePublisherClick(publisher: CollectionItem) {
     navigate(`/publishers/${publisher.id}`);
@@ -38,10 +43,11 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
       i === self.findIndex((x) => String(x.id) === String(p.id))
     );
     const rootOnly = filterRootCollectionLikes(unique);
-    return [...rootOnly].sort((a, b) =>
+    const sorted = [...rootOnly].sort((a, b) =>
       sortAscending ? compareTitles(a.title || "", b.title || "") : -compareTitles(a.title || "", b.title || "")
     );
-  }, [publishers, sortAscending]);
+    return sorted.filter((p) => titleMatchesFilter(p.title, titleFilterQuery));
+  }, [publishers, sortAscending, titleFilterQuery]);
 
   const allPublishersForCount = useMemo(() => {
     return publishers.filter((p, i, self) =>
@@ -61,10 +67,7 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
   return (
     <main className="flex-1 home-page-content">
       <div className="home-page-layout">
-        <div
-          className="home-page-content-wrapper"
-          style={{ opacity: isReady ? 1 : 0, transition: "opacity 0.2s ease-in-out" }}
-        >
+        <div className={`home-page-content-wrapper home-page-fade-in${isReady ? " home-page-fade-in--ready" : ""}`}>
           <div ref={scrollContainerRef} className="home-page-scroll-container">
             <CollectionsList
               collections={sortedPublishers}
@@ -82,7 +85,7 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
             />
           </div>
         </div>
-        {isReady && (
+        {isReady && !activeSkinWeb.disableAlphabetNavigator && (
           <AlphabetNavigator
             games={sortedPublishers as any}
             scrollContainerRef={scrollContainerRef}

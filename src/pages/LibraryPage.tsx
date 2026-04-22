@@ -1,5 +1,7 @@
 import { useCallback, useEffect } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { useLoading } from "../contexts/LoadingContext";
+import { useSkin } from "../contexts/SkinContext";
 import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import { useGamesListPage } from "../hooks/useGamesListPage";
 import GamesListPageContent from "../components/games/GamesListPageContent";
@@ -15,6 +17,8 @@ type LibraryPageProps = {
   coverSize: number;
   viewMode: ViewMode;
   allCollections?: CollectionItem[];
+  mainGamesOnly?: boolean;
+  setMainGamesOnly?: Dispatch<SetStateAction<boolean>>;
 };
 
 export default function LibraryPage({
@@ -24,8 +28,11 @@ export default function LibraryPage({
   coverSize,
   viewMode,
   allCollections = [],
+  mainGamesOnly,
+  setMainGamesOnly,
 }: LibraryPageProps) {
   const { isLoading, setLoading } = useLoading();
+  const { activeSkinWeb } = useSkin();
   const { isLoading: libraryGamesLoading } = useLibraryGames();
 
   const hook = useGamesListPage({
@@ -35,6 +42,9 @@ export default function LibraryPage({
     listenToMetadataReload: true,
     gameEvents: ["gameUpdated"],
     scrollRestorationMode: viewMode === "table" ? undefined : viewMode,
+    ...(mainGamesOnly !== undefined && setMainGamesOnly
+      ? { mainGamesOnly, setMainGamesOnly }
+      : {}),
   });
 
   // Sync library games loading state and rendering state with global loading context
@@ -51,7 +61,8 @@ export default function LibraryPage({
     onGamesLoaded(games);
   }, [onGamesLoaded]);
 
-  const hasAlphabetNav = hook.sortField === "title" && hook.isReady;
+  const hasAlphabetNav =
+    hook.sortField === "title" && hook.isReady && !activeSkinWeb.disableAlphabetNavigator;
 
   return (
     <main className="flex-1 home-page-content">

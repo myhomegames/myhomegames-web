@@ -3,8 +3,6 @@ import { useLocation } from "react-router-dom";
 import { List } from "react-window";
 import type { GameItem, CollectionItem } from "../../types";
 import { GameDetailItem } from "./GamesListDetail";
-import "./VirtualizedGamesListDetail.css";
-
 // Helper functions for scroll restoration
 function getScrollPosition(key: string): number | null {
   try {
@@ -36,6 +34,7 @@ type VirtualizedGamesListDetailProps = {
   buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean) => string;
   allCollections?: CollectionItem[];
   platformIdForPlay?: string;
+  hideGameType?: boolean;
 };
 
 const ITEM_HEIGHT = 144; // Height of each detail item (120px content + 24px margin-bottom)
@@ -54,6 +53,7 @@ export default function VirtualizedGamesListDetail({
   buildCoverUrl,
   allCollections = [],
   platformIdForPlay,
+  hideGameType = false,
 }: VirtualizedGamesListDetailProps) {
   const location = useLocation();
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -269,13 +269,14 @@ export default function VirtualizedGamesListDetail({
           index={index}
           allCollections={allCollections}
           platformIdForPlay={platformIdForPlay}
+          hideGameType={hideGameType}
         />
       </div>
     );
   };
 
   if (dimensions.width === 0 || dimensions.height === 0) {
-    return <div style={{ width: "100%", height: "100%" }} />;
+    return <div className="virtualized-list-fill" />;
   }
 
   return (

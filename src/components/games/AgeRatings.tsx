@@ -1,7 +1,5 @@
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import "./AgeRatings.css";
-
 // Map language codes to age rating category (organization)
 // 1 = ESRB (USA/Canada), 2 = PEGI (Europe), 3 = CERO (Japan), 4 = USK (Germany), 5 = GRAC (Korea), 6 = CLASS_IND (Brazil), 7 = ACB (Australia)
 const LANGUAGE_TO_RATING_CATEGORY: Record<string, number> = {

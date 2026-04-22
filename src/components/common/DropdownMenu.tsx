@@ -1,16 +1,18 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import { getApiToken } from "../../config";
+import { useSettings } from "../../contexts/SettingsContext";
 import { useDeleteGame, useReloadGame, useUnlinkExecutable, useRemoveGameFromCollection } from "./actions";
 import Tooltip from "./Tooltip";
-import "./DropdownMenu.css";
+import type { CollectionItem } from "../../types";
+import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 
 type DropdownMenuProps = {
   onEdit?: () => void;
   onDelete?: () => void;
   onReload?: () => void;
-  onAddToCollection?: () => void;
+  onAddToCollection?: (parentId?: string) => void;
   onRemoveFromCollection?: () => void;
   onManageInstallation?: () => void;
   gameId?: string;
@@ -29,6 +31,10 @@ type DropdownMenuProps = {
   publisherId?: string;
   onRemoveFromDeveloper?: () => void;
   onRemoveFromPublisher?: () => void;
+  onRemoveFromParent?: () => void;
+  sourceCollectionLike?: CollectionItem;
+  allCollectionLikes?: CollectionItem[];
+  collectionLikeResourceType?: CollectionLikeResourceType;
   className?: string;
   horizontal?: boolean;
   onModalOpen?: () => void;
@@ -58,6 +64,10 @@ export default function DropdownMenu({
   publisherId,
   onRemoveFromDeveloper,
   onRemoveFromPublisher,
+  onRemoveFromParent,
+  sourceCollectionLike,
+  allCollectionLikes = [],
+  collectionLikeResourceType,
   className = "",
   horizontal = false,
   onModalOpen,
@@ -65,7 +75,14 @@ export default function DropdownMenu({
   toolTipDelay = 0,
 }: DropdownMenuProps) {
   const { t } = useTranslation();
+  const { twitchLoginEnabled } = useSettings();
+  /**
+   * When Twitch auth is disabled the server accepts mutations without a token,
+   * so delete/reload entries should remain available even without `getApiToken()`.
+   */
+  const hasBackendAuth = !twitchLoginEnabled || !!getApiToken();
   const [isOpen, setIsOpen] = useState(false);
+  const [isCollectionLikeSubmenuOpen, setIsCollectionLikeSubmenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
 
@@ -119,6 +136,8 @@ export default function DropdownMenu({
   const isInCover = className.includes('games-list-dropdown-menu');
   // Check if we're in the games table (virtualized or not) - use portal to escape overflow and stay on top
   const isInGamesTable = className.includes('games-table-dropdown-menu');
+  /** GOG shell: three-dots in fixed libraries strip — same escape as table/search (stacking / overflow) */
+  const isLibrariesTopMenu = className.includes('mhg-libraries-menu-dropdown');
   
   // Check if we're in search (popup or results page) to use portal so menu isn't clipped and clicks work
   const [isInSearchDropdown, setIsInSearchDropdown] = useState(false);
@@ -294,6 +313,23 @@ export default function DropdownMenu({
     }
   };
 
+  const recentCollectionLikeParents = useMemo(() => {
+    if (!sourceCollectionLike || !collectionLikeResourceType || allCollectionLikes.length === 0) return [];
+    const sourceId = String(sourceCollectionLike.id);
+    const available = allCollectionLikes.filter((candidate) => {
+      if (String(candidate.id) === sourceId) return false;
+      const childs = Array.isArray(candidate.childs) ? candidate.childs.map((id) => String(id)) : [];
+      return !childs.includes(sourceId);
+    });
+    const byId = new Map(available.map((item) => [String(item.id), item]));
+    const key = `recentCollectionLikeParents_${collectionLikeResourceType}`;
+    const recentIds = JSON.parse(localStorage.getItem(key) || "[]") as string[];
+    return recentIds
+      .map((id) => byId.get(String(id)))
+      .filter((item): item is CollectionItem => Boolean(item))
+      .slice(0, 5);
+  }, [sourceCollectionLike, collectionLikeResourceType, allCollectionLikes]);
+
   const handleOtherMenuItemMouseEnter = () => {
     // Close submenu when hovering over other menu items
     window.dispatchEvent(new CustomEvent('closeAddToCollectionDropdown', {
@@ -432,7 +468,7 @@ export default function DropdownMenu({
         const popupContent = (
           <div 
             ref={popupRef} 
-            className={`dropdown-menu-popup ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''} ${isInGamesTable ? 'dropdown-menu-popup-in-games-table' : ''}`}
+            className={`dropdown-menu-popup ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''} ${isInGamesTable ? 'dropdown-menu-popup-in-games-table' : ''} ${isLibrariesTopMenu ? 'dropdown-menu-popup-in-libraries-top' : ''}`}
             onMouseLeave={handlePopupMouseLeave}
             style={(() => {
               if (!menuRef.current) return undefined;
@@ -468,6 +504,35 @@ export default function DropdownMenu({
                   zIndex: 10002,
                 };
               }
+
+              if (isLibrariesTopMenu) {
+                const rect = menuRef.current.getBoundingClientRect();
+                const margin = 8;
+                // Match .dropdown-menu-popup min-width — right-align under the ⋮ like default absolute layout
+                const minWidth = 200;
+                const top = rect.bottom + 4;
+                const wouldClipLeft = rect.right - minWidth < margin;
+                if (!wouldClipLeft) {
+                  return {
+                    position: 'fixed',
+                    top: `${top}px`,
+                    right: `${window.innerWidth - rect.right}px`,
+                    left: 'auto',
+                    zIndex: 10008,
+                  };
+                }
+                let left = margin;
+                if (left + minWidth > window.innerWidth - margin) {
+                  left = Math.max(margin, window.innerWidth - margin - minWidth);
+                }
+                return {
+                  position: 'fixed',
+                  top: `${top}px`,
+                  left: `${left}px`,
+                  right: 'auto',
+                  zIndex: 10008,
+                };
+              }
               
               // Normal positioning (absolute) for other cases
               return undefined;
@@ -499,25 +564,104 @@ export default function DropdownMenu({
             {/* First Section: Add to Collection */}
             {onAddToCollection && (
               <>
-                <div
-                  className="dropdown-menu-item dropdown-menu-item-with-submenu"
-                  onMouseEnter={handleAddToCollectionMouseEnter}
-                  onMouseLeave={handleAddToCollectionMouseLeave}
-                >
-                  <span>{t("collections.addTo", "Add to")}</span>
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                {gameId ? (
+                  <div
+                    className="dropdown-menu-item dropdown-menu-item-with-submenu"
+                    onMouseEnter={handleAddToCollectionMouseEnter}
+                    onMouseLeave={handleAddToCollectionMouseLeave}
                   >
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                </div>
+                    <span>{t("collections.addTo", "Add to")}</span>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                  </div>
+                ) : (
+                  <div
+                    className="dropdown-menu-item dropdown-menu-item-with-submenu"
+                    onMouseEnter={() => setIsCollectionLikeSubmenuOpen(true)}
+                    onMouseLeave={(e) => {
+                      const target = e.relatedTarget as HTMLElement;
+                      if (!target || !target.closest(".dropdown-menu-collectionlike-submenu")) {
+                        setIsCollectionLikeSubmenuOpen(false);
+                      }
+                    }}
+                  >
+                    <span>{t("collections.addTo", "Add to")}</span>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                    {isCollectionLikeSubmenuOpen && (
+                      <div
+                        className="dropdown-menu-collectionlike-submenu"
+                        onMouseEnter={() => setIsCollectionLikeSubmenuOpen(true)}
+                        onMouseLeave={(e) => {
+                          const target = e.relatedTarget as HTMLElement;
+                          if (!target || !target.closest(".dropdown-menu-item-with-submenu")) {
+                            setIsCollectionLikeSubmenuOpen(false);
+                          }
+                        }}
+                      >
+                        <button
+                          className="dropdown-menu-item"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsCollectionLikeSubmenuOpen(false);
+                            setIsOpen(false);
+                            onAddToCollection?.();
+                          }}
+                        >
+                          <span>
+                            {collectionLikeResourceType === "collections"
+                              ? t("collections.addToCollection", "Add to Collection...")
+                              : collectionLikeResourceType === "developers"
+                                ? t("igdbInfo.addToDeveloper", "Add to Developer...")
+                                : t("igdbInfo.addToPublisher", "Add to Publisher...")}
+                          </span>
+                        </button>
+                        {recentCollectionLikeParents.length > 0 && (
+                          <>
+                            <div className="dropdown-menu-divider" />
+                            <div className="dropdown-menu-collectionlike-submenu-title">
+                              {t("collections.recent", "RECENT")}
+                            </div>
+                            {recentCollectionLikeParents.map((parent: CollectionItem) => (
+                              <button
+                                key={String(parent.id)}
+                                className="dropdown-menu-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setIsCollectionLikeSubmenuOpen(false);
+                                  setIsOpen(false);
+                                  onAddToCollection?.(String(parent.id));
+                                }}
+                              >
+                                <span>{parent.title}</span>
+                              </button>
+                            ))}
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </>
             )}
             
@@ -538,7 +682,17 @@ export default function DropdownMenu({
             )}
             
             {/* Divider after Additional Executables / Add to Collection / Manage Installation */}
-            {((gameId && gameExecutables && gameExecutables.length > 1) || onAddToCollection || (gameId && onManageInstallation)) && !(onRemoveFromCollection && gameId && collectionId) && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !developerId && !publisherId && !onEdit && !onDelete)) || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (getApiToken() && (gameId || collectionId || developerId || publisherId)))) && (
+            {((gameId && gameExecutables && gameExecutables.length > 1) || onAddToCollection || (gameId && onManageInstallation)) &&
+              !(
+                (onRemoveFromCollection && gameId && collectionId) ||
+                (onRemoveFromDeveloper && gameId && developerId) ||
+                (onRemoveFromPublisher && gameId && publisherId) ||
+                (onRemoveFromParent && !gameId && (collectionId || developerId || publisherId))
+              ) &&
+              (onEdit ||
+                (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !developerId && !publisherId && !onEdit && !onDelete)) ||
+                (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) ||
+                (onDelete || (hasBackendAuth && (gameId || collectionId || developerId || publisherId)))) && (
               <div 
                 className="dropdown-menu-divider"
                 onMouseEnter={handleOtherMenuItemMouseEnter}
@@ -588,7 +742,25 @@ export default function DropdownMenu({
                 <span>{t("igdbInfo.removeFromPublisher", "Remove from publisher")}</span>
               </button>
             )}
-            {((onRemoveFromCollection && gameId && collectionId) || (onRemoveFromDeveloper && gameId && developerId) || (onRemoveFromPublisher && gameId && publisherId)) && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !developerId && !publisherId && !onEdit && !onDelete)) || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (getApiToken() && (gameId || collectionId || developerId || publisherId)))) && (
+            {onRemoveFromParent && !gameId && (collectionId || developerId || publisherId) && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOpen(false);
+                  onRemoveFromParent?.();
+                }}
+                className="dropdown-menu-item dropdown-menu-item-danger"
+              >
+                <span>
+                  {collectionId
+                    ? t("collections.removeFromCollection", "Remove from collection")
+                    : developerId
+                      ? t("igdbInfo.removeFromDeveloper", "Remove from developer")
+                      : t("igdbInfo.removeFromPublisher", "Remove from publisher")}
+                </span>
+              </button>
+            )}
+            {((onRemoveFromCollection && gameId && collectionId) || (onRemoveFromDeveloper && gameId && developerId) || (onRemoveFromPublisher && gameId && publisherId) || (onRemoveFromParent && !gameId && (collectionId || developerId || publisherId))) && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !developerId && !publisherId && !onEdit && !onDelete)) || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (hasBackendAuth && (gameId || collectionId || developerId || publisherId)))) && (
               <div className="dropdown-menu-divider" />
             )}
             
@@ -628,7 +800,7 @@ export default function DropdownMenu({
                 </span>
               </button>
             )}
-            {(onDelete || (getApiToken() && (gameId || collectionId || developerId || publisherId))) && (
+            {(onDelete || (hasBackendAuth && (gameId || collectionId || developerId || publisherId))) && (
               <button
                 onClick={handleDeleteClick}
                 className="dropdown-menu-item dropdown-menu-item-danger"
@@ -640,7 +812,7 @@ export default function DropdownMenu({
         );
         
         // Use portal for search dropdown, cover, or games table (escape overflow and stay on top)
-        return (isInSearchDropdown || isInCover || isInGamesTable) ? createPortal(popupContent, document.body) : popupContent;
+        return (isInSearchDropdown || isInCover || isInGamesTable || isLibrariesTopMenu) ? createPortal(popupContent, document.body) : popupContent;
       })()}
 
       {/* Reload Confirmation Modal */}
@@ -658,7 +830,6 @@ export default function DropdownMenu({
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  style={{ marginRight: "8px", verticalAlign: "middle" }}
                 >
                   <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
                   <path d="M21 3v5h-5" />
@@ -717,7 +888,6 @@ export default function DropdownMenu({
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  style={{ marginRight: "8px", verticalAlign: "middle" }}
                 >
                   <path d="M3 6h18" />
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />

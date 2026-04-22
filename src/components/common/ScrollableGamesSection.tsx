@@ -2,11 +2,10 @@ import { useRef, useEffect, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
 import GamesList from "../games/GamesList";
 import ScrollableGamesSectionNav from "./ScrollableGamesSectionNav";
-import type { GameItem, CollectionItem } from "../../types";
+import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
+import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 import { buildCoverUrl } from "../../utils/api";
 import { useAutoTranslate } from "../../hooks/useAutoTranslate";
-import "./ScrollableGamesSection.css";
-
 // Helper per sessionStorage
 function getScrollPosition(key: string): number {
   try {
@@ -37,6 +36,15 @@ type ScrollableGamesSectionProps = {
   titleHref?: string;
   disableAutoTranslate?: boolean;
   showTitle?: boolean;
+  /** Synthetic `collectionlike:…` rows in sliders: use collection-like Cover actions */
+  allCollectionLikes?: CollectionItem[];
+  collectionLikeResourceType?: CollectionLikeResourceType;
+  sliderParentCollectionLikeId?: string;
+  onRemoveChildFromSliderParent?: (childId: string) => void | Promise<void>;
+  onCollectionLikePseudoEdit?: (game: GameItem) => void;
+  onPlayFirstInCollectionLike?: (resourceType: string, cid: string) => void | Promise<void>;
+  onCollectionLikePseudoAddToParent?: (source: CollectionItem, parentId?: string) => void | Promise<void>;
+  onCollectionLikePseudoUpdated?: (updated: CollectionInfo) => void;
 };
 
 export default function ScrollableGamesSection({
@@ -51,6 +59,14 @@ export default function ScrollableGamesSection({
   titleHref,
   disableAutoTranslate = false,
   showTitle = true,
+  allCollectionLikes,
+  collectionLikeResourceType,
+  sliderParentCollectionLikeId,
+  onRemoveChildFromSliderParent,
+  onCollectionLikePseudoEdit,
+  onPlayFirstInCollectionLike,
+  onCollectionLikePseudoAddToParent,
+  onCollectionLikePseudoUpdated,
 }: ScrollableGamesSectionProps) {
   const location = useLocation();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -60,7 +76,7 @@ export default function ScrollableGamesSection({
   const [isRestoring, setIsRestoring] = useState(true);
 
   const titleKey = `recommended.${sectionId}`;
-  // Usa traduzione automatica se non esiste nei file di localizzazione
+  // Auto-translate when the string is missing from locale files
   const autoTitle = useAutoTranslate(sectionId, titleKey, {
     disabled: disableAutoTranslate,
   });
@@ -253,6 +269,14 @@ export default function ScrollableGamesSection({
           coverSize={coverSize}
           allCollections={allCollections}
           enableVirtualization={false}
+          allCollectionLikes={allCollectionLikes}
+          collectionLikeResourceType={collectionLikeResourceType}
+          sliderParentCollectionLikeId={sliderParentCollectionLikeId}
+          onRemoveChildFromSliderParent={onRemoveChildFromSliderParent}
+          onCollectionLikePseudoEdit={onCollectionLikePseudoEdit}
+          onPlayFirstInCollectionLike={onPlayFirstInCollectionLike}
+          onCollectionLikePseudoAddToParent={onCollectionLikePseudoAddToParent}
+          onCollectionLikePseudoUpdated={onCollectionLikePseudoUpdated}
         />
       </div>
     </div>

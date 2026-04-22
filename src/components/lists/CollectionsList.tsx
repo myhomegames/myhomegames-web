@@ -1,15 +1,15 @@
 import { useState, useRef, useMemo } from "react";
+import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { API_BASE, getApiToken } from "../../config";
 import { buildApiUrl } from "../../utils/api";
 import Cover from "../games/Cover";
 import EditCollectionLikeModal, { type CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
+import AddCollectionLikeToCollectionLikeModal from "../collections/AddCollectionLikeToCollectionLikeModal";
 import { useCollectionHasPlayableGame } from "../common/hooks/useCollectionHasPlayableGame";
 import VirtualizedCollectionsList from "./VirtualizedCollectionsList";
 import type { CollectionItem, CollectionInfo, GameItem } from "../../types";
-import { isSubCollectionTitle, filterRootCollectionLikes } from "../../utils/stringUtils";
-import "./CollectionsList.css";
-
+import { filterRootCollectionLikes } from "../../utils/stringUtils";
 const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are more than this many items
 
 export type GamesPathType = "collections" | "developers" | "publishers";
@@ -22,7 +22,7 @@ type CollectionsListProps = {
   onPlay?: (game: GameItem) => void;
   onCollectionUpdate?: (updatedCollection: CollectionItem) => void;
   onCollectionDelete?: (deletedCollection: CollectionItem) => void;
-  /** Quando true, non mostrare il messaggio "nessun *** trovato" (come in Library) */
+  /** When true, suppress the “no *** found” empty state (same as Library) */
   isLoading?: boolean;
   /** When false, hide edit/delete (e.g. for developers/publishers list) */
   showEdit?: boolean;
@@ -43,6 +43,8 @@ type CollectionListItemProps = {
   onEditClick?: (collection: CollectionItem) => void;
   onCollectionDelete?: (deletedCollection: CollectionItem) => void;
   onCollectionUpdate?: (updatedCollection: CollectionItem) => void;
+  onAddToCollectionLike?: (collection: CollectionItem, parentId?: string) => void;
+  allCollectionLikes?: CollectionItem[];
   gamesPath?: GamesPathType;
   buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean) => string;
   coverSize: number;
@@ -57,6 +59,8 @@ export function CollectionListItem({
   onEditClick,
   onCollectionDelete,
   onCollectionUpdate,
+  onAddToCollectionLike,
+  allCollectionLikes = [],
   gamesPath = "collections",
   buildCoverUrl,
   coverSize,
@@ -127,8 +131,7 @@ export function CollectionListItem({
           itemRefs.current.set(String(collection.id), el);
         }
       }}
-      className="group cursor-pointer collections-list-item"
-      style={{ width: `${coverSize}px`, minWidth: `${coverSize}px` }}
+      className="group cursor-pointer collections-list-item collections-list-item--sized"
     >
       <Cover
         key={`${collection.id}-${collection.cover}`}
@@ -155,12 +158,16 @@ export function CollectionListItem({
             title: updatedCollection.title,
             summary: updatedCollection.summary,
             cover: updatedCollection.cover,
-            gameCount: collection.gameCount, // Mantieni il gameCount esistente
+            gameCount: collection.gameCount, // Keep existing gameCount
           };
           if (updatedItem.id === collection.id) {
             onCollectionUpdate(updatedItem);
           }
         } : undefined}
+        onAddToCollection={onAddToCollectionLike ? (parentId?: string) => onAddToCollectionLike(collection, parentId) : undefined}
+        sourceCollectionLike={collection}
+        allCollectionLikes={allCollectionLikes}
+        collectionLikeResourceType={gamesPath as CollectionLikeResourceType}
         showTitle={collection.showTitle !== false}
         subtitle={subtitle}
         detail={true}
@@ -189,29 +196,30 @@ export default function CollectionsList({
   const { t } = useTranslation();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedCollection, setSelectedCollection] = useState<CollectionInfo | null>(null);
+  const [linkSourceCollectionLike, setLinkSourceCollectionLike] = useState<CollectionItem | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Display count = games assigned directly + first-level sub-collections only (not grandchildren).
   const displayCountById = useMemo(() => {
     const listForCount = allItemsForCount ?? collections;
+    const byId = new Map(listForCount.map((i) => [String(i.id), i]));
     const map: Record<string, number> = {};
     for (const c of collections) {
-      const parentTitle = (c.title || "").trim();
-      const children = listForCount.filter((other) => {
-        if (String(other.id) === String(c.id)) return false;
-        const childTitle = (other.title || "").trim();
-        return isSubCollectionTitle(parentTitle, childTitle);
-      });
-      const directChildrenOnly = filterRootCollectionLikes(children);
+      const childIds = Array.isArray(c.childs) ? c.childs : [];
+      const directChildrenOnly = filterRootCollectionLikes(
+        childIds
+          .map((id) => byId.get(String(id)))
+          .filter((v): v is CollectionItem => Boolean(v))
+      );
       const subCount = directChildrenOnly.length;
       map[String(c.id)] = (c.gameCount ?? 0) + subCount;
     }
     return map;
   }, [collections, allItemsForCount]);
 
-  // Durante il caricamento non mostrare nulla (come in Library)
+  // While loading, show nothing (same as Library)
   if (isLoading && collections.length === 0) return null;
-  // Messaggio "nessun *** trovato" solo a caricamento finito
+  // “No *** found” message only after loading finishes
   if (!isLoading && collections.length === 0) {
     const emptyMessageKey =
       gamesPath === "developers"
@@ -220,15 +228,7 @@ export default function CollectionsList({
           ? "igdbInfo.noPublishersFound"
           : "collections.noCollectionsFound";
     return (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100%',
-          minHeight: '400px',
-        }}
-      >
+      <div className="collections-list-empty">
         <div className="text-gray-400 text-center">{t(emptyMessageKey)}</div>
       </div>
     );
@@ -271,6 +271,41 @@ export default function CollectionsList({
     handleEditModalClose();
   };
 
+  const addCollectionLikeToParent = async (source: CollectionItem, parentId?: string) => {
+    if (!parentId) {
+      setLinkSourceCollectionLike(source);
+      return;
+    }
+    const token = getApiToken();
+    if (!token) return;
+    try {
+      const url = buildApiUrl(
+        API_BASE,
+        `/${gamesPath}/${encodeURIComponent(String(parentId))}/childs/${encodeURIComponent(String(source.id))}`
+      );
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "X-Auth-Token": token },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const recentKey = `recentCollectionLikeParents_${gamesPath}`;
+      const current = JSON.parse(localStorage.getItem(recentKey) || "[]") as string[];
+      const next = [String(parentId), ...current.filter((id) => String(id) !== String(parentId))].slice(0, 5);
+      localStorage.setItem(recentKey, JSON.stringify(next));
+
+      if (gamesPath === "collections") {
+        window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collectionId: String(parentId) } }));
+      } else if (gamesPath === "developers") {
+        window.dispatchEvent(new CustomEvent("developerUpdated", { detail: {} }));
+      } else {
+        window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: {} }));
+      }
+    } catch (err) {
+      console.error("Error adding collection-like to parent:", err);
+    }
+  };
+
   // Use virtual scrolling for large lists
   const useVirtualization = collections.length > VIRTUALIZATION_THRESHOLD;
 
@@ -278,11 +313,8 @@ export default function CollectionsList({
     <>
       <div
         ref={containerRef}
-        className="collections-list-container"
-        style={{
-          gridTemplateColumns: useVirtualization ? undefined : `repeat(auto-fill, ${coverSize}px)`,
-          height: useVirtualization ? "100%" : undefined,
-        }}
+        className={`collections-list-container${useVirtualization ? " collections-list-container--virtualized" : ""}`}
+        style={{ ["--collections-list-cover-size" as string]: `${coverSize}px` } as CSSProperties}
       >
         {useVirtualization ? (
           <VirtualizedCollectionsList
@@ -296,6 +328,8 @@ export default function CollectionsList({
             onEditClick={showEdit ? handleEditClick : undefined}
             onCollectionDelete={onCollectionDelete}
             onCollectionUpdate={onCollectionUpdate}
+            onAddToCollectionLike={(collection, parentId) => addCollectionLikeToParent(collection, parentId)}
+            allCollectionLikes={allItemsForCount ?? collections}
             gamesPath={gamesPath}
             buildCoverUrl={buildCoverUrl}
           />
@@ -310,6 +344,8 @@ export default function CollectionsList({
               onEditClick={showEdit ? handleEditClick : undefined}
               onCollectionDelete={onCollectionDelete}
               onCollectionUpdate={onCollectionUpdate}
+              onAddToCollectionLike={(collection, parentId) => addCollectionLikeToParent(collection, parentId)}
+              allCollectionLikes={allItemsForCount ?? collections}
               gamesPath={gamesPath}
               buildCoverUrl={buildCoverUrl}
               coverSize={coverSize}
@@ -325,6 +361,16 @@ export default function CollectionsList({
           resourceType={gamesPath as CollectionLikeResourceType}
           item={selectedCollection}
           onItemUpdate={handleCollectionUpdate}
+        />
+      )}
+      {linkSourceCollectionLike && (
+        <AddCollectionLikeToCollectionLikeModal
+          isOpen={true}
+          onClose={() => setLinkSourceCollectionLike(null)}
+          sourceItem={linkSourceCollectionLike}
+          resourceType={gamesPath as CollectionLikeResourceType}
+          allItems={allItemsForCount ?? collections}
+          onLinked={() => setLinkSourceCollectionLike(null)}
         />
       )}
     </>

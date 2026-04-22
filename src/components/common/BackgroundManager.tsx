@@ -1,4 +1,14 @@
-import { useState, useEffect, useCallback, useMemo, createContext, useContext } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  createContext,
+  useContext,
+  useLayoutEffect,
+} from "react";
+import { createPortal } from "react-dom";
+import type { CSSProperties } from "react";
 
 type BackgroundContextType = {
   hasBackground: boolean;
@@ -29,6 +39,10 @@ type BackgroundManagerProps = {
 
 const STORAGE_KEY = "backgroundStates";
 
+function backgroundImageValue(url: string): string {
+  return `url(${JSON.stringify(url)})`;
+}
+
 const getBackgroundStates = (): Record<string, boolean> => {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -55,9 +69,33 @@ export default function BackgroundManager({
   elementId,
   children,
 }: BackgroundManagerProps) {
-  const [isBackgroundVisible, setIsBackgroundVisible] = useState(() => 
+  const [isBackgroundVisible, setIsBackgroundVisible] = useState(() =>
     getBackgroundState(elementId, hasBackground)
   );
+
+  const [portalHost, setPortalHost] = useState<HTMLDivElement | null>(null);
+
+  useLayoutEffect(() => {
+    const root = document.getElementById("root");
+    if (!root) return undefined;
+    /* Portal sits before #root in the DOM; skins should set #root { position: relative; z-index: 1 } so the app paints above this layer. */
+    const mount = document.createElement("div");
+    mount.setAttribute("data-mhg-background-portal", "");
+    mount.setAttribute("aria-hidden", "true");
+    mount.style.position = "fixed";
+    mount.style.inset = "0";
+    mount.style.width = "100vw";
+    mount.style.height = "100dvh";
+    mount.style.minHeight = "100vh";
+    mount.style.pointerEvents = "none";
+    mount.style.zIndex = "0";
+    document.body.insertBefore(mount, root);
+    setPortalHost(mount);
+    return () => {
+      mount.remove();
+      setPortalHost(null);
+    };
+  }, []);
 
   useEffect(() => {
     if (hasBackground) {
@@ -68,66 +106,67 @@ export default function BackgroundManager({
     }
   }, [hasBackground, backgroundUrl, elementId]);
 
-  const handleVisibilityChange = useCallback((visible: boolean) => {
-    setIsBackgroundVisible(visible);
-    saveBackgroundState(elementId, visible);
-  }, [elementId]);
+  const handleVisibilityChange = useCallback(
+    (visible: boolean) => {
+      setIsBackgroundVisible(visible);
+      saveBackgroundState(elementId, visible);
+    },
+    [elementId]
+  );
 
-  const contextValue: BackgroundContextType = useMemo(() => ({
-    hasBackground,
-    isBackgroundVisible,
-    setBackgroundVisible: handleVisibilityChange,
-  }), [hasBackground, isBackgroundVisible, handleVisibilityChange]);
+  const contextValue: BackgroundContextType = useMemo(
+    () => ({
+      hasBackground,
+      isBackgroundVisible,
+      setBackgroundVisible: handleVisibilityChange,
+    }),
+    [hasBackground, isBackgroundVisible, handleVisibilityChange]
+  );
+
+  const bgLayerStyle = {
+    backgroundColor: hasBackground && isBackgroundVisible ? "transparent" : "#1a1a1a",
+    /*
+     * Full-screen fixed layer sits after the persistent shell LibrariesBar in the DOM; with the
+     * same stacking level it would paint on top and steal all clicks (header stays usable only
+     * because it uses a higher z-index). Let events reach the shell and the foreground content.
+     */
+    pointerEvents: "none",
+  } as CSSProperties;
+
+  const showPortalPaint =
+    Boolean(portalHost) && hasBackground && isBackgroundVisible && backgroundUrl.trim() !== "";
+
+  const portalLayer =
+    showPortalPaint &&
+    createPortal(
+      <div
+        className="background-manager-portal-bg"
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          backgroundImage: backgroundImageValue(backgroundUrl),
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+      />,
+      portalHost!
+    );
 
   return (
     <BackgroundContext.Provider value={contextValue}>
+      {portalLayer}
       <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: hasBackground && isBackgroundVisible ? 'transparent' : '#1a1a1a',
-          backgroundImage: hasBackground && isBackgroundVisible ? `url(${backgroundUrl})` : undefined,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          backgroundAttachment: 'fixed',
-          zIndex: 0,
-          cursor: hasBackground && isBackgroundVisible ? 'pointer' : 'default'
-        }}
-        onClick={() => {
-          if (hasBackground && isBackgroundVisible) {
-            handleVisibilityChange(false);
-          }
-        }}
+        className={`background-manager-root${hasBackground && isBackgroundVisible ? " background-manager-root--clickable" : " background-manager-root--solid"}`}
+        style={bgLayerStyle}
       >
-        {hasBackground && isBackgroundVisible && (
-          <>
-            <div
-              style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'rgba(26, 26, 26, 0.85)',
-                zIndex: 1
-              }}
-            />
-            <img
-              src={backgroundUrl}
-              alt=""
-              style={{ display: 'none' }}
-            />
-          </>
-        )}
+        {hasBackground && isBackgroundVisible && <div className="background-manager-overlay" />}
       </div>
-      <div style={{ position: 'relative', zIndex: 2 }}>
+      <div className="background-manager-foreground">
         {children}
       </div>
     </BackgroundContext.Provider>
   );
 }
-
