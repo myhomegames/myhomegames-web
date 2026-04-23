@@ -1612,7 +1612,7 @@ function LibraryItemDetailContent({
           showNewGames={showNewGames}
           onShowNewGamesChange={onShowNewGamesChange ?? (() => {})}
           showNewGamesLabel={showNewGamesLabel}
-          showMainGamesToggle={(viewMode === "grid" || viewMode === "detail") && sortedGames.length > 0}
+          showMainGamesToggle={viewMode === "grid" && sortedGames.length > 0}
           mainGamesOnly={mainGamesOnly}
           onMainGamesOnlyChange={onMainGamesOnlyChange}
         />

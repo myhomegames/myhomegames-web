@@ -364,7 +364,7 @@ export default function TagGamesPage({
         showNewGames={showNewGames}
         onShowNewGamesChange={setShowNewGames}
         showNewGamesLabel={canShowNewGamesToggle ? t("tagGames.showNewGames") : undefined}
-        showMainGamesToggle={viewMode === "grid" || viewMode === "detail"}
+        showMainGamesToggle={viewMode === "grid"}
         mainGamesOnly={hook.mainGamesOnly}
         onMainGamesOnlyChange={hook.setMainGamesOnly}
       />

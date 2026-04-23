@@ -201,7 +201,7 @@ export default function HomePageClassic({
         viewMode={viewMode}
         onViewModeChange={handleViewModeChange}
         onReloadMetadata={onReloadMetadata}
-        showMainGamesToggle={activeLibrary?.key === "library" && (viewMode === "grid" || viewMode === "detail")}
+        showMainGamesToggle={activeLibrary?.key === "library" && viewMode === "grid"}
         mainGamesOnly={mainGamesOnly}
         onMainGamesOnlyChange={setMainGamesOnly}
         collectionShortcuts={
