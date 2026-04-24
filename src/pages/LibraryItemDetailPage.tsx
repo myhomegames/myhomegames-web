@@ -1194,6 +1194,67 @@ function LibraryItemDetailContent({
     () => subCollectionLikes.filter((c) => titleMatchesFilter(c.title, titleFilterQuery)),
     [subCollectionLikes, titleFilterQuery]
   );
+  const singleSubTitleFilterActive = titleFilterQuery.trim().length > 0;
+  const singleSubCollectionId =
+    subCollectionLikes.length === 1 ? String(subCollectionLikes[0].id) : null;
+  const singleSubCollectionDragEnabled =
+    resourceType === "collections" && !mainGamesOnly && !singleSubTitleFilterActive && !!singleSubCollectionId;
+
+  const handleSingleSubCollectionGameUpdate = (updatedGame: GameItem) => {
+    setSingleSubCollectionGames((prev) =>
+      prev.map((g) => (String(g.id) === String(updatedGame.id) ? updatedGame : g))
+    );
+    window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
+  };
+
+  const handleSingleSubCollectionGameDelete = (deletedGame: GameItem) => {
+    setSingleSubCollectionGames((prev) =>
+      prev.filter((g) => String(g.id) !== String(deletedGame.id))
+    );
+  };
+
+  const handleSingleSubCollectionRemoveFromCollection = (gameId: string) => {
+    setSingleSubCollectionGames((prev) => prev.filter((g) => String(g.id) !== String(gameId)));
+  };
+
+  const handleSingleSubCollectionDragEnd = async (
+    sourceIndex: number,
+    destinationIndex: number
+  ) => {
+    if (sourceIndex === destinationIndex || !singleSubCollectionId) return;
+    const newGames = [...singleSubCollectionGames];
+    const [removed] = newGames.splice(sourceIndex, 1);
+    newGames.splice(destinationIndex, 0, removed);
+    setSingleSubCollectionGames(newGames);
+    try {
+      const url = buildApiUrl(
+        API_BASE,
+        `/collections/${encodeURIComponent(singleSubCollectionId)}/games/order`
+      );
+      const res = await fetch(url, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "X-Auth-Token": getApiToken() },
+        body: JSON.stringify({ gameIds: newGames.map((g) => g.id) }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    } catch {
+      try {
+        const url = buildApiUrl(
+          API_BASE,
+          `/collections/${encodeURIComponent(singleSubCollectionId)}/games`
+        );
+        const res = await fetch(url, {
+          headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
+        });
+        if (res.ok) {
+          const json = await res.json();
+          setSingleSubCollectionGames(parseGamesFromJson(json));
+        }
+      } catch {
+        // ignore
+      }
+    }
+  };
 
   const parentCollectionLikesWithGamesForDisplay = useMemo(
     // Title filter must affect only the current collection-like scope (its children and games),
@@ -1829,14 +1890,21 @@ function LibraryItemDetailContent({
                                   }
                                 }}
                                 onPlay={onPlay}
-                                onGameUpdate={onGameUpdate}
-                                onGameDelete={onGameDelete}
+                                onGameUpdate={handleSingleSubCollectionGameUpdate}
+                                onGameDelete={handleSingleSubCollectionGameDelete}
                                 buildCoverUrl={buildCoverUrl}
                                 coverCacheBustTimestamp={listLoadTimestamp}
                                 coverSize={coverSize}
                                 itemRefs={itemRefs}
-                                draggable={false}
+                                draggable={singleSubCollectionDragEnabled}
+                                onDragEnd={
+                                  singleSubCollectionDragEnabled
+                                    ? handleSingleSubCollectionDragEnd
+                                    : undefined
+                                }
                                 allCollections={isCollection ? allCollections : undefined}
+                                collectionId={singleSubCollectionId ?? undefined}
+                                onRemoveFromCollection={handleSingleSubCollectionRemoveFromCollection}
                               />
                             </div>
                           ) : (
