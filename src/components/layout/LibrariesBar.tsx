@@ -57,6 +57,8 @@ type LibrariesBarProps = {
   sidebarSearchPublishers?: CollectionItem[];
   onSidebarSearchGameSelect?: (game: GameItem) => void;
   onSidebarSearchPlay?: (game: GameItem) => void;
+  /** Optional controls rendered in the icon cluster before MainGamesToggle. */
+  rightActionsBeforeMainGames?: ReactNode;
   /** Optional extra controls rendered in the right actions area. */
   rightActions?: ReactNode;
 };
@@ -89,6 +91,7 @@ export default function LibrariesBar({
   sidebarSearchPublishers = [],
   onSidebarSearchGameSelect,
   onSidebarSearchPlay,
+  rightActionsBeforeMainGames,
   rightActions,
 }: LibrariesBarProps) {
   const { t } = useTranslation();
@@ -799,6 +802,11 @@ export default function LibrariesBar({
                   />
                 </div>
               )}
+              {rightActionsBeforeMainGames ? (
+                <div className="mhg-libraries-actions-before-main-games">
+                  {rightActionsBeforeMainGames}
+                </div>
+              ) : null}
               {showMainGamesToggle && onMainGamesOnlyChange && (
                 <div className="mhg-libraries-actions-main-games-container">
                   <MainGamesToggle

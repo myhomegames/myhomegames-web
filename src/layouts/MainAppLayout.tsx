@@ -29,6 +29,7 @@ export type MainAppOutletContext = {
   viewMode: ViewMode;
   mainGamesOnly: boolean;
   setMainGamesOnly: Dispatch<SetStateAction<boolean>>;
+  setTopBarBeforeMainGamesActions: Dispatch<SetStateAction<ReactNode | null>>;
   setTopBarRightActions: Dispatch<SetStateAction<ReactNode | null>>;
 };
 
@@ -62,6 +63,9 @@ export default function MainAppLayout({
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { activeSkinWeb } = useSkin();
+  const [topBarBeforeMainGamesActions, setTopBarBeforeMainGamesActions] = useState<ReactNode | null>(
+    null
+  );
   const [topBarRightActions, setTopBarRightActions] = useState<ReactNode | null>(null);
   const {
     libraries,
@@ -109,6 +113,7 @@ export default function MainAppLayout({
       viewMode,
       mainGamesOnly,
       setMainGamesOnly,
+      setTopBarBeforeMainGamesActions,
       setTopBarRightActions,
     }),
     [
@@ -121,6 +126,7 @@ export default function MainAppLayout({
       coverSize,
       viewMode,
       mainGamesOnly,
+      setTopBarBeforeMainGamesActions,
       setTopBarRightActions,
     ]
   );
@@ -155,6 +161,7 @@ export default function MainAppLayout({
         }
         mainGamesOnly={mainGamesOnly}
         onMainGamesOnlyChange={setMainGamesOnly}
+        rightActionsBeforeMainGames={topBarBeforeMainGamesActions}
         rightActions={topBarRightActions}
         collectionShortcuts={
           showCollectionShortcuts

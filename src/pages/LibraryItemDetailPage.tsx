@@ -25,6 +25,7 @@ import AddCollectionLikeToCollectionLikeModal from "../components/collections/Ad
 import DropdownMenu from "../components/common/DropdownMenu";
 import Tooltip from "../components/common/Tooltip";
 import BackgroundManager, { useBackground } from "../components/common/BackgroundManager";
+import BackgroundToggle from "../components/ui/BackgroundToggle";
 import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
 import { compareTitles } from "../utils/stringUtils";
 import { titleMatchesFilter } from "../utils/titleFilter";
@@ -1009,6 +1010,7 @@ export default function LibraryItemDetailPage({
         onMainGamesOnlyChange={setMainGamesOnly}
         collectionDragEnabled={resourceType === "collections" && !mainGamesOnly && !titleFilterActive}
         onAfterDeleteSelfNavigate={goBackOrHome}
+        setTopBarBeforeMainGamesActions={outletContext?.setTopBarBeforeMainGamesActions}
         setTopBarRightActions={outletContext?.setTopBarRightActions}
       />
     </BackgroundManager>
@@ -1070,6 +1072,7 @@ type LibraryItemDetailContentProps = {
   collectionDragEnabled: boolean;
   /** After deleting this collection/developer/publisher from the menu, leave the page (back or home). */
   onAfterDeleteSelfNavigate: () => void;
+  setTopBarBeforeMainGamesActions?: (value: ReactNode | null) => void;
   setTopBarRightActions?: (value: ReactNode | null) => void;
 };
 
@@ -1126,9 +1129,10 @@ function LibraryItemDetailContent({
   onMainGamesOnlyChange,
   collectionDragEnabled,
   onAfterDeleteSelfNavigate,
+  setTopBarBeforeMainGamesActions,
   setTopBarRightActions,
 }: LibraryItemDetailContentProps) {
-  const { hasBackground, isBackgroundVisible } = useBackground();
+  const { hasBackground, isBackgroundVisible, setBackgroundVisible } = useBackground();
   const { isLoading } = useLoading();
   const { activeSkinWeb } = useSkin();
   /*
@@ -1153,31 +1157,56 @@ function LibraryItemDetailContent({
   const isCollection = resourceType === "collections";
   const showDeleteInMenu = resourceType === "developers" || resourceType === "publishers";
   const showCompactTopActions = compactDetail && !!item && (isCollection || showDeleteInMenu);
-  const compactTopActions = showCompactTopActions ? (
-    <>
-      <Tooltip text={t("common.edit")} delay={200}>
-        <button
-          onClick={onEditModalOpen}
-          className="library-item-detail-edit-button library-item-detail-compact-top-action"
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-          </svg>
-        </button>
-      </Tooltip>
-      <DropdownMenu
-        collectionId={isCollection ? item.id : undefined}
-        collectionTitle={item.title}
-        developerId={resourceType === "developers" ? item.id : undefined}
-        publisherId={resourceType === "publishers" ? item.id : undefined}
-        onCollectionDelete={(deletedId: string) => {
-          if (item.id === deletedId) onAfterDeleteSelfNavigate();
-        }}
-        onCollectionUpdate={onItemUpdate}
-        onAddToCollection={(parentId) =>
-          addChildToParent(
-            {
+  const compactBackgroundAction = useMemo(
+    () =>
+      compactDetail && isCollection && hasBackground ? (
+        <Tooltip text={isBackgroundVisible ? t("common.hideBackground") : t("common.showBackground")} delay={200}>
+          <div className="library-item-detail-compact-top-action">
+            <BackgroundToggle isVisible={isBackgroundVisible} onChange={setBackgroundVisible} />
+          </div>
+        </Tooltip>
+      ) : null,
+    [compactDetail, isCollection, hasBackground, isBackgroundVisible, setBackgroundVisible, t]
+  );
+  const compactTopActions = useMemo(
+    () =>
+      showCompactTopActions ? (
+        <>
+          <Tooltip text={t("common.edit")} delay={200}>
+            <button
+              onClick={onEditModalOpen}
+              className="library-item-detail-edit-button library-item-detail-compact-top-action"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </button>
+          </Tooltip>
+          <DropdownMenu
+            collectionId={isCollection ? item.id : undefined}
+            collectionTitle={item.title}
+            developerId={resourceType === "developers" ? item.id : undefined}
+            publisherId={resourceType === "publishers" ? item.id : undefined}
+            onCollectionDelete={(deletedId: string) => {
+              if (item.id === deletedId) onAfterDeleteSelfNavigate();
+            }}
+            onCollectionUpdate={onItemUpdate}
+            onAddToCollection={(parentId) =>
+              addChildToParent(
+                {
+                  id: item.id,
+                  title: item.title,
+                  summary: item.summary,
+                  cover: item.cover,
+                  background: item.background,
+                  showTitle: item.showTitle,
+                  childs: item.childs || [],
+                },
+                parentId
+              )
+            }
+            sourceCollectionLike={{
               id: item.id,
               title: item.title,
               summary: item.summary,
@@ -1185,34 +1214,42 @@ function LibraryItemDetailContent({
               background: item.background,
               showTitle: item.showTitle,
               childs: item.childs || [],
-            },
-            parentId
-          )
-        }
-        sourceCollectionLike={{
-          id: item.id,
-          title: item.title,
-          summary: item.summary,
-          cover: item.cover,
-          background: item.background,
-          showTitle: item.showTitle,
-          childs: item.childs || [],
-        }}
-        allCollectionLikes={allCollectionLikes}
-        collectionLikeResourceType={resourceType}
-        onDelete={showDeleteInMenu ? onDeleteClick : undefined}
-        horizontal={true}
-        className="library-item-detail-dropdown-menu library-item-detail-compact-top-action"
-        toolTipDelay={200}
-      />
-    </>
-  ) : null;
+            }}
+            allCollectionLikes={allCollectionLikes}
+            collectionLikeResourceType={resourceType}
+            onDelete={showDeleteInMenu ? onDeleteClick : undefined}
+            horizontal={true}
+            className="library-item-detail-dropdown-menu library-item-detail-compact-top-action"
+            toolTipDelay={200}
+          />
+        </>
+      ) : null,
+    [
+      showCompactTopActions,
+      t,
+      onEditModalOpen,
+      isCollection,
+      item,
+      resourceType,
+      onAfterDeleteSelfNavigate,
+      onItemUpdate,
+      addChildToParent,
+      allCollectionLikes,
+      showDeleteInMenu,
+      onDeleteClick,
+    ]
+  );
 
   useEffect(() => {
     if (!setTopBarRightActions) return;
     setTopBarRightActions(compactTopActions);
     return () => setTopBarRightActions(null);
   }, [setTopBarRightActions, compactTopActions]);
+  useEffect(() => {
+    if (!setTopBarBeforeMainGamesActions) return;
+    setTopBarBeforeMainGamesActions(compactBackgroundAction);
+    return () => setTopBarBeforeMainGamesActions(null);
+  }, [setTopBarBeforeMainGamesActions, compactBackgroundAction]);
   const [editingChild, setEditingChild] = useState<CollectionInfo | null>(null);
   const [isEditChildModalOpen, setIsEditChildModalOpen] = useState(false);
   const [linkSourceCollectionLike, setLinkSourceCollectionLike] = useState<CollectionItem | null>(null);
@@ -1684,7 +1721,7 @@ function LibraryItemDetailContent({
     }
   };
 
-  const addChildToParent = async (source: CollectionItem, parentId?: string) => {
+  async function addChildToParent(source: CollectionItem, parentId?: string) {
     if (!parentId) {
       setLinkSourceCollectionLike(source);
       return;
@@ -1717,7 +1754,7 @@ function LibraryItemDetailContent({
     } catch (err) {
       console.error("Error adding child to parent:", err);
     }
-  };
+  }
 
   return (
     <>
