@@ -1,4 +1,5 @@
 import { useState, useLayoutEffect, useRef, useMemo, useEffect } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useLoading } from "../../contexts/LoadingContext";
 import CoverSizeSlider from "../ui/CoverSizeSlider";
@@ -56,6 +57,8 @@ type LibrariesBarProps = {
   sidebarSearchPublishers?: CollectionItem[];
   onSidebarSearchGameSelect?: (game: GameItem) => void;
   onSidebarSearchPlay?: (game: GameItem) => void;
+  /** Optional extra controls rendered in the right actions area. */
+  rightActions?: ReactNode;
 };
 
 export default function LibrariesBar({
@@ -86,6 +89,7 @@ export default function LibrariesBar({
   sidebarSearchPublishers = [],
   onSidebarSearchGameSelect,
   onSidebarSearchPlay,
+  rightActions,
 }: LibrariesBarProps) {
   const { t } = useTranslation();
   const { activeSkinWeb } = useSkin();
@@ -823,6 +827,9 @@ export default function LibrariesBar({
               />
             </div>
           )}
+          {rightActions ? (
+            <div className="mhg-libraries-actions-right-extra">{rightActions}</div>
+          ) : null}
         </div>
       </div>
       {showSidebarSearchPopup && (

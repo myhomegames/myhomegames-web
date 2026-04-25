@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useLayoutEffect } from "react";
+import type { ReactNode } from "react";
 import { useParams, useNavigate, useLocation, useOutletContext } from "react-router-dom";
 import type { MainAppOutletContext } from "../layouts/MainAppLayout";
 import { useTranslation } from "react-i18next";
@@ -1008,6 +1009,7 @@ export default function LibraryItemDetailPage({
         onMainGamesOnlyChange={setMainGamesOnly}
         collectionDragEnabled={resourceType === "collections" && !mainGamesOnly && !titleFilterActive}
         onAfterDeleteSelfNavigate={goBackOrHome}
+        setTopBarRightActions={outletContext?.setTopBarRightActions}
       />
     </BackgroundManager>
   );
@@ -1068,6 +1070,7 @@ type LibraryItemDetailContentProps = {
   collectionDragEnabled: boolean;
   /** After deleting this collection/developer/publisher from the menu, leave the page (back or home). */
   onAfterDeleteSelfNavigate: () => void;
+  setTopBarRightActions?: (value: ReactNode | null) => void;
 };
 
 function LibraryItemDetailContent({
@@ -1123,6 +1126,7 @@ function LibraryItemDetailContent({
   onMainGamesOnlyChange,
   collectionDragEnabled,
   onAfterDeleteSelfNavigate,
+  setTopBarRightActions,
 }: LibraryItemDetailContentProps) {
   const { hasBackground, isBackgroundVisible } = useBackground();
   const { isLoading } = useLoading();
@@ -1148,6 +1152,64 @@ function LibraryItemDetailContent({
 
   const isCollection = resourceType === "collections";
   const showDeleteInMenu = resourceType === "developers" || resourceType === "publishers";
+  const showCompactTopActions = compactDetail && !!item && (isCollection || showDeleteInMenu);
+  const compactTopActions = showCompactTopActions ? (
+    <>
+      <Tooltip text={t("common.edit")} delay={200}>
+        <button onClick={onEditModalOpen} className="library-item-detail-edit-button">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+        </button>
+      </Tooltip>
+      <DropdownMenu
+        collectionId={isCollection ? item.id : undefined}
+        collectionTitle={item.title}
+        developerId={resourceType === "developers" ? item.id : undefined}
+        publisherId={resourceType === "publishers" ? item.id : undefined}
+        onCollectionDelete={(deletedId: string) => {
+          if (item.id === deletedId) onAfterDeleteSelfNavigate();
+        }}
+        onCollectionUpdate={onItemUpdate}
+        onAddToCollection={(parentId) =>
+          addChildToParent(
+            {
+              id: item.id,
+              title: item.title,
+              summary: item.summary,
+              cover: item.cover,
+              background: item.background,
+              showTitle: item.showTitle,
+              childs: item.childs || [],
+            },
+            parentId
+          )
+        }
+        sourceCollectionLike={{
+          id: item.id,
+          title: item.title,
+          summary: item.summary,
+          cover: item.cover,
+          background: item.background,
+          showTitle: item.showTitle,
+          childs: item.childs || [],
+        }}
+        allCollectionLikes={allCollectionLikes}
+        collectionLikeResourceType={resourceType}
+        onDelete={showDeleteInMenu ? onDeleteClick : undefined}
+        horizontal={true}
+        className="library-item-detail-dropdown-menu"
+        toolTipDelay={200}
+      />
+    </>
+  ) : null;
+
+  useEffect(() => {
+    if (!setTopBarRightActions) return;
+    setTopBarRightActions(compactTopActions);
+    return () => setTopBarRightActions(null);
+  }, [setTopBarRightActions, compactTopActions]);
   const [editingChild, setEditingChild] = useState<CollectionInfo | null>(null);
   const [isEditChildModalOpen, setIsEditChildModalOpen] = useState(false);
   const [linkSourceCollectionLike, setLinkSourceCollectionLike] = useState<CollectionItem | null>(null);
@@ -1676,6 +1738,7 @@ function LibraryItemDetailContent({
           showMainGamesToggle={viewMode === "grid" && sortedGames.length > 0}
           mainGamesOnly={mainGamesOnly}
           onMainGamesOnlyChange={onMainGamesOnlyChange}
+        rightActions={compactTopActions}
         />
       </div>
       <div className="library-item-detail-page-shell">
@@ -1845,6 +1908,54 @@ function LibraryItemDetailContent({
                             </div>
                           )}
                           {item?.summary && <Summary summary={item.summary} maxLines={summaryMaxLines} />}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {item && compactDetail && (
+                    <EditCollectionLikeModal
+                      isOpen={isEditModalOpen}
+                      onClose={onEditModalClose}
+                      resourceType={resourceType}
+                      item={item}
+                      onItemUpdate={onItemUpdate}
+                    />
+                  )}
+                  {showDeleteModal && item && compactDetail && (
+                    <div
+                      className="dropdown-menu-confirm-overlay"
+                      onClick={() => onCloseDeleteModal?.()}
+                    >
+                      <div className="dropdown-menu-confirm-container" onClick={(e) => e.stopPropagation()}>
+                        <div className="dropdown-menu-confirm-header">
+                          <h2>{t("common.deleteTitle", "Delete")}</h2>
+                          <button
+                            className="dropdown-menu-confirm-close"
+                            onClick={onCloseDeleteModal}
+                            aria-label="Close"
+                          >
+                            ×
+                          </button>
+                        </div>
+                        <div className="dropdown-menu-confirm-content">
+                          <p>{t("common.confirmDelete", { title: item.title })}</p>
+                          {deleteError && <div className="dropdown-menu-confirm-error">{deleteError}</div>}
+                        </div>
+                        <div className="dropdown-menu-confirm-footer">
+                          <button
+                            className="dropdown-menu-confirm-cancel"
+                            onClick={onCloseDeleteModal}
+                            disabled={isDeleting}
+                          >
+                            {t("common.cancel", "Cancel")}
+                          </button>
+                          <button
+                            className="dropdown-menu-confirm-delete"
+                            onClick={onConfirmDelete}
+                            disabled={isDeleting}
+                          >
+                            {isDeleting ? t("common.deleting", "Deleting...") : t("common.delete", "Delete")}
+                          </button>
                         </div>
                       </div>
                     </div>
