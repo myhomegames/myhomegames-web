@@ -26,6 +26,7 @@ import DropdownMenu from "../components/common/DropdownMenu";
 import Tooltip from "../components/common/Tooltip";
 import BackgroundManager, { useBackground } from "../components/common/BackgroundManager";
 import BackgroundToggle from "../components/ui/BackgroundToggle";
+import NewGamesToggle from "../components/ui/NewGamesToggle";
 import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
 import { compareTitles } from "../utils/stringUtils";
 import { titleMatchesFilter } from "../utils/titleFilter";
@@ -1170,6 +1171,34 @@ function LibraryItemDetailContent({
       ) : null,
     [showTopBarBackgroundAction, isBackgroundVisible, setBackgroundVisible, t]
   );
+  const showTopBarNewGamesAction =
+    activeSkinWeb.persistentLibraryShell && showNewGamesToggle && viewMode === "grid";
+  const beforeMainGamesTopActions = useMemo(
+    () => {
+      const hasBg = Boolean(compactBackgroundAction);
+      const hasNew = Boolean(showTopBarNewGamesAction && onShowNewGamesChange);
+      if (!hasBg && !hasNew) return null;
+      return (
+        <>
+          {compactBackgroundAction}
+          {hasNew ? (
+            <div className="library-item-detail-compact-top-action">
+              <NewGamesToggle
+                showNewGames={showNewGames}
+                onChange={onShowNewGamesChange!}
+              />
+            </div>
+          ) : null}
+        </>
+      );
+    },
+    [
+      compactBackgroundAction,
+      showTopBarNewGamesAction,
+      onShowNewGamesChange,
+      showNewGames,
+    ]
+  );
   const compactTopActions = useMemo(
     () =>
       showCompactTopActions ? (
@@ -1249,9 +1278,9 @@ function LibraryItemDetailContent({
   }, [setTopBarRightActions, compactTopActions]);
   useEffect(() => {
     if (!setTopBarBeforeMainGamesActions) return;
-    setTopBarBeforeMainGamesActions(compactBackgroundAction);
+    setTopBarBeforeMainGamesActions(beforeMainGamesTopActions);
     return () => setTopBarBeforeMainGamesActions(null);
-  }, [setTopBarBeforeMainGamesActions, compactBackgroundAction]);
+  }, [setTopBarBeforeMainGamesActions, beforeMainGamesTopActions]);
   const [editingChild, setEditingChild] = useState<CollectionInfo | null>(null);
   const [isEditChildModalOpen, setIsEditChildModalOpen] = useState(false);
   const [linkSourceCollectionLike, setLinkSourceCollectionLike] = useState<CollectionItem | null>(null);
