@@ -1,6 +1,8 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useOutletContext } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import type { ReactNode } from "react";
 import Cover from "./Cover";
 import StarRating from "../common/StarRating";
 import Summary from "../common/Summary";
@@ -15,6 +17,7 @@ import AddToCollectionDropdown from "./AddToCollectionDropdown";
 import AdditionalExecutablesDropdown from "./AdditionalExecutablesDropdown";
 import Tooltip from "../common/Tooltip";
 import BackgroundManager, { useBackground } from "../common/BackgroundManager";
+import BackgroundToggle from "../ui/BackgroundToggle";
 import LibrariesBar from "../layout/LibrariesBar";
 import { useEditGame } from "../common/actions";
 import type { GameItem, CollectionItem, CollectionInfo } from "../../types";
@@ -23,9 +26,11 @@ import { displayGameType, toGameTypeId } from "../../utils/igdbGameType";
 import { buildApiUrl, buildBackgroundUrl } from "../../utils/api";
 import { API_BASE, getApiToken } from "../../config";
 import { useSettings } from "../../contexts/SettingsContext";
+import { useSkin } from "../../contexts/SkinContext";
 import { useCollections } from "../../contexts/CollectionsContext";
 import { useTagLists } from "../../contexts/TagListsContext";
 import { useLibraryGames } from "../../contexts/LibraryGamesContext";
+import type { MainAppOutletContext } from "../../layouts/MainAppLayout";
 import { useSimilarGamesDetails } from "../../hooks/useSimilarGamesDetails";
 import SimilarGamesList, { type SimilarGameDisplayItem } from "./SimilarGamesList";
 import ScrollableGamesSection from "../common/ScrollableGamesSection";
@@ -222,13 +227,15 @@ function GameDetailContent({
   i18n: { language: string };
 }) {
   const navigate = useNavigate();
+  const outletContext = useOutletContext<MainAppOutletContext | null>();
   const { twitchLoginEnabled } = useSettings();
+  const { activeSkinWeb } = useSkin();
   const { tagLabels, tagLabelsReady } = useTagLists();
   const categoriesList = useMemo(
     () => Array.from(tagLabels.categories.entries()).map(([id, title]) => ({ id, title })),
     [tagLabels.categories]
   );
-  const { hasBackground, isBackgroundVisible } = useBackground();
+  const { hasBackground, isBackgroundVisible, setBackgroundVisible } = useBackground();
   const { getCollectionGameIds } = useCollections();
   const { games: libraryGames, updateGame } = useLibraryGames();
   const [collectionsWithSlideItems, setCollectionsWithSlideItems] = useState<
@@ -237,6 +244,21 @@ function GameDetailContent({
   const [editingCollectionLike, setEditingCollectionLike] = useState<CollectionInfo | null>(null);
   const [isEditCollectionLikeModalOpen, setIsEditCollectionLikeModalOpen] = useState(false);
   const [linkSourceCollectionLike, setLinkSourceCollectionLike] = useState<CollectionItem | null>(null);
+  const topBarBackgroundAction: ReactNode = useMemo(() => {
+    if (!activeSkinWeb.persistentLibraryShell || !hasBackground) return null;
+    return (
+      <Tooltip text={isBackgroundVisible ? t("common.hideBackground") : t("common.showBackground")} delay={200}>
+        <div className="library-item-detail-compact-top-action">
+          <BackgroundToggle isVisible={isBackgroundVisible} onChange={setBackgroundVisible} />
+        </div>
+      </Tooltip>
+    );
+  }, [activeSkinWeb.persistentLibraryShell, hasBackground, isBackgroundVisible, setBackgroundVisible, t]);
+
+  useEffect(() => {
+    outletContext?.setTopBarBeforeMainGamesActions(topBarBackgroundAction);
+    return () => outletContext?.setTopBarBeforeMainGamesActions(null);
+  }, [outletContext, topBarBackgroundAction]);
   
   // Helper function to format rating value (0-10 float)
   const formatRating = (value: number | null | undefined): string | null => {
@@ -502,6 +524,7 @@ function GameDetailContent({
           error={null}
           coverSize={coverSize}
           onCoverSizeChange={handleCoverSizeChange}
+          hideBackgroundToggle={activeSkinWeb.persistentLibraryShell}
           viewMode="grid"
           onViewModeChange={() => {}}
         />

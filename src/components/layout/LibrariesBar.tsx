@@ -441,6 +441,7 @@ export default function LibrariesBar({
 
   const showIconCluster =
     (hasBackground && !hideBackgroundToggle) ||
+    !!rightActionsBeforeMainGames ||
     (showNewGamesToggle && !!onShowNewGamesChange) ||
     (showMainGamesToggle && !!onMainGamesOnlyChange);
 
