@@ -1157,16 +1157,18 @@ function LibraryItemDetailContent({
   const isCollection = resourceType === "collections";
   const showDeleteInMenu = resourceType === "developers" || resourceType === "publishers";
   const showCompactTopActions = compactDetail && !!item && (isCollection || showDeleteInMenu);
+  const showTopBarBackgroundAction =
+    isCollection && hasBackground && (compactDetail || activeSkinWeb.persistentLibraryShell);
   const compactBackgroundAction = useMemo(
     () =>
-      compactDetail && isCollection && hasBackground ? (
+      showTopBarBackgroundAction ? (
         <Tooltip text={isBackgroundVisible ? t("common.hideBackground") : t("common.showBackground")} delay={200}>
           <div className="library-item-detail-compact-top-action">
             <BackgroundToggle isVisible={isBackgroundVisible} onChange={setBackgroundVisible} />
           </div>
         </Tooltip>
       ) : null,
-    [compactDetail, isCollection, hasBackground, isBackgroundVisible, setBackgroundVisible, t]
+    [showTopBarBackgroundAction, isBackgroundVisible, setBackgroundVisible, t]
   );
   const compactTopActions = useMemo(
     () =>
