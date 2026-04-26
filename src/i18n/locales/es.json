@@ -82,6 +82,7 @@
         "collectionsShortcutList": "Accesos directos de colecciones en la barra lateral",
         "libraryPagesVerticalList": "Pestañas de biblioteca como lista vertical",
         "libraryHoverSelect": "Cambiar secciones de biblioteca al pasar el mouse (sin clic)",
+        "libraryBarHeaderActions": "Mover los iconos de perfil/configuración a la barra de bibliotecas",
         "headerTitleFilter": "Filtro por título en la cabecera (en lugar de la búsqueda global)",
         "disableAlphabetNavigator": "Ocultar el navegador A–Z lateral",
         "sidebarSearchPopup": "Ventana de búsqueda en la barra lateral",

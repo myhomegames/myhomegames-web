@@ -1,5 +1,6 @@
 import { useState, useLayoutEffect, useRef, useMemo, useEffect } from "react";
 import type { ReactNode } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useLoading } from "../../contexts/LoadingContext";
 import CoverSizeSlider from "../ui/CoverSizeSlider";
@@ -95,6 +96,8 @@ export default function LibrariesBar({
   rightActions,
 }: LibrariesBarProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { activeSkinWeb } = useSkin();
   const { games: libraryGamesAll } = useLibraryGames();
   const libraryGamesCount = libraryGamesAll.length;
@@ -472,6 +475,9 @@ export default function LibrariesBar({
   /** Top-strip layout only; full sidebars (e.g. GOG) ship column layout in skin CSS. */
   const verticalPageTabsLayout =
     activeSkinWeb.libraryPagesVerticalList && !activeSkinWeb.persistentLibraryShell;
+  const showHeaderActionsInLibrariesBar = activeSkinWeb.libraryBarHeaderActions;
+  const isSettingsRoute = pathname === "/settings";
+  const isProfileRoute = pathname === "/profile";
 
   return (
     <div
@@ -481,9 +487,14 @@ export default function LibrariesBar({
       ]
         .filter(Boolean)
         .join(" ")}
-      {...(activeSkinWeb.libraryPagesVerticalList
-        ? { "data-mhg-library-pages-vertical-list": "true" }
-        : {})}
+      {...{
+        ...(activeSkinWeb.libraryPagesVerticalList
+          ? { "data-mhg-library-pages-vertical-list": "true" }
+          : {}),
+        ...(showHeaderActionsInLibrariesBar
+          ? { "data-mhg-library-bar-header-actions": "true" }
+          : {}),
+      }}
     >
       <div className="mhg-libraries-bar-container" ref={containerRef}>
         {/* Menu dropdown bottom-left */}
@@ -644,6 +655,34 @@ export default function LibrariesBar({
                       </span>
                     </button>
                   ))
+                )}
+                {showHeaderActionsInLibrariesBar && (
+                  <button
+                    type="button"
+                    data-mhg-library-key="mhg-header-settings"
+                    className={`mhg-library-button flex min-w-0 items-center gap-2 text-left ${
+                      isSettingsRoute ? "mhg-library-active" : ""
+                    }`}
+                    onClick={() => navigate("/settings")}
+                  >
+                    <span className="mhg-library-button-label min-w-0 flex-1 truncate">
+                      {t("header.settings")}
+                    </span>
+                  </button>
+                )}
+                {showHeaderActionsInLibrariesBar && (
+                  <button
+                    type="button"
+                    data-mhg-library-key="mhg-header-profile"
+                    className={`mhg-library-button flex min-w-0 items-center gap-2 text-left ${
+                      isProfileRoute ? "mhg-library-active" : ""
+                    }`}
+                    onClick={() => navigate("/profile")}
+                  >
+                    <span className="mhg-library-button-label min-w-0 flex-1 truncate">
+                      {t("header.profile")}
+                    </span>
+                  </button>
                 )}
                 {showSidebarSearchPopup && (
                   <button
@@ -860,7 +899,9 @@ export default function LibrariesBar({
             </div>
           )}
           {rightActions ? (
-            <div className="mhg-libraries-actions-right-extra">{rightActions}</div>
+            <div className="mhg-libraries-actions-right-extra">
+              {rightActions}
+            </div>
           ) : null}
         </div>
       </div>

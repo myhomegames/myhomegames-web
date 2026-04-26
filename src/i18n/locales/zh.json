@@ -82,6 +82,7 @@
         "collectionsShortcutList": "侧边栏中的合集快捷方式",
         "libraryPagesVerticalList": "媒体库标签以垂直列表显示",
         "libraryHoverSelect": "悬停切换媒体库分区（无需点击）",
+        "libraryBarHeaderActions": "将个人资料/设置图标移到媒体库栏",
         "headerTitleFilter": "在标题栏中使用标题过滤（代替全局搜索）",
         "disableAlphabetNavigator": "隐藏 A–Z 侧边导航",
         "sidebarSearchPopup": "侧边栏中的搜索弹窗",

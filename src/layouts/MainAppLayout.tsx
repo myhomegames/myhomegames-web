@@ -179,7 +179,11 @@ export default function MainAppLayout({
         mainGamesOnly={mainGamesOnly}
         onMainGamesOnlyChange={setMainGamesOnly}
         rightActionsBeforeMainGames={topBarBeforeMainGamesActions}
-        rightActions={topBarRightActions}
+        rightActions={
+          <>
+            {topBarRightActions}
+          </>
+        }
         collectionShortcuts={
           showCollectionShortcuts
             ? allCollections.map((c) => ({ id: c.id, title: c.title }))

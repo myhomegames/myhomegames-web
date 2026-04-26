@@ -11,6 +11,8 @@ export type SkinWebManifest = {
   libraryPagesVerticalList: boolean;
   /** Navigate between library sections on hover (without clicking). */
   libraryHoverSelect: boolean;
+  /** Render header settings/profile actions inside LibrariesBar right actions. */
+  libraryBarHeaderActions: boolean;
   /**
    * Replace the global search header control with a title filter that narrows the current page’s
    * lists as the user types: games (library, tag games, detail, recommended), collection-like
@@ -45,6 +47,7 @@ export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
   collectionsShortcutList: false,
   libraryPagesVerticalList: false,
   libraryHoverSelect: false,
+  libraryBarHeaderActions: false,
   headerTitleFilter: false,
   disableAlphabetNavigator: false,
   sidebarSearchPopup: false,
@@ -57,6 +60,7 @@ export const SKIN_WEB_KEYS = [
   "collectionsShortcutList",
   "libraryPagesVerticalList",
   "libraryHoverSelect",
+  "libraryBarHeaderActions",
   "headerTitleFilter",
   "disableAlphabetNavigator",
   "sidebarSearchPopup",
