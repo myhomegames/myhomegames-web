@@ -67,6 +67,7 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
         showTitle: v.showTitle !== false,
         childs: Array.isArray(v.childs) ? v.childs : [],
       }));
+      parsed.sort((a, b) => compareTitles(a.title || "", b.title || ""));
       setCollections(parsed);
       
       // Don't pre-fetch game IDs for all collections - load them on demand via getCollectionGameIds
@@ -106,13 +107,15 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
       
       if (updatedCollection) {
         // Merge with existing collection so we preserve fields not in the payload (e.g. gameCount)
-        setCollections((prev) =>
-          prev.map((col) =>
+        setCollections((prev) => {
+          const updated = prev.map((col) =>
             String(col.id) === String(updatedCollection.id)
               ? { ...col, ...updatedCollection }
               : col
-          )
-        );
+          );
+          updated.sort((a, b) => compareTitles(a.title || "", b.title || ""));
+          return updated;
+        });
       } else if (collectionId) {
         // Collection was modified (e.g., game added/removed/deleted), refresh from server to get updated gameCount
         fetchCollections();
@@ -192,11 +195,13 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateCollection = useCallback((collection: CollectionItem) => {
-    setCollections((prev) =>
-      prev.map((col) =>
+    setCollections((prev) => {
+      const updated = prev.map((col) =>
         String(col.id) === String(collection.id) ? collection : col
-      )
-    );
+      );
+      updated.sort((a, b) => compareTitles(a.title || "", b.title || ""));
+      return updated;
+    });
   }, []);
 
   const removeCollection = useCallback((collectionId: string | number) => {
