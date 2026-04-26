@@ -81,6 +81,7 @@
         "persistentLibraryShell": "Shell de biblioteca persistente (cabecera y barra lateral siempre montadas)",
         "collectionsShortcutList": "Accesos directos de colecciones en la barra lateral",
         "libraryPagesVerticalList": "Pestañas de biblioteca como lista vertical",
+        "libraryHoverSelect": "Cambiar secciones de biblioteca al pasar el mouse (sin clic)",
         "headerTitleFilter": "Filtro por título en la cabecera (en lugar de la búsqueda global)",
         "disableAlphabetNavigator": "Ocultar el navegador A–Z lateral",
         "sidebarSearchPopup": "Ventana de búsqueda en la barra lateral",

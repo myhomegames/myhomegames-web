@@ -9,6 +9,8 @@ export type SkinWebManifest = {
   collectionsShortcutList: boolean;
   /** Always show library page tabs as a vertical list (never the narrow combobox). */
   libraryPagesVerticalList: boolean;
+  /** Navigate between library sections on hover (without clicking). */
+  libraryHoverSelect: boolean;
   /**
    * Replace the global search header control with a title filter that narrows the current page’s
    * lists as the user types: games (library, tag games, detail, recommended), collection-like
@@ -42,6 +44,7 @@ export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
   persistentLibraryShell: false,
   collectionsShortcutList: false,
   libraryPagesVerticalList: false,
+  libraryHoverSelect: false,
   headerTitleFilter: false,
   disableAlphabetNavigator: false,
   sidebarSearchPopup: false,
@@ -53,6 +56,7 @@ export const SKIN_WEB_KEYS = [
   "persistentLibraryShell",
   "collectionsShortcutList",
   "libraryPagesVerticalList",
+  "libraryHoverSelect",
   "headerTitleFilter",
   "disableAlphabetNavigator",
   "sidebarSearchPopup",

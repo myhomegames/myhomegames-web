@@ -439,6 +439,21 @@ export default function LibrariesBar({
     }
   };
 
+  const hoverSelectEnabled = activeSkinWeb.libraryHoverSelect;
+
+  const handleLibraryHoverSelect = (library: GameLibrarySection) => {
+    if (!hoverSelectEnabled) return;
+    if (activeLibrary?.key === library.key) return;
+    onSelectLibrary(library);
+  };
+
+  const handleCollectionShortcutHoverSelect = (collectionId: string) => {
+    if (!hoverSelectEnabled) return;
+    if (!onSelectCollectionShortcut) return;
+    if (activeCollectionShortcutId === collectionId) return;
+    onSelectCollectionShortcut(collectionId);
+  };
+
   const showIconCluster =
     (hasBackground && !hideBackgroundToggle) ||
     !!rightActionsBeforeMainGames ||
@@ -569,6 +584,7 @@ export default function LibrariesBar({
                         setCurrentLibraryFilterField("all");
                         onSelectLibrary(libraryForGamesSidebar);
                       }}
+                      onMouseEnter={() => handleLibraryHoverSelect(libraryForGamesSidebar)}
                     >
                       <span className="mhg-library-button-label min-w-0 flex-1 truncate">
                         {t("libraries.ownedGames")}
@@ -598,6 +614,7 @@ export default function LibrariesBar({
                         setCurrentLibraryFilterField("installed");
                         onSelectLibrary(libraryForGamesSidebar);
                       }}
+                      onMouseEnter={() => handleLibraryHoverSelect(libraryForGamesSidebar)}
                     >
                       <span className="mhg-library-button-label min-w-0 flex-1 truncate">
                         {t("libraries.installedGames")}
@@ -620,6 +637,7 @@ export default function LibrariesBar({
                           : ""
                       }`}
                       onClick={() => onSelectLibrary(s)}
+                      onMouseEnter={() => handleLibraryHoverSelect(s)}
                     >
                       <span className="mhg-library-button-label min-w-0 flex-1 truncate">
                         {s.title || t(`libraries.${s.key}`)}
@@ -706,6 +724,7 @@ export default function LibrariesBar({
                                 setCurrentLibraryFilterField("all");
                                 onSelectLibrary(libraryForGamesSidebar);
                               }}
+                              onMouseEnter={() => handleLibraryHoverSelect(libraryForGamesSidebar)}
                             >
                               <span className="mhg-library-button-label min-w-0 flex-1 truncate">
                                 {t("libraries.ownedGames")}
@@ -741,6 +760,7 @@ export default function LibrariesBar({
                                 setCurrentLibraryFilterField("installed");
                                 onSelectLibrary(libraryForGamesSidebar);
                               }}
+                              onMouseEnter={() => handleLibraryHoverSelect(libraryForGamesSidebar)}
                             >
                               <span className="mhg-library-button-label min-w-0 flex-1 truncate">
                                 {t("libraries.installedGames")}
@@ -768,6 +788,9 @@ export default function LibrariesBar({
                                     : ""
                                 }`}
                                 onClick={() => onSelectCollectionShortcut(collection.id)}
+                                onMouseEnter={() =>
+                                  handleCollectionShortcutHoverSelect(collection.id)
+                                }
                                 title={collection.title}
                               >
                                 <span className="min-w-0 flex-1 truncate">{collection.title}</span>

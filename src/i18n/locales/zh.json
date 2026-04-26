@@ -81,6 +81,7 @@
         "persistentLibraryShell": "持久化媒体库外壳（始终保留标题和侧边栏）",
         "collectionsShortcutList": "侧边栏中的合集快捷方式",
         "libraryPagesVerticalList": "媒体库标签以垂直列表显示",
+        "libraryHoverSelect": "悬停切换媒体库分区（无需点击）",
         "headerTitleFilter": "在标题栏中使用标题过滤（代替全局搜索）",
         "disableAlphabetNavigator": "隐藏 A–Z 侧边导航",
         "sidebarSearchPopup": "侧边栏中的搜索弹窗",

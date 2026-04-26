@@ -81,6 +81,7 @@
         "persistentLibraryShell": "Persistent library shell (header and sidebar stay mounted)",
         "collectionsShortcutList": "Collection shortcuts in the sidebar",
         "libraryPagesVerticalList": "Library tabs as a vertical list",
+        "libraryHoverSelect": "Switch library sections on hover (no click)",
         "headerTitleFilter": "Title filter in the header (instead of global search)",
         "disableAlphabetNavigator": "Hide the A–Z side navigator",
         "sidebarSearchPopup": "Search popup in the sidebar",

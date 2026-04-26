@@ -81,6 +81,7 @@
         "persistentLibraryShell": "Persistente Bibliotheks-Hülle (Kopfzeile und Seitenleiste bleiben geladen)",
         "collectionsShortcutList": "Sammlungs-Verknüpfungen in der Seitenleiste",
         "libraryPagesVerticalList": "Bibliothek-Tabs als vertikale Liste",
+        "libraryHoverSelect": "Bibliotheksbereiche beim Hover wechseln (ohne Klick)",
         "headerTitleFilter": "Titelfilter in der Kopfzeile (statt globaler Suche)",
         "disableAlphabetNavigator": "A–Z-Seitennavigator ausblenden",
         "sidebarSearchPopup": "Such-Popup in der Seitenleiste",
