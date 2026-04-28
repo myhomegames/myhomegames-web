@@ -73,7 +73,7 @@ function readGridSpacing(): {
   const leftGutter = parseFloat(style.getPropertyValue("--vgrid-side-gutter-left"));
   const rightGutter = parseFloat(style.getPropertyValue("--vgrid-side-gutter-right"));
   const forceSingleColumn =
-    style.getPropertyValue("--mhg-vertical-covers-all-pages").trim() === "1";
+    document.documentElement.getAttribute("data-mhg-vertical-cover-alignment") === "true";
   const resolvedFallback = Number.isFinite(fallbackGutter) ? fallbackGutter : DEFAULT_MIN_SIDE_GUTTER;
   return {
     gap: Number.isFinite(gapHalf) ? gapHalf * 2 : DEFAULT_GAP,
