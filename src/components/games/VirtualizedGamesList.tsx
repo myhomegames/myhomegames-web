@@ -227,6 +227,14 @@ export default function VirtualizedGamesList({
 
   // Restore scroll position when component mounts or route changes
   useEffect(() => {
+    // In forced single-column mode (vertical cover alignment), don't restore
+    // previous horizontal offsets: keep cards immediately visible.
+    if (forceSingleColumn) {
+      isRestoringRef.current = false;
+      setIsScrollRestored(true);
+      return;
+    }
+
     // Check if we have a saved position first
     const savedPosition = getScrollPosition(storageKey);
     
@@ -312,6 +320,7 @@ export default function VirtualizedGamesList({
           setTimeout(() => restoreScroll(attempt + 1), 100);
         } else {
           isRestoringRef.current = false;
+          setIsScrollRestored(true);
         }
       }
     };
@@ -325,7 +334,7 @@ export default function VirtualizedGamesList({
       clearTimeout(timer);
       isRestoringRef.current = false;
     };
-  }, [location.pathname, storageKey, dimensions.height, rowCount, columnCount]);
+  }, [location.pathname, storageKey, dimensions.height, rowCount, columnCount, forceSingleColumn]);
 
   // Save scroll position when scrolling
   useEffect(() => {

@@ -6,7 +6,6 @@ import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 import { buildCoverUrl } from "../../utils/api";
 import { useAutoTranslate } from "../../hooks/useAutoTranslate";
-import { useSkin } from "../../contexts/SkinContext";
 // Helper per sessionStorage
 function getScrollPosition(key: string): number {
   try {
@@ -69,7 +68,6 @@ export default function ScrollableGamesSection({
   onCollectionLikePseudoAddToParent,
   onCollectionLikePseudoUpdated,
 }: ScrollableGamesSectionProps) {
-  const { activeSkinWeb } = useSkin();
   const location = useLocation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const storageKey = `${location.pathname}:${sectionId}`;
@@ -270,8 +268,7 @@ export default function ScrollableGamesSection({
           buildCoverUrl={buildCoverUrl}
           coverSize={coverSize}
           allCollections={allCollections}
-          enableVirtualization={activeSkinWeb.verticalCoverAlignment}
-          forceSingleColumnVirtualized={activeSkinWeb.verticalCoverAlignment}
+          enableVirtualization={false}
           allCollectionLikes={allCollectionLikes}
           collectionLikeResourceType={collectionLikeResourceType}
           sliderParentCollectionLikeId={sliderParentCollectionLikeId}
