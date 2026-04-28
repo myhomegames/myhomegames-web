@@ -31,6 +31,7 @@ export default function AddGame({
   const [isSearching, setIsSearching] = useState(false);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const createTitleInputRef = useRef<HTMLInputElement | null>(null);
   const lastSearchQueryRef = useRef<string>("");
   const lastEffectQueryRef = useRef<string>("");
   const isOpenRef = useRef(isOpen);
@@ -53,6 +54,16 @@ export default function AddGame({
       (localGame) => String(localGame.id) === String(igdbGame.id)
     );
   }
+
+  useEffect(() => {
+    if (isOpen && !twitchLoginEnabled) {
+      // Ensure create-from-scratch input gets focus when search is unavailable.
+      const focusTimeout = setTimeout(() => {
+        createTitleInputRef.current?.focus();
+      }, 0);
+      return () => clearTimeout(focusTimeout);
+    }
+  }, [isOpen, twitchLoginEnabled]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -407,6 +418,7 @@ export default function AddGame({
                 {t("addGame.newGameTitle")}
               </label>
               <input
+                ref={createTitleInputRef}
                 id="add-game-create-title"
                 name="newGameTitle"
                 type="text"
@@ -423,6 +435,7 @@ export default function AddGame({
                 placeholder={t("addGame.newGameTitlePlaceholder")}
                 className="add-game-search-input add-game-create-input"
                 disabled={isCreating}
+                autoFocus={!twitchLoginEnabled}
               />
               <button
                 type="submit"
