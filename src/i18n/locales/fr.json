@@ -87,7 +87,8 @@
         "disableAlphabetNavigator": "Masquer le navigateur A–Z latéral",
         "sidebarSearchPopup": "Fenêtre de recherche dans la barre latérale",
         "ownedGamesFirstInGamesSidebar": "« Jeux possédés » en haut du menu Jeux",
-        "compactCollectionLikeDetail": "Détail de collection compact (masque la bannière et les titres)"
+        "compactCollectionLikeDetail": "Détail de collection compact (masque la bannière et les titres)",
+        "verticalCoverAlignment": "Alignement vertical des jaquettes"
       }
     }
   },

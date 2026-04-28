@@ -35,6 +35,7 @@ type GamesListProps = {
   onRemoveFromPublisher?: (gameId: string) => void;
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
   enableVirtualization?: boolean;
+  forceSingleColumnVirtualized?: boolean;
   platformIdForPlay?: string;
   /** When games include `collectionlike:…` synthetic ids (e.g. parent sliders), wire collection-like actions */
   allCollectionLikes?: CollectionItem[];
@@ -370,6 +371,7 @@ export default function GamesList({
   onRemoveFromPublisher,
   scrollContainerRef,
   enableVirtualization = true,
+  forceSingleColumnVirtualized = false,
   platformIdForPlay,
   allCollectionLikes,
   collectionLikeResourceType,
@@ -433,6 +435,7 @@ export default function GamesList({
           <VirtualizedGamesList
             games={games}
             coverSize={coverSize}
+            forceSingleColumn={forceSingleColumnVirtualized}
             coverCacheBustTimestamp={coverCacheBustTimestamp}
             containerRef={scrollContainerRef || containerRef}
             itemRefs={itemRefs}

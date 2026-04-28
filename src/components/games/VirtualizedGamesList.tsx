@@ -28,6 +28,7 @@ function setScrollPosition(key: string, scrollTop: number, scrollLeft: number): 
 type VirtualizedGamesListProps = {
   games: GameItem[];
   coverSize: number;
+  forceSingleColumn?: boolean;
   coverCacheBustTimestamp?: number;
   containerRef: React.RefObject<HTMLDivElement | null>;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
@@ -90,6 +91,7 @@ function readGridSpacing(): { gap: number; minLeftGutter: number; minRightGutter
 export default function VirtualizedGamesList({
   games,
   coverSize,
+  forceSingleColumn = false,
   coverCacheBustTimestamp,
   containerRef,
   itemRefs,
@@ -137,11 +139,12 @@ export default function VirtualizedGamesList({
 
   // Calculate column count based on container width
   const columnCount = useMemo(() => {
+    if (forceSingleColumn) return 1;
     if (dimensions.width === 0) return 1;
     const itemWidthWithGap = coverSize + GAP;
     const usableWidth = Math.max(coverSize, dimensions.width - MIN_LEFT_GUTTER - MIN_RIGHT_GUTTER);
     return Math.max(1, Math.floor((usableWidth + GAP) / itemWidthWithGap));
-  }, [dimensions.width, coverSize, GAP, MIN_LEFT_GUTTER, MIN_RIGHT_GUTTER]);
+  }, [forceSingleColumn, dimensions.width, coverSize, GAP, MIN_LEFT_GUTTER, MIN_RIGHT_GUTTER]);
 
   // Calculate row count
   const rowCount = useMemo(() => {

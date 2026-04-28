@@ -53,12 +53,18 @@ const LEFT_GUTTER_TRIM_WHEN_ALPHABET_NAV = 8;
  * `--vgrid-gap-half` (half of the inter-item gap) and side gutters:
  * `--vgrid-side-gutter` (legacy, both sides), `--vgrid-side-gutter-left`, `--vgrid-side-gutter-right`.
  */
-function readGridSpacing(): { gap: number; minLeftGutter: number; minRightGutter: number } {
+function readGridSpacing(): {
+  gap: number;
+  minLeftGutter: number;
+  minRightGutter: number;
+  forceSingleColumn: boolean;
+} {
   if (typeof window === "undefined" || typeof document === "undefined") {
     return {
       gap: DEFAULT_GAP,
       minLeftGutter: DEFAULT_MIN_SIDE_GUTTER,
       minRightGutter: DEFAULT_MIN_SIDE_GUTTER,
+      forceSingleColumn: false,
     };
   }
   const style = getComputedStyle(document.documentElement);
@@ -66,11 +72,14 @@ function readGridSpacing(): { gap: number; minLeftGutter: number; minRightGutter
   const fallbackGutter = parseFloat(style.getPropertyValue("--vgrid-side-gutter"));
   const leftGutter = parseFloat(style.getPropertyValue("--vgrid-side-gutter-left"));
   const rightGutter = parseFloat(style.getPropertyValue("--vgrid-side-gutter-right"));
+  const forceSingleColumn =
+    style.getPropertyValue("--mhg-vertical-covers-all-pages").trim() === "1";
   const resolvedFallback = Number.isFinite(fallbackGutter) ? fallbackGutter : DEFAULT_MIN_SIDE_GUTTER;
   return {
     gap: Number.isFinite(gapHalf) ? gapHalf * 2 : DEFAULT_GAP,
     minLeftGutter: Number.isFinite(leftGutter) ? leftGutter : resolvedFallback,
     minRightGutter: Number.isFinite(rightGutter) ? rightGutter : resolvedFallback,
+    forceSingleColumn,
   };
 }
 
@@ -95,7 +104,12 @@ export default function VirtualizedCollectionsList({
   const [alphabetNavPresent, setAlphabetNavPresent] = useState(false);
   const [isScrollRestored, setIsScrollRestored] = useState(false);
   const [spacing, setSpacing] = useState(() => readGridSpacing());
-  const { gap: GAP, minLeftGutter: MIN_LEFT_GUTTER, minRightGutter: MIN_RIGHT_GUTTER } = spacing;
+  const {
+    gap: GAP,
+    minLeftGutter: MIN_LEFT_GUTTER,
+    minRightGutter: MIN_RIGHT_GUTTER,
+    forceSingleColumn: FORCE_SINGLE_COLUMN,
+  } = spacing;
   const { activeSkinId } = useSkin();
   useEffect(() => {
     setSpacing(readGridSpacing());
@@ -109,11 +123,12 @@ export default function VirtualizedCollectionsList({
 
   // Calculate column count based on container width
   const columnCount = useMemo(() => {
+    if (FORCE_SINGLE_COLUMN) return 1;
     if (dimensions.width === 0) return 1;
     const itemWidthWithGap = coverSize + GAP;
     const usableWidth = Math.max(coverSize, dimensions.width - MIN_LEFT_GUTTER - MIN_RIGHT_GUTTER);
     return Math.max(1, Math.floor((usableWidth + GAP) / itemWidthWithGap));
-  }, [dimensions.width, coverSize, GAP, MIN_LEFT_GUTTER, MIN_RIGHT_GUTTER]);
+  }, [FORCE_SINGLE_COLUMN, dimensions.width, coverSize, GAP, MIN_LEFT_GUTTER, MIN_RIGHT_GUTTER]);
 
   // Calculate row count
   const rowCount = useMemo(() => {

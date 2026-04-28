@@ -8,6 +8,7 @@ import GamesListToolbar from "./GamesListToolbar";
 import type { ViewMode, GameItem, CollectionItem } from "../../types";
 import { buildCoverUrl } from "../../utils/api";
 import type { UseGamesListPageReturn } from "../../hooks/useGamesListPage";
+import { useSkin } from "../../contexts/SkinContext";
 type GamesListPageContentProps = {
   // Hook return values
   hook: UseGamesListPageReturn;
@@ -32,6 +33,8 @@ type GamesListPageContentProps = {
   onIgdbGameClick?: (igdbId: number) => void;
   /** When on a tag page with an IGDB id, override the filter value label (e.g. show "Action" instead of "1") */
   selectedFilterValueLabel?: string;
+  disableGridVirtualization?: boolean;
+  forceSingleColumnGrid?: boolean;
 };
 
 export default function GamesListPageContent({
@@ -48,6 +51,8 @@ export default function GamesListPageContent({
   gamesOverride,
   onIgdbGameClick,
   selectedFilterValueLabel,
+  disableGridVirtualization = false,
+  forceSingleColumnGrid = false,
 }: GamesListPageContentProps) {
   const { t } = useTranslation();
   const {
@@ -169,6 +174,8 @@ export default function GamesListPageContent({
   const coverUrlBuilder = buildCoverUrlFn || buildCoverUrl;
 
   const displayGames = gamesOverride ?? filteredAndSortedGames;
+  const { activeSkinWeb } = useSkin();
+  const forceVerticalCoversPage = activeSkinWeb.verticalCoverAlignment;
   const handleGameClick = useCallback(
     (game: GameItem) => {
       const g = game as GameItem & { isIgdbOnly?: boolean };
@@ -183,7 +190,7 @@ export default function GamesListPageContent({
 
   return (
     <div
-      className={`home-page-content-wrapper games-list-page-fade${isReady ? " games-list-page-fade--ready" : ""} ${!isLoading && displayGames.length > 0 ? "has-toolbar" : ""}`}
+      className={`home-page-content-wrapper games-list-page-fade${isReady ? " games-list-page-fade--ready" : ""} ${!isLoading && displayGames.length > 0 ? "has-toolbar" : ""}${forceVerticalCoversPage ? " mhg-vertical-covers-page" : ""}`}
     >
       {/* Toolbar with filter and sort */}
       {!isLoading && displayGames.length > 0 && (
@@ -280,6 +287,10 @@ export default function GamesListPageContent({
                     allCollections={allCollections}
                     scrollContainerRef={scrollContainerRef}
                     platformIdForPlay={platformIdForPlay}
+                    enableVirtualization={!disableGridVirtualization}
+                    forceSingleColumnVirtualized={
+                      forceSingleColumnGrid || forceVerticalCoversPage
+                    }
                   />
                 )}
                 {viewMode === "detail" && (

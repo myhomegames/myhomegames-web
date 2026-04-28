@@ -87,7 +87,8 @@
         "disableAlphabetNavigator": "Nascondi il navigatore A–Z laterale",
         "sidebarSearchPopup": "Popup di ricerca nella sidebar",
         "ownedGamesFirstInGamesSidebar": "\"I miei giochi\" in cima al menu Giochi",
-        "compactCollectionLikeDetail": "Dettaglio collezioni sintetico (nasconde hero e intestazioni)"
+        "compactCollectionLikeDetail": "Dettaglio collezioni sintetico (nasconde hero e intestazioni)",
+        "verticalCoverAlignment": "Allineamento cover verticale"
       }
     }
   },

@@ -87,7 +87,8 @@
         "disableAlphabetNavigator": "Ocultar el navegador A–Z lateral",
         "sidebarSearchPopup": "Ventana de búsqueda en la barra lateral",
         "ownedGamesFirstInGamesSidebar": "\"Juegos propios\" en la parte superior del menú Juegos",
-        "compactCollectionLikeDetail": "Detalle de colección compacto (oculta la portada y los encabezados)"
+        "compactCollectionLikeDetail": "Detalle de colección compacto (oculta la portada y los encabezados)",
+        "verticalCoverAlignment": "Alineación vertical de portadas"
       }
     }
   },

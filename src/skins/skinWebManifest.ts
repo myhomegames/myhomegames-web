@@ -40,6 +40,8 @@ export type SkinWebManifest = {
    * delete / play actions from the persistent libraries sidebar.
    */
   compactCollectionLikeDetail: boolean;
+  /** Render games/tag/collection-like covers as a vertically aligned column. */
+  verticalCoverAlignment: boolean;
 };
 
 export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
@@ -53,6 +55,7 @@ export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
   sidebarSearchPopup: false,
   ownedGamesFirstInGamesSidebar: false,
   compactCollectionLikeDetail: false,
+  verticalCoverAlignment: false,
 };
 
 export const SKIN_WEB_KEYS = [
@@ -66,6 +69,7 @@ export const SKIN_WEB_KEYS = [
   "sidebarSearchPopup",
   "ownedGamesFirstInGamesSidebar",
   "compactCollectionLikeDetail",
+  "verticalCoverAlignment",
 ] as const satisfies readonly (keyof SkinWebManifest)[];
 
 /** @deprecated renamed to `SKIN_WEB_KEYS`, kept as alias to avoid churning internal imports. */

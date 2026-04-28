@@ -113,6 +113,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     refreshSettings();
   }, [refreshSettings]);
 
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (skinWeb.verticalCoverAlignment) {
+      document.documentElement.setAttribute("data-mhg-vertical-cover-alignment", "true");
+    } else {
+      document.documentElement.removeAttribute("data-mhg-vertical-cover-alignment");
+    }
+  }, [skinWeb.verticalCoverAlignment]);
+
   return (
     <SettingsContext.Provider
       value={{

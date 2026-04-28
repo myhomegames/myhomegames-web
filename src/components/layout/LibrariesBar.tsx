@@ -472,6 +472,27 @@ export default function LibrariesBar({
   /* On /collections/:id, highlight only the collection, not a “page” tab as well */
   const showLibraryActiveHighlight = activeCollectionShortcutId == null;
 
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") return;
+    const updateActiveIconLine = () => {
+      const containerEl = containerRef.current;
+      if (!containerEl) return;
+      const activeButton = containerEl.querySelector(".mhg-library-active") as HTMLElement | null;
+      if (!activeButton) return;
+      const rect = activeButton.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      document.documentElement.style.setProperty("--mhg-active-library-icon-center-x", `${centerX}px`);
+    };
+    updateActiveIconLine();
+    const onResize = () => updateActiveIconLine();
+    window.addEventListener("resize", onResize);
+    const t = window.setTimeout(updateActiveIconLine, 60);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      window.clearTimeout(t);
+    };
+  }, [pathname, activeLibrary?.key, activeCollectionShortcutId, libraries.length]);
+
   /** Top-strip layout only; full sidebars (e.g. GOG) ship column layout in skin CSS. */
   const verticalPageTabsLayout =
     activeSkinWeb.libraryPagesVerticalList && !activeSkinWeb.persistentLibraryShell;

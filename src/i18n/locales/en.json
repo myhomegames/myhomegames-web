@@ -87,7 +87,8 @@
         "disableAlphabetNavigator": "Hide the A–Z side navigator",
         "sidebarSearchPopup": "Search popup in the sidebar",
         "ownedGamesFirstInGamesSidebar": "\"Owned games\" at the top of the Games menu",
-        "compactCollectionLikeDetail": "Compact collection detail (hide hero and headings)"
+        "compactCollectionLikeDetail": "Compact collection detail (hide hero and headings)",
+        "verticalCoverAlignment": "Vertical cover alignment"
       }
     }
   },
