@@ -413,7 +413,9 @@ export default function GamesList({
 
   // Use virtual scrolling for large lists
   const useVirtualization =
-    enableVirtualization && games.length > VIRTUALIZATION_THRESHOLD && !draggable; // Don't use virtualization when dragging is enabled
+    enableVirtualization &&
+    (forceSingleColumnVirtualized || games.length > VIRTUALIZATION_THRESHOLD) &&
+    !draggable; // Don't use virtualization when dragging is enabled
   const containerRef = useRef<HTMLDivElement>(null);
 
   if (games.length === 0) {
