@@ -39,6 +39,8 @@ type LibrariesBarProps = {
   onViewModeChange?: (mode: ViewMode) => void;
   hideBackgroundToggle?: boolean;
   onReloadMetadata?: () => Promise<void>;
+  /** Opens Add Game modal from shell/header flow when available. */
+  onAddGameClick?: () => void;
   /** When true, show an icon toggle to include/exclude new (IGDB) games in tag lists */
   showNewGamesToggle?: boolean;
   showNewGames?: boolean;
@@ -76,6 +78,7 @@ export default function LibrariesBar({
   onViewModeChange,
   hideBackgroundToggle = false,
   onReloadMetadata,
+  onAddGameClick,
   showNewGamesToggle = false,
   showNewGames = false,
   onShowNewGamesChange,
@@ -497,6 +500,8 @@ export default function LibrariesBar({
   const verticalPageTabsLayout =
     activeSkinWeb.libraryPagesVerticalList && !activeSkinWeb.persistentLibraryShell;
   const showHeaderActionsInLibrariesBar = activeSkinWeb.libraryBarHeaderActions;
+  const showAddGameInLibrariesBar = showHeaderActionsInLibrariesBar || activeSkinWeb.hideAddGame;
+  const isAddGameRoute = pathname === "/add-game";
   const isSettingsRoute = pathname === "/settings";
   const isProfileRoute = pathname === "/profile";
 
@@ -677,6 +682,26 @@ export default function LibrariesBar({
                     </button>
                   ))
                 )}
+                {showAddGameInLibrariesBar && (
+                  <button
+                    type="button"
+                    data-mhg-library-key="mhg-header-add-game"
+                    className={`mhg-library-button flex min-w-0 items-center gap-2 text-left ${
+                      isAddGameRoute ? "mhg-library-active" : ""
+                    }`}
+                    onClick={() => {
+                      if (onAddGameClick) {
+                        onAddGameClick();
+                      } else {
+                        navigate("/add-game");
+                      }
+                    }}
+                  >
+                    <span className="mhg-library-button-label min-w-0 flex-1 truncate">
+                      {t("header.addGame")}
+                    </span>
+                  </button>
+                )}
                 {showHeaderActionsInLibrariesBar && (
                   <button
                     type="button"
@@ -708,6 +733,7 @@ export default function LibrariesBar({
                 {showSidebarSearchPopup && (
                   <button
                     type="button"
+                    data-mhg-library-key="mhg-header-search"
                     data-mhg-sidebar-action="search"
                     className={`mhg-library-button mhg-sidebar-search-trigger flex min-w-0 items-center gap-2 text-left ${
                       sidebarSearchOpen ? "mhg-sidebar-search-trigger--open" : ""

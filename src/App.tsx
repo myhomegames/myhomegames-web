@@ -276,6 +276,7 @@ function AppContent() {
                 <HomePageClassic
                   onGameClick={handleGameClick}
                   onPlay={openLauncher}
+                  onAddGameClick={() => setAddGameOpen(true)}
                   onGamesLoaded={() => {
                     // Games are now managed by LibraryGamesContext, no need to update here
                   }}

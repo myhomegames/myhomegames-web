@@ -86,6 +86,7 @@
         "headerTitleFilter": "ヘッダーにタイトルフィルター（グローバル検索の代わりに）",
         "disableAlphabetNavigator": "A–Z サイドナビゲーターを非表示",
         "sidebarSearchPopup": "サイドバーに検索ポップアップ",
+        "hideAddGame": "ヘッダーの「ゲーム追加」を非表示",
         "ownedGamesFirstInGamesSidebar": "ゲームメニューの先頭に「所有ゲーム」",
         "compactCollectionLikeDetail": "コンパクトなコレクション詳細（ヒーローと見出しを非表示）",
         "verticalCoverAlignment": "カバーの縦整列"

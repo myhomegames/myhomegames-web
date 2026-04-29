@@ -86,6 +86,7 @@
         "headerTitleFilter": "Filtro por título no cabeçalho (em vez da busca global)",
         "disableAlphabetNavigator": "Ocultar o navegador A–Z lateral",
         "sidebarSearchPopup": "Popup de busca na barra lateral",
+        "hideAddGame": "Ocultar Adicionar jogo no cabeçalho",
         "ownedGamesFirstInGamesSidebar": "\"Meus jogos\" no topo do menu Jogos",
         "compactCollectionLikeDetail": "Detalhe de coleção compacto (oculta o hero e os títulos)",
         "verticalCoverAlignment": "Alinhamento vertical das capas"

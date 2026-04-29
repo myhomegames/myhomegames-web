@@ -54,6 +54,8 @@ export default function Header({
     pathname === "/settings" || pathname.startsWith("/game/");
   const hideSettings = hideSettingsAction || activeSkinWeb.libraryBarHeaderActions;
   const hideProfile = hideProfileAction || activeSkinWeb.libraryBarHeaderActions;
+  const hideAddGame = activeSkinWeb.hideAddGame;
+  const hideHeaderSearch = activeSkinWeb.libraryBarHeaderActions && activeSkinWeb.sidebarSearchPopup;
 
   useEffect(() => {
     if (!activeSkinWeb.headerTitleFilter || hideHeaderTitleFilter) {
@@ -75,18 +77,22 @@ export default function Header({
 
         {/* Search or per-page title filter (skin `web.headerTitleFilter`); on settings/game detail leave empty, no search */}
         <div className="mhg-search-container">
-          {activeSkinWeb.headerTitleFilter ? (
-            hideHeaderTitleFilter ? null : <HeaderTitleFilter />
-          ) : (
-            <SearchBar
-              games={allGames}
-              collections={allCollections}
-              developers={allDevelopers}
-              publishers={allPublishers}
-              onGameSelect={onGameSelect}
-              onPlay={onPlay}
-            />
-          )}
+          {hideHeaderSearch
+            ? null
+            : activeSkinWeb.headerTitleFilter
+              ? hideHeaderTitleFilter
+                ? null
+                : <HeaderTitleFilter />
+              : (
+                <SearchBar
+                  games={allGames}
+                  collections={allCollections}
+                  developers={allDevelopers}
+                  publishers={allPublishers}
+                  onGameSelect={onGameSelect}
+                  onPlay={onPlay}
+                />
+              )}
         </div>
 
         {/* Buttons on the right */}
@@ -114,28 +120,30 @@ export default function Header({
               />
             </svg>
           </div>
-          <Tooltip text={t("header.addGame")} position="top" delay={200}>
-            <button
-              className="mhg-header-button"
-              aria-label={t("header.addGame")}
-              onClick={onAddGameClick}
-            >
-              <svg
-                width="20"
-                height="20"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
+          {!hideAddGame && (
+            <Tooltip text={t("header.addGame")} position="top" delay={200}>
+              <button
+                className="mhg-header-button"
+                aria-label={t("header.addGame")}
+                onClick={onAddGameClick}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-            </button>
-          </Tooltip>
+                <svg
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+              </button>
+            </Tooltip>
+          )}
           {!hideSettings && (
             <Tooltip text={t("header.settings")} position="top" delay={200}>
               <button

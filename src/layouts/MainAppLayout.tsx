@@ -172,6 +172,7 @@ export default function MainAppLayout({
         viewMode={viewMode}
         onViewModeChange={handleViewModeChange}
         onReloadMetadata={onReloadMetadata}
+        onAddGameClick={onAddGameClick}
         showMainGamesToggle={
           (activeLibrary?.key === "library" || isCollectionLikeDetailRoute) &&
           (viewMode === "grid" || viewMode === "detail")

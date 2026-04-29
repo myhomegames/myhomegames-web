@@ -135,7 +135,7 @@ export function SkinProvider({ children }: { children: ReactNode }) {
    */
   const activeSkinWeb = useMemo((): SkinWebManifest => {
     if (!isServerSkinId(activeSkinId)) {
-      return normalizeSkinWebManifest(undefined);
+      return settingsLoaded ? settingsSkinWeb : normalizeSkinWebManifest(undefined);
     }
     if (settingsLoaded) {
       return settingsSkinWeb;

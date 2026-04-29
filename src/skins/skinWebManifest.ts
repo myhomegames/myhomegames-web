@@ -26,6 +26,8 @@ export type SkinWebManifest = {
    * (games, collections, developers, publishers). Intended for skins that replace header search (e.g. title filter).
    */
   sidebarSearchPopup: boolean;
+  /** Hide the Add Game action from the top header (e.g. when moved to the libraries bar). */
+  hideAddGame: boolean;
   /**
    * Hides the main games library (`library`) from the top sidebar list and renders it as the first
    * row under the games/collections shortcuts block (the section titled “Games” / “Giochi” in some
@@ -53,6 +55,7 @@ export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
   headerTitleFilter: false,
   disableAlphabetNavigator: false,
   sidebarSearchPopup: false,
+  hideAddGame: false,
   ownedGamesFirstInGamesSidebar: false,
   compactCollectionLikeDetail: false,
   verticalCoverAlignment: false,
@@ -67,6 +70,7 @@ export const SKIN_WEB_KEYS = [
   "headerTitleFilter",
   "disableAlphabetNavigator",
   "sidebarSearchPopup",
+  "hideAddGame",
   "ownedGamesFirstInGamesSidebar",
   "compactCollectionLikeDetail",
   "verticalCoverAlignment",

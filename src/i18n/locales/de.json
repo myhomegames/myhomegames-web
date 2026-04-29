@@ -86,6 +86,7 @@
         "headerTitleFilter": "Titelfilter in der Kopfzeile (statt globaler Suche)",
         "disableAlphabetNavigator": "A–Z-Seitennavigator ausblenden",
         "sidebarSearchPopup": "Such-Popup in der Seitenleiste",
+        "hideAddGame": "„Spiel hinzufügen“ in der Kopfzeile ausblenden",
         "ownedGamesFirstInGamesSidebar": "„Eigene Spiele“ oben im Spiele-Menü",
         "compactCollectionLikeDetail": "Kompakte Sammlungs-Detailansicht (ohne Hero und Überschriften)",
         "verticalCoverAlignment": "Vertikale Cover-Ausrichtung"

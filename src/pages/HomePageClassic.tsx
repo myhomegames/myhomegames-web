@@ -23,6 +23,7 @@ type HomePageClassicProps = {
   onGameClick: (game: GameItem) => void;
   onGamesLoaded: (games: GameItem[]) => void;
   onPlay?: (game: GameItem) => void;
+  onAddGameClick?: () => void;
   onReloadMetadata?: () => Promise<void>;
   allCollections?: CollectionItem[];
   onOpenCollection?: (collectionId: string) => void;
@@ -33,6 +34,7 @@ export default function HomePageClassic({
   onGameClick,
   onGamesLoaded,
   onPlay,
+  onAddGameClick,
   onReloadMetadata,
   allCollections = [],
   onOpenCollection,
@@ -225,6 +227,7 @@ export default function HomePageClassic({
           })
         }
         onSidebarSearchPlay={onPlay}
+        onAddGameClick={onAddGameClick}
       />
 
       <div className="bg-[#1a1a1a] home-page-main-container">
