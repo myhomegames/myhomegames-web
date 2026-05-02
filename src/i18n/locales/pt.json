@@ -83,6 +83,7 @@
         "libraryPagesVerticalList": "Abas da biblioteca como lista vertical",
         "libraryHoverSelect": "Trocar seções da biblioteca ao passar o mouse (sem clique)",
         "libraryBarHeaderActions": "Mover ícones de perfil/configurações para a barra de bibliotecas",
+        "topRightToolDock": "Faixa fixa no canto superior direito: logo, vistas, zoom das capas, menu (a faixa de bibliotecas não muda)",
         "headerTitleFilter": "Filtro por título no cabeçalho (em vez da busca global)",
         "disableAlphabetNavigator": "Ocultar o navegador A–Z lateral",
         "sidebarSearchPopup": "Popup de busca na barra lateral",

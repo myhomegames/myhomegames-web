@@ -15,7 +15,7 @@ import { useSkin } from "../../contexts/SkinContext";
 import { useLibraryGames } from "../../contexts/LibraryGamesContext";
 import type { ViewMode, GameLibrarySection, GameItem, CollectionItem } from "../../types";
 import SidebarSearchOverlay from "./SidebarSearchOverlay";
-import "./LibrariesBar.css";
+import Logo from "../common/Logo";
 
 type CollectionShortcut = {
   id: string;
@@ -500,6 +500,7 @@ export default function LibrariesBar({
   const verticalPageTabsLayout =
     activeSkinWeb.libraryPagesVerticalList && !activeSkinWeb.persistentLibraryShell;
   const showHeaderActionsInLibrariesBar = activeSkinWeb.libraryBarHeaderActions;
+  const topRightToolDock = activeSkinWeb.topRightToolDock;
   const showAddGameInLibrariesBar = showHeaderActionsInLibrariesBar || activeSkinWeb.hideAddGame;
   const isAddGameRoute = pathname === "/add-game";
   const isSettingsRoute = pathname === "/settings";
@@ -520,11 +521,54 @@ export default function LibrariesBar({
         ...(showHeaderActionsInLibrariesBar
           ? { "data-mhg-library-bar-header-actions": "true" }
           : {}),
+        ...(topRightToolDock ? { "data-mhg-top-right-tool-dock": "true" } : {}),
       }}
     >
+      {topRightToolDock && (
+        <div
+          className="mhg-top-right-tool-dock"
+          role="toolbar"
+          aria-label={t("libraries.topRightToolDock", "Top tools")}
+        >
+          <button
+            type="button"
+            className="mhg-top-right-tool-dock-logo mhg-logo-button"
+            onClick={() => navigate("/")}
+            aria-label={t("header.home")}
+          >
+            <Logo />
+          </button>
+          {onViewModeChange && (
+            <div className="mhg-top-right-tool-dock-view mhg-libraries-actions-view-mode-container">
+              <ViewModeSelector
+                value={viewMode}
+                onChange={onViewModeChange}
+                disabled={!activeLibrary || activeLibrary.key !== "library"}
+              />
+            </div>
+          )}
+          {onCoverSizeChange && (
+            <div
+              className={`mhg-top-right-tool-dock-slider mhg-libraries-actions-slider-container ${
+                viewMode === "grid" ? "" : "hidden"
+              }`}
+            >
+              <CoverSizeSlider value={coverSize} onChange={onCoverSizeChange} />
+            </div>
+          )}
+          {API_BASE && getApiToken() && (
+            <div className="mhg-top-right-tool-dock-menu">
+              <DropdownMenu
+                className="mhg-libraries-menu-dropdown mhg-top-right-tool-dock-menu-dropdown"
+                onReload={onReloadMetadata}
+              />
+            </div>
+          )}
+        </div>
+      )}
       <div className="mhg-libraries-bar-container" ref={containerRef}>
-        {/* Menu dropdown bottom-left */}
-        {API_BASE && getApiToken() && (
+        {/* Menu dropdown bottom-left (hidden when using fixed top-right dock) */}
+        {!topRightToolDock && API_BASE && getApiToken() && (
           <div className="mhg-libraries-menu-container">
             <DropdownMenu
               className="mhg-libraries-menu-dropdown"
@@ -927,7 +971,7 @@ export default function LibrariesBar({
               )}
             </div>
           ) : null}
-          {onCoverSizeChange && (
+          {!topRightToolDock && onCoverSizeChange && (
             <div
               className={`mhg-libraries-actions-slider-container ${
                 viewMode === "grid" ? "" : "hidden"
@@ -936,10 +980,10 @@ export default function LibrariesBar({
               <CoverSizeSlider value={coverSize} onChange={onCoverSizeChange} />
             </div>
           )}
-          {onViewModeChange && (
+          {!topRightToolDock && onViewModeChange && (
             <div className="mhg-libraries-actions-view-mode-container">
-              <ViewModeSelector 
-                value={viewMode} 
+              <ViewModeSelector
+                value={viewMode}
                 onChange={onViewModeChange}
                 disabled={!activeLibrary || activeLibrary.key !== "library"}
               />

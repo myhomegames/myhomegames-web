@@ -14,6 +14,11 @@ export type SkinWebManifest = {
   /** Render header settings/profile actions inside LibrariesBar right actions. */
   libraryBarHeaderActions: boolean;
   /**
+   * Extra row above the libraries strip (full width, tools aligned right): logo, view mode, cover
+   * size, overflow menu. The icon strip moves down; controls are not duplicated in the strip.
+   */
+  topRightToolDock: boolean;
+  /**
    * Replace the global search header control with a title filter that narrows the current page’s
    * lists as the user types: games (library, tag games, detail, recommended), collection-like
    * rows (collections, developers, publishers, sub/parent blocks on detail), and tag index pages.
@@ -52,6 +57,7 @@ export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
   libraryPagesVerticalList: false,
   libraryHoverSelect: false,
   libraryBarHeaderActions: false,
+  topRightToolDock: false,
   headerTitleFilter: false,
   disableAlphabetNavigator: false,
   sidebarSearchPopup: false,
@@ -67,6 +73,7 @@ export const SKIN_WEB_KEYS = [
   "libraryPagesVerticalList",
   "libraryHoverSelect",
   "libraryBarHeaderActions",
+  "topRightToolDock",
   "headerTitleFilter",
   "disableAlphabetNavigator",
   "sidebarSearchPopup",

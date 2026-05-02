@@ -83,6 +83,7 @@
         "libraryPagesVerticalList": "Library tabs as a vertical list",
         "libraryHoverSelect": "Switch library sections on hover (no click)",
         "libraryBarHeaderActions": "Move profile/settings icons into the libraries bar",
+        "topRightToolDock": "Row above the libraries strip: logo, views, cover zoom, menu (strip moves down)",
         "headerTitleFilter": "Title filter in the header (instead of global search)",
         "disableAlphabetNavigator": "Hide the A–Z side navigator",
         "sidebarSearchPopup": "Search popup in the sidebar",

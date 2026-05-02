@@ -83,6 +83,7 @@
         "libraryPagesVerticalList": "Bibliothek-Tabs als vertikale Liste",
         "libraryHoverSelect": "Bibliotheksbereiche beim Hover wechseln (ohne Klick)",
         "libraryBarHeaderActions": "Profil-/Einstellungen-Icons in die Bibliotheksleiste verschieben",
+        "topRightToolDock": "Feste Leiste oben rechts: Logo, Ansichten, Cover-Zoom, Menü (Bibliotheksleiste unverändert)",
         "headerTitleFilter": "Titelfilter in der Kopfzeile (statt globaler Suche)",
         "disableAlphabetNavigator": "A–Z-Seitennavigator ausblenden",
         "sidebarSearchPopup": "Such-Popup in der Seitenleiste",

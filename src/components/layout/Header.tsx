@@ -56,6 +56,7 @@ export default function Header({
   const hideProfile = hideProfileAction || activeSkinWeb.libraryBarHeaderActions;
   const hideAddGame = activeSkinWeb.hideAddGame;
   const hideHeaderSearch = activeSkinWeb.libraryBarHeaderActions && activeSkinWeb.sidebarSearchPopup;
+  const hideHeaderLogo = activeSkinWeb.topRightToolDock;
 
   useEffect(() => {
     if (!activeSkinWeb.headerTitleFilter || hideHeaderTitleFilter) {
@@ -66,14 +67,16 @@ export default function Header({
   return (
     <header className="mhg-header">
       <div className="mhg-header-container">
-        {/* Logo on the left */}
-        <button
-          onClick={onHomeClick}
-          className="mhg-logo-button"
-          aria-label={t("header.home")}
-        >
-          <Logo />
-        </button>
+        {/* Logo on the left (`topRightToolDock` moves it into LibrariesBar fixed dock). */}
+        {!hideHeaderLogo && (
+          <button
+            onClick={onHomeClick}
+            className="mhg-logo-button"
+            aria-label={t("header.home")}
+          >
+            <Logo />
+          </button>
+        )}
 
         {/* Search or per-page title filter (skin `web.headerTitleFilter`); on settings/game detail leave empty, no search */}
         <div className="mhg-search-container">
