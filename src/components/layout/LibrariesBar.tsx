@@ -16,6 +16,7 @@ import { useLibraryGames } from "../../contexts/LibraryGamesContext";
 import type { ViewMode, GameLibrarySection, GameItem, CollectionItem } from "../../types";
 import SidebarSearchOverlay from "./SidebarSearchOverlay";
 import Logo from "../common/Logo";
+import ActivitySpinner from "./ActivitySpinner";
 
 type CollectionShortcut = {
   id: string;
@@ -539,6 +540,10 @@ export default function LibrariesBar({
             >
               <Logo />
             </button>
+            <ActivitySpinner
+              isLoading={globalLoading}
+              className="mhg-top-right-tool-dock-activity-spinner"
+            />
             {onViewModeChange && (
               <div className="mhg-top-right-tool-dock-view mhg-libraries-actions-view-mode-container">
                 <ViewModeSelector
