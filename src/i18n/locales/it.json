@@ -83,7 +83,7 @@
         "libraryPagesVerticalList": "Schede della libreria come elenco verticale",
         "libraryHoverSelect": "Cambia sezione libreria al passaggio del mouse (senza click)",
         "libraryBarHeaderActions": "Sposta le icone profilo/impostazioni nella libraries bar",
-        "topRightToolDock": "Riga sopra la strip librerie: logo, viste, zoom cover, menu (la strip scende)",
+        "topRightToolDock": "Fascia strumenti sopra la strip delle librerie; la strip delle icone resta sotto",
         "headerTitleFilter": "Filtro per titolo nell'header (al posto della ricerca globale)",
         "disableAlphabetNavigator": "Nascondi il navigatore A–Z laterale",
         "sidebarSearchPopup": "Popup di ricerca nella sidebar",

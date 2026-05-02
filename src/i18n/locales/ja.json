@@ -83,7 +83,7 @@
         "libraryPagesVerticalList": "ライブラリのタブを縦リストで表示",
         "libraryHoverSelect": "ライブラリセクションをホバーで切り替える（クリック不要）",
         "libraryBarHeaderActions": "プロフィール/設定アイコンをライブラリバーへ移動",
-        "topRightToolDock": "右上の固定行：ロゴ・表示・カバーサイズ・メニュー（ライブラリのタブ行はそのまま）",
+        "topRightToolDock": "ライブラリバーの上にツール用の帯を置き、アイコン行はその下に表示",
         "headerTitleFilter": "ヘッダーにタイトルフィルター（グローバル検索の代わりに）",
         "disableAlphabetNavigator": "A–Z サイドナビゲーターを非表示",
         "sidebarSearchPopup": "サイドバーに検索ポップアップ",

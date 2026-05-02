@@ -83,7 +83,7 @@
         "libraryPagesVerticalList": "Onglets de bibliothèque en liste verticale",
         "libraryHoverSelect": "Changer de section de bibliothèque au survol (sans clic)",
         "libraryBarHeaderActions": "Déplacer les icônes profil/paramètres dans la barre des bibliothèques",
-        "topRightToolDock": "Bande fixe en haut à droite : logo, vues, zoom des jaquettes, menu (la barre des bibliothèques inchangée)",
+        "topRightToolDock": "Zone d’outils au-dessus de la barre des bibliothèques ; la barre d’icônes reste en dessous",
         "headerTitleFilter": "Filtre par titre dans l'en-tête (à la place de la recherche globale)",
         "disableAlphabetNavigator": "Masquer le navigateur A–Z latéral",
         "sidebarSearchPopup": "Fenêtre de recherche dans la barre latérale",

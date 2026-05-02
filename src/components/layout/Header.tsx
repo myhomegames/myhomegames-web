@@ -14,6 +14,16 @@ import { useSkin } from "../../contexts/SkinContext";
 import { useTitleFilter } from "../../contexts/TitleFilterContext";
 import type { GameItem, CollectionItem } from "../../types";
 
+/** Header-only pages: no `LibrariesBar`, so the dock logo is absent — keep the header logo when `topRightToolDock` is on. */
+function pathnameUsesHeaderLogoOnly(pathname: string): boolean {
+  return (
+    pathname === "/settings" ||
+    pathname === "/profile" ||
+    pathname === "/add-game" ||
+    pathname === "/search-results"
+  );
+}
+
 type HeaderProps = {
   allGames: GameItem[];
   allCollections: CollectionItem[];
@@ -56,7 +66,8 @@ export default function Header({
   const hideProfile = hideProfileAction || activeSkinWeb.libraryBarHeaderActions;
   const hideAddGame = activeSkinWeb.hideAddGame;
   const hideHeaderSearch = activeSkinWeb.libraryBarHeaderActions && activeSkinWeb.sidebarSearchPopup;
-  const hideHeaderLogo = activeSkinWeb.topRightToolDock;
+  const hideHeaderLogo =
+    activeSkinWeb.topRightToolDock && !pathnameUsesHeaderLogoOnly(pathname);
 
   useEffect(() => {
     if (!activeSkinWeb.headerTitleFilter || hideHeaderTitleFilter) {
@@ -67,7 +78,7 @@ export default function Header({
   return (
     <header className="mhg-header">
       <div className="mhg-header-container">
-        {/* Logo on the left (`topRightToolDock` moves it into LibrariesBar fixed dock). */}
+        {/* Logo on the left; with `topRightToolDock` it is duplicated in LibrariesBar on shell routes only. */}
         {!hideHeaderLogo && (
           <button
             onClick={onHomeClick}
