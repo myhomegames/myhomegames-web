@@ -530,40 +530,42 @@ export default function LibrariesBar({
           role="toolbar"
           aria-label={t("libraries.topRightToolDock", "Top tools")}
         >
-          <button
-            type="button"
-            className="mhg-top-right-tool-dock-logo mhg-logo-button"
-            onClick={() => navigate("/")}
-            aria-label={t("header.home")}
-          >
-            <Logo />
-          </button>
-          {onViewModeChange && (
-            <div className="mhg-top-right-tool-dock-view mhg-libraries-actions-view-mode-container">
-              <ViewModeSelector
-                value={viewMode}
-                onChange={onViewModeChange}
-                disabled={!activeLibrary || activeLibrary.key !== "library"}
-              />
-            </div>
-          )}
-          {onCoverSizeChange && (
-            <div
-              className={`mhg-top-right-tool-dock-slider mhg-libraries-actions-slider-container ${
-                viewMode === "grid" ? "" : "hidden"
-              }`}
+          <div className="mhg-top-right-tool-dock-inner">
+            <button
+              type="button"
+              className="mhg-top-right-tool-dock-logo mhg-logo-button"
+              onClick={() => navigate("/")}
+              aria-label={t("header.home")}
             >
-              <CoverSizeSlider value={coverSize} onChange={onCoverSizeChange} />
-            </div>
-          )}
-          {API_BASE && getApiToken() && (
-            <div className="mhg-top-right-tool-dock-menu">
-              <DropdownMenu
-                className="mhg-libraries-menu-dropdown mhg-top-right-tool-dock-menu-dropdown"
-                onReload={onReloadMetadata}
-              />
-            </div>
-          )}
+              <Logo />
+            </button>
+            {onViewModeChange && (
+              <div className="mhg-top-right-tool-dock-view mhg-libraries-actions-view-mode-container">
+                <ViewModeSelector
+                  value={viewMode}
+                  onChange={onViewModeChange}
+                  disabled={!activeLibrary || activeLibrary.key !== "library"}
+                />
+              </div>
+            )}
+            {onCoverSizeChange && (
+              <div
+                className={`mhg-top-right-tool-dock-slider mhg-libraries-actions-slider-container ${
+                  viewMode === "grid" ? "" : "hidden"
+                }`}
+              >
+                <CoverSizeSlider value={coverSize} onChange={onCoverSizeChange} />
+              </div>
+            )}
+            {API_BASE && getApiToken() && (
+              <div className="mhg-top-right-tool-dock-menu">
+                <DropdownMenu
+                  className="mhg-libraries-menu-dropdown mhg-top-right-tool-dock-menu-dropdown"
+                  onReload={onReloadMetadata}
+                />
+              </div>
+            )}
+          </div>
         </div>
       )}
       <div className="mhg-libraries-bar-container" ref={containerRef}>
