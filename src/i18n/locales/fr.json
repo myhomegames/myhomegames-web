@@ -16,7 +16,8 @@
     "sidebarSearch": "Recherche",
     "ownedGames": "Jeux possédés",
     "installedGames": "Installés",
-    "gamesSidebar": "Jeux"
+    "gamesSidebar": "Jeux",
+    "topRightToolDock": "Outils"
   },
   "settings": {
     "title": "Paramètres",
