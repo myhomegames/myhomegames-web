@@ -465,7 +465,7 @@ export default function LibrariesBar({
     (hasBackground && !hideBackgroundToggle) ||
     !!rightActionsBeforeMainGames ||
     (showNewGamesToggle && !!onShowNewGamesChange) ||
-    (showMainGamesToggle && !!onMainGamesOnlyChange);
+    (showMainGamesToggle && !!onMainGamesOnlyChange && !activeSkinWeb.topRightToolDock);
 
   const showSidebarSearchPopup =
     activeSkinWeb.sidebarSearchPopup &&
@@ -560,6 +560,14 @@ export default function LibrariesBar({
                 }`}
               >
                 <CoverSizeSlider value={coverSize} onChange={onCoverSizeChange} />
+              </div>
+            )}
+            {showMainGamesToggle && onMainGamesOnlyChange && (
+              <div className="mhg-top-right-tool-dock-main-games mhg-libraries-actions-main-games-container">
+                <MainGamesToggle
+                  mainGamesOnly={mainGamesOnly}
+                  onChange={onMainGamesOnlyChange}
+                />
               </div>
             )}
             {API_BASE && getApiToken() && (
@@ -968,7 +976,7 @@ export default function LibrariesBar({
                   {rightActionsBeforeMainGames}
                 </div>
               ) : null}
-              {showMainGamesToggle && onMainGamesOnlyChange && (
+              {showMainGamesToggle && onMainGamesOnlyChange && !topRightToolDock && (
                 <div className="mhg-libraries-actions-main-games-container">
                   <MainGamesToggle
                     mainGamesOnly={mainGamesOnly}
