@@ -23,6 +23,80 @@ type CollectionShortcut = {
   title: string;
 };
 
+/** `overflow-y` that establishes a vertical scrollport (not `visible` / clip quirks). */
+function isVerticalScrollport(el: HTMLElement): boolean {
+  const oy = getComputedStyle(el).overflowY;
+  if (oy !== "auto" && oy !== "scroll") return false;
+  return el.scrollHeight > el.clientHeight + 2;
+}
+
+function scrollOverflowRange(el: HTMLElement): number {
+  return Math.max(0, el.scrollHeight - el.clientHeight);
+}
+
+/** Nesting depth from `el` up to `root` (exclusive); `root` → 0. */
+function depthUnderRoot(el: HTMLElement, root: HTMLElement): number {
+  let d = 0;
+  let n: HTMLElement | null = el;
+  while (n && n !== root) {
+    d++;
+    n = n.parentElement;
+  }
+  return n === root ? d : -1;
+}
+
+/**
+ * Main list pages use `.home-page-scroll-container`; with vertical covers the *list rail* often
+ * scrolls on an inner element. Prefer the scrollport with the largest overflow range, then the
+ * deeper node so we do not move a shallow “page” strip while the cover column stays stuck.
+ */
+function pickWheelScrollTarget(): HTMLElement | null {
+  if (typeof document === "undefined") return null;
+  const outer =
+    document.querySelector<HTMLElement>("#root .home-page-main-container .home-page-scroll-container") ??
+    document.querySelector<HTMLElement>("#root .home-page-scroll-container");
+  if (!outer) return null;
+
+  const candidates = new Set<HTMLElement>([outer]);
+
+  const pageRoot = outer.closest(".mhg-vertical-covers-page, .mhg-library-vertical-covers");
+  if (pageRoot) {
+    for (const el of pageRoot.querySelectorAll<HTMLElement>(
+      ".virtualized-list-fade, .games-list-container:not(.games-list-container--virtualized)"
+    )) {
+      if (outer.contains(el)) candidates.add(el);
+    }
+  }
+
+  const innerSelectors = [
+    ".games-table-scroll",
+    ".scrollable-section-scroll",
+    ".virtualized-list-fade",
+    ".collections-list-container--virtualized .virtualized-list-fade",
+  ];
+  for (const sel of innerSelectors) {
+    outer.querySelectorAll<HTMLElement>(sel).forEach((el) => candidates.add(el));
+  }
+
+  for (const el of outer.querySelectorAll<HTMLElement>("div[style]")) {
+    if (/overflow\s*:\s*(auto|scroll)/i.test(el.getAttribute("style") ?? "")) {
+      candidates.add(el);
+    }
+  }
+
+  const scrollports = [...candidates].filter(isVerticalScrollport);
+  if (scrollports.length === 0) return outer;
+
+  scrollports.sort((a, b) => {
+    const ra = scrollOverflowRange(a);
+    const rb = scrollOverflowRange(b);
+    if (Math.abs(ra - rb) > 48) return rb - ra;
+    return depthUnderRoot(b, outer) - depthUnderRoot(a, outer);
+  });
+
+  return scrollports[0] ?? outer;
+}
+
 /** `<option>` value prefix for collection shortcuts (avoids collisions with `library.key`). */
 const COMBOBOX_COLLECTION_SHORTCUT_PREFIX = "mhg:collection:";
 /** Two distinct entries (all vs installed) when `ownedGamesFirstInGamesSidebar` moves the library into the Games menu. */
@@ -496,6 +570,37 @@ export default function LibrariesBar({
       window.clearTimeout(t);
     };
   }, [pathname, activeLibrary?.key, activeCollectionShortcutId, libraries.length]);
+
+  useEffect(() => {
+    if (!activeSkinWeb.verticalCoverAlignment) return;
+    const strip = containerRef.current;
+    if (!strip) return;
+
+    const onWheel = (e: WheelEvent) => {
+      if (!strip.contains(e.target as Node)) return;
+      const el = e.target as Element | null;
+      if (el?.closest?.(".dropdown-menu-popup")) return;
+      if (el?.closest?.("input[type=range], textarea, [contenteditable=true]")) return;
+
+      const libRow = strip.querySelector<HTMLElement>(".mhg-libraries-container");
+      if (
+        libRow &&
+        Math.abs(e.deltaX) > Math.abs(e.deltaY) &&
+        libRow.scrollWidth > libRow.clientWidth + 1
+      ) {
+        return;
+      }
+
+      const mainScroll = pickWheelScrollTarget();
+      if (!mainScroll) return;
+
+      e.preventDefault();
+      mainScroll.scrollTop += e.deltaY;
+    };
+
+    strip.addEventListener("wheel", onWheel, { passive: false });
+    return () => strip.removeEventListener("wheel", onWheel);
+  }, [activeSkinWeb.verticalCoverAlignment]);
 
   /** Top-strip layout only; full sidebars (e.g. GOG) ship column layout in skin CSS. */
   const verticalPageTabsLayout =
