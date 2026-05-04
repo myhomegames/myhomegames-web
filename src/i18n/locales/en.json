@@ -83,7 +83,7 @@
         "collectionsShortcutList": "Collection shortcuts in the sidebar",
         "libraryPagesVerticalList": "Library tabs as a vertical list",
         "libraryHoverSelect": "Switch library sections on hover (no click)",
-        "libraryBarHeaderActions": "Move profile/settings icons into the libraries bar",
+        "libraryBarHeaderActions": "Move header actions into the libraries bar",
         "topRightToolDock": "Tool band above the libraries strip; the icon strip stays below",
         "headerTitleFilter": "Title filter in the header (instead of global search)",
         "disableAlphabetNavigator": "Hide the A–Z side navigator",

@@ -607,7 +607,7 @@ export default function LibrariesBar({
     activeSkinWeb.libraryPagesVerticalList && !activeSkinWeb.persistentLibraryShell;
   const showHeaderActionsInLibrariesBar = activeSkinWeb.libraryBarHeaderActions;
   const topRightToolDock = activeSkinWeb.topRightToolDock;
-  const showAddGameInLibrariesBar = showHeaderActionsInLibrariesBar || activeSkinWeb.hideAddGame;
+  const showAddGameInLibrariesBar = showHeaderActionsInLibrariesBar;
   const isAddGameRoute = pathname === "/add-game";
   const isSettingsRoute = pathname === "/settings";
   const isProfileRoute = pathname === "/profile";

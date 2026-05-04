@@ -65,8 +65,8 @@ export default function Header({
     pathname === "/settings" || pathname.startsWith("/game/");
   const hideSettings = hideSettingsAction || activeSkinWeb.libraryBarHeaderActions;
   const hideProfile = hideProfileAction || activeSkinWeb.libraryBarHeaderActions;
-  /* Same row as settings/profile in LibrariesBar (`showAddGameInLibrariesBar` uses this flag too). */
-  const hideAddGame = activeSkinWeb.hideAddGame || activeSkinWeb.libraryBarHeaderActions;
+  /* Add Game follows the same relocation rule as settings/profile. */
+  const hideAddGame = activeSkinWeb.libraryBarHeaderActions;
   const hideHeaderSearch = activeSkinWeb.libraryBarHeaderActions && activeSkinWeb.sidebarSearchPopup;
   const hideHeaderLogo =
     activeSkinWeb.topRightToolDock && !pathnameUsesHeaderLogoOnly(pathname);

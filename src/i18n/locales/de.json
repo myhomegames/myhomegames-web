@@ -83,7 +83,7 @@
         "collectionsShortcutList": "Sammlungs-Verknüpfungen in der Seitenleiste",
         "libraryPagesVerticalList": "Bibliothek-Tabs als vertikale Liste",
         "libraryHoverSelect": "Bibliotheksbereiche beim Hover wechseln (ohne Klick)",
-        "libraryBarHeaderActions": "Profil-/Einstellungen-Icons in die Bibliotheksleiste verschieben",
+        "libraryBarHeaderActions": "Header-Aktionen in die Bibliotheksleiste verschieben",
         "topRightToolDock": "Werkzeugleiste über der Bibliotheksleiste; die Symbolleiste bleibt darunter",
         "headerTitleFilter": "Titelfilter in der Kopfzeile (statt globaler Suche)",
         "disableAlphabetNavigator": "A–Z-Seitennavigator ausblenden",
