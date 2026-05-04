@@ -88,7 +88,6 @@
         "headerTitleFilter": "Filtre par titre dans l'en-tête (à la place de la recherche globale)",
         "disableAlphabetNavigator": "Masquer le navigateur A–Z latéral",
         "sidebarSearchPopup": "Fenêtre de recherche dans la barre latérale",
-        "hideAddGame": "Masquer Ajouter un jeu dans l'en-tête",
         "ownedGamesFirstInGamesSidebar": "« Jeux possédés » en haut du menu Jeux",
         "compactCollectionLikeDetail": "Détail de collection compact (masque la bannière et les titres)",
         "verticalCoverAlignment": "Alignement vertical des jaquettes"

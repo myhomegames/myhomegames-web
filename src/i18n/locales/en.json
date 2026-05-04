@@ -88,7 +88,6 @@
         "headerTitleFilter": "Title filter in the header (instead of global search)",
         "disableAlphabetNavigator": "Hide the A–Z side navigator",
         "sidebarSearchPopup": "Search popup in the sidebar",
-        "hideAddGame": "Hide Add Game from header",
         "ownedGamesFirstInGamesSidebar": "\"Owned games\" at the top of the Games menu",
         "compactCollectionLikeDetail": "Compact collection detail (hide hero and headings)",
         "verticalCoverAlignment": "Vertical cover alignment"
