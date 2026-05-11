@@ -1,4 +1,4 @@
-import { useMemo, type Dispatch, type SetStateAction } from "react";
+import { useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/layout/Header";
 import LibrariesBar from "../components/layout/LibrariesBar";
@@ -29,6 +29,8 @@ export type MainAppOutletContext = {
   viewMode: ViewMode;
   mainGamesOnly: boolean;
   setMainGamesOnly: Dispatch<SetStateAction<boolean>>;
+  setTopBarBeforeMainGamesActions: Dispatch<SetStateAction<ReactNode | null>>;
+  setTopBarRightActions: Dispatch<SetStateAction<ReactNode | null>>;
 };
 
 export type MainAppLayoutProps = {
@@ -61,6 +63,10 @@ export default function MainAppLayout({
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { activeSkinWeb } = useSkin();
+  const [topBarBeforeMainGamesActions, setTopBarBeforeMainGamesActions] = useState<ReactNode | null>(
+    null
+  );
+  const [topBarRightActions, setTopBarRightActions] = useState<ReactNode | null>(null);
   const {
     libraries,
     activeLibrary,
@@ -94,6 +100,19 @@ export default function MainAppLayout({
       /^\/publishers\/[^/]+/.test(pathname),
     [pathname]
   );
+  const isTagGamesDetailRoute = useMemo(
+    () =>
+      /^\/category\/[^/]+/.test(pathname) ||
+      /^\/series\/[^/]+/.test(pathname) ||
+      /^\/franchise\/[^/]+/.test(pathname) ||
+      /^\/platforms\/[^/]+/.test(pathname) ||
+      /^\/themes\/[^/]+/.test(pathname) ||
+      /^\/game-engines\/[^/]+/.test(pathname) ||
+      /^\/game-modes\/[^/]+/.test(pathname) ||
+      /^\/player-perspectives\/[^/]+/.test(pathname) ||
+      /^\/keywords\/[^/]+/.test(pathname),
+    [pathname]
+  );
 
   const outletContext = useMemo<MainAppOutletContext>(
     () => ({
@@ -107,6 +126,8 @@ export default function MainAppLayout({
       viewMode,
       mainGamesOnly,
       setMainGamesOnly,
+      setTopBarBeforeMainGamesActions,
+      setTopBarRightActions,
     }),
     [
       onGameClick,
@@ -118,6 +139,8 @@ export default function MainAppLayout({
       coverSize,
       viewMode,
       mainGamesOnly,
+      setTopBarBeforeMainGamesActions,
+      setTopBarRightActions,
     ]
   );
 
@@ -141,16 +164,27 @@ export default function MainAppLayout({
         loading={isLoading}
         error={error}
         coverSize={coverSize}
-        onCoverSizeChange={handleCoverSizeChange}
+        onCoverSizeChange={
+          activeSkinWeb.persistentLibraryShell && isTagGamesDetailRoute
+            ? undefined
+            : handleCoverSizeChange
+        }
         viewMode={viewMode}
         onViewModeChange={handleViewModeChange}
         onReloadMetadata={onReloadMetadata}
+        onAddGameClick={onAddGameClick}
         showMainGamesToggle={
           (activeLibrary?.key === "library" || isCollectionLikeDetailRoute) &&
           (viewMode === "grid" || viewMode === "detail")
         }
         mainGamesOnly={mainGamesOnly}
         onMainGamesOnlyChange={setMainGamesOnly}
+        rightActionsBeforeMainGames={topBarBeforeMainGamesActions}
+        rightActions={
+          <>
+            {topBarRightActions}
+          </>
+        }
         collectionShortcuts={
           showCollectionShortcuts
             ? allCollections.map((c) => ({ id: c.id, title: c.title }))

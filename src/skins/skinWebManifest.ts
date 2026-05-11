@@ -9,6 +9,15 @@ export type SkinWebManifest = {
   collectionsShortcutList: boolean;
   /** Always show library page tabs as a vertical list (never the narrow combobox). */
   libraryPagesVerticalList: boolean;
+  /** Navigate between library sections on hover (without clicking). */
+  libraryHoverSelect: boolean;
+  /** Render header settings/profile actions inside LibrariesBar right actions. */
+  libraryBarHeaderActions: boolean;
+  /**
+   * Extra row above the libraries strip (full width, tools aligned right): logo, view mode, cover
+   * size, overflow menu. The icon strip moves down; controls are not duplicated in the strip.
+   */
+  topRightToolDock: boolean;
   /**
    * Replace the global search header control with a title filter that narrows the current page’s
    * lists as the user types: games (library, tag games, detail, recommended), collection-like
@@ -36,28 +45,38 @@ export type SkinWebManifest = {
    * delete / play actions from the persistent libraries sidebar.
    */
   compactCollectionLikeDetail: boolean;
+  /** Render games/tag/collection-like covers as a vertically aligned column. */
+  verticalCoverAlignment: boolean;
 };
 
 export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
   persistentLibraryShell: false,
   collectionsShortcutList: false,
   libraryPagesVerticalList: false,
+  libraryHoverSelect: false,
+  libraryBarHeaderActions: false,
+  topRightToolDock: false,
   headerTitleFilter: false,
   disableAlphabetNavigator: false,
   sidebarSearchPopup: false,
   ownedGamesFirstInGamesSidebar: false,
   compactCollectionLikeDetail: false,
+  verticalCoverAlignment: false,
 };
 
 export const SKIN_WEB_KEYS = [
   "persistentLibraryShell",
   "collectionsShortcutList",
   "libraryPagesVerticalList",
+  "libraryHoverSelect",
+  "libraryBarHeaderActions",
+  "topRightToolDock",
   "headerTitleFilter",
   "disableAlphabetNavigator",
   "sidebarSearchPopup",
   "ownedGamesFirstInGamesSidebar",
   "compactCollectionLikeDetail",
+  "verticalCoverAlignment",
 ] as const satisfies readonly (keyof SkinWebManifest)[];
 
 /** @deprecated renamed to `SKIN_WEB_KEYS`, kept as alias to avoid churning internal imports. */

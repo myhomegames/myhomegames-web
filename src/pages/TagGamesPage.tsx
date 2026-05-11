@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import type { ReactNode } from "react";
+import { useParams, useSearchParams, useOutletContext } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useLoading } from "../contexts/LoadingContext";
 import { useSkin } from "../contexts/SkinContext";
@@ -12,10 +13,13 @@ import { useIgdbGamesForTag, type IgdbTagKey } from "../hooks/useIgdbGamesForTag
 import GamesListPageContent from "../components/games/GamesListPageContent";
 import AlphabetNavigator from "../components/ui/AlphabetNavigator";
 import LibrariesBar from "../components/layout/LibrariesBar";
+import MainGamesToggle from "../components/ui/MainGamesToggle";
+import NewGamesToggle from "../components/ui/NewGamesToggle";
 import type { ViewMode } from "../types";
 import type { GameItem, CollectionItem } from "../types";
 import type { FilterField } from "../components/filters/types";
 import type { TagKey } from "../utils/tagPages";
+import type { MainAppOutletContext } from "../layouts/MainAppLayout";
 import { buildCoverUrl } from "../utils/api";
 import { isMainGameType } from "../utils/igdbGameType";
 
@@ -43,6 +47,7 @@ export default function TagGamesPage({
   onIgdbGameClick,
 }: TagGamesPageProps) {
   const { t } = useTranslation();
+  const outletContext = useOutletContext<MainAppOutletContext | null>();
   const { activeSkinWeb } = useSkin();
   const { games: libraryGames } = useLibraryGames();
   const { twitchLoginEnabled } = useSettings();
@@ -246,6 +251,37 @@ export default function TagGamesPage({
   }, [tagField, tagValue, hook.selectedThemes, hook.selectedPlatforms, hook.selectedGameModes, hook.selectedPlayerPerspectives, hook.selectedGameEngines, hook.selectedDevelopers, hook.selectedPublishers, hook.selectedGenre, hook.selectedSeries, hook.selectedFranchise]);
   const canShowNewGamesToggle =
     (isSeriesOrFranchise || isIgdbTag) && !!twitchLoginEnabled && hook.filterField !== "all";
+  const usePersistentTopBarTagToggles = activeSkinWeb.persistentLibraryShell;
+  const injectedTopBarTagToggles: ReactNode = useMemo(() => {
+    if (!usePersistentTopBarTagToggles || viewMode !== "grid") return null;
+    return (
+      <>
+        {canShowNewGamesToggle ? (
+          <div className="library-item-detail-compact-top-action">
+            <NewGamesToggle showNewGames={showNewGames} onChange={setShowNewGames} />
+          </div>
+        ) : null}
+        <div className="library-item-detail-compact-top-action">
+          <MainGamesToggle
+            mainGamesOnly={hook.mainGamesOnly}
+            onChange={hook.setMainGamesOnly}
+          />
+        </div>
+      </>
+    );
+  }, [
+    usePersistentTopBarTagToggles,
+    viewMode,
+    canShowNewGamesToggle,
+    showNewGames,
+    hook.mainGamesOnly,
+    hook.setMainGamesOnly,
+  ]);
+  useEffect(() => {
+    if (!usePersistentTopBarTagToggles) return;
+    outletContext?.setTopBarBeforeMainGamesActions(injectedTopBarTagToggles);
+    return () => outletContext?.setTopBarBeforeMainGamesActions(null);
+  }, [usePersistentTopBarTagToggles, outletContext, injectedTopBarTagToggles]);
   const effectiveGamesOverride =
     canShowNewGamesToggle && showNewGames ? mergedGamesOverride : null;
   const gamesForList = useMemo(() => {
@@ -360,11 +396,11 @@ export default function TagGamesPage({
         error={null}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-        showNewGamesToggle={canShowNewGamesToggle}
+        showNewGamesToggle={!usePersistentTopBarTagToggles && canShowNewGamesToggle}
         showNewGames={showNewGames}
         onShowNewGamesChange={setShowNewGames}
         showNewGamesLabel={canShowNewGamesToggle ? t("tagGames.showNewGames") : undefined}
-        showMainGamesToggle={viewMode === "grid" || viewMode === "detail"}
+        showMainGamesToggle={!usePersistentTopBarTagToggles && viewMode === "grid"}
         mainGamesOnly={hook.mainGamesOnly}
         onMainGamesOnlyChange={hook.setMainGamesOnly}
       />

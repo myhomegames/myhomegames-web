@@ -6,6 +6,7 @@ import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 import { buildCoverUrl } from "../../utils/api";
 import { useAutoTranslate } from "../../hooks/useAutoTranslate";
+import { useSkin } from "../../contexts/SkinContext";
 // Helper per sessionStorage
 function getScrollPosition(key: string): number {
   try {
@@ -68,9 +69,11 @@ export default function ScrollableGamesSection({
   onCollectionLikePseudoAddToParent,
   onCollectionLikePseudoUpdated,
 }: ScrollableGamesSectionProps) {
+  const { activeSkinWeb } = useSkin();
   const location = useLocation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const storageKey = `${location.pathname}:${sectionId}`;
+  const forceVerticalCovers = activeSkinWeb.verticalCoverAlignment;
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [isRestoring, setIsRestoring] = useState(true);
@@ -109,6 +112,11 @@ export default function ScrollableGamesSection({
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
+
+    if (forceVerticalCovers) {
+      setIsRestoring(false);
+      return;
+    }
 
     setIsRestoring(true);
     const savedPosition = getScrollPosition(storageKey);
@@ -151,12 +159,18 @@ export default function ScrollableGamesSection({
       clearTimeout(timer);
       setIsRestoring(false);
     };
-  }, [location.pathname, sectionId, storageKey]);
+  }, [location.pathname, sectionId, storageKey, forceVerticalCovers]);
 
   // Save position during scroll + re-attach when content changes (e.g. IGDB games merged) so scrollWidth is correct
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
+
+    if (forceVerticalCovers) {
+      setCanScrollLeft(false);
+      setCanScrollRight(false);
+      return;
+    }
 
     const handleScroll = () => {
       if (!isRestoring) {
@@ -208,10 +222,11 @@ export default function ScrollableGamesSection({
         setScrollPosition(storageKey, finalPosition);
       }
     };
-  }, [sectionId, storageKey, isRestoring, games.length]);
+  }, [sectionId, storageKey, isRestoring, games.length, forceVerticalCovers]);
 
   // Update buttons when content changes (e.g. after IGDB games merged)
   useEffect(() => {
+    if (forceVerticalCovers) return;
     updateScrollButtons();
     const timer = setTimeout(updateScrollButtons, 200);
     const rafId = requestAnimationFrame(() => {
@@ -221,7 +236,7 @@ export default function ScrollableGamesSection({
       clearTimeout(timer);
       cancelAnimationFrame(rafId);
     };
-  }, [games.length]);
+  }, [games.length, forceVerticalCovers]);
 
   if (games.length === 0) {
     return null;
@@ -240,15 +255,17 @@ export default function ScrollableGamesSection({
               title
             )}
           </h2>
-          <ScrollableGamesSectionNav
-            canScrollLeft={canScrollLeft}
-            canScrollRight={canScrollRight}
-            onScrollToFirst={scrollToFirst}
-            onScrollToLast={scrollToLast}
-          />
+          {!forceVerticalCovers && (
+            <ScrollableGamesSectionNav
+              canScrollLeft={canScrollLeft}
+              canScrollRight={canScrollRight}
+              onScrollToFirst={scrollToFirst}
+              onScrollToLast={scrollToLast}
+            />
+          )}
         </div>
       )}
-      {!showTitle && (
+      {!showTitle && !forceVerticalCovers && (
         <ScrollableGamesSectionNav
           canScrollLeft={canScrollLeft}
           canScrollRight={canScrollRight}
@@ -268,7 +285,8 @@ export default function ScrollableGamesSection({
           buildCoverUrl={buildCoverUrl}
           coverSize={coverSize}
           allCollections={allCollections}
-          enableVirtualization={false}
+          enableVirtualization={forceVerticalCovers}
+          forceSingleColumnVirtualized={forceVerticalCovers}
           allCollectionLikes={allCollectionLikes}
           collectionLikeResourceType={collectionLikeResourceType}
           sliderParentCollectionLikeId={sliderParentCollectionLikeId}

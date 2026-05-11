@@ -10,6 +10,7 @@ import { useCollectionHasPlayableGame } from "../common/hooks/useCollectionHasPl
 import VirtualizedCollectionsList from "./VirtualizedCollectionsList";
 import type { CollectionItem, CollectionInfo, GameItem } from "../../types";
 import { filterRootCollectionLikes } from "../../utils/stringUtils";
+import { useSkin } from "../../contexts/SkinContext";
 const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are more than this many items
 
 export type GamesPathType = "collections" | "developers" | "publishers";
@@ -194,6 +195,7 @@ export default function CollectionsList({
   scrollContainerRef,
 }: CollectionsListProps) {
   const { t } = useTranslation();
+  const { activeSkinWeb } = useSkin();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedCollection, setSelectedCollection] = useState<CollectionInfo | null>(null);
   const [linkSourceCollectionLike, setLinkSourceCollectionLike] = useState<CollectionItem | null>(null);
@@ -307,7 +309,9 @@ export default function CollectionsList({
   };
 
   // Use virtual scrolling for large lists
-  const useVirtualization = collections.length > VIRTUALIZATION_THRESHOLD;
+  const useVirtualization =
+    activeSkinWeb.verticalCoverAlignment ||
+    collections.length > VIRTUALIZATION_THRESHOLD;
 
   return (
     <>

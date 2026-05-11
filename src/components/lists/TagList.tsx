@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Cover from "../games/Cover";
 import type { TagItem } from "../../types";
+import { useSkin } from "../../contexts/SkinContext";
 type TagListProps = {
   items: TagItem[];
   coverSize?: number;
@@ -17,6 +18,7 @@ type TagListProps = {
 type TagListItemProps = {
   item: TagItem;
   coverSize: number;
+  forceVerticalAlignment?: boolean;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
   onItemEdit?: (item: TagItem) => void;
   getDisplayName?: (item: TagItem) => string;
@@ -27,6 +29,7 @@ type TagListItemProps = {
 function TagListItem({
   item,
   coverSize,
+  forceVerticalAlignment = false,
   itemRefs,
   onItemEdit,
   getDisplayName,
@@ -58,6 +61,14 @@ function TagListItem({
         }
       }}
       className="group cursor-pointer tag-list-item"
+      style={
+        forceVerticalAlignment
+          ? {
+              width: "min(var(--mhg-vertical-column-width), calc(100vw - 140px))",
+              minWidth: "min(var(--mhg-vertical-column-width), calc(100vw - 140px))",
+            }
+          : undefined
+      }
       onClick={handleClick}
     >
       <Cover
@@ -89,6 +100,8 @@ export default function TagList({
   emptyMessage,
 }: TagListProps) {
   const { t } = useTranslation();
+  const { activeSkinWeb } = useSkin();
+  const forceVerticalAlignment = activeSkinWeb.verticalCoverAlignment;
   
   if (items.length === 0) {
     return (
@@ -103,13 +116,30 @@ export default function TagList({
   return (
     <div
       className="tag-list-container"
-      style={{ ["--tag-list-cover-size" as string]: `${coverSize}px` } as CSSProperties}
+      style={
+        {
+          ["--tag-list-cover-size" as string]: `${coverSize}px`,
+          ...(forceVerticalAlignment
+            ? {
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                justifyContent: "flex-start",
+                marginLeft:
+                  "max(0px, calc(var(--mhg-active-library-icon-center-x, 180px) - (var(--mhg-vertical-column-width) / 2) + var(--mhg-vertical-column-shift-x, 0px)))",
+                marginRight: "auto",
+                gap: "20px",
+              }
+            : {}),
+        } as CSSProperties
+      }
     >
       {items.map((item) => (
         <TagListItem
           key={String(item.id)}
           item={item}
           coverSize={coverSize}
+          forceVerticalAlignment={forceVerticalAlignment}
           itemRefs={itemRefs}
           onItemEdit={onItemEdit}
           getDisplayName={getDisplayName}

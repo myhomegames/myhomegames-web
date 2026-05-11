@@ -44,24 +44,42 @@ type VirtualizedCollectionsListProps = {
 
 const DEFAULT_GAP = 40; // Fallback gap between items in grid
 const OVERSCAN_COUNT = 2; // Number of items to render outside visible area
-const DEFAULT_MIN_SIDE_GUTTER = 56; // Fallback left/right breathing space
+const DEFAULT_MIN_SIDE_GUTTER = 56; // Fallback breathing space (both sides)
 /** When the A-Z rail is shown, nudge the grid slightly left (fixed px, no width math). */
 const LEFT_GUTTER_TRIM_WHEN_ALPHABET_NAV = 8;
 
 /**
  * Resolve grid spacing from CSS custom properties so skins can override density:
- * `--vgrid-gap-half` (half of the inter-item gap) and `--vgrid-side-gutter`.
+ * `--vgrid-gap-half` (half of the inter-item gap) and side gutters:
+ * `--vgrid-side-gutter` (legacy, both sides), `--vgrid-side-gutter-left`, `--vgrid-side-gutter-right`.
  */
-function readGridSpacing(): { gap: number; minSideGutter: number } {
+function readGridSpacing(): {
+  gap: number;
+  minLeftGutter: number;
+  minRightGutter: number;
+  forceSingleColumn: boolean;
+} {
   if (typeof window === "undefined" || typeof document === "undefined") {
-    return { gap: DEFAULT_GAP, minSideGutter: DEFAULT_MIN_SIDE_GUTTER };
+    return {
+      gap: DEFAULT_GAP,
+      minLeftGutter: DEFAULT_MIN_SIDE_GUTTER,
+      minRightGutter: DEFAULT_MIN_SIDE_GUTTER,
+      forceSingleColumn: false,
+    };
   }
   const style = getComputedStyle(document.documentElement);
   const gapHalf = parseFloat(style.getPropertyValue("--vgrid-gap-half"));
-  const gutter = parseFloat(style.getPropertyValue("--vgrid-side-gutter"));
+  const fallbackGutter = parseFloat(style.getPropertyValue("--vgrid-side-gutter"));
+  const leftGutter = parseFloat(style.getPropertyValue("--vgrid-side-gutter-left"));
+  const rightGutter = parseFloat(style.getPropertyValue("--vgrid-side-gutter-right"));
+  const forceSingleColumn =
+    document.documentElement.getAttribute("data-mhg-vertical-cover-alignment") === "true";
+  const resolvedFallback = Number.isFinite(fallbackGutter) ? fallbackGutter : DEFAULT_MIN_SIDE_GUTTER;
   return {
     gap: Number.isFinite(gapHalf) ? gapHalf * 2 : DEFAULT_GAP,
-    minSideGutter: Number.isFinite(gutter) ? gutter : DEFAULT_MIN_SIDE_GUTTER,
+    minLeftGutter: Number.isFinite(leftGutter) ? leftGutter : resolvedFallback,
+    minRightGutter: Number.isFinite(rightGutter) ? rightGutter : resolvedFallback,
+    forceSingleColumn,
   };
 }
 
@@ -86,7 +104,12 @@ export default function VirtualizedCollectionsList({
   const [alphabetNavPresent, setAlphabetNavPresent] = useState(false);
   const [isScrollRestored, setIsScrollRestored] = useState(false);
   const [spacing, setSpacing] = useState(() => readGridSpacing());
-  const { gap: GAP, minSideGutter: MIN_SIDE_GUTTER } = spacing;
+  const {
+    gap: GAP,
+    minLeftGutter: MIN_LEFT_GUTTER,
+    minRightGutter: MIN_RIGHT_GUTTER,
+    forceSingleColumn: FORCE_SINGLE_COLUMN,
+  } = spacing;
   const { activeSkinId } = useSkin();
   useEffect(() => {
     setSpacing(readGridSpacing());
@@ -100,11 +123,12 @@ export default function VirtualizedCollectionsList({
 
   // Calculate column count based on container width
   const columnCount = useMemo(() => {
+    if (FORCE_SINGLE_COLUMN) return 1;
     if (dimensions.width === 0) return 1;
     const itemWidthWithGap = coverSize + GAP;
-    const usableWidth = Math.max(coverSize, dimensions.width - MIN_SIDE_GUTTER * 2);
+    const usableWidth = Math.max(coverSize, dimensions.width - MIN_LEFT_GUTTER - MIN_RIGHT_GUTTER);
     return Math.max(1, Math.floor((usableWidth + GAP) / itemWidthWithGap));
-  }, [dimensions.width, coverSize, GAP, MIN_SIDE_GUTTER]);
+  }, [FORCE_SINGLE_COLUMN, dimensions.width, coverSize, GAP, MIN_LEFT_GUTTER, MIN_RIGHT_GUTTER]);
 
   // Calculate row count
   const rowCount = useMemo(() => {
@@ -118,14 +142,25 @@ export default function VirtualizedCollectionsList({
     () => Math.max(itemWidth + GAP, columnCount * (itemWidth + GAP)),
     [columnCount, itemWidth, GAP]
   );
-  const horizontalGutter = useMemo(
-    () => Math.max(MIN_SIDE_GUTTER, Math.floor((dimensions.width - gridContentWidth) / 2)),
-    [dimensions.width, gridContentWidth, MIN_SIDE_GUTTER]
-  );
-  const leftGutter = Math.max(
-    alphabetNavPresent ? MIN_SIDE_GUTTER - LEFT_GUTTER_TRIM_WHEN_ALPHABET_NAV : MIN_SIDE_GUTTER,
-    horizontalGutter - (alphabetNavPresent ? LEFT_GUTTER_TRIM_WHEN_ALPHABET_NAV : 0)
-  );
+  const { leftGutter, rightGutter } = useMemo(() => {
+    const remainingWidth = Math.max(
+      0,
+      dimensions.width - gridContentWidth - MIN_LEFT_GUTTER - MIN_RIGHT_GUTTER
+    );
+    const baseLeft = MIN_LEFT_GUTTER + Math.floor(remainingWidth / 2);
+    const baseRight = MIN_RIGHT_GUTTER + Math.ceil(remainingWidth / 2);
+    const trim = alphabetNavPresent ? LEFT_GUTTER_TRIM_WHEN_ALPHABET_NAV : 0;
+    return {
+      leftGutter: Math.max(MIN_LEFT_GUTTER - trim, baseLeft - trim),
+      rightGutter: baseRight,
+    };
+  }, [
+    dimensions.width,
+    gridContentWidth,
+    MIN_LEFT_GUTTER,
+    MIN_RIGHT_GUTTER,
+    alphabetNavPresent,
+  ]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -398,7 +433,7 @@ export default function VirtualizedCollectionsList({
       className={`virtualized-list-fade${isScrollRestored ? " virtualized-list-fade--ready" : ""}`}
       style={{
         paddingLeft: `${leftGutter}px`,
-        paddingRight: `${horizontalGutter}px`,
+        paddingRight: `${rightGutter}px`,
         boxSizing: "border-box",
       }}
     >

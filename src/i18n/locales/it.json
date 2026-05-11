@@ -16,7 +16,8 @@
     "sidebarSearch": "Ricerca",
     "ownedGames": "I miei giochi",
     "installedGames": "Installati",
-    "gamesSidebar": "Giochi"
+    "gamesSidebar": "Giochi",
+    "topRightToolDock": "Strumenti"
   },
   "settings": {
     "title": "Impostazioni",
@@ -81,11 +82,15 @@
         "persistentLibraryShell": "Guscio libreria persistente (header e sidebar sempre presenti)",
         "collectionsShortcutList": "Scorciatoie delle collezioni nella sidebar",
         "libraryPagesVerticalList": "Schede della libreria come elenco verticale",
+        "libraryHoverSelect": "Cambia sezione libreria al passaggio del mouse (senza click)",
+        "libraryBarHeaderActions": "Sposta azioni header nella libraries bar",
+        "topRightToolDock": "Fascia strumenti sopra la strip delle librerie; la strip delle icone resta sotto",
         "headerTitleFilter": "Filtro per titolo nell'header (al posto della ricerca globale)",
         "disableAlphabetNavigator": "Nascondi il navigatore A–Z laterale",
         "sidebarSearchPopup": "Popup di ricerca nella sidebar",
         "ownedGamesFirstInGamesSidebar": "\"I miei giochi\" in cima al menu Giochi",
-        "compactCollectionLikeDetail": "Dettaglio collezioni sintetico (nasconde hero e intestazioni)"
+        "compactCollectionLikeDetail": "Dettaglio collezioni sintetico (nasconde hero e intestazioni)",
+        "verticalCoverAlignment": "Allineamento cover verticale"
       }
     }
   },

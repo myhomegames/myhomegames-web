@@ -1,4 +1,6 @@
 import { useState, useLayoutEffect, useRef, useMemo, useEffect } from "react";
+import type { ReactNode } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useLoading } from "../../contexts/LoadingContext";
 import CoverSizeSlider from "../ui/CoverSizeSlider";
@@ -13,12 +15,87 @@ import { useSkin } from "../../contexts/SkinContext";
 import { useLibraryGames } from "../../contexts/LibraryGamesContext";
 import type { ViewMode, GameLibrarySection, GameItem, CollectionItem } from "../../types";
 import SidebarSearchOverlay from "./SidebarSearchOverlay";
-import "./LibrariesBar.css";
+import Logo from "../common/Logo";
+import ActivitySpinner from "./ActivitySpinner";
 
 type CollectionShortcut = {
   id: string;
   title: string;
 };
+
+/** `overflow-y` that establishes a vertical scrollport (not `visible` / clip quirks). */
+function isVerticalScrollport(el: HTMLElement): boolean {
+  const oy = getComputedStyle(el).overflowY;
+  if (oy !== "auto" && oy !== "scroll") return false;
+  return el.scrollHeight > el.clientHeight + 2;
+}
+
+function scrollOverflowRange(el: HTMLElement): number {
+  return Math.max(0, el.scrollHeight - el.clientHeight);
+}
+
+/** Nesting depth from `el` up to `root` (exclusive); `root` → 0. */
+function depthUnderRoot(el: HTMLElement, root: HTMLElement): number {
+  let d = 0;
+  let n: HTMLElement | null = el;
+  while (n && n !== root) {
+    d++;
+    n = n.parentElement;
+  }
+  return n === root ? d : -1;
+}
+
+/**
+ * Main list pages use `.home-page-scroll-container`; with vertical covers the *list rail* often
+ * scrolls on an inner element. Prefer the scrollport with the largest overflow range, then the
+ * deeper node so we do not move a shallow “page” strip while the cover column stays stuck.
+ */
+function pickWheelScrollTarget(): HTMLElement | null {
+  if (typeof document === "undefined") return null;
+  const outer =
+    document.querySelector<HTMLElement>("#root .home-page-main-container .home-page-scroll-container") ??
+    document.querySelector<HTMLElement>("#root .home-page-scroll-container");
+  if (!outer) return null;
+
+  const candidates = new Set<HTMLElement>([outer]);
+
+  const pageRoot = outer.closest(".mhg-vertical-covers-page, .mhg-library-vertical-covers");
+  if (pageRoot) {
+    for (const el of pageRoot.querySelectorAll<HTMLElement>(
+      ".virtualized-list-fade, .games-list-container:not(.games-list-container--virtualized)"
+    )) {
+      if (outer.contains(el)) candidates.add(el);
+    }
+  }
+
+  const innerSelectors = [
+    ".games-table-scroll",
+    ".scrollable-section-scroll",
+    ".virtualized-list-fade",
+    ".collections-list-container--virtualized .virtualized-list-fade",
+  ];
+  for (const sel of innerSelectors) {
+    outer.querySelectorAll<HTMLElement>(sel).forEach((el) => candidates.add(el));
+  }
+
+  for (const el of outer.querySelectorAll<HTMLElement>("div[style]")) {
+    if (/overflow\s*:\s*(auto|scroll)/i.test(el.getAttribute("style") ?? "")) {
+      candidates.add(el);
+    }
+  }
+
+  const scrollports = [...candidates].filter(isVerticalScrollport);
+  if (scrollports.length === 0) return outer;
+
+  scrollports.sort((a, b) => {
+    const ra = scrollOverflowRange(a);
+    const rb = scrollOverflowRange(b);
+    if (Math.abs(ra - rb) > 48) return rb - ra;
+    return depthUnderRoot(b, outer) - depthUnderRoot(a, outer);
+  });
+
+  return scrollports[0] ?? outer;
+}
 
 /** `<option>` value prefix for collection shortcuts (avoids collisions with `library.key`). */
 const COMBOBOX_COLLECTION_SHORTCUT_PREFIX = "mhg:collection:";
@@ -37,6 +114,8 @@ type LibrariesBarProps = {
   onViewModeChange?: (mode: ViewMode) => void;
   hideBackgroundToggle?: boolean;
   onReloadMetadata?: () => Promise<void>;
+  /** Opens Add Game modal from shell/header flow when available. */
+  onAddGameClick?: () => void;
   /** When true, show an icon toggle to include/exclude new (IGDB) games in tag lists */
   showNewGamesToggle?: boolean;
   showNewGames?: boolean;
@@ -56,6 +135,10 @@ type LibrariesBarProps = {
   sidebarSearchPublishers?: CollectionItem[];
   onSidebarSearchGameSelect?: (game: GameItem) => void;
   onSidebarSearchPlay?: (game: GameItem) => void;
+  /** Optional controls rendered in the icon cluster before MainGamesToggle. */
+  rightActionsBeforeMainGames?: ReactNode;
+  /** Optional extra controls rendered in the right actions area. */
+  rightActions?: ReactNode;
 };
 
 export default function LibrariesBar({
@@ -70,6 +153,7 @@ export default function LibrariesBar({
   onViewModeChange,
   hideBackgroundToggle = false,
   onReloadMetadata,
+  onAddGameClick,
   showNewGamesToggle = false,
   showNewGames = false,
   onShowNewGamesChange,
@@ -86,8 +170,12 @@ export default function LibrariesBar({
   sidebarSearchPublishers = [],
   onSidebarSearchGameSelect,
   onSidebarSearchPlay,
+  rightActionsBeforeMainGames,
+  rightActions,
 }: LibrariesBarProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { activeSkinWeb } = useSkin();
   const { games: libraryGamesAll } = useLibraryGames();
   const libraryGamesCount = libraryGamesAll.length;
@@ -432,10 +520,26 @@ export default function LibrariesBar({
     }
   };
 
+  const hoverSelectEnabled = activeSkinWeb.libraryHoverSelect;
+
+  const handleLibraryHoverSelect = (library: GameLibrarySection) => {
+    if (!hoverSelectEnabled) return;
+    if (activeLibrary?.key === library.key) return;
+    onSelectLibrary(library);
+  };
+
+  const handleCollectionShortcutHoverSelect = (collectionId: string) => {
+    if (!hoverSelectEnabled) return;
+    if (!onSelectCollectionShortcut) return;
+    if (activeCollectionShortcutId === collectionId) return;
+    onSelectCollectionShortcut(collectionId);
+  };
+
   const showIconCluster =
     (hasBackground && !hideBackgroundToggle) ||
+    !!rightActionsBeforeMainGames ||
     (showNewGamesToggle && !!onShowNewGamesChange) ||
-    (showMainGamesToggle && !!onMainGamesOnlyChange);
+    (showMainGamesToggle && !!onMainGamesOnlyChange && !activeSkinWeb.topRightToolDock);
 
   const showSidebarSearchPopup =
     activeSkinWeb.sidebarSearchPopup &&
@@ -446,9 +550,67 @@ export default function LibrariesBar({
   /* On /collections/:id, highlight only the collection, not a “page” tab as well */
   const showLibraryActiveHighlight = activeCollectionShortcutId == null;
 
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") return;
+    const updateActiveIconLine = () => {
+      const containerEl = containerRef.current;
+      if (!containerEl) return;
+      const activeButton = containerEl.querySelector(".mhg-library-active") as HTMLElement | null;
+      if (!activeButton) return;
+      const rect = activeButton.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      document.documentElement.style.setProperty("--mhg-active-library-icon-center-x", `${centerX}px`);
+    };
+    updateActiveIconLine();
+    const onResize = () => updateActiveIconLine();
+    window.addEventListener("resize", onResize);
+    const t = window.setTimeout(updateActiveIconLine, 60);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      window.clearTimeout(t);
+    };
+  }, [pathname, activeLibrary?.key, activeCollectionShortcutId, libraries.length]);
+
+  useEffect(() => {
+    if (!activeSkinWeb.verticalCoverAlignment) return;
+    const strip = containerRef.current;
+    if (!strip) return;
+
+    const onWheel = (e: WheelEvent) => {
+      if (!strip.contains(e.target as Node)) return;
+      const el = e.target as Element | null;
+      if (el?.closest?.(".dropdown-menu-popup")) return;
+      if (el?.closest?.("input[type=range], textarea, [contenteditable=true]")) return;
+
+      const libRow = strip.querySelector<HTMLElement>(".mhg-libraries-container");
+      if (
+        libRow &&
+        Math.abs(e.deltaX) > Math.abs(e.deltaY) &&
+        libRow.scrollWidth > libRow.clientWidth + 1
+      ) {
+        return;
+      }
+
+      const mainScroll = pickWheelScrollTarget();
+      if (!mainScroll) return;
+
+      e.preventDefault();
+      mainScroll.scrollTop += e.deltaY;
+    };
+
+    strip.addEventListener("wheel", onWheel, { passive: false });
+    return () => strip.removeEventListener("wheel", onWheel);
+  }, [activeSkinWeb.verticalCoverAlignment]);
+
   /** Top-strip layout only; full sidebars (e.g. GOG) ship column layout in skin CSS. */
   const verticalPageTabsLayout =
     activeSkinWeb.libraryPagesVerticalList && !activeSkinWeb.persistentLibraryShell;
+  const showHeaderActionsInLibrariesBar = activeSkinWeb.libraryBarHeaderActions;
+  const topRightToolDock = activeSkinWeb.topRightToolDock;
+  const showAddGameInLibrariesBar = showHeaderActionsInLibrariesBar;
+  const isAddGameRoute = pathname === "/add-game";
+  const isSettingsRoute = pathname === "/settings";
+  const isProfileRoute = pathname === "/profile";
 
   return (
     <div
@@ -458,13 +620,75 @@ export default function LibrariesBar({
       ]
         .filter(Boolean)
         .join(" ")}
-      {...(activeSkinWeb.libraryPagesVerticalList
-        ? { "data-mhg-library-pages-vertical-list": "true" }
-        : {})}
+      {...{
+        ...(activeSkinWeb.libraryPagesVerticalList
+          ? { "data-mhg-library-pages-vertical-list": "true" }
+          : {}),
+        ...(showHeaderActionsInLibrariesBar
+          ? { "data-mhg-library-bar-header-actions": "true" }
+          : {}),
+        ...(topRightToolDock ? { "data-mhg-top-right-tool-dock": "true" } : {}),
+      }}
     >
+      {topRightToolDock && (
+        <div
+          className="mhg-top-right-tool-dock"
+          role="toolbar"
+          aria-label={t("libraries.topRightToolDock", "Top tools")}
+        >
+          <div className="mhg-top-right-tool-dock-inner">
+            <button
+              type="button"
+              className="mhg-top-right-tool-dock-logo mhg-logo-button"
+              onClick={() => navigate("/")}
+              aria-label={t("header.home")}
+            >
+              <Logo />
+            </button>
+            <ActivitySpinner
+              isLoading={globalLoading}
+              className="mhg-top-right-tool-dock-activity-spinner"
+            />
+            {onViewModeChange && (
+              <div className="mhg-top-right-tool-dock-view mhg-libraries-actions-view-mode-container">
+                <ViewModeSelector
+                  value={viewMode}
+                  onChange={onViewModeChange}
+                  disabled={!activeLibrary || activeLibrary.key !== "library"}
+                />
+              </div>
+            )}
+            {onCoverSizeChange && (
+              <div
+                className={`mhg-top-right-tool-dock-slider mhg-libraries-actions-slider-container ${
+                  viewMode === "grid" ? "" : "hidden"
+                }`}
+              >
+                <CoverSizeSlider value={coverSize} onChange={onCoverSizeChange} />
+              </div>
+            )}
+            {showMainGamesToggle && onMainGamesOnlyChange && (
+              <div className="mhg-top-right-tool-dock-main-games mhg-libraries-actions-main-games-container">
+                <MainGamesToggle
+                  mainGamesOnly={mainGamesOnly}
+                  onChange={onMainGamesOnlyChange}
+                />
+              </div>
+            )}
+            {API_BASE && getApiToken() && (
+              <div className="mhg-top-right-tool-dock-menu">
+                <DropdownMenu
+                  className="mhg-libraries-menu-dropdown mhg-top-right-tool-dock-menu-dropdown"
+                  onReload={onReloadMetadata}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       <div className="mhg-libraries-bar-container" ref={containerRef}>
-        {/* Menu dropdown bottom-left */}
-        {API_BASE && getApiToken() && (
+        {/* Menu dropdown bottom-left (hidden when using fixed top-right dock) */}
+        {!topRightToolDock && API_BASE && getApiToken() && (
           <div className="mhg-libraries-menu-container">
             <DropdownMenu
               className="mhg-libraries-menu-dropdown"
@@ -561,6 +785,7 @@ export default function LibrariesBar({
                         setCurrentLibraryFilterField("all");
                         onSelectLibrary(libraryForGamesSidebar);
                       }}
+                      onMouseEnter={() => handleLibraryHoverSelect(libraryForGamesSidebar)}
                     >
                       <span className="mhg-library-button-label min-w-0 flex-1 truncate">
                         {t("libraries.ownedGames")}
@@ -590,6 +815,7 @@ export default function LibrariesBar({
                         setCurrentLibraryFilterField("installed");
                         onSelectLibrary(libraryForGamesSidebar);
                       }}
+                      onMouseEnter={() => handleLibraryHoverSelect(libraryForGamesSidebar)}
                     >
                       <span className="mhg-library-button-label min-w-0 flex-1 truncate">
                         {t("libraries.installedGames")}
@@ -612,6 +838,7 @@ export default function LibrariesBar({
                           : ""
                       }`}
                       onClick={() => onSelectLibrary(s)}
+                      onMouseEnter={() => handleLibraryHoverSelect(s)}
                     >
                       <span className="mhg-library-button-label min-w-0 flex-1 truncate">
                         {s.title || t(`libraries.${s.key}`)}
@@ -619,9 +846,58 @@ export default function LibrariesBar({
                     </button>
                   ))
                 )}
+                {showAddGameInLibrariesBar && (
+                  <button
+                    type="button"
+                    data-mhg-library-key="mhg-header-add-game"
+                    className={`mhg-library-button flex min-w-0 items-center gap-2 text-left ${
+                      isAddGameRoute ? "mhg-library-active" : ""
+                    }`}
+                    onClick={() => {
+                      if (onAddGameClick) {
+                        onAddGameClick();
+                      } else {
+                        navigate("/add-game");
+                      }
+                    }}
+                  >
+                    <span className="mhg-library-button-label min-w-0 flex-1 truncate">
+                      {t("header.addGame")}
+                    </span>
+                  </button>
+                )}
+                {showHeaderActionsInLibrariesBar && (
+                  <button
+                    type="button"
+                    data-mhg-library-key="mhg-header-settings"
+                    className={`mhg-library-button flex min-w-0 items-center gap-2 text-left ${
+                      isSettingsRoute ? "mhg-library-active" : ""
+                    }`}
+                    onClick={() => navigate("/settings")}
+                  >
+                    <span className="mhg-library-button-label min-w-0 flex-1 truncate">
+                      {t("header.settings")}
+                    </span>
+                  </button>
+                )}
+                {showHeaderActionsInLibrariesBar && (
+                  <button
+                    type="button"
+                    data-mhg-library-key="mhg-header-profile"
+                    className={`mhg-library-button flex min-w-0 items-center gap-2 text-left ${
+                      isProfileRoute ? "mhg-library-active" : ""
+                    }`}
+                    onClick={() => navigate("/profile")}
+                  >
+                    <span className="mhg-library-button-label min-w-0 flex-1 truncate">
+                      {t("header.profile")}
+                    </span>
+                  </button>
+                )}
                 {showSidebarSearchPopup && (
                   <button
                     type="button"
+                    data-mhg-library-key="mhg-header-search"
                     data-mhg-sidebar-action="search"
                     className={`mhg-library-button mhg-sidebar-search-trigger flex min-w-0 items-center gap-2 text-left ${
                       sidebarSearchOpen ? "mhg-sidebar-search-trigger--open" : ""
@@ -698,6 +974,7 @@ export default function LibrariesBar({
                                 setCurrentLibraryFilterField("all");
                                 onSelectLibrary(libraryForGamesSidebar);
                               }}
+                              onMouseEnter={() => handleLibraryHoverSelect(libraryForGamesSidebar)}
                             >
                               <span className="mhg-library-button-label min-w-0 flex-1 truncate">
                                 {t("libraries.ownedGames")}
@@ -733,6 +1010,7 @@ export default function LibrariesBar({
                                 setCurrentLibraryFilterField("installed");
                                 onSelectLibrary(libraryForGamesSidebar);
                               }}
+                              onMouseEnter={() => handleLibraryHoverSelect(libraryForGamesSidebar)}
                             >
                               <span className="mhg-library-button-label min-w-0 flex-1 truncate">
                                 {t("libraries.installedGames")}
@@ -760,6 +1038,9 @@ export default function LibrariesBar({
                                     : ""
                                 }`}
                                 onClick={() => onSelectCollectionShortcut(collection.id)}
+                                onMouseEnter={() =>
+                                  handleCollectionShortcutHoverSelect(collection.id)
+                                }
                                 title={collection.title}
                               >
                                 <span className="min-w-0 flex-1 truncate">{collection.title}</span>
@@ -795,7 +1076,12 @@ export default function LibrariesBar({
                   />
                 </div>
               )}
-              {showMainGamesToggle && onMainGamesOnlyChange && (
+              {rightActionsBeforeMainGames ? (
+                <div className="mhg-libraries-actions-before-main-games">
+                  {rightActionsBeforeMainGames}
+                </div>
+              ) : null}
+              {showMainGamesToggle && onMainGamesOnlyChange && !topRightToolDock && (
                 <div className="mhg-libraries-actions-main-games-container">
                   <MainGamesToggle
                     mainGamesOnly={mainGamesOnly}
@@ -805,7 +1091,7 @@ export default function LibrariesBar({
               )}
             </div>
           ) : null}
-          {onCoverSizeChange && (
+          {!topRightToolDock && onCoverSizeChange && (
             <div
               className={`mhg-libraries-actions-slider-container ${
                 viewMode === "grid" ? "" : "hidden"
@@ -814,15 +1100,20 @@ export default function LibrariesBar({
               <CoverSizeSlider value={coverSize} onChange={onCoverSizeChange} />
             </div>
           )}
-          {onViewModeChange && (
+          {!topRightToolDock && onViewModeChange && (
             <div className="mhg-libraries-actions-view-mode-container">
-              <ViewModeSelector 
-                value={viewMode} 
+              <ViewModeSelector
+                value={viewMode}
                 onChange={onViewModeChange}
                 disabled={!activeLibrary || activeLibrary.key !== "library"}
               />
             </div>
           )}
+          {rightActions ? (
+            <div className="mhg-libraries-actions-right-extra">
+              {rightActions}
+            </div>
+          ) : null}
         </div>
       </div>
       {showSidebarSearchPopup && (

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useLayoutEffect } from "react";
+import type { ReactNode } from "react";
 import { useParams, useNavigate, useLocation, useOutletContext } from "react-router-dom";
 import type { MainAppOutletContext } from "../layouts/MainAppLayout";
 import { useTranslation } from "react-i18next";
@@ -24,6 +25,8 @@ import AddCollectionLikeToCollectionLikeModal from "../components/collections/Ad
 import DropdownMenu from "../components/common/DropdownMenu";
 import Tooltip from "../components/common/Tooltip";
 import BackgroundManager, { useBackground } from "../components/common/BackgroundManager";
+import BackgroundToggle from "../components/ui/BackgroundToggle";
+import NewGamesToggle from "../components/ui/NewGamesToggle";
 import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
 import { compareTitles } from "../utils/stringUtils";
 import { titleMatchesFilter } from "../utils/titleFilter";
@@ -1008,6 +1011,8 @@ export default function LibraryItemDetailPage({
         onMainGamesOnlyChange={setMainGamesOnly}
         collectionDragEnabled={resourceType === "collections" && !mainGamesOnly && !titleFilterActive}
         onAfterDeleteSelfNavigate={goBackOrHome}
+        setTopBarBeforeMainGamesActions={outletContext?.setTopBarBeforeMainGamesActions}
+        setTopBarRightActions={outletContext?.setTopBarRightActions}
       />
     </BackgroundManager>
   );
@@ -1068,6 +1073,8 @@ type LibraryItemDetailContentProps = {
   collectionDragEnabled: boolean;
   /** After deleting this collection/developer/publisher from the menu, leave the page (back or home). */
   onAfterDeleteSelfNavigate: () => void;
+  setTopBarBeforeMainGamesActions?: (value: ReactNode | null) => void;
+  setTopBarRightActions?: (value: ReactNode | null) => void;
 };
 
 function LibraryItemDetailContent({
@@ -1123,8 +1130,10 @@ function LibraryItemDetailContent({
   onMainGamesOnlyChange,
   collectionDragEnabled,
   onAfterDeleteSelfNavigate,
+  setTopBarBeforeMainGamesActions,
+  setTopBarRightActions,
 }: LibraryItemDetailContentProps) {
-  const { hasBackground, isBackgroundVisible } = useBackground();
+  const { hasBackground, isBackgroundVisible, setBackgroundVisible } = useBackground();
   const { isLoading } = useLoading();
   const { activeSkinWeb } = useSkin();
   /*
@@ -1148,6 +1157,130 @@ function LibraryItemDetailContent({
 
   const isCollection = resourceType === "collections";
   const showDeleteInMenu = resourceType === "developers" || resourceType === "publishers";
+  const showCompactTopActions = compactDetail && !!item && (isCollection || showDeleteInMenu);
+  const showTopBarBackgroundAction =
+    isCollection && hasBackground && (compactDetail || activeSkinWeb.persistentLibraryShell);
+  const compactBackgroundAction = useMemo(
+    () =>
+      showTopBarBackgroundAction ? (
+        <Tooltip text={isBackgroundVisible ? t("common.hideBackground") : t("common.showBackground")} delay={200}>
+          <div className="library-item-detail-compact-top-action">
+            <BackgroundToggle isVisible={isBackgroundVisible} onChange={setBackgroundVisible} />
+          </div>
+        </Tooltip>
+      ) : null,
+    [showTopBarBackgroundAction, isBackgroundVisible, setBackgroundVisible, t]
+  );
+  const showTopBarNewGamesAction =
+    activeSkinWeb.persistentLibraryShell && showNewGamesToggle && viewMode === "grid";
+  const beforeMainGamesTopActions = useMemo(
+    () => {
+      const hasBg = Boolean(compactBackgroundAction);
+      const hasNew = Boolean(showTopBarNewGamesAction && onShowNewGamesChange);
+      if (!hasBg && !hasNew) return null;
+      return (
+        <>
+          {compactBackgroundAction}
+          {hasNew ? (
+            <div className="library-item-detail-compact-top-action">
+              <NewGamesToggle
+                showNewGames={showNewGames}
+                onChange={onShowNewGamesChange!}
+              />
+            </div>
+          ) : null}
+        </>
+      );
+    },
+    [
+      compactBackgroundAction,
+      showTopBarNewGamesAction,
+      onShowNewGamesChange,
+      showNewGames,
+    ]
+  );
+  const compactTopActions = useMemo(
+    () =>
+      showCompactTopActions ? (
+        <>
+          <Tooltip text={t("common.edit")} delay={200}>
+            <button
+              onClick={onEditModalOpen}
+              className="library-item-detail-edit-button library-item-detail-compact-top-action"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </button>
+          </Tooltip>
+          <DropdownMenu
+            collectionId={isCollection ? item.id : undefined}
+            collectionTitle={item.title}
+            developerId={resourceType === "developers" ? item.id : undefined}
+            publisherId={resourceType === "publishers" ? item.id : undefined}
+            onCollectionDelete={(deletedId: string) => {
+              if (item.id === deletedId) onAfterDeleteSelfNavigate();
+            }}
+            onCollectionUpdate={onItemUpdate}
+            onAddToCollection={(parentId) =>
+              addChildToParent(
+                {
+                  id: item.id,
+                  title: item.title,
+                  summary: item.summary,
+                  cover: item.cover,
+                  background: item.background,
+                  showTitle: item.showTitle,
+                  childs: item.childs || [],
+                },
+                parentId
+              )
+            }
+            sourceCollectionLike={{
+              id: item.id,
+              title: item.title,
+              summary: item.summary,
+              cover: item.cover,
+              background: item.background,
+              showTitle: item.showTitle,
+              childs: item.childs || [],
+            }}
+            allCollectionLikes={allCollectionLikes}
+            collectionLikeResourceType={resourceType}
+            onDelete={showDeleteInMenu ? onDeleteClick : undefined}
+            horizontal={true}
+            className="library-item-detail-dropdown-menu library-item-detail-compact-top-action"
+            toolTipDelay={200}
+          />
+        </>
+      ) : null,
+    [
+      showCompactTopActions,
+      t,
+      onEditModalOpen,
+      isCollection,
+      item,
+      resourceType,
+      onAfterDeleteSelfNavigate,
+      onItemUpdate,
+      addChildToParent,
+      allCollectionLikes,
+      showDeleteInMenu,
+      onDeleteClick,
+    ]
+  );
+
+  useEffect(() => {
+    if (!setTopBarRightActions) return;
+    setTopBarRightActions(compactTopActions);
+    return () => setTopBarRightActions(null);
+  }, [setTopBarRightActions, compactTopActions]);
+  useEffect(() => {
+    if (!setTopBarBeforeMainGamesActions) return;
+    setTopBarBeforeMainGamesActions(beforeMainGamesTopActions);
+    return () => setTopBarBeforeMainGamesActions(null);
+  }, [setTopBarBeforeMainGamesActions, beforeMainGamesTopActions]);
   const [editingChild, setEditingChild] = useState<CollectionInfo | null>(null);
   const [isEditChildModalOpen, setIsEditChildModalOpen] = useState(false);
   const [linkSourceCollectionLike, setLinkSourceCollectionLike] = useState<CollectionItem | null>(null);
@@ -1194,6 +1327,67 @@ function LibraryItemDetailContent({
     () => subCollectionLikes.filter((c) => titleMatchesFilter(c.title, titleFilterQuery)),
     [subCollectionLikes, titleFilterQuery]
   );
+  const singleSubTitleFilterActive = titleFilterQuery.trim().length > 0;
+  const singleSubCollectionId =
+    subCollectionLikes.length === 1 ? String(subCollectionLikes[0].id) : null;
+  const singleSubCollectionDragEnabled =
+    resourceType === "collections" && !mainGamesOnly && !singleSubTitleFilterActive && !!singleSubCollectionId;
+
+  const handleSingleSubCollectionGameUpdate = (updatedGame: GameItem) => {
+    setSingleSubCollectionGames((prev) =>
+      prev.map((g) => (String(g.id) === String(updatedGame.id) ? updatedGame : g))
+    );
+    window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
+  };
+
+  const handleSingleSubCollectionGameDelete = (deletedGame: GameItem) => {
+    setSingleSubCollectionGames((prev) =>
+      prev.filter((g) => String(g.id) !== String(deletedGame.id))
+    );
+  };
+
+  const handleSingleSubCollectionRemoveFromCollection = (gameId: string) => {
+    setSingleSubCollectionGames((prev) => prev.filter((g) => String(g.id) !== String(gameId)));
+  };
+
+  const handleSingleSubCollectionDragEnd = async (
+    sourceIndex: number,
+    destinationIndex: number
+  ) => {
+    if (sourceIndex === destinationIndex || !singleSubCollectionId) return;
+    const newGames = [...singleSubCollectionGames];
+    const [removed] = newGames.splice(sourceIndex, 1);
+    newGames.splice(destinationIndex, 0, removed);
+    setSingleSubCollectionGames(newGames);
+    try {
+      const url = buildApiUrl(
+        API_BASE,
+        `/collections/${encodeURIComponent(singleSubCollectionId)}/games/order`
+      );
+      const res = await fetch(url, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "X-Auth-Token": getApiToken() },
+        body: JSON.stringify({ gameIds: newGames.map((g) => g.id) }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    } catch {
+      try {
+        const url = buildApiUrl(
+          API_BASE,
+          `/collections/${encodeURIComponent(singleSubCollectionId)}/games`
+        );
+        const res = await fetch(url, {
+          headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
+        });
+        if (res.ok) {
+          const json = await res.json();
+          setSingleSubCollectionGames(parseGamesFromJson(json));
+        }
+      } catch {
+        // ignore
+      }
+    }
+  };
 
   const parentCollectionLikesWithGamesForDisplay = useMemo(
     // Title filter must affect only the current collection-like scope (its children and games),
@@ -1558,7 +1752,7 @@ function LibraryItemDetailContent({
     }
   };
 
-  const addChildToParent = async (source: CollectionItem, parentId?: string) => {
+  async function addChildToParent(source: CollectionItem, parentId?: string) {
     if (!parentId) {
       setLinkSourceCollectionLike(source);
       return;
@@ -1591,7 +1785,7 @@ function LibraryItemDetailContent({
     } catch (err) {
       console.error("Error adding child to parent:", err);
     }
-  };
+  }
 
   return (
     <>
@@ -1612,9 +1806,10 @@ function LibraryItemDetailContent({
           showNewGames={showNewGames}
           onShowNewGamesChange={onShowNewGamesChange ?? (() => {})}
           showNewGamesLabel={showNewGamesLabel}
-          showMainGamesToggle={(viewMode === "grid" || viewMode === "detail") && sortedGames.length > 0}
+          showMainGamesToggle={viewMode === "grid" && sortedGames.length > 0}
           mainGamesOnly={mainGamesOnly}
           onMainGamesOnlyChange={onMainGamesOnlyChange}
+        rightActions={compactTopActions}
         />
       </div>
       <div className="library-item-detail-page-shell">
@@ -1788,6 +1983,54 @@ function LibraryItemDetailContent({
                       </div>
                     </div>
                   )}
+                  {item && compactDetail && (
+                    <EditCollectionLikeModal
+                      isOpen={isEditModalOpen}
+                      onClose={onEditModalClose}
+                      resourceType={resourceType}
+                      item={item}
+                      onItemUpdate={onItemUpdate}
+                    />
+                  )}
+                  {showDeleteModal && item && compactDetail && (
+                    <div
+                      className="dropdown-menu-confirm-overlay"
+                      onClick={() => onCloseDeleteModal?.()}
+                    >
+                      <div className="dropdown-menu-confirm-container" onClick={(e) => e.stopPropagation()}>
+                        <div className="dropdown-menu-confirm-header">
+                          <h2>{t("common.deleteTitle", "Delete")}</h2>
+                          <button
+                            className="dropdown-menu-confirm-close"
+                            onClick={onCloseDeleteModal}
+                            aria-label="Close"
+                          >
+                            ×
+                          </button>
+                        </div>
+                        <div className="dropdown-menu-confirm-content">
+                          <p>{t("common.confirmDelete", { title: item.title })}</p>
+                          {deleteError && <div className="dropdown-menu-confirm-error">{deleteError}</div>}
+                        </div>
+                        <div className="dropdown-menu-confirm-footer">
+                          <button
+                            className="dropdown-menu-confirm-cancel"
+                            onClick={onCloseDeleteModal}
+                            disabled={isDeleting}
+                          >
+                            {t("common.cancel", "Cancel")}
+                          </button>
+                          <button
+                            className="dropdown-menu-confirm-delete"
+                            onClick={onConfirmDelete}
+                            disabled={isDeleting}
+                          >
+                            {isDeleting ? t("common.deleting", "Deleting...") : t("common.delete", "Delete")}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {!isLoading && (
                     <div className="library-item-detail-section-full">
@@ -1829,14 +2072,21 @@ function LibraryItemDetailContent({
                                   }
                                 }}
                                 onPlay={onPlay}
-                                onGameUpdate={onGameUpdate}
-                                onGameDelete={onGameDelete}
+                                onGameUpdate={handleSingleSubCollectionGameUpdate}
+                                onGameDelete={handleSingleSubCollectionGameDelete}
                                 buildCoverUrl={buildCoverUrl}
                                 coverCacheBustTimestamp={listLoadTimestamp}
                                 coverSize={coverSize}
                                 itemRefs={itemRefs}
-                                draggable={false}
+                                draggable={singleSubCollectionDragEnabled}
+                                onDragEnd={
+                                  singleSubCollectionDragEnabled
+                                    ? handleSingleSubCollectionDragEnd
+                                    : undefined
+                                }
                                 allCollections={isCollection ? allCollections : undefined}
+                                collectionId={singleSubCollectionId ?? undefined}
+                                onRemoveFromCollection={handleSingleSubCollectionRemoveFromCollection}
                               />
                             </div>
                           ) : (

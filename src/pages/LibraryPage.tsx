@@ -62,10 +62,18 @@ export default function LibraryPage({
   }, [onGamesLoaded]);
 
   const hasAlphabetNav =
-    hook.sortField === "title" && hook.isReady && !activeSkinWeb.disableAlphabetNavigator;
+    hook.sortField === "title" &&
+    hook.isReady &&
+    !activeSkinWeb.disableAlphabetNavigator &&
+    !activeSkinWeb.verticalCoverAlignment;
+  const disableGridVirtualization = false;
 
   return (
-    <main className="flex-1 home-page-content">
+    <main
+      className={`flex-1 home-page-content${
+        activeSkinWeb.verticalCoverAlignment ? " mhg-library-vertical-covers" : ""
+      }`}
+    >
       <div className={`home-page-layout${hasAlphabetNav ? " has-alphabet-nav" : ""}`}>
         <GamesListPageContent
           hook={hook}
@@ -78,6 +86,8 @@ export default function LibraryPage({
           onGamesLoaded={handleGamesLoaded}
           onPlay={onPlay}
           buildCoverUrlFn={buildCoverUrl}
+          disableGridVirtualization={disableGridVirtualization}
+          forceSingleColumnGrid={activeSkinWeb.verticalCoverAlignment}
         />
         {hasAlphabetNav && (
           <AlphabetNavigator
