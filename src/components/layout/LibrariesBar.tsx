@@ -17,6 +17,7 @@ import type { ViewMode, GameLibrarySection, GameItem, CollectionItem } from "../
 import SidebarSearchOverlay from "./SidebarSearchOverlay";
 import Logo from "../common/Logo";
 import ActivitySpinner from "./ActivitySpinner";
+import { useTopDockSlot } from "../../contexts/TopDockSlotContext";
 
 type CollectionShortcut = {
   id: string;
@@ -139,6 +140,17 @@ type LibrariesBarProps = {
   rightActionsBeforeMainGames?: ReactNode;
   /** Optional extra controls rendered in the right actions area. */
   rightActions?: ReactNode;
+  /**
+   * When true, this instance owns the page-toolbar portal slot used by the
+   * `topRightToolDock` skin option, exposing its DOM node via
+   * `TopDockSlotContext`. Only the shell-level `LibrariesBar` (the one
+   * rendered above `<Outlet />` in `MainAppLayout`) should set this to true;
+   * page-level `LibrariesBar` instances (e.g. inside `LibraryItemDetailPage`,
+   * `TagGamesPage`, `HomePageClassic`, `GameDetail`, `IGDBGameDetailPage`)
+   * must leave it false so they don't overwrite the canonical slot in the
+   * shared context (and reset it to `null` when they unmount on navigation).
+   */
+  registerTopDockSlot?: boolean;
 };
 
 export default function LibrariesBar({
@@ -172,10 +184,20 @@ export default function LibrariesBar({
   onSidebarSearchPlay,
   rightActionsBeforeMainGames,
   rightActions,
+  registerTopDockSlot = false,
 }: LibrariesBarProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { registerSlot: registerSlotInContext } = useTopDockSlot();
+  /**
+   * Only the shell-level instance forwards its slot to the context. Non-owners
+   * receive a no-op ref so they can render the slot div for layout/CSS parity
+   * without ever touching the shared `slotEl` state.
+   */
+  const registerTopDockToolbarSlot = registerTopDockSlot
+    ? registerSlotInContext
+    : undefined;
   const { activeSkinWeb } = useSkin();
   const { games: libraryGamesAll } = useLibraryGames();
   const libraryGamesCount = libraryGamesAll.length;
@@ -649,6 +671,12 @@ export default function LibrariesBar({
               isLoading={globalLoading}
               className="mhg-top-right-tool-dock-activity-spinner"
             />
+            <div className="mhg-top-right-tool-dock-page-toolbar-slot">
+              <div
+                className="mhg-top-right-tool-dock-page-toolbar-inner"
+                ref={registerTopDockToolbarSlot}
+              />
+            </div>
             {onViewModeChange && (
               <div className="mhg-top-right-tool-dock-view mhg-libraries-actions-view-mode-container">
                 <ViewModeSelector

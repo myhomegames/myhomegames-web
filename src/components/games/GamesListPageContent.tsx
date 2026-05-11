@@ -1,4 +1,5 @@
 import { useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import GamesList from "./GamesList";
 import GamesListDetail from "./GamesListDetail";
@@ -9,6 +10,7 @@ import type { ViewMode, GameItem, CollectionItem } from "../../types";
 import { buildCoverUrl } from "../../utils/api";
 import type { UseGamesListPageReturn } from "../../hooks/useGamesListPage";
 import { useSkin } from "../../contexts/SkinContext";
+import { useTopDockSlot } from "../../contexts/TopDockSlotContext";
 type GamesListPageContentProps = {
   // Hook return values
   hook: UseGamesListPageReturn;
@@ -176,6 +178,20 @@ export default function GamesListPageContent({
   const displayGames = gamesOverride ?? filteredAndSortedGames;
   const { activeSkinWeb } = useSkin();
   const forceVerticalCoversPage = activeSkinWeb.verticalCoverAlignment;
+  const { slotEl: topDockToolbarSlot } = useTopDockSlot();
+  /**
+   * The top-right tool dock skin option promotes the page toolbar (filter,
+   * sort, games count) into the dock alongside the view/slider/menu controls.
+   * We portal the existing JSX into the slot exposed by `LibrariesBar` instead
+   * of duplicating state, so all handlers and selection still live here.
+   *
+   * When the dock skin option is active we ONLY render via the portal — never
+   * inline — even if the slot has not been registered yet on the very first
+   * render, to avoid the toolbar flashing in the page body before snapping
+   * into the dock.
+   */
+  const toolbarInDock = Boolean(activeSkinWeb.topRightToolDock);
+  const hasInlineToolbar = !isLoading && displayGames.length > 0 && !toolbarInDock;
   const handleGameClick = useCallback(
     (game: GameItem) => {
       const g = game as GameItem & { isIgdbOnly?: boolean };
@@ -188,63 +204,69 @@ export default function GamesListPageContent({
     [onGameClick, onIgdbGameClick]
   );
 
+  const toolbarNode =
+    !isLoading && displayGames.length > 0 ? (
+      <GamesListToolbar
+        gamesCount={displayGames.length}
+        games={games}
+        onFilterChange={handleFilterChange}
+        onYearFilterChange={setSelectedYear}
+        onGenreFilterChange={setSelectedGenre}
+        onThemesFilterChange={setSelectedThemes}
+        onKeywordsFilterChange={setSelectedKeywords}
+        onPlatformsFilterChange={setSelectedPlatforms}
+        onGameModesFilterChange={setSelectedGameModes}
+        onPublishersFilterChange={setSelectedPublishers}
+        onDevelopersFilterChange={setSelectedDevelopers}
+        onPlayerPerspectivesFilterChange={setSelectedPlayerPerspectives}
+        onGameEnginesFilterChange={setSelectedGameEngines}
+        onDecadeFilterChange={setSelectedDecade}
+        onSortChange={setSortField}
+        onSortDirectionChange={setSortAscending}
+        currentFilter={filterField}
+        selectedYear={selectedYear}
+        selectedGenre={selectedGenre}
+        selectedDecade={selectedDecade}
+        selectedCollection={selectedCollection}
+        onCollectionFilterChange={setSelectedCollection}
+        selectedSeries={selectedSeries}
+        selectedFranchise={selectedFranchise}
+        onSeriesFilterChange={setSelectedSeries}
+        onFranchiseFilterChange={setSelectedFranchise}
+        selectedAgeRating={selectedAgeRating}
+        onAgeRatingFilterChange={setSelectedAgeRating}
+        selectedGameType={selectedGameType}
+        onGameTypeFilterChange={setSelectedGameType}
+        selectedThemes={selectedThemes}
+        selectedKeywords={selectedKeywords}
+        selectedPlatforms={selectedPlatforms}
+        selectedGameModes={selectedGameModes}
+        selectedPublishers={selectedPublishers}
+        selectedDevelopers={selectedDevelopers}
+        selectedPlayerPerspectives={selectedPlayerPerspectives}
+        selectedGameEngines={selectedGameEngines}
+        currentSort={sortField}
+        sortAscending={sortAscending}
+        viewMode={viewMode}
+        availableGenres={availableGenres}
+        availableCollections={availableCollections}
+        availableSeries={availableSeries}
+        availableFranchises={availableFranchises}
+        availableDevelopers={availableDevelopers}
+        availablePublishers={availablePublishers}
+        selectedFilterValueLabel={selectedFilterValueLabel}
+      />
+    ) : null;
+
   return (
     <div
-      className={`home-page-content-wrapper games-list-page-fade${isReady ? " games-list-page-fade--ready" : ""} ${!isLoading && displayGames.length > 0 ? "has-toolbar" : ""}${forceVerticalCoversPage ? " mhg-vertical-covers-page" : ""}`}
+      className={`home-page-content-wrapper games-list-page-fade${isReady ? " games-list-page-fade--ready" : ""} ${hasInlineToolbar ? "has-toolbar" : ""}${forceVerticalCoversPage ? " mhg-vertical-covers-page" : ""}`}
     >
-      {/* Toolbar with filter and sort */}
-      {!isLoading && displayGames.length > 0 && (
-        <GamesListToolbar
-          gamesCount={displayGames.length}
-          games={games}
-          onFilterChange={handleFilterChange}
-          onYearFilterChange={setSelectedYear}
-          onGenreFilterChange={setSelectedGenre}
-          onThemesFilterChange={setSelectedThemes}
-          onKeywordsFilterChange={setSelectedKeywords}
-          onPlatformsFilterChange={setSelectedPlatforms}
-          onGameModesFilterChange={setSelectedGameModes}
-          onPublishersFilterChange={setSelectedPublishers}
-          onDevelopersFilterChange={setSelectedDevelopers}
-          onPlayerPerspectivesFilterChange={setSelectedPlayerPerspectives}
-          onGameEnginesFilterChange={setSelectedGameEngines}
-          onDecadeFilterChange={setSelectedDecade}
-          onSortChange={setSortField}
-          onSortDirectionChange={setSortAscending}
-          currentFilter={filterField}
-          selectedYear={selectedYear}
-          selectedGenre={selectedGenre}
-          selectedDecade={selectedDecade}
-          selectedCollection={selectedCollection}
-          onCollectionFilterChange={setSelectedCollection}
-          selectedSeries={selectedSeries}
-          selectedFranchise={selectedFranchise}
-          onSeriesFilterChange={setSelectedSeries}
-          onFranchiseFilterChange={setSelectedFranchise}
-          selectedAgeRating={selectedAgeRating}
-          onAgeRatingFilterChange={setSelectedAgeRating}
-          selectedGameType={selectedGameType}
-          onGameTypeFilterChange={setSelectedGameType}
-          selectedThemes={selectedThemes}
-          selectedKeywords={selectedKeywords}
-          selectedPlatforms={selectedPlatforms}
-          selectedGameModes={selectedGameModes}
-          selectedPublishers={selectedPublishers}
-          selectedDevelopers={selectedDevelopers}
-          selectedPlayerPerspectives={selectedPlayerPerspectives}
-          selectedGameEngines={selectedGameEngines}
-          currentSort={sortField}
-          sortAscending={sortAscending}
-          viewMode={viewMode}
-          availableGenres={availableGenres}
-          availableCollections={availableCollections}
-          availableSeries={availableSeries}
-          availableFranchises={availableFranchises}
-          availableDevelopers={availableDevelopers}
-          availablePublishers={availablePublishers}
-          selectedFilterValueLabel={selectedFilterValueLabel}
-        />
-      )}
+      {toolbarInDock
+        ? topDockToolbarSlot && toolbarNode
+          ? createPortal(toolbarNode, topDockToolbarSlot)
+          : null
+        : toolbarNode}
       {/* Table header section */}
       {viewMode === "table" && !isLoading && displayGames.length > 0 && (
         <GamesListTableHeader

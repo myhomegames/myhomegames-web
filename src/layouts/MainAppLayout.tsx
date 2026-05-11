@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/layout/Header";
 import LibrariesBar from "../components/layout/LibrariesBar";
 import { useSkin } from "../contexts/SkinContext";
+import { TopDockSlotProvider } from "../contexts/TopDockSlotContext";
 import type { CollectionItem, GameItem, GameLibrarySection, ViewMode } from "../types";
 import { useLibrariesShellState } from "./useLibrariesShellState";
 
@@ -145,7 +146,7 @@ export default function MainAppLayout({
   );
 
   return (
-    <>
+    <TopDockSlotProvider>
       <Header
         onPlay={onPlay}
         allGames={allGames}
@@ -158,6 +159,7 @@ export default function MainAppLayout({
         onAddGameClick={onAddGameClick}
       />
       <LibrariesBar
+        registerTopDockSlot
         libraries={libraries}
         activeLibrary={activeLibrary}
         onSelectLibrary={onSelectLibrary}
@@ -207,6 +209,6 @@ export default function MainAppLayout({
         onSidebarSearchPlay={onPlay}
       />
       <Outlet context={outletContext} />
-    </>
+    </TopDockSlotProvider>
   );
 }
