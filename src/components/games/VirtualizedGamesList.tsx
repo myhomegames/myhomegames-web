@@ -227,17 +227,19 @@ export default function VirtualizedGamesList({
 
   // Restore scroll position when component mounts or route changes
   useEffect(() => {
-    // In forced single-column mode (vertical cover alignment), don't restore
-    // previous horizontal offsets: keep cards immediately visible.
-    if (forceSingleColumn) {
-      isRestoringRef.current = false;
-      setIsScrollRestored(true);
-      return;
-    }
+    // Check if we have a saved position first.
+    // In forced single-column mode (vertical cover alignment) the rail is purely
+    // vertical, so the previously saved horizontal offset is meaningless and we
+    // drop it — but the vertical offset MUST still be restored, otherwise
+    // navigating away and back resets the Library scroll to 0.
+    const rawSavedPosition = getScrollPosition(storageKey);
+    const savedPosition = rawSavedPosition
+      ? {
+          scrollTop: rawSavedPosition.scrollTop,
+          scrollLeft: forceSingleColumn ? 0 : rawSavedPosition.scrollLeft,
+        }
+      : null;
 
-    // Check if we have a saved position first
-    const savedPosition = getScrollPosition(storageKey);
-    
     if (!savedPosition || (savedPosition.scrollTop === 0 && savedPosition.scrollLeft === 0)) {
       setIsScrollRestored(true); // No position to restore, show content immediately
       return;
