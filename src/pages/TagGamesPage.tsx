@@ -306,8 +306,8 @@ export default function TagGamesPage({
   } = hook;
 
   useEffect(() => {
-    setLoading(libraryGamesLoading);
-  }, [libraryGamesLoading, setLoading]);
+    setLoading(libraryGamesLoading || hook.isFiltering);
+  }, [libraryGamesLoading, hook.isFiltering, setLoading]);
 
   useEffect(() => {
     if (!tagValue) return;

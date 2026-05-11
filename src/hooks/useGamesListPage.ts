@@ -160,6 +160,8 @@ export type UseGamesListPageReturn = {
   setGames: React.Dispatch<React.SetStateAction<GameItem[]>>;
   isReady: boolean;
   libraryGamesLoading: boolean;
+  /** True briefly after filter/sort changes, to drive the activity spinner. */
+  isFiltering: boolean;
   filterField: FilterField;
   setFilterField: React.Dispatch<React.SetStateAction<FilterField>>;
   selectedYear: number | null;
@@ -660,6 +662,68 @@ export function useGamesListPage(
   const activeScrollRef = scrollRestorationMode === undefined ? scrollContainerRef : (scrollRestorationMode === "table" ? tableScrollRef : scrollContainerRef);
   useScrollRestoration(activeScrollRef, scrollRestorationMode);
 
+  // Drive the activity spinner briefly when the user changes filter/sort:
+  // the heavy work happens inside the filteredAndSortedGames useMemo below and
+  // in the virtualized list re-layout, neither of which toggles libraryGamesLoading.
+  // titleFilterQuery is intentionally excluded to avoid flicker on every keystroke.
+  const filterChangeKey = useMemo(
+    () =>
+      [
+        filterField,
+        sortField,
+        sortAscending,
+        selectedYear,
+        selectedDecade,
+        selectedCollection,
+        selectedAgeRating,
+        selectedGenre,
+        selectedThemes,
+        selectedKeywords,
+        selectedPlatforms,
+        selectedGameModes,
+        selectedPublishers,
+        selectedDevelopers,
+        selectedPlayerPerspectives,
+        selectedGameEngines,
+        selectedSeries,
+        selectedFranchise,
+        selectedGameType,
+        showMainGamesOnly,
+      ].join("|"),
+    [
+      filterField,
+      sortField,
+      sortAscending,
+      selectedYear,
+      selectedDecade,
+      selectedCollection,
+      selectedAgeRating,
+      selectedGenre,
+      selectedThemes,
+      selectedKeywords,
+      selectedPlatforms,
+      selectedGameModes,
+      selectedPublishers,
+      selectedDevelopers,
+      selectedPlayerPerspectives,
+      selectedGameEngines,
+      selectedSeries,
+      selectedFranchise,
+      selectedGameType,
+      showMainGamesOnly,
+    ]
+  );
+  const [isFiltering, setIsFiltering] = useState(false);
+  const lastFilterKeyRef = useRef(filterChangeKey);
+  useEffect(() => {
+    if (lastFilterKeyRef.current === filterChangeKey) return;
+    lastFilterKeyRef.current = filterChangeKey;
+    if (libraryGamesLoading) return;
+    setIsFiltering(true);
+    const id = window.setTimeout(() => setIsFiltering(false), 250);
+    return () => window.clearTimeout(id);
+  }, [filterChangeKey, libraryGamesLoading]);
+
   // Initialize data fetching
   // Collections and library games are now loaded via context, no need to fetch them here
   useEffect(() => {
@@ -1065,6 +1129,7 @@ export function useGamesListPage(
     setGames: noopSetGames,
     isReady,
     libraryGamesLoading,
+    isFiltering,
     filterField,
     setFilterField,
     selectedYear,

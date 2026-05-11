@@ -49,8 +49,8 @@ export default function LibraryPage({
 
   // Sync library games loading state and rendering state with global loading context
   useEffect(() => {
-    setLoading(libraryGamesLoading || !hook.isReady);
-  }, [libraryGamesLoading, hook.isReady, setLoading]);
+    setLoading(libraryGamesLoading || !hook.isReady || hook.isFiltering);
+  }, [libraryGamesLoading, hook.isReady, hook.isFiltering, setLoading]);
 
 
   // Initialize data fetching when auth is ready
