@@ -64,6 +64,7 @@ export default function MainAppLayout({
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { activeSkinWeb } = useSkin();
+
   const [topBarBeforeMainGamesActions, setTopBarBeforeMainGamesActions] = useState<ReactNode | null>(
     null
   );

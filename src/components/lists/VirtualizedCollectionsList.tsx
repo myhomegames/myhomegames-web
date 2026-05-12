@@ -4,6 +4,7 @@ import { Grid } from "react-window";
 import type { CollectionItem, GameItem } from "../../types";
 import { CollectionListItem, type GamesPathType } from "./CollectionsList";
 import { useSkin } from "../../contexts/SkinContext";
+import { useCoverScaleAroundBar } from "../../hooks/useCoverScaleAroundBar";
 // Helper functions for scroll restoration
 function getScrollPosition(key: string): { scrollTop: number; scrollLeft: number } | null {
   try {
@@ -119,6 +120,10 @@ export default function VirtualizedCollectionsList({
   const gridRef = useRef<any>(null);
   const isRestoringRef = useRef(false);
   const lastSavedScrollRef = useRef<{ scrollTop: number; scrollLeft: number } | null>(null);
+
+  // Publish a `--mhg-cell-scale` CSS variable on each cover pad based on its
+  // position relative to the libraries bar (see useCoverScaleAroundBar).
+  useCoverScaleAroundBar({ gridRef, containerRef });
   const storageKey = `${location.pathname}:collections:${gamesPath}`;
 
   // Calculate column count based on container width

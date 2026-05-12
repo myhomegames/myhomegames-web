@@ -5,6 +5,7 @@ import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 import { GameListItem } from "./GamesList";
 import { useSkin } from "../../contexts/SkinContext";
+import { useCoverScaleAroundBar } from "../../hooks/useCoverScaleAroundBar";
 // Helper functions for scroll restoration
 function getScrollPosition(key: string): { scrollTop: number; scrollLeft: number } | null {
   try {
@@ -199,6 +200,12 @@ export default function VirtualizedGamesList({
     const t = window.setTimeout(() => setSpacing(readGridSpacing()), 50);
     return () => window.clearTimeout(t);
   }, [activeSkinId]);
+
+  // Publish a `--mhg-cell-scale` CSS variable on each cover pad based on its
+  // position relative to the libraries bar. Skins that want the "covers behind
+  // the bar shrink" effect consume the variable via `transform: scale(...)`;
+  // skins that don't ignore it (the variable simply has no effect).
+  useCoverScaleAroundBar({ gridRef, containerRef });
 
   // Update dimensions when container size changes
   useEffect(() => {

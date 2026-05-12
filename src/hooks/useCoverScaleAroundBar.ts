@@ -1,0 +1,280 @@
+import { useEffect } from "react";
+
+/**
+ * Continuously updates a `--mhg-cell-scale` CSS variable on every visible
+ * virtualized cover pad so skins can render covers smaller when they sit
+ * "behind" the libraries bar (an overlay band at the top of the page in some
+ * skins) and at full size when they sit below it. Skins opt in with
+ *
+ *   .virtualized-grid-cell-pad { transform: scale(var(--mhg-cell-scale, 1)); }
+ *
+ * Skins where the libraries bar is in normal flow (not an overlay) get no
+ * effect because every cell's `top` ends up below the bar's bottom — they
+ * stay at the default scale of 1.
+ *
+ * The progress is computed per-pad from `getBoundingClientRect()` against the
+ * bar's `getBoundingClientRect().bottom`, so it works with `react-window`'s
+ * transform-based cell positioning (CSS `view()` timelines do not, because
+ * they read the layout box which is the same for every cell).
+ *
+ * Updates are rAF-throttled and triggered by ANY scroll event in the document
+ * (capture-phase) so cells in horizontally-scrolling carousels still react to
+ * the outer page scroll, plus by resize and an initial schedule for mount.
+ */
+
+/** Scale floor: covers fully above the bar are rendered at this size. */
+const SCALE_MIN = 0.5;
+/** Scale ceiling: covers fully below the bar are rendered at this size. */
+const SCALE_MAX = 1;
+
+/** Selector for the libraries bar element in any skin that exposes it. */
+const BAR_SELECTOR = ".mhg-libraries-bar";
+
+/** Inner pad div rendered by each virtualized cell renderer. */
+const PAD_SELECTOR = ".virtualized-grid-cell-pad";
+
+/**
+ * Selector for the react-window scroller. The Grid in `VirtualizedGamesList`
+ * and `VirtualizedCollectionsList` is rendered with these classes; both are
+ * the `overflow: auto` scrollers that own the virtualized cells.
+ */
+const SCROLLER_SELECTOR = ".virtualized-games-grid, .virtualized-collections-grid";
+
+type UseCoverScaleAroundBarOptions = {
+  /** Ref to the react-window Grid handle (`grid.element` is the scroller). */
+  gridRef: React.RefObject<{ element?: HTMLElement | null } | null>;
+  /** Ref to the wrapper around the Grid (fallback for finding the scroller). */
+  containerRef: React.RefObject<HTMLElement | null>;
+};
+
+function findScroller(
+  gridRef: UseCoverScaleAroundBarOptions["gridRef"],
+  containerRef: UseCoverScaleAroundBarOptions["containerRef"]
+): HTMLElement | null {
+  // Fast path: react-window 2.x's imperative handle exposes `.element` in
+  // some builds. When available it is unambiguously the scrollable wrapper.
+  const grid = gridRef.current;
+  if (grid && grid.element instanceof HTMLElement) return grid.element;
+  // Fallback: the containerRef may be the immediate wrapper around the Grid
+  // (`.games-list-container--virtualized`) or a page-level scroll container
+  // (`.home-page-scroll-container`). The Grid scroller has a stable class.
+  const container = containerRef.current;
+  if (container) {
+    if (container.matches(SCROLLER_SELECTOR)) return container;
+    const scroller = container.querySelector<HTMLElement>(SCROLLER_SELECTOR);
+    if (scroller) return scroller;
+  }
+  return null;
+}
+
+/**
+ * The bar's overlay bottom edge in viewport coordinates, or `null` when no
+ * overlay-style bar is present (which switches the effect off — every cell
+ * is left at the default scale of 1 in CSS).
+ */
+function findBarBottom(): number | null {
+  const bar = document.querySelector<HTMLElement>(BAR_SELECTOR);
+  if (!bar) return null;
+  const rect = bar.getBoundingClientRect();
+  if (rect.bottom <= 0 || rect.height === 0) return null;
+  return rect.bottom;
+}
+
+function updateScales(
+  gridRef: UseCoverScaleAroundBarOptions["gridRef"],
+  containerRef: UseCoverScaleAroundBarOptions["containerRef"]
+): void {
+  const scroller = findScroller(gridRef, containerRef);
+  if (!scroller) return;
+  const pads = scroller.querySelectorAll<HTMLElement>(PAD_SELECTOR);
+  if (pads.length === 0) return;
+
+  const barBottom = findBarBottom();
+  if (barBottom == null) {
+    pads.forEach((pad) => pad.style.removeProperty("--mhg-cell-scale"));
+    return;
+  }
+
+  pads.forEach((pad) => {
+    const rect = pad.getBoundingClientRect();
+    if (rect.height === 0) return;
+
+    let scale: number;
+    if (rect.top >= barBottom) {
+      scale = SCALE_MAX;
+    } else if (rect.bottom <= barBottom) {
+      scale = SCALE_MIN;
+    } else {
+      // Pad straddles the bar: interpolate by how much of the pad is hidden
+      // above the bar's bottom edge.
+      const above = barBottom - rect.top;
+      const ratio = Math.min(1, Math.max(0, above / rect.height));
+      scale = SCALE_MAX - (SCALE_MAX - SCALE_MIN) * ratio;
+    }
+
+    pad.style.setProperty("--mhg-cell-scale", scale.toFixed(3));
+  });
+}
+
+/**
+ * Selectors for non-virtualized cover items that should also participate in
+ * the depth scaling effect (tag list, non-virtualized collection rail, the
+ * library item detail subcollections grid). These live in normal document
+ * flow inside the page-level scroll container, so we scan for them globally
+ * rather than under a single scroller.
+ */
+const GLOBAL_PAD_SELECTORS = [
+  ".tag-list-item",
+  ".collections-list-item--sized",
+  ".library-item-detail-subcollection-cell",
+  ".games-list-item--cover-sized",
+].join(", ");
+
+function updateGlobalScales(): void {
+  const pads = document.querySelectorAll<HTMLElement>(GLOBAL_PAD_SELECTORS);
+  if (pads.length === 0) return;
+
+  const barBottom = findBarBottom();
+  if (barBottom == null) {
+    pads.forEach((pad) => pad.style.removeProperty("--mhg-cell-scale"));
+    return;
+  }
+
+  pads.forEach((pad) => {
+    const rect = pad.getBoundingClientRect();
+    if (rect.height === 0) return;
+
+    let scale: number;
+    if (rect.top >= barBottom) {
+      scale = SCALE_MAX;
+    } else if (rect.bottom <= barBottom) {
+      scale = SCALE_MIN;
+    } else {
+      const above = barBottom - rect.top;
+      const ratio = Math.min(1, Math.max(0, above / rect.height));
+      scale = SCALE_MAX - (SCALE_MAX - SCALE_MIN) * ratio;
+    }
+
+    pad.style.setProperty("--mhg-cell-scale", scale.toFixed(3));
+  });
+}
+
+/**
+ * App-level companion to `useCoverScaleAroundBar` that handles non-virtualized
+ * cover items (tag/collection cards rendered directly in the page flow). Call
+ * once at the top of the layout — it's a no-op on skins where the libraries
+ * bar is not an overlay (the helper returns early when no overlay bar exists).
+ */
+export function useGlobalCoverScaleAroundBar(): void {
+  useEffect(() => {
+    let rafId: number | null = null;
+    let cancelled = false;
+
+    const schedule = () => {
+      if (cancelled || rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        updateGlobalScales();
+      });
+    };
+
+    // Initial pass plus a couple of follow-up frames so cards that mount
+    // slightly later (e.g. while data is loading) still get their scale.
+    schedule();
+    const setupTimers: number[] = [
+      window.setTimeout(schedule, 60),
+      window.setTimeout(schedule, 240),
+    ];
+
+    // Capture-phase scroll listener so the hook reacts to BOTH the page-level
+    // scroll container and any nested scrollers.
+    const captureOptions: AddEventListenerOptions = { passive: true, capture: true };
+    document.addEventListener("scroll", schedule, captureOptions);
+    window.addEventListener("resize", schedule);
+
+    // Non-virtualized lists change less often than react-window's, but a
+    // body-scoped MutationObserver still catches the initial render and
+    // route transitions cheaply (we just rAF-throttle the response).
+    const observer = new MutationObserver(schedule);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      cancelled = true;
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      setupTimers.forEach((t) => window.clearTimeout(t));
+      document.removeEventListener("scroll", schedule, captureOptions);
+      window.removeEventListener("resize", schedule);
+      observer.disconnect();
+    };
+  }, []);
+}
+
+export function useCoverScaleAroundBar({
+  gridRef,
+  containerRef,
+}: UseCoverScaleAroundBarOptions): void {
+  useEffect(() => {
+    let rafId: number | null = null;
+    let cancelled = false;
+
+    const schedule = () => {
+      if (cancelled || rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        updateScales(gridRef, containerRef);
+      });
+    };
+
+    // The grid scroller is mounted asynchronously by react-window; wait for it
+    // before attaching any listeners, then ping a couple of times after mount
+    // to catch cells appearing in the very first frames.
+    const setupTimers: number[] = [];
+    let removeListeners: (() => void) | null = null;
+
+    const tryAttach = (attempt: number): void => {
+      if (cancelled) return;
+      const scroller = findScroller(gridRef, containerRef);
+      if (!scroller) {
+        if (attempt < 30) {
+          setupTimers.push(window.setTimeout(() => tryAttach(attempt + 1), 50));
+        }
+        return;
+      }
+
+      schedule();
+      // A handful of follow-up frames so cells that mount slightly after the
+      // scroller still get their scale set before any user interaction.
+      setupTimers.push(window.setTimeout(schedule, 60));
+      setupTimers.push(window.setTimeout(schedule, 240));
+
+      // Capture-phase scroll listener on the document so the hook reacts to
+      // BOTH the grid's own scroll and any ancestor scroll (e.g. a page that
+      // scrolls vertically around a horizontally-scrolling carousel).
+      const captureOptions: AddEventListenerOptions = { passive: true, capture: true };
+      document.addEventListener("scroll", schedule, captureOptions);
+      window.addEventListener("resize", schedule);
+
+      // react-window adds/removes row divs as the user scrolls and as the
+      // visible window changes. A MutationObserver catches new cells appearing
+      // without an accompanying scroll event (e.g. after the initial mount or
+      // when content changes) so their scale is set on the next frame.
+      const observer = new MutationObserver(schedule);
+      observer.observe(scroller, { childList: true, subtree: true });
+
+      removeListeners = () => {
+        document.removeEventListener("scroll", schedule, captureOptions);
+        window.removeEventListener("resize", schedule);
+        observer.disconnect();
+      };
+    };
+
+    tryAttach(0);
+
+    return () => {
+      cancelled = true;
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      setupTimers.forEach((t) => window.clearTimeout(t));
+      if (removeListeners) removeListeners();
+    };
+  }, [gridRef, containerRef]);
+}

@@ -40,6 +40,7 @@ import { usePublishers } from "./contexts/PublishersContext";
 import { useLibraryGames } from "./contexts/LibraryGamesContext";
 import { useSkin } from "./contexts/SkinContext";
 import { TitleFilterProvider } from "./contexts/TitleFilterContext";
+import { useGlobalCoverScaleAroundBar } from "./hooks/useCoverScaleAroundBar";
 
 // Wrapper function for buildApiUrl that uses API_BASE
 function buildApiUrlWithBase(
@@ -241,6 +242,8 @@ function AppContent() {
 
   const { activeSkinWeb } = useSkin();
   const persistentLibraryShell = activeSkinWeb.persistentLibraryShell;
+
+  useGlobalCoverScaleAroundBar();
 
   return (
     <>
