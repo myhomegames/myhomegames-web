@@ -89,6 +89,28 @@ function readGridSpacing(): { gap: number; minLeftGutter: number; minRightGutter
   };
 }
 
+/**
+ * Skins (e.g. PS3) can push the first cover row down by injecting empty
+ * space at the top of the virtualized grid via `--mhg-grid-top-inset`.
+ * Padding-top on the outer scroll container would clip the grid at its
+ * top edge — we want covers to remain visible BEHIND the (transparent)
+ * libraries bar as they scroll up, so the inset is added as extra height
+ * on the first row instead. Returns 0 when the variable is unset, which
+ * disables the effect for skins that don't opt in.
+ *
+ * Reads from `containerEl` first (when provided) so per-page CSS scoping
+ * — e.g. `.mhg-library-vertical-covers` vs `.recommended-page-scroll` —
+ * can set different insets for different page types. Falls back to the
+ * document root for the default value.
+ */
+function readGridTopInset(containerEl?: HTMLElement | null): number {
+  if (typeof window === "undefined" || typeof document === "undefined") return 0;
+  const source = containerEl ?? document.documentElement;
+  const raw = getComputedStyle(source).getPropertyValue("--mhg-grid-top-inset");
+  const value = parseFloat(raw);
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
 export default function VirtualizedGamesList({
   games,
   coverSize,
@@ -125,6 +147,7 @@ export default function VirtualizedGamesList({
   const [isScrollRestored, setIsScrollRestored] = useState(false);
   const [spacing, setSpacing] = useState(() => readGridSpacing());
   const { gap: GAP, minLeftGutter: MIN_LEFT_GUTTER, minRightGutter: MIN_RIGHT_GUTTER } = spacing;
+  const [topInset, setTopInset] = useState(() => readGridTopInset(containerRef.current));
   const gridRef = useRef<any>(null);
   const isRestoringRef = useRef(false);
   const lastSavedScrollRef = useRef<{ scrollTop: number; scrollLeft: number } | null>(null);
@@ -197,9 +220,13 @@ export default function VirtualizedGamesList({
   // A small delay lets the new stylesheet apply before we measure CSS vars.
   useEffect(() => {
     setSpacing(readGridSpacing());
-    const t = window.setTimeout(() => setSpacing(readGridSpacing()), 50);
+    setTopInset(readGridTopInset(containerRef.current));
+    const t = window.setTimeout(() => {
+      setSpacing(readGridSpacing());
+      setTopInset(readGridTopInset(containerRef.current));
+    }, 50);
     return () => window.clearTimeout(t);
-  }, [activeSkinId]);
+  }, [activeSkinId, containerRef]);
 
   // Publish a `--mhg-cell-scale` CSS variable on each cover pad based on its
   // position relative to the libraries bar. Skins that want the "covers behind
@@ -447,9 +474,16 @@ export default function VirtualizedGamesList({
     }
 
     const game = games[index];
+    // Row 0 is taller by `topInset` px (rowHeight function below) so the
+    // first cover lands BELOW the overlay libraries bar at scroll=0 while
+    // the grid itself still extends from y=0 of the page — covers can rise
+    // through the bar area as the user scrolls. Pad the pad with a spacer
+    // so the visual top of the cover starts at `topInset`.
+    const isInsetRow = rowIndex === 0 && topInset > 0;
 
     return (
       <div style={style}>
+        {isInsetRow && <div style={{ height: topInset, flexShrink: 0 }} />}
         <div className="virtualized-grid-cell-pad">
         <GameListItem
           game={game}
@@ -512,7 +546,11 @@ export default function VirtualizedGamesList({
       defaultHeight={dimensions.height}
       defaultWidth={gridContentWidth}
       rowCount={rowCount}
-      rowHeight={itemHeight}
+      rowHeight={
+        topInset > 0
+          ? (rowIndex: number) => (rowIndex === 0 ? itemHeight + topInset : itemHeight)
+          : itemHeight
+      }
       overscanCount={OVERSCAN_COUNT}
       cellComponent={Cell}
       cellProps={{} as any}
