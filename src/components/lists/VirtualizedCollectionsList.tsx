@@ -204,19 +204,36 @@ export default function VirtualizedCollectionsList({
   useEffect(() => {
     // Check if we have a saved position first
     const savedPosition = getScrollPosition(storageKey);
-    
+
     if (!savedPosition || (savedPosition.scrollTop === 0 && savedPosition.scrollLeft === 0)) {
       setIsScrollRestored(true); // No position to restore, show content immediately
       return;
     }
 
-    // If we have a saved position, wait for dimensions before restoring
+    // If we have a saved position, wait for dimensions before restoring.
+    // Keep isScrollRestored=false so the rail stays hidden during the wait,
+    // and rely on a safety timer below to eventually reveal the content if
+    // dimensions never become valid.
     if (dimensions.height === 0 || rowCount === 0 || columnCount === 0) {
-      return;
+      const safety = setTimeout(() => setIsScrollRestored(true), 1500);
+      return () => clearTimeout(safety);
     }
 
     isRestoringRef.current = true;
     setIsScrollRestored(false); // Hide content until scroll is restored
+
+    // Safety net: even if every retry path fails silently, reveal the rail
+    // after a hard deadline so the page never stays invisible.
+    const safetyReveal = setTimeout(() => {
+      isRestoringRef.current = false;
+      setIsScrollRestored(true);
+    }, 1500);
+
+    const markRestored = () => {
+      isRestoringRef.current = false;
+      clearTimeout(safetyReveal);
+      setIsScrollRestored(true);
+    };
 
     // Wait for grid to be ready
     const restoreScroll = (attempt = 0) => {
@@ -225,14 +242,14 @@ export default function VirtualizedCollectionsList({
         if (attempt < 50) {
           setTimeout(() => restoreScroll(attempt + 1), 50);
         } else {
-          isRestoringRef.current = false;
+          markRestored(); // Show content even if grid never mounts
         }
         return;
       }
 
       // Find the scrollable element - react-window creates a scrollable div inside the container
       let gridElement: HTMLElement | null = null;
-      
+
       // Method 1: Try grid.element if available
       if (grid.element) {
         gridElement = grid.element;
@@ -245,13 +262,12 @@ export default function VirtualizedCollectionsList({
           gridElement = scrollable;
         }
       }
-      
+
       if (!gridElement) {
         if (attempt < 50) {
           setTimeout(() => restoreScroll(attempt + 1), 50);
         } else {
-          isRestoringRef.current = false;
-          setIsScrollRestored(true); // Show content even if element not found
+          markRestored(); // Show content even if element not found
         }
         return;
       }
@@ -260,44 +276,41 @@ export default function VirtualizedCollectionsList({
         // Restore scroll position directly using scrollTop/scrollLeft
         gridElement.scrollTop = savedPosition.scrollTop;
         gridElement.scrollLeft = savedPosition.scrollLeft;
-        
+
         // Verify restoration worked
         setTimeout(() => {
           const currentScrollTop = gridElement.scrollTop;
           const currentScrollLeft = gridElement.scrollLeft;
-          
+
           // If position is significantly different, try again
-          if (Math.abs(currentScrollTop - savedPosition.scrollTop) > 10 || 
+          if (Math.abs(currentScrollTop - savedPosition.scrollTop) > 10 ||
               Math.abs(currentScrollLeft - savedPosition.scrollLeft) > 10) {
             if (attempt < 5) {
               gridElement.scrollTop = savedPosition.scrollTop;
               gridElement.scrollLeft = savedPosition.scrollLeft;
             }
           }
-          
+
           // Reset restoring flag and show content after scroll is restored
-          setTimeout(() => {
-            isRestoringRef.current = false;
-            setIsScrollRestored(true);
-          }, 50);
+          setTimeout(markRestored, 50);
         }, 50);
       } catch (error) {
         if (attempt < 10) {
           setTimeout(() => restoreScroll(attempt + 1), 100);
         } else {
-          isRestoringRef.current = false;
-          setIsScrollRestored(true); // Show content even if restore failed
+          markRestored(); // Show content even if restore failed
         }
       }
     };
 
-    // Start restoration after a delay to ensure grid is mounted
+    // Start restoration after a short delay so the grid has a frame to mount.
     const timer = setTimeout(() => {
       restoreScroll();
-    }, 300);
+    }, 80);
 
     return () => {
       clearTimeout(timer);
+      clearTimeout(safetyReveal);
       isRestoringRef.current = false;
     };
   }, [location.pathname, storageKey, dimensions.height, rowCount, columnCount]);

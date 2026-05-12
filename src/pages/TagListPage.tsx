@@ -76,7 +76,7 @@ export default function TagListPage({
   }, [gamesLoading, listLoading, isReady, setLoading]);
 
   const scrollStorageKey = `${window.location.pathname}:${routeBase}`;
-  useScrollRestoration(scrollContainerRef, routeBase);
+  const { isScrollRestored } = useScrollRestoration(scrollContainerRef, routeBase);
 
   useEffect(() => {
     if (!listResponseKey) {
@@ -294,7 +294,7 @@ export default function TagListPage({
   return (
     <main className="flex-1 home-page-content">
       <div className="home-page-layout">
-        <div className={`home-page-content-wrapper home-page-fade-in${isReady ? " home-page-fade-in--ready" : ""}`}>
+        <div className={`home-page-content-wrapper home-page-fade-in${isReady && isScrollRestored ? " home-page-fade-in--ready" : ""}`}>
           <div ref={scrollContainerRef} className="home-page-scroll-container">
             {!isLoading && (
               <TagList
