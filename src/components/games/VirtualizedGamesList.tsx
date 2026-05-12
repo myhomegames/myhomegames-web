@@ -207,16 +207,28 @@ export default function VirtualizedGamesList({
   // skins that don't ignore it (the variable simply has no effect).
   useCoverScaleAroundBar({ gridRef, containerRef });
 
-  // Update dimensions when container size changes
+  // Update dimensions when container size changes.
+  // We size the grid to the container's CONTENT box (excluding padding) so the
+  // virtualized scroll bottom aligns with the visible viewport bottom. Skins
+  // that pad `.home-page-scroll-container` (e.g. GOG Galaxy adds
+  // padding-top/-bottom: 32px) would otherwise produce a grid that overflows
+  // the container, hiding the last rows below the scroll bar's end position.
   useEffect(() => {
     const updateDimensions = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        setDimensions({
-          width: rect.width,
-          height: rect.height || window.innerHeight - 200, // Fallback height
-        });
-      }
+      const el = containerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const cs = window.getComputedStyle(el);
+      const padTop = parseFloat(cs.paddingTop) || 0;
+      const padBottom = parseFloat(cs.paddingBottom) || 0;
+      const padLeft = parseFloat(cs.paddingLeft) || 0;
+      const padRight = parseFloat(cs.paddingRight) || 0;
+      const contentWidth = Math.max(0, rect.width - padLeft - padRight);
+      const contentHeight = Math.max(0, rect.height - padTop - padBottom);
+      setDimensions({
+        width: contentWidth || rect.width,
+        height: contentHeight || rect.height || window.innerHeight - 200, // Fallback height
+      });
     };
 
     updateDimensions();

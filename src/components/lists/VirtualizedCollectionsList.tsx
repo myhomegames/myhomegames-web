@@ -180,16 +180,27 @@ export default function VirtualizedCollectionsList({
     return () => mo.disconnect();
   }, [containerRef, collections.length]);
 
-  // Update dimensions when container size changes
+  // Update dimensions when container size changes.
+  // Size to the container's CONTENT box (excluding padding) so the virtualized
+  // scroll bottom lines up with the visible viewport bottom. Skins that pad
+  // `.home-page-scroll-container` would otherwise make the grid overflow,
+  // leaving the last rows hidden below the end of the scroll bar.
   useEffect(() => {
     const updateDimensions = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        setDimensions({
-          width: rect.width,
-          height: rect.height || window.innerHeight - 200, // Fallback height
-        });
-      }
+      const el = containerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const cs = window.getComputedStyle(el);
+      const padTop = parseFloat(cs.paddingTop) || 0;
+      const padBottom = parseFloat(cs.paddingBottom) || 0;
+      const padLeft = parseFloat(cs.paddingLeft) || 0;
+      const padRight = parseFloat(cs.paddingRight) || 0;
+      const contentWidth = Math.max(0, rect.width - padLeft - padRight);
+      const contentHeight = Math.max(0, rect.height - padTop - padBottom);
+      setDimensions({
+        width: contentWidth || rect.width,
+        height: contentHeight || rect.height || window.innerHeight - 200, // Fallback height
+      });
     };
 
     updateDimensions();
