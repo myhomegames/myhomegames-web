@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import LibrariesBar from "../components/layout/LibrariesBar";
 import { useLoading } from "../contexts/LoadingContext";
+import { TopDockSlotProvider } from "../contexts/TopDockSlotContext";
 import { useSkin } from "../contexts/SkinContext";
 import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import { useDevelopers } from "../contexts/DevelopersContext";
@@ -13,10 +14,18 @@ import CollectionsPage from "./CollectionsPage";
 import DevelopersPage from "./DevelopersPage";
 import PublishersPage from "./PublishersPage";
 import TagListRoutePage from "./TagListRoutePage";
-import type { GameItem, TagItem, GameLibrarySection, CollectionItem } from "../types";
+import type {
+  GameItem,
+  TagItem,
+  GameLibrarySection,
+  CollectionItem,
+} from "../types";
 import { API_BASE } from "../config";
 import { buildApiHeaders } from "../utils/api";
-import { buildLibrarySections, normalizeVisibleLibraries } from "../utils/librarySections";
+import {
+  buildLibrarySections,
+  normalizeVisibleLibraries,
+} from "../utils/librarySections";
 export type { GameItem, TagItem };
 
 type HomePageClassicProps = {
@@ -47,9 +56,11 @@ export default function HomePageClassic({
   const { developers: allDevelopersForSearch } = useDevelopers();
   const { publishers: allPublishersForSearch } = usePublishers();
   const [libraries, setLibraries] = useState<GameLibrarySection[]>(() =>
-    buildLibrarySections(normalizeVisibleLibraries([]))
+    buildLibrarySections(normalizeVisibleLibraries([])),
   );
-  const [activeLibrary, setActiveLibrary] = useState<GameLibrarySection | null>(null);
+  const [activeLibrary, setActiveLibrary] = useState<GameLibrarySection | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [coverSize, setCoverSize] = useState(() => {
     const saved = localStorage.getItem("coverSize");
@@ -138,7 +149,10 @@ export default function HomePageClassic({
             const data = await res.json();
             if (Array.isArray(data.visibleLibraries)) {
               visibleLibraries = data.visibleLibraries;
-              localStorage.setItem("visibleLibraries", JSON.stringify(data.visibleLibraries));
+              localStorage.setItem(
+                "visibleLibraries",
+                JSON.stringify(data.visibleLibraries),
+              );
             }
           }
         } catch (err) {
@@ -186,112 +200,122 @@ export default function HomePageClassic({
     onGamesLoaded(loadedGames);
   }
 
-  const collectionsPageEnabled = libraries.some((lib) => lib.key === "collections");
+  const collectionsPageEnabled = libraries.some(
+    (lib) => lib.key === "collections",
+  );
   const showCollectionShortcuts =
     activeSkinWeb.collectionsShortcutList && collectionsPageEnabled;
 
   return (
-    <>
-      <LibrariesBar
-        libraries={libraries}
-        activeLibrary={activeLibrary}
-        onSelectLibrary={onSelectLibrary}
-        loading={isLoading}
-        error={error}
-        coverSize={coverSize}
-        onCoverSizeChange={handleCoverSizeChange}
-        viewMode={viewMode}
-        onViewModeChange={handleViewModeChange}
-        onReloadMetadata={onReloadMetadata}
-        showMainGamesToggle={activeLibrary?.key === "library" && viewMode === "grid"}
-        mainGamesOnly={mainGamesOnly}
-        onMainGamesOnlyChange={setMainGamesOnly}
-        collectionShortcuts={
-          showCollectionShortcuts
-            ? allCollections.map((collection) => ({
-                id: collection.id,
-                title: collection.title,
-              }))
-            : []
-        }
-        onSelectCollectionShortcut={
-          showCollectionShortcuts ? onOpenCollection : undefined
-        }
-        sidebarSearchGames={allGamesForSearch}
-        sidebarSearchCollections={allCollections}
-        sidebarSearchDevelopers={allDevelopersForSearch}
-        sidebarSearchPublishers={allPublishersForSearch}
-        onSidebarSearchGameSelect={(game) =>
-          navigate(`/game/${game.id}`, {
-            state: { from: location.pathname + location.search },
-          })
-        }
-        onSidebarSearchPlay={onPlay}
-        onAddGameClick={onAddGameClick}
-      />
+    <TopDockSlotProvider>
+      <>
+        <LibrariesBar
+          registerTopDockSlot
+          libraries={libraries}
+          activeLibrary={activeLibrary}
+          onSelectLibrary={onSelectLibrary}
+          loading={isLoading}
+          error={error}
+          coverSize={coverSize}
+          onCoverSizeChange={handleCoverSizeChange}
+          viewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
+          onReloadMetadata={onReloadMetadata}
+          showMainGamesToggle={
+            activeLibrary?.key === "library" && viewMode === "grid"
+          }
+          mainGamesOnly={mainGamesOnly}
+          onMainGamesOnlyChange={setMainGamesOnly}
+          collectionShortcuts={
+            showCollectionShortcuts
+              ? allCollections.map((collection) => ({
+                  id: collection.id,
+                  title: collection.title,
+                }))
+              : []
+          }
+          onSelectCollectionShortcut={
+            showCollectionShortcuts ? onOpenCollection : undefined
+          }
+          sidebarSearchGames={allGamesForSearch}
+          sidebarSearchCollections={allCollections}
+          sidebarSearchDevelopers={allDevelopersForSearch}
+          sidebarSearchPublishers={allPublishersForSearch}
+          onSidebarSearchGameSelect={(game) =>
+            navigate(`/game/${game.id}`, {
+              state: { from: location.pathname + location.search },
+            })
+          }
+          onSidebarSearchPlay={onPlay}
+          onAddGameClick={onAddGameClick}
+        />
 
-      <div className="bg-[#1a1a1a] home-page-main-container">
-        {!activeLibrary ? (
-          <div className="flex items-center justify-center h-full" />
-        ) : (
-          <>
-            {activeLibrary.key === "library" && (
-              <LibraryPage
-                onGameClick={handleGameClick}
-                onGamesLoaded={handleGamesLoaded}
-                onPlay={onPlay}
-                coverSize={coverSize}
-                viewMode={viewMode}
-                allCollections={allCollections}
-                mainGamesOnly={mainGamesOnly}
-                setMainGamesOnly={setMainGamesOnly}
-              />
-            )}
-            {activeLibrary.key === "recommended" && (
-              <RecommendedPage
-                onGameClick={handleGameClick}
-                onGamesLoaded={handleGamesLoaded}
-                onPlay={onPlay}
-                coverSize={coverSize}
-                allCollections={allCollections}
-              />
-            )}
-            {activeLibrary.key === "collections" && (
-              <CollectionsPage onPlay={onPlay} coverSize={coverSize} />
-            )}
-            {activeLibrary.key === "categories" && (
-              <TagListRoutePage coverSize={coverSize} tagKey="categories" />
-            )}
-            {activeLibrary.key === "series" && (
-              <TagListRoutePage coverSize={coverSize} tagKey="series" />
-            )}
-            {activeLibrary.key === "franchise" && (
-              <TagListRoutePage coverSize={coverSize} tagKey="franchise" />
-            )}
-            {activeLibrary.key === "platforms" && (
-              <TagListRoutePage coverSize={coverSize} tagKey="platforms" />
-            )}
-            {activeLibrary.key === "themes" && (
-              <TagListRoutePage coverSize={coverSize} tagKey="themes" />
-            )}
-            {activeLibrary.key === "developers" && (
-              <DevelopersPage onPlay={onPlay} coverSize={coverSize} />
-            )}
-            {activeLibrary.key === "publishers" && (
-              <PublishersPage onPlay={onPlay} coverSize={coverSize} />
-            )}
-            {activeLibrary.key === "gameEngines" && (
-              <TagListRoutePage coverSize={coverSize} tagKey="gameEngines" />
-            )}
-            {activeLibrary.key === "gameModes" && (
-              <TagListRoutePage coverSize={coverSize} tagKey="gameModes" />
-            )}
-            {activeLibrary.key === "playerPerspectives" && (
-              <TagListRoutePage coverSize={coverSize} tagKey="playerPerspectives" />
-            )}
-          </>
-        )}
-      </div>
-    </>
+        <div className="bg-[#1a1a1a] home-page-main-container">
+          {!activeLibrary ? (
+            <div className="flex items-center justify-center h-full" />
+          ) : (
+            <>
+              {activeLibrary.key === "library" && (
+                <LibraryPage
+                  onGameClick={handleGameClick}
+                  onGamesLoaded={handleGamesLoaded}
+                  onPlay={onPlay}
+                  coverSize={coverSize}
+                  viewMode={viewMode}
+                  allCollections={allCollections}
+                  mainGamesOnly={mainGamesOnly}
+                  setMainGamesOnly={setMainGamesOnly}
+                />
+              )}
+              {activeLibrary.key === "recommended" && (
+                <RecommendedPage
+                  onGameClick={handleGameClick}
+                  onGamesLoaded={handleGamesLoaded}
+                  onPlay={onPlay}
+                  coverSize={coverSize}
+                  allCollections={allCollections}
+                />
+              )}
+              {activeLibrary.key === "collections" && (
+                <CollectionsPage onPlay={onPlay} coverSize={coverSize} />
+              )}
+              {activeLibrary.key === "categories" && (
+                <TagListRoutePage coverSize={coverSize} tagKey="categories" />
+              )}
+              {activeLibrary.key === "series" && (
+                <TagListRoutePage coverSize={coverSize} tagKey="series" />
+              )}
+              {activeLibrary.key === "franchise" && (
+                <TagListRoutePage coverSize={coverSize} tagKey="franchise" />
+              )}
+              {activeLibrary.key === "platforms" && (
+                <TagListRoutePage coverSize={coverSize} tagKey="platforms" />
+              )}
+              {activeLibrary.key === "themes" && (
+                <TagListRoutePage coverSize={coverSize} tagKey="themes" />
+              )}
+              {activeLibrary.key === "developers" && (
+                <DevelopersPage onPlay={onPlay} coverSize={coverSize} />
+              )}
+              {activeLibrary.key === "publishers" && (
+                <PublishersPage onPlay={onPlay} coverSize={coverSize} />
+              )}
+              {activeLibrary.key === "gameEngines" && (
+                <TagListRoutePage coverSize={coverSize} tagKey="gameEngines" />
+              )}
+              {activeLibrary.key === "gameModes" && (
+                <TagListRoutePage coverSize={coverSize} tagKey="gameModes" />
+              )}
+              {activeLibrary.key === "playerPerspectives" && (
+                <TagListRoutePage
+                  coverSize={coverSize}
+                  tagKey="playerPerspectives"
+                />
+              )}
+            </>
+          )}
+        </div>
+      </>
+    </TopDockSlotProvider>
   );
 }
