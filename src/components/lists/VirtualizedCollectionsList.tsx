@@ -102,6 +102,14 @@ function readGridTopInset(containerEl?: HTMLElement | null): number {
   return Number.isFinite(value) && value > 0 ? value : 0;
 }
 
+function readStepScrollRows(containerEl?: HTMLElement | null): number {
+  if (typeof window === "undefined" || typeof document === "undefined") return 0;
+  const source = containerEl ?? document.documentElement;
+  const raw = getComputedStyle(source).getPropertyValue("--mhg-step-scroll-rows");
+  const value = parseInt(raw, 10);
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
 export default function VirtualizedCollectionsList({
   collections,
   displayCountById,
@@ -166,6 +174,8 @@ export default function VirtualizedCollectionsList({
   // Item dimensions
   const itemWidth = coverSize;
   const itemHeight = coverSize * 1.5 + GAP;
+  const stepRows = readStepScrollRows(containerRef.current);
+  const enableStepScroll = FORCE_SINGLE_COLUMN && stepRows > 0;
   const gridContentWidth = useMemo(
     () => Math.max(itemWidth + GAP, columnCount * (itemWidth + GAP)),
     [columnCount, itemWidth, GAP]
@@ -357,6 +367,7 @@ export default function VirtualizedCollectionsList({
   // Save scroll position when scrolling
   useEffect(() => {
     let scrollTimeout: number | null = null;
+    let snapTimeout: number | null = null;
     let cleanupFn: (() => void) | null = null;
 
     // Wait for grid to be ready
@@ -399,6 +410,9 @@ export default function VirtualizedCollectionsList({
         if (scrollTimeout) {
           clearTimeout(scrollTimeout);
         }
+        if (snapTimeout) {
+          clearTimeout(snapTimeout);
+        }
 
         scrollTimeout = setTimeout(() => {
           // Save scroll position directly
@@ -413,6 +427,36 @@ export default function VirtualizedCollectionsList({
             lastSavedScrollRef.current = { scrollTop, scrollLeft };
           }
         }, 150);
+
+        if (enableStepScroll) {
+          snapTimeout = window.setTimeout(() => {
+            if (isRestoringRef.current) return;
+            const el = gridElement!;
+            const max = Math.max(0, el.scrollHeight - el.clientHeight);
+            if (max <= 0) return;
+
+            const stepPx = Math.max(1, Math.round(itemHeight * stepRows));
+            const firstStep = itemHeight + topInset;
+            const current = el.scrollTop;
+            let target = 0;
+
+            if (topInset > 0) {
+              if (current <= firstStep / 2) {
+                target = 0;
+              } else {
+                const afterFirst = Math.max(0, current - firstStep);
+                target = firstStep + Math.round(afterFirst / stepPx) * stepPx;
+              }
+            } else {
+              target = Math.round(current / stepPx) * stepPx;
+            }
+
+            target = Math.max(0, Math.min(max, target));
+            if (Math.abs(target - current) > 2) {
+              el.scrollTop = target;
+            }
+          }, 120);
+        }
       };
 
       gridElement.addEventListener('scroll', handleScroll, { passive: true });
@@ -420,6 +464,9 @@ export default function VirtualizedCollectionsList({
       cleanupFn = () => {
         if (scrollTimeout) {
           clearTimeout(scrollTimeout);
+        }
+        if (snapTimeout) {
+          clearTimeout(snapTimeout);
         }
         gridElement.removeEventListener('scroll', handleScroll);
         // DON'T save position on unmount - it might overwrite with 0
@@ -434,7 +481,7 @@ export default function VirtualizedCollectionsList({
         cleanupFn();
       }
     };
-  }, [gridRef.current, storageKey, itemHeight, itemWidth, rowCount, columnCount]);
+  }, [gridRef.current, storageKey, itemHeight, itemWidth, rowCount, columnCount, enableStepScroll, stepRows, topInset]);
 
   // Expose gridRef to parent via containerRef if it's a ref object
   useEffect(() => {

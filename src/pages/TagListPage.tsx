@@ -13,6 +13,14 @@ import { titleMatchesFilter } from "../utils/titleFilter";
 import { API_BASE } from "../config";
 import { buildApiHeaders, buildApiUrl, buildCoverUrl } from "../utils/api";
 
+function readStepScrollRows(containerEl?: HTMLElement | null): number {
+  if (typeof window === "undefined" || typeof document === "undefined") return 0;
+  const source = containerEl ?? document.documentElement;
+  const raw = getComputedStyle(source).getPropertyValue("--mhg-step-scroll-rows");
+  const value = parseInt(raw, 10);
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
 type TagListPageProps = {
   coverSize: number;
   routeBase: string;
@@ -290,6 +298,59 @@ export default function TagListPage({
       }
     }
   }, [editingItem, scrollStorageKey]);
+
+  useEffect(() => {
+    if (!activeSkinWeb.verticalCoverAlignment) return;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const stepRows = readStepScrollRows(container);
+    if (stepRows <= 0) return;
+
+    let snapTimeout: number | null = null;
+
+    const handleScroll = () => {
+      if (snapTimeout) {
+        clearTimeout(snapTimeout);
+      }
+      snapTimeout = window.setTimeout(() => {
+        const tagItems = container.querySelectorAll<HTMLElement>(".tag-list-container .tag-list-item");
+        if (tagItems.length === 0) return;
+
+        const firstOffset = Math.max(0, tagItems[0].offsetTop);
+        let naturalStep = 0;
+        if (tagItems.length > 1) {
+          naturalStep = Math.max(1, tagItems[1].offsetTop - tagItems[0].offsetTop);
+        } else {
+          naturalStep = Math.max(1, Math.round((coverSize * 2) * (9 / 16)) + 20);
+        }
+
+        const stepPx = Math.max(1, Math.round(naturalStep * stepRows));
+        const max = Math.max(0, container.scrollHeight - container.clientHeight);
+        const current = container.scrollTop;
+        let target = 0;
+
+        if (current <= firstOffset / 2) {
+          target = 0;
+        } else {
+          const afterFirst = Math.max(0, current - firstOffset);
+          target = firstOffset + Math.round(afterFirst / stepPx) * stepPx;
+        }
+
+        target = Math.max(0, Math.min(max, target));
+        if (Math.abs(target - current) > 2) {
+          container.scrollTop = target;
+        }
+      }, 120);
+    };
+
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      if (snapTimeout) {
+        clearTimeout(snapTimeout);
+      }
+      container.removeEventListener("scroll", handleScroll);
+    };
+  }, [activeSkinWeb.verticalCoverAlignment, coverSize, displayItems.length]);
 
   return (
     <main className="flex-1 home-page-content">
