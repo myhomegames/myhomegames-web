@@ -2062,6 +2062,7 @@ function LibraryItemDetailContent({
                           {subCollectionLikes.length === 1 && subCollectionLikesFiltered.length === 1 ? (
                             <div className="library-item-detail-games-list library-item-detail-mt-games-list">
                               <GamesList
+                                scrollContainerRef={scrollContainerRef}
                                 games={singleSubCollectionGamesFiltered}
                                 onGameClick={(game) => {
                                   const g = game as GameItem & { isIgdbOnly?: boolean };
@@ -2184,6 +2185,7 @@ function LibraryItemDetailContent({
                           )}
                           <div className="library-item-detail-games-list">
                             <GamesList
+                              scrollContainerRef={scrollContainerRef}
                               games={gridGames}
                               onGameClick={(game) => {
                                 const g = game as GameItem & { isIgdbOnly?: boolean };

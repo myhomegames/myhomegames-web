@@ -6,6 +6,7 @@ import type { CollectionLikeResourceType } from "../collections/EditCollectionLi
 import { GameListItem } from "./GamesList";
 import { useSkin } from "../../contexts/SkinContext";
 import { useCoverScaleAroundBar } from "../../hooks/useCoverScaleAroundBar";
+import { readGridTopInsetPx } from "../../utils/readGridTopInsetPx";
 // Helper functions for scroll restoration
 function getScrollPosition(key: string): { scrollTop: number; scrollLeft: number } | null {
   try {
@@ -101,16 +102,8 @@ function readGridSpacing(): { gap: number; minLeftGutter: number; minRightGutter
  * Reads from `containerEl` first (when provided) so per-page CSS scoping
  * — e.g. `.mhg-library-vertical-covers` vs `.recommended-page-scroll` —
  * can set different insets for different page types. Falls back to the
- * document root for the default value.
+ * document root for the default value. Implemented in `readGridTopInsetPx`.
  */
-function readGridTopInset(containerEl?: HTMLElement | null): number {
-  if (typeof window === "undefined" || typeof document === "undefined") return 0;
-  const source = containerEl ?? document.documentElement;
-  const raw = getComputedStyle(source).getPropertyValue("--mhg-grid-top-inset");
-  const value = parseFloat(raw);
-  return Number.isFinite(value) && value > 0 ? value : 0;
-}
-
 function readStepScrollRows(containerEl?: HTMLElement | null): number {
   if (typeof window === "undefined" || typeof document === "undefined") return 0;
   const source = containerEl ?? document.documentElement;
@@ -155,7 +148,7 @@ export default function VirtualizedGamesList({
   const [isScrollRestored, setIsScrollRestored] = useState(false);
   const [spacing, setSpacing] = useState(() => readGridSpacing());
   const { gap: GAP, minLeftGutter: MIN_LEFT_GUTTER, minRightGutter: MIN_RIGHT_GUTTER } = spacing;
-  const [topInset, setTopInset] = useState(() => readGridTopInset(containerRef.current));
+  const [topInset, setTopInset] = useState(() => readGridTopInsetPx(containerRef.current));
   const gridRef = useRef<any>(null);
   const isRestoringRef = useRef(false);
   const lastSavedScrollRef = useRef<{ scrollTop: number; scrollLeft: number } | null>(null);
@@ -230,10 +223,10 @@ export default function VirtualizedGamesList({
   // A small delay lets the new stylesheet apply before we measure CSS vars.
   useEffect(() => {
     setSpacing(readGridSpacing());
-    setTopInset(readGridTopInset(containerRef.current));
+    setTopInset(readGridTopInsetPx(containerRef.current));
     const t = window.setTimeout(() => {
       setSpacing(readGridSpacing());
-      setTopInset(readGridTopInset(containerRef.current));
+      setTopInset(readGridTopInsetPx(containerRef.current));
     }, 50);
     return () => window.clearTimeout(t);
   }, [activeSkinId, containerRef]);

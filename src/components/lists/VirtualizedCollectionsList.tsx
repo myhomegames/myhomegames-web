@@ -5,6 +5,7 @@ import type { CollectionItem, GameItem } from "../../types";
 import { CollectionListItem, type GamesPathType } from "./CollectionsList";
 import { useSkin } from "../../contexts/SkinContext";
 import { useCoverScaleAroundBar } from "../../hooks/useCoverScaleAroundBar";
+import { readGridTopInsetPx } from "../../utils/readGridTopInsetPx";
 // Helper functions for scroll restoration
 function getScrollPosition(key: string): { scrollTop: number; scrollLeft: number } | null {
   try {
@@ -85,23 +86,15 @@ function readGridSpacing(): {
 }
 
 /**
- * See `readGridTopInset` in VirtualizedGamesList — same opt-in via
+ * See `readGridTopInsetPx` / VirtualizedGamesList — same opt-in via
  * `--mhg-grid-top-inset`. Pushes the first collection row below the
  * (overlay) libraries bar by injecting empty space INSIDE the grid so
  * scrolled-up covers remain visible through the transparent bar.
  *
  * Reads from `containerEl` first when provided so per-page CSS scoping
  * (Library / Tag / Collections / Recommended …) can set different
- * insets. Falls back to the document root.
+ * insets. Falls back to the document root. See `readGridTopInsetPx`.
  */
-function readGridTopInset(containerEl?: HTMLElement | null): number {
-  if (typeof window === "undefined" || typeof document === "undefined") return 0;
-  const source = containerEl ?? document.documentElement;
-  const raw = getComputedStyle(source).getPropertyValue("--mhg-grid-top-inset");
-  const value = parseFloat(raw);
-  return Number.isFinite(value) && value > 0 ? value : 0;
-}
-
 function readStepScrollRows(containerEl?: HTMLElement | null): number {
   if (typeof window === "undefined" || typeof document === "undefined") return 0;
   const source = containerEl ?? document.documentElement;
@@ -137,14 +130,14 @@ export default function VirtualizedCollectionsList({
     minRightGutter: MIN_RIGHT_GUTTER,
     forceSingleColumn: FORCE_SINGLE_COLUMN,
   } = spacing;
-  const [topInset, setTopInset] = useState(() => readGridTopInset(containerRef.current));
+  const [topInset, setTopInset] = useState(() => readGridTopInsetPx(containerRef.current));
   const { activeSkinId } = useSkin();
   useEffect(() => {
     setSpacing(readGridSpacing());
-    setTopInset(readGridTopInset(containerRef.current));
+    setTopInset(readGridTopInsetPx(containerRef.current));
     const t = window.setTimeout(() => {
       setSpacing(readGridSpacing());
-      setTopInset(readGridTopInset(containerRef.current));
+      setTopInset(readGridTopInsetPx(containerRef.current));
     }, 50);
     return () => window.clearTimeout(t);
   }, [activeSkinId, containerRef]);

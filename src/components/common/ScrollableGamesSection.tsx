@@ -278,6 +278,7 @@ export default function ScrollableGamesSection({
         className={`scrollable-section-scroll ${isRestoring ? 'restoring' : ''}`}
       >
         <GamesList
+          scrollContainerRef={scrollRef}
           games={games}
           onGameClick={onGameClick}
           onPlay={onPlay}
