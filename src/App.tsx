@@ -199,8 +199,11 @@ function AppContent() {
       
       const launchParams: Record<string, string | number | boolean> = {
         gameId: gameId,
-        token: getApiToken(),
       };
+      const apiToken = getApiToken();
+      if (apiToken) {
+        launchParams.token = apiToken;
+      }
       if (executableName) {
         launchParams.executableName = executableName;
       }
