@@ -325,7 +325,10 @@ export default function TagListPage({
         }
 
         const stepPx = Math.max(1, Math.round(naturalStep * stepRows));
-        const stopEarlyPx = Math.max(8, Math.round(naturalStep * 0.5));
+        const stopEarlyPx = Math.min(
+          Math.max(4, Math.round(naturalStep * 0.12)),
+          Math.max(1, Math.floor(stepPx / 3))
+        );
         const max = Math.max(0, container.scrollHeight - container.clientHeight);
         const current = container.scrollTop;
         let target = 0;
@@ -334,7 +337,9 @@ export default function TagListPage({
           target = 0;
         } else {
           const afterFirst = Math.max(0, current - firstOffset);
-          target = firstOffset + Math.round(afterFirst / stepPx) * stepPx - stopEarlyPx;
+          const snapped = firstOffset + Math.round(afterFirst / stepPx) * stepPx;
+          // Never snap above the first tile row (old formula could go negative and clamp to 0).
+          target = Math.max(firstOffset, snapped - stopEarlyPx);
         }
 
         target = Math.max(0, Math.min(max, target));
