@@ -291,6 +291,8 @@ export default function VirtualizedCollectionsList({
   // `.home-page-scroll-container` would otherwise make the grid overflow,
   // leaving the last rows hidden below the end of the scroll bar.
   useEffect(() => {
+    let rafId: number | null = null;
+
     const updateDimensions = () => {
       const el = containerRef.current;
       if (!el) return;
@@ -301,22 +303,47 @@ export default function VirtualizedCollectionsList({
       const padLeft = parseFloat(cs.paddingLeft) || 0;
       const padRight = parseFloat(cs.paddingRight) || 0;
       const contentWidth = Math.max(0, rect.width - padLeft - padRight);
-      const contentHeight = Math.max(0, rect.height - padTop - padBottom);
+      let contentHeight = Math.max(0, rect.height - padTop - padBottom);
+
+      // Skins (e.g. PS3 dock) pull `.virtualized-list-fade` up with a negative `margin-top`
+      // so the first cover lines up under the libraries bar. That does not change the
+      // scroll container's measured height, so react-window would still get the old
+      // height and the rail ends short of the bottom — extend by the resolved pull.
+      const fade = el.querySelector<HTMLElement>(
+        ".collections-list-container--virtualized .virtualized-list-fade",
+      );
+      if (fade) {
+        const marginTopPx = parseFloat(window.getComputedStyle(fade).marginTop);
+        if (Number.isFinite(marginTopPx) && marginTopPx < 0) {
+          contentHeight += -marginTopPx;
+        }
+      }
+
       setDimensions({
         width: contentWidth || rect.width,
         height: contentHeight || rect.height || window.innerHeight - 200, // Fallback height
       });
     };
 
-    updateDimensions();
-    window.addEventListener("resize", updateDimensions);
-    const resizeObserver = new ResizeObserver(updateDimensions);
+    const updateDimensionsRaf = () => {
+      updateDimensions();
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        updateDimensions();
+      });
+    };
+
+    updateDimensionsRaf();
+    window.addEventListener("resize", updateDimensionsRaf);
+    const resizeObserver = new ResizeObserver(updateDimensionsRaf);
     if (containerRef.current) {
       resizeObserver.observe(containerRef.current);
     }
 
     return () => {
-      window.removeEventListener("resize", updateDimensions);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", updateDimensionsRaf);
       resizeObserver.disconnect();
     };
   }, [containerRef]);
