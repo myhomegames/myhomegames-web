@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useLayoutEffect, useEffect, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import FilterPopup from "../filters/FilterPopup";
 import SortPopup from "../toolbar/SortPopup";
@@ -98,7 +98,41 @@ type GamesListToolbarProps = {
   availablePublishers?: Array<{ id: string; title: string }>;
   /** When on tag page with IGDB id, show this instead of the raw id in the filter label */
   selectedFilterValueLabel?: string;
+  /**
+   * When the toolbar is portaled into the top-right dock, the app measures the
+   * row and sets `data-mhg-toolbar-popup-fixed` plus `--mhg-toolbar-popup-*` on
+   * it; skin bundles ship the matching `position: fixed` rules for filter/sort
+   * panels.
+   */
+  dockToolbarPopups?: boolean;
 };
+
+function clearDockToolbarPopupAnchor(ref: RefObject<HTMLDivElement | null>) {
+  const el = ref.current;
+  if (!el) return;
+  delete el.dataset.mhgToolbarPopupFixed;
+  el.style.removeProperty("--mhg-toolbar-popup-top");
+  el.style.removeProperty("--mhg-toolbar-popup-left");
+}
+
+function applyDockToolbarPopupAnchor(
+  ref: RefObject<HTMLDivElement | null>,
+  open: boolean,
+  minPanelWidth: number
+) {
+  const el = ref.current;
+  if (!el) return;
+  if (!open) {
+    clearDockToolbarPopupAnchor(ref);
+    return;
+  }
+  const r = el.getBoundingClientRect();
+  const pad = 8;
+  const left = Math.max(pad, Math.min(r.left, window.innerWidth - minPanelWidth - pad));
+  el.dataset.mhgToolbarPopupFixed = "true";
+  el.style.setProperty("--mhg-toolbar-popup-top", `${Math.round(r.bottom + 4)}px`);
+  el.style.setProperty("--mhg-toolbar-popup-left", `${Math.round(left)}px`);
+}
 
 export default function GamesListToolbar({
   gamesCount,
@@ -149,6 +183,7 @@ export default function GamesListToolbar({
   availableDevelopers = [],
   availablePublishers = [],
   selectedFilterValueLabel,
+  dockToolbarPopups = false,
 }: GamesListToolbarProps) {
   const { t } = useTranslation();
   const { tagLabels: contextTagLabels } = useTagLists();
@@ -156,6 +191,28 @@ export default function GamesListToolbar({
   const [isSortOpen, setIsSortOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
   const sortRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!dockToolbarPopups) return;
+    const syncAnchors = () => {
+      applyDockToolbarPopupAnchor(filterRef, isFilterOpen, 280);
+      applyDockToolbarPopupAnchor(sortRef, isSortOpen, 180);
+    };
+    syncAnchors();
+    window.addEventListener("resize", syncAnchors);
+    window.addEventListener("scroll", syncAnchors, true);
+    return () => {
+      window.removeEventListener("resize", syncAnchors);
+      window.removeEventListener("scroll", syncAnchors, true);
+    };
+  }, [dockToolbarPopups, isFilterOpen, isSortOpen]);
+
+  useEffect(() => {
+    if (!dockToolbarPopups) {
+      clearDockToolbarPopupAnchor(filterRef);
+      clearDockToolbarPopupAnchor(sortRef);
+    }
+  }, [dockToolbarPopups]);
 
   const emptyMap = useMemo(() => new Map<string, string>(), []);
 

@@ -255,6 +255,7 @@ export default function GamesListPageContent({
         availableDevelopers={availableDevelopers}
         availablePublishers={availablePublishers}
         selectedFilterValueLabel={selectedFilterValueLabel}
+        dockToolbarPopups={toolbarInDock}
       />
     ) : null;
 
