@@ -27,6 +27,30 @@ function setScrollPosition(key: string, scrollTop: number, scrollLeft: number): 
   }
 }
 
+/** Same idea as `findCollectionsVirtualizedScroller` — react-window puts overflow on the grid root. */
+function findGamesVirtualizedScroller(root: HTMLElement): HTMLElement | null {
+  const gridEl =
+    (root.querySelector(".games-list-container--virtualized .virtualized-games-grid") as HTMLElement | null) ??
+    (root.querySelector(".virtualized-games-grid") as HTMLElement | null);
+  if (gridEl) return gridEl;
+  const loose = root.querySelector('[style*="overflow"]') as HTMLElement | null;
+  if (!loose) return null;
+  if (loose.scrollHeight > loose.clientHeight || loose.scrollWidth > loose.clientWidth) return loose;
+  return null;
+}
+
+function resolveGamesScrollHost(
+  grid: { element?: HTMLElement | null } | null,
+  containerRoot: HTMLElement | null,
+): HTMLElement | null {
+  if (containerRoot) {
+    const fromDom = findGamesVirtualizedScroller(containerRoot);
+    if (fromDom) return fromDom;
+  }
+  if (grid?.element instanceof HTMLElement) return grid.element;
+  return null;
+}
+
 type VirtualizedGamesListProps = {
   games: GameItem[];
   coverSize: number;
@@ -316,21 +340,8 @@ export default function VirtualizedGamesList({
 
       // Find the scrollable element - react-window creates a scrollable div inside the container
       // Try multiple ways to find it
-      let gridElement: HTMLElement | null = null;
-      
-      // Method 1: Try grid.element if available
-      if (grid.element) {
-        gridElement = grid.element;
-      }
-      // Method 2: Find scrollable element in container
-      else if (containerRef.current) {
-        // react-window creates a div with overflow: auto/scroll
-        const scrollable = containerRef.current.querySelector('[style*="overflow"]') as HTMLElement;
-        if (scrollable && (scrollable.scrollHeight > scrollable.clientHeight || scrollable.scrollWidth > scrollable.clientWidth)) {
-          gridElement = scrollable;
-        }
-      }
-      
+      let gridElement: HTMLElement | null = resolveGamesScrollHost(grid, containerRef.current);
+
       if (!gridElement) {
         if (attempt < 50) {
           setTimeout(() => restoreScroll(attempt + 1), 50);
@@ -387,41 +398,45 @@ export default function VirtualizedGamesList({
     };
   }, [location.pathname, storageKey, dimensions.height, rowCount, columnCount, forceSingleColumn]);
 
-  // Save scroll position when scrolling
+  // Save scroll position when scrolling. See VirtualizedCollectionsList — avoid
+  // `gridRef.current` in the dependency array; re-attach when layout/data changes.
   useEffect(() => {
+    lastSavedScrollRef.current = getScrollPosition(storageKey);
+
+    let cancelled = false;
+    const attachTimers: number[] = [];
     let scrollTimeout: number | null = null;
     let snapTimeout: number | null = null;
     let cleanupFn: (() => void) | null = null;
 
-    // Wait for grid to be ready
-    const setupScrollListener = (attempt = 0) => {
-      const grid = gridRef.current;
-      if (!grid) {
-        if (attempt < 20) {
-          setTimeout(() => setupScrollListener(attempt + 1), 100);
+    const flushSave = (gridElement: HTMLElement) => {
+      if (cancelled || isRestoringRef.current) return;
+      const scrollTop = gridElement.scrollTop;
+      const scrollLeft = gridElement.scrollLeft;
+      if (
+        !lastSavedScrollRef.current ||
+        lastSavedScrollRef.current.scrollTop !== scrollTop ||
+        lastSavedScrollRef.current.scrollLeft !== scrollLeft
+      ) {
+        setScrollPosition(storageKey, scrollTop, scrollLeft);
+        lastSavedScrollRef.current = { scrollTop, scrollLeft };
+      }
+    };
+
+    const tryAttach = (attempt: number): void => {
+      if (cancelled) return;
+      const root = containerRef.current;
+      if (!root) {
+        if (attempt < 60) {
+          attachTimers.push(window.setTimeout(() => tryAttach(attempt + 1), 50));
         }
         return;
       }
 
-      // Find the scrollable element - react-window creates a scrollable div inside the container
-      let gridElement: HTMLElement | null = null;
-      
-      // Method 1: Try grid.element if available
-      if (grid.element) {
-        gridElement = grid.element;
-      }
-      // Method 2: Find scrollable element in container
-      else if (containerRef.current) {
-        // react-window creates a div with overflow: auto/scroll
-        const scrollable = containerRef.current.querySelector('[style*="overflow"]') as HTMLElement;
-        if (scrollable && (scrollable.scrollHeight > scrollable.clientHeight || scrollable.scrollWidth > scrollable.clientWidth)) {
-          gridElement = scrollable;
-        }
-      }
-      
+      const gridElement = resolveGamesScrollHost(gridRef.current, root);
       if (!gridElement) {
-        if (attempt < 20) {
-          setTimeout(() => setupScrollListener(attempt + 1), 100);
+        if (attempt < 60) {
+          attachTimers.push(window.setTimeout(() => tryAttach(attempt + 1), 50));
         }
         return;
       }
@@ -429,32 +444,25 @@ export default function VirtualizedGamesList({
       const handleScroll = () => {
         if (isRestoringRef.current) return;
 
-        // Debounce scroll saving
-        if (scrollTimeout) {
-          clearTimeout(scrollTimeout);
+        if (scrollTimeout !== null) {
+          window.clearTimeout(scrollTimeout);
+          scrollTimeout = null;
         }
-        if (snapTimeout) {
-          clearTimeout(snapTimeout);
+        if (snapTimeout !== null) {
+          window.clearTimeout(snapTimeout);
+          snapTimeout = null;
         }
 
-        scrollTimeout = setTimeout(() => {
-          // Save scroll position directly
-          const scrollTop = gridElement!.scrollTop;
-          const scrollLeft = gridElement!.scrollLeft;
-          
-          // Only save if position has actually changed
-          if (!lastSavedScrollRef.current || 
-              lastSavedScrollRef.current.scrollTop !== scrollTop || 
-              lastSavedScrollRef.current.scrollLeft !== scrollLeft) {
-            setScrollPosition(storageKey, scrollTop, scrollLeft);
-            lastSavedScrollRef.current = { scrollTop, scrollLeft };
-          }
-        }, 150);
+        scrollTimeout = window.setTimeout(() => {
+          scrollTimeout = null;
+          flushSave(gridElement);
+        }, 100);
 
         if (enableStepScroll) {
           snapTimeout = window.setTimeout(() => {
+            snapTimeout = null;
             if (isRestoringRef.current) return;
-            const el = gridElement!;
+            const el = gridElement;
             const max = Math.max(0, el.scrollHeight - el.clientHeight);
             if (max <= 0) return;
 
@@ -482,29 +490,44 @@ export default function VirtualizedGamesList({
         }
       };
 
-      gridElement.addEventListener('scroll', handleScroll, { passive: true });
-      
+      gridElement.addEventListener("scroll", handleScroll, { passive: true });
+
       cleanupFn = () => {
-        if (scrollTimeout) {
-          clearTimeout(scrollTimeout);
+        gridElement.removeEventListener("scroll", handleScroll);
+        if (scrollTimeout !== null) {
+          window.clearTimeout(scrollTimeout);
+          scrollTimeout = null;
         }
-        if (snapTimeout) {
-          clearTimeout(snapTimeout);
+        if (snapTimeout !== null) {
+          window.clearTimeout(snapTimeout);
+          snapTimeout = null;
         }
-        gridElement.removeEventListener('scroll', handleScroll);
-        // DON'T save position on unmount - it might overwrite with 0
-        // The position is already saved during scroll events
+        if (!isRestoringRef.current) {
+          flushSave(gridElement);
+        }
       };
     };
 
-    setupScrollListener();
+    tryAttach(0);
 
     return () => {
-      if (cleanupFn) {
-        cleanupFn();
-      }
+      cancelled = true;
+      attachTimers.forEach((id) => window.clearTimeout(id));
+      if (cleanupFn) cleanupFn();
     };
-  }, [gridRef.current, storageKey, itemHeight, itemWidth, rowCount, columnCount, enableStepScroll, stepRows, topInset]);
+  }, [
+    containerRef,
+    storageKey,
+    dimensions.width,
+    dimensions.height,
+    games.length,
+    rowCount,
+    columnCount,
+    itemHeight,
+    enableStepScroll,
+    stepRows,
+    topInset,
+  ]);
 
   // Cell renderer for grid
   const Cell = ({ columnIndex, rowIndex, style }: { columnIndex: number; rowIndex: number; style: React.CSSProperties }) => {

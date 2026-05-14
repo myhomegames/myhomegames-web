@@ -12,7 +12,7 @@ function getScrollPosition(key: string): { scrollTop: number; scrollLeft: number
     const stored = sessionStorage.getItem(key);
     if (!stored) return null;
     const parsed = JSON.parse(stored);
-    return { scrollTop: parsed.scrollTop || 0, scrollLeft: parsed.scrollLeft || 0 };
+    return { scrollTop: parsed.scrollTop ?? 0, scrollLeft: parsed.scrollLeft ?? 0 };
   } catch {
     return null;
   }
@@ -24,6 +24,39 @@ function setScrollPosition(key: string, scrollTop: number, scrollLeft: number): 
   } catch {
     // Ignore
   }
+}
+
+/**
+ * `containerRef` is often the page `.home-page-scroll-container`. A naive
+ * `[style*="overflow"]` can match another subtree before this list's react-window.
+ *
+ * react-window 2.x puts `overflow: auto` on the same element as `className`
+ * (`virtualized-collections-grid`), not on a child — so do not use a descendant
+ * combinator before `[style*="overflow"]`.
+ */
+function findCollectionsVirtualizedScroller(root: HTMLElement): HTMLElement | null {
+  const gridEl =
+    (root.querySelector(".collections-list-container--virtualized .virtualized-collections-grid") as
+      | HTMLElement
+      | null) ?? (root.querySelector(".virtualized-collections-grid") as HTMLElement | null);
+  if (gridEl) return gridEl;
+  const loose = root.querySelector('[style*="overflow"]') as HTMLElement | null;
+  if (!loose) return null;
+  if (loose.scrollHeight > loose.clientHeight || loose.scrollWidth > loose.clientWidth) return loose;
+  return null;
+}
+
+/** Prefer DOM grid under `containerRef` (page box) over `grid.element` — ref can disagree. */
+function resolveCollectionsScrollHost(
+  grid: { element?: HTMLElement | null } | null,
+  containerRoot: HTMLElement | null,
+): HTMLElement | null {
+  if (containerRoot) {
+    const fromDom = findCollectionsVirtualizedScroller(containerRoot);
+    if (fromDom) return fromDom;
+  }
+  if (grid?.element instanceof HTMLElement) return grid.element;
+  return null;
 }
 
 type VirtualizedCollectionsListProps = {
@@ -49,6 +82,8 @@ const OVERSCAN_COUNT = 2; // Number of items to render outside visible area
 const DEFAULT_MIN_SIDE_GUTTER = 56; // Fallback breathing space (both sides)
 /** When the A-Z rail is shown, nudge the grid slightly left (fixed px, no width math). */
 const LEFT_GUTTER_TRIM_WHEN_ALPHABET_NAV = 8;
+/** Floor for side gutters when the rail is wider than the viewport (avoid clipping covers). */
+const RAIL_GUTTER_FLOOR_PX = 4;
 
 /**
  * Resolve grid spacing from CSS custom properties so skins can override density:
@@ -164,34 +199,78 @@ export default function VirtualizedCollectionsList({
     return Math.ceil(collections.length / columnCount);
   }, [collections.length, columnCount]);
 
-  // Item dimensions
-  const itemWidth = coverSize;
-  const itemHeight = coverSize * 1.5 + GAP;
+  // Fit gutters + grid into the measured container width so PS3 vertical rails never clip covers
+  // when minimum gutters plus `coverSize` exceed `dimensions.width` (common with overflow-x: hidden).
+  const { displayCoverSize, gridContentWidth, leftGutter, rightGutter, itemWidth, itemHeight } =
+    useMemo(() => {
+      const gap = GAP;
+      const w = dimensions.width;
+      let displayCoverSize = coverSize;
+      let gridContentWidth = Math.max(
+        displayCoverSize + gap,
+        columnCount * (displayCoverSize + gap)
+      );
+
+      const remainingWidth = Math.max(
+        0,
+        w - gridContentWidth - MIN_LEFT_GUTTER - MIN_RIGHT_GUTTER
+      );
+      const baseLeft = MIN_LEFT_GUTTER + Math.floor(remainingWidth / 2);
+      const baseRight = MIN_RIGHT_GUTTER + Math.ceil(remainingWidth / 2);
+      const trim = alphabetNavPresent ? LEFT_GUTTER_TRIM_WHEN_ALPHABET_NAV : 0;
+      let leftGutter = Math.max(MIN_LEFT_GUTTER - trim, baseLeft - trim);
+      let rightGutter = baseRight;
+
+      if (w > 0) {
+        let total = leftGutter + gridContentWidth + rightGutter;
+        if (total > w) {
+          let over = total - w;
+          while (over > 0 && (leftGutter > RAIL_GUTTER_FLOOR_PX || rightGutter > RAIL_GUTTER_FLOOR_PX)) {
+            if (leftGutter >= rightGutter && leftGutter > RAIL_GUTTER_FLOOR_PX) {
+              leftGutter -= 1;
+              over -= 1;
+            } else if (rightGutter > RAIL_GUTTER_FLOOR_PX) {
+              rightGutter -= 1;
+              over -= 1;
+            } else if (leftGutter > RAIL_GUTTER_FLOOR_PX) {
+              leftGutter -= 1;
+              over -= 1;
+            } else {
+              break;
+            }
+          }
+          total = leftGutter + gridContentWidth + rightGutter;
+          if (total > w) {
+            const inner = Math.max(0, w - leftGutter - rightGutter);
+            const maxCover = Math.max(
+              64,
+              Math.floor((inner - columnCount * gap) / Math.max(1, columnCount))
+            );
+            displayCoverSize = Math.min(coverSize, maxCover);
+            displayCoverSize = Math.max(64, displayCoverSize);
+            gridContentWidth = Math.max(
+              displayCoverSize + gap,
+              columnCount * (displayCoverSize + gap)
+            );
+          }
+        }
+      }
+
+      const itemWidth = displayCoverSize;
+      const itemHeight = displayCoverSize * 1.5 + gap;
+      return { displayCoverSize, gridContentWidth, leftGutter, rightGutter, itemWidth, itemHeight };
+    }, [
+      dimensions.width,
+      coverSize,
+      columnCount,
+      GAP,
+      MIN_LEFT_GUTTER,
+      MIN_RIGHT_GUTTER,
+      alphabetNavPresent,
+    ]);
+
   const stepRows = readStepScrollRows(containerRef.current);
   const enableStepScroll = FORCE_SINGLE_COLUMN && stepRows > 0;
-  const gridContentWidth = useMemo(
-    () => Math.max(itemWidth + GAP, columnCount * (itemWidth + GAP)),
-    [columnCount, itemWidth, GAP]
-  );
-  const { leftGutter, rightGutter } = useMemo(() => {
-    const remainingWidth = Math.max(
-      0,
-      dimensions.width - gridContentWidth - MIN_LEFT_GUTTER - MIN_RIGHT_GUTTER
-    );
-    const baseLeft = MIN_LEFT_GUTTER + Math.floor(remainingWidth / 2);
-    const baseRight = MIN_RIGHT_GUTTER + Math.ceil(remainingWidth / 2);
-    const trim = alphabetNavPresent ? LEFT_GUTTER_TRIM_WHEN_ALPHABET_NAV : 0;
-    return {
-      leftGutter: Math.max(MIN_LEFT_GUTTER - trim, baseLeft - trim),
-      rightGutter: baseRight,
-    };
-  }, [
-    dimensions.width,
-    gridContentWidth,
-    MIN_LEFT_GUTTER,
-    MIN_RIGHT_GUTTER,
-    alphabetNavPresent,
-  ]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -290,20 +369,7 @@ export default function VirtualizedCollectionsList({
       }
 
       // Find the scrollable element - react-window creates a scrollable div inside the container
-      let gridElement: HTMLElement | null = null;
-
-      // Method 1: Try grid.element if available
-      if (grid.element) {
-        gridElement = grid.element;
-      }
-      // Method 2: Find scrollable element in container
-      else if (containerRef.current) {
-        // react-window creates a div with overflow: auto/scroll
-        const scrollable = containerRef.current.querySelector('[style*="overflow"]') as HTMLElement;
-        if (scrollable && (scrollable.scrollHeight > scrollable.clientHeight || scrollable.scrollWidth > scrollable.clientWidth)) {
-          gridElement = scrollable;
-        }
-      }
+      let gridElement: HTMLElement | null = resolveCollectionsScrollHost(grid, containerRef.current);
 
       if (!gridElement) {
         if (attempt < 50) {
@@ -357,41 +423,47 @@ export default function VirtualizedCollectionsList({
     };
   }, [location.pathname, storageKey, dimensions.height, rowCount, columnCount]);
 
-  // Save scroll position when scrolling
+  // Save scroll position when scrolling. Do not put `gridRef.current` in the dependency
+  // array — refs do not trigger re-renders, so the listener can stay detached after the
+  // first `virtualized-list-fill` → Grid transition. Re-run when layout/size/data changes
+  // and resolve the react-window scroller from `containerRef` (DOM) like restore does.
   useEffect(() => {
+    lastSavedScrollRef.current = getScrollPosition(storageKey);
+
+    let cancelled = false;
+    const attachTimers: number[] = [];
     let scrollTimeout: number | null = null;
     let snapTimeout: number | null = null;
     let cleanupFn: (() => void) | null = null;
 
-    // Wait for grid to be ready
-    const setupScrollListener = (attempt = 0) => {
-      const grid = gridRef.current;
-      if (!grid) {
-        if (attempt < 20) {
-          setTimeout(() => setupScrollListener(attempt + 1), 100);
+    const flushSave = (gridElement: HTMLElement) => {
+      if (cancelled || isRestoringRef.current) return;
+      const scrollTop = gridElement.scrollTop;
+      const scrollLeft = gridElement.scrollLeft;
+      if (
+        !lastSavedScrollRef.current ||
+        lastSavedScrollRef.current.scrollTop !== scrollTop ||
+        lastSavedScrollRef.current.scrollLeft !== scrollLeft
+      ) {
+        setScrollPosition(storageKey, scrollTop, scrollLeft);
+        lastSavedScrollRef.current = { scrollTop, scrollLeft };
+      }
+    };
+
+    const tryAttach = (attempt: number): void => {
+      if (cancelled) return;
+      const root = containerRef.current;
+      if (!root) {
+        if (attempt < 60) {
+          attachTimers.push(window.setTimeout(() => tryAttach(attempt + 1), 50));
         }
         return;
       }
 
-      // Find the scrollable element - react-window creates a scrollable div inside the container
-      let gridElement: HTMLElement | null = null;
-      
-      // Method 1: Try grid.element if available
-      if (grid.element) {
-        gridElement = grid.element;
-      }
-      // Method 2: Find scrollable element in container
-      else if (containerRef.current) {
-        // react-window creates a div with overflow: auto/scroll
-        const scrollable = containerRef.current.querySelector('[style*="overflow"]') as HTMLElement;
-        if (scrollable && (scrollable.scrollHeight > scrollable.clientHeight || scrollable.scrollWidth > scrollable.clientWidth)) {
-          gridElement = scrollable;
-        }
-      }
-      
+      const gridElement = resolveCollectionsScrollHost(gridRef.current, root);
       if (!gridElement) {
-        if (attempt < 20) {
-          setTimeout(() => setupScrollListener(attempt + 1), 100);
+        if (attempt < 60) {
+          attachTimers.push(window.setTimeout(() => tryAttach(attempt + 1), 50));
         }
         return;
       }
@@ -399,32 +471,25 @@ export default function VirtualizedCollectionsList({
       const handleScroll = () => {
         if (isRestoringRef.current) return;
 
-        // Debounce scroll saving
-        if (scrollTimeout) {
-          clearTimeout(scrollTimeout);
+        if (scrollTimeout !== null) {
+          window.clearTimeout(scrollTimeout);
+          scrollTimeout = null;
         }
-        if (snapTimeout) {
-          clearTimeout(snapTimeout);
+        if (snapTimeout !== null) {
+          window.clearTimeout(snapTimeout);
+          snapTimeout = null;
         }
 
-        scrollTimeout = setTimeout(() => {
-          // Save scroll position directly
-          const scrollTop = gridElement!.scrollTop;
-          const scrollLeft = gridElement!.scrollLeft;
-          
-          // Only save if position has actually changed
-          if (!lastSavedScrollRef.current || 
-              lastSavedScrollRef.current.scrollTop !== scrollTop || 
-              lastSavedScrollRef.current.scrollLeft !== scrollLeft) {
-            setScrollPosition(storageKey, scrollTop, scrollLeft);
-            lastSavedScrollRef.current = { scrollTop, scrollLeft };
-          }
-        }, 150);
+        scrollTimeout = window.setTimeout(() => {
+          scrollTimeout = null;
+          flushSave(gridElement);
+        }, 100);
 
         if (enableStepScroll) {
           snapTimeout = window.setTimeout(() => {
+            snapTimeout = null;
             if (isRestoringRef.current) return;
-            const el = gridElement!;
+            const el = gridElement;
             const max = Math.max(0, el.scrollHeight - el.clientHeight);
             if (max <= 0) return;
 
@@ -452,29 +517,44 @@ export default function VirtualizedCollectionsList({
         }
       };
 
-      gridElement.addEventListener('scroll', handleScroll, { passive: true });
-      
+      gridElement.addEventListener("scroll", handleScroll, { passive: true });
+
       cleanupFn = () => {
-        if (scrollTimeout) {
-          clearTimeout(scrollTimeout);
+        gridElement.removeEventListener("scroll", handleScroll);
+        if (scrollTimeout !== null) {
+          window.clearTimeout(scrollTimeout);
+          scrollTimeout = null;
         }
-        if (snapTimeout) {
-          clearTimeout(snapTimeout);
+        if (snapTimeout !== null) {
+          window.clearTimeout(snapTimeout);
+          snapTimeout = null;
         }
-        gridElement.removeEventListener('scroll', handleScroll);
-        // DON'T save position on unmount - it might overwrite with 0
-        // The position is already saved during scroll events
+        if (!isRestoringRef.current) {
+          flushSave(gridElement);
+        }
       };
     };
 
-    setupScrollListener();
+    tryAttach(0);
 
     return () => {
-      if (cleanupFn) {
-        cleanupFn();
-      }
+      cancelled = true;
+      attachTimers.forEach((id) => window.clearTimeout(id));
+      if (cleanupFn) cleanupFn();
     };
-  }, [gridRef.current, storageKey, itemHeight, itemWidth, rowCount, columnCount, enableStepScroll, stepRows, topInset]);
+  }, [
+    containerRef,
+    storageKey,
+    dimensions.width,
+    dimensions.height,
+    collections.length,
+    rowCount,
+    columnCount,
+    itemHeight,
+    enableStepScroll,
+    stepRows,
+    topInset,
+  ]);
 
   // Expose gridRef to parent via containerRef if it's a ref object
   useEffect(() => {
@@ -510,7 +590,7 @@ export default function VirtualizedCollectionsList({
           allCollectionLikes={allCollectionLikes}
           gamesPath={gamesPath}
           buildCoverUrl={buildCoverUrl}
-          coverSize={coverSize}
+          coverSize={displayCoverSize}
           itemRefs={itemRefs}
         />
         </div>
