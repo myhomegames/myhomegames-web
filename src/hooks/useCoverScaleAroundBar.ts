@@ -20,6 +20,9 @@ import { useEffect } from "react";
  * Updates are rAF-throttled and triggered by ANY scroll event in the document
  * (capture-phase) so cells in horizontally-scrolling carousels still react to
  * the outer page scroll, plus by resize and an initial schedule for mount.
+ *
+ * Tag index cards (`.tag-list-item`) can opt into a later shrink start via
+ * `--mhg-tag-scale-bar-lift-px` on `:root` (see `updateGlobalScales`).
  */
 
 /** Scale floor: covers fully above the bar are rendered at this size. */
@@ -78,6 +81,17 @@ function findBarBottom(): number | null {
   const rect = bar.getBoundingClientRect();
   if (rect.bottom <= 0 || rect.height === 0) return null;
   return rect.bottom;
+}
+
+/** Pixels to shift the bar reference line up for tag index tiles only (later shrink). */
+function readTagScaleBarLiftPx(): number {
+  if (typeof window === "undefined" || typeof document === "undefined") return 0;
+  const raw = getComputedStyle(document.documentElement)
+    .getPropertyValue("--mhg-tag-scale-bar-lift-px")
+    .trim();
+  const v = parseFloat(raw);
+  if (!Number.isFinite(v) || v <= 0) return 0;
+  return Math.min(v, 240);
 }
 
 function updateScales(
@@ -140,17 +154,22 @@ function updateGlobalScales(): void {
     return;
   }
 
+  const tagLift = readTagScaleBarLiftPx();
+
   pads.forEach((pad) => {
     const rect = pad.getBoundingClientRect();
     if (rect.height === 0) return;
 
+    const edge =
+      tagLift > 0 && pad.classList.contains("tag-list-item") ? barBottom - tagLift : barBottom;
+
     let scale: number;
-    if (rect.top >= barBottom) {
+    if (rect.top >= edge) {
       scale = SCALE_MAX;
-    } else if (rect.bottom <= barBottom) {
+    } else if (rect.bottom <= edge) {
       scale = SCALE_MIN;
     } else {
-      const above = barBottom - rect.top;
+      const above = edge - rect.top;
       const ratio = Math.min(1, Math.max(0, above / rect.height));
       scale = SCALE_MAX - (SCALE_MAX - SCALE_MIN) * ratio;
     }
