@@ -5,7 +5,11 @@ import type { CollectionItem, GameItem } from "../../types";
 import { CollectionListItem, type GamesPathType } from "./CollectionsList";
 import { useSkin } from "../../contexts/SkinContext";
 import { useCoverScaleAroundBar } from "../../hooks/useCoverScaleAroundBar";
-import { readGridTopInsetPx } from "../../utils/readGridTopInsetPx";
+import {
+  readGridBottomInsetPx,
+  readGridTopInsetPx,
+  virtualizedGridRowHeightPx,
+} from "../../utils/readGridTopInsetPx";
 // Helper functions for scroll restoration
 function getScrollPosition(key: string): { scrollTop: number; scrollLeft: number } | null {
   try {
@@ -166,13 +170,18 @@ export default function VirtualizedCollectionsList({
     forceSingleColumn: FORCE_SINGLE_COLUMN,
   } = spacing;
   const [topInset, setTopInset] = useState(() => readGridTopInsetPx(containerRef.current));
+  const [bottomInset, setBottomInset] = useState(() =>
+    readGridBottomInsetPx(containerRef.current)
+  );
   const { activeSkinId } = useSkin();
   useEffect(() => {
     setSpacing(readGridSpacing());
     setTopInset(readGridTopInsetPx(containerRef.current));
+    setBottomInset(readGridBottomInsetPx(containerRef.current));
     const t = window.setTimeout(() => {
       setSpacing(readGridSpacing());
       setTopInset(readGridTopInsetPx(containerRef.current));
+      setBottomInset(readGridBottomInsetPx(containerRef.current));
     }, 50);
     return () => window.clearTimeout(t);
   }, [activeSkinId, containerRef]);
@@ -581,7 +590,10 @@ export default function VirtualizedCollectionsList({
     enableStepScroll,
     stepRows,
     topInset,
+    bottomInset,
   ]);
+
+  const lastRowIndex = Math.max(0, rowCount - 1);
 
   // Expose gridRef to parent via containerRef if it's a ref object
   useEffect(() => {
@@ -599,11 +611,12 @@ export default function VirtualizedCollectionsList({
     }
 
     const collection = collections[index];
-    const isInsetRow = rowIndex === 0 && topInset > 0;
+    const isTopInsetRow = rowIndex === 0 && topInset > 0;
+    const isBottomInsetRow = rowIndex === lastRowIndex && bottomInset > 0;
 
     return (
       <div style={style}>
-        {isInsetRow && <div style={{ height: topInset, flexShrink: 0 }} />}
+        {isTopInsetRow && <div style={{ height: topInset, flexShrink: 0 }} />}
         <div className="virtualized-grid-cell-pad">
         <CollectionListItem
           collection={collection}
@@ -621,6 +634,7 @@ export default function VirtualizedCollectionsList({
           itemRefs={itemRefs}
         />
         </div>
+        {isBottomInsetRow && <div style={{ height: bottomInset, flexShrink: 0 }} />}
       </div>
     );
   };
@@ -647,8 +661,15 @@ export default function VirtualizedCollectionsList({
         defaultWidth={gridContentWidth}
         rowCount={rowCount}
         rowHeight={
-          topInset > 0
-            ? (rowIndex: number) => (rowIndex === 0 ? itemHeight + topInset : itemHeight)
+          topInset > 0 || bottomInset > 0
+            ? (rowIndex: number) =>
+                virtualizedGridRowHeightPx(
+                  rowIndex,
+                  lastRowIndex,
+                  itemHeight,
+                  topInset,
+                  bottomInset
+                )
             : itemHeight
         }
         overscanCount={OVERSCAN_COUNT}

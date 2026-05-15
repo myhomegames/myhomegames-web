@@ -6,7 +6,11 @@ import type { CollectionLikeResourceType } from "../collections/EditCollectionLi
 import { GameListItem } from "./GamesList";
 import { useSkin } from "../../contexts/SkinContext";
 import { useCoverScaleAroundBar } from "../../hooks/useCoverScaleAroundBar";
-import { readGridTopInsetPx } from "../../utils/readGridTopInsetPx";
+import {
+  readGridBottomInsetPx,
+  readGridTopInsetPx,
+  virtualizedGridRowHeightPx,
+} from "../../utils/readGridTopInsetPx";
 // Helper functions for scroll restoration
 function getScrollPosition(key: string): { scrollTop: number; scrollLeft: number } | null {
   try {
@@ -173,6 +177,9 @@ export default function VirtualizedGamesList({
   const [spacing, setSpacing] = useState(() => readGridSpacing());
   const { gap: GAP, minLeftGutter: MIN_LEFT_GUTTER, minRightGutter: MIN_RIGHT_GUTTER } = spacing;
   const [topInset, setTopInset] = useState(() => readGridTopInsetPx(containerRef.current));
+  const [bottomInset, setBottomInset] = useState(() =>
+    readGridBottomInsetPx(containerRef.current)
+  );
   const gridRef = useRef<any>(null);
   const isRestoringRef = useRef(false);
   const lastSavedScrollRef = useRef<{ scrollTop: number; scrollLeft: number } | null>(null);
@@ -248,9 +255,11 @@ export default function VirtualizedGamesList({
   useEffect(() => {
     setSpacing(readGridSpacing());
     setTopInset(readGridTopInsetPx(containerRef.current));
+    setBottomInset(readGridBottomInsetPx(containerRef.current));
     const t = window.setTimeout(() => {
       setSpacing(readGridSpacing());
       setTopInset(readGridTopInsetPx(containerRef.current));
+      setBottomInset(readGridBottomInsetPx(containerRef.current));
     }, 50);
     return () => window.clearTimeout(t);
   }, [activeSkinId, containerRef]);
@@ -527,7 +536,10 @@ export default function VirtualizedGamesList({
     enableStepScroll,
     stepRows,
     topInset,
+    bottomInset,
   ]);
+
+  const lastRowIndex = Math.max(0, rowCount - 1);
 
   // Cell renderer for grid
   const Cell = ({ columnIndex, rowIndex, style }: { columnIndex: number; rowIndex: number; style: React.CSSProperties }) => {
@@ -542,11 +554,12 @@ export default function VirtualizedGamesList({
     // the grid itself still extends from y=0 of the page — covers can rise
     // through the bar area as the user scrolls. Pad the pad with a spacer
     // so the visual top of the cover starts at `topInset`.
-    const isInsetRow = rowIndex === 0 && topInset > 0;
+    const isTopInsetRow = rowIndex === 0 && topInset > 0;
+    const isBottomInsetRow = rowIndex === lastRowIndex && bottomInset > 0;
 
     return (
       <div style={style}>
-        {isInsetRow && <div style={{ height: topInset, flexShrink: 0 }} />}
+        {isTopInsetRow && <div style={{ height: topInset, flexShrink: 0 }} />}
         <div className="virtualized-grid-cell-pad">
         <GameListItem
           game={game}
@@ -584,6 +597,7 @@ export default function VirtualizedGamesList({
           onCollectionLikePseudoUpdated={onCollectionLikePseudoUpdated}
         />
         </div>
+        {isBottomInsetRow && <div style={{ height: bottomInset, flexShrink: 0 }} />}
       </div>
     );
   };
@@ -610,8 +624,15 @@ export default function VirtualizedGamesList({
       defaultWidth={gridContentWidth}
       rowCount={rowCount}
       rowHeight={
-        topInset > 0
-          ? (rowIndex: number) => (rowIndex === 0 ? itemHeight + topInset : itemHeight)
+        topInset > 0 || bottomInset > 0
+          ? (rowIndex: number) =>
+              virtualizedGridRowHeightPx(
+                rowIndex,
+                lastRowIndex,
+                itemHeight,
+                topInset,
+                bottomInset
+              )
           : itemHeight
       }
       overscanCount={OVERSCAN_COUNT}
