@@ -2,7 +2,6 @@ import { useState, useMemo, useId } from "react";
 import { useTranslation } from "react-i18next";
 import { API_BASE, getApiToken } from "../../config";
 import { buildApiUrl } from "../../utils/api";
-import { useLoading } from "../../contexts/LoadingContext";
 import { useTagLists } from "../../contexts/TagListsContext";
 type TagEditorProps = {
   selectedTags: string[];
@@ -32,7 +31,6 @@ export default function TagEditor({
   const inputId = inputIdProp ?? generatedInputId;
   const inputName = `tag-editor${inputId.replace(/:/g, "-")}`;
   const { t } = useTranslation();
-  const { setLoading } = useLoading();
   const { tagLabels, refreshTagLists } = useTagLists();
   const availableCategories = useMemo(
     () => Array.from(tagLabels.categories.values()),
@@ -49,7 +47,8 @@ export default function TagEditor({
   async function createCategory(title: string): Promise<string | null> {
     if (!isCategoryMode) return null;
     try {
-      setLoading(true);
+      // Do not use global LoadingContext here: Library hides the games list (and
+      // EditGameModal inside it) while `isLoading` is true.
       setIsCreating(true);
       const url = buildApiUrl(API_BASE, "/categories");
       const res = await fetch(url, {
@@ -80,7 +79,6 @@ export default function TagEditor({
       console.error("Error creating category:", err);
       return null;
     } finally {
-      setLoading(false);
       setIsCreating(false);
     }
   }
