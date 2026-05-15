@@ -6,8 +6,11 @@ import { CollectionListItem, type GamesPathType } from "./CollectionsList";
 import { useSkin } from "../../contexts/SkinContext";
 import { useCoverScaleAroundBar } from "../../hooks/useCoverScaleAroundBar";
 import {
-  readGridBottomInsetPx,
-  readGridTopInsetPx,
+  clampVirtualizedGridScrollTop,
+  computeVirtualizedGridAlignMaxScrollTop,
+  computeVirtualizedGridTailInsetPx,
+  readGridLastCoverRaisePx,
+  readGridTopInsetCollectionsPx,
   virtualizedGridRowHeightPx,
 } from "../../utils/readGridTopInsetPx";
 // Helper functions for scroll restoration
@@ -169,22 +172,14 @@ export default function VirtualizedCollectionsList({
     minRightGutter: MIN_RIGHT_GUTTER,
     forceSingleColumn: FORCE_SINGLE_COLUMN,
   } = spacing;
-  const [topInset, setTopInset] = useState(() => readGridTopInsetPx(containerRef.current));
-  const [bottomInset, setBottomInset] = useState(() =>
-    readGridBottomInsetPx(containerRef.current)
+  /** First cover only — never mixed with last-cover raise. */
+  const [firstCoverInset, setFirstCoverInset] = useState(() =>
+    readGridTopInsetCollectionsPx(containerRef.current),
+  );
+  const [lastCoverRaisePx, setLastCoverRaisePx] = useState(() =>
+    readGridLastCoverRaisePx(containerRef.current),
   );
   const { activeSkinId } = useSkin();
-  useEffect(() => {
-    setSpacing(readGridSpacing());
-    setTopInset(readGridTopInsetPx(containerRef.current));
-    setBottomInset(readGridBottomInsetPx(containerRef.current));
-    const t = window.setTimeout(() => {
-      setSpacing(readGridSpacing());
-      setTopInset(readGridTopInsetPx(containerRef.current));
-      setBottomInset(readGridBottomInsetPx(containerRef.current));
-    }, 50);
-    return () => window.clearTimeout(t);
-  }, [activeSkinId, containerRef]);
   const gridRef = useRef<any>(null);
   const isRestoringRef = useRef(false);
   const lastSavedScrollRef = useRef<{ scrollTop: number; scrollLeft: number } | null>(null);
@@ -281,6 +276,64 @@ export default function VirtualizedCollectionsList({
   const stepRows = readStepScrollRows(containerRef.current);
   const enableStepScroll = FORCE_SINGLE_COLUMN && stepRows > 0;
 
+  const lastRowIndex = Math.max(0, rowCount - 1);
+
+  /** Scroll tail: room to bring the last cover up to (firstCoverInset − raise), then clamp. */
+  const tailInset = useMemo(
+    () =>
+      firstCoverInset > 0 && rowCount > 1
+        ? computeVirtualizedGridTailInsetPx(
+            dimensions.height,
+            itemHeight,
+            firstCoverInset,
+            lastCoverRaisePx,
+          )
+        : 0,
+    [dimensions.height, itemHeight, firstCoverInset, lastCoverRaisePx, rowCount],
+  );
+
+  const alignMaxScrollTop = useMemo(
+    () =>
+      computeVirtualizedGridAlignMaxScrollTop(
+        rowCount,
+        itemHeight,
+        firstCoverInset,
+        lastCoverRaisePx,
+      ),
+    [rowCount, itemHeight, firstCoverInset, lastCoverRaisePx],
+  );
+
+  const clampScrollerScrollTop = (el: HTMLElement, scrollTop: number) =>
+    clampVirtualizedGridScrollTop(
+      scrollTop,
+      rowCount,
+      itemHeight,
+      firstCoverInset,
+      el.scrollHeight,
+      el.clientHeight,
+      lastCoverRaisePx,
+    );
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const refresh = () => {
+      setFirstCoverInset(readGridTopInsetCollectionsPx(el));
+      setLastCoverRaisePx(readGridLastCoverRaisePx(el));
+    };
+    setSpacing(readGridSpacing());
+    refresh();
+    const t = window.setTimeout(() => {
+      setSpacing(readGridSpacing());
+      refresh();
+    }, 50);
+    const t2 = window.setTimeout(refresh, 200);
+    return () => {
+      window.clearTimeout(t);
+      window.clearTimeout(t2);
+    };
+  }, [activeSkinId, containerRef, collections.length, rowCount, itemHeight]);
+
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -328,6 +381,8 @@ export default function VirtualizedCollectionsList({
         }
       }
 
+      setFirstCoverInset(readGridTopInsetCollectionsPx(el));
+      setLastCoverRaisePx(readGridLastCoverRaisePx(el));
       setDimensions({
         width: contentWidth || rect.width,
         height: contentHeight || rect.height || window.innerHeight - 200, // Fallback height
@@ -417,8 +472,16 @@ export default function VirtualizedCollectionsList({
       }
 
       try {
-        // Restore scroll position directly using scrollTop/scrollLeft
-        gridElement.scrollTop = savedPosition.scrollTop;
+        const restoredTop = clampVirtualizedGridScrollTop(
+          savedPosition.scrollTop,
+          rowCount,
+          itemHeight,
+          firstCoverInset,
+          gridElement.scrollHeight,
+          gridElement.clientHeight,
+          lastCoverRaisePx,
+        );
+        gridElement.scrollTop = restoredTop;
         gridElement.scrollLeft = savedPosition.scrollLeft;
 
         // Verify restoration worked
@@ -427,10 +490,10 @@ export default function VirtualizedCollectionsList({
           const currentScrollLeft = gridElement.scrollLeft;
 
           // If position is significantly different, try again
-          if (Math.abs(currentScrollTop - savedPosition.scrollTop) > 10 ||
+          if (Math.abs(currentScrollTop - restoredTop) > 10 ||
               Math.abs(currentScrollLeft - savedPosition.scrollLeft) > 10) {
             if (attempt < 5) {
-              gridElement.scrollTop = savedPosition.scrollTop;
+              gridElement.scrollTop = restoredTop;
               gridElement.scrollLeft = savedPosition.scrollLeft;
             }
           }
@@ -457,7 +520,16 @@ export default function VirtualizedCollectionsList({
       clearTimeout(safetyReveal);
       isRestoringRef.current = false;
     };
-  }, [location.pathname, storageKey, dimensions.height, rowCount, columnCount]);
+  }, [
+    location.pathname,
+    storageKey,
+    dimensions.height,
+    rowCount,
+    columnCount,
+    itemHeight,
+    firstCoverInset,
+    lastCoverRaisePx,
+  ]);
 
   // Save scroll position when scrolling. Do not put `gridRef.current` in the dependency
   // array — refs do not trigger re-renders, so the listener can stay detached after the
@@ -507,6 +579,22 @@ export default function VirtualizedCollectionsList({
       const handleScroll = () => {
         if (isRestoringRef.current) return;
 
+        if (firstCoverInset > 0) {
+          const clamped = clampVirtualizedGridScrollTop(
+            gridElement.scrollTop,
+            rowCount,
+            itemHeight,
+            firstCoverInset,
+            gridElement.scrollHeight,
+            gridElement.clientHeight,
+            lastCoverRaisePx,
+          );
+          if (clamped !== gridElement.scrollTop) {
+            gridElement.scrollTop = clamped;
+            return;
+          }
+        }
+
         if (scrollTimeout !== null) {
           window.clearTimeout(scrollTimeout);
           scrollTimeout = null;
@@ -526,15 +614,19 @@ export default function VirtualizedCollectionsList({
             snapTimeout = null;
             if (isRestoringRef.current) return;
             const el = gridElement;
-            const max = Math.max(0, el.scrollHeight - el.clientHeight);
+            const nativeMax = Math.max(0, el.scrollHeight - el.clientHeight);
+            const max =
+              firstCoverInset > 0
+                ? Math.min(nativeMax, alignMaxScrollTop)
+                : nativeMax;
             if (max <= 0) return;
 
             const stepPx = Math.max(1, Math.round(itemHeight * stepRows));
-            const firstStep = itemHeight + topInset;
+            const firstStep = itemHeight + firstCoverInset;
             const current = el.scrollTop;
             let target = 0;
 
-            if (topInset > 0) {
+            if (firstCoverInset > 0) {
               if (current <= firstStep / 2) {
                 target = 0;
               } else {
@@ -589,11 +681,31 @@ export default function VirtualizedCollectionsList({
     itemHeight,
     enableStepScroll,
     stepRows,
-    topInset,
-    bottomInset,
+    firstCoverInset,
+    lastCoverRaisePx,
+    alignMaxScrollTop,
+    tailInset,
   ]);
 
-  const lastRowIndex = Math.max(0, rowCount - 1);
+  // Keep scroll within [0, alignMax] when insets or row geometry change.
+  useEffect(() => {
+    if (firstCoverInset <= 0) return;
+    const root = containerRef.current;
+    if (!root) return;
+    const el = resolveCollectionsScrollHost(gridRef.current, root);
+    if (!el) return;
+    const clamped = clampScrollerScrollTop(el, el.scrollTop);
+    if (clamped !== el.scrollTop) el.scrollTop = clamped;
+  }, [
+    alignMaxScrollTop,
+    firstCoverInset,
+    lastCoverRaisePx,
+    tailInset,
+    rowCount,
+    itemHeight,
+    dimensions.height,
+    containerRef,
+  ]);
 
   // Expose gridRef to parent via containerRef if it's a ref object
   useEffect(() => {
@@ -611,12 +723,12 @@ export default function VirtualizedCollectionsList({
     }
 
     const collection = collections[index];
-    const isTopInsetRow = rowIndex === 0 && topInset > 0;
-    const isBottomInsetRow = rowIndex === lastRowIndex && bottomInset > 0;
+    const isTopInsetRow = rowIndex === 0 && firstCoverInset > 0;
+    const isTailInsetRow = rowIndex === lastRowIndex && tailInset > 0;
 
     return (
       <div style={style}>
-        {isTopInsetRow && <div style={{ height: topInset, flexShrink: 0 }} />}
+        {isTopInsetRow && <div style={{ height: firstCoverInset, flexShrink: 0 }} />}
         <div className="virtualized-grid-cell-pad">
         <CollectionListItem
           collection={collection}
@@ -634,7 +746,7 @@ export default function VirtualizedCollectionsList({
           itemRefs={itemRefs}
         />
         </div>
-        {isBottomInsetRow && <div style={{ height: bottomInset, flexShrink: 0 }} />}
+        {isTailInsetRow && <div style={{ height: tailInset, flexShrink: 0 }} />}
       </div>
     );
   };
@@ -661,14 +773,14 @@ export default function VirtualizedCollectionsList({
         defaultWidth={gridContentWidth}
         rowCount={rowCount}
         rowHeight={
-          topInset > 0 || bottomInset > 0
+          firstCoverInset > 0 || tailInset > 0
             ? (rowIndex: number) =>
                 virtualizedGridRowHeightPx(
                   rowIndex,
                   lastRowIndex,
                   itemHeight,
-                  topInset,
-                  bottomInset
+                  firstCoverInset,
+                  tailInset,
                 )
             : itemHeight
         }
