@@ -261,7 +261,7 @@ export default function LibrariesBar({
     collectionShortcuts.length > 0 && !!onSelectCollectionShortcut;
 
   /**
-   * Vertical bar (e.g. GOG): “Owned games” / “Installed” stay inside the collapsible Games block.
+   * Vertical bar (persistent sidebar): “Owned games” / “Installed” stay inside the collapsible Games block.
    * Horizontal bar (e.g. Plex): those two entries are inline with the other page tabs; this block
    * only holds collection shortcuts (when enabled).
    */
@@ -306,7 +306,7 @@ export default function LibrariesBar({
   const prevCollectionShortcutCountRef = useRef(collectionShortcuts.length);
   const prevOwnedGamesInSidebarRef = useRef(ownedGamesInGamesSidebar);
   const [sidebarSearchOpen, setSidebarSearchOpen] = useState(false);
-  /** Collapsible Games / collections sidebar block (GOG skin: full-width row + chevron). */
+  /** Collapsible Games / collections sidebar block (sidebar skin: full-width row + chevron). */
   const [gamesSidebarExpanded, setGamesSidebarExpanded] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
@@ -626,7 +626,7 @@ export default function LibrariesBar({
     return () => strip.removeEventListener("wheel", onWheel);
   }, [activeSkinWeb.verticalCoverAlignment]);
 
-  /** Top-strip layout only; full sidebars (e.g. GOG) ship column layout in skin CSS. */
+  /** Top-strip layout only; full sidebars ship column layout in skin CSS. */
   const verticalPageTabsLayout =
     activeSkinWeb.libraryPagesVerticalList && !activeSkinWeb.persistentLibraryShell;
   const showHeaderActionsInLibrariesBar = activeSkinWeb.libraryBarHeaderActions;

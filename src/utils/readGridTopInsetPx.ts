@@ -85,7 +85,7 @@ export function readGridBottomInsetPx(containerEl?: HTMLElement | null): number 
   ]);
 }
 
-/** Row height for react-window when PS3-style top/bottom grid insets are active. */
+/** Row height for react-window when top/bottom grid insets are active. */
 export function virtualizedGridRowHeightPx(
   rowIndex: number,
   lastRowIndex: number,

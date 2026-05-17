@@ -64,7 +64,7 @@ export default function TagGamesPage({
     () => (rawParam ? decodeURIComponent(rawParam) : null),
     [rawParam]
   );
-  const ps3ContextRail =
+  const contextRailLayout =
     !!tagValue &&
     !!tagKey &&
     activeSkinWeb.compactCollectionLikeDetail &&
@@ -408,7 +408,7 @@ export default function TagGamesPage({
   const [tagCoverPath, setTagCoverPath] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    if (!ps3ContextRail || !tagValue || !tagConfig) {
+    if (!contextRailLayout || !tagValue || !tagConfig) {
       setTagCoverPath(undefined);
       return;
     }
@@ -442,7 +442,7 @@ export default function TagGamesPage({
       isActive = false;
       controller.abort();
     };
-  }, [ps3ContextRail, tagValue, tagConfig]);
+  }, [contextRailLayout, tagValue, tagConfig]);
 
   const tagCoverUrl = useMemo(
     () => (tagCoverPath ? buildCoverUrl(API_BASE, tagCoverPath) : ""),
@@ -467,9 +467,9 @@ export default function TagGamesPage({
       gamesOverride={effectiveGamesOverride}
       onIgdbGameClick={onIgdbGameClick}
       selectedFilterValueLabel={tagFilterLabel}
-      ps3GamesColumnMode={ps3ContextRail}
-      scrollContainerRef={ps3ContextRail ? hook.scrollContainerRef : undefined}
-      forceSingleColumnGrid={ps3ContextRail}
+      contextRailGamesColumn={contextRailLayout}
+      scrollContainerRef={contextRailLayout ? hook.scrollContainerRef : undefined}
+      forceSingleColumnGrid={contextRailLayout}
     />
   );
 
@@ -504,7 +504,7 @@ export default function TagGamesPage({
     <>
       <div
         className={
-          ps3ContextRail ? "tag-games-libraries-bar-host tag-games-libraries-bar-host--ps3-dock-only" : undefined
+          contextRailLayout ? "tag-games-libraries-bar-host tag-games-libraries-bar-host--dock-only" : undefined
         }
       >
       <LibrariesBar
@@ -525,16 +525,16 @@ export default function TagGamesPage({
       />
       </div>
       <div
-        className={`bg-[#1a1a1a] home-page-main-container${ps3ContextRail ? " tag-games-page-shell tag-games-page-shell--ps3-context-rail" : ""}`}
+        className={`bg-[#1a1a1a] home-page-main-container${contextRailLayout ? " tag-games-page-shell tag-games-page-shell--context-rail" : ""}`}
       >
         <main className="flex-1 home-page-content">
-          <div className={`home-page-layout${ps3ContextRail ? " tag-games-page-layout-min-h" : ""}`}>
-            {ps3ContextRail && tagKey ? (
-              <div className="tag-games-ps3-layout">
-                <aside className="tag-games-ps3-rail" aria-label={tagDisplayTitle}>
+          <div className={`home-page-layout${contextRailLayout ? " tag-games-page-layout-min-h" : ""}`}>
+            {contextRailLayout && tagKey ? (
+              <div className="tag-games-context-layout">
+                <aside className="tag-games-context-rail" aria-label={tagDisplayTitle}>
                   <button
                     type="button"
-                    className="mhg-library-button mhg-library-active tag-games-ps3-rail-library"
+                    className="mhg-library-button mhg-library-active tag-games-context-rail-library"
                     data-mhg-library-key={tagKey}
                     onClick={() => navigate(tagListPath)}
                   >
@@ -542,7 +542,7 @@ export default function TagGamesPage({
                       {t(`libraries.${tagKey}`)}
                     </span>
                   </button>
-                  <div className="tag-games-ps3-rail-cover tag-list-item"
+                  <div className="tag-games-context-rail-cover tag-list-item"
                     style={{ ["--tag-list-cover-size" as string]: `${coverSize}px` }}>
                     <Cover
                       title={tagDisplayTitle}
@@ -559,7 +559,7 @@ export default function TagGamesPage({
                 </aside>
                 <div
                   ref={hook.scrollContainerRef}
-                  className="tag-games-ps3-games"
+                  className="tag-games-context-games"
                   data-mhg-grid-insets="none"
                 >
                   {gamesListContent}

@@ -176,7 +176,7 @@ export default function LibraryItemDetailPage({
    * Local per-item `mainGamesOnly` used only by the classic shell (each detail page owns its
    * state and persists it per collection/developer/publisher).
    *
-   * Under the persistent shell (skin `persistentLibraryShell`, e.g. GOG) the in-page
+   * Under the persistent shell (`persistentLibraryShell`) the in-page
    * LibrariesBar is hidden via CSS and the visible toggle lives on the shell bar mounted by
    * MainAppLayout. In that case we reuse the shared outlet-context state so the shell toggle
    * actually filters the detail view, and a single user choice stays active while navigating
@@ -322,7 +322,7 @@ export default function LibraryItemDetailPage({
   };
 
   /*
-   * In the persistent shell (`persistentLibraryShell`, e.g. GOG), LibrariesBar in
+   * In the persistent shell (`persistentLibraryShell`), LibrariesBar in
    * MainAppLayout owns coverSize; moving the slider there does not update this page’s local
    * coverSize (initialized once from localStorage). Listen for the event from
    * useLibrariesShellState (and from our own handler) to keep detail-page cover size in sync.
@@ -1138,14 +1138,14 @@ function LibraryItemDetailContent({
   const { isLoading } = useLoading();
   const { activeSkinWeb } = useSkin();
   /*
-   * In compact mode (skin opt-in, e.g. GOG) the collection-like detail hides the hero
+   * In compact mode (skin opt-in) the collection-like detail hides the hero
    * (cover, title, rating, summary, actions), section headings, the sub-collections grid, and
    * the parent collection-like strip: only top-bar controls and the direct games list remain.
    * Edit/delete/play still live on the persistent libraries bar and sidebar entries.
    */
   const compactDetail = activeSkinWeb.compactCollectionLikeDetail;
-  /** PS3: hide the icon strip; left column = library tab + cover, right column = scrollable games. */
-  const ps3ContextRail = compactDetail && activeSkinWeb.verticalCoverAlignment;
+  /** Context rail: hide the icon strip; left column = library tab + cover, right column = scrollable games. */
+  const contextRailLayout = compactDetail && activeSkinWeb.verticalCoverAlignment;
   const contextRailLibraryKey =
     resourceType === "collections"
       ? "collections"
@@ -1800,7 +1800,7 @@ function LibraryItemDetailContent({
   return (
     <>
       <div
-        className={`library-item-detail-libraries-bar-host${ps3ContextRail ? " library-item-detail-libraries-bar-host--ps3-dock-only" : ""}${hasBackground && isBackgroundVisible ? " game-detail-libraries-bar-transparent" : ""}`}
+        className={`library-item-detail-libraries-bar-host${contextRailLayout ? " library-item-detail-libraries-bar-host--dock-only" : ""}${hasBackground && isBackgroundVisible ? " game-detail-libraries-bar-transparent" : ""}`}
       >
         <LibrariesBar
           libraries={[]}
@@ -1825,7 +1825,7 @@ function LibraryItemDetailContent({
         />
       </div>
       <div
-        className={`library-item-detail-page-shell${ps3ContextRail ? " library-item-detail-page-shell--ps3-context-rail" : ""}`}
+        className={`library-item-detail-page-shell${contextRailLayout ? " library-item-detail-page-shell--context-rail" : ""}`}
       >
         <div className="home-page-main-container library-item-detail-main-inner">
           <main className="flex-1 home-page-content library-item-detail-main-min-h">
@@ -1834,8 +1834,8 @@ function LibraryItemDetailContent({
                 className={`home-page-content-wrapper library-item-detail-content-wrapper${isReady ? " library-item-detail-content-wrapper--ready" : ""}`}
               >
                 <div
-                  ref={ps3ContextRail ? undefined : scrollContainerRef}
-                  className={`home-page-scroll-container library-item-detail-scroll${ps3ContextRail ? " library-item-detail-scroll--ps3-context-rail" : ""}`}
+                  ref={contextRailLayout ? undefined : scrollContainerRef}
+                  className={`home-page-scroll-container library-item-detail-scroll${contextRailLayout ? " library-item-detail-scroll--context-rail" : ""}`}
                   tabIndex={-1}
                   style={
                     {
@@ -2048,13 +2048,13 @@ function LibraryItemDetailContent({
 
                   {!isLoading && (
                     <div
-                      className={`library-item-detail-section-full${ps3ContextRail ? " library-item-detail-ps3-layout" : ""}`}
+                      className={`library-item-detail-section-full${contextRailLayout ? " library-item-detail-context-layout" : ""}`}
                     >
-                      {ps3ContextRail && item && (
-                        <aside className="library-item-detail-ps3-rail" aria-label={item.title}>
+                      {contextRailLayout && item && (
+                        <aside className="library-item-detail-context-rail" aria-label={item.title}>
                           <button
                             type="button"
-                            className="mhg-library-button mhg-library-active library-item-detail-ps3-rail-library"
+                            className="mhg-library-button mhg-library-active library-item-detail-context-rail-library"
                             data-mhg-library-key={contextRailLibraryKey}
                             onClick={() => navigate(contextRailListPath)}
                           >
@@ -2062,7 +2062,7 @@ function LibraryItemDetailContent({
                               {t(`libraries.${contextRailLibraryKey}`)}
                             </span>
                           </button>
-                          <div className="library-item-detail-ps3-rail-cover">
+                          <div className="library-item-detail-context-rail-cover">
                             <Cover
                               title={item.title}
                               coverUrl={itemCoverUrl}
@@ -2088,9 +2088,9 @@ function LibraryItemDetailContent({
                         </aside>
                       )}
                       <div
-                        ref={ps3ContextRail ? scrollContainerRef : undefined}
-                        className={ps3ContextRail ? "library-item-detail-ps3-games" : undefined}
-                        {...(ps3ContextRail ? { "data-mhg-grid-insets": "none" as const } : {})}
+                        ref={contextRailLayout ? scrollContainerRef : undefined}
+                        className={contextRailLayout ? "library-item-detail-context-games" : undefined}
+                        {...(contextRailLayout ? { "data-mhg-grid-insets": "none" as const } : {})}
                       >
                       {!compactDetail && subCollectionLikesFiltered.length > 0 && (
                         <div className="library-item-detail-subsection">
@@ -2121,7 +2121,7 @@ function LibraryItemDetailContent({
                             <div className="library-item-detail-games-list library-item-detail-mt-games-list">
                               <GamesList
                                 scrollContainerRef={scrollContainerRef}
-                                forceSingleColumnVirtualized={ps3ContextRail}
+                                forceSingleColumnVirtualized={contextRailLayout}
                                 games={singleSubCollectionGamesFiltered}
                                 onGameClick={(game) => {
                                   const g = game as GameItem & { isIgdbOnly?: boolean };
@@ -2245,7 +2245,7 @@ function LibraryItemDetailContent({
                           <div className="library-item-detail-games-list">
                             <GamesList
                               scrollContainerRef={scrollContainerRef}
-                              forceSingleColumnVirtualized={ps3ContextRail}
+                              forceSingleColumnVirtualized={contextRailLayout}
                               games={gridGames}
                               onGameClick={(game) => {
                                 const g = game as GameItem & { isIgdbOnly?: boolean };

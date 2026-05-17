@@ -119,7 +119,7 @@ function readGridSpacing(): { gap: number; minLeftGutter: number; minRightGutter
 }
 
 /**
- * Skins (e.g. PS3) can push the first cover row down by injecting empty
+ * Skins can push the first cover row down by injecting empty
  * space at the top of the virtualized grid via `--mhg-grid-top-inset`.
  * Padding-top on the outer scroll container would clip the grid at its
  * top edge — we want covers to remain visible BEHIND the (transparent)
@@ -273,7 +273,7 @@ export default function VirtualizedGamesList({
   // Update dimensions when container size changes.
   // We size the grid to the container's CONTENT box (excluding padding) so the
   // virtualized scroll bottom aligns with the visible viewport bottom. Skins
-  // that pad `.home-page-scroll-container` (e.g. GOG Galaxy adds
+  // that pad `.home-page-scroll-container` (some persistent-shell skins add
   // padding-top/-bottom: 32px) would otherwise produce a grid that overflows
   // the container, hiding the last rows below the scroll bar's end position.
   useEffect(() => {

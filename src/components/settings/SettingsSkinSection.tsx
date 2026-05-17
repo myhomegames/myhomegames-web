@@ -207,7 +207,7 @@ export default function SettingsSkinSection() {
            * `.settings-skin-list` ships with `margin-top: 8px` but no bottom margin in the skin
            * bundles, and `.settings-field` only contributes `margin-bottom`, so without an
            * explicit top margin the options block collapses against the installed skins row.
-           * Keep the gap inline so it stays consistent across skins (Plex, GOG, …).
+           * Keep the gap inline so it stays consistent across skins.
            */
           <div className="settings-field settings-skin-options" style={{ marginTop: 32 }}>
             <div className="settings-label">{t("settings.skinOptions.title", "Options")}</div>

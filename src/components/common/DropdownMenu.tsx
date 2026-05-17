@@ -136,7 +136,7 @@ export default function DropdownMenu({
   const isInCover = className.includes('games-list-dropdown-menu');
   // Check if we're in the games table (virtualized or not) - use portal to escape overflow and stay on top
   const isInGamesTable = className.includes('games-table-dropdown-menu');
-  /** GOG shell: three-dots in fixed libraries strip — same escape as table/search (stacking / overflow) */
+  /** Persistent shell: three-dots in fixed libraries strip — same escape as table/search (stacking / overflow) */
   const isLibrariesTopMenu = className.includes('mhg-libraries-menu-dropdown');
   
   // Check if we're in search (popup or results page) to use portal so menu isn't clipped and clicks work

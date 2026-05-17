@@ -66,7 +66,7 @@ export function useLibrariesShellState(options: Options) {
     setCoverSize(size);
     localStorage.setItem("coverSize", size.toString());
     /*
-     * In the persistent shell (e.g. GOG skin) LibrariesBar mounts once in MainAppLayout and
+     * In the persistent shell LibrariesBar mounts once in MainAppLayout and
      * cover size state lives here; Outlet children (collection/developer/publisher/tag detail
      * pages) still keep their own coverSize state initialized from localStorage. Dispatch an
      * event so they stay in sync when the slider moves in the persistent bar.

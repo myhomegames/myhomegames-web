@@ -37,8 +37,8 @@ type GamesListPageContentProps = {
   selectedFilterValueLabel?: string;
   disableGridVirtualization?: boolean;
   forceSingleColumnGrid?: boolean;
-  /** Tag PS3 column: parent `.tag-games-ps3-games` is the scroll container. */
-  ps3GamesColumnMode?: boolean;
+  /** Tag context-rail column: parent `.tag-games-context-games` is the scroll container. */
+  contextRailGamesColumn?: boolean;
   scrollContainerRef?: RefObject<HTMLDivElement | null>;
 };
 
@@ -58,7 +58,7 @@ export default function GamesListPageContent({
   selectedFilterValueLabel,
   disableGridVirtualization = false,
   forceSingleColumnGrid = false,
-  ps3GamesColumnMode = false,
+  contextRailGamesColumn = false,
   scrollContainerRef: scrollContainerRefProp,
 }: GamesListPageContentProps) {
   const { t } = useTranslation();
@@ -185,7 +185,7 @@ export default function GamesListPageContent({
   const forceVerticalCoversPage = activeSkinWeb.verticalCoverAlignment;
   const listScrollContainerRef = scrollContainerRefProp ?? hookScrollContainerRef;
   const singleColumnGrid =
-    forceSingleColumnGrid || forceVerticalCoversPage || ps3GamesColumnMode;
+    forceSingleColumnGrid || forceVerticalCoversPage || contextRailGamesColumn;
   const { slotEl: topDockToolbarSlot } = useTopDockSlot();
   /**
    * The top-right tool dock skin option promotes the page toolbar (filter,
@@ -288,7 +288,7 @@ export default function GamesListPageContent({
       )}
       {/* Scrollable lists container */}
       <div
-        ref={ps3GamesColumnMode ? undefined : listScrollContainerRef}
+        ref={contextRailGamesColumn ? undefined : listScrollContainerRef}
         className={`home-page-scroll-container ${
           viewMode === "table" ? "table-view" : ""
         } ${!isReady || displayGames.length === 0 ? "centered-content min-h-[400px]" : ""}`}

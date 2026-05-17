@@ -277,7 +277,7 @@ export default function ScrollableGamesSection({
         ref={scrollRef}
         className={`scrollable-section-scroll ${isRestoring ? 'restoring' : ''}`}
       >
-        {/* No scrollContainerRef: PS3 uses overflow-y:visible here; VirtualizedGamesList needs a parent with real height (games-list-container). */}
+        {/* No scrollContainerRef: vertical-covers skins use overflow-y:visible here; VirtualizedGamesList needs a parent with real height (games-list-container). */}
         <GamesList
           games={games}
           onGameClick={onGameClick}

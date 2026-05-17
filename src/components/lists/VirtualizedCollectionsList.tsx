@@ -203,7 +203,7 @@ export default function VirtualizedCollectionsList({
     return Math.ceil(collections.length / columnCount);
   }, [collections.length, columnCount]);
 
-  // Fit gutters + grid into the measured container width so PS3 vertical rails never clip covers
+  // Fit gutters + grid into the measured container width so vertical rails never clip covers
   // when minimum gutters plus `coverSize` exceed `dimensions.width` (common with overflow-x: hidden).
   const { displayCoverSize, gridContentWidth, leftGutter, rightGutter, itemWidth, itemHeight } =
     useMemo(() => {
@@ -367,7 +367,7 @@ export default function VirtualizedCollectionsList({
       const contentWidth = Math.max(0, rect.width - padLeft - padRight);
       let contentHeight = Math.max(0, rect.height - padTop - padBottom);
 
-      // Skins (e.g. PS3 dock) pull `.virtualized-list-fade` up with a negative `margin-top`
+      // Skins with a top tool dock pull `.virtualized-list-fade` up with a negative `margin-top`
       // so the first cover lines up under the libraries bar. That does not change the
       // scroll container's measured height, so react-window would still get the old
       // height and the rail ends short of the bottom — extend by the resolved pull.

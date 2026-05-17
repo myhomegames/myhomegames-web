@@ -34,7 +34,7 @@ export type SkinWebManifest = {
   /**
    * Hides the main games library (`library`) from the top sidebar list and renders it as the first
    * row under the games/collections shortcuts block (the section titled “Games” / “Giochi” in some
-   * skins), labeled “Owned games”. Intended with `collectionsShortcutList` for GOG-style sidebars.
+   * skins), labeled “Owned games”. Intended with `collectionsShortcutList` for persistent sidebars.
    */
   ownedGamesFirstInGamesSidebar: boolean;
   /**
