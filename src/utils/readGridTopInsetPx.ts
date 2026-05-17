@@ -33,8 +33,10 @@ function readFirstCssVarHeightPx(
     if (!mount.isConnected) continue;
     if (gridInsetsDisabled(mount)) return 0;
     for (const cssVar of cssVars) {
-      const h = readCssVarHeightPx(mount, cssVar);
-      if (h > 0) return h;
+      const raw = getComputedStyle(mount).getPropertyValue(cssVar).trim();
+      if (!raw) continue;
+      // Honor explicit 0 in the cascade; do not fall through to :root page insets.
+      return readCssVarHeightPx(mount, cssVar);
     }
   }
   return 0;
