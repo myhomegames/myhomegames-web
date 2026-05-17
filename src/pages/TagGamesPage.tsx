@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import type { ReactNode } from "react";
-import { useParams, useSearchParams, useOutletContext } from "react-router-dom";
+import { useParams, useSearchParams, useOutletContext, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useLoading } from "../contexts/LoadingContext";
 import { useSkin } from "../contexts/SkinContext";
@@ -11,6 +11,7 @@ import { useGamesListPage, sortGamesList } from "../hooks/useGamesListPage";
 import { useIgdbGamesForSeriesFranchise } from "../hooks/useIgdbGamesForSeriesFranchise";
 import { useIgdbGamesForTag, type IgdbTagKey } from "../hooks/useIgdbGamesForTag";
 import GamesListPageContent from "../components/games/GamesListPageContent";
+import Cover from "../components/games/Cover";
 import AlphabetNavigator from "../components/ui/AlphabetNavigator";
 import LibrariesBar from "../components/layout/LibrariesBar";
 import MainGamesToggle from "../components/ui/MainGamesToggle";
@@ -18,9 +19,10 @@ import NewGamesToggle from "../components/ui/NewGamesToggle";
 import type { ViewMode } from "../types";
 import type { GameItem, CollectionItem } from "../types";
 import type { FilterField } from "../components/filters/types";
-import type { TagKey } from "../utils/tagPages";
+import { TAG_PAGE_CONFIGS, type TagKey } from "../utils/tagPages";
 import type { MainAppOutletContext } from "../layouts/MainAppLayout";
-import { buildCoverUrl } from "../utils/api";
+import { API_BASE } from "../config";
+import { buildApiHeaders, buildApiUrl, buildCoverUrl } from "../utils/api";
 import { isMainGameType } from "../utils/igdbGameType";
 
 type TagGamesPageProps = {
@@ -47,8 +49,10 @@ export default function TagGamesPage({
   onIgdbGameClick,
 }: TagGamesPageProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const outletContext = useOutletContext<MainAppOutletContext | null>();
   const { activeSkinWeb } = useSkin();
+  const tagConfig = tagKey ? TAG_PAGE_CONFIGS[tagKey] : undefined;
   const { games: libraryGames } = useLibraryGames();
   const { twitchLoginEnabled } = useSettings();
   const { tagLabels } = useTagLists();
@@ -60,6 +64,12 @@ export default function TagGamesPage({
     () => (rawParam ? decodeURIComponent(rawParam) : null),
     [rawParam]
   );
+  const ps3ContextRail =
+    !!tagValue &&
+    !!tagKey &&
+    activeSkinWeb.compactCollectionLikeDetail &&
+    activeSkinWeb.verticalCoverAlignment;
+  const tagListPath = tagConfig?.list.routeBase ?? (tagKey ? `/${tagKey}` : "/");
   const scopedStorageKey = useMemo(
     () => `${storageKey}_${tagValue ?? "__all__"}`,
     [storageKey, tagValue]
@@ -386,8 +396,117 @@ export default function TagGamesPage({
     [onGamesLoaded]
   );
 
+  const tagFilterLabel =
+    isIgdbTag && selectedValueMatchesTag ? (igdbTagName ?? undefined) : undefined;
+
+  const tagDisplayTitle = useMemo(() => {
+    if (!tagValue || !tagConfig) return "";
+    if (tagFilterLabel) return tagFilterLabel;
+    return tagConfig.getDisplayName(t)(tagValue);
+  }, [tagValue, tagConfig, tagFilterLabel, t]);
+
+  const [tagCoverPath, setTagCoverPath] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (!ps3ContextRail || !tagValue || !tagConfig) {
+      setTagCoverPath(undefined);
+      return;
+    }
+    const { listEndpoint, listResponseKey } = tagConfig.list;
+    const endpoint = listEndpoint || tagConfig.list.routeBase;
+    let isActive = true;
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        const res = await fetch(buildApiUrl(API_BASE, endpoint), {
+          headers: buildApiHeaders({ Accept: "application/json" }),
+          signal: controller.signal,
+        });
+        if (!res.ok) return;
+        const json = await res.json();
+        const rawItems = (json?.[listResponseKey] || []) as Array<{
+          id: string | number;
+          cover?: string;
+        }>;
+        const match = rawItems.find((item) => String(item.id) === String(tagValue));
+        if (isActive) {
+          setTagCoverPath(match?.cover);
+        }
+      } catch {
+        if (isActive) setTagCoverPath(undefined);
+      }
+    })();
+
+    return () => {
+      isActive = false;
+      controller.abort();
+    };
+  }, [ps3ContextRail, tagValue, tagConfig]);
+
+  const tagCoverUrl = useMemo(
+    () => (tagCoverPath ? buildCoverUrl(API_BASE, tagCoverPath) : ""),
+    [tagCoverPath],
+  );
+
+  const tagRailCoverWidth = Math.round(coverSize * 1.5);
+  const tagRailCoverHeight = Math.round((tagRailCoverWidth * 9) / 16);
+
+  const gamesListContent = (
+    <GamesListPageContent
+      hook={hook}
+      viewMode={viewMode}
+      coverSize={coverSize}
+      isLoading={isLoading || igdbLoading || igdbTagLoading}
+      isReady={hook.isReady}
+      allCollections={allCollections}
+      onGameClick={onGameClick}
+      onGamesLoaded={handleGamesLoaded}
+      onPlay={onPlay}
+      buildCoverUrlFn={buildCoverUrlFn}
+      gamesOverride={effectiveGamesOverride}
+      onIgdbGameClick={onIgdbGameClick}
+      selectedFilterValueLabel={tagFilterLabel}
+      ps3GamesColumnMode={ps3ContextRail}
+      scrollContainerRef={ps3ContextRail ? hook.scrollContainerRef : undefined}
+      forceSingleColumnGrid={ps3ContextRail}
+    />
+  );
+
+  const alphabetNavigator =
+    hook.sortField === "title" && hook.isReady && !activeSkinWeb.disableAlphabetNavigator ? (
+      <AlphabetNavigator
+        games={gamesForList}
+        scrollContainerRef={
+          viewMode === "table" ? hook.tableScrollRef : hook.scrollContainerRef
+        }
+        itemRefs={hook.itemRefs}
+        ascending={hook.sortAscending}
+        virtualizedGridRef={
+          viewMode === "grid" && hook.scrollContainerRef.current
+            ? (hook.scrollContainerRef.current as any).__virtualizedGridRef
+            : undefined
+        }
+        virtualizedListRef={
+          (viewMode === "detail" && hook.scrollContainerRef.current
+            ? (hook.scrollContainerRef.current as any).__virtualizedListRef
+            : undefined) ||
+          (viewMode === "table" && hook.tableScrollRef.current
+            ? (hook.scrollContainerRef.current as any).__virtualizedListRef
+            : undefined)
+        }
+        viewMode={viewMode}
+        coverSize={coverSize}
+      />
+    ) : null;
+
   return (
     <>
+      <div
+        className={
+          ps3ContextRail ? "tag-games-libraries-bar-host tag-games-libraries-bar-host--ps3-dock-only" : undefined
+        }
+      >
       <LibrariesBar
         libraries={[]}
         activeLibrary={null}
@@ -404,48 +523,51 @@ export default function TagGamesPage({
         mainGamesOnly={hook.mainGamesOnly}
         onMainGamesOnlyChange={hook.setMainGamesOnly}
       />
-      <div className="bg-[#1a1a1a] home-page-main-container">
+      </div>
+      <div
+        className={`bg-[#1a1a1a] home-page-main-container${ps3ContextRail ? " tag-games-page-shell tag-games-page-shell--ps3-context-rail" : ""}`}
+      >
         <main className="flex-1 home-page-content">
-          <div className="home-page-layout">
-            <GamesListPageContent
-              hook={hook}
-              viewMode={viewMode}
-              coverSize={coverSize}
-              isLoading={isLoading || igdbLoading || igdbTagLoading}
-              isReady={hook.isReady}
-              allCollections={allCollections}
-              onGameClick={onGameClick}
-              onGamesLoaded={handleGamesLoaded}
-              onPlay={onPlay}
-              buildCoverUrlFn={buildCoverUrlFn}
-              gamesOverride={effectiveGamesOverride}
-              onIgdbGameClick={onIgdbGameClick}
-              selectedFilterValueLabel={isIgdbTag && selectedValueMatchesTag ? (igdbTagName ?? undefined) : undefined}
-            />
-            {hook.sortField === "title" && hook.isReady && !activeSkinWeb.disableAlphabetNavigator && (
-              <AlphabetNavigator
-                games={gamesForList}
-                scrollContainerRef={
-                  viewMode === "table" ? hook.tableScrollRef : hook.scrollContainerRef
-                }
-                itemRefs={hook.itemRefs}
-                ascending={hook.sortAscending}
-                virtualizedGridRef={
-                  viewMode === "grid" && hook.scrollContainerRef.current
-                    ? (hook.scrollContainerRef.current as any).__virtualizedGridRef
-                    : undefined
-                }
-                virtualizedListRef={
-                  (viewMode === "detail" && hook.scrollContainerRef.current
-                    ? (hook.scrollContainerRef.current as any).__virtualizedListRef
-                    : undefined) ||
-                  (viewMode === "table" && hook.tableScrollRef.current
-                    ? (hook.tableScrollRef.current as any).__virtualizedListRef
-                    : undefined)
-                }
-                viewMode={viewMode}
-                coverSize={coverSize}
-              />
+          <div className={`home-page-layout${ps3ContextRail ? " tag-games-page-layout-min-h" : ""}`}>
+            {ps3ContextRail && tagKey ? (
+              <div className="tag-games-ps3-layout">
+                <aside className="tag-games-ps3-rail" aria-label={tagDisplayTitle}>
+                  <button
+                    type="button"
+                    className="mhg-library-button mhg-library-active tag-games-ps3-rail-library"
+                    data-mhg-library-key={tagKey}
+                    onClick={() => navigate(tagListPath)}
+                  >
+                    <span className="mhg-library-button-label">
+                      {t(`libraries.${tagKey}`)}
+                    </span>
+                  </button>
+                  <div className="tag-games-ps3-rail-cover tag-games-ps3-rail-cover--tag">
+                    <Cover
+                      title={tagDisplayTitle}
+                      coverUrl={tagCoverUrl}
+                      width={tagRailCoverWidth}
+                      height={tagRailCoverHeight}
+                      imageFit="fill"
+                      showTitle={false}
+                      detail={false}
+                      showBorder={true}
+                    />
+                  </div>
+                </aside>
+                <div
+                  ref={hook.scrollContainerRef}
+                  className="tag-games-ps3-games"
+                  data-mhg-grid-insets="none"
+                >
+                  {gamesListContent}
+                </div>
+              </div>
+            ) : (
+              <>
+                {gamesListContent}
+                {alphabetNavigator}
+              </>
             )}
           </div>
         </main>

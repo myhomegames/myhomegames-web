@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import GamesList from "./GamesList";
@@ -37,6 +37,9 @@ type GamesListPageContentProps = {
   selectedFilterValueLabel?: string;
   disableGridVirtualization?: boolean;
   forceSingleColumnGrid?: boolean;
+  /** Tag PS3 column: parent `.tag-games-ps3-games` is the scroll container. */
+  ps3GamesColumnMode?: boolean;
+  scrollContainerRef?: RefObject<HTMLDivElement | null>;
 };
 
 export default function GamesListPageContent({
@@ -55,6 +58,8 @@ export default function GamesListPageContent({
   selectedFilterValueLabel,
   disableGridVirtualization = false,
   forceSingleColumnGrid = false,
+  ps3GamesColumnMode = false,
+  scrollContainerRef: scrollContainerRefProp,
 }: GamesListPageContentProps) {
   const { t } = useTranslation();
   const {
@@ -102,7 +107,7 @@ export default function GamesListPageContent({
     handleTableSort,
     filteredAndSortedGames,
     mainGamesOnly,
-    scrollContainerRef,
+    scrollContainerRef: hookScrollContainerRef,
     tableScrollRef,
     itemRefs,
     handleGameUpdate,
@@ -178,6 +183,9 @@ export default function GamesListPageContent({
   const displayGames = gamesOverride ?? filteredAndSortedGames;
   const { activeSkinWeb } = useSkin();
   const forceVerticalCoversPage = activeSkinWeb.verticalCoverAlignment;
+  const listScrollContainerRef = scrollContainerRefProp ?? hookScrollContainerRef;
+  const singleColumnGrid =
+    forceSingleColumnGrid || forceVerticalCoversPage || ps3GamesColumnMode;
   const { slotEl: topDockToolbarSlot } = useTopDockSlot();
   /**
    * The top-right tool dock skin option promotes the page toolbar (filter,
@@ -280,7 +288,7 @@ export default function GamesListPageContent({
       )}
       {/* Scrollable lists container */}
       <div
-        ref={scrollContainerRef}
+        ref={ps3GamesColumnMode ? undefined : listScrollContainerRef}
         className={`home-page-scroll-container ${
           viewMode === "table" ? "table-view" : ""
         } ${!isReady || displayGames.length === 0 ? "centered-content min-h-[400px]" : ""}`}
@@ -308,12 +316,10 @@ export default function GamesListPageContent({
                     itemRefs={itemRefs}
                     viewMode={viewMode}
                     allCollections={allCollections}
-                    scrollContainerRef={scrollContainerRef}
+                    scrollContainerRef={listScrollContainerRef}
                     platformIdForPlay={platformIdForPlay}
                     enableVirtualization={!disableGridVirtualization}
-                    forceSingleColumnVirtualized={
-                      forceSingleColumnGrid || forceVerticalCoversPage
-                    }
+                    forceSingleColumnVirtualized={singleColumnGrid}
                   />
                 )}
                 {viewMode === "detail" && (
@@ -329,7 +335,7 @@ export default function GamesListPageContent({
                     buildCoverUrl={coverUrlBuilder}
                     itemRefs={itemRefs}
                     allCollections={allCollections}
-                    scrollContainerRef={scrollContainerRef}
+                    scrollContainerRef={listScrollContainerRef}
                     platformIdForPlay={platformIdForPlay}
                     hideGameType={mainGamesOnly}
                   />
