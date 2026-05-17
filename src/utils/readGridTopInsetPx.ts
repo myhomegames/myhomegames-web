@@ -21,12 +21,17 @@ function gridInsetMountCandidates(containerEl?: HTMLElement | null): HTMLElement
   return mounts;
 }
 
+function gridInsetsDisabled(containerEl?: HTMLElement | null): boolean {
+  return !!containerEl?.closest("[data-mhg-grid-insets='none']");
+}
+
 function readFirstCssVarHeightPx(
   mounts: HTMLElement[],
   cssVars: string[],
 ): number {
   for (const mount of mounts) {
     if (!mount.isConnected) continue;
+    if (gridInsetsDisabled(mount)) return 0;
     for (const cssVar of cssVars) {
       const h = readCssVarHeightPx(mount, cssVar);
       if (h > 0) return h;
@@ -41,6 +46,7 @@ function readFirstCssVarHeightPx(
  */
 export function readGridTopInsetPx(containerEl?: HTMLElement | null): number {
   if (typeof window === "undefined" || typeof document === "undefined") return 0;
+  if (gridInsetsDisabled(containerEl)) return 0;
   const mounts = gridInsetMountCandidates(containerEl);
   if (mounts.length === 0) mounts.push(document.documentElement);
   return readFirstCssVarHeightPx(mounts, [
@@ -67,6 +73,7 @@ export function readGridTopInsetCollectionsPx(containerEl?: HTMLElement | null):
  */
 export function readGridBottomInsetPx(containerEl?: HTMLElement | null): number {
   if (typeof window === "undefined" || typeof document === "undefined") return 0;
+  if (gridInsetsDisabled(containerEl)) return 0;
   const mounts = gridInsetMountCandidates(containerEl);
   if (mounts.length === 0) mounts.push(document.documentElement);
   return readFirstCssVarHeightPx(mounts, [

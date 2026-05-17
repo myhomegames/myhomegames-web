@@ -2088,6 +2088,7 @@ function LibraryItemDetailContent({
                       <div
                         ref={ps3ContextRail ? scrollContainerRef : undefined}
                         className={ps3ContextRail ? "library-item-detail-ps3-games" : undefined}
+                        {...(ps3ContextRail ? { "data-mhg-grid-insets": "none" as const } : {})}
                       >
                       {!compactDetail && subCollectionLikesFiltered.length > 0 && (
                         <div className="library-item-detail-subsection">
