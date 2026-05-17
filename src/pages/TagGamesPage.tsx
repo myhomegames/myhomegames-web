@@ -449,8 +449,8 @@ export default function TagGamesPage({
     [tagCoverPath],
   );
 
-  const tagRailCoverWidth = Math.round(coverSize * 1.5);
-  const tagRailCoverHeight = Math.round((tagRailCoverWidth * 9) / 16);
+  const tagRailCoverWidth = coverSize;
+  const tagRailCoverHeight = coverSize * (9 / 16);
 
   const gamesListContent = (
     <GamesListPageContent
@@ -542,15 +542,17 @@ export default function TagGamesPage({
                       {t(`libraries.${tagKey}`)}
                     </span>
                   </button>
-                  <div className="tag-games-ps3-rail-cover tag-games-ps3-rail-cover--tag">
+                  <div className="tag-games-ps3-rail-cover tag-list-item"
+                    style={{ ["--tag-list-cover-size" as string]: `${coverSize}px` }}>
                     <Cover
                       title={tagDisplayTitle}
                       coverUrl={tagCoverUrl}
                       width={tagRailCoverWidth}
                       height={tagRailCoverHeight}
-                      imageFit="fill"
+                      aspectRatio="16/9"
+                      detail={true}
+                      titlePosition="overlay"
                       showTitle={false}
-                      detail={false}
                       showBorder={true}
                     />
                   </div>

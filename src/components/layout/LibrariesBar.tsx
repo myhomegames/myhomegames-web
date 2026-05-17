@@ -557,11 +557,13 @@ export default function LibrariesBar({
     onSelectCollectionShortcut(collectionId);
   };
 
+  const topRightToolDock = activeSkinWeb.topRightToolDock;
+
   const showIconCluster =
     (hasBackground && !hideBackgroundToggle) ||
-    !!rightActionsBeforeMainGames ||
+    (!!rightActionsBeforeMainGames && !topRightToolDock) ||
     (showNewGamesToggle && !!onShowNewGamesChange) ||
-    (showMainGamesToggle && !!onMainGamesOnlyChange && !activeSkinWeb.topRightToolDock);
+    (showMainGamesToggle && !!onMainGamesOnlyChange && !topRightToolDock);
 
   const showSidebarSearchPopup =
     activeSkinWeb.sidebarSearchPopup &&
@@ -628,7 +630,6 @@ export default function LibrariesBar({
   const verticalPageTabsLayout =
     activeSkinWeb.libraryPagesVerticalList && !activeSkinWeb.persistentLibraryShell;
   const showHeaderActionsInLibrariesBar = activeSkinWeb.libraryBarHeaderActions;
-  const topRightToolDock = activeSkinWeb.topRightToolDock;
   const showAddGameInLibrariesBar = showHeaderActionsInLibrariesBar;
   const isAddGameRoute = pathname === "/add-game";
   const isSettingsRoute = pathname === "/settings";
@@ -695,6 +696,11 @@ export default function LibrariesBar({
                 <CoverSizeSlider value={coverSize} onChange={onCoverSizeChange} />
               </div>
             )}
+            {rightActionsBeforeMainGames ? (
+              <div className="mhg-top-right-tool-dock-before-main-games mhg-libraries-actions-before-main-games">
+                {rightActionsBeforeMainGames}
+              </div>
+            ) : null}
             {showMainGamesToggle && onMainGamesOnlyChange && (
               <div className="mhg-top-right-tool-dock-main-games mhg-libraries-actions-main-games-container">
                 <MainGamesToggle
@@ -1104,7 +1110,7 @@ export default function LibrariesBar({
                   />
                 </div>
               )}
-              {rightActionsBeforeMainGames ? (
+              {rightActionsBeforeMainGames && !topRightToolDock ? (
                 <div className="mhg-libraries-actions-before-main-games">
                   {rightActionsBeforeMainGames}
                 </div>

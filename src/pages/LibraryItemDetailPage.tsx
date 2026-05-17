@@ -1819,7 +1819,9 @@ function LibraryItemDetailContent({
           showMainGamesToggle={viewMode === "grid" && sortedGames.length > 0}
           mainGamesOnly={mainGamesOnly}
           onMainGamesOnlyChange={onMainGamesOnlyChange}
-        rightActions={compactTopActions}
+          rightActionsBeforeMainGames={beforeMainGamesTopActions}
+          hideBackgroundToggle={showTopBarBackgroundAction}
+          rightActions={compactTopActions}
         />
       </div>
       <div
