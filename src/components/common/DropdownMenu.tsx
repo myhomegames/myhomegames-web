@@ -136,8 +136,10 @@ export default function DropdownMenu({
   const isInCover = className.includes('games-list-dropdown-menu');
   // Check if we're in the games table (virtualized or not) - use portal to escape overflow and stay on top
   const isInGamesTable = className.includes('games-table-dropdown-menu');
-  /** Persistent shell: three-dots in fixed libraries strip — same escape as table/search (stacking / overflow) */
+  /** Persistent shell / top tool dock: escape overflow clipping via body portal + fixed position */
   const isLibrariesTopMenu = className.includes('mhg-libraries-menu-dropdown');
+  const isDetailDockMenu = className.includes('library-item-detail-dropdown-menu');
+  const useDockPortalMenu = isLibrariesTopMenu || isDetailDockMenu;
   
   // Check if we're in search (popup or results page) to use portal so menu isn't clipped and clicks work
   const [isInSearchDropdown, setIsInSearchDropdown] = useState(false);
@@ -468,7 +470,7 @@ export default function DropdownMenu({
         const popupContent = (
           <div 
             ref={popupRef} 
-            className={`dropdown-menu-popup ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''} ${isInGamesTable ? 'dropdown-menu-popup-in-games-table' : ''} ${isLibrariesTopMenu ? 'dropdown-menu-popup-in-libraries-top' : ''}`}
+            className={`dropdown-menu-popup ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''} ${isInGamesTable ? 'dropdown-menu-popup-in-games-table' : ''} ${useDockPortalMenu ? 'dropdown-menu-popup-in-libraries-top' : ''}`}
             onMouseLeave={handlePopupMouseLeave}
             style={(() => {
               if (!menuRef.current) return undefined;
@@ -505,7 +507,7 @@ export default function DropdownMenu({
                 };
               }
 
-              if (isLibrariesTopMenu) {
+              if (useDockPortalMenu) {
                 const rect = menuRef.current.getBoundingClientRect();
                 const margin = 8;
                 // Match .dropdown-menu-popup min-width — right-align under the ⋮ like default absolute layout
@@ -812,7 +814,9 @@ export default function DropdownMenu({
         );
         
         // Use portal for search dropdown, cover, or games table (escape overflow and stay on top)
-        return (isInSearchDropdown || isInCover || isInGamesTable || isLibrariesTopMenu) ? createPortal(popupContent, document.body) : popupContent;
+        return (isInSearchDropdown || isInCover || isInGamesTable || useDockPortalMenu)
+          ? createPortal(popupContent, document.body)
+          : popupContent;
       })()}
 
       {/* Reload Confirmation Modal */}

@@ -562,7 +562,7 @@ export default function LibrariesBar({
   const showIconCluster =
     (hasBackground && !hideBackgroundToggle) ||
     (!!rightActionsBeforeMainGames && !topRightToolDock) ||
-    (showNewGamesToggle && !!onShowNewGamesChange) ||
+    (showNewGamesToggle && !!onShowNewGamesChange && !topRightToolDock) ||
     (showMainGamesToggle && !!onMainGamesOnlyChange && !topRightToolDock);
 
   const showSidebarSearchPopup =
@@ -701,6 +701,16 @@ export default function LibrariesBar({
                 {rightActionsBeforeMainGames}
               </div>
             ) : null}
+            {topRightToolDock && showNewGamesToggle && onShowNewGamesChange && (
+              <div className="mhg-top-right-tool-dock-new-games mhg-libraries-actions-new-games-container">
+                <div className="library-item-detail-compact-top-action">
+                  <NewGamesToggle
+                    showNewGames={showNewGames}
+                    onChange={onShowNewGamesChange}
+                  />
+                </div>
+              </div>
+            )}
             {showMainGamesToggle && onMainGamesOnlyChange && (
               <div className="mhg-top-right-tool-dock-main-games mhg-libraries-actions-main-games-container">
                 <MainGamesToggle

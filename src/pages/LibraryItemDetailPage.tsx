@@ -1281,6 +1281,17 @@ function LibraryItemDetailContent({
     ]
   );
 
+  const contextRailDockActions = useMemo(() => {
+    if (!contextRailLayout) return null;
+    if (!beforeMainGamesTopActions && !compactTopActions) return null;
+    return (
+      <>
+        {beforeMainGamesTopActions}
+        {compactTopActions}
+      </>
+    );
+  }, [contextRailLayout, beforeMainGamesTopActions, compactTopActions]);
+
   useEffect(() => {
     if (!setTopBarRightActions) return;
     setTopBarRightActions(compactTopActions);
@@ -1819,9 +1830,11 @@ function LibraryItemDetailContent({
           showMainGamesToggle={viewMode === "grid" && sortedGames.length > 0}
           mainGamesOnly={mainGamesOnly}
           onMainGamesOnlyChange={onMainGamesOnlyChange}
-          rightActionsBeforeMainGames={beforeMainGamesTopActions}
+          rightActionsBeforeMainGames={
+            contextRailLayout ? contextRailDockActions : beforeMainGamesTopActions
+          }
           hideBackgroundToggle={showTopBarBackgroundAction}
-          rightActions={compactTopActions}
+          rightActions={contextRailLayout ? null : compactTopActions}
         />
       </div>
       <div
