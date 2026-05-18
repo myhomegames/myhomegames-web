@@ -23,12 +23,95 @@ import { useEffect } from "react";
  *
  * Tag index cards (`.tag-list-item`) can opt into a later shrink start via
  * `--mhg-tag-scale-bar-lift-px` on `:root` (see `updateGlobalScales`).
+ *
+ * Skins that set `--mhg-cover-scale-selected-only: 1` on `:root` switch to a
+ * discrete model: only the pad whose top is nearest the focal align line gets
+ * `--mhg-cell-scale-selected`; all others get `--mhg-cell-scale-unselected`.
+ * Context-rail columns use the fixed cover on the left as the focal line.
  */
 
 /** Scale floor: covers fully above the bar are rendered at this size. */
 const SCALE_MIN = 0.5;
 /** Scale ceiling: covers fully below the bar are rendered at this size. */
 const SCALE_MAX = 1;
+
+function readSelectedOnlyMode(): boolean {
+  if (typeof window === "undefined" || typeof document === "undefined") return false;
+  const raw = getComputedStyle(document.documentElement)
+    .getPropertyValue("--mhg-cover-scale-selected-only")
+    .trim()
+    .toLowerCase();
+  return raw === "1" || raw === "true";
+}
+
+function readScaleUnselected(): number {
+  if (typeof window === "undefined" || typeof document === "undefined") return SCALE_MIN;
+  const raw = getComputedStyle(document.documentElement)
+    .getPropertyValue("--mhg-cell-scale-unselected")
+    .trim();
+  const v = parseFloat(raw);
+  return Number.isFinite(v) && v > 0 ? v : SCALE_MIN;
+}
+
+function readScaleSelected(): number {
+  if (typeof window === "undefined" || typeof document === "undefined") return SCALE_MAX;
+  const raw = getComputedStyle(document.documentElement)
+    .getPropertyValue("--mhg-cell-scale-selected")
+    .trim();
+  const v = parseFloat(raw);
+  return Number.isFinite(v) && v > 0 ? v : SCALE_MAX;
+}
+
+function findContextRailFocalLineY(): number | null {
+  const cover = document.querySelector<HTMLElement>(
+    ".library-item-detail-context-rail-cover, .tag-games-context-rail-cover",
+  );
+  if (!cover) return null;
+  const rect = cover.getBoundingClientRect();
+  if (rect.height <= 0) return null;
+  return rect.top;
+}
+
+function findLibraryFocalLineY(): number | null {
+  const barBottom = findBarBottom();
+  if (barBottom == null) return null;
+  const raw = getComputedStyle(document.documentElement)
+    .getPropertyValue("--mhg-cover-scale-focal-below-bar")
+    .trim();
+  const extra = parseFloat(raw);
+  const gap = Number.isFinite(extra) ? extra : 2;
+  return barBottom + gap;
+}
+
+function findFocalLineY(scroller: HTMLElement): number | null {
+  if (scroller.closest(".library-item-detail-context-games, .tag-games-context-games")) {
+    return findContextRailFocalLineY();
+  }
+  return findLibraryFocalLineY();
+}
+
+function applySelectedOnlyScale(pads: Iterable<HTMLElement>, focalY: number): void {
+  const unselected = readScaleUnselected();
+  const selected = readScaleSelected();
+  let bestPad: HTMLElement | null = null;
+  let bestDist = Number.POSITIVE_INFINITY;
+
+  for (const pad of pads) {
+    const rect = pad.getBoundingClientRect();
+    if (rect.height <= 0) continue;
+    const dist = Math.abs(rect.top - focalY);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestPad = pad;
+    }
+  }
+
+  for (const pad of pads) {
+    const isSelected = pad === bestPad && bestPad != null;
+    pad.style.setProperty("--mhg-cell-scale", (isSelected ? selected : unselected).toFixed(3));
+    pad.classList.toggle("mhg-cover-scale-selected", isSelected);
+  }
+}
 
 /** Selector for the libraries bar element in any skin that exposes it. */
 const BAR_SELECTOR = ".mhg-libraries-bar";
@@ -103,13 +186,30 @@ function updateScales(
   const pads = scroller.querySelectorAll<HTMLElement>(PAD_SELECTOR);
   if (pads.length === 0) return;
 
+  if (readSelectedOnlyMode()) {
+    const focalY = findFocalLineY(scroller);
+    if (focalY == null) {
+      pads.forEach((pad) => {
+        pad.style.removeProperty("--mhg-cell-scale");
+        pad.classList.remove("mhg-cover-scale-selected");
+      });
+      return;
+    }
+    applySelectedOnlyScale(pads, focalY);
+    return;
+  }
+
   const barBottom = findBarBottom();
   if (barBottom == null) {
-    pads.forEach((pad) => pad.style.removeProperty("--mhg-cell-scale"));
+    pads.forEach((pad) => {
+      pad.style.removeProperty("--mhg-cell-scale");
+      pad.classList.remove("mhg-cover-scale-selected");
+    });
     return;
   }
 
   pads.forEach((pad) => {
+    pad.classList.remove("mhg-cover-scale-selected");
     const rect = pad.getBoundingClientRect();
     if (rect.height === 0) return;
 
@@ -144,19 +244,67 @@ const GLOBAL_PAD_SELECTORS = [
   ".games-list-item--cover-sized",
 ].join(", ");
 
+/** Page-level scroll roots for non-virtualized cover lists. */
+const GLOBAL_SCROLL_ROOT_SELECTOR = [
+  ".home-page-scroll-container",
+  ".recommended-page-scroll",
+  ".scrollable-section-scroll",
+  ".library-item-detail-scroll",
+  ".library-item-detail-context-games",
+  ".tag-games-context-games",
+].join(", ");
+
+function findGlobalScrollRoot(pad: HTMLElement): HTMLElement | null {
+  return pad.closest<HTMLElement>(GLOBAL_SCROLL_ROOT_SELECTOR);
+}
+
+function findFocalLineYForRoot(root: HTMLElement | null): number | null {
+  if (root?.closest(".library-item-detail-context-games, .tag-games-context-games")) {
+    return findContextRailFocalLineY();
+  }
+  return findLibraryFocalLineY();
+}
+
 function updateGlobalScales(): void {
   const pads = document.querySelectorAll<HTMLElement>(GLOBAL_PAD_SELECTORS);
   if (pads.length === 0) return;
 
+  if (readSelectedOnlyMode()) {
+    const byRoot = new Map<HTMLElement | null, HTMLElement[]>();
+    pads.forEach((pad) => {
+      const root = findGlobalScrollRoot(pad);
+      const group = byRoot.get(root);
+      if (group) group.push(pad);
+      else byRoot.set(root, [pad]);
+    });
+
+    byRoot.forEach((group, root) => {
+      const focalY = findFocalLineYForRoot(root);
+      if (focalY == null) {
+        group.forEach((pad) => {
+          pad.style.removeProperty("--mhg-cell-scale");
+          pad.classList.remove("mhg-cover-scale-selected");
+        });
+        return;
+      }
+      applySelectedOnlyScale(group, focalY);
+    });
+    return;
+  }
+
   const barBottom = findBarBottom();
   if (barBottom == null) {
-    pads.forEach((pad) => pad.style.removeProperty("--mhg-cell-scale"));
+    pads.forEach((pad) => {
+      pad.style.removeProperty("--mhg-cell-scale");
+      pad.classList.remove("mhg-cover-scale-selected");
+    });
     return;
   }
 
   const tagLift = readTagScaleBarLiftPx();
 
   pads.forEach((pad) => {
+    pad.classList.remove("mhg-cover-scale-selected");
     const rect = pad.getBoundingClientRect();
     if (rect.height === 0) return;
 
