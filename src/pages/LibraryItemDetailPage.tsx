@@ -2100,6 +2100,9 @@ function LibraryItemDetailContent({
                           </div>
                         </aside>
                       )}
+                      {contextRailLayout && item ? (
+                        <div className="mhg-context-rail-bridge" aria-hidden="true" />
+                      ) : null}
                       <div
                         ref={contextRailLayout ? scrollContainerRef : undefined}
                         className={contextRailLayout ? "library-item-detail-context-games" : undefined}

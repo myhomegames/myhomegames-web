@@ -557,6 +557,7 @@ export default function TagGamesPage({
                     />
                   </div>
                 </aside>
+                <div className="mhg-context-rail-bridge" aria-hidden="true" />
                 <div
                   ref={hook.scrollContainerRef}
                   className="tag-games-context-games"
