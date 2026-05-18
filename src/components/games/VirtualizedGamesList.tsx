@@ -5,7 +5,7 @@ import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 import { GameListItem } from "./GamesList";
 import { useSkin } from "../../contexts/SkinContext";
-import { useCoverScaleAroundBar } from "../../hooks/useCoverScaleAroundBar";
+import { flushCoverScaleAroundBar, useCoverScaleAroundBar } from "../../hooks/useCoverScaleAroundBar";
 import {
   clampContextRailGamesScrollTop,
   clampVirtualizedGridScrollTop,
@@ -15,9 +15,14 @@ import {
   readGridBottomInsetPx,
   readGridLastCoverRaisePx,
   readGridTopInsetPx,
-  snapContextRailGamesScrollTop,
   virtualizedGridRowHeightPx,
 } from "../../utils/readGridTopInsetPx";
+import {
+  applyVirtualizedStepSnap,
+  nextVirtualizedStepScrollTop,
+  readStepScrollRows,
+  type VirtualizedStepScrollSnapOptions,
+} from "../../utils/stepScrollSnap";
 // Helper functions for scroll restoration
 function getScrollPosition(key: string): { scrollTop: number; scrollLeft: number } | null {
   try {
@@ -139,14 +144,6 @@ function readGridSpacing(): { gap: number; minLeftGutter: number; minRightGutter
  * can set different insets for different page types. Falls back to the
  * document root for the default value. Implemented in `readGridTopInsetPx`.
  */
-function readStepScrollRows(containerEl?: HTMLElement | null): number {
-  if (typeof window === "undefined" || typeof document === "undefined") return 0;
-  const source = containerEl ?? document.documentElement;
-  const raw = getComputedStyle(source).getPropertyValue("--mhg-step-scroll-rows");
-  const value = parseInt(raw, 10);
-  return Number.isFinite(value) && value > 0 ? value : 0;
-}
-
 export default function VirtualizedGamesList({
   games,
   coverSize,
@@ -457,7 +454,6 @@ export default function VirtualizedGamesList({
     let cancelled = false;
     const attachTimers: number[] = [];
     let scrollTimeout: number | null = null;
-    let snapTimeout: number | null = null;
     let cleanupFn: (() => void) | null = null;
 
     const flushSave = (gridElement: HTMLElement) => {
@@ -492,6 +488,52 @@ export default function VirtualizedGamesList({
         return;
       }
 
+      const buildSnapOpts = (el: HTMLElement): VirtualizedStepScrollSnapOptions => {
+        const nativeMax = Math.max(0, el.scrollHeight - el.clientHeight);
+        const max =
+          contextRailScroll && Number.isFinite(contextRailAlignMaxScrollTop)
+            ? Math.min(nativeMax, contextRailAlignMaxScrollTop)
+            : nativeMax;
+        return {
+          scrollTop: el.scrollTop,
+          maxScrollTop: max,
+          itemHeight,
+          stepRows,
+          topInset,
+          contextRail: contextRailScroll,
+          alignMaxScrollTop: contextRailScroll ? contextRailAlignMaxScrollTop : undefined,
+        };
+      };
+
+      const runSnap = (el: HTMLElement) => {
+        if (!enableStepScroll || isRestoringRef.current) return;
+        const opts = buildSnapOpts(el);
+        if (opts.maxScrollTop <= 0) return;
+        if (applyVirtualizedStepSnap(el, opts)) {
+          flushCoverScaleAroundBar(gridRef, containerRef);
+        }
+      };
+
+      const handleWheel = (e: WheelEvent) => {
+        if (!enableStepScroll || isRestoringRef.current) return;
+        if (Math.abs(e.deltaY) < 1) return;
+        if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const el = gridElement;
+        const opts = buildSnapOpts(el);
+        if (opts.maxScrollTop <= 0) return;
+
+        const direction: 1 | -1 = e.deltaY > 0 ? 1 : -1;
+        const target = nextVirtualizedStepScrollTop(opts, direction);
+        if (target !== el.scrollTop) {
+          el.scrollTop = target;
+          flushCoverScaleAroundBar(gridRef, containerRef);
+        }
+      };
+
       const handleScroll = () => {
         if (isRestoringRef.current) return;
 
@@ -517,78 +559,43 @@ export default function VirtualizedGamesList({
           }
           if (clamped !== gridElement.scrollTop) {
             gridElement.scrollTop = clamped;
+            flushCoverScaleAroundBar(gridRef, containerRef);
             return;
           }
+        }
+
+        if (enableStepScroll) {
+          runSnap(gridElement);
         }
 
         if (scrollTimeout !== null) {
           window.clearTimeout(scrollTimeout);
           scrollTimeout = null;
-        }
-        if (snapTimeout !== null) {
-          window.clearTimeout(snapTimeout);
-          snapTimeout = null;
         }
 
         scrollTimeout = window.setTimeout(() => {
           scrollTimeout = null;
           flushSave(gridElement);
         }, 100);
+      };
 
+      const handleScrollEnd = () => {
         if (enableStepScroll) {
-          snapTimeout = window.setTimeout(() => {
-            snapTimeout = null;
-            if (isRestoringRef.current) return;
-            const el = gridElement;
-            const nativeMax = Math.max(0, el.scrollHeight - el.clientHeight);
-            const max =
-              contextRailScroll && Number.isFinite(contextRailAlignMaxScrollTop)
-                ? Math.min(nativeMax, contextRailAlignMaxScrollTop)
-                : nativeMax;
-            if (max <= 0) return;
-
-            const stepPx = Math.max(1, Math.round(itemHeight * stepRows));
-            const firstStep = itemHeight + topInset;
-            const current = el.scrollTop;
-            let target = 0;
-
-            if (contextRailScroll) {
-              target = snapContextRailGamesScrollTop(
-                current,
-                max,
-                stepPx,
-                contextRailAlignMaxScrollTop,
-              );
-            } else if (topInset > 0) {
-              if (current <= firstStep / 2) {
-                target = 0;
-              } else {
-                const afterFirst = Math.max(0, current - firstStep);
-                target = firstStep + Math.round(afterFirst / stepPx) * stepPx;
-              }
-            } else {
-              target = Math.round(current / stepPx) * stepPx;
-            }
-
-            target = Math.max(0, Math.min(max, target));
-            if (Math.abs(target - current) > 2) {
-              el.scrollTop = target;
-            }
-          }, 120);
+          runSnap(gridElement);
         }
       };
 
       gridElement.addEventListener("scroll", handleScroll, { passive: true });
+      gridElement.addEventListener("scrollend", handleScrollEnd, { passive: true });
+      gridElement.addEventListener("wheel", handleWheel, { passive: false, capture: true });
 
       cleanupFn = () => {
         gridElement.removeEventListener("scroll", handleScroll);
+        gridElement.removeEventListener("scrollend", handleScrollEnd);
+        gridElement.removeEventListener("wheel", handleWheel, { capture: true });
         if (scrollTimeout !== null) {
           window.clearTimeout(scrollTimeout);
           scrollTimeout = null;
-        }
-        if (snapTimeout !== null) {
-          window.clearTimeout(snapTimeout);
-          snapTimeout = null;
         }
         if (!isRestoringRef.current) {
           flushSave(gridElement);

@@ -332,13 +332,31 @@ function updateGlobalScales(): void {
  * once at the top of the layout — it's a no-op on skins where the libraries
  * bar is not an overlay (the helper returns early when no overlay bar exists).
  */
+/** Run cover-scale updates immediately (PS3 selected-only mode uses this after step snap). */
+export function flushGlobalCoverScales(): void {
+  updateGlobalScales();
+}
+
+export function flushCoverScaleAroundBar(
+  gridRef: UseCoverScaleAroundBarOptions["gridRef"],
+  containerRef: UseCoverScaleAroundBarOptions["containerRef"],
+): void {
+  updateScales(gridRef, containerRef);
+  updateGlobalScales();
+}
+
 export function useGlobalCoverScaleAroundBar(): void {
   useEffect(() => {
     let rafId: number | null = null;
     let cancelled = false;
 
     const schedule = () => {
-      if (cancelled || rafId !== null) return;
+      if (cancelled) return;
+      if (readSelectedOnlyMode()) {
+        updateGlobalScales();
+        return;
+      }
+      if (rafId !== null) return;
       rafId = requestAnimationFrame(() => {
         rafId = null;
         updateGlobalScales();
@@ -385,7 +403,12 @@ export function useCoverScaleAroundBar({
     let cancelled = false;
 
     const schedule = () => {
-      if (cancelled || rafId !== null) return;
+      if (cancelled) return;
+      if (readSelectedOnlyMode()) {
+        updateScales(gridRef, containerRef);
+        return;
+      }
+      if (rafId !== null) return;
       rafId = requestAnimationFrame(() => {
         rafId = null;
         updateScales(gridRef, containerRef);

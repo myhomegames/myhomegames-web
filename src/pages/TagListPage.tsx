@@ -12,14 +12,13 @@ import { compareTitles } from "../utils/stringUtils";
 import { titleMatchesFilter } from "../utils/titleFilter";
 import { API_BASE } from "../config";
 import { buildApiHeaders, buildApiUrl, buildCoverUrl } from "../utils/api";
-
-function readStepScrollRows(containerEl?: HTMLElement | null): number {
-  if (typeof window === "undefined" || typeof document === "undefined") return 0;
-  const source = containerEl ?? document.documentElement;
-  const raw = getComputedStyle(source).getPropertyValue("--mhg-step-scroll-rows");
-  const value = parseInt(raw, 10);
-  return Number.isFinite(value) && value > 0 ? value : 0;
-}
+import { flushGlobalCoverScales } from "../hooks/useCoverScaleAroundBar";
+import {
+  applyTagListStepSnap,
+  nextTagListStepScrollTop,
+  readStepScrollRows,
+  type TagListStepScrollSnapOptions,
+} from "../utils/stepScrollSnap";
 
 type TagListPageProps = {
   coverSize: number;
@@ -306,55 +305,76 @@ export default function TagListPage({
     const stepRows = readStepScrollRows(container);
     if (stepRows <= 0) return;
 
-    let snapTimeout: number | null = null;
+    const buildSnapOpts = (): TagListStepScrollSnapOptions | null => {
+      const tagItems = container.querySelectorAll<HTMLElement>(".tag-list-container .tag-list-item");
+      if (tagItems.length === 0) return null;
+
+      const firstOffset = Math.max(0, tagItems[0].offsetTop);
+      let naturalStep = 0;
+      if (tagItems.length > 1) {
+        naturalStep = Math.max(1, tagItems[1].offsetTop - tagItems[0].offsetTop);
+      } else {
+        naturalStep = Math.max(1, Math.round(coverSize * 2 * (9 / 16)) + 20);
+      }
+
+      const stepPx = Math.max(1, Math.round(naturalStep * stepRows));
+      const stopEarlyPx = Math.min(
+        Math.max(4, Math.round(naturalStep * 0.12)),
+        Math.max(1, Math.floor(stepPx / 3)),
+      );
+      const max = Math.max(0, container.scrollHeight - container.clientHeight);
+
+      return {
+        scrollTop: container.scrollTop,
+        maxScrollTop: max,
+        firstOffset,
+        stepPx,
+        stopEarlyPx,
+      };
+    };
+
+    const runSnap = () => {
+      const opts = buildSnapOpts();
+      if (!opts || opts.maxScrollTop <= 0) return;
+      if (applyTagListStepSnap(container, opts)) {
+        flushGlobalCoverScales();
+      }
+    };
+
+    const handleWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) < 1) return;
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+
+      const opts = buildSnapOpts();
+      if (!opts || opts.maxScrollTop <= 0) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const direction: 1 | -1 = e.deltaY > 0 ? 1 : -1;
+      const target = nextTagListStepScrollTop(opts, direction);
+      if (target !== container.scrollTop) {
+        container.scrollTop = target;
+        flushGlobalCoverScales();
+      }
+    };
 
     const handleScroll = () => {
-      if (snapTimeout) {
-        clearTimeout(snapTimeout);
-      }
-      snapTimeout = window.setTimeout(() => {
-        const tagItems = container.querySelectorAll<HTMLElement>(".tag-list-container .tag-list-item");
-        if (tagItems.length === 0) return;
+      runSnap();
+    };
 
-        const firstOffset = Math.max(0, tagItems[0].offsetTop);
-        let naturalStep = 0;
-        if (tagItems.length > 1) {
-          naturalStep = Math.max(1, tagItems[1].offsetTop - tagItems[0].offsetTop);
-        } else {
-          naturalStep = Math.max(1, Math.round((coverSize * 2) * (9 / 16)) + 20);
-        }
-
-        const stepPx = Math.max(1, Math.round(naturalStep * stepRows));
-        const stopEarlyPx = Math.min(
-          Math.max(4, Math.round(naturalStep * 0.12)),
-          Math.max(1, Math.floor(stepPx / 3))
-        );
-        const max = Math.max(0, container.scrollHeight - container.clientHeight);
-        const current = container.scrollTop;
-        let target = 0;
-
-        if (current <= firstOffset / 2) {
-          target = 0;
-        } else {
-          const afterFirst = Math.max(0, current - firstOffset);
-          const snapped = firstOffset + Math.round(afterFirst / stepPx) * stepPx;
-          // Never snap above the first tile row (old formula could go negative and clamp to 0).
-          target = Math.max(firstOffset, snapped - stopEarlyPx);
-        }
-
-        target = Math.max(0, Math.min(max, target));
-        if (Math.abs(target - current) > 2) {
-          container.scrollTop = target;
-        }
-      }, 120);
+    const handleScrollEnd = () => {
+      runSnap();
     };
 
     container.addEventListener("scroll", handleScroll, { passive: true });
+    container.addEventListener("scrollend", handleScrollEnd, { passive: true });
+    container.addEventListener("wheel", handleWheel, { passive: false, capture: true });
+
     return () => {
-      if (snapTimeout) {
-        clearTimeout(snapTimeout);
-      }
       container.removeEventListener("scroll", handleScroll);
+      container.removeEventListener("scrollend", handleScrollEnd);
+      container.removeEventListener("wheel", handleWheel, { capture: true });
     };
   }, [activeSkinWeb.verticalCoverAlignment, coverSize, displayItems.length]);
 
