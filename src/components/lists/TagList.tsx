@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 import Cover from "../games/Cover";
 import type { TagItem } from "../../types";
 import { useSkin } from "../../contexts/SkinContext";
+import FixedFocalTagList from "./FixedFocalTagList";
+
 type TagListProps = {
   items: TagItem[];
   coverSize?: number;
@@ -13,6 +15,8 @@ type TagListProps = {
   getCoverUrl?: (item: TagItem) => string;
   getRoute?: (item: TagItem) => string;
   emptyMessage?: string;
+  scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
+  routeBase?: string;
 };
 
 type TagListItemProps = {
@@ -26,7 +30,7 @@ type TagListItemProps = {
   getRoute?: (item: TagItem) => string;
 };
 
-function TagListItem({
+export function TagListItem({
   item,
   coverSize,
   forceVerticalAlignment = false,
@@ -98,10 +102,13 @@ export default function TagList({
   getCoverUrl,
   getRoute,
   emptyMessage,
+  scrollContainerRef,
+  routeBase = "",
 }: TagListProps) {
   const { t } = useTranslation();
   const { activeSkinWeb } = useSkin();
   const forceVerticalAlignment = activeSkinWeb.verticalCoverAlignment;
+  const useFixedFocal = forceVerticalAlignment && scrollContainerRef != null && routeBase.length > 0;
   
   if (items.length === 0) {
     return (
@@ -110,6 +117,22 @@ export default function TagList({
           {emptyMessage || t("categories.noCategoriesFound")}
         </div>
       </div>
+    );
+  }
+
+  if (useFixedFocal) {
+    return (
+      <FixedFocalTagList
+        items={items}
+        coverSize={coverSize}
+        routeBase={routeBase}
+        containerRef={scrollContainerRef}
+        itemRefs={itemRefs}
+        onItemEdit={onItemEdit}
+        getDisplayName={getDisplayName}
+        getCoverUrl={getCoverUrl}
+        getRoute={getRoute}
+      />
     );
   }
 

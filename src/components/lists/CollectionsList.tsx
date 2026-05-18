@@ -8,6 +8,7 @@ import EditCollectionLikeModal, { type CollectionLikeResourceType } from "../col
 import AddCollectionLikeToCollectionLikeModal from "../collections/AddCollectionLikeToCollectionLikeModal";
 import { useCollectionHasPlayableGame } from "../common/hooks/useCollectionHasPlayableGame";
 import VirtualizedCollectionsList from "./VirtualizedCollectionsList";
+import FixedFocalCollectionsList from "./FixedFocalCollectionsList";
 import type { CollectionItem, CollectionInfo, GameItem } from "../../types";
 import { filterRootCollectionLikes } from "../../utils/stringUtils";
 import { useSkin } from "../../contexts/SkinContext";
@@ -50,6 +51,7 @@ type CollectionListItemProps = {
   buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean) => string;
   coverSize: number;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
+  showTitle?: boolean;
 };
 
 export function CollectionListItem({
@@ -66,6 +68,7 @@ export function CollectionListItem({
   buildCoverUrl,
   coverSize,
   itemRefs,
+  showTitle,
 }: CollectionListItemProps) {
   const { t } = useTranslation();
   const coverHeight = coverSize * 1.5;
@@ -169,8 +172,8 @@ export function CollectionListItem({
         sourceCollectionLike={collection}
         allCollectionLikes={allCollectionLikes}
         collectionLikeResourceType={gamesPath as CollectionLikeResourceType}
-        showTitle={collection.showTitle !== false}
-        subtitle={subtitle}
+        showTitle={showTitle ?? collection.showTitle !== false}
+        subtitle={showTitle === false ? undefined : subtitle}
         detail={true}
         play={gamesPath === "collections" ? hasPlayableGame === true : !!onPlay}
         showBorder={true}
@@ -312,12 +315,33 @@ export default function CollectionsList({
   const useVirtualization =
     activeSkinWeb.verticalCoverAlignment ||
     collections.length > VIRTUALIZATION_THRESHOLD;
+  const useFixedFocal = activeSkinWeb.verticalCoverAlignment;
 
   return (
     <>
+      {useFixedFocal ? (
+        <FixedFocalCollectionsList
+          collections={collections}
+          displayCountById={displayCountById}
+          coverSize={coverSize}
+          containerRef={scrollContainerRef || containerRef}
+          itemRefs={itemRefs}
+          onCollectionClick={onCollectionClick}
+          onPlay={onPlay}
+          onEditClick={showEdit ? handleEditClick : undefined}
+          onCollectionDelete={onCollectionDelete}
+          onCollectionUpdate={onCollectionUpdate}
+          onAddToCollectionLike={(collection, parentId) => addCollectionLikeToParent(collection, parentId)}
+          allCollectionLikes={allItemsForCount ?? collections}
+          gamesPath={gamesPath}
+          buildCoverUrl={buildCoverUrl}
+        />
+      ) : (
       <div
         ref={containerRef}
-        className={`collections-list-container${useVirtualization ? " collections-list-container--virtualized" : ""}`}
+        className={`collections-list-container${
+          useVirtualization ? " collections-list-container--virtualized" : ""
+        }`}
         style={{ ["--collections-list-cover-size" as string]: `${coverSize}px` } as CSSProperties}
       >
         {useVirtualization ? (
@@ -358,6 +382,7 @@ export default function CollectionsList({
           ))
         )}
       </div>
+      )}
       {selectedCollection && (
         <EditCollectionLikeModal
           isOpen={isEditModalOpen}

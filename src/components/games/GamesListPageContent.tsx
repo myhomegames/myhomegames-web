@@ -37,6 +37,8 @@ type GamesListPageContentProps = {
   selectedFilterValueLabel?: string;
   disableGridVirtualization?: boolean;
   forceSingleColumnGrid?: boolean;
+  /** PS3 Library games: selection-only rail (no vertical scroll). */
+  fixedFocalSelection?: boolean;
   /** Tag context-rail column: parent `.tag-games-context-games` is the scroll container. */
   contextRailGamesColumn?: boolean;
   scrollContainerRef?: RefObject<HTMLDivElement | null>;
@@ -58,6 +60,7 @@ export default function GamesListPageContent({
   selectedFilterValueLabel,
   disableGridVirtualization = false,
   forceSingleColumnGrid = false,
+  fixedFocalSelection = false,
   contextRailGamesColumn = false,
   scrollContainerRef: scrollContainerRefProp,
 }: GamesListPageContentProps) {
@@ -186,6 +189,19 @@ export default function GamesListPageContent({
   const listScrollContainerRef = scrollContainerRefProp ?? hookScrollContainerRef;
   const singleColumnGrid =
     forceSingleColumnGrid || forceVerticalCoversPage || contextRailGamesColumn;
+
+  useEffect(() => {
+    if (!fixedFocalSelection || viewMode === "table") return;
+    const el = listScrollContainerRef.current;
+    if (!el) return;
+    const pinOuterScroll = () => {
+      if (el.scrollTop !== 0) el.scrollTop = 0;
+    };
+    pinOuterScroll();
+    el.addEventListener("scroll", pinOuterScroll, { passive: true });
+    return () => el.removeEventListener("scroll", pinOuterScroll);
+  }, [fixedFocalSelection, viewMode, listScrollContainerRef, isReady, displayGames.length]);
+
   const { slotEl: topDockToolbarSlot } = useTopDockSlot();
   /**
    * The top-right tool dock skin option promotes the page toolbar (filter,
@@ -320,6 +336,7 @@ export default function GamesListPageContent({
                     platformIdForPlay={platformIdForPlay}
                     enableVirtualization={!disableGridVirtualization}
                     forceSingleColumnVirtualized={singleColumnGrid}
+                    fixedFocalSelection={fixedFocalSelection}
                   />
                 )}
                 {viewMode === "detail" && (

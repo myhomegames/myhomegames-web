@@ -32,7 +32,8 @@ export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProp
     setLoading(developersLoading || !isReady);
   }, [developersLoading, isReady, setLoading]);
 
-  useScrollRestoration(scrollContainerRef, "developers");
+  const fixedFocalCollections = activeSkinWeb.verticalCoverAlignment;
+  useScrollRestoration(scrollContainerRef, "developers", !fixedFocalCollections);
 
   function handleDeveloperClick(developer: CollectionItem) {
     navigate(`/developers/${developer.id}`);
@@ -64,6 +65,18 @@ export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProp
     }
   }, [developersLoading, sortedDevelopers.length]);
 
+  useEffect(() => {
+    if (!fixedFocalCollections) return;
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const pinOuterScroll = () => {
+      if (el.scrollTop !== 0) el.scrollTop = 0;
+    };
+    pinOuterScroll();
+    el.addEventListener("scroll", pinOuterScroll, { passive: true });
+    return () => el.removeEventListener("scroll", pinOuterScroll);
+  }, [fixedFocalCollections, isReady, sortedDevelopers.length]);
+
   return (
     <main className="flex-1 home-page-content">
       <div className="home-page-layout">
@@ -85,7 +98,7 @@ export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProp
             />
           </div>
         </div>
-        {isReady && !activeSkinWeb.disableAlphabetNavigator && (
+        {isReady && !activeSkinWeb.disableAlphabetNavigator && !activeSkinWeb.verticalCoverAlignment && (
           <AlphabetNavigator
             games={sortedDevelopers as any}
             scrollContainerRef={scrollContainerRef}

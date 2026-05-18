@@ -88,6 +88,7 @@ export default function LibraryPage({
           buildCoverUrlFn={buildCoverUrl}
           disableGridVirtualization={disableGridVirtualization}
           forceSingleColumnGrid={activeSkinWeb.verticalCoverAlignment}
+          fixedFocalSelection={activeSkinWeb.verticalCoverAlignment}
         />
         {hasAlphabetNav && (
           <AlphabetNavigator

@@ -37,7 +37,8 @@ export default function CollectionsPage({
   }, [collectionsLoading, isReady, setLoading]);
   
   // Restore scroll position
-  useScrollRestoration(scrollContainerRef, "collections");
+  const fixedFocalCollections = activeSkinWeb.verticalCoverAlignment;
+  useScrollRestoration(scrollContainerRef, "collections", !fixedFocalCollections);
 
   function handleCollectionClick(collection: CollectionItem) {
     navigate(`/collections/${collection.id}`);
@@ -87,6 +88,17 @@ export default function CollectionsPage({
     }
   }, [collectionsLoading, sortedCollections.length]);
 
+  useEffect(() => {
+    if (!fixedFocalCollections) return;
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const pinOuterScroll = () => {
+      if (el.scrollTop !== 0) el.scrollTop = 0;
+    };
+    pinOuterScroll();
+    el.addEventListener("scroll", pinOuterScroll, { passive: true });
+    return () => el.removeEventListener("scroll", pinOuterScroll);
+  }, [fixedFocalCollections, isReady, sortedCollections.length]);
 
   return (
     <main className="flex-1 home-page-content">
@@ -112,7 +124,7 @@ export default function CollectionsPage({
         </div>
       </div>
 
-      {isReady && !activeSkinWeb.disableAlphabetNavigator && (
+      {isReady && !activeSkinWeb.disableAlphabetNavigator && !activeSkinWeb.verticalCoverAlignment && (
         <AlphabetNavigator
           games={sortedCollections as any}
           scrollContainerRef={scrollContainerRef}

@@ -12,13 +12,6 @@ import { compareTitles } from "../utils/stringUtils";
 import { titleMatchesFilter } from "../utils/titleFilter";
 import { API_BASE } from "../config";
 import { buildApiHeaders, buildApiUrl, buildCoverUrl } from "../utils/api";
-import { flushGlobalCoverScales } from "../hooks/useCoverScaleAroundBar";
-import {
-  applyTagListStepSnap,
-  nextTagListStepScrollTop,
-  readStepScrollRows,
-  type TagListStepScrollSnapOptions,
-} from "../utils/stepScrollSnap";
 
 type TagListPageProps = {
   coverSize: number;
@@ -83,7 +76,24 @@ export default function TagListPage({
   }, [gamesLoading, listLoading, isReady, setLoading]);
 
   const scrollStorageKey = `${window.location.pathname}:${routeBase}`;
-  const { isScrollRestored } = useScrollRestoration(scrollContainerRef, routeBase);
+  const fixedFocalTags = activeSkinWeb.verticalCoverAlignment;
+  const { isScrollRestored } = useScrollRestoration(
+    scrollContainerRef,
+    routeBase,
+    !fixedFocalTags,
+  );
+
+  useEffect(() => {
+    if (!fixedFocalTags) return;
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const pinOuterScroll = () => {
+      if (el.scrollTop !== 0) el.scrollTop = 0;
+    };
+    pinOuterScroll();
+    el.addEventListener("scroll", pinOuterScroll, { passive: true });
+    return () => el.removeEventListener("scroll", pinOuterScroll);
+  }, [fixedFocalTags, isReady, items.length]);
 
   useEffect(() => {
     if (!listResponseKey) {
@@ -256,13 +266,25 @@ export default function TagListPage({
   };
 
   const handleItemEdit = (item: TagItem) => {
-    // Save scroll position before opening modal
-    const container = scrollContainerRef.current;
-    if (container) {
-      pendingScrollRestoreRef.current = container.scrollTop;
+    if (fixedFocalTags) {
+      pendingScrollRestoreRef.current = getSavedScrollTopForModal();
+    } else {
+      const container = scrollContainerRef.current;
+      if (container) {
+        pendingScrollRestoreRef.current = container.scrollTop;
+      }
     }
     setEditingItem(item);
   };
+
+  function getSavedScrollTopForModal(): number {
+    try {
+      const stored = sessionStorage.getItem(scrollStorageKey);
+      return stored ? parseInt(stored, 10) : 0;
+    } catch {
+      return 0;
+    }
+  }
 
   const handleCloseModal = () => {
     setEditingItem(null);
@@ -283,11 +305,22 @@ export default function TagListPage({
   // Restore scroll position when modal closes (items already updated in handleItemUpdate).
   // useLayoutEffect so we restore before paint and avoid visible flicker like library/collections.
   useLayoutEffect(() => {
-    if (!editingItem && pendingScrollRestoreRef.current !== null && scrollContainerRef.current) {
-      const container = scrollContainerRef.current;
+    if (!editingItem && pendingScrollRestoreRef.current !== null) {
       const saved = pendingScrollRestoreRef.current;
       pendingScrollRestoreRef.current = null;
-      if (container.scrollHeight > 0) {
+      if (fixedFocalTags) {
+        try {
+          sessionStorage.setItem(scrollStorageKey, saved.toString());
+        } catch {
+          // Ignore
+        }
+        document.dispatchEvent(
+          new CustomEvent("mhg:fixed-focal-restore", { detail: { scrollTop: saved } }),
+        );
+        return;
+      }
+      const container = scrollContainerRef.current;
+      if (container && container.scrollHeight > 0) {
         container.scrollTop = saved;
         try {
           sessionStorage.setItem(scrollStorageKey, saved.toString());
@@ -296,87 +329,7 @@ export default function TagListPage({
         }
       }
     }
-  }, [editingItem, scrollStorageKey]);
-
-  useEffect(() => {
-    if (!activeSkinWeb.verticalCoverAlignment) return;
-    const container = scrollContainerRef.current;
-    if (!container) return;
-    const stepRows = readStepScrollRows(container);
-    if (stepRows <= 0) return;
-
-    const buildSnapOpts = (): TagListStepScrollSnapOptions | null => {
-      const tagItems = container.querySelectorAll<HTMLElement>(".tag-list-container .tag-list-item");
-      if (tagItems.length === 0) return null;
-
-      const firstOffset = Math.max(0, tagItems[0].offsetTop);
-      let naturalStep = 0;
-      if (tagItems.length > 1) {
-        naturalStep = Math.max(1, tagItems[1].offsetTop - tagItems[0].offsetTop);
-      } else {
-        naturalStep = Math.max(1, Math.round(coverSize * 2 * (9 / 16)) + 20);
-      }
-
-      const stepPx = Math.max(1, Math.round(naturalStep * stepRows));
-      const stopEarlyPx = Math.min(
-        Math.max(4, Math.round(naturalStep * 0.12)),
-        Math.max(1, Math.floor(stepPx / 3)),
-      );
-      const max = Math.max(0, container.scrollHeight - container.clientHeight);
-
-      return {
-        scrollTop: container.scrollTop,
-        maxScrollTop: max,
-        firstOffset,
-        stepPx,
-        stopEarlyPx,
-      };
-    };
-
-    const runSnap = () => {
-      const opts = buildSnapOpts();
-      if (!opts || opts.maxScrollTop <= 0) return;
-      if (applyTagListStepSnap(container, opts)) {
-        flushGlobalCoverScales();
-      }
-    };
-
-    const handleWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaY) < 1) return;
-      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-
-      const opts = buildSnapOpts();
-      if (!opts || opts.maxScrollTop <= 0) return;
-
-      e.preventDefault();
-      e.stopPropagation();
-
-      const direction: 1 | -1 = e.deltaY > 0 ? 1 : -1;
-      const target = nextTagListStepScrollTop(opts, direction);
-      if (target !== container.scrollTop) {
-        container.scrollTop = target;
-        flushGlobalCoverScales();
-      }
-    };
-
-    const handleScroll = () => {
-      runSnap();
-    };
-
-    const handleScrollEnd = () => {
-      runSnap();
-    };
-
-    container.addEventListener("scroll", handleScroll, { passive: true });
-    container.addEventListener("scrollend", handleScrollEnd, { passive: true });
-    container.addEventListener("wheel", handleWheel, { passive: false, capture: true });
-
-    return () => {
-      container.removeEventListener("scroll", handleScroll);
-      container.removeEventListener("scrollend", handleScrollEnd);
-      container.removeEventListener("wheel", handleWheel, { capture: true });
-    };
-  }, [activeSkinWeb.verticalCoverAlignment, coverSize, displayItems.length]);
+  }, [editingItem, scrollStorageKey, fixedFocalTags]);
 
   return (
     <main className="flex-1 home-page-content">
@@ -388,6 +341,8 @@ export default function TagListPage({
                 items={displayItems}
                 coverSize={coverSize * 2}
                 itemRefs={itemRefs}
+                scrollContainerRef={scrollContainerRef}
+                routeBase={routeBase}
                 onItemEdit={editConfig ? handleItemEdit : undefined}
                 getDisplayName={(item) =>
                   getDisplayName ? getDisplayName(item.title) : item.title
@@ -401,6 +356,7 @@ export default function TagListPage({
         </div>
         {showAlphabetNavigator &&
           !activeSkinWeb.disableAlphabetNavigator &&
+          !activeSkinWeb.verticalCoverAlignment &&
           isReady &&
           displayItems.length > 0 && (
           <AlphabetNavigator

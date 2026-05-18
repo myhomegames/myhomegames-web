@@ -70,6 +70,11 @@ function pickWheelScrollTarget(): HTMLElement | null {
   }
 
   const innerSelectors = [
+    ".fixed-focal-games-list",
+    ".fixed-focal-tag-list",
+    ".fixed-focal-collections-list",
+    ".virtualized-games-grid",
+    ".virtualized-collections-grid",
     ".games-table-scroll",
     ".scrollable-section-scroll",
     ".virtualized-list-fade",
@@ -615,10 +620,40 @@ export default function LibrariesBar({
         return;
       }
 
+      const fixedFocal =
+        document.querySelector<HTMLElement>(
+          "#root .fixed-focal-games-list, #root .fixed-focal-tag-list, #root .fixed-focal-collections-list",
+        );
+      if (fixedFocal) {
+        e.preventDefault();
+        document.dispatchEvent(
+          new CustomEvent("mhg:fixed-focal-step", {
+            detail: { direction: (e.deltaY > 0 ? 1 : -1) as 1 | -1 },
+          }),
+        );
+        return;
+      }
+
       const mainScroll = pickWheelScrollTarget();
       if (!mainScroll) return;
 
       e.preventDefault();
+
+      if (
+        mainScroll.classList.contains("virtualized-games-grid") ||
+        mainScroll.classList.contains("virtualized-collections-grid")
+      ) {
+        mainScroll.dispatchEvent(
+          new WheelEvent("wheel", {
+            deltaY: e.deltaY,
+            deltaX: e.deltaX,
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
+        return;
+      }
+
       mainScroll.scrollTop += e.deltaY;
     };
 

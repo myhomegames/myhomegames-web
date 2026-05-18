@@ -14,6 +14,10 @@ function gridInsetMountCandidates(containerEl?: HTMLElement | null): HTMLElement
   if (typeof document === "undefined") return [];
   if (!containerEl?.isConnected) return [document.documentElement];
   const mounts: HTMLElement[] = [containerEl];
+  const tagList = containerEl.querySelector(".fixed-focal-tag-list");
+  if (tagList instanceof HTMLElement) mounts.push(tagList);
+  const collectionsList = containerEl.querySelector(".fixed-focal-collections-list");
+  if (collectionsList instanceof HTMLElement) mounts.push(collectionsList);
   const list = containerEl.querySelector(".collections-list-container");
   if (list instanceof HTMLElement) mounts.push(list);
   const fade = containerEl.querySelector(".virtualized-list-fade");
@@ -133,6 +137,49 @@ export function readGridTopInsetPx(containerEl?: HTMLElement | null): number {
     "--mhg-grid-top-inset-collections",
     "--mhg-grid-top-inset-games",
     "--mhg-grid-top-inset-tag",
+  ]);
+}
+
+function readFocalBelowBarGapPx(doc: Document = document): number {
+  const raw = parseFloat(
+    getComputedStyle(doc.documentElement).getPropertyValue("--mhg-cover-scale-focal-below-bar"),
+  );
+  return Number.isFinite(raw) ? raw : 2;
+}
+
+/**
+ * Fixed-focal selected slot: offset from the list root so the cover top sits on
+ * the library bar bottom + focal gap (same line as library games /
+ * `useCoverScaleAroundBar`).
+ */
+export function readFixedFocalTopPx(
+  listEl?: HTMLElement | null,
+  scrollContainerEl?: HTMLElement | null,
+): number {
+  if (typeof window === "undefined" || typeof document === "undefined") return 0;
+  if (gridInsetsDisabled(scrollContainerEl)) return 0;
+
+  const list = listEl?.isConnected ? listEl : null;
+  const doc = list?.ownerDocument ?? scrollContainerEl?.ownerDocument ?? document;
+
+  if (list) {
+    const bar = doc.querySelector(".mhg-libraries-bar");
+    if (bar instanceof HTMLElement) {
+      const barBottom = bar.getBoundingClientRect().bottom;
+      const listTop = list.getBoundingClientRect().top;
+      const aligned = barBottom + readFocalBelowBarGapPx(doc) - listTop;
+      if (Number.isFinite(aligned) && aligned > 0) {
+        return aligned;
+      }
+    }
+  }
+
+  const mounts = gridInsetMountCandidates(scrollContainerEl);
+  if (mounts.length === 0) mounts.push(doc.documentElement);
+  return readFirstCssVarHeightPx(mounts, [
+    "--mhg-grid-top-inset-games",
+    "--mhg-grid-top-inset",
+    "--mhg-grid-top-inset-collections",
   ]);
 }
 

@@ -21,7 +21,8 @@ function setScrollPosition(key: string, position: number): void {
 
 export function useScrollRestoration(
   scrollContainerRef: React.RefObject<HTMLElement | null>,
-  viewMode?: string // Optional viewMode to differentiate scroll keys
+  viewMode?: string,
+  enabled = true,
 ) {
   const location = useLocation();
   const isRestoringRef = useRef(false);
@@ -36,6 +37,10 @@ export function useScrollRestoration(
 
   // Restore scroll position when route changes
   useLayoutEffect(() => {
+    if (!enabled) {
+      setIsScrollRestored(true);
+      return;
+    }
     setIsScrollRestored(false);
     const container = scrollContainerRef.current;
     if (!container) {
@@ -128,10 +133,10 @@ export function useScrollRestoration(
       clearTimeout(timer);
       isRestoringRef.current = false;
     };
-  }, [location.pathname, storageKey, scrollContainerRef, viewMode]);
+  }, [location.pathname, storageKey, scrollContainerRef, viewMode, enabled]);
 
-  // Save scroll position when scrolling
   useEffect(() => {
+    if (!enabled) return;
     const container = scrollContainerRef.current;
     if (!container) return;
 
@@ -154,7 +159,7 @@ export function useScrollRestoration(
         setScrollPosition(storageKey, finalPosition);
       }
     };
-  }, [location.pathname, storageKey, scrollContainerRef, viewMode]);
+  }, [location.pathname, storageKey, scrollContainerRef, viewMode, enabled]);
 
   return { isScrollRestored };
 }

@@ -32,7 +32,8 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
     setLoading(publishersLoading || !isReady);
   }, [publishersLoading, isReady, setLoading]);
 
-  useScrollRestoration(scrollContainerRef, "publishers");
+  const fixedFocalCollections = activeSkinWeb.verticalCoverAlignment;
+  useScrollRestoration(scrollContainerRef, "publishers", !fixedFocalCollections);
 
   function handlePublisherClick(publisher: CollectionItem) {
     navigate(`/publishers/${publisher.id}`);
@@ -64,6 +65,18 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
     }
   }, [publishersLoading, sortedPublishers.length]);
 
+  useEffect(() => {
+    if (!fixedFocalCollections) return;
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const pinOuterScroll = () => {
+      if (el.scrollTop !== 0) el.scrollTop = 0;
+    };
+    pinOuterScroll();
+    el.addEventListener("scroll", pinOuterScroll, { passive: true });
+    return () => el.removeEventListener("scroll", pinOuterScroll);
+  }, [fixedFocalCollections, isReady, sortedPublishers.length]);
+
   return (
     <main className="flex-1 home-page-content">
       <div className="home-page-layout">
@@ -85,7 +98,7 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
             />
           </div>
         </div>
-        {isReady && !activeSkinWeb.disableAlphabetNavigator && (
+        {isReady && !activeSkinWeb.disableAlphabetNavigator && !activeSkinWeb.verticalCoverAlignment && (
           <AlphabetNavigator
             games={sortedPublishers as any}
             scrollContainerRef={scrollContainerRef}

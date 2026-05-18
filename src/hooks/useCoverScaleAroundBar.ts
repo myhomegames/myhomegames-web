@@ -265,6 +265,18 @@ function findFocalLineYForRoot(root: HTMLElement | null): number | null {
   return findLibraryFocalLineY();
 }
 
+function isLibraryVerticalGamesCoverEl(el: HTMLElement): boolean {
+  return Boolean(el.closest(".mhg-library-vertical-covers .fixed-focal-games-list"));
+}
+
+function isFixedFocalTagCoverEl(el: HTMLElement): boolean {
+  return Boolean(el.closest(".fixed-focal-tag-list"));
+}
+
+function isFixedFocalCollectionsCoverEl(el: HTMLElement): boolean {
+  return Boolean(el.closest(".fixed-focal-collections-list"));
+}
+
 function updateGlobalScales(): void {
   const pads = document.querySelectorAll<HTMLElement>(GLOBAL_PAD_SELECTORS);
   if (pads.length === 0) return;
@@ -272,6 +284,7 @@ function updateGlobalScales(): void {
   if (readSelectedOnlyMode()) {
     const byRoot = new Map<HTMLElement | null, HTMLElement[]>();
     pads.forEach((pad) => {
+      if (isLibraryVerticalGamesCoverEl(pad) || isFixedFocalTagCoverEl(pad) || isFixedFocalCollectionsCoverEl(pad)) return;
       const root = findGlobalScrollRoot(pad);
       const group = byRoot.get(root);
       if (group) group.push(pad);
@@ -304,6 +317,7 @@ function updateGlobalScales(): void {
   const tagLift = readTagScaleBarLiftPx();
 
   pads.forEach((pad) => {
+    if (isLibraryVerticalGamesCoverEl(pad) || isFixedFocalTagCoverEl(pad) || isFixedFocalCollectionsCoverEl(pad)) return;
     pad.classList.remove("mhg-cover-scale-selected");
     const rect = pad.getBoundingClientRect();
     if (rect.height === 0) return;

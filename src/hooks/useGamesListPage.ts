@@ -12,6 +12,7 @@ import { isMainGameType, toGameTypeId } from "../utils/igdbGameType";
 import { API_BASE, getApiToken } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 import { useSettings } from "../contexts/SettingsContext";
+import { useSkin } from "../contexts/SkinContext";
 import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
 import { titleMatchesFilter } from "../utils/titleFilter";
 
@@ -233,6 +234,7 @@ export function useGamesListPage(
   options: UseGamesListPageOptions = {}
 ): UseGamesListPageReturn {
   const titleFilterQuery = useTitleFilterQuery();
+  const { activeSkinWeb } = useSkin();
   const {
     localStoragePrefix = "",
     defaultFilterField = "all",
@@ -660,7 +662,11 @@ export function useGamesListPage(
 
   // Scroll restoration
   const activeScrollRef = scrollRestorationMode === undefined ? scrollContainerRef : (scrollRestorationMode === "table" ? tableScrollRef : scrollContainerRef);
-  useScrollRestoration(activeScrollRef, scrollRestorationMode);
+  const restoreOuterScroll =
+    !activeSkinWeb.verticalCoverAlignment ||
+    scrollRestorationMode === undefined ||
+    scrollRestorationMode === "table";
+  useScrollRestoration(activeScrollRef, scrollRestorationMode, restoreOuterScroll);
 
   // Drive the activity spinner briefly when the user changes filter/sort:
   // the heavy work happens inside the filteredAndSortedGames useMemo below and

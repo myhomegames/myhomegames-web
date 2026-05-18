@@ -6,6 +6,7 @@ import Cover from "./Cover";
 import EditGameModal from "./EditGameModal";
 import { useEditGame } from "../common/actions";
 import VirtualizedGamesList from "./VirtualizedGamesList";
+import FixedFocalGamesList from "./FixedFocalGamesList";
 import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 import { parseCollectionLikePseudoGameId } from "../../utils/collectionLikePseudoGame";
@@ -36,6 +37,8 @@ type GamesListProps = {
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
   enableVirtualization?: boolean;
   forceSingleColumnVirtualized?: boolean;
+  /** PS3 Library: fixed Y slots, wheel changes selection only (no grid scroll). */
+  fixedFocalSelection?: boolean;
   platformIdForPlay?: string;
   /** When games include `collectionlike:…` synthetic ids (e.g. parent sliders), wire collection-like actions */
   allCollectionLikes?: CollectionItem[];
@@ -372,6 +375,7 @@ export default function GamesList({
   scrollContainerRef,
   enableVirtualization = true,
   forceSingleColumnVirtualized = false,
+  fixedFocalSelection = false,
   platformIdForPlay,
   allCollectionLikes,
   collectionLikeResourceType,
@@ -416,6 +420,7 @@ export default function GamesList({
     enableVirtualization &&
     (forceSingleColumnVirtualized || games.length > VIRTUALIZATION_THRESHOLD) &&
     !draggable; // Don't use virtualization when dragging is enabled
+  const useFixedFocalList = useVirtualization && fixedFocalSelection;
   const containerRef = useRef<HTMLDivElement>(null);
 
   if (games.length === 0) {
@@ -430,10 +435,46 @@ export default function GamesList({
     <>
       <div
         ref={containerRef}
-        className={`games-list-container${useVirtualization ? " games-list-container--virtualized" : ""}`}
+        className={`games-list-container${
+          useFixedFocalList
+            ? " games-list-container--fixed-focal"
+            : useVirtualization
+              ? " games-list-container--virtualized"
+              : ""
+        }`}
         style={{ ["--games-list-cover-size" as string]: `${coverSize}px`, ...style } as CSSProperties}
       >
-        {useVirtualization ? (
+        {useFixedFocalList ? (
+          <FixedFocalGamesList
+            games={games}
+            coverSize={coverSize}
+            coverCacheBustTimestamp={coverCacheBustTimestamp}
+            containerRef={scrollContainerRef || containerRef}
+            itemRefs={itemRefs}
+            onGameClick={onGameClick}
+            onPlay={onPlay}
+            onEditClick={editGame.openEditModal}
+            onGameDelete={onGameDelete}
+            onGameUpdate={onGameUpdate}
+            buildCoverUrl={buildCoverUrl}
+            allCollections={allCollections}
+            collectionId={collectionId}
+            onRemoveFromCollection={onRemoveFromCollection}
+            developerId={developerId}
+            publisherId={publisherId}
+            onRemoveFromDeveloper={onRemoveFromDeveloper}
+            onRemoveFromPublisher={onRemoveFromPublisher}
+            platformIdForPlay={platformIdForPlay}
+            allCollectionLikes={allCollectionLikes}
+            collectionLikeResourceType={collectionLikeResourceType}
+            sliderParentCollectionLikeId={sliderParentCollectionLikeId}
+            onRemoveChildFromSliderParent={onRemoveChildFromSliderParent}
+            onCollectionLikePseudoEdit={onCollectionLikePseudoEdit}
+            onPlayFirstInCollectionLike={onPlayFirstInCollectionLike}
+            onCollectionLikePseudoAddToParent={onCollectionLikePseudoAddToParent}
+            onCollectionLikePseudoUpdated={onCollectionLikePseudoUpdated}
+          />
+        ) : useVirtualization ? (
           <VirtualizedGamesList
             games={games}
             coverSize={coverSize}
