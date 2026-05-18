@@ -2277,8 +2277,12 @@ function LibraryItemDetailContent({
                               coverCacheBustTimestamp={listLoadTimestamp}
                               coverSize={coverSize}
                               itemRefs={itemRefs}
-                              draggable={collectionDragEnabled}
-                              onDragEnd={collectionDragEnabled ? handleDragEnd : undefined}
+                              draggable={collectionDragEnabled && !contextRailLayout}
+                              onDragEnd={
+                                collectionDragEnabled && !contextRailLayout
+                                  ? handleDragEnd
+                                  : undefined
+                              }
                               allCollections={isCollection ? allCollections : undefined}
                               collectionId={collectionId}
                               onRemoveFromCollection={onRemoveFromCollection}

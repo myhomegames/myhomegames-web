@@ -7,8 +7,10 @@ import { GameListItem } from "./GamesList";
 import { useSkin } from "../../contexts/SkinContext";
 import { useCoverScaleAroundBar } from "../../hooks/useCoverScaleAroundBar";
 import {
+  isContextRailGamesScroll,
   readGridBottomInsetPx,
   readGridTopInsetPx,
+  snapContextRailGamesScrollTop,
   virtualizedGridRowHeightPx,
 } from "../../utils/readGridTopInsetPx";
 // Helper functions for scroll restoration
@@ -480,7 +482,9 @@ export default function VirtualizedGamesList({
             const current = el.scrollTop;
             let target = 0;
 
-            if (topInset > 0) {
+            if (isContextRailGamesScroll(containerRef.current)) {
+              target = snapContextRailGamesScrollTop(current, max, stepPx);
+            } else if (topInset > 0) {
               if (current <= firstStep / 2) {
                 target = 0;
               } else {

@@ -46,6 +46,27 @@ function readFirstCssVarHeightPx(
  * Resolves `--mhg-grid-top-inset` to used CSS pixels for the given element's
  * cascade context (same as VirtualizedGamesList / VirtualizedCollectionsList).
  */
+/** PS3 context-rail column 2 (detail + tag games beside the fixed cover). */
+export function isContextRailGamesScroll(containerEl?: HTMLElement | null): boolean {
+  return !!containerEl?.closest(
+    ".library-item-detail-context-games, .tag-games-context-games",
+  );
+}
+
+/**
+ * Snap so each row's cover top lands on the context-rail align line (grid top inset).
+ * scrollTop steps: 0, rowStepPx, 2*rowStepPx, …
+ */
+export function snapContextRailGamesScrollTop(
+  scrollTop: number,
+  maxScrollTop: number,
+  rowStepPx: number,
+): number {
+  const stepPx = Math.max(1, Math.round(rowStepPx));
+  const target = Math.round(scrollTop / stepPx) * stepPx;
+  return Math.max(0, Math.min(maxScrollTop, target));
+}
+
 export function readGridTopInsetPx(containerEl?: HTMLElement | null): number {
   if (typeof window === "undefined" || typeof document === "undefined") return 0;
   if (gridInsetsDisabled(containerEl)) return 0;
