@@ -4,12 +4,12 @@ import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 import { GameListItem } from "./GamesList";
 import { useSkin } from "../../contexts/SkinContext";
-import { readGridTopInsetPx } from "../../utils/readGridTopInsetPx";
+import { readFixedFocalGamesTopPx } from "../../utils/readGridTopInsetPx";
 
 const DEFAULT_GAP = 40;
 const DEFAULT_MIN_SIDE_GUTTER = 56;
-/** Covers rendered above/below the focal slot (fixed positions, content swaps on step). */
-const RENDER_RADIUS = 18;
+/** Visible neighbor slots above/below the selected cover (XMB-style). */
+const FOCAL_NEIGHBOR_SLOTS = 2;
 
 function readGridSpacing(): { gap: number; minLeftGutter: number; minRightGutter: number } {
   if (typeof window === "undefined" || typeof document === "undefined") {
@@ -136,7 +136,9 @@ export default function FixedFocalGamesList({
   const storageKey = `${location.pathname}:grid`;
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [spacing, setSpacing] = useState(() => readGridSpacing());
-  const [focalTopPx, setFocalTopPx] = useState(() => readGridTopInsetPx(containerRef.current));
+  const [focalTopPx, setFocalTopPx] = useState(() =>
+    readFixedFocalGamesTopPx(listRef.current, containerRef.current),
+  );
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isRestored, setIsRestored] = useState(false);
   const { activeSkinId } = useSkin();
@@ -147,10 +149,10 @@ export default function FixedFocalGamesList({
 
   useEffect(() => {
     setSpacing(readGridSpacing());
-    setFocalTopPx(readGridTopInsetPx(containerRef.current));
+    setFocalTopPx(readFixedFocalGamesTopPx(listRef.current, containerRef.current));
     const t = window.setTimeout(() => {
       setSpacing(readGridSpacing());
-      setFocalTopPx(readGridTopInsetPx(containerRef.current));
+      setFocalTopPx(readFixedFocalGamesTopPx(listRef.current, containerRef.current));
     }, 50);
     return () => window.clearTimeout(t);
   }, [activeSkinId, containerRef]);
@@ -171,7 +173,7 @@ export default function FixedFocalGamesList({
         width: contentWidth || rect.width,
         height: contentHeight || rect.height || window.innerHeight - 200,
       });
-      setFocalTopPx(readGridTopInsetPx(containerRef.current));
+      setFocalTopPx(readFixedFocalGamesTopPx(listRef.current, containerRef.current));
     };
 
     updateDimensions();
@@ -180,11 +182,25 @@ export default function FixedFocalGamesList({
     if (containerRef.current) {
       resizeObserver.observe(containerRef.current);
     }
+    if (listRef.current) {
+      resizeObserver.observe(listRef.current);
+    }
+    const col1Cover = containerRef.current
+      ?.closest(".library-item-detail-context-layout, .tag-games-context-layout")
+      ?.querySelector(".library-item-detail-context-rail-cover, .tag-games-context-rail-cover");
+    if (col1Cover instanceof HTMLElement) {
+      resizeObserver.observe(col1Cover);
+    }
     return () => {
       window.removeEventListener("resize", updateDimensions);
       resizeObserver.disconnect();
     };
-  }, [containerRef]);
+  }, [containerRef, dimensions.width, dimensions.height]);
+
+  useLayoutEffect(() => {
+    if (dimensions.width === 0 || dimensions.height === 0) return;
+    setFocalTopPx(readFixedFocalGamesTopPx(listRef.current, containerRef.current));
+  }, [containerRef, dimensions.width, dimensions.height, activeSkinId]);
 
   useLayoutEffect(() => {
     setIsRestored(false);
@@ -277,8 +293,8 @@ export default function FixedFocalGamesList({
 
   const visibleIndices = useMemo(() => {
     if (games.length === 0) return [];
-    const lo = Math.max(0, selectedIndex - RENDER_RADIUS);
-    const hi = Math.min(games.length - 1, selectedIndex + RENDER_RADIUS);
+    const lo = Math.max(0, selectedIndex - FOCAL_NEIGHBOR_SLOTS);
+    const hi = Math.min(games.length - 1, selectedIndex + FOCAL_NEIGHBOR_SLOTS);
     const indices: number[] = [];
     for (let i = lo; i <= hi; i++) indices.push(i);
     return indices;
@@ -295,9 +311,12 @@ export default function FixedFocalGamesList({
         isRestored ? " virtualized-list-fade--ready" : ""
       }`}
       style={{
+        ["--games-list-cover-size" as string]: `${coverSize}px`,
+        ["--mhg-fixed-focal-cover-size" as string]: `${coverSize}px`,
         height: dimensions.height,
         width: "100%",
         boxSizing: "border-box",
+        position: "relative",
       }}
       tabIndex={-1}
     >

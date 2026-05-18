@@ -18,6 +18,8 @@ function gridInsetMountCandidates(containerEl?: HTMLElement | null): HTMLElement
   if (tagList instanceof HTMLElement) mounts.push(tagList);
   const collectionsList = containerEl.querySelector(".fixed-focal-collections-list");
   if (collectionsList instanceof HTMLElement) mounts.push(collectionsList);
+  const gamesList = containerEl.querySelector(".fixed-focal-games-list");
+  if (gamesList instanceof HTMLElement) mounts.push(gamesList);
   const list = containerEl.querySelector(".collections-list-container");
   if (list instanceof HTMLElement) mounts.push(list);
   const fade = containerEl.querySelector(".virtualized-list-fade");
@@ -67,6 +69,45 @@ export function readContextRailCoverTopPx(containerEl?: HTMLElement | null): num
     host instanceof HTMLElement ? [host] : gridInsetMountCandidates(containerEl);
   if (mounts.length === 0) mounts.push(document.documentElement);
   return readFirstCssVarHeightPx(mounts, ["--mhg-context-rail-cover-top"]);
+}
+
+/**
+ * Context-rail fixed-focal: selected slot Y so cover tops line up with column-1
+ * (collection/tag cover). Falls back to `--mhg-context-rail-cover-top`.
+ */
+export function readContextRailFocalTopPx(
+  listEl?: HTMLElement | null,
+  scrollContainerEl?: HTMLElement | null,
+): number {
+  if (typeof window === "undefined" || typeof document === "undefined") return 0;
+
+  const list = listEl?.isConnected ? listEl : null;
+  const doc = list?.ownerDocument ?? scrollContainerEl?.ownerDocument ?? document;
+  const col1Cover = doc.querySelector(
+    ".library-item-detail-context-rail-cover, .tag-games-context-rail-cover",
+  );
+
+  if (list && col1Cover instanceof HTMLElement) {
+    const coverTop = col1Cover.getBoundingClientRect().top;
+    const listTop = list.getBoundingClientRect().top;
+    const aligned = coverTop - listTop;
+    if (Number.isFinite(aligned) && aligned >= 0) {
+      return aligned;
+    }
+  }
+
+  return readContextRailCoverTopPx(scrollContainerEl);
+}
+
+/** Fixed-focal games list: library bar on main pages, context-rail line on detail. */
+export function readFixedFocalGamesTopPx(
+  listEl?: HTMLElement | null,
+  scrollContainerEl?: HTMLElement | null,
+): number {
+  if (isContextRailGamesScroll(scrollContainerEl)) {
+    return readContextRailFocalTopPx(listEl, scrollContainerEl);
+  }
+  return readFixedFocalTopPx(listEl, scrollContainerEl);
 }
 
 /**

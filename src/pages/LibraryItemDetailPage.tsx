@@ -101,6 +101,9 @@ export default function LibraryItemDetailPage({
   const { developers: allDevelopers, updateDeveloper } = useDevelopers();
   const { publishers: allPublishers, updatePublisher } = usePublishers();
   const { twitchLoginEnabled } = useSettings();
+  const { activeSkinWeb } = useSkin();
+  const fixedFocalContextRail =
+    activeSkinWeb.compactCollectionLikeDetail && activeSkinWeb.verticalCoverAlignment;
   const titleFilterQuery = useTitleFilterQuery();
   const { games: libraryGames } = useLibraryGames();
   const params = useParams<{ collectionId?: string; developerId?: string; publisherId?: string }>();
@@ -199,7 +202,7 @@ export default function LibraryItemDetailPage({
   const mainGamesOnly = outletContext ? outletContext.mainGamesOnly : localMainGamesOnly;
   const setMainGamesOnly = outletContext ? outletContext.setMainGamesOnly : setLocalMainGamesOnly;
 
-  useScrollRestoration(scrollContainerRef);
+  useScrollRestoration(scrollContainerRef, undefined, !fixedFocalContextRail);
 
   useEffect(() => {
     const navState = (location.state as { resetScrollToTop?: boolean } | null) ?? null;
@@ -214,6 +217,7 @@ export default function LibraryItemDetailPage({
         sessionStorage.removeItem(location.pathname);
         sessionStorage.removeItem(`${location.pathname}:modalScroll`);
         sessionStorage.removeItem(`${location.pathname}:collections`);
+        sessionStorage.removeItem(`${location.pathname}:grid`);
       } catch {
         // Ignore storage errors
       }
@@ -1146,6 +1150,19 @@ function LibraryItemDetailContent({
   const compactDetail = activeSkinWeb.compactCollectionLikeDetail;
   /** Context rail: hide the icon strip; left column = library tab + cover, right column = scrollable games. */
   const contextRailLayout = compactDetail && activeSkinWeb.verticalCoverAlignment;
+
+  useEffect(() => {
+    if (!contextRailLayout) return;
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const pinOuterScroll = () => {
+      if (el.scrollTop !== 0) el.scrollTop = 0;
+    };
+    pinOuterScroll();
+    el.addEventListener("scroll", pinOuterScroll, { passive: true });
+    return () => el.removeEventListener("scroll", pinOuterScroll);
+  }, [contextRailLayout, scrollContainerRef, isReady, gridGames.length]);
+
   const contextRailLibraryKey =
     resourceType === "collections"
       ? "collections"
@@ -2137,6 +2154,7 @@ function LibraryItemDetailContent({
                               <GamesList
                                 scrollContainerRef={scrollContainerRef}
                                 forceSingleColumnVirtualized={contextRailLayout}
+                                fixedFocalSelection={contextRailLayout}
                                 games={singleSubCollectionGamesFiltered}
                                 onGameClick={(game) => {
                                   const g = game as GameItem & { isIgdbOnly?: boolean };
@@ -2261,6 +2279,7 @@ function LibraryItemDetailContent({
                             <GamesList
                               scrollContainerRef={scrollContainerRef}
                               forceSingleColumnVirtualized={contextRailLayout}
+                              fixedFocalSelection={contextRailLayout}
                               games={gridGames}
                               onGameClick={(game) => {
                                 const g = game as GameItem & { isIgdbOnly?: boolean };
