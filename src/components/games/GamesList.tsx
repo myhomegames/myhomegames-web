@@ -37,7 +37,7 @@ type GamesListProps = {
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
   enableVirtualization?: boolean;
   forceSingleColumnVirtualized?: boolean;
-  /** PS3 Library: fixed Y slots, wheel changes selection only (no grid scroll). */
+  /** Library: fixed Y slots, wheel changes selection only (no grid scroll). */
   fixedFocalSelection?: boolean;
   platformIdForPlay?: string;
   /** When games include `collectionlike:…` synthetic ids (e.g. parent sliders), wire collection-like actions */

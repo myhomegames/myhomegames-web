@@ -37,7 +37,7 @@ type GamesListPageContentProps = {
   selectedFilterValueLabel?: string;
   disableGridVirtualization?: boolean;
   forceSingleColumnGrid?: boolean;
-  /** PS3 Library games: selection-only rail (no vertical scroll). */
+  /** Library games: selection-only rail (no vertical scroll). */
   fixedFocalSelection?: boolean;
   /** Tag context-rail column: parent `.tag-games-context-games` is the scroll container. */
   contextRailGamesColumn?: boolean;

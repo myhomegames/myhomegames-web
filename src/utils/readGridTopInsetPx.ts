@@ -50,7 +50,7 @@ function readFirstCssVarHeightPx(
  * Resolves `--mhg-grid-top-inset` to used CSS pixels for the given element's
  * cascade context (same as VirtualizedGamesList / VirtualizedCollectionsList).
  */
-/** PS3 context-rail column 2 (detail + tag games beside the fixed cover). */
+/** Context-rail column 2 (detail + tag games beside the fixed cover). */
 export function isContextRailGamesScroll(containerEl?: HTMLElement | null): boolean {
   return !!containerEl?.closest(
     ".library-item-detail-context-games, .tag-games-context-games",

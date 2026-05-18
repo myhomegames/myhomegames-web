@@ -346,7 +346,7 @@ function updateGlobalScales(): void {
  * once at the top of the layout — it's a no-op on skins where the libraries
  * bar is not an overlay (the helper returns early when no overlay bar exists).
  */
-/** Run cover-scale updates immediately (PS3 selected-only mode uses this after step snap). */
+/** Run cover-scale updates immediately (selected-only mode uses this after step snap). */
 export function flushGlobalCoverScales(): void {
   updateGlobalScales();
 }

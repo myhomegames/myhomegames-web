@@ -51,7 +51,7 @@ export type FixedFocalTagListProps = {
 };
 
 /**
- * PS3 tag index: fixed Y slots under the libraries bar; wheel changes selection only.
+ * Tag index: fixed Y slots under the libraries bar; wheel changes selection only.
  */
 export default function FixedFocalTagList({
   items,

@@ -99,7 +99,7 @@ export type FixedFocalGamesListProps = {
 };
 
 /**
- * PS3 Library rail: cover slots stay at fixed Y positions on screen; wheel / bar
+ * Library rail: cover slots stay at fixed Y positions on screen; wheel / bar
  * input only changes which game is selected (XMB-style). No react-window scroll.
  */
 export default function FixedFocalGamesList({

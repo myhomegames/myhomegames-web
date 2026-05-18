@@ -85,7 +85,7 @@ export type FixedFocalCollectionsListProps = {
 };
 
 /**
- * PS3 collection-like rail: fixed Y slots; wheel changes selection only (XMB-style).
+ * Collection-like rail: fixed Y slots; wheel changes selection only (XMB-style).
  */
 export default function FixedFocalCollectionsList({
   collections,
