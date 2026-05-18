@@ -308,7 +308,7 @@ export default function FixedFocalCollectionsList({
               left: 0,
               top,
               width: coverSize + GAP,
-              height: coverSize * 1.5,
+              minHeight: coverSize * 1.5,
               boxSizing: "border-box",
               ["--mhg-cell-scale" as string]: (
                 isSelected ? scaleValues.selected : scaleValues.unselected
@@ -329,7 +329,6 @@ export default function FixedFocalCollectionsList({
               buildCoverUrl={buildCoverUrl}
               coverSize={coverSize}
               itemRefs={itemRefs}
-              showTitle={false}
             />
           </div>
         );
