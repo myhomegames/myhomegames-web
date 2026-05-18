@@ -7,8 +7,13 @@ import { GameListItem } from "./GamesList";
 import { useSkin } from "../../contexts/SkinContext";
 import { useCoverScaleAroundBar } from "../../hooks/useCoverScaleAroundBar";
 import {
+  clampContextRailGamesScrollTop,
+  clampVirtualizedGridScrollTop,
+  computeContextRailGamesAlignMaxScrollTop,
+  computeVirtualizedGridTailInsetPx,
   isContextRailGamesScroll,
   readGridBottomInsetPx,
+  readGridLastCoverRaisePx,
   readGridTopInsetPx,
   snapContextRailGamesScrollTop,
   virtualizedGridRowHeightPx,
@@ -214,6 +219,41 @@ export default function VirtualizedGamesList({
   const itemHeight = coverSize * 1.5 + GAP;
   const stepRows = readStepScrollRows(containerRef.current);
   const enableStepScroll = forceSingleColumn && stepRows > 0;
+  const contextRailScroll = useMemo(
+    () => isContextRailGamesScroll(containerRef.current),
+    [containerRef, dimensions.width, dimensions.height, games.length],
+  );
+  const lastCoverRaisePx = readGridLastCoverRaisePx(containerRef.current);
+  const contextRailAlignMaxScrollTop = useMemo(() => {
+    if (!contextRailScroll || rowCount <= 0) return Number.POSITIVE_INFINITY;
+    return computeContextRailGamesAlignMaxScrollTop(
+      rowCount,
+      itemHeight,
+      topInset,
+      lastCoverRaisePx,
+    );
+  }, [contextRailScroll, rowCount, itemHeight, topInset, lastCoverRaisePx]);
+  const effectiveBottomInset = useMemo(() => {
+    if (!contextRailScroll || dimensions.height <= 0 || itemHeight <= 0) {
+      return bottomInset;
+    }
+    if (topInset > 0) {
+      return computeVirtualizedGridTailInsetPx(
+        dimensions.height,
+        itemHeight,
+        topInset,
+        lastCoverRaisePx,
+      );
+    }
+    return Math.max(0, Math.ceil(dimensions.height - itemHeight));
+  }, [
+    contextRailScroll,
+    dimensions.height,
+    itemHeight,
+    topInset,
+    bottomInset,
+    lastCoverRaisePx,
+  ]);
   const gridContentWidth = useMemo(
     () => Math.max(itemWidth + GAP, columnCount * (itemWidth + GAP)),
     [columnCount, itemWidth, GAP]
@@ -455,6 +495,32 @@ export default function VirtualizedGamesList({
       const handleScroll = () => {
         if (isRestoringRef.current) return;
 
+        if (contextRailScroll && rowCount > 0) {
+          const nativeMax = Math.max(0, gridElement.scrollHeight - gridElement.clientHeight);
+          let clamped = gridElement.scrollTop;
+          if (topInset > 0) {
+            clamped = clampVirtualizedGridScrollTop(
+              clamped,
+              rowCount,
+              itemHeight,
+              topInset,
+              gridElement.scrollHeight,
+              gridElement.clientHeight,
+              lastCoverRaisePx,
+            );
+          } else if (Number.isFinite(contextRailAlignMaxScrollTop)) {
+            clamped = clampContextRailGamesScrollTop(
+              clamped,
+              nativeMax,
+              contextRailAlignMaxScrollTop,
+            );
+          }
+          if (clamped !== gridElement.scrollTop) {
+            gridElement.scrollTop = clamped;
+            return;
+          }
+        }
+
         if (scrollTimeout !== null) {
           window.clearTimeout(scrollTimeout);
           scrollTimeout = null;
@@ -474,7 +540,11 @@ export default function VirtualizedGamesList({
             snapTimeout = null;
             if (isRestoringRef.current) return;
             const el = gridElement;
-            const max = Math.max(0, el.scrollHeight - el.clientHeight);
+            const nativeMax = Math.max(0, el.scrollHeight - el.clientHeight);
+            const max =
+              contextRailScroll && Number.isFinite(contextRailAlignMaxScrollTop)
+                ? Math.min(nativeMax, contextRailAlignMaxScrollTop)
+                : nativeMax;
             if (max <= 0) return;
 
             const stepPx = Math.max(1, Math.round(itemHeight * stepRows));
@@ -482,8 +552,13 @@ export default function VirtualizedGamesList({
             const current = el.scrollTop;
             let target = 0;
 
-            if (isContextRailGamesScroll(containerRef.current)) {
-              target = snapContextRailGamesScrollTop(current, max, stepPx);
+            if (contextRailScroll) {
+              target = snapContextRailGamesScrollTop(
+                current,
+                max,
+                stepPx,
+                contextRailAlignMaxScrollTop,
+              );
             } else if (topInset > 0) {
               if (current <= firstStep / 2) {
                 target = 0;
@@ -541,6 +616,9 @@ export default function VirtualizedGamesList({
     stepRows,
     topInset,
     bottomInset,
+    contextRailScroll,
+    contextRailAlignMaxScrollTop,
+    lastCoverRaisePx,
   ]);
 
   const lastRowIndex = Math.max(0, rowCount - 1);
@@ -559,7 +637,7 @@ export default function VirtualizedGamesList({
     // through the bar area as the user scrolls. Pad the pad with a spacer
     // so the visual top of the cover starts at `topInset`.
     const isTopInsetRow = rowIndex === 0 && topInset > 0;
-    const isBottomInsetRow = rowIndex === lastRowIndex && bottomInset > 0;
+    const isBottomInsetRow = rowIndex === lastRowIndex && effectiveBottomInset > 0;
 
     return (
       <div style={style}>
@@ -601,7 +679,7 @@ export default function VirtualizedGamesList({
           onCollectionLikePseudoUpdated={onCollectionLikePseudoUpdated}
         />
         </div>
-        {isBottomInsetRow && <div style={{ height: bottomInset, flexShrink: 0 }} />}
+        {isBottomInsetRow && <div style={{ height: effectiveBottomInset, flexShrink: 0 }} />}
       </div>
     );
   };
@@ -628,14 +706,14 @@ export default function VirtualizedGamesList({
       defaultWidth={gridContentWidth}
       rowCount={rowCount}
       rowHeight={
-        topInset > 0 || bottomInset > 0
+        topInset > 0 || effectiveBottomInset > 0
           ? (rowIndex: number) =>
               virtualizedGridRowHeightPx(
                 rowIndex,
                 lastRowIndex,
                 itemHeight,
                 topInset,
-                bottomInset
+                effectiveBottomInset
               )
           : itemHeight
       }

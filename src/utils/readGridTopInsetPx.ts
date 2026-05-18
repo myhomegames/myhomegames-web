@@ -53,6 +53,48 @@ export function isContextRailGamesScroll(containerEl?: HTMLElement | null): bool
   );
 }
 
+/** Leading offset of column-2 covers (wrapper padding or grid top inset). */
+export function readContextRailCoverTopPx(containerEl?: HTMLElement | null): number {
+  if (typeof window === "undefined" || typeof document === "undefined") return 0;
+  const host =
+    containerEl?.closest(".library-item-detail-context-games, .tag-games-context-games") ??
+    containerEl;
+  const mounts =
+    host instanceof HTMLElement ? [host] : gridInsetMountCandidates(containerEl);
+  if (mounts.length === 0) mounts.push(document.documentElement);
+  return readFirstCssVarHeightPx(mounts, ["--mhg-context-rail-cover-top"]);
+}
+
+/**
+ * Max scrollTop so the last cover's top meets the same grid line as the first (y=0 in the scroller).
+ */
+export function computeContextRailGamesAlignMaxScrollTop(
+  rowCount: number,
+  itemHeight: number,
+  gridTopInset: number,
+  lastCoverRaisePx = 0,
+): number {
+  if (rowCount <= 1 || itemHeight <= 0) return 0;
+  if (gridTopInset > 0) {
+    return computeVirtualizedGridAlignMaxScrollTop(
+      rowCount,
+      itemHeight,
+      gridTopInset,
+      lastCoverRaisePx,
+    );
+  }
+  return Math.max(0, (rowCount - 1) * itemHeight);
+}
+
+export function clampContextRailGamesScrollTop(
+  scrollTop: number,
+  nativeMaxScrollTop: number,
+  alignMaxScrollTop: number,
+): number {
+  const cap = Math.min(nativeMaxScrollTop, Math.max(0, alignMaxScrollTop));
+  return Math.max(0, Math.min(cap, scrollTop));
+}
+
 /**
  * Snap so each row's cover top lands on the context-rail align line (grid top inset).
  * scrollTop steps: 0, rowStepPx, 2*rowStepPx, …
@@ -61,10 +103,24 @@ export function snapContextRailGamesScrollTop(
   scrollTop: number,
   maxScrollTop: number,
   rowStepPx: number,
+  alignMaxScrollTop?: number,
 ): number {
   const stepPx = Math.max(1, Math.round(rowStepPx));
+  const cap =
+    alignMaxScrollTop !== undefined && Number.isFinite(alignMaxScrollTop)
+      ? Math.min(maxScrollTop, Math.max(0, alignMaxScrollTop))
+      : maxScrollTop;
+
+  if (
+    alignMaxScrollTop !== undefined &&
+    Number.isFinite(alignMaxScrollTop) &&
+    scrollTop >= alignMaxScrollTop - stepPx / 2
+  ) {
+    return cap;
+  }
+
   const target = Math.round(scrollTop / stepPx) * stepPx;
-  return Math.max(0, Math.min(maxScrollTop, target));
+  return Math.max(0, Math.min(cap, target));
 }
 
 export function readGridTopInsetPx(containerEl?: HTMLElement | null): number {
