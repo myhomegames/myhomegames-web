@@ -561,7 +561,6 @@ export default function TagGamesPage({
                 <div
                   ref={hook.scrollContainerRef}
                   className="tag-games-context-games"
-                  data-mhg-grid-insets="none"
                 >
                   {gamesListContent}
                 </div>

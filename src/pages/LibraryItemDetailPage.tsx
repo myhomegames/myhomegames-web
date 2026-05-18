@@ -2106,7 +2106,6 @@ function LibraryItemDetailContent({
                       <div
                         ref={contextRailLayout ? scrollContainerRef : undefined}
                         className={contextRailLayout ? "library-item-detail-context-games" : undefined}
-                        {...(contextRailLayout ? { "data-mhg-grid-insets": "none" as const } : {})}
                       >
                       {!compactDetail && subCollectionLikesFiltered.length > 0 && (
                         <div className="library-item-detail-subsection">
