@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useMemo } from "react";
+import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import type { SortField } from "../../types";
 type ColumnVisibility = {
@@ -28,7 +29,42 @@ export default function GamesListTableHeader({
 }: GamesListTableHeaderProps) {
   const { t, i18n } = useTranslation();
   const [showColumnMenu, setShowColumnMenu] = useState(false);
+  const [columnMenuStyle, setColumnMenuStyle] = useState<CSSProperties | undefined>();
   const menuRef = useRef<HTMLDivElement>(null);
+  const columnMenuButtonRef = useRef<HTMLButtonElement>(null);
+
+  useLayoutEffect(() => {
+    if (!showColumnMenu) {
+      setColumnMenuStyle(undefined);
+      return;
+    }
+
+    const updatePosition = () => {
+      const button = columnMenuButtonRef.current;
+      if (!button) return;
+      const rect = button.getBoundingClientRect();
+      const edgePad = 8;
+      const maxHeight = Math.max(120, window.innerHeight - rect.bottom - edgePad);
+      setColumnMenuStyle({
+        position: "fixed",
+        top: rect.bottom + 4,
+        left: rect.left,
+        right: "auto",
+        marginTop: 0,
+        zIndex: 10025,
+        maxHeight: Math.min(400, maxHeight),
+        overflowY: "auto",
+      });
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [showColumnMenu]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -120,6 +156,7 @@ export default function GamesListTableHeader({
             <th className="games-table-header-table th column-menu">
               <div className="games-table-column-menu-wrapper" ref={menuRef}>
                 <button
+                  ref={columnMenuButtonRef}
                   onClick={() => setShowColumnMenu(!showColumnMenu)}
                   className="games-table-column-menu-button"
                 >
@@ -156,7 +193,7 @@ export default function GamesListTableHeader({
                   </svg>
                 </button>
                 {showColumnMenu && (
-                  <div className="games-table-column-menu-popup">
+                  <div className="games-table-column-menu-popup" style={columnMenuStyle}>
                     {columnDefinitions.map((col) => (
                       <button
                         key={col.key}
@@ -177,7 +214,7 @@ export default function GamesListTableHeader({
                           >
                             <path
                               d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"
-                              fill="#E5A00D"
+                              fill="currentColor"
                             />
                           </svg>
                         )}
