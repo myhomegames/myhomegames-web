@@ -28,6 +28,7 @@ import BackgroundManager, { useBackground } from "../components/common/Backgroun
 import BackgroundToggle from "../components/ui/BackgroundToggle";
 import NewGamesToggle from "../components/ui/NewGamesToggle";
 import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
+import { navigateToLibraryRoot } from "../utils/libraryNavigation";
 import { compareTitles } from "../utils/stringUtils";
 import { titleMatchesFilter } from "../utils/titleFilter";
 import { parseCollectionLikePseudoGameId } from "../utils/collectionLikePseudoGame";
@@ -1169,7 +1170,6 @@ function LibraryItemDetailContent({
       : resourceType === "developers"
         ? "developers"
         : "publishers";
-  const contextRailListPath = `/${resourceType}`;
   const stableCoverTimestampRef = useRef<number>(Date.now());
   const coverTimestampForUrls = listLoadTimestamp ?? stableCoverTimestampRef.current;
 
@@ -2086,7 +2086,7 @@ function LibraryItemDetailContent({
                             type="button"
                             className="mhg-library-button mhg-library-active library-item-detail-context-rail-library"
                             data-mhg-library-key={contextRailLibraryKey}
-                            onClick={() => navigate(contextRailListPath)}
+                            onClick={() => navigateToLibraryRoot(navigate, contextRailLibraryKey)}
                           >
                             <span className="mhg-library-button-label">
                               {t(`libraries.${contextRailLibraryKey}`)}

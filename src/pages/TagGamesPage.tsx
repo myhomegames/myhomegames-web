@@ -20,6 +20,7 @@ import type { ViewMode } from "../types";
 import type { GameItem, CollectionItem } from "../types";
 import type { FilterField } from "../components/filters/types";
 import { TAG_PAGE_CONFIGS, type TagKey } from "../utils/tagPages";
+import { navigateToLibraryRoot } from "../utils/libraryNavigation";
 import type { MainAppOutletContext } from "../layouts/MainAppLayout";
 import { API_BASE } from "../config";
 import { buildApiHeaders, buildApiUrl, buildCoverUrl } from "../utils/api";
@@ -69,7 +70,6 @@ export default function TagGamesPage({
     !!tagKey &&
     activeSkinWeb.compactCollectionLikeDetail &&
     activeSkinWeb.verticalCoverAlignment;
-  const tagListPath = tagConfig?.list.routeBase ?? (tagKey ? `/${tagKey}` : "/");
   const scopedStorageKey = useMemo(
     () => `${storageKey}_${tagValue ?? "__all__"}`,
     [storageKey, tagValue]
@@ -536,7 +536,7 @@ export default function TagGamesPage({
                     type="button"
                     className="mhg-library-button mhg-library-active tag-games-context-rail-library"
                     data-mhg-library-key={tagKey}
-                    onClick={() => navigate(tagListPath)}
+                    onClick={() => navigateToLibraryRoot(navigate, tagKey)}
                   >
                     <span className="mhg-library-button-label">
                       {t(`libraries.${tagKey}`)}
