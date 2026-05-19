@@ -1,4 +1,4 @@
-import { useState, useLayoutEffect, useRef, useMemo, useEffect } from "react";
+import { useState, useLayoutEffect, useRef, useMemo, useEffect, useCallback } from "react";
 import type { ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -18,6 +18,7 @@ import SidebarSearchOverlay from "./SidebarSearchOverlay";
 import Logo from "../common/Logo";
 import ActivitySpinner from "./ActivitySpinner";
 import { useTopDockSlot } from "../../contexts/TopDockSlotContext";
+import { playFixedFocalStepSound } from "../../utils/fixedFocalStepSound";
 
 type CollectionShortcut = {
   id: string;
@@ -523,6 +524,13 @@ export default function LibrariesBar({
       const suffix = v.slice(COMBOBOX_LIBRARY_FILTER_PREFIX.length);
       if (suffix === "all" || suffix === "installed") {
         const filterField = suffix === "installed" ? "installed" : "all";
+        const isActive =
+          activeLibrary?.key === "library" &&
+          activeCollectionShortcutId == null &&
+          currentLibraryFilterField === filterField;
+        if (!isActive && activeSkinWeb.fixedFocalStepSound) {
+          playFixedFocalStepSound();
+        }
         window.localStorage.setItem("libraryFilterField", filterField);
         window.dispatchEvent(
           new CustomEvent("mhg-set-list-filter", {
@@ -538,28 +546,94 @@ export default function LibrariesBar({
     }
     if (v.startsWith(COMBOBOX_COLLECTION_SHORTCUT_PREFIX)) {
       const id = v.slice(COMBOBOX_COLLECTION_SHORTCUT_PREFIX.length);
+      if (activeCollectionShortcutId !== id && activeSkinWeb.fixedFocalStepSound) {
+        playFixedFocalStepSound();
+      }
       onSelectCollectionShortcut?.(id);
       return;
     }
     const selectedLibrary = libraries.find((lib) => lib.key === v);
     if (selectedLibrary) {
+      const isActive =
+        activeCollectionShortcutId == null && activeLibrary?.key === selectedLibrary.key;
+      if (!isActive && activeSkinWeb.fixedFocalStepSound) {
+        playFixedFocalStepSound();
+      }
       onSelectLibrary(selectedLibrary);
     }
   };
 
   const hoverSelectEnabled = activeSkinWeb.libraryHoverSelect;
+  const stepSoundEnabled = activeSkinWeb.fixedFocalStepSound;
 
-  const handleLibraryHoverSelect = (library: GameLibrarySection) => {
+  const playBarStepSound = useCallback(() => {
+    if (stepSoundEnabled) playFixedFocalStepSound();
+  }, [stepSoundEnabled]);
+
+  const isLibraryPageActive = useCallback(
+    (libraryKey: string, filterField?: "all" | "installed") => {
+      if (activeCollectionShortcutId != null) return false;
+      if (activeLibrary?.key !== libraryKey) return false;
+      if (filterField === "installed") return currentLibraryFilterField === "installed";
+      if (filterField === "all") return currentLibraryFilterField !== "installed";
+      return true;
+    },
+    [activeCollectionShortcutId, activeLibrary?.key, currentLibraryFilterField],
+  );
+
+  const applyLibraryFilter = useCallback((filterField: "all" | "installed") => {
+    window.localStorage.setItem("libraryFilterField", filterField);
+    window.dispatchEvent(
+      new CustomEvent("mhg-set-list-filter", {
+        detail: { prefix: "library", filterField },
+      }),
+    );
+    setCurrentLibraryFilterField(filterField);
+  }, []);
+
+  const selectLibraryPage = useCallback(
+    (library: GameLibrarySection, opts?: { filterField?: "all" | "installed" }) => {
+      const filterField = opts?.filterField;
+      const isActive = filterField
+        ? isLibraryPageActive(library.key, filterField)
+        : isLibraryPageActive(library.key);
+      if (isActive) return;
+      playBarStepSound();
+      if (filterField) applyLibraryFilter(filterField);
+      onSelectLibrary(library);
+    },
+    [applyLibraryFilter, isLibraryPageActive, onSelectLibrary, playBarStepSound],
+  );
+
+  const selectCollectionShortcutEntry = useCallback(
+    (collectionId: string) => {
+      if (activeCollectionShortcutId === collectionId) return;
+      playBarStepSound();
+      onSelectCollectionShortcut?.(collectionId);
+    },
+    [activeCollectionShortcutId, onSelectCollectionShortcut, playBarStepSound],
+  );
+
+  const navigateFromBar = useCallback(
+    (path: string, isAlreadyActive: boolean) => {
+      if (!isAlreadyActive) playBarStepSound();
+      navigate(path);
+    },
+    [navigate, playBarStepSound],
+  );
+
+  const handleLibraryHoverSelect = (
+    library: GameLibrarySection,
+    filterField?: "all" | "installed",
+  ) => {
     if (!hoverSelectEnabled) return;
-    if (activeLibrary?.key === library.key) return;
-    onSelectLibrary(library);
+    selectLibraryPage(library, filterField ? { filterField } : undefined);
   };
 
   const handleCollectionShortcutHoverSelect = (collectionId: string) => {
     if (!hoverSelectEnabled) return;
     if (!onSelectCollectionShortcut) return;
-    if (activeCollectionShortcutId === collectionId) return;
-    onSelectCollectionShortcut(collectionId);
+    selectCollectionShortcutEntry(collectionId);
   };
 
   const topRightToolDock = activeSkinWeb.topRightToolDock;
@@ -854,17 +928,8 @@ export default function LibrariesBar({
                           ? " mhg-library-active"
                           : ""
                       }`}
-                      onClick={() => {
-                        window.localStorage.setItem("libraryFilterField", "all");
-                        window.dispatchEvent(
-                          new CustomEvent("mhg-set-list-filter", {
-                            detail: { prefix: "library", filterField: "all" },
-                          })
-                        );
-                        setCurrentLibraryFilterField("all");
-                        onSelectLibrary(libraryForGamesSidebar);
-                      }}
-                      onMouseEnter={() => handleLibraryHoverSelect(libraryForGamesSidebar)}
+                      onClick={() => selectLibraryPage(libraryForGamesSidebar, { filterField: "all" })}
+                      onMouseEnter={() => handleLibraryHoverSelect(libraryForGamesSidebar, "all")}
                     >
                       <span className="mhg-library-button-label min-w-0 flex-1 truncate">
                         {t("libraries.ownedGames")}
@@ -884,17 +949,12 @@ export default function LibrariesBar({
                           ? " mhg-library-active"
                           : ""
                       }`}
-                      onClick={() => {
-                        window.localStorage.setItem("libraryFilterField", "installed");
-                        window.dispatchEvent(
-                          new CustomEvent("mhg-set-list-filter", {
-                            detail: { prefix: "library", filterField: "installed" },
-                          })
-                        );
-                        setCurrentLibraryFilterField("installed");
-                        onSelectLibrary(libraryForGamesSidebar);
-                      }}
-                      onMouseEnter={() => handleLibraryHoverSelect(libraryForGamesSidebar)}
+                      onClick={() =>
+                        selectLibraryPage(libraryForGamesSidebar, { filterField: "installed" })
+                      }
+                      onMouseEnter={() =>
+                        handleLibraryHoverSelect(libraryForGamesSidebar, "installed")
+                      }
                     >
                       <span className="mhg-library-button-label min-w-0 flex-1 truncate">
                         {t("libraries.installedGames")}
@@ -916,7 +976,7 @@ export default function LibrariesBar({
                           ? "mhg-library-active"
                           : ""
                       }`}
-                      onClick={() => onSelectLibrary(s)}
+                      onClick={() => selectLibraryPage(s)}
                       onMouseEnter={() => handleLibraryHoverSelect(s)}
                     >
                       <span className="mhg-library-button-label min-w-0 flex-1 truncate">
@@ -934,9 +994,10 @@ export default function LibrariesBar({
                     }`}
                     onClick={() => {
                       if (onAddGameClick) {
+                        if (!isAddGameRoute) playBarStepSound();
                         onAddGameClick();
                       } else {
-                        navigate("/add-game");
+                        navigateFromBar("/add-game", isAddGameRoute);
                       }
                     }}
                   >
@@ -952,7 +1013,7 @@ export default function LibrariesBar({
                     className={`mhg-library-button flex min-w-0 items-center gap-2 text-left ${
                       isSettingsRoute ? "mhg-library-active" : ""
                     }`}
-                    onClick={() => navigate("/settings")}
+                    onClick={() => navigateFromBar("/settings", isSettingsRoute)}
                   >
                     <span className="mhg-library-button-label min-w-0 flex-1 truncate">
                       {t("header.settings")}
@@ -966,7 +1027,7 @@ export default function LibrariesBar({
                     className={`mhg-library-button flex min-w-0 items-center gap-2 text-left ${
                       isProfileRoute ? "mhg-library-active" : ""
                     }`}
-                    onClick={() => navigate("/profile")}
+                    onClick={() => navigateFromBar("/profile", isProfileRoute)}
                   >
                     <span className="mhg-library-button-label min-w-0 flex-1 truncate">
                       {t("header.profile")}
@@ -1043,17 +1104,12 @@ export default function LibrariesBar({
                                   ? " mhg-library-active"
                                   : ""
                               }`}
-                              onClick={() => {
-                                window.localStorage.setItem("libraryFilterField", "all");
-                                window.dispatchEvent(
-                                  new CustomEvent("mhg-set-list-filter", {
-                                    detail: { prefix: "library", filterField: "all" },
-                                  })
-                                );
-                                setCurrentLibraryFilterField("all");
-                                onSelectLibrary(libraryForGamesSidebar);
-                              }}
-                              onMouseEnter={() => handleLibraryHoverSelect(libraryForGamesSidebar)}
+                              onClick={() =>
+                                selectLibraryPage(libraryForGamesSidebar, { filterField: "all" })
+                              }
+                              onMouseEnter={() =>
+                                handleLibraryHoverSelect(libraryForGamesSidebar, "all")
+                              }
                             >
                               <span className="mhg-library-button-label min-w-0 flex-1 truncate">
                                 {t("libraries.ownedGames")}
@@ -1079,17 +1135,14 @@ export default function LibrariesBar({
                                   ? " mhg-library-active"
                                   : ""
                               }`}
-                              onClick={() => {
-                                window.localStorage.setItem("libraryFilterField", "installed");
-                                window.dispatchEvent(
-                                  new CustomEvent("mhg-set-list-filter", {
-                                    detail: { prefix: "library", filterField: "installed" },
-                                  })
-                                );
-                                setCurrentLibraryFilterField("installed");
-                                onSelectLibrary(libraryForGamesSidebar);
-                              }}
-                              onMouseEnter={() => handleLibraryHoverSelect(libraryForGamesSidebar)}
+                              onClick={() =>
+                                selectLibraryPage(libraryForGamesSidebar, {
+                                  filterField: "installed",
+                                })
+                              }
+                              onMouseEnter={() =>
+                                handleLibraryHoverSelect(libraryForGamesSidebar, "installed")
+                              }
                             >
                               <span className="mhg-library-button-label min-w-0 flex-1 truncate">
                                 {t("libraries.installedGames")}
@@ -1116,7 +1169,7 @@ export default function LibrariesBar({
                                     ? " mhg-collection-shortcut-button--selected"
                                     : ""
                                 }`}
-                                onClick={() => onSelectCollectionShortcut(collection.id)}
+                                onClick={() => selectCollectionShortcutEntry(collection.id)}
                                 onMouseEnter={() =>
                                   handleCollectionShortcutHoverSelect(collection.id)
                                 }
