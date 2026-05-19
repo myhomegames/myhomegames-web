@@ -15,8 +15,10 @@ import {
 } from "../../utils/readGridTopInsetPx";
 import {
   applyVirtualizedStepSnap,
+  applyWheelDeltaStep,
   nextVirtualizedStepScrollTop,
   readStepScrollRows,
+  readWheelStepThresholdPx,
   type VirtualizedStepScrollSnapOptions,
 } from "../../utils/stepScrollSnap";
 // Helper functions for scroll restoration
@@ -596,6 +598,9 @@ export default function VirtualizedCollectionsList({
         }
       };
 
+      const wheelAccum = { accumulated: 0 };
+      const wheelThresholdPx = readWheelStepThresholdPx(containerRef.current);
+
       const handleWheel = (e: WheelEvent) => {
         if (!enableStepScroll || isRestoringRef.current) return;
         if (Math.abs(e.deltaY) < 1) return;
@@ -605,15 +610,15 @@ export default function VirtualizedCollectionsList({
         e.stopPropagation();
 
         const el = gridElement;
-        const opts = buildSnapOpts(el);
-        if (opts.maxScrollTop <= 0) return;
-
-        const direction: 1 | -1 = e.deltaY > 0 ? 1 : -1;
-        const target = nextVirtualizedStepScrollTop(opts, direction);
-        if (target !== el.scrollTop) {
-          el.scrollTop = target;
-          flushCoverScaleAroundBar(gridRef, containerRef);
-        }
+        applyWheelDeltaStep(wheelAccum, e.deltaY, wheelThresholdPx, (direction) => {
+          const opts = buildSnapOpts(el);
+          if (opts.maxScrollTop <= 0) return;
+          const target = nextVirtualizedStepScrollTop(opts, direction);
+          if (target !== el.scrollTop) {
+            el.scrollTop = target;
+            flushCoverScaleAroundBar(gridRef, containerRef);
+          }
+        });
       };
 
       const handleScroll = () => {

@@ -91,7 +91,7 @@
         "ownedGamesFirstInGamesSidebar": "\"Owned games\" at the top of the Games menu",
         "compactCollectionLikeDetail": "Compact collection detail (hide hero and headings)",
         "verticalCoverAlignment": "Vertical cover alignment",
-        "fixedFocalStepSound": "Navigation sound (fixed-focal lists)"
+        "fixedFocalStepSound": "Navigation sound"
       }
     }
   },

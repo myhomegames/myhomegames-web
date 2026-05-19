@@ -91,7 +91,7 @@
         "ownedGamesFirstInGamesSidebar": "\"Meus jogos\" no topo do menu Jogos",
         "compactCollectionLikeDetail": "Detalhe de coleção compacto (oculta o hero e os títulos)",
         "verticalCoverAlignment": "Alinhamento vertical das capas",
-        "fixedFocalStepSound": "Som de navegação (listas de foco fixo)"
+        "fixedFocalStepSound": "Som de navegação"
       }
     }
   },

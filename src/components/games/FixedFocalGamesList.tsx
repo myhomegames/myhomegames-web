@@ -6,6 +6,7 @@ import { GameListItem } from "./GamesList";
 import { useSkin } from "../../contexts/SkinContext";
 import { readFixedFocalGamesTopPx } from "../../utils/readGridTopInsetPx";
 import { notifyFixedFocalIndexChange } from "../../utils/fixedFocalStepSound";
+import { applyWheelDeltaStep, readWheelStepThresholdPx } from "../../utils/stepScrollSnap";
 
 const DEFAULT_GAP = 40;
 const DEFAULT_MIN_SIDE_GUTTER = 56;
@@ -241,6 +242,7 @@ export default function FixedFocalGamesList({
   );
   const stepIndexRef = useRef(stepIndex);
   stepIndexRef.current = stepIndex;
+  const wheelAccumRef = useRef({ accumulated: 0 });
 
   useEffect(() => {
     let cancelled = false;
@@ -252,12 +254,17 @@ export default function FixedFocalGamesList({
       const listHost = listRef.current;
       if (!scrollHost) return false;
 
+      wheelAccumRef.current.accumulated = 0;
+      const wheelThresholdPx = readWheelStepThresholdPx(scrollHost);
+
       const onWheel = (e: WheelEvent) => {
         if (Math.abs(e.deltaY) < 0.01 && Math.abs(e.deltaX) < 0.01) return;
         if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
         e.preventDefault();
         e.stopPropagation();
-        stepIndexRef.current(e.deltaY > 0 ? 1 : -1);
+        applyWheelDeltaStep(wheelAccumRef.current, e.deltaY, wheelThresholdPx, (direction) => {
+          stepIndexRef.current(direction);
+        });
       };
 
       const onStep = (e: Event) => {

@@ -91,7 +91,7 @@
         "ownedGamesFirstInGamesSidebar": "\"Juegos propios\" en la parte superior del menú Juegos",
         "compactCollectionLikeDetail": "Detalle de colección compacto (oculta la portada y los encabezados)",
         "verticalCoverAlignment": "Alineación vertical de portadas",
-        "fixedFocalStepSound": "Sonido de navegación (listas de foco fijo)"
+        "fixedFocalStepSound": "Sonido de navegación"
       }
     }
   },

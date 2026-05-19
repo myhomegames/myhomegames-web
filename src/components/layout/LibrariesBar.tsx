@@ -19,6 +19,7 @@ import Logo from "../common/Logo";
 import ActivitySpinner from "./ActivitySpinner";
 import { useTopDockSlot } from "../../contexts/TopDockSlotContext";
 import { playFixedFocalStepSound } from "../../utils/fixedFocalStepSound";
+import { applyWheelDeltaStep, readWheelStepThresholdPx } from "../../utils/stepScrollSnap";
 
 type CollectionShortcut = {
   id: string;
@@ -679,6 +680,9 @@ export default function LibrariesBar({
     const strip = containerRef.current;
     if (!strip) return;
 
+    const wheelAccum = { accumulated: 0 };
+    const wheelThresholdPx = readWheelStepThresholdPx(strip);
+
     const onWheel = (e: WheelEvent) => {
       if (!strip.contains(e.target as Node)) return;
       const el = e.target as Element | null;
@@ -700,11 +704,13 @@ export default function LibrariesBar({
         );
       if (fixedFocal) {
         e.preventDefault();
-        document.dispatchEvent(
-          new CustomEvent("mhg:fixed-focal-step", {
-            detail: { direction: (e.deltaY > 0 ? 1 : -1) as 1 | -1 },
-          }),
-        );
+        applyWheelDeltaStep(wheelAccum, e.deltaY, wheelThresholdPx, (direction) => {
+          document.dispatchEvent(
+            new CustomEvent("mhg:fixed-focal-step", {
+              detail: { direction },
+            }),
+          );
+        });
         return;
       }
 

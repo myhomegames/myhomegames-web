@@ -47,7 +47,7 @@ export type SkinWebManifest = {
   compactCollectionLikeDetail: boolean;
   /** Render games/tag/collection-like covers as a vertically aligned column. */
   verticalCoverAlignment: boolean;
-  /** Play a short tick when fixed-focal selection steps (XMB-style navigation). */
+  /** Play a short tick when navigating lists or the library bar (XMB-style). */
   fixedFocalStepSound: boolean;
 };
 

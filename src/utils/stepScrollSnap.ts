@@ -8,6 +8,38 @@ export function readStepScrollRows(containerEl?: HTMLElement | null): number {
   return Number.isFinite(value) && value > 0 ? value : 0;
 }
 
+/** Minimum accumulated wheel delta (px) before a discrete step fires; 0 = one step per wheel event. */
+export function readWheelStepThresholdPx(source?: HTMLElement | null): number {
+  if (typeof window === "undefined" || typeof document === "undefined") return 0;
+  const el = source ?? document.documentElement;
+  const raw = getComputedStyle(el).getPropertyValue("--mhg-wheel-step-threshold-px").trim();
+  const value = parseFloat(raw);
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+export type WheelDeltaAccumState = { accumulated: number };
+
+/** Accumulate trackpad/mouse wheel delta before firing a discrete navigation step. */
+export function applyWheelDeltaStep(
+  state: WheelDeltaAccumState,
+  deltaY: number,
+  thresholdPx: number,
+  step: (direction: 1 | -1) => void,
+): void {
+  if (thresholdPx <= 0) {
+    if (Math.abs(deltaY) >= 0.01) {
+      step(deltaY > 0 ? 1 : -1);
+    }
+    return;
+  }
+  state.accumulated += deltaY;
+  while (Math.abs(state.accumulated) >= thresholdPx) {
+    const direction: 1 | -1 = state.accumulated > 0 ? 1 : -1;
+    step(direction);
+    state.accumulated -= direction * thresholdPx;
+  }
+}
+
 export type VirtualizedStepScrollSnapOptions = {
   scrollTop: number;
   maxScrollTop: number;
