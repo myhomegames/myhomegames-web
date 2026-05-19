@@ -1,4 +1,4 @@
-import { useCallback, useEffect, type RefObject } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import GamesList from "./GamesList";
@@ -11,6 +11,10 @@ import { buildCoverUrl } from "../../utils/api";
 import type { UseGamesListPageReturn } from "../../hooks/useGamesListPage";
 import { useSkin } from "../../contexts/SkinContext";
 import { useTopDockSlot } from "../../contexts/TopDockSlotContext";
+import {
+  readDetailViewScrollPaddingTopPx,
+  readTableViewHeaderTopInsetPx,
+} from "../../utils/readGridTopInsetPx";
 type GamesListPageContentProps = {
   // Hook return values
   hook: UseGamesListPageReturn;
@@ -187,11 +191,12 @@ export default function GamesListPageContent({
   const { activeSkinWeb } = useSkin();
   const forceVerticalCoversPage = activeSkinWeb.verticalCoverAlignment;
   const listScrollContainerRef = scrollContainerRefProp ?? hookScrollContainerRef;
+  const contentWrapperRef = useRef<HTMLDivElement>(null);
   const singleColumnGrid =
     forceSingleColumnGrid || forceVerticalCoversPage || contextRailGamesColumn;
 
   useEffect(() => {
-    if (!fixedFocalSelection || viewMode === "table") return;
+    if (!fixedFocalSelection || viewMode !== "grid") return;
     const el = listScrollContainerRef.current;
     if (!el) return;
     const pinOuterScroll = () => {
@@ -201,6 +206,82 @@ export default function GamesListPageContent({
     el.addEventListener("scroll", pinOuterScroll, { passive: true });
     return () => el.removeEventListener("scroll", pinOuterScroll);
   }, [fixedFocalSelection, viewMode, listScrollContainerRef, isReady, displayGames.length]);
+
+  useLayoutEffect(() => {
+    if (!forceVerticalCoversPage || viewMode !== "detail" || contextRailGamesColumn) return;
+    const el = listScrollContainerRef.current;
+    if (!el) return;
+    const useVirtualization = displayGames.length > 100;
+    const apply = () => {
+      const inset = readDetailViewScrollPaddingTopPx(el);
+      el.style.setProperty("--mhg-detail-view-padding-top", `${inset}px`);
+      el.style.setProperty("padding-top", `${inset}px`, "important");
+      el.style.setProperty("padding-bottom", "48px", "important");
+      el.style.setProperty("overflow-x", "hidden", "important");
+      el.style.setProperty(
+        "overflow-y",
+        useVirtualization ? "hidden" : "auto",
+        "important",
+      );
+    };
+    apply();
+    window.addEventListener("resize", apply);
+    const t = window.setTimeout(apply, 60);
+    return () => {
+      window.removeEventListener("resize", apply);
+      window.clearTimeout(t);
+      el.style.removeProperty("--mhg-detail-view-padding-top");
+      el.style.removeProperty("padding-top");
+      el.style.removeProperty("padding-bottom");
+      el.style.removeProperty("overflow-x");
+      el.style.removeProperty("overflow-y");
+    };
+  }, [
+    forceVerticalCoversPage,
+    viewMode,
+    contextRailGamesColumn,
+    listScrollContainerRef,
+    isReady,
+    displayGames.length,
+  ]);
+
+  useLayoutEffect(() => {
+    if (!forceVerticalCoversPage || viewMode !== "table" || contextRailGamesColumn) return;
+    const wrapper = contentWrapperRef.current;
+    const scrollEl = listScrollContainerRef.current;
+    if (!wrapper || !scrollEl) return;
+    const apply = () => {
+      const inset = readTableViewHeaderTopInsetPx(wrapper);
+      wrapper.style.setProperty("--mhg-table-view-top-inset", `${inset}px`);
+      scrollEl.style.setProperty("overflow", "hidden", "important");
+      scrollEl.style.setProperty("overflow-x", "hidden", "important");
+      scrollEl.style.setProperty("flex", "1 1 auto");
+      scrollEl.style.setProperty("min-height", "0");
+      scrollEl.style.setProperty("padding-top", "0", "important");
+      scrollEl.style.setProperty("padding-bottom", "0", "important");
+    };
+    apply();
+    window.addEventListener("resize", apply);
+    const t = window.setTimeout(apply, 60);
+    return () => {
+      window.removeEventListener("resize", apply);
+      window.clearTimeout(t);
+      wrapper.style.removeProperty("--mhg-table-view-top-inset");
+      scrollEl.style.removeProperty("overflow");
+      scrollEl.style.removeProperty("overflow-x");
+      scrollEl.style.removeProperty("flex");
+      scrollEl.style.removeProperty("min-height");
+      scrollEl.style.removeProperty("padding-top");
+      scrollEl.style.removeProperty("padding-bottom");
+    };
+  }, [
+    forceVerticalCoversPage,
+    viewMode,
+    contextRailGamesColumn,
+    listScrollContainerRef,
+    isReady,
+    displayGames.length,
+  ]);
 
   const { slotEl: topDockToolbarSlot } = useTopDockSlot();
   /**
@@ -285,6 +366,7 @@ export default function GamesListPageContent({
 
   return (
     <div
+      ref={contentWrapperRef}
       className={`home-page-content-wrapper games-list-page-fade${isReady ? " games-list-page-fade--ready" : ""} ${hasInlineToolbar ? "has-toolbar" : ""}${forceVerticalCoversPage ? " mhg-vertical-covers-page" : ""}`}
     >
       {toolbarInDock
@@ -305,9 +387,11 @@ export default function GamesListPageContent({
       {/* Scrollable lists container */}
       <div
         ref={contextRailGamesColumn ? undefined : listScrollContainerRef}
-        className={`home-page-scroll-container ${
-          viewMode === "table" ? "table-view" : ""
-        } ${!isReady || displayGames.length === 0 ? "centered-content min-h-[400px]" : ""}`}
+        className={`home-page-scroll-container${
+          viewMode === "table" ? " table-view" : ""
+        }${viewMode === "detail" ? " detail-view" : ""}${
+          !isReady || displayGames.length === 0 ? " centered-content min-h-[400px]" : ""
+        }`}
       >
         {!isReady && (
           <div className="text-gray-400 text-center games-list-page-loading">

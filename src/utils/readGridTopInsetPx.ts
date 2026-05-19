@@ -224,6 +224,77 @@ export function readFixedFocalTopPx(
   ]);
 }
 
+/**
+ * Vista Tabella (`viewMode.table`): top inset for the sticky header section so
+ * column titles sit on the same line as fixed-focal grid covers.
+ */
+export function readTableViewHeaderTopInsetPx(
+  contentWrapperEl?: HTMLElement | null,
+): number {
+  if (typeof window === "undefined" || typeof document === "undefined") return 0;
+  if (gridInsetsDisabled(contentWrapperEl)) return 0;
+
+  const wrapperEl = contentWrapperEl?.isConnected ? contentWrapperEl : null;
+  const doc = wrapperEl?.ownerDocument ?? document;
+
+  if (wrapperEl) {
+    const bar = doc.querySelector(".mhg-libraries-bar");
+    if (bar instanceof HTMLElement) {
+      const barBottom = bar.getBoundingClientRect().bottom;
+      const wrapperTop = wrapperEl.getBoundingClientRect().top;
+      const aligned = barBottom + readFocalBelowBarGapPx(doc) - wrapperTop;
+      if (Number.isFinite(aligned) && aligned >= 0) {
+        return aligned;
+      }
+    }
+  }
+
+  const mounts = gridInsetMountCandidates(contentWrapperEl);
+  if (mounts.length === 0) mounts.push(doc.documentElement);
+  return readFirstCssVarHeightPx(mounts, [
+    "--mhg-grid-top-inset-games",
+    "--mhg-grid-top-inset",
+  ]);
+}
+
+/**
+ * Vista Dettaglio (`viewMode.detail`): padding-top on the page scroll container so
+ * the first row's cover sits on the same line as fixed-focal grid covers.
+ */
+export function readDetailViewScrollPaddingTopPx(
+  scrollContainerEl?: HTMLElement | null,
+): number {
+  if (typeof window === "undefined" || typeof document === "undefined") return 0;
+  if (gridInsetsDisabled(scrollContainerEl)) return 0;
+
+  const scrollEl = scrollContainerEl?.isConnected ? scrollContainerEl : null;
+  const doc = scrollEl?.ownerDocument ?? document;
+
+  if (scrollEl) {
+    const bar = doc.querySelector(".mhg-libraries-bar");
+    if (bar instanceof HTMLElement) {
+      const barBottom = bar.getBoundingClientRect().bottom;
+      const scrollTop = scrollEl.getBoundingClientRect().top;
+      const aligned = barBottom + readFocalBelowBarGapPx(doc) - scrollTop;
+      if (Number.isFinite(aligned) && aligned >= 0) {
+        return aligned;
+      }
+    }
+  }
+
+  const mounts = gridInsetMountCandidates(scrollContainerEl);
+  if (mounts.length === 0) mounts.push(doc.documentElement);
+  const fromViewport = readFirstCssVarHeightPx(mounts, [
+    "--mhg-grid-top-inset-games",
+    "--mhg-grid-top-inset",
+  ]);
+  if (!scrollEl || fromViewport <= 0) return fromViewport;
+
+  const scrollTop = scrollEl.getBoundingClientRect().top;
+  if (!Number.isFinite(scrollTop) || scrollTop <= 0) return fromViewport;
+  return Math.max(0, fromViewport - scrollTop);
+}
+
 /** First-cover line on collection-like pages only (ignores tag/games fallbacks). */
 export function readGridTopInsetCollectionsPx(containerEl?: HTMLElement | null): number {
   if (typeof window === "undefined" || typeof document === "undefined") return 0;

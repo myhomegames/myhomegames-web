@@ -665,7 +665,8 @@ export function useGamesListPage(
   const restoreOuterScroll =
     !activeSkinWeb.verticalCoverAlignment ||
     scrollRestorationMode === undefined ||
-    scrollRestorationMode === "table";
+    scrollRestorationMode === "table" ||
+    scrollRestorationMode === "detail";
   useScrollRestoration(activeScrollRef, scrollRestorationMode, restoreOuterScroll);
 
   // Drive the activity spinner briefly when the user changes filter/sort:

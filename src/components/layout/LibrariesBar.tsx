@@ -48,6 +48,54 @@ function depthUnderRoot(el: HTMLElement, root: HTMLElement): number {
   return n === root ? d : -1;
 }
 
+function findReactWindowScrollport(listRoot: HTMLElement): HTMLElement | null {
+  for (const child of listRoot.children) {
+    if (!(child instanceof HTMLElement)) continue;
+    const oy = getComputedStyle(child).overflowY;
+    if (oy === "auto" || oy === "scroll") return child;
+  }
+  const marked = listRoot.querySelector<HTMLElement>('[style*="overflow"]');
+  return marked instanceof HTMLElement ? marked : null;
+}
+
+/** Vista Dettaglio: page scroll container or inner react-window scroller. */
+function findDetailViewScrollport(outer: HTMLElement): HTMLElement | null {
+  if (!outer.classList.contains("detail-view")) return null;
+
+  const virtualizedHost = outer.querySelector<HTMLElement>(
+    ".games-list-detail-container--virtualized",
+  );
+  if (virtualizedHost) {
+    const listRoot = virtualizedHost.querySelector<HTMLElement>(".virtualized-games-list-detail");
+    if (listRoot) {
+      const inner = findReactWindowScrollport(listRoot);
+      if (inner) return inner;
+    }
+  }
+
+  const oy = getComputedStyle(outer).overflowY;
+  if (oy === "auto" || oy === "scroll") return outer;
+  return null;
+}
+
+/** Vista Tabella: inner `.games-table-scroll` or react-window scroller inside it. */
+function findTableViewScrollport(outer: HTMLElement): HTMLElement | null {
+  if (!outer.classList.contains("table-view")) return null;
+
+  const tableScroll = outer.querySelector<HTMLElement>(".games-table-scroll");
+  if (tableScroll) {
+    const listRoot = tableScroll.querySelector<HTMLElement>(".virtualized-games-table-list");
+    if (listRoot) {
+      const inner = findReactWindowScrollport(listRoot.parentElement ?? listRoot);
+      if (inner) return inner;
+    }
+    const oy = getComputedStyle(tableScroll).overflowY;
+    if (oy === "auto" || oy === "scroll") return tableScroll;
+  }
+
+  return null;
+}
+
 /**
  * Main list pages use `.home-page-scroll-container`; with vertical covers the *list rail* often
  * scrolls on an inner element. Prefer the scrollport with the largest overflow range, then the
@@ -60,12 +108,18 @@ function pickWheelScrollTarget(): HTMLElement | null {
     document.querySelector<HTMLElement>("#root .home-page-scroll-container");
   if (!outer) return null;
 
+  const detailScroll = findDetailViewScrollport(outer);
+  if (detailScroll) return detailScroll;
+
+  const tableScroll = findTableViewScrollport(outer);
+  if (tableScroll) return tableScroll;
+
   const candidates = new Set<HTMLElement>([outer]);
 
   const pageRoot = outer.closest(".mhg-vertical-covers-page, .mhg-library-vertical-covers");
   if (pageRoot) {
     for (const el of pageRoot.querySelectorAll<HTMLElement>(
-      ".virtualized-list-fade, .games-list-container:not(.games-list-container--virtualized)"
+      ".virtualized-list-fade, .games-list-container:not(.games-list-container--virtualized), .games-list-detail-container, .virtualized-games-list-detail"
     )) {
       if (outer.contains(el)) candidates.add(el);
     }
@@ -77,6 +131,8 @@ function pickWheelScrollTarget(): HTMLElement | null {
     ".fixed-focal-collections-list",
     ".virtualized-games-grid",
     ".virtualized-collections-grid",
+    ".virtualized-games-list-detail",
+    ".games-list-detail-container",
     ".games-table-scroll",
     ".scrollable-section-scroll",
     ".virtualized-list-fade",
@@ -664,6 +720,7 @@ export default function LibrariesBar({
       const rect = activeButton.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
       document.documentElement.style.setProperty("--mhg-active-library-icon-center-x", `${centerX}px`);
+      document.documentElement.style.setProperty("--mhg-active-library-icon-left-x", `${rect.left}px`);
     };
     updateActiveIconLine();
     const onResize = () => updateActiveIconLine();
@@ -737,8 +794,8 @@ export default function LibrariesBar({
       mainScroll.scrollTop += e.deltaY;
     };
 
-    strip.addEventListener("wheel", onWheel, { passive: false });
-    return () => strip.removeEventListener("wheel", onWheel);
+    strip.addEventListener("wheel", onWheel, { passive: false, capture: true });
+    return () => strip.removeEventListener("wheel", onWheel, { capture: true });
   }, [activeSkinWeb.verticalCoverAlignment]);
 
   /** Top-strip layout only; full sidebars ship column layout in skin CSS. */

@@ -37,8 +37,22 @@ type VirtualizedGamesListDetailProps = {
   hideGameType?: boolean;
 };
 
-const ITEM_HEIGHT = 144; // Height of each detail item (120px content + 24px margin-bottom)
+const DEFAULT_DETAIL_COVER_WIDTH = 100;
+const DEFAULT_DETAIL_ROW_GAP = 24;
 const OVERSCAN_COUNT = 3; // Number of items to render outside visible area
+
+function readDetailVirtualRowHeightPx(): number {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return DEFAULT_DETAIL_COVER_WIDTH * 1.5 + DEFAULT_DETAIL_ROW_GAP;
+  }
+  const root = getComputedStyle(document.documentElement);
+  const gap = parseFloat(root.getPropertyValue("--mhg-detail-view-row-gap"));
+  const coverW = parseFloat(root.getPropertyValue("--mhg-detail-view-cover-width"));
+  const rowGap = Number.isFinite(gap) && gap >= 0 ? gap : DEFAULT_DETAIL_ROW_GAP;
+  const coverWidth =
+    Number.isFinite(coverW) && coverW > 0 ? coverW : DEFAULT_DETAIL_COVER_WIDTH;
+  return coverWidth * 1.5 + rowGap;
+}
 
 export default function VirtualizedGamesListDetail({
   games,
@@ -57,6 +71,7 @@ export default function VirtualizedGamesListDetail({
 }: VirtualizedGamesListDetailProps) {
   const location = useLocation();
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [rowHeight, setRowHeight] = useState(() => readDetailVirtualRowHeightPx());
   const listRef = useRef<any>(null);
   const isRestoringRef = useRef(false);
   const lastSavedScrollRef = useRef<number | null>(null);
@@ -76,11 +91,16 @@ export default function VirtualizedGamesListDetail({
   useEffect(() => {
     const updateDimensions = () => {
       if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
+        const el = containerRef.current;
+        const style = getComputedStyle(el);
+        const paddingTop = parseFloat(style.paddingTop) || 0;
+        const paddingBottom = parseFloat(style.paddingBottom) || 0;
+        const innerHeight = el.clientHeight - paddingTop - paddingBottom;
         setDimensions({
-          width: rect.width - 40,
-          height: rect.height || window.innerHeight - 200, // Fallback height
+          width: Math.max(0, el.clientWidth - 24),
+          height: Math.max(200, innerHeight > 0 ? innerHeight : window.innerHeight - 200),
         });
+        setRowHeight(readDetailVirtualRowHeightPx());
       }
     };
 
@@ -285,7 +305,7 @@ export default function VirtualizedGamesListDetail({
       className="virtualized-games-list-detail"
       defaultHeight={dimensions.height}
       rowCount={games.length}
-      rowHeight={ITEM_HEIGHT}
+      rowHeight={rowHeight}
       overscanCount={OVERSCAN_COUNT}
       rowComponent={Row}
       rowProps={{} as any}
