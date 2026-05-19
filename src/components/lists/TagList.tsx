@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Cover from "../games/Cover";
+import Tooltip from "../common/Tooltip";
 import type { TagItem } from "../../types";
 import { useSkin } from "../../contexts/SkinContext";
 import FixedFocalTagList from "./FixedFocalTagList";
@@ -23,6 +24,7 @@ type TagListItemProps = {
   item: TagItem;
   coverSize: number;
   forceVerticalAlignment?: boolean;
+  isSelected?: boolean;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
   onItemEdit?: (item: TagItem) => void;
   getDisplayName?: (item: TagItem) => string;
@@ -34,6 +36,7 @@ export function TagListItem({
   item,
   coverSize,
   forceVerticalAlignment = false,
+  isSelected = false,
   itemRefs,
   onItemEdit,
   getDisplayName,
@@ -56,6 +59,8 @@ export function TagListItem({
     }
   };
 
+  const showTagTitle = item.showTitle !== false;
+
   return (
     <div
       key={item.id}
@@ -64,7 +69,7 @@ export function TagListItem({
           itemRefs.current.set(String(item.id), el);
         }
       }}
-      className="group cursor-pointer tag-list-item"
+      className={`group cursor-pointer tag-list-item${isSelected ? " mhg-cover-scale-selected" : ""}`}
       style={
         forceVerticalAlignment
           ? {
@@ -82,13 +87,28 @@ export function TagListItem({
         height={coverHeight}
         onClick={handleClick}
         onEdit={onItemEdit ? handleEdit : undefined}
-        showTitle={item.showTitle !== false}
+        showTitle={forceVerticalAlignment ? false : showTagTitle}
         titlePosition={forceVerticalAlignment ? "bottom" : "overlay"}
         detail={true}
         play={false}
         showBorder={true}
         aspectRatio="16/9"
       />
+      {forceVerticalAlignment && showTagTitle && (
+        <div className="games-list-title-wrapper">
+          <Tooltip text={displayName} position="bottom">
+            <div
+              className="truncate games-list-title games-list-title-clickable"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleClick();
+              }}
+            >
+              {displayName}
+            </div>
+          </Tooltip>
+        </div>
+      )}
     </div>
   );
 }
