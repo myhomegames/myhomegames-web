@@ -90,7 +90,8 @@
         "sidebarSearchPopup": "Such-Popup in der Seitenleiste",
         "ownedGamesFirstInGamesSidebar": "„Eigene Spiele“ oben im Spiele-Menü",
         "compactCollectionLikeDetail": "Kompakte Sammlungs-Detailansicht (ohne Hero und Überschriften)",
-        "verticalCoverAlignment": "Vertikale Cover-Ausrichtung"
+        "verticalCoverAlignment": "Vertikale Cover-Ausrichtung",
+        "fixedFocalStepSound": "Navigationston (Fixed-Focal-Listen)"
       }
     }
   },

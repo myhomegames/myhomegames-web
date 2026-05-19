@@ -90,7 +90,8 @@
         "sidebarSearchPopup": "Fenêtre de recherche dans la barre latérale",
         "ownedGamesFirstInGamesSidebar": "« Jeux possédés » en haut du menu Jeux",
         "compactCollectionLikeDetail": "Détail de collection compact (masque la bannière et les titres)",
-        "verticalCoverAlignment": "Alignement vertical des jaquettes"
+        "verticalCoverAlignment": "Alignement vertical des jaquettes",
+        "fixedFocalStepSound": "Son de navigation (listes à focus fixe)"
       }
     }
   },

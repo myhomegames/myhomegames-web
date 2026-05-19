@@ -90,7 +90,8 @@
         "sidebarSearchPopup": "侧边栏中的搜索弹窗",
         "ownedGamesFirstInGamesSidebar": "“我的游戏”置于游戏菜单顶部",
         "compactCollectionLikeDetail": "紧凑的合集详情（隐藏封面区和标题）",
-        "verticalCoverAlignment": "封面垂直对齐"
+        "verticalCoverAlignment": "封面垂直对齐",
+        "fixedFocalStepSound": "导航音效（固定焦点列表）"
       }
     }
   },

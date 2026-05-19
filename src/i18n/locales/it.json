@@ -90,7 +90,8 @@
         "sidebarSearchPopup": "Popup di ricerca nella sidebar",
         "ownedGamesFirstInGamesSidebar": "\"I miei giochi\" in cima al menu Giochi",
         "compactCollectionLikeDetail": "Dettaglio collezioni sintetico (nasconde hero e intestazioni)",
-        "verticalCoverAlignment": "Allineamento cover verticale"
+        "verticalCoverAlignment": "Allineamento cover verticale",
+        "fixedFocalStepSound": "Suono di navigazione (liste a fuoco fisso)"
       }
     }
   },

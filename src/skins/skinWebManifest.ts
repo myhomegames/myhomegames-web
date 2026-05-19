@@ -47,6 +47,8 @@ export type SkinWebManifest = {
   compactCollectionLikeDetail: boolean;
   /** Render games/tag/collection-like covers as a vertically aligned column. */
   verticalCoverAlignment: boolean;
+  /** Play a short tick when fixed-focal selection steps (XMB-style navigation). */
+  fixedFocalStepSound: boolean;
 };
 
 export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
@@ -62,6 +64,7 @@ export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
   ownedGamesFirstInGamesSidebar: false,
   compactCollectionLikeDetail: false,
   verticalCoverAlignment: false,
+  fixedFocalStepSound: false,
 };
 
 export const SKIN_WEB_KEYS = [
@@ -77,6 +80,7 @@ export const SKIN_WEB_KEYS = [
   "ownedGamesFirstInGamesSidebar",
   "compactCollectionLikeDetail",
   "verticalCoverAlignment",
+  "fixedFocalStepSound",
 ] as const satisfies readonly (keyof SkinWebManifest)[];
 
 /** @deprecated renamed to `SKIN_WEB_KEYS`, kept as alias to avoid churning internal imports. */

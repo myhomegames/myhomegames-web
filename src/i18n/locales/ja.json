@@ -90,7 +90,8 @@
         "sidebarSearchPopup": "サイドバーに検索ポップアップ",
         "ownedGamesFirstInGamesSidebar": "ゲームメニューの先頭に「所有ゲーム」",
         "compactCollectionLikeDetail": "コンパクトなコレクション詳細（ヒーローと見出しを非表示）",
-        "verticalCoverAlignment": "カバーの縦整列"
+        "verticalCoverAlignment": "カバーの縦整列",
+        "fixedFocalStepSound": "ナビゲーション音（固定フォーカスリスト）"
       }
     }
   },

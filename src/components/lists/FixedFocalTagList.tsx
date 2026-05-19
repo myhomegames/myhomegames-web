@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import type { TagItem } from "../../types";
 import { useSkin } from "../../contexts/SkinContext";
 import { readGridTopInsetPx } from "../../utils/readGridTopInsetPx";
+import { notifyFixedFocalIndexChange } from "../../utils/fixedFocalStepSound";
 import { TagListItem } from "./TagList";
 
 const TAG_GAP_PX = 20;
@@ -71,7 +72,7 @@ export default function FixedFocalTagList({
   const [focalTopPx, setFocalTopPx] = useState(() => readGridTopInsetPx(containerRef.current));
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isRestored, setIsRestored] = useState(false);
-  const { activeSkinId } = useSkin();
+  const { activeSkinId, activeSkinWeb } = useSkin();
 
   const coverHeight = coverSize * (9 / 16);
   const rowHeight = coverHeight + TAG_GAP_PX;
@@ -140,9 +141,13 @@ export default function FixedFocalTagList({
 
   const stepIndex = useCallback(
     (direction: 1 | -1) => {
-      setSelectedIndex((prev) => Math.max(0, Math.min(items.length - 1, prev + direction)));
+      setSelectedIndex((prev) => {
+        const next = Math.max(0, Math.min(items.length - 1, prev + direction));
+        notifyFixedFocalIndexChange(prev, next, activeSkinWeb.fixedFocalStepSound);
+        return next;
+      });
     },
-    [items.length],
+    [items.length, activeSkinWeb.fixedFocalStepSound],
   );
   const stepIndexRef = useRef(stepIndex);
   stepIndexRef.current = stepIndex;

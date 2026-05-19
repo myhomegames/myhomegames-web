@@ -5,6 +5,7 @@ import type { CollectionLikeResourceType } from "../collections/EditCollectionLi
 import { GameListItem } from "./GamesList";
 import { useSkin } from "../../contexts/SkinContext";
 import { readFixedFocalGamesTopPx } from "../../utils/readGridTopInsetPx";
+import { notifyFixedFocalIndexChange } from "../../utils/fixedFocalStepSound";
 
 const DEFAULT_GAP = 40;
 const DEFAULT_MIN_SIDE_GUTTER = 56;
@@ -141,7 +142,7 @@ export default function FixedFocalGamesList({
   );
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isRestored, setIsRestored] = useState(false);
-  const { activeSkinId } = useSkin();
+  const { activeSkinId, activeSkinWeb } = useSkin();
 
   const { gap: GAP } = spacing;
   const rowHeight = coverSize * 1.5 + GAP;
@@ -230,9 +231,13 @@ export default function FixedFocalGamesList({
 
   const stepIndex = useCallback(
     (direction: 1 | -1) => {
-      setSelectedIndex((prev) => Math.max(0, Math.min(games.length - 1, prev + direction)));
+      setSelectedIndex((prev) => {
+        const next = Math.max(0, Math.min(games.length - 1, prev + direction));
+        notifyFixedFocalIndexChange(prev, next, activeSkinWeb.fixedFocalStepSound);
+        return next;
+      });
     },
-    [games.length],
+    [games.length, activeSkinWeb.fixedFocalStepSound],
   );
   const stepIndexRef = useRef(stepIndex);
   stepIndexRef.current = stepIndex;

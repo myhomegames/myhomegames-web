@@ -137,14 +137,14 @@ export function SkinProvider({ children }: { children: ReactNode }) {
     if (!isServerSkinId(activeSkinId)) {
       return settingsLoaded ? settingsSkinWeb : normalizeSkinWebManifest(undefined);
     }
+    let web: SkinWebManifest;
     if (settingsLoaded) {
-      return settingsSkinWeb;
+      web = settingsSkinWeb;
+    } else {
+      const fromList = serverSkins.find((s) => s.id === activeSkinId)?.web;
+      web = fromList ? normalizeSkinWebManifest(fromList) : getCachedSkinWebOrDefault(activeSkinId);
     }
-    const fromList = serverSkins.find((s) => s.id === activeSkinId)?.web;
-    if (fromList) {
-      return normalizeSkinWebManifest(fromList);
-    }
-    return getCachedSkinWebOrDefault(activeSkinId);
+    return web;
   }, [activeSkinId, settingsLoaded, settingsSkinWeb, serverSkins]);
 
   useEffect(() => {
@@ -176,7 +176,7 @@ export function SkinProvider({ children }: { children: ReactNode }) {
        * the merged manifest becomes visible to consumers (SkinContext.activeSkinWeb, etc.).
        */
       await saveServerActiveSkinId(id);
-      void refreshSettings();
+      await refreshSettings();
       if (!id.trim()) {
         clearCachedSkinCss();
         applySkinCss("");
