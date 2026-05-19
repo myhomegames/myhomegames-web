@@ -93,11 +93,19 @@ export default function FixedFocalTagList({
       if (!el) return;
       const rect = el.getBoundingClientRect();
       const cs = window.getComputedStyle(el);
+      const padTop = parseFloat(cs.paddingTop) || 0;
+      const padBottom = parseFloat(cs.paddingBottom) || 0;
       const padLeft = parseFloat(cs.paddingLeft) || 0;
       const padRight = parseFloat(cs.paddingRight) || 0;
+      const contentWidth = Math.max(0, rect.width - padLeft - padRight);
+      const contentHeight = Math.max(0, rect.height - padTop - padBottom);
+      const viewportHeight =
+        typeof window !== "undefined"
+          ? Math.max(window.innerHeight, document.documentElement?.clientHeight ?? 0)
+          : 0;
       setDimensions({
-        width: Math.max(0, rect.width - padLeft - padRight) || rect.width,
-        height: rect.height || window.innerHeight - 200,
+        width: contentWidth || rect.width,
+        height: Math.max(contentHeight, rect.height, viewportHeight) || viewportHeight - 200,
       });
       setFocalTopPx(readGridTopInsetPx(containerRef.current));
     };
@@ -107,6 +115,9 @@ export default function FixedFocalTagList({
     const resizeObserver = new ResizeObserver(updateDimensions);
     if (containerRef.current) {
       resizeObserver.observe(containerRef.current);
+    }
+    if (listRef.current) {
+      resizeObserver.observe(listRef.current);
     }
     return () => {
       window.removeEventListener("resize", updateDimensions);
