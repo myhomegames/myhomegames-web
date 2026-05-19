@@ -83,7 +83,7 @@ export function TagListItem({
         onClick={handleClick}
         onEdit={onItemEdit ? handleEdit : undefined}
         showTitle={item.showTitle !== false}
-        titlePosition="overlay"
+        titlePosition={forceVerticalAlignment ? "bottom" : "overlay"}
         detail={true}
         play={false}
         showBorder={true}
