@@ -98,6 +98,8 @@ export type FixedFocalGamesListProps = {
   onPlayFirstInCollectionLike?: (resourceType: string, cid: string) => void | Promise<void>;
   onCollectionLikePseudoAddToParent?: (source: CollectionItem, parentId?: string) => void | Promise<void>;
   onCollectionLikePseudoUpdated?: (updated: CollectionInfo) => void;
+  /** Narrow context-rail column: slot spans full width so titles fit beside the cover. */
+  fullColumnSlot?: boolean;
 };
 
 /**
@@ -132,6 +134,7 @@ export default function FixedFocalGamesList({
   onPlayFirstInCollectionLike,
   onCollectionLikePseudoAddToParent,
   onCollectionLikePseudoUpdated,
+  fullColumnSlot = false,
 }: FixedFocalGamesListProps) {
   const location = useLocation();
   const listRef = useRef<HTMLDivElement>(null);
@@ -353,8 +356,10 @@ export default function FixedFocalGamesList({
               position: "absolute",
               left: 0,
               top,
-              width: coverSize + GAP,
-              height: coverSize * 1.5,
+              width: fullColumnSlot ? "100%" : coverSize + GAP,
+              ...(fullColumnSlot
+                ? { minHeight: coverSize * 1.5, height: "auto" }
+                : { height: coverSize * 1.5 }),
               boxSizing: "border-box",
               ["--mhg-cell-scale" as string]: (
                 isSelected ? scaleValues.selected : scaleValues.unselected

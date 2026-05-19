@@ -470,6 +470,7 @@ export default function TagGamesPage({
       contextRailGamesColumn={contextRailLayout}
       scrollContainerRef={contextRailLayout ? hook.scrollContainerRef : undefined}
       forceSingleColumnGrid={contextRailLayout}
+      fixedFocalSelection={contextRailLayout}
     />
   );
 

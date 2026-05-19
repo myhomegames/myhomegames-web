@@ -473,6 +473,7 @@ export default function GamesList({
             onPlayFirstInCollectionLike={onPlayFirstInCollectionLike}
             onCollectionLikePseudoAddToParent={onCollectionLikePseudoAddToParent}
             onCollectionLikePseudoUpdated={onCollectionLikePseudoUpdated}
+            fullColumnSlot={forceSingleColumnVirtualized}
           />
         ) : useVirtualization ? (
           <VirtualizedGamesList
