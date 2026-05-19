@@ -254,7 +254,6 @@ export default function FixedFocalTagList({
       }`}
       style={{
         ["--tag-list-cover-size" as string]: `${coverSize}px`,
-        height: dimensions.height + 300 + "px",
         width: "100%",
         boxSizing: "border-box",
         position: "relative",
