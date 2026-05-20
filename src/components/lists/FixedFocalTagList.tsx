@@ -5,10 +5,16 @@ import { useSkin } from "../../contexts/SkinContext";
 import { readGridTopInsetPx } from "../../utils/readGridTopInsetPx";
 import { notifyFixedFocalIndexChange } from "../../utils/fixedFocalStepSound";
 import { applyWheelDeltaStep, readWheelStepThresholdPx } from "../../utils/stepScrollSnap";
+import {
+  fixedFocalCoverHeight,
+  fixedFocalItemTop,
+  fixedFocalVirtualRowStep,
+  readFixedFocalNeighborSlots,
+  readFixedFocalPackedRows,
+} from "../../utils/fixedFocalLayout";
 import { TagListItem } from "./TagList";
 
 const TAG_GAP_PX = 20;
-const RENDER_RADIUS = 18;
 
 function readScaleValues(): { unselected: number; selected: number } {
   if (typeof window === "undefined" || typeof document === "undefined") {
@@ -75,9 +81,11 @@ export default function FixedFocalTagList({
   const [isRestored, setIsRestored] = useState(false);
   const { activeSkinId, activeSkinWeb } = useSkin();
 
-  const coverHeight = coverSize * (9 / 16);
-  const rowHeight = coverHeight + TAG_GAP_PX;
+  const coverHeight = fixedFocalCoverHeight(coverSize, false);
   const scaleValues = readScaleValues();
+  const packedRows = readFixedFocalPackedRows();
+  const rowHeight = fixedFocalVirtualRowStep(coverHeight, TAG_GAP_PX, scaleValues.unselected, packedRows);
+  const neighborSlots = readFixedFocalNeighborSlots(18);
 
   useEffect(() => {
     setFocalTopPx(readGridTopInsetPx(containerRef.current));
@@ -235,12 +243,12 @@ export default function FixedFocalTagList({
 
   const visibleIndices = useMemo(() => {
     if (items.length === 0) return [];
-    const lo = Math.max(0, selectedIndex - RENDER_RADIUS);
-    const hi = Math.min(items.length - 1, selectedIndex + RENDER_RADIUS);
+    const lo = Math.max(0, selectedIndex - neighborSlots);
+    const hi = Math.min(items.length - 1, selectedIndex + neighborSlots);
     const indices: number[] = [];
     for (let i = lo; i <= hi; i++) indices.push(i);
     return indices;
-  }, [selectedIndex, items.length]);
+  }, [selectedIndex, items.length, neighborSlots]);
 
   if (dimensions.width === 0 || dimensions.height === 0) {
     return <div className="virtualized-list-fill" />;
@@ -263,7 +271,14 @@ export default function FixedFocalTagList({
         const item = items[index];
         const offset = index - selectedIndex;
         const isSelected = offset === 0;
-        const top = focalTopPx + offset * rowHeight;
+        const top = fixedFocalItemTop(
+          focalTopPx,
+          offset,
+          coverHeight,
+          TAG_GAP_PX,
+          scaleValues.unselected,
+          packedRows
+        );
 
         return (
           <div

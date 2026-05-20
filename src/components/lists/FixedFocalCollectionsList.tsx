@@ -8,10 +8,16 @@ import { readFixedFocalTopPx } from "../../utils/readGridTopInsetPx";
 import { notifyFixedFocalIndexChange } from "../../utils/fixedFocalStepSound";
 import { applyWheelDeltaStep, readWheelStepThresholdPx } from "../../utils/stepScrollSnap";
 import { portraitCoverHeight } from "../../utils/coverPortrait";
+import {
+  fixedFocalCoverHeight,
+  fixedFocalItemTop,
+  fixedFocalVirtualRowStep,
+  readFixedFocalNeighborSlots,
+  readFixedFocalPackedRows,
+} from "../../utils/fixedFocalLayout";
 
 const DEFAULT_GAP = 40;
 const DEFAULT_MIN_SIDE_GUTTER = 56;
-const RENDER_RADIUS = 18;
 
 function readGridSpacing(): { gap: number; minLeftGutter: number; minRightGutter: number } {
   if (typeof window === "undefined" || typeof document === "undefined") {
@@ -121,8 +127,11 @@ export default function FixedFocalCollectionsList({
   const { activeSkinId, activeSkinWeb } = useSkin();
 
   const { gap: GAP } = spacing;
-  const rowHeight = portraitCoverHeight(coverSize) + GAP;
   const scaleValues = readScaleValues();
+  const packedRows = readFixedFocalPackedRows();
+  const coverHeight = fixedFocalCoverHeight(coverSize, true);
+  const rowHeight = fixedFocalVirtualRowStep(coverHeight, GAP, scaleValues.unselected, packedRows);
+  const neighborSlots = readFixedFocalNeighborSlots(18);
 
   useEffect(() => {
     setSpacing(readGridSpacing());
@@ -279,12 +288,12 @@ export default function FixedFocalCollectionsList({
 
   const visibleIndices = useMemo(() => {
     if (collections.length === 0) return [];
-    const lo = Math.max(0, selectedIndex - RENDER_RADIUS);
-    const hi = Math.min(collections.length - 1, selectedIndex + RENDER_RADIUS);
+    const lo = Math.max(0, selectedIndex - neighborSlots);
+    const hi = Math.min(collections.length - 1, selectedIndex + neighborSlots);
     const indices: number[] = [];
     for (let i = lo; i <= hi; i++) indices.push(i);
     return indices;
-  }, [selectedIndex, collections.length]);
+  }, [selectedIndex, collections.length, neighborSlots]);
 
   if (dimensions.width === 0 || dimensions.height === 0) {
     return <div className="virtualized-list-fill" />;
@@ -310,7 +319,14 @@ export default function FixedFocalCollectionsList({
         const collection = collections[index];
         const offset = index - selectedIndex;
         const isSelected = offset === 0;
-        const top = focalTopPx + offset * rowHeight;
+        const top = fixedFocalItemTop(
+          focalTopPx,
+          offset,
+          coverHeight,
+          GAP,
+          scaleValues.unselected,
+          packedRows
+        );
 
         return (
           <div
