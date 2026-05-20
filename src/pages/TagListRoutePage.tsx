@@ -33,6 +33,7 @@ export default function TagListRoutePage({ coverSize, tagKey }: TagListRoutePage
   return (
     <TagListPage
       coverSize={coverSize}
+      tagKey={tagKey}
       routeBase={listConfig.routeBase}
       valueExtractor={listConfig.valueExtractor}
       getDisplayName={config.getDisplayName(t)}

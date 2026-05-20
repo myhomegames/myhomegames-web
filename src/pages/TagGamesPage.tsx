@@ -20,6 +20,7 @@ import type { ViewMode } from "../types";
 import type { GameItem, CollectionItem } from "../types";
 import type { FilterField } from "../components/filters/types";
 import { TAG_PAGE_CONFIGS, type TagKey } from "../utils/tagPages";
+import { resolveTagDisplayLabel } from "../utils/resolveTagDisplayLabel";
 import { navigateToLibraryRoot } from "../utils/libraryNavigation";
 import type { MainAppOutletContext } from "../layouts/MainAppLayout";
 import { API_BASE } from "../config";
@@ -409,17 +410,36 @@ export default function TagGamesPage({
   const tagFilterLabel =
     isIgdbTag && selectedValueMatchesTag ? (igdbTagName ?? undefined) : undefined;
 
+  const [tagListMeta, setTagListMeta] = useState<
+    { cover?: string; title?: string } | undefined
+  >(undefined);
+
   const tagDisplayTitle = useMemo(() => {
     if (!tagValue || !tagConfig) return "";
-    if (tagFilterLabel) return tagFilterLabel;
-    return tagConfig.getDisplayName(t)(tagValue);
-  }, [tagValue, tagConfig, tagFilterLabel, t]);
-
-  const [tagCoverPath, setTagCoverPath] = useState<string | undefined>(undefined);
+    return resolveTagDisplayLabel({
+      tagKey,
+      tagId: tagValue,
+      preferredName:
+        tagFilterLabel ?? tagNameFromUrl ?? tagListMeta?.title ?? tagNameFromLabels ?? undefined,
+      tagLabels,
+      t,
+      getDisplayName: tagConfig.getDisplayName(t),
+    });
+  }, [
+    tagValue,
+    tagConfig,
+    tagKey,
+    tagFilterLabel,
+    tagNameFromUrl,
+    tagListMeta?.title,
+    tagNameFromLabels,
+    tagLabels,
+    t,
+  ]);
 
   useEffect(() => {
     if (!contextRailLayout || !tagValue || !tagConfig) {
-      setTagCoverPath(undefined);
+      setTagListMeta(undefined);
       return;
     }
     const { listEndpoint, listResponseKey } = tagConfig.list;
@@ -437,14 +457,17 @@ export default function TagGamesPage({
         const json = await res.json();
         const rawItems = (json?.[listResponseKey] || []) as Array<{
           id: string | number;
+          title?: string;
           cover?: string;
         }>;
         const match = rawItems.find((item) => String(item.id) === String(tagValue));
         if (isActive) {
-          setTagCoverPath(match?.cover);
+          setTagListMeta(
+            match ? { cover: match.cover, title: match.title } : undefined
+          );
         }
       } catch {
-        if (isActive) setTagCoverPath(undefined);
+        if (isActive) setTagListMeta(undefined);
       }
     })();
 
@@ -455,8 +478,8 @@ export default function TagGamesPage({
   }, [contextRailLayout, tagValue, tagConfig]);
 
   const tagCoverUrl = useMemo(
-    () => (tagCoverPath ? buildCoverUrl(API_BASE, tagCoverPath) : ""),
-    [tagCoverPath],
+    () => (tagListMeta?.cover ? buildCoverUrl(API_BASE, tagListMeta.cover) : ""),
+    [tagListMeta?.cover],
   );
 
   const tagRailCoverWidth = coverSize;

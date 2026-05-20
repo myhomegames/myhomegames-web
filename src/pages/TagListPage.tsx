@@ -1,21 +1,26 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useLoading } from "../contexts/LoadingContext";
 import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
 import { useSkin } from "../contexts/SkinContext";
+import { useTagLists } from "../contexts/TagListsContext";
 import TagList from "../components/lists/TagList";
 import EditTagModal from "../components/tags/EditTagModal";
 import AlphabetNavigator from "../components/ui/AlphabetNavigator";
 import type { TagItem, GameItem } from "../types";
 import { compareTitles } from "../utils/stringUtils";
 import { titleMatchesFilter } from "../utils/titleFilter";
+import { resolveTagDisplayLabel } from "../utils/resolveTagDisplayLabel";
+import type { TagKey } from "../utils/tagPages";
 import { API_BASE } from "../config";
 import { buildApiHeaders, buildApiUrl, buildCoverUrl } from "../utils/api";
 
 type TagListPageProps = {
   coverSize: number;
   routeBase: string;
+  tagKey?: TagKey;
   valueExtractor: (game: GameItem) => string[] | null | undefined;
   getDisplayName?: (value: string) => string;
   emptyMessage?: string;
@@ -50,6 +55,7 @@ type TagListPageProps = {
 export default function TagListPage({
   coverSize,
   routeBase,
+  tagKey,
   valueExtractor,
   getDisplayName,
   emptyMessage,
@@ -58,9 +64,11 @@ export default function TagListPage({
   showAlphabetNavigator = false,
   editConfig,
 }: TagListPageProps) {
+  const { t } = useTranslation();
   const { isLoading, setLoading } = useLoading();
   const titleFilterQuery = useTitleFilterQuery();
   const { activeSkinWeb } = useSkin();
+  const { tagLabels } = useTagLists();
   const { games, isLoading: gamesLoading } = useLibraryGames();
   const [items, setItems] = useState<TagItem[]>([]);
   const [serverItems, setServerItems] = useState<TagItem[] | null>(null);
@@ -77,6 +85,18 @@ export default function TagListPage({
 
   const scrollStorageKey = `${window.location.pathname}:${routeBase}`;
   const fixedFocalTags = activeSkinWeb.verticalCoverAlignment;
+  const resolveItemLabel = useCallback(
+    (item: TagItem) =>
+      resolveTagDisplayLabel({
+        tagKey,
+        tagId: item.id,
+        preferredName: item.title,
+        tagLabels,
+        t,
+        getDisplayName,
+      }),
+    [tagKey, tagLabels, t, getDisplayName]
+  );
   const { isScrollRestored } = useScrollRestoration(
     scrollContainerRef,
     routeBase,
@@ -199,8 +219,8 @@ export default function TagListPage({
     });
 
     resolvedItems.sort((a, b) => {
-      const left = getDisplayName ? getDisplayName(a.title) : a.title;
-      const right = getDisplayName ? getDisplayName(b.title) : b.title;
+      const left = resolveItemLabel(a);
+      const right = resolveItemLabel(b);
       return compareTitles(left, right);
     });
 
@@ -208,7 +228,7 @@ export default function TagListPage({
     // This avoids an extra re-render that causes scroll flicker (like library/collections).
     if (pendingScrollRestoreRef.current !== null) return;
     setItems(resolvedItems);
-  }, [games, valueExtractor, getDisplayName, serverItems]);
+  }, [games, valueExtractor, resolveItemLabel, serverItems]);
 
   const getRoute = useMemo(
     () => (item: TagItem) => `${routeBase}/${encodeURIComponent(item.id)}`,
@@ -223,10 +243,10 @@ export default function TagListPage({
     const q = titleFilterQuery.trim();
     if (!q) return items;
     return items.filter((item) => {
-      const label = getDisplayName ? getDisplayName(item.title) : item.title;
+      const label = resolveItemLabel(item);
       return titleMatchesFilter(item.title, q) || titleMatchesFilter(label, q);
     });
-  }, [items, titleFilterQuery, getDisplayName]);
+  }, [items, titleFilterQuery, resolveItemLabel]);
 
   const handleItemUpdate = (updatedItem: TagItem) => {
     const isMatch = (item: TagItem) => String(item.id) === String(updatedItem.id);
@@ -344,9 +364,7 @@ export default function TagListPage({
                 scrollContainerRef={scrollContainerRef}
                 routeBase={routeBase}
                 onItemEdit={editConfig ? handleItemEdit : undefined}
-                getDisplayName={(item) =>
-                  getDisplayName ? getDisplayName(item.title) : item.title
-                }
+                getDisplayName={resolveItemLabel}
                 getRoute={getRoute}
                 getCoverUrl={getCoverUrl}
                 emptyMessage={emptyMessage}
