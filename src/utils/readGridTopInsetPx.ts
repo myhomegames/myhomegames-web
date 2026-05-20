@@ -59,6 +59,25 @@ export function isContextRailGamesScroll(containerEl?: HTMLElement | null): bool
   );
 }
 
+function readContextRailFocalNudgePx(containerEl?: HTMLElement | null): number {
+  if (typeof window === "undefined" || typeof document === "undefined") return 0;
+  const host =
+    containerEl?.closest(
+      ".library-item-detail-page-shell--context-rail, .tag-games-page-shell--context-rail",
+    ) ?? containerEl;
+  const mounts: HTMLElement[] = [];
+  if (host instanceof HTMLElement) mounts.push(host);
+  mounts.push(document.documentElement);
+  for (const mount of mounts) {
+    if (!mount.isConnected) continue;
+    const raw = getComputedStyle(mount).getPropertyValue("--mhg-context-rail-focal-nudge-px").trim();
+    if (!raw) continue;
+    const nudge = parseFloat(raw);
+    return Number.isFinite(nudge) ? nudge : 0;
+  }
+  return 0;
+}
+
 /** Leading offset of column-2 covers (wrapper padding or grid top inset). */
 export function readContextRailCoverTopPx(containerEl?: HTMLElement | null): number {
   if (typeof window === "undefined" || typeof document === "undefined") return 0;
@@ -87,10 +106,19 @@ export function readContextRailFocalTopPx(
     ".library-item-detail-context-rail-cover, .tag-games-context-rail-cover",
   );
 
+  const scrollHost =
+    scrollContainerEl?.closest(".library-item-detail-context-games, .tag-games-context-games") ??
+    list?.closest(".library-item-detail-context-games, .tag-games-context-games");
+  const scrollTop =
+    scrollHost instanceof HTMLElement && Number.isFinite(scrollHost.scrollTop)
+      ? scrollHost.scrollTop
+      : 0;
+  const nudge = readContextRailFocalNudgePx(scrollContainerEl ?? list);
+
   if (list && col1Cover instanceof HTMLElement) {
     const coverTop = col1Cover.getBoundingClientRect().top;
     const listTop = list.getBoundingClientRect().top;
-    const aligned = coverTop - listTop;
+    const aligned = coverTop - listTop - scrollTop + nudge;
     if (Number.isFinite(aligned) && aligned >= 0) {
       return aligned;
     }

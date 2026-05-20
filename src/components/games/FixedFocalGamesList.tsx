@@ -4,7 +4,7 @@ import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 import { GameListItem } from "./GamesList";
 import { useSkin } from "../../contexts/SkinContext";
-import { readFixedFocalGamesTopPx } from "../../utils/readGridTopInsetPx";
+import { readFixedFocalGamesTopPx, isContextRailGamesScroll } from "../../utils/readGridTopInsetPx";
 import { notifyFixedFocalIndexChange } from "../../utils/fixedFocalStepSound";
 import { applyWheelDeltaStep, readWheelStepThresholdPx } from "../../utils/stepScrollSnap";
 import { portraitCoverHeight } from "../../utils/coverPortrait";
@@ -175,6 +175,21 @@ export default function FixedFocalGamesList({
   }, [activeSkinId, containerRef]);
 
   useEffect(() => {
+    const scrollHost = containerRef.current;
+    if (!scrollHost || !isContextRailGamesScroll(scrollHost)) return;
+    const pinScroll = () => {
+      if (scrollHost.scrollTop !== 0) scrollHost.scrollTop = 0;
+    };
+    pinScroll();
+    scrollHost.addEventListener("scroll", pinScroll, { passive: true });
+    return () => scrollHost.removeEventListener("scroll", pinScroll);
+  }, [containerRef, dimensions.width, dimensions.height]);
+
+  useEffect(() => {
+    const refreshFocalAlign = () => {
+      setFocalTopPx(readFixedFocalGamesTopPx(listRef.current, containerRef.current));
+    };
+
     const updateDimensions = () => {
       const el = containerRef.current;
       if (!el) return;
@@ -190,29 +205,32 @@ export default function FixedFocalGamesList({
         width: contentWidth || rect.width,
         height: contentHeight || rect.height || window.innerHeight - 200,
       });
-      setFocalTopPx(readFixedFocalGamesTopPx(listRef.current, containerRef.current));
     };
 
     updateDimensions();
-    window.addEventListener("resize", updateDimensions);
-    const resizeObserver = new ResizeObserver(updateDimensions);
+    refreshFocalAlign();
+    const onResize = () => {
+      updateDimensions();
+      refreshFocalAlign();
+    };
+    window.addEventListener("resize", onResize);
+    const containerObserver = new ResizeObserver(updateDimensions);
+    const focalObserver = new ResizeObserver(refreshFocalAlign);
     if (containerRef.current) {
-      resizeObserver.observe(containerRef.current);
-    }
-    if (listRef.current) {
-      resizeObserver.observe(listRef.current);
+      containerObserver.observe(containerRef.current);
     }
     const col1Cover = containerRef.current
       ?.closest(".library-item-detail-context-layout, .tag-games-context-layout")
       ?.querySelector(".library-item-detail-context-rail-cover, .tag-games-context-rail-cover");
     if (col1Cover instanceof HTMLElement) {
-      resizeObserver.observe(col1Cover);
+      focalObserver.observe(col1Cover);
     }
     return () => {
-      window.removeEventListener("resize", updateDimensions);
-      resizeObserver.disconnect();
+      window.removeEventListener("resize", onResize);
+      containerObserver.disconnect();
+      focalObserver.disconnect();
     };
-  }, [containerRef, dimensions.width, dimensions.height]);
+  }, [containerRef]);
 
   useLayoutEffect(() => {
     if (dimensions.width === 0 || dimensions.height === 0) return;
