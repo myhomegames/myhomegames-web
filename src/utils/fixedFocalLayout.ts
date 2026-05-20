@@ -43,6 +43,17 @@ export function fixedFocalVirtualRowStep(
   return coverHeight + gap;
 }
 
+/** Visual inset of a scaled cover inside its full-height slot (center origin). */
+function fixedFocalScaledVisualInsets(
+  coverHeight: number,
+  scale: number,
+): { topInset: number; bottomExtent: number } {
+  return {
+    topInset: (coverHeight * (1 - scale)) / 2,
+    bottomExtent: (coverHeight * (1 + scale)) / 2,
+  };
+}
+
 /** Absolute top for a cover offset from the focal index. */
 export function fixedFocalItemTop(
   focalTopPx: number,
@@ -56,11 +67,25 @@ export function fixedFocalItemTop(
   if (!packed) {
     return focalTopPx + offset * (coverHeight + gap);
   }
-  /*
-   * Uniform edge spacing between neighbors (smallH + gap). The selected cover
-   * is full height; unselected tiles may tuck under it (z-index). Avoids a
-   * larger step below the focal tile than above it.
-   */
+
   const smallH = coverHeight * unselectedScale;
-  return focalTopPx + offset * (smallH + gap);
+  const { topInset, bottomExtent } = fixedFocalScaledVisualInsets(
+    coverHeight,
+    unselectedScale,
+  );
+  const unselectedStep = smallH + gap;
+
+  if (offset === 1) {
+    return focalTopPx + coverHeight + gap - topInset;
+  }
+  if (offset === -1) {
+    return focalTopPx - gap - bottomExtent;
+  }
+  if (offset > 1) {
+    const firstBelow = focalTopPx + coverHeight + gap - topInset;
+    return firstBelow + (offset - 1) * unselectedStep;
+  }
+
+  const firstAbove = focalTopPx - gap - bottomExtent;
+  return firstAbove + (offset + 1) * unselectedStep;
 }
