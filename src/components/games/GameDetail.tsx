@@ -58,6 +58,7 @@ export default function GameDetail({
   onGameDelete,
 }: GameDetailProps) {
   const { t, i18n } = useTranslation();
+  const { activeSkinWeb } = useSkin();
   const [localGame, setLocalGame] = useState<GameItem>(game);
   const [isSavingRating, setIsSavingRating] = useState(false);
   const [isManageInstallationModalOpen, setIsManageInstallationModalOpen] = useState(false);
@@ -139,6 +140,7 @@ export default function GameDetail({
       backgroundUrl={calculatedBackgroundUrl} 
       hasBackground={hasBackground}
       elementId={game.id}
+      autoShowWhenAvailable={activeSkinWeb.autoShowBackgroundOnSelection}
     >
       <GameDetailContent
         game={localGame}

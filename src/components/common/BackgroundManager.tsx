@@ -35,6 +35,8 @@ type BackgroundManagerProps = {
   hasBackground: boolean;
   elementId: string;
   children: React.ReactNode;
+  /** When true, show the background whenever one is available (e.g. focal selection). */
+  autoShowWhenAvailable?: boolean;
 };
 
 const STORAGE_KEY = "backgroundStates";
@@ -68,10 +70,12 @@ export default function BackgroundManager({
   hasBackground,
   elementId,
   children,
+  autoShowWhenAvailable = false,
 }: BackgroundManagerProps) {
-  const [isBackgroundVisible, setIsBackgroundVisible] = useState(() =>
-    getBackgroundState(elementId, hasBackground)
-  );
+  const [isBackgroundVisible, setIsBackgroundVisible] = useState(() => {
+    if (autoShowWhenAvailable && hasBackground) return true;
+    return getBackgroundState(elementId, hasBackground);
+  });
 
   const [portalHost, setPortalHost] = useState<HTMLDivElement | null>(null);
 
@@ -98,13 +102,29 @@ export default function BackgroundManager({
   }, []);
 
   useEffect(() => {
-    if (hasBackground) {
-      const savedState = getBackgroundState(elementId, hasBackground);
-      setIsBackgroundVisible(savedState);
-    } else {
+    if (!hasBackground) {
       setIsBackgroundVisible(false);
+      return;
     }
-  }, [hasBackground, backgroundUrl, elementId]);
+    if (autoShowWhenAvailable) {
+      setIsBackgroundVisible(true);
+      return;
+    }
+    const savedState = getBackgroundState(elementId, hasBackground);
+    setIsBackgroundVisible(savedState);
+  }, [hasBackground, backgroundUrl, elementId, autoShowWhenAvailable]);
+
+  useEffect(() => {
+    const on = hasBackground && isBackgroundVisible;
+    if (on) {
+      document.documentElement.setAttribute("data-mhg-background-visible", "true");
+    } else {
+      document.documentElement.removeAttribute("data-mhg-background-visible");
+    }
+    return () => {
+      document.documentElement.removeAttribute("data-mhg-background-visible");
+    };
+  }, [hasBackground, isBackgroundVisible]);
 
   const handleVisibilityChange = useCallback(
     (visible: boolean) => {
@@ -136,6 +156,32 @@ export default function BackgroundManager({
   const showPortalPaint =
     Boolean(portalHost) && hasBackground && isBackgroundVisible && backgroundUrl.trim() !== "";
 
+  const paintedBackgroundStyle = showPortalPaint
+    ? {
+        backgroundImage: backgroundImageValue(backgroundUrl),
+        backgroundSize: "cover" as const,
+        backgroundPosition: "center" as const,
+        backgroundRepeat: "no-repeat" as const,
+      }
+    : undefined;
+
+  /*
+   * Foreground must participate in flex layouts (e.g. `.home-page-layout > .home-page-content-wrapper`).
+   * When BackgroundManager sits between a flex parent and that wrapper, missing flex:1 collapses the
+   * scroll column — vertical cover rails only show a sliver of the selected cover.
+   */
+  const foregroundStyle: CSSProperties = {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    minHeight: 0,
+    minWidth: 0,
+    overflow: "hidden",
+    position: "relative",
+    zIndex: 2,
+    pointerEvents: "none",
+  };
+
   const portalLayer =
     showPortalPaint &&
     createPortal(
@@ -160,11 +206,11 @@ export default function BackgroundManager({
       {portalLayer}
       <div
         className={`background-manager-root${hasBackground && isBackgroundVisible ? " background-manager-root--clickable" : " background-manager-root--solid"}`}
-        style={bgLayerStyle}
+        style={{ ...bgLayerStyle, ...paintedBackgroundStyle }}
       >
         {hasBackground && isBackgroundVisible && <div className="background-manager-overlay" />}
       </div>
-      <div className="background-manager-foreground">
+      <div className="background-manager-foreground" style={foregroundStyle}>
         {children}
       </div>
     </BackgroundContext.Provider>

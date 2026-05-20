@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useLayoutEffect } from "react";
+import { useState, useEffect, useRef, useMemo, useLayoutEffect, useCallback } from "react";
 import type { ReactNode } from "react";
 import { useParams, useNavigate, useLocation, useOutletContext } from "react-router-dom";
 import type { MainAppOutletContext } from "../layouts/MainAppLayout";
@@ -25,6 +25,7 @@ import AddCollectionLikeToCollectionLikeModal from "../components/collections/Ad
 import DropdownMenu from "../components/common/DropdownMenu";
 import Tooltip from "../components/common/Tooltip";
 import BackgroundManager, { useBackground } from "../components/common/BackgroundManager";
+import { resolveFocalBackdropUrl } from "../components/common/FocalSelectionBackgroundShell";
 import BackgroundToggle from "../components/ui/BackgroundToggle";
 import NewGamesToggle from "../components/ui/NewGamesToggle";
 import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
@@ -33,7 +34,7 @@ import { compareTitles } from "../utils/stringUtils";
 import { titleMatchesFilter } from "../utils/titleFilter";
 import { parseCollectionLikePseudoGameId } from "../utils/collectionLikePseudoGame";
 import { isMainGameType } from "../utils/igdbGameType";
-import { buildApiUrl, buildCoverUrl, buildBackgroundUrl } from "../utils/api";
+import { buildApiUrl, buildCoverUrl } from "../utils/api";
 import { API_BASE, getApiToken } from "../config";
 import type { GameItem, CollectionInfo, CollectionItem } from "../types";
 import type { CollectionLikeResourceType } from "../components/collections/EditCollectionLikeModal";
@@ -141,6 +142,20 @@ export default function LibraryItemDetailPage({
   const scrollPositionToRestoreRef = useRef<number | null>(null);
   /** Snapshot taken when user clicks Edit; only we write it, so nothing can overwrite it before restore */
   const scrollSnapshotForModalRef = useRef<number | null>(null);
+  const [focalGameBackground, setFocalGameBackground] = useState<
+    { background?: string } | undefined
+  >();
+  const handleFocalGameSelectionChange = useCallback((game: GameItem | null) => {
+    if (!game) {
+      setFocalGameBackground(undefined);
+      return;
+    }
+    setFocalGameBackground({ background: game.background });
+  }, []);
+
+  useEffect(() => {
+    setFocalGameBackground(undefined);
+  }, [id]);
 
   const scrollStorageKey = `${location.pathname}:modalScroll`;
 
@@ -890,13 +905,36 @@ export default function LibraryItemDetailPage({
   const itemCoverUrl = item?.cover ? buildCoverUrl(API_BASE, item.cover, true, itemCoverTimestamp) : "";
   const coverWidth = 240;
   const coverHeight = 360;
-  const backgroundUrl = buildBackgroundUrl(API_BASE, item?.background);
+  const backdropMedia = useMemo(() => {
+    if (activeSkinWeb.autoShowBackgroundOnSelection && fixedFocalContextRail && focalGameBackground) {
+      return { id: `game-${id}`, ...focalGameBackground };
+    }
+    if (item) {
+      return {
+        id: String(id),
+        background: item.background,
+      };
+    }
+    return null;
+  }, [
+    activeSkinWeb.autoShowBackgroundOnSelection,
+    fixedFocalContextRail,
+    focalGameBackground,
+    item,
+    id,
+  ]);
+  const backgroundUrl = resolveFocalBackdropUrl(backdropMedia);
   const hasBackground = Boolean(backgroundUrl && backgroundUrl.trim() !== "");
 
-  const backgroundStateKey = `${id}:${item?.background ?? ""}`;
+  const backgroundStateKey = `${id}:${backdropMedia?.background ?? ""}`;
 
   return (
-    <BackgroundManager backgroundUrl={backgroundUrl} hasBackground={hasBackground} elementId={backgroundStateKey}>
+    <BackgroundManager
+      backgroundUrl={backgroundUrl}
+      hasBackground={hasBackground}
+      elementId={backgroundStateKey}
+      autoShowWhenAvailable={activeSkinWeb.autoShowBackgroundOnSelection}
+    >
       <LibraryItemDetailContent
         item={item}
         itemCoverUrl={itemCoverUrl}
@@ -1016,6 +1054,11 @@ export default function LibraryItemDetailPage({
         onMainGamesOnlyChange={setMainGamesOnly}
         collectionDragEnabled={resourceType === "collections" && !mainGamesOnly && !titleFilterActive}
         onAfterDeleteSelfNavigate={goBackOrHome}
+        onFocalGameSelectionChange={
+          activeSkinWeb.autoShowBackgroundOnSelection && fixedFocalContextRail
+            ? handleFocalGameSelectionChange
+            : undefined
+        }
         setTopBarBeforeMainGamesActions={outletContext?.setTopBarBeforeMainGamesActions}
         setTopBarRightActions={outletContext?.setTopBarRightActions}
       />
@@ -1078,6 +1121,7 @@ type LibraryItemDetailContentProps = {
   collectionDragEnabled: boolean;
   /** After deleting this collection/developer/publisher from the menu, leave the page (back or home). */
   onAfterDeleteSelfNavigate: () => void;
+  onFocalGameSelectionChange?: (game: GameItem | null) => void;
   setTopBarBeforeMainGamesActions?: (value: ReactNode | null) => void;
   setTopBarRightActions?: (value: ReactNode | null) => void;
 };
@@ -1135,6 +1179,7 @@ function LibraryItemDetailContent({
   onMainGamesOnlyChange,
   collectionDragEnabled,
   onAfterDeleteSelfNavigate,
+  onFocalGameSelectionChange,
   setTopBarBeforeMainGamesActions,
   setTopBarRightActions,
 }: LibraryItemDetailContentProps) {
@@ -2155,6 +2200,7 @@ function LibraryItemDetailContent({
                                 scrollContainerRef={scrollContainerRef}
                                 forceSingleColumnVirtualized={contextRailLayout}
                                 fixedFocalSelection={contextRailLayout}
+                                onFocalSelectionChange={onFocalGameSelectionChange}
                                 games={singleSubCollectionGamesFiltered}
                                 onGameClick={(game) => {
                                   const g = game as GameItem & { isIgdbOnly?: boolean };
@@ -2280,6 +2326,7 @@ function LibraryItemDetailContent({
                               scrollContainerRef={scrollContainerRef}
                               forceSingleColumnVirtualized={contextRailLayout}
                               fixedFocalSelection={contextRailLayout}
+                              onFocalSelectionChange={onFocalGameSelectionChange}
                               games={gridGames}
                               onGameClick={(game) => {
                                 const g = game as GameItem & { isIgdbOnly?: boolean };

@@ -85,6 +85,7 @@ export type FixedFocalCollectionsListProps = {
   allCollectionLikes?: CollectionItem[];
   gamesPath?: GamesPathType;
   buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean) => string;
+  onSelectionChange?: (collection: CollectionItem | null) => void;
 };
 
 /**
@@ -105,6 +106,7 @@ export default function FixedFocalCollectionsList({
   allCollectionLikes = [],
   gamesPath = "collections",
   buildCoverUrl,
+  onSelectionChange,
 }: FixedFocalCollectionsListProps) {
   const location = useLocation();
   const listRef = useRef<HTMLDivElement>(null);
@@ -196,6 +198,11 @@ export default function FixedFocalCollectionsList({
   useEffect(() => {
     setSelectedIndex((prev) => Math.max(0, Math.min(collections.length - 1, prev)));
   }, [collections.length]);
+
+  useEffect(() => {
+    if (!onSelectionChange || !isRestored) return;
+    onSelectionChange(collections.length > 0 ? collections[selectedIndex] ?? null : null);
+  }, [collections, selectedIndex, onSelectionChange, isRestored]);
 
   const stepIndex = useCallback(
     (direction: 1 | -1) => {

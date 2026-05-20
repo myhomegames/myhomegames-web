@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useLayoutEffect, useEffect } from "react";
+import { useState, useRef, useMemo, useLayoutEffect, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useLoading } from "../contexts/LoadingContext";
@@ -11,6 +11,9 @@ import { compareTitles, filterRootCollectionLikes } from "../utils/stringUtils";
 import { titleMatchesFilter } from "../utils/titleFilter";
 import type { CollectionItem } from "../types";
 import { buildCoverUrl } from "../utils/api";
+import FocalSelectionBackgroundShell, {
+  type FocalSelectionMedia,
+} from "../components/common/FocalSelectionBackgroundShell";
 
 type PublishersPageProps = {
   onPlay?: (game: import("../types").GameItem) => void;
@@ -33,6 +36,19 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
   }, [publishersLoading, isReady, setLoading]);
 
   const fixedFocalCollections = activeSkinWeb.verticalCoverAlignment;
+  const focalBackgroundEnabled =
+    activeSkinWeb.autoShowBackgroundOnSelection && fixedFocalCollections;
+  const [focalSelection, setFocalSelection] = useState<FocalSelectionMedia | null>(null);
+  const handleFocalSelectionChange = useCallback((collection: CollectionItem | null) => {
+    if (!collection) {
+      setFocalSelection(null);
+      return;
+    }
+    setFocalSelection({
+      id: String(collection.id),
+      background: collection.background,
+    });
+  }, []);
   useScrollRestoration(scrollContainerRef, "publishers", !fixedFocalCollections);
 
   function handlePublisherClick(publisher: CollectionItem) {
@@ -78,6 +94,10 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
   }, [fixedFocalCollections, isReady, sortedPublishers.length]);
 
   return (
+    <FocalSelectionBackgroundShell
+      enabled={focalBackgroundEnabled}
+      selection={focalSelection}
+    >
     <main className="flex-1 home-page-content">
       <div className="home-page-layout">
         <div className={`home-page-content-wrapper home-page-fade-in${isReady ? " home-page-fade-in--ready" : ""}`}>
@@ -95,6 +115,9 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
               coverSize={coverSize}
               itemRefs={itemRefs}
               scrollContainerRef={scrollContainerRef}
+              onFocalSelectionChange={
+                focalBackgroundEnabled ? handleFocalSelectionChange : undefined
+              }
             />
           </div>
         </div>
@@ -111,5 +134,6 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
         )}
       </div>
     </main>
+    </FocalSelectionBackgroundShell>
   );
 }

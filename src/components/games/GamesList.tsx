@@ -40,6 +40,7 @@ type GamesListProps = {
   forceSingleColumnVirtualized?: boolean;
   /** Library: fixed Y slots, wheel changes selection only (no grid scroll). */
   fixedFocalSelection?: boolean;
+  onFocalSelectionChange?: (game: GameItem | null) => void;
   platformIdForPlay?: string;
   /** When games include `collectionlike:…` synthetic ids (e.g. parent sliders), wire collection-like actions */
   allCollectionLikes?: CollectionItem[];
@@ -377,6 +378,7 @@ export default function GamesList({
   enableVirtualization = true,
   forceSingleColumnVirtualized = false,
   fixedFocalSelection = false,
+  onFocalSelectionChange,
   platformIdForPlay,
   allCollectionLikes,
   collectionLikeResourceType,
@@ -475,6 +477,7 @@ export default function GamesList({
             onCollectionLikePseudoAddToParent={onCollectionLikePseudoAddToParent}
             onCollectionLikePseudoUpdated={onCollectionLikePseudoUpdated}
             fullColumnSlot={forceSingleColumnVirtualized}
+            onSelectionChange={onFocalSelectionChange}
           />
         ) : useVirtualization ? (
           <VirtualizedGamesList

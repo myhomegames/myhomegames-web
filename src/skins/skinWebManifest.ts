@@ -49,6 +49,11 @@ export type SkinWebManifest = {
   verticalCoverAlignment: boolean;
   /** Play a short tick when navigating lists or the library bar (XMB-style). */
   fixedFocalStepSound: boolean;
+  /**
+   * When a game or collection-like is focal-selected in a vertical rail (wheel / step
+   * navigation — no click required), show its background automatically (XMB-style).
+   */
+  autoShowBackgroundOnSelection: boolean;
 };
 
 export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
@@ -65,6 +70,7 @@ export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
   compactCollectionLikeDetail: false,
   verticalCoverAlignment: false,
   fixedFocalStepSound: false,
+  autoShowBackgroundOnSelection: false,
 };
 
 export const SKIN_WEB_KEYS = [
@@ -81,6 +87,7 @@ export const SKIN_WEB_KEYS = [
   "compactCollectionLikeDetail",
   "verticalCoverAlignment",
   "fixedFocalStepSound",
+  "autoShowBackgroundOnSelection",
 ] as const satisfies readonly (keyof SkinWebManifest)[];
 
 /** @deprecated renamed to `SKIN_WEB_KEYS`, kept as alias to avoid churning internal imports. */

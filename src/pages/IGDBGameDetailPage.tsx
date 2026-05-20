@@ -14,6 +14,7 @@ import { useAddGame } from "../components/common/actions";
 import { buildApiUrl } from "../utils/api";
 import { API_BASE, getApiToken, getTwitchClientId, getTwitchClientSecret } from "../config";
 import { useLoading } from "../contexts/LoadingContext";
+import { useSkin } from "../contexts/SkinContext";
 import { useCollections } from "../contexts/CollectionsContext";
 import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import { useTagLists } from "../contexts/TagListsContext";
@@ -28,6 +29,7 @@ export default function IGDBGameDetailPage() {
   const { igdbId } = useParams<{ igdbId: string }>();
   const navigate = useNavigate();
   const { isLoading, setLoading } = useLoading();
+  const { activeSkinWeb } = useSkin();
   const [game, setGame] = useState<IGDBGame | null>(null);
   
   const addGame = useAddGame({
@@ -138,6 +140,7 @@ export default function IGDBGameDetailPage() {
       backgroundUrl={backgroundUrl} 
       hasBackground={hasBackground}
       elementId={`igdb-${game.id}`}
+      autoShowWhenAvailable={activeSkinWeb.autoShowBackgroundOnSelection}
     >
       <IGDBGameDetailContent
         game={game}

@@ -35,6 +35,7 @@ type CollectionsListProps = {
   coverSize?: number;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
+  onFocalSelectionChange?: (collection: CollectionItem | null) => void;
 };
 
 type CollectionListItemProps = {
@@ -197,6 +198,7 @@ export default function CollectionsList({
   coverSize = 150,
   itemRefs,
   scrollContainerRef,
+  onFocalSelectionChange,
 }: CollectionsListProps) {
   const { t } = useTranslation();
   const { activeSkinWeb } = useSkin();
@@ -336,6 +338,7 @@ export default function CollectionsList({
           allCollectionLikes={allItemsForCount ?? collections}
           gamesPath={gamesPath}
           buildCoverUrl={buildCoverUrl}
+          onSelectionChange={onFocalSelectionChange}
         />
       ) : (
       <div

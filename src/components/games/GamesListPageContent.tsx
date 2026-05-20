@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import GamesList from "./GamesList";
@@ -15,6 +15,9 @@ import {
   readDetailViewScrollPaddingTopPx,
   readTableViewHeaderTopInsetPx,
 } from "../../utils/readGridTopInsetPx";
+import FocalSelectionBackgroundShell, {
+  type FocalSelectionMedia,
+} from "../common/FocalSelectionBackgroundShell";
 type GamesListPageContentProps = {
   // Hook return values
   hook: UseGamesListPageReturn;
@@ -190,6 +193,19 @@ export default function GamesListPageContent({
   const displayGames = gamesOverride ?? filteredAndSortedGames;
   const { activeSkinWeb } = useSkin();
   const forceVerticalCoversPage = activeSkinWeb.verticalCoverAlignment;
+  const focalBackgroundEnabled =
+    activeSkinWeb.autoShowBackgroundOnSelection && fixedFocalSelection && viewMode === "grid";
+  const [focalSelection, setFocalSelection] = useState<FocalSelectionMedia | null>(null);
+  const handleFocalSelectionChange = useCallback((game: GameItem | null) => {
+    if (!game) {
+      setFocalSelection(null);
+      return;
+    }
+    setFocalSelection({
+      id: String(game.id),
+      background: game.background,
+    });
+  }, []);
   const listScrollContainerRef = scrollContainerRefProp ?? hookScrollContainerRef;
   const contentWrapperRef = useRef<HTMLDivElement>(null);
   const singleColumnGrid =
@@ -365,6 +381,10 @@ export default function GamesListPageContent({
     ) : null;
 
   return (
+    <FocalSelectionBackgroundShell
+      enabled={focalBackgroundEnabled}
+      selection={focalSelection}
+    >
     <div
       ref={contentWrapperRef}
       className={`home-page-content-wrapper games-list-page-fade${isReady ? " games-list-page-fade--ready" : ""} ${hasInlineToolbar ? "has-toolbar" : ""}${forceVerticalCoversPage ? " mhg-vertical-covers-page" : ""}`}
@@ -421,6 +441,9 @@ export default function GamesListPageContent({
                     enableVirtualization={!disableGridVirtualization}
                     forceSingleColumnVirtualized={singleColumnGrid}
                     fixedFocalSelection={fixedFocalSelection}
+                    onFocalSelectionChange={
+                      focalBackgroundEnabled ? handleFocalSelectionChange : undefined
+                    }
                   />
                 )}
                 {viewMode === "detail" && (
@@ -464,5 +487,6 @@ export default function GamesListPageContent({
         )}
       </div>
     </div>
+    </FocalSelectionBackgroundShell>
   );
 }

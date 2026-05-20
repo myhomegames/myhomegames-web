@@ -101,6 +101,8 @@ export type FixedFocalGamesListProps = {
   onCollectionLikePseudoUpdated?: (updated: CollectionInfo) => void;
   /** Narrow context-rail column: slot spans full width so titles fit beside the cover. */
   fullColumnSlot?: boolean;
+  /** Fires when the focal index changes (wheel / step — not on cover click). */
+  onSelectionChange?: (game: GameItem | null) => void;
 };
 
 /**
@@ -136,6 +138,7 @@ export default function FixedFocalGamesList({
   onCollectionLikePseudoAddToParent,
   onCollectionLikePseudoUpdated,
   fullColumnSlot = false,
+  onSelectionChange,
 }: FixedFocalGamesListProps) {
   const location = useLocation();
   const listRef = useRef<HTMLDivElement>(null);
@@ -233,6 +236,11 @@ export default function FixedFocalGamesList({
   useEffect(() => {
     setSelectedIndex((prev) => Math.max(0, Math.min(games.length - 1, prev)));
   }, [games.length]);
+
+  useEffect(() => {
+    if (!onSelectionChange || !isRestored) return;
+    onSelectionChange(games.length > 0 ? games[selectedIndex] ?? null : null);
+  }, [games, selectedIndex, onSelectionChange, isRestored]);
 
   const stepIndex = useCallback(
     (direction: 1 | -1) => {

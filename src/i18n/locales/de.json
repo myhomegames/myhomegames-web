@@ -91,7 +91,8 @@
         "ownedGamesFirstInGamesSidebar": "„Eigene Spiele“ oben im Spiele-Menü",
         "compactCollectionLikeDetail": "Kompakte Sammlungs-Detailansicht (ohne Hero und Überschriften)",
         "verticalCoverAlignment": "Vertikale Cover-Ausrichtung",
-        "fixedFocalStepSound": "Navigationston"
+        "fixedFocalStepSound": "Navigationston",
+        "autoShowBackgroundOnSelection": "Hintergrund bei Fokusauswahl anzeigen"
       }
     }
   },
