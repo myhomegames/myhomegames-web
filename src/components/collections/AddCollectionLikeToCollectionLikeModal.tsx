@@ -5,6 +5,41 @@ import { API_BASE, getApiToken } from "../../config";
 import { buildApiUrl } from "../../utils/api";
 import type { CollectionItem } from "../../types";
 import type { CollectionLikeResourceType } from "./EditCollectionLikeModal";
+import {
+  useCreateCollection,
+  useCreateDeveloper,
+  useCreatePublisher,
+} from "../common/actions";
+
+const RESOURCE_CONFIG: Record<
+  CollectionLikeResourceType,
+  {
+    titleKey: string;
+    searchKey: string;
+    emptyKey: string;
+    newTitlePlaceholderKey: string;
+  }
+> = {
+  collections: {
+    titleKey: "collections.addToCollection",
+    searchKey: "collections.searchCollections",
+    emptyKey: "collections.noCollectionsFound",
+    newTitlePlaceholderKey: "collections.newCollectionTitle",
+  },
+  developers: {
+    titleKey: "igdbInfo.addToDeveloper",
+    searchKey: "igdbInfo.searchDevelopers",
+    emptyKey: "igdbInfo.noDevelopersFound",
+    newTitlePlaceholderKey: "igdbInfo.newDeveloperName",
+  },
+  publishers: {
+    titleKey: "igdbInfo.addToPublisher",
+    searchKey: "igdbInfo.searchPublishers",
+    emptyKey: "igdbInfo.noPublishersFound",
+    newTitlePlaceholderKey: "igdbInfo.newPublisherName",
+  },
+};
+
 type AddCollectionLikeToCollectionLikeModalProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -26,18 +61,41 @@ export default function AddCollectionLikeToCollectionLikeModal({
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLinking, setIsLinking] = useState(false);
+  const [newItemTitle, setNewItemTitle] = useState(
+    resourceType === "collections" ? sourceItem.title : ""
+  );
   const searchRef = useRef<HTMLInputElement>(null);
+  const createInputRef = useRef<HTMLInputElement>(null);
+
+  const config = RESOURCE_CONFIG[resourceType];
+
+  const createCollection = useCreateCollection({ onError: setError });
+  const createDeveloper = useCreateDeveloper({ onError: setError });
+  const createPublisher = useCreatePublisher({ onError: setError });
+
+  const isCreating =
+    resourceType === "collections"
+      ? createCollection.isCreating
+      : resourceType === "developers"
+        ? createDeveloper.isCreating
+        : createPublisher.isCreating;
 
   useEffect(() => {
     if (!isOpen) return;
     setSearchQuery("");
     setError(null);
+    setNewItemTitle(resourceType === "collections" ? sourceItem.title : "");
     document.body.style.overflow = "hidden";
-    setTimeout(() => searchRef.current?.focus(), 0);
+    setTimeout(() => {
+      createInputRef.current?.focus();
+      if (resourceType === "collections" && createInputRef.current?.value) {
+        createInputRef.current.select();
+      }
+    }, 0);
     return () => {
       document.body.style.overflow = "";
     };
-  }, [isOpen]);
+  }, [isOpen, resourceType, sourceItem.title]);
 
   const availableParents = useMemo(() => {
     const sourceId = String(sourceItem.id);
@@ -54,28 +112,7 @@ export default function AddCollectionLikeToCollectionLikeModal({
     return availableParents.filter((item) => (item.title || "").toLowerCase().includes(q));
   }, [searchQuery, availableParents]);
 
-  const typeKey =
-    resourceType === "collections"
-      ? "collections.addToCollection"
-      : resourceType === "developers"
-        ? "igdbInfo.addToDeveloper"
-        : "igdbInfo.addToPublisher";
-
-  const searchKey =
-    resourceType === "collections"
-      ? "collections.searchCollections"
-      : resourceType === "developers"
-        ? "igdbInfo.searchDevelopers"
-        : "igdbInfo.searchPublishers";
-
-  const emptyKey =
-    resourceType === "collections"
-      ? "collections.noCollectionsFound"
-      : resourceType === "developers"
-        ? "igdbInfo.noDevelopersFound"
-        : "igdbInfo.noPublishersFound";
-
-  const handleLink = async (parent: CollectionItem) => {
+  const linkToParent = async (parent: CollectionItem) => {
     const token = getApiToken();
     if (!token) return;
     setIsLinking(true);
@@ -110,20 +147,45 @@ export default function AddCollectionLikeToCollectionLikeModal({
 
       onLinked?.();
       onClose();
-    } catch (err: any) {
-      setError(String(err?.message || err));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setIsLinking(false);
     }
   };
 
+  const handleLink = (parent: CollectionItem) => {
+    if (!isLinking && !isCreating) void linkToParent(parent);
+  };
+
+  const handleCreateNew = async () => {
+    const title = newItemTitle.trim();
+    if (!title || isLinking || isCreating) return;
+    setError(null);
+
+    let parent: CollectionItem | null = null;
+    if (resourceType === "collections") {
+      parent = await createCollection.createCollection(title);
+    } else if (resourceType === "developers") {
+      parent = await createDeveloper.createDeveloper(title);
+    } else {
+      parent = await createPublisher.createPublisher(title);
+    }
+
+    if (parent) {
+      await linkToParent(parent);
+    }
+  };
+
   if (!isOpen) return null;
+
+  const busy = isLinking || isCreating;
 
   return createPortal(
     <div className="add-to-collection-modal-overlay" onClick={onClose}>
       <div className="add-to-collection-modal" onClick={(e) => e.stopPropagation()}>
         <div className="add-to-collection-modal-header">
-          <h2>{t(typeKey)}</h2>
+          <h2>{t(config.titleKey)}</h2>
           <button type="button" className="add-to-collection-modal-close" onClick={onClose}>
             ×
           </button>
@@ -141,10 +203,10 @@ export default function AddCollectionLikeToCollectionLikeModal({
             id="add-collectionlike-to-parent-search"
             name="search"
             type="text"
-            placeholder={t(searchKey)}
+            placeholder={t(config.searchKey)}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            aria-label={t(searchKey)}
+            aria-label={t(config.searchKey)}
           />
         </div>
 
@@ -154,14 +216,48 @@ export default function AddCollectionLikeToCollectionLikeModal({
               <div
                 key={String(item.id)}
                 className="add-to-collection-modal-collection-item"
-                onClick={() => !isLinking && handleLink(item)}
+                onClick={() => handleLink(item)}
               >
                 <div className="add-to-collection-modal-collection-title">{item.title}</div>
               </div>
             ))
           ) : (
-            <div className="add-to-collection-modal-empty">{t(emptyKey)}</div>
+            <div className="add-to-collection-modal-empty">{t(config.emptyKey)}</div>
           )}
+        </div>
+
+        <div className="add-to-collection-modal-create">
+          <input
+            ref={createInputRef}
+            id="add-collectionlike-to-parent-create-title"
+            name="newItemTitle"
+            type="text"
+            placeholder={t(config.newTitlePlaceholderKey)}
+            value={newItemTitle}
+            onChange={(e) => {
+              setNewItemTitle(e.target.value);
+              setError(null);
+            }}
+            onFocus={(e) => {
+              if (e.target.value) e.target.select();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void handleCreateNew();
+            }}
+            aria-label={t(config.newTitlePlaceholderKey)}
+          />
+          <button
+            type="button"
+            onClick={() => void handleCreateNew()}
+            disabled={!newItemTitle.trim() || busy}
+            className="add-to-collection-modal-create-button"
+          >
+            {busy
+              ? isCreating
+                ? t("common.creating", "Creating...")
+                : t("common.adding", "Adding...")
+              : t("common.create", "Create")}
+          </button>
         </div>
       </div>
     </div>,
