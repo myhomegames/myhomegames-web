@@ -6,6 +6,7 @@ import type { CollectionLikeResourceType } from "../collections/EditCollectionLi
 import { GameListItem } from "./GamesList";
 import { useSkin } from "../../contexts/SkinContext";
 import { flushCoverScaleAroundBar, useCoverScaleAroundBar } from "../../hooks/useCoverScaleAroundBar";
+import { portraitCoverHeight } from "../../utils/coverPortrait";
 import {
   clampContextRailGamesScrollTop,
   clampVirtualizedGridScrollTop,
@@ -215,7 +216,7 @@ export default function VirtualizedGamesList({
 
   // Item dimensions
   const itemWidth = coverSize;
-  const itemHeight = coverSize * 1.5 + GAP;
+  const itemHeight = portraitCoverHeight(coverSize) + GAP;
   const stepRows = readStepScrollRows(containerRef.current);
   const enableStepScroll = forceSingleColumn && stepRows > 0;
   const contextRailScroll = useMemo(

@@ -7,6 +7,7 @@ import { useSkin } from "../../contexts/SkinContext";
 import { readFixedFocalGamesTopPx } from "../../utils/readGridTopInsetPx";
 import { notifyFixedFocalIndexChange } from "../../utils/fixedFocalStepSound";
 import { applyWheelDeltaStep, readWheelStepThresholdPx } from "../../utils/stepScrollSnap";
+import { portraitCoverHeight } from "../../utils/coverPortrait";
 
 const DEFAULT_GAP = 40;
 const DEFAULT_MIN_SIDE_GUTTER = 56;
@@ -149,7 +150,7 @@ export default function FixedFocalGamesList({
   const { activeSkinId, activeSkinWeb } = useSkin();
 
   const { gap: GAP } = spacing;
-  const rowHeight = coverSize * 1.5 + GAP;
+  const rowHeight = portraitCoverHeight(coverSize) + GAP;
   const scaleValues = readScaleValues();
 
   useEffect(() => {
@@ -358,8 +359,8 @@ export default function FixedFocalGamesList({
               top,
               width: fullColumnSlot ? "100%" : coverSize + GAP,
               ...(fullColumnSlot
-                ? { minHeight: coverSize * 1.5, height: "auto" }
-                : { height: coverSize * 1.5 }),
+                ? { minHeight: portraitCoverHeight(coverSize), height: "auto" }
+                : { height: portraitCoverHeight(coverSize) }),
               boxSizing: "border-box",
               ["--mhg-cell-scale" as string]: (
                 isSelected ? scaleValues.selected : scaleValues.unselected

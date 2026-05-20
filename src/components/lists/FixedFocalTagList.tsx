@@ -273,8 +273,8 @@ export default function FixedFocalTagList({
               position: "absolute",
               left: 0,
               top,
-              width: "min(var(--mhg-vertical-column-width), calc(100vw - 140px))",
-              minWidth: "min(var(--mhg-vertical-column-width), calc(100vw - 140px))",
+              width: "min(var(--mhg-vertical-column-width), calc(100vw - var(--mhg-vertical-column-viewport-margin, 72px)))",
+              minWidth: "min(var(--mhg-vertical-column-width), calc(100vw - var(--mhg-vertical-column-viewport-margin, 72px)))",
               boxSizing: "border-box",
               ["--mhg-cell-scale" as string]: (
                 isSelected ? scaleValues.selected : scaleValues.unselected

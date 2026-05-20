@@ -73,8 +73,8 @@ export function TagListItem({
       style={
         forceVerticalAlignment
           ? {
-              width: "min(var(--mhg-vertical-column-width), calc(100vw - 140px))",
-              minWidth: "min(var(--mhg-vertical-column-width), calc(100vw - 140px))",
+              width: "min(var(--mhg-vertical-column-width), calc(100vw - var(--mhg-vertical-column-viewport-margin, 72px)))",
+              minWidth: "min(var(--mhg-vertical-column-width), calc(100vw - var(--mhg-vertical-column-viewport-margin, 72px)))",
             }
           : undefined
       }
@@ -169,7 +169,7 @@ export default function TagList({
                 alignItems: "flex-start",
                 justifyContent: "flex-start",
                 marginLeft:
-                  "max(0px, calc(var(--mhg-active-library-icon-center-x, 180px) - (var(--mhg-vertical-column-width) / 2) + var(--mhg-vertical-column-shift-x, 0px)))",
+                  "max(0px, calc(var(--mhg-active-library-icon-center-x, 180px) - var(--tag-list-cover-size, 150px) / 2))",
                 marginRight: "auto",
                 gap: "20px",
               }

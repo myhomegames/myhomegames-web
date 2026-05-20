@@ -11,6 +11,7 @@ import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 import { parseCollectionLikePseudoGameId } from "../../utils/collectionLikePseudoGame";
 import { gameHasExecutableForPlatform, getExecutablesForPlatform } from "../../utils/gameExecutables";
+import { portraitCoverHeight } from "../../utils/coverPortrait";
 const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are more than this many items
 
 type GamesListProps = {
@@ -127,7 +128,7 @@ export function GameListItem({
 }: GameListItemProps) {
   const { t } = useTranslation();
   const isIgdbOnly = (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly;
-  const coverHeight = coverSize * 1.5;
+  const coverHeight = portraitCoverHeight(coverSize);
   const gameForCover = useMemo(() => {
     if (!platformIdForPlay) return game;
     const f = getExecutablesForPlatform(game, platformIdForPlay);

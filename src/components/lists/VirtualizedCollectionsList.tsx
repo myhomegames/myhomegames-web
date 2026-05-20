@@ -13,6 +13,7 @@ import {
   readGridTopInsetCollectionsPx,
   virtualizedGridRowHeightPx,
 } from "../../utils/readGridTopInsetPx";
+import { portraitCoverHeight } from "../../utils/coverPortrait";
 import {
   applyVirtualizedStepSnap,
   applyWheelDeltaStep,
@@ -261,7 +262,7 @@ export default function VirtualizedCollectionsList({
       }
 
       const itemWidth = displayCoverSize;
-      const itemHeight = displayCoverSize * 1.5 + gap;
+      const itemHeight = portraitCoverHeight(displayCoverSize) + gap;
       return { displayCoverSize, gridContentWidth, leftGutter, rightGutter, itemWidth, itemHeight };
     }, [
       dimensions.width,

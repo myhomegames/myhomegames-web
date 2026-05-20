@@ -11,6 +11,7 @@ import VirtualizedCollectionsList from "./VirtualizedCollectionsList";
 import FixedFocalCollectionsList from "./FixedFocalCollectionsList";
 import type { CollectionItem, CollectionInfo, GameItem } from "../../types";
 import { filterRootCollectionLikes } from "../../utils/stringUtils";
+import { portraitCoverHeight } from "../../utils/coverPortrait";
 import { useSkin } from "../../contexts/SkinContext";
 const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are more than this many items
 
@@ -71,7 +72,7 @@ export function CollectionListItem({
   showTitle,
 }: CollectionListItemProps) {
   const { t } = useTranslation();
-  const coverHeight = coverSize * 1.5;
+  const coverHeight = portraitCoverHeight(coverSize);
   const count = displayCount ?? collection.gameCount;
   const subtitle = count !== undefined ? t("common.elements", { count }) : undefined;
 
