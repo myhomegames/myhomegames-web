@@ -102,19 +102,6 @@ export default function MainAppLayout({
       /^\/publishers\/[^/]+/.test(pathname),
     [pathname]
   );
-  const isTagGamesDetailRoute = useMemo(
-    () =>
-      /^\/category\/[^/]+/.test(pathname) ||
-      /^\/series\/[^/]+/.test(pathname) ||
-      /^\/franchise\/[^/]+/.test(pathname) ||
-      /^\/platforms\/[^/]+/.test(pathname) ||
-      /^\/themes\/[^/]+/.test(pathname) ||
-      /^\/game-engines\/[^/]+/.test(pathname) ||
-      /^\/game-modes\/[^/]+/.test(pathname) ||
-      /^\/player-perspectives\/[^/]+/.test(pathname) ||
-      /^\/keywords\/[^/]+/.test(pathname),
-    [pathname]
-  );
 
   const outletContext = useMemo<MainAppOutletContext>(
     () => ({
@@ -167,11 +154,7 @@ export default function MainAppLayout({
         loading={isLoading}
         error={error}
         coverSize={coverSize}
-        onCoverSizeChange={
-          activeSkinWeb.persistentLibraryShell && isTagGamesDetailRoute
-            ? undefined
-            : handleCoverSizeChange
-        }
+        onCoverSizeChange={handleCoverSizeChange}
         viewMode={viewMode}
         onViewModeChange={handleViewModeChange}
         onReloadMetadata={onReloadMetadata}

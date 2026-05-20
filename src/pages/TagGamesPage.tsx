@@ -90,10 +90,13 @@ export default function TagGamesPage({
   }, [tagValue, tagKey, isIgdbTag, tagLabels]);
   const igdbTagNameForFetch = tagNameFromUrl ?? tagNameFromLabels ?? undefined;
 
-  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+  const usePersistentShell = activeSkinWeb.persistentLibraryShell;
+  const [localViewMode, setLocalViewMode] = useState<ViewMode>(() => {
     const saved = localStorage.getItem(`viewMode_${scopedStorageKey}`);
     return (saved as ViewMode) || "grid";
   });
+  const viewMode =
+    usePersistentShell && outletContext ? outletContext.viewMode : localViewMode;
   const [showNewGames, setShowNewGames] = useState<boolean>(() => {
     const saved = localStorage.getItem(`showNewGames_${scopedStorageKey}`);
     if (saved === "false") return false;
@@ -103,10 +106,13 @@ export default function TagGamesPage({
   const [mainGamesOnly, setMainGamesOnly] = useState<boolean>(() => {
     return localStorage.getItem(`mainGamesOnly_${scopedStorageKey}`) === "true";
   });
-  const coverSize = (() => {
+  const coverSizeFromOutlet = outletContext?.coverSize;
+  const [localCoverSize] = useState(() => {
     const saved = localStorage.getItem("coverSize");
     return saved ? parseInt(saved, 10) : 150;
-  })();
+  });
+  const coverSize =
+    usePersistentShell && coverSizeFromOutlet != null ? coverSizeFromOutlet : localCoverSize;
 
   const hook = useGamesListPage({
     localStoragePrefix: `tag_${scopedStorageKey}`,
@@ -119,20 +125,24 @@ export default function TagGamesPage({
   });
 
   useEffect(() => {
-    localStorage.setItem(`viewMode_${scopedStorageKey}`, viewMode);
-  }, [viewMode, scopedStorageKey]);
+    if (usePersistentShell) return;
+    localStorage.setItem(`viewMode_${scopedStorageKey}`, localViewMode);
+  }, [localViewMode, scopedStorageKey, usePersistentShell]);
 
   useEffect(() => {
+    if (usePersistentShell) return;
     localStorage.setItem(`showNewGames_${scopedStorageKey}`, String(showNewGames));
-  }, [showNewGames, scopedStorageKey]);
+  }, [showNewGames, scopedStorageKey, usePersistentShell]);
 
   useEffect(() => {
+    if (usePersistentShell) return;
     localStorage.setItem(`mainGamesOnly_${scopedStorageKey}`, String(mainGamesOnly));
-  }, [mainGamesOnly, scopedStorageKey]);
+  }, [mainGamesOnly, scopedStorageKey, usePersistentShell]);
 
   useEffect(() => {
+    if (usePersistentShell) return;
     const savedViewMode = localStorage.getItem(`viewMode_${scopedStorageKey}`);
-    setViewMode((savedViewMode as ViewMode) || "grid");
+    setLocalViewMode((savedViewMode as ViewMode) || "grid");
 
     const savedNewGames = localStorage.getItem(`showNewGames_${scopedStorageKey}`);
     if (savedNewGames === "true") setShowNewGames(true);
@@ -140,7 +150,7 @@ export default function TagGamesPage({
     else setShowNewGames(false);
 
     setMainGamesOnly(localStorage.getItem(`mainGamesOnly_${scopedStorageKey}`) === "true");
-  }, [scopedStorageKey]);
+  }, [scopedStorageKey, usePersistentShell]);
 
   const EFFECTIVE_TAG_FIELDS: FilterField[] = ["themes", "platforms", "gameModes", "playerPerspectives", "gameEngines", "developers", "publishers", "series", "franchise"];
   const effectiveTagKey = hook.filterField !== "all" && EFFECTIVE_TAG_FIELDS.includes(hook.filterField) ? hook.filterField : null;
@@ -261,7 +271,7 @@ export default function TagGamesPage({
   }, [tagField, tagValue, hook.selectedThemes, hook.selectedPlatforms, hook.selectedGameModes, hook.selectedPlayerPerspectives, hook.selectedGameEngines, hook.selectedDevelopers, hook.selectedPublishers, hook.selectedGenre, hook.selectedSeries, hook.selectedFranchise]);
   const canShowNewGamesToggle =
     (isSeriesOrFranchise || isIgdbTag) && !!twitchLoginEnabled && hook.filterField !== "all";
-  const usePersistentTopBarTagToggles = activeSkinWeb.persistentLibraryShell;
+  const usePersistentTopBarTagToggles = usePersistentShell;
   const injectedTopBarTagToggles: ReactNode = useMemo(() => {
     if (!usePersistentTopBarTagToggles || viewMode !== "grid") return null;
     return (
@@ -503,28 +513,30 @@ export default function TagGamesPage({
 
   return (
     <>
-      <div
-        className={
-          contextRailLayout ? "tag-games-libraries-bar-host tag-games-libraries-bar-host--dock-only" : undefined
-        }
-      >
-      <LibrariesBar
-        libraries={[]}
-        activeLibrary={null}
-        onSelectLibrary={() => {}}
-        loading={false}
-        error={null}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        showNewGamesToggle={!usePersistentTopBarTagToggles && canShowNewGamesToggle}
-        showNewGames={showNewGames}
-        onShowNewGamesChange={setShowNewGames}
-        showNewGamesLabel={canShowNewGamesToggle ? t("tagGames.showNewGames") : undefined}
-        showMainGamesToggle={!usePersistentTopBarTagToggles && viewMode === "grid"}
-        mainGamesOnly={hook.mainGamesOnly}
-        onMainGamesOnlyChange={hook.setMainGamesOnly}
-      />
-      </div>
+      {!usePersistentShell ? (
+        <div
+          className={
+            contextRailLayout ? "tag-games-libraries-bar-host tag-games-libraries-bar-host--dock-only" : undefined
+          }
+        >
+          <LibrariesBar
+            libraries={[]}
+            activeLibrary={null}
+            onSelectLibrary={() => {}}
+            loading={false}
+            error={null}
+            viewMode={viewMode}
+            onViewModeChange={setLocalViewMode}
+            showNewGamesToggle={canShowNewGamesToggle}
+            showNewGames={showNewGames}
+            onShowNewGamesChange={setShowNewGames}
+            showNewGamesLabel={canShowNewGamesToggle ? t("tagGames.showNewGames") : undefined}
+            showMainGamesToggle={viewMode === "grid"}
+            mainGamesOnly={hook.mainGamesOnly}
+            onMainGamesOnlyChange={hook.setMainGamesOnly}
+          />
+        </div>
+      ) : null}
       <div
         className={`bg-[#1a1a1a] home-page-main-container${contextRailLayout ? " tag-games-page-shell tag-games-page-shell--context-rail" : ""}`}
       >
