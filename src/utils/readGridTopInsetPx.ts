@@ -90,6 +90,21 @@ export function readLibraryBarBandPx(listEl?: HTMLElement | null): LibraryBarBan
   return { top, bottom };
 }
 
+/** Active library icon center X in viewport coordinates (px). */
+export function readActiveLibraryIconCenterXPx(): number | null {
+  if (typeof window === "undefined" || typeof document === "undefined") return null;
+  const activeIcon = document.querySelector(".mhg-libraries-bar .mhg-library-active");
+  if (activeIcon instanceof HTMLElement) {
+    const rect = activeIcon.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    if (Number.isFinite(centerX)) return centerX;
+  }
+  const raw = parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue("--mhg-active-library-icon-center-x"),
+  );
+  return Number.isFinite(raw) ? raw : null;
+}
+
 /** Active library icon button band relative to a list root (recommended title skip). */
 export function readActiveLibraryIconBandPx(listEl?: HTMLElement | null): LibraryBarBandPx | null {
   if (typeof window === "undefined" || typeof document === "undefined") return null;

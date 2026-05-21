@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { useSkin } from "../../contexts/SkinContext";
 import {
   readActiveLibraryIconBandPx,
+  readActiveLibraryIconCenterXPx,
   readRecommendedStripFocalTopPx,
 } from "../../utils/readGridTopInsetPx";
 import { notifyFixedFocalIndexChange } from "../../utils/fixedFocalStepSound";
@@ -87,6 +88,7 @@ export default function FixedFocalRecommendedSectionsList({
   const storageKey = `${location.pathname}:recommended-strip`;
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [focalTopPx, setFocalTopPx] = useState(() => readRecommendedStripFocalTopPx(listRef.current));
+  const [iconCenterLeftPx, setIconCenterLeftPx] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isRestored, setIsRestored] = useState(false);
   const { activeSkinId, activeSkinWeb } = useSkin();
@@ -97,13 +99,24 @@ export default function FixedFocalRecommendedSectionsList({
   const packedRows = readFixedFocalPackedRows();
   const neighborSlots = readFixedFocalNeighborSlots(18);
 
+  const syncIconCenterLeft = useCallback(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const centerX = readActiveLibraryIconCenterXPx();
+    if (centerX == null) return;
+    const listLeft = list.getBoundingClientRect().left;
+    setIconCenterLeftPx(centerX - listLeft);
+  }, []);
+
   useEffect(() => {
     setFocalTopPx(readRecommendedStripFocalTopPx(listRef.current));
+    syncIconCenterLeft();
     const t = window.setTimeout(() => {
       setFocalTopPx(readRecommendedStripFocalTopPx(listRef.current));
+      syncIconCenterLeft();
     }, 50);
     return () => window.clearTimeout(t);
-  }, [activeSkinId]);
+  }, [activeSkinId, syncIconCenterLeft]);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -126,6 +139,7 @@ export default function FixedFocalRecommendedSectionsList({
         height: Math.max(contentHeight, rect.height, viewportHeight) || viewportHeight - 200,
       });
       setFocalTopPx(readRecommendedStripFocalTopPx(listRef.current));
+      syncIconCenterLeft();
     };
 
     updateDimensions();
@@ -137,7 +151,7 @@ export default function FixedFocalRecommendedSectionsList({
       window.removeEventListener("resize", updateDimensions);
       resizeObserver.disconnect();
     };
-  }, [containerRef, activeSkinId]);
+  }, [containerRef, activeSkinId, syncIconCenterLeft]);
 
   useLayoutEffect(() => {
     setIsRestored(false);
@@ -276,10 +290,11 @@ export default function FixedFocalRecommendedSectionsList({
             className={`fixed-focal-recommended-strip-item${isSelected ? " mhg-cover-scale-selected" : ""}`}
             style={{
               position: "absolute",
-              left: 0,
+              left: iconCenterLeftPx,
               top,
-              width: "min(var(--mhg-tag-vertical-column-width, var(--mhg-vertical-column-width)), calc(100vw - var(--mhg-vertical-column-viewport-margin, 72px)))",
-              minWidth: "min(var(--mhg-tag-vertical-column-width, var(--mhg-vertical-column-width)), calc(100vw - var(--mhg-vertical-column-viewport-margin, 72px)))",
+              width: "max-content",
+              maxWidth:
+                "min(var(--mhg-tag-vertical-column-width, var(--mhg-vertical-column-width)), calc(100vw - var(--mhg-vertical-column-viewport-margin, 72px)))",
               boxSizing: "border-box",
               minHeight: rowHeightPx,
               ["--mhg-cell-scale" as string]: (
