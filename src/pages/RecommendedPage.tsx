@@ -14,6 +14,12 @@ import { API_BASE } from "../config";
 import { getTwitchClientId, getTwitchClientSecret } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 import {
+  clearRecommendedSectionsCache,
+  consumeRecommendedReturnFromGame,
+  consumeRecommendedReturnToIndex,
+  getRecommendedSectionsCache,
+  markRecommendedReturnFromGame,
+  markRecommendedReturnToIndex,
   setRecommendedSectionsCache,
   type RecommendedSectionsNavState,
 } from "../utils/recommendedSectionsCache";
@@ -60,13 +66,15 @@ export default function RecommendedPage({
 
   const handleGameClick = useCallback(
     (game: GameItem) => {
+      setRecommendedSectionsCache(sections);
+      markRecommendedReturnFromGame();
       if (twitchLoginEnabled && (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly) {
         navigate(`/igdb-game/${game.id}`);
       } else {
         onGameClick(game);
       }
     },
-    [twitchLoginEnabled, navigate, onGameClick]
+    [twitchLoginEnabled, navigate, onGameClick, sections]
   );
   
   useScrollRestoration(scrollContainerRef, undefined, !verticalStripsLayout);
@@ -122,21 +130,41 @@ export default function RecommendedPage({
     };
   }, []);
 
+  const hydrateFromCache = useCallback(() => {
+    const cached = getRecommendedSectionsCache();
+    if (!cached || cached.length === 0) return false;
+    setSections(cached);
+    onGamesLoadedRef.current(cached.flatMap((s) => s.games));
+    setIsFetching(false);
+    setLoadingRef.current(false);
+    setIsReady(true);
+    return true;
+  }, []);
+
   useEffect(() => {
     if (!settingsLoaded) return;
     if (twitchLoginEnabled && !token) {
+      clearRecommendedSectionsCache();
       setSections([]);
       onGamesLoadedRef.current([]);
       setLoadingRef.current(false);
       navigate("/login", { replace: true });
       return;
     }
+    if (
+      (consumeRecommendedReturnFromGame() || consumeRecommendedReturnToIndex()) &&
+      hydrateFromCache()
+    ) {
+      return;
+    }
     fetchRecommendedSections();
-  }, [twitchLoginEnabled, token, settingsLoaded, navigate]);
+  }, [twitchLoginEnabled, token, settingsLoaded, navigate, hydrateFromCache]);
 
   // Listen for metadata reload event
   useEffect(() => {
     const handleMetadataReloaded = () => {
+      clearRecommendedSectionsCache();
+      setIsReady(false);
       fetchRecommendedSections();
     };
     window.addEventListener("metadataReloaded", handleMetadataReloaded);
@@ -189,6 +217,7 @@ export default function RecommendedPage({
     (section: { id: string; title: string }) => {
       const snapshot = sections;
       setRecommendedSectionsCache(snapshot);
+      markRecommendedReturnToIndex();
       const navState: RecommendedSectionsNavState = {
         recommendedSectionsSnapshot: snapshot,
         skipRecommendedFetch: true,

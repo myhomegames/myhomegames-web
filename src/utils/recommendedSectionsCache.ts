@@ -6,6 +6,10 @@ export type RecommendedSectionCache = {
 };
 
 let sectionsCache: RecommendedSectionCache[] | null = null;
+/** Set when leaving recommended for a game detail; consumed once on return. */
+let preserveOnReturnFromGame = false;
+/** Set when leaving the strip index for a section (or back to index); consumed once on index mount. */
+let preserveOnReturnToIndex = false;
 
 export function getRecommendedSectionsCache(): RecommendedSectionCache[] | null {
   return sectionsCache;
@@ -13,6 +17,39 @@ export function getRecommendedSectionsCache(): RecommendedSectionCache[] | null 
 
 export function setRecommendedSectionsCache(sections: RecommendedSectionCache[]): void {
   sectionsCache = sections;
+}
+
+export function clearRecommendedSectionsCache(): void {
+  sectionsCache = null;
+  preserveOnReturnFromGame = false;
+  preserveOnReturnToIndex = false;
+}
+
+export function clearRecommendedPreserveOnReturnToIndex(): void {
+  preserveOnReturnToIndex = false;
+}
+
+export function markRecommendedReturnFromGame(): void {
+  preserveOnReturnFromGame = true;
+}
+
+/** True once after back from a recommended game; clears the flag. */
+export function consumeRecommendedReturnFromGame(): boolean {
+  if (!preserveOnReturnFromGame) return false;
+  preserveOnReturnFromGame = false;
+  return true;
+}
+
+/** Set when opening a section from the strip or navigating back to the strip index. */
+export function markRecommendedReturnToIndex(): void {
+  preserveOnReturnToIndex = true;
+}
+
+/** True once after back from a section detail to the strip index; clears the flag. */
+export function consumeRecommendedReturnToIndex(): boolean {
+  if (!preserveOnReturnToIndex) return false;
+  preserveOnReturnToIndex = false;
+  return true;
 }
 
 export function getRecommendedSectionFromCache(sectionId: string): RecommendedSectionCache | null {

@@ -26,6 +26,7 @@ import {
   buildLibrarySections,
   normalizeVisibleLibraries,
 } from "../utils/librarySections";
+import { clearRecommendedPreserveOnReturnToIndex } from "../utils/recommendedSectionsCache";
 export type { GameItem, TagItem };
 
 type HomePageClassicProps = {
@@ -182,6 +183,9 @@ export default function HomePageClassic({
   }
 
   function onSelectLibrary(s: GameLibrarySection) {
+    if (s.key !== "recommended") {
+      clearRecommendedPreserveOnReturnToIndex();
+    }
     localStorage.setItem("lastSelectedLibrary", s.key);
     setActiveLibrary(s);
     if (s.key === "library") {

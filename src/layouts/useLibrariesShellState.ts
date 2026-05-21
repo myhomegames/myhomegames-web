@@ -5,6 +5,7 @@ import type { GameLibrarySection, ViewMode } from "../types";
 import { API_BASE } from "../config";
 import { buildApiHeaders } from "../utils/api";
 import { buildLibrarySections, normalizeVisibleLibraries } from "../utils/librarySections";
+import { clearRecommendedPreserveOnReturnToIndex } from "../utils/recommendedSectionsCache";
 
 type Options = {
   syncCoverSizeWithPathname: boolean;
@@ -159,6 +160,9 @@ export function useLibrariesShellState(options: Options) {
 
   const onSelectLibrary = useCallback(
     (s: GameLibrarySection) => {
+      if (s.key !== "recommended") {
+        clearRecommendedPreserveOnReturnToIndex();
+      }
       localStorage.setItem("lastSelectedLibrary", s.key);
       setActiveLibrary(s);
       if (options.navigateHomeWhenLibraryChanges && location.pathname !== "/") {

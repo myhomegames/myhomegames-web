@@ -14,8 +14,11 @@ import type { GameItem, CollectionItem } from "../types";
 import { API_BASE } from "../config";
 import { buildApiUrl, buildApiHeaders, buildCoverUrl } from "../utils/api";
 import {
-  getRecommendedSectionFromCache,
+  consumeRecommendedReturnFromGame,
   getRecommendedSectionsCache,
+  markRecommendedReturnFromGame,
+  markRecommendedReturnToIndex,
+  setRecommendedSectionsCache,
   type RecommendedSectionsNavState,
 } from "../utils/recommendedSectionsCache";
 
@@ -85,13 +88,26 @@ export default function RecommendedSectionDetailPage({
 
   const handleGameClick = useCallback(
     (game: GameItem) => {
+      if (sectionId) {
+        const cached = getRecommendedSectionsCache();
+        if (cached) {
+          setRecommendedSectionsCache(
+            cached.map((s) =>
+              String(s.id) === String(sectionId) ? { ...s, games } : s,
+            ),
+          );
+        } else {
+          setRecommendedSectionsCache([{ id: sectionId, games }]);
+        }
+        markRecommendedReturnFromGame();
+      }
       if (twitchLoginEnabled && (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly) {
         navigate(`/igdb-game/${game.id}`);
       } else {
         onGameClick(game);
       }
     },
-    [twitchLoginEnabled, navigate, onGameClick],
+    [twitchLoginEnabled, navigate, onGameClick, sectionId, games],
   );
 
   useEffect(() => {
@@ -102,13 +118,11 @@ export default function RecommendedSectionDetailPage({
     }
 
     const navState = location.state as RecommendedSectionsNavState | null;
-    const snapshot =
-      navState?.skipRecommendedFetch && navState.recommendedSectionsSnapshot
-        ? navState.recommendedSectionsSnapshot
-        : getRecommendedSectionsCache();
-
-    if (snapshot && snapshot.length > 0) {
-      const section = snapshot.find((s) => String(s.id) === String(sectionId));
+    if (navState?.skipRecommendedFetch && navState.recommendedSectionsSnapshot.length > 0) {
+      setRecommendedSectionsCache(navState.recommendedSectionsSnapshot);
+      const section = navState.recommendedSectionsSnapshot.find(
+        (s) => String(s.id) === String(sectionId),
+      );
       if (section) {
         setGames(section.games);
         onGamesLoaded(section.games);
@@ -118,13 +132,16 @@ export default function RecommendedSectionDetailPage({
       }
     }
 
-    const cachedSection = getRecommendedSectionFromCache(sectionId);
-    if (cachedSection) {
-      setGames(cachedSection.games);
-      onGamesLoaded(cachedSection.games);
-      setIsFetching(false);
-      setLoading(false);
-      return;
+    if (consumeRecommendedReturnFromGame()) {
+      const snapshot = getRecommendedSectionsCache();
+      const section = snapshot?.find((s) => String(s.id) === String(sectionId));
+      if (section) {
+        setGames(section.games);
+        onGamesLoaded(section.games);
+        setIsFetching(false);
+        setLoading(false);
+        return;
+      }
     }
 
     const controller = new AbortController();
@@ -147,6 +164,9 @@ export default function RecommendedSectionDetailPage({
           navigate("/", { replace: true });
           return;
         }
+        setRecommendedSectionsCache(
+          sections.map((s) => ({ id: s.id, games: s.games ?? [] })),
+        );
         setGames(section.games ?? []);
         onGamesLoaded(section.games ?? []);
       } catch {
@@ -264,7 +284,10 @@ export default function RecommendedSectionDetailPage({
                         type="button"
                         className="mhg-library-button mhg-library-active recommended-section-context-rail-library"
                         data-mhg-library-key="recommended"
-                        onClick={() => navigateToLibraryRoot(navigate, "recommended")}
+                        onClick={() => {
+                          markRecommendedReturnToIndex();
+                          navigateToLibraryRoot(navigate, "recommended");
+                        }}
                       >
                         <span className="mhg-library-button-label">{t("libraries.recommended")}</span>
                       </button>
