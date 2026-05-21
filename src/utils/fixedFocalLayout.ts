@@ -112,10 +112,90 @@ function fixedFocalItemTopRaw(
   return firstAbove + (offset + 1) * unselectedStep;
 }
 
+function fixedFocalPackedStep(
+  coverHeight: number,
+  gap: number,
+  unselectedScale: number,
+  packed: boolean,
+): number {
+  if (!packed) return coverHeight + gap;
+  return coverHeight * unselectedScale + gap;
+}
+
+function fixedFocalTileBottomAtRawTop(
+  rawTop: number,
+  offset: number,
+  coverHeight: number,
+  unselectedScale: number,
+  packed: boolean,
+): number {
+  return fixedFocalSlotBottom(rawTop, offset, coverHeight, unselectedScale, packed);
+}
+
+/** Tile must leave the libraries strip or sit above the first stacked row (no overlap). */
+function fixedFocalNeedsLibrariesStripStack(
+  offset: number,
+  focalTopPx: number,
+  coverHeight: number,
+  gap: number,
+  unselectedScale: number,
+  packed: boolean,
+  stripTop: number,
+  firstStackTop: number,
+): boolean {
+  const rawTop = fixedFocalItemTopRaw(
+    focalTopPx,
+    offset,
+    coverHeight,
+    gap,
+    unselectedScale,
+    packed,
+  );
+  const bottom = fixedFocalTileBottomAtRawTop(
+    rawTop,
+    offset,
+    coverHeight,
+    unselectedScale,
+    packed,
+  );
+  return bottom > stripTop || bottom > firstStackTop;
+}
+
+/** Stack index from -1 down to `offset` among tiles that need strip stacking. */
+function librariesStripStackIndex(
+  offset: number,
+  focalTopPx: number,
+  coverHeight: number,
+  gap: number,
+  unselectedScale: number,
+  packed: boolean,
+  stripTop: number,
+  firstStackTop: number,
+): number {
+  let count = 0;
+  for (let o = -1; o >= offset; o--) {
+    if (
+      fixedFocalNeedsLibrariesStripStack(
+        o,
+        focalTopPx,
+        coverHeight,
+        gap,
+        unselectedScale,
+        packed,
+        stripTop,
+        firstStackTop,
+      )
+    ) {
+      count++;
+    }
+  }
+  return Math.max(0, count - 1);
+}
+
 /**
  * Absolute top for a cover offset from the focal index.
- * Tiles may pass behind the transparent top tool dock (natural Y + z-index). Only
- * tiles that intersect the libraries icon strip (not the dock) are nudged upward.
+ * Tiles in the top tool dock band keep natural Y (pass behind the dock). Tiles that
+ * intersect the libraries icon strip stack upward from the strip top without overlap.
  */
 export function fixedFocalItemTop(
   focalTopPx: number,
@@ -136,9 +216,36 @@ export function fixedFocalItemTop(
   );
   if (!librariesStripBand || offset >= 0) return top;
 
-  const bottom = fixedFocalSlotBottom(top, offset, coverHeight, unselectedScale, packed);
-  const clearLine = librariesStripBand.top - readFixedFocalBarSkipGapPx(0);
-  if (bottom <= clearLine) return top;
+  const stripTop = librariesStripBand.top;
+  const barSkipGap = readFixedFocalBarSkipGapPx(0);
+  const packStep = fixedFocalPackedStep(coverHeight, gap, unselectedScale, packed);
+  const { bottomExtent } = fixedFocalScaledVisualInsets(coverHeight, unselectedScale);
+  const firstStackTop = stripTop - barSkipGap - bottomExtent;
 
-  return top - (bottom - clearLine);
+  if (
+    !fixedFocalNeedsLibrariesStripStack(
+      offset,
+      focalTopPx,
+      coverHeight,
+      gap,
+      unselectedScale,
+      packed,
+      stripTop,
+      firstStackTop,
+    )
+  ) {
+    return top;
+  }
+
+  const stackIndex = librariesStripStackIndex(
+    offset,
+    focalTopPx,
+    coverHeight,
+    gap,
+    unselectedScale,
+    packed,
+    stripTop,
+    firstStackTop,
+  );
+  return firstStackTop - stackIndex * packStep;
 }
