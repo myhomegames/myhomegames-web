@@ -99,7 +99,8 @@ export default function MainAppLayout({
     () =>
       /^\/collections\/[^/]+/.test(pathname) ||
       /^\/developers\/[^/]+/.test(pathname) ||
-      /^\/publishers\/[^/]+/.test(pathname),
+      /^\/publishers\/[^/]+/.test(pathname) ||
+      /^\/recommended\/[^/]+/.test(pathname),
     [pathname]
   );
 

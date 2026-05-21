@@ -90,6 +90,64 @@ export function readLibraryBarBandPx(listEl?: HTMLElement | null): LibraryBarBan
   return { top, bottom };
 }
 
+/** Active library icon button band relative to a list root (recommended title skip). */
+export function readActiveLibraryIconBandPx(listEl?: HTMLElement | null): LibraryBarBandPx | null {
+  if (typeof window === "undefined" || typeof document === "undefined") return null;
+  const list = listEl?.isConnected ? listEl : null;
+  if (!list) return null;
+  const doc = list.ownerDocument ?? document;
+  const icon = doc.querySelector(".mhg-libraries-bar .mhg-library-active");
+  if (!(icon instanceof HTMLElement)) return null;
+  const rect = icon.getBoundingClientRect();
+  const listTop = list.getBoundingClientRect().top;
+  const top = rect.top - listTop;
+  const bottom = rect.bottom - listTop;
+  if (!Number.isFinite(top) || !Number.isFinite(bottom) || bottom <= top) return null;
+  return { top, bottom };
+}
+
+function readRecommendedSectionRowHeightPx(fallback = 72): number {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return fallback;
+  }
+  const raw = parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue("--mhg-recommended-section-row-height"),
+  );
+  return Number.isFinite(raw) && raw > 0 ? raw : fallback;
+}
+
+/**
+ * Recommended strip titles: focal line through the active library icon center (Y).
+ */
+export function readRecommendedStripFocalTopPx(listEl?: HTMLElement | null): number {
+  if (typeof window === "undefined" || typeof document === "undefined") return 0;
+
+  const list = listEl?.isConnected ? listEl : null;
+  const doc = list?.ownerDocument ?? document;
+  const rowHeightPx = readRecommendedSectionRowHeightPx();
+
+  const activeIcon = doc.querySelector(".mhg-libraries-bar .mhg-library-active");
+  if (activeIcon instanceof HTMLElement && list) {
+    const iconRect = activeIcon.getBoundingClientRect();
+    const listTop = list.getBoundingClientRect().top;
+    const iconCenterY = iconRect.top + iconRect.height / 2;
+    const aligned = iconCenterY - listTop - rowHeightPx / 2;
+    if (Number.isFinite(aligned)) {
+      return aligned;
+    }
+  }
+
+  const rawCenterY = parseFloat(
+    getComputedStyle(doc.documentElement).getPropertyValue("--mhg-active-library-icon-center-y"),
+  );
+  if (list && Number.isFinite(rawCenterY)) {
+    const listTop = list.getBoundingClientRect().top;
+    return rawCenterY - listTop - rowHeightPx / 2;
+  }
+
+  return readFixedFocalTopPx(listEl);
+}
+
 /** Context-rail column 2 (detail + tag games beside the fixed cover). */
 export function isContextRailGamesScroll(containerEl?: HTMLElement | null): boolean {
   return !!containerEl?.closest(

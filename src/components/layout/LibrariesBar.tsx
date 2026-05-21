@@ -101,6 +101,22 @@ function findTableViewScrollport(outer: HTMLElement): HTMLElement | null {
  * scrolls on an inner element. Prefer the scrollport with the largest overflow range, then the
  * deeper node so we do not move a shallow “page” strip while the cover column stays stuck.
  */
+function findFixedFocalWheelTarget(activeLibraryKey: string | null | undefined): HTMLElement | null {
+  if (typeof document === "undefined") return null;
+  const root = document.querySelector("#root");
+  if (!root) return null;
+
+  if (activeLibraryKey === "recommended") {
+    const strips = root.querySelector(".fixed-focal-recommended-strips-list");
+    if (strips instanceof HTMLElement) return strips;
+  }
+
+  const el = root.querySelector(
+    ".fixed-focal-games-list, .fixed-focal-tag-list, .fixed-focal-collections-list, .fixed-focal-recommended-strips-list",
+  );
+  return el instanceof HTMLElement ? el : null;
+}
+
 function pickWheelScrollTarget(): HTMLElement | null {
   if (typeof document === "undefined") return null;
   const outer =
@@ -129,6 +145,7 @@ function pickWheelScrollTarget(): HTMLElement | null {
     ".fixed-focal-games-list",
     ".fixed-focal-tag-list",
     ".fixed-focal-collections-list",
+    ".fixed-focal-recommended-strips-list",
     ".virtualized-games-grid",
     ".virtualized-collections-grid",
     ".virtualized-games-list-detail",
@@ -719,7 +736,9 @@ export default function LibrariesBar({
       if (!activeButton) return;
       const rect = activeButton.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
       document.documentElement.style.setProperty("--mhg-active-library-icon-center-x", `${centerX}px`);
+      document.documentElement.style.setProperty("--mhg-active-library-icon-center-y", `${centerY}px`);
       document.documentElement.style.setProperty("--mhg-active-library-icon-left-x", `${rect.left}px`);
     };
     updateActiveIconLine();
@@ -736,12 +755,14 @@ export default function LibrariesBar({
     if (!activeSkinWeb.verticalCoverAlignment) return;
     const strip = containerRef.current;
     if (!strip) return;
+    const wheelRoot =
+      (strip.closest(".mhg-libraries-bar") as HTMLElement | null) ?? strip;
 
     const wheelAccum = { accumulated: 0 };
     const wheelThresholdPx = readWheelStepThresholdPx(strip);
 
     const onWheel = (e: WheelEvent) => {
-      if (!strip.contains(e.target as Node)) return;
+      if (!wheelRoot.contains(e.target as Node)) return;
       const el = e.target as Element | null;
       if (el?.closest?.(".dropdown-menu-popup")) return;
       if (el?.closest?.("input[type=range], textarea, [contenteditable=true]")) return;
@@ -755,11 +776,12 @@ export default function LibrariesBar({
         return;
       }
 
-      const fixedFocal =
-        document.querySelector<HTMLElement>(
-          "#root .fixed-focal-games-list, #root .fixed-focal-tag-list, #root .fixed-focal-collections-list",
-        );
-      if (fixedFocal) {
+      const fixedFocal = findFixedFocalWheelTarget(activeLibrary?.key);
+      const recommendedStripsActive =
+        activeLibrary?.key === "recommended" &&
+        !!document.querySelector("#root .fixed-focal-recommended-strips-list");
+
+      if (fixedFocal || recommendedStripsActive) {
         e.preventDefault();
         applyWheelDeltaStep(wheelAccum, e.deltaY, wheelThresholdPx, (direction) => {
           document.dispatchEvent(
@@ -794,9 +816,9 @@ export default function LibrariesBar({
       mainScroll.scrollTop += e.deltaY;
     };
 
-    strip.addEventListener("wheel", onWheel, { passive: false, capture: true });
-    return () => strip.removeEventListener("wheel", onWheel, { capture: true });
-  }, [activeSkinWeb.verticalCoverAlignment]);
+    wheelRoot.addEventListener("wheel", onWheel, { passive: false, capture: true });
+    return () => wheelRoot.removeEventListener("wheel", onWheel, { capture: true });
+  }, [activeSkinWeb.verticalCoverAlignment, activeLibrary?.key]);
 
   /** Top-strip layout only; full sidebars ship column layout in skin CSS. */
   const verticalPageTabsLayout =

@@ -27,6 +27,7 @@ import LibraryItemDetailPage from "./pages/LibraryItemDetailPage";
 import TagGamesRoutePage from "./pages/TagGamesRoutePage";
 import LoginPage from "./pages/LoginPage";
 import IGDBGameDetailPage from "./pages/IGDBGameDetailPage";
+import RecommendedSectionDetailPage from "./pages/RecommendedSectionDetailPage";
 
 import type { GameItem, CollectionItem } from "./types";
 import { buildApiUrl, buildCoverUrl, buildApiHeaders } from "./utils/api";
@@ -332,6 +333,30 @@ function AppContent() {
                 <LibraryItemDetailPage
                   onGameClick={handleGameClick}
                   onIgdbGameClick={twitchLoginEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                  onGamesLoaded={() => {}}
+                  onPlay={openLauncher}
+                  allCollections={allCollections}
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/recommended/:sectionId"
+            element={
+              <ProtectedRoute>
+                <Header
+                  onPlay={openLauncher}
+                  allGames={allGames}
+                  allCollections={allCollections}
+                  allDevelopers={allDevelopers}
+                  allPublishers={allPublishers}
+                  onGameSelect={handleGameSelect}
+                  onHomeClick={() => navigate("/")}
+                  onSettingsClick={() => navigate("/settings")}
+                  onAddGameClick={() => setAddGameOpen(true)}
+                />
+                <RecommendedSectionDetailPage
+                  onGameClick={handleGameClick}
                   onGamesLoaded={() => {}}
                   onPlay={openLauncher}
                   allCollections={allCollections}
@@ -653,6 +678,17 @@ function AppContent() {
                 }
               >
                 <Route index element={<HomePage />} />
+                <Route
+                  path="recommended/:sectionId"
+                  element={
+                    <RecommendedSectionDetailPage
+                      onGameClick={handleGameClick}
+                      onGamesLoaded={() => {}}
+                      onPlay={openLauncher}
+                      allCollections={allCollections}
+                    />
+                  }
+                />
                 <Route
                   path="game/:gameId"
                   element={<GameDetailPage onPlay={openLauncher} allCollections={allCollections} />}

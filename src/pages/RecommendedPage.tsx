@@ -6,7 +6,9 @@ import { useAuth } from "../contexts/AuthContext";
 import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
 import { useLoading } from "../contexts/LoadingContext";
 import { useSettings } from "../contexts/SettingsContext";
+import { useSkin } from "../contexts/SkinContext";
 import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
+import FixedFocalRecommendedSectionsList from "../components/lists/FixedFocalRecommendedSectionsList";
 import type { GameItem, CollectionItem } from "../types";
 import { API_BASE } from "../config";
 import { getTwitchClientId, getTwitchClientSecret } from "../config";
@@ -38,10 +40,13 @@ export default function RecommendedPage({
   const { token } = useAuth();
   const { twitchLoginEnabled, settingsLoaded } = useSettings();
   const { setLoading } = useLoading();
+  const { activeSkinWeb } = useSkin();
+  const verticalStripsLayout = activeSkinWeb.verticalCoverAlignment;
   const [sections, setSections] = useState<RecommendedSection[]>([]);
   const [isReady, setIsReady] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const stripsScrollRef = useRef<HTMLDivElement>(null);
   const fetchingRef = useRef<boolean>(false);
   const fetchGenerationRef = useRef(0);
   const onGamesLoadedRef = useRef(onGamesLoaded);
@@ -60,8 +65,7 @@ export default function RecommendedPage({
     [twitchLoginEnabled, navigate, onGameClick]
   );
   
-  // Restore scroll position
-  useScrollRestoration(scrollContainerRef);
+  useScrollRestoration(scrollContainerRef, undefined, !verticalStripsLayout);
 
   const sectionsForDisplay = useMemo(() => {
     const q = titleFilterQuery.trim();
@@ -163,6 +167,34 @@ export default function RecommendedPage({
     [sections]
   );
   const sectionTitles = useAutoTranslateBatch(batchItems);
+
+  const stripRows = useMemo(
+    () =>
+      sectionsForDisplay.map((section) => ({
+        id: section.id,
+        title: sectionTitles[section.id] ?? section.id,
+      })),
+    [sectionsForDisplay, sectionTitles],
+  );
+
+  const handleStripClick = useCallback(
+    (section: { id: string; title: string }) => {
+      navigate(`/recommended/${encodeURIComponent(section.id)}`);
+    },
+    [navigate],
+  );
+
+  useEffect(() => {
+    if (!verticalStripsLayout || !isReady) return;
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const pin = () => {
+      if (el.scrollTop !== 0) el.scrollTop = 0;
+    };
+    pin();
+    el.addEventListener("scroll", pin, { passive: true });
+    return () => el.removeEventListener("scroll", pin);
+  }, [verticalStripsLayout, isReady, stripRows.length]);
 
   async function fetchRecommendedSections() {
     if (fetchingRef.current) {
@@ -281,26 +313,52 @@ export default function RecommendedPage({
   }
 
   return (
-    <main className="flex-1 home-page-content">
-      <div className="home-page-layout">
-      <div className={`home-page-content-wrapper home-page-fade-in${isReady ? " home-page-fade-in--ready" : ""}`}>
-        <div ref={scrollContainerRef} className="home-page-scroll-container recommended-page-scroll">
-          {!isFetching && sectionsForDisplay.map((section) => (
-            <ScrollableGamesSection
-              key={section.id}
-              sectionId={section.id}
-              titleOverride={sectionTitles[section.id]}
-              disableAutoTranslate
-              games={section.games}
-              onGameClick={handleGameClick}
-              onPlay={onPlay}
-              onGameUpdate={handleGameUpdate}
-              coverSize={coverSize}
-              allCollections={allCollections}
-            />
-          ))}
+    <main
+      className={`flex-1 home-page-content${
+        verticalStripsLayout ? " mhg-recommended-strips-page" : ""
+      }`}
+    >
+      <div
+        className={`home-page-layout${
+          verticalStripsLayout ? " recommended-strips-page-layout" : ""
+        }`}
+      >
+        <div className={`home-page-content-wrapper home-page-fade-in${isReady ? " home-page-fade-in--ready" : ""}`}>
+          <div
+            ref={scrollContainerRef}
+            className={`home-page-scroll-container recommended-page-scroll${
+              verticalStripsLayout ? " recommended-page-scroll--strips-layout" : ""
+            }`}
+          >
+            {!isFetching &&
+              (verticalStripsLayout ? (
+                stripRows.length > 0 ? (
+                  <div ref={stripsScrollRef} className="recommended-strips-column">
+                    <FixedFocalRecommendedSectionsList
+                      sections={stripRows}
+                      containerRef={stripsScrollRef}
+                      onSectionClick={handleStripClick}
+                    />
+                  </div>
+                ) : null
+              ) : (
+                sectionsForDisplay.map((section) => (
+                  <ScrollableGamesSection
+                    key={section.id}
+                    sectionId={section.id}
+                    titleOverride={sectionTitles[section.id]}
+                    disableAutoTranslate
+                    games={section.games}
+                    onGameClick={handleGameClick}
+                    onPlay={onPlay}
+                    onGameUpdate={handleGameUpdate}
+                    coverSize={coverSize}
+                    allCollections={allCollections}
+                  />
+                ))
+              ))}
+          </div>
         </div>
-      </div>
       </div>
     </main>
   );
