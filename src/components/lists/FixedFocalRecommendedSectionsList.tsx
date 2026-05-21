@@ -8,7 +8,7 @@ import {
 import { notifyFixedFocalIndexChange } from "../../utils/fixedFocalStepSound";
 import { applyWheelDeltaStep, readWheelStepThresholdPx } from "../../utils/stepScrollSnap";
 import {
-  fixedFocalItemTop,
+  fixedFocalRecommendedStripTitleTop,
   readFixedFocalNeighborSlots,
   readFixedFocalPackedRows,
 } from "../../utils/fixedFocalLayout";
@@ -259,7 +259,7 @@ export default function FixedFocalRecommendedSectionsList({
         const section = sections[index];
         const offset = index - selectedIndex;
         const isSelected = offset === 0;
-        const top = fixedFocalItemTop(
+        const top = fixedFocalRecommendedStripTitleTop(
           focalTopPx,
           offset,
           rowHeightPx,
@@ -267,6 +267,7 @@ export default function FixedFocalRecommendedSectionsList({
           scaleValues.unselected,
           packedRows,
           readActiveLibraryIconBandPx(listRef.current),
+          scaleValues.selected,
         );
 
         return (

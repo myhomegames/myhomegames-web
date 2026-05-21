@@ -249,3 +249,167 @@ export function fixedFocalItemTop(
   );
   return firstStackTop - stackIndex * packStep;
 }
+
+/** Extra gap for strip titles in the library icon band (`--mhg-recommended-strip-bar-adjacent-gap`). */
+export function readRecommendedStripBarAdjacentGapPx(fallback = 16): number {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return fallback;
+  }
+  const raw = parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue(
+      "--mhg-recommended-strip-bar-adjacent-gap",
+    ),
+  );
+  return Number.isFinite(raw) && raw >= 0 ? raw : fallback;
+}
+
+/** Lower the selected strip title from icon-center focal (`--mhg-recommended-strip-selected-nudge-down`). */
+export function readRecommendedStripSelectedNudgeDownPx(fallback?: number): number {
+  const fallbackPx = fallback ?? 56;
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return fallbackPx;
+  }
+  const raw = parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue(
+      "--mhg-recommended-strip-selected-nudge-down",
+    ),
+  );
+  return Number.isFinite(raw) && raw >= 0 ? raw : fallbackPx;
+}
+
+/** Min gap between selected strip title bottom and the next title below (`--mhg-recommended-strip-below-selected-gap`). */
+export function readRecommendedStripBelowSelectedGapPx(fallback = 40): number {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return fallback;
+  }
+  const raw = parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue(
+      "--mhg-recommended-strip-below-selected-gap",
+    ),
+  );
+  return Number.isFinite(raw) && raw >= 0 ? raw : fallback;
+}
+
+/** Min gap between the title above and the selected strip title top (`--mhg-recommended-strip-above-selected-gap`). */
+export function readRecommendedStripAboveSelectedGapPx(fallback = 56): number {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return fallback;
+  }
+  const raw = parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue(
+      "--mhg-recommended-strip-above-selected-gap",
+    ),
+  );
+  return Number.isFinite(raw) && raw >= 0 ? raw : fallback;
+}
+
+/** Extra clearance above the library icon top for the strip title immediately above it. */
+export function readRecommendedStripAboveIconGapPx(fallback = 20): number {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return fallback;
+  }
+  const raw = parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue(
+      "--mhg-recommended-strip-above-icon-gap",
+    ),
+  );
+  return Number.isFinite(raw) && raw >= 0 ? raw : fallback;
+}
+
+/** Largest `top` (px) so a strip title row sits above the icon and above the selected title. */
+function recommendedStripMaxTopAboveIconAndSelected(
+  selectedTop: number,
+  rowHeight: number,
+  iconBand: LibraryBarBandPx,
+  aboveSelectedGap: number,
+  aboveIconGap: number,
+): number {
+  const barSkipGap = readFixedFocalBarSkipGapPx(0);
+  const capAboveSelected = selectedTop - aboveSelectedGap - rowHeight;
+  const capAboveIcon = iconBand.top - barSkipGap - aboveIconGap - aboveSelectedGap - rowHeight;
+  return Math.min(capAboveSelected, capAboveIcon);
+}
+
+/**
+ * Recommended strip titles: selected (on icon) nudged down; titles below kept under it;
+ * titles in the icon band above shift up together.
+ */
+export function fixedFocalRecommendedStripTitleTop(
+  focalTopPx: number,
+  offset: number,
+  rowHeight: number,
+  gap: number,
+  unselectedScale: number,
+  packed: boolean,
+  iconBand: LibraryBarBandPx | null,
+  selectedScale = 1,
+): number {
+  const top = fixedFocalItemTop(
+    focalTopPx,
+    offset,
+    rowHeight,
+    gap,
+    unselectedScale,
+    packed,
+    iconBand,
+  );
+
+  const selectedNudge = readRecommendedStripSelectedNudgeDownPx();
+  const selectedTop =
+    fixedFocalItemTop(focalTopPx, 0, rowHeight, gap, unselectedScale, packed, iconBand) +
+    selectedNudge;
+  const selectedBottom = fixedFocalTileBottomAtRawTop(
+    selectedTop,
+    0,
+    rowHeight,
+    selectedScale,
+    packed,
+  );
+
+  if (offset === 0) {
+    return selectedTop;
+  }
+
+  if (offset > 0) {
+    const belowGap = readRecommendedStripBelowSelectedGapPx();
+    const packStep = fixedFocalPackedStep(rowHeight, gap, unselectedScale, packed);
+    const plusOneTop = Math.max(
+      fixedFocalItemTop(focalTopPx, 1, rowHeight, gap, unselectedScale, packed, iconBand),
+      selectedBottom + belowGap,
+    );
+    if (offset === 1) {
+      return Math.max(top, plusOneTop);
+    }
+    const minTop = plusOneTop + (offset - 1) * packStep;
+    return Math.max(top, minTop);
+  }
+
+  if (!iconBand) return top;
+
+  const aboveSelectedGap = readRecommendedStripAboveSelectedGapPx();
+  const aboveIconGap = readRecommendedStripAboveIconGapPx();
+  const packStep = fixedFocalPackedStep(rowHeight, gap, unselectedScale, packed);
+  const maxTopAbove = recommendedStripMaxTopAboveIconAndSelected(
+    selectedTop,
+    rowHeight,
+    iconBand,
+    aboveSelectedGap,
+    aboveIconGap,
+  );
+
+  let adjusted = top;
+
+  const minusOneBase = fixedFocalItemTop(focalTopPx, -1, rowHeight, gap, unselectedScale, packed, iconBand);
+  const minusOneTop = Math.min(minusOneBase, maxTopAbove);
+
+  if (offset === -1) {
+    return Math.min(adjusted, maxTopAbove);
+  }
+
+  if (offset < -1) {
+    const minTop = minusOneTop - (-offset - 1) * packStep;
+    return Math.min(adjusted, minTop);
+  }
+
+  return adjusted;
+}
