@@ -358,7 +358,7 @@ export default function FixedFocalGamesList({
     return <div className="virtualized-list-fill" />;
   }
 
-  const barBand = readLibraryBarBandPx(listRef.current);
+  const librariesStripBand = readLibraryBarBandPx(listRef.current);
 
   return (
     <div
@@ -387,7 +387,7 @@ export default function FixedFocalGamesList({
           GAP,
           scaleValues.unselected,
           packedRows,
-          barBand,
+          librariesStripBand,
         );
 
         return (

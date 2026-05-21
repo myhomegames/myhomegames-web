@@ -52,9 +52,22 @@ function readFirstCssVarHeightPx(
  * Resolves `--mhg-grid-top-inset` to used CSS pixels for the given element's
  * cascade context (same as VirtualizedGamesList / VirtualizedCollectionsList).
  */
-/** Libraries bar band relative to a fixed-focal list (px). `null` = no bar skip (context-rail). */
+
+/** Libraries icon strip band relative to a fixed-focal list (px). Excludes the top tool dock. */
 export type LibraryBarBandPx = { top: number; bottom: number };
 
+function findLibrariesStripEl(doc: Document): HTMLElement | null {
+  const bar = doc.querySelector(".mhg-libraries-bar");
+  if (!(bar instanceof HTMLElement)) return null;
+  const strip = bar.querySelector(".mhg-libraries-bar-container");
+  return strip instanceof HTMLElement ? strip : bar;
+}
+
+/**
+ * Band occupied by the libraries icon strip (`.mhg-libraries-bar-container`), not
+ * the optional top tool dock (`.mhg-top-right-tool-dock`). Covers may pass behind
+ * the dock; only tiles intersecting this strip band are nudged upward in JS.
+ */
 export function readLibraryBarBandPx(listEl?: HTMLElement | null): LibraryBarBandPx | null {
   if (typeof window === "undefined" || typeof document === "undefined") return null;
   const list = listEl?.isConnected ? listEl : null;
@@ -67,9 +80,9 @@ export function readLibraryBarBandPx(listEl?: HTMLElement | null): LibraryBarBan
     return null;
   }
   const doc = list.ownerDocument ?? document;
-  const bar = doc.querySelector(".mhg-libraries-bar");
-  if (!(bar instanceof HTMLElement)) return null;
-  const rect = bar.getBoundingClientRect();
+  const strip = findLibrariesStripEl(doc);
+  if (!strip) return null;
+  const rect = strip.getBoundingClientRect();
   const listTop = list.getBoundingClientRect().top;
   const top = rect.top - listTop;
   const bottom = rect.bottom - listTop;
@@ -257,11 +270,11 @@ export function readFixedFocalTopPx(
   const doc = list?.ownerDocument ?? scrollContainerEl?.ownerDocument ?? document;
 
   if (list) {
-    const bar = doc.querySelector(".mhg-libraries-bar");
-    if (bar instanceof HTMLElement) {
-      const barBottom = bar.getBoundingClientRect().bottom;
+    const strip = findLibrariesStripEl(doc);
+    if (strip) {
+      const stripBottom = strip.getBoundingClientRect().bottom;
       const listTop = list.getBoundingClientRect().top;
-      const aligned = barBottom + readFocalBelowBarGapPx(doc) - listTop;
+      const aligned = stripBottom + readFocalBelowBarGapPx(doc) - listTop;
       if (Number.isFinite(aligned) && aligned > 0) {
         return aligned;
       }

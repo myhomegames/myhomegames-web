@@ -55,14 +55,27 @@ function fixedFocalScaledVisualInsets(
   };
 }
 
-function fixedFocalUnselectedStep(
+/** Clearance above the libraries icon strip when a tile is nudged out of it (`--mhg-fixed-focal-bar-skip-gap`). */
+export function readFixedFocalBarSkipGapPx(fallback = 0): number {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return fallback;
+  }
+  const raw = parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue("--mhg-fixed-focal-bar-skip-gap"),
+  );
+  return Number.isFinite(raw) && raw >= 0 ? raw : fallback;
+}
+
+function fixedFocalSlotBottom(
+  top: number,
+  offset: number,
   coverHeight: number,
-  gap: number,
   unselectedScale: number,
   packed: boolean,
 ): number {
-  if (!packed) return coverHeight + gap;
-  return coverHeight * unselectedScale + gap;
+  if (offset === 0 || !packed) return top + coverHeight;
+  const { bottomExtent } = fixedFocalScaledVisualInsets(coverHeight, unselectedScale);
+  return top + bottomExtent;
 }
 
 function fixedFocalItemTopRaw(
@@ -99,22 +112,10 @@ function fixedFocalItemTopRaw(
   return firstAbove + (offset + 1) * unselectedStep;
 }
 
-function fixedFocalSlotBottom(
-  top: number,
-  offset: number,
-  coverHeight: number,
-  unselectedScale: number,
-  packed: boolean,
-): number {
-  if (offset === 0 || !packed) return top + coverHeight;
-  const { bottomExtent } = fixedFocalScaledVisualInsets(coverHeight, unselectedScale);
-  return top + bottomExtent;
-}
-
 /**
  * Absolute top for a cover offset from the focal index.
- * Tiles above the focal that would draw inside the libraries bar band are moved
- * into the column above the bar; tiles already above the bar keep their position.
+ * Tiles may pass behind the transparent top tool dock (natural Y + z-index). Only
+ * tiles that intersect the libraries icon strip (not the dock) are nudged upward.
  */
 export function fixedFocalItemTop(
   focalTopPx: number,
@@ -123,8 +124,7 @@ export function fixedFocalItemTop(
   gap: number,
   unselectedScale: number,
   packed: boolean,
-  barBand: LibraryBarBandPx | null = null,
-  _maxNeighborAbove = 0,
+  librariesStripBand: LibraryBarBandPx | null = null,
 ): number {
   const top = fixedFocalItemTopRaw(
     focalTopPx,
@@ -134,19 +134,11 @@ export function fixedFocalItemTop(
     unselectedScale,
     packed,
   );
-  if (!barBand || offset >= 0) return top;
+  if (!librariesStripBand || offset >= 0) return top;
 
   const bottom = fixedFocalSlotBottom(top, offset, coverHeight, unselectedScale, packed);
+  const clearLine = librariesStripBand.top - readFixedFocalBarSkipGapPx(0);
+  if (bottom <= clearLine) return top;
 
-  if (bottom <= barBand.top) {
-    return top;
-  }
-  if (top >= barBand.bottom) {
-    return top;
-  }
-
-  const step = fixedFocalUnselectedStep(coverHeight, gap, unselectedScale, packed);
-  const { bottomExtent } = fixedFocalScaledVisualInsets(coverHeight, unselectedScale);
-  const slotIndex = -offset;
-  return barBand.top - gap - bottomExtent - (slotIndex - 1) * step;
+  return top - (bottom - clearLine);
 }
