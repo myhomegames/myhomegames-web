@@ -304,7 +304,7 @@ export function readRecommendedStripAboveSelectedGapPx(fallback = 56): number {
 }
 
 /** Extra clearance above the library icon top for the strip title immediately above it. */
-export function readRecommendedStripAboveIconGapPx(fallback = 20): number {
+export function readRecommendedStripAboveIconGapPx(fallback = 12): number {
   if (typeof window === "undefined" || typeof document === "undefined") {
     return fallback;
   }
@@ -326,7 +326,7 @@ function recommendedStripMaxTopAboveIconAndSelected(
 ): number {
   const barSkipGap = readFixedFocalBarSkipGapPx(0);
   const capAboveSelected = selectedTop - aboveSelectedGap - rowHeight;
-  const capAboveIcon = iconBand.top - barSkipGap - aboveIconGap - aboveSelectedGap - rowHeight;
+  const capAboveIcon = iconBand.top - barSkipGap - aboveIconGap - rowHeight;
   return Math.min(capAboveSelected, capAboveIcon);
 }
 
