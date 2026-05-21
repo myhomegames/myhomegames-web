@@ -4,7 +4,11 @@ import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 import { GameListItem } from "./GamesList";
 import { useSkin } from "../../contexts/SkinContext";
-import { readFixedFocalGamesTopPx, isContextRailGamesScroll } from "../../utils/readGridTopInsetPx";
+import {
+  readFixedFocalGamesTopPx,
+  isContextRailGamesScroll,
+  readLibraryBarBandPx,
+} from "../../utils/readGridTopInsetPx";
 import { notifyFixedFocalIndexChange } from "../../utils/fixedFocalStepSound";
 import { applyWheelDeltaStep, readWheelStepThresholdPx } from "../../utils/stepScrollSnap";
 import { portraitCoverHeight } from "../../utils/coverPortrait";
@@ -354,6 +358,8 @@ export default function FixedFocalGamesList({
     return <div className="virtualized-list-fill" />;
   }
 
+  const barBand = readLibraryBarBandPx(listRef.current);
+
   return (
     <div
       ref={listRef}
@@ -380,7 +386,8 @@ export default function FixedFocalGamesList({
           coverHeight,
           GAP,
           scaleValues.unselected,
-          packedRows
+          packedRows,
+          barBand,
         );
 
         return (

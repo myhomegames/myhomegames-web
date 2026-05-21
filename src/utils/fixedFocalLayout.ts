@@ -1,4 +1,5 @@
 import { portraitCoverHeight } from "./coverPortrait";
+import type { LibraryBarBandPx } from "./readGridTopInsetPx";
 
 /** Neighbor slots above/below the focal cover (`--mhg-fixed-focal-neighbor-slots`). */
 export function readFixedFocalNeighborSlots(fallback: number): number {
@@ -54,26 +55,34 @@ function fixedFocalScaledVisualInsets(
   };
 }
 
-/** Absolute top for a cover offset from the focal index. */
-export function fixedFocalItemTop(
+function fixedFocalUnselectedStep(
+  coverHeight: number,
+  gap: number,
+  unselectedScale: number,
+  packed: boolean,
+): number {
+  if (!packed) return coverHeight + gap;
+  return coverHeight * unselectedScale + gap;
+}
+
+function fixedFocalItemTopRaw(
   focalTopPx: number,
   offset: number,
   coverHeight: number,
   gap: number,
   unselectedScale: number,
-  packed: boolean
+  packed: boolean,
 ): number {
   if (offset === 0) return focalTopPx;
   if (!packed) {
     return focalTopPx + offset * (coverHeight + gap);
   }
 
-  const smallH = coverHeight * unselectedScale;
   const { topInset, bottomExtent } = fixedFocalScaledVisualInsets(
     coverHeight,
     unselectedScale,
   );
-  const unselectedStep = smallH + gap;
+  const unselectedStep = coverHeight * unselectedScale + gap;
 
   if (offset === 1) {
     return focalTopPx + coverHeight + gap - topInset;
@@ -88,4 +97,56 @@ export function fixedFocalItemTop(
 
   const firstAbove = focalTopPx - gap - bottomExtent;
   return firstAbove + (offset + 1) * unselectedStep;
+}
+
+function fixedFocalSlotBottom(
+  top: number,
+  offset: number,
+  coverHeight: number,
+  unselectedScale: number,
+  packed: boolean,
+): number {
+  if (offset === 0 || !packed) return top + coverHeight;
+  const { bottomExtent } = fixedFocalScaledVisualInsets(coverHeight, unselectedScale);
+  return top + bottomExtent;
+}
+
+/**
+ * Absolute top for a cover offset from the focal index.
+ * Tiles above the focal that would draw inside the libraries bar band are moved
+ * into the column above the bar; tiles already above the bar keep their position.
+ */
+export function fixedFocalItemTop(
+  focalTopPx: number,
+  offset: number,
+  coverHeight: number,
+  gap: number,
+  unselectedScale: number,
+  packed: boolean,
+  barBand: LibraryBarBandPx | null = null,
+  _maxNeighborAbove = 0,
+): number {
+  const top = fixedFocalItemTopRaw(
+    focalTopPx,
+    offset,
+    coverHeight,
+    gap,
+    unselectedScale,
+    packed,
+  );
+  if (!barBand || offset >= 0) return top;
+
+  const bottom = fixedFocalSlotBottom(top, offset, coverHeight, unselectedScale, packed);
+
+  if (bottom <= barBand.top) {
+    return top;
+  }
+  if (top >= barBand.bottom) {
+    return top;
+  }
+
+  const step = fixedFocalUnselectedStep(coverHeight, gap, unselectedScale, packed);
+  const { bottomExtent } = fixedFocalScaledVisualInsets(coverHeight, unselectedScale);
+  const slotIndex = -offset;
+  return barBand.top - gap - bottomExtent - (slotIndex - 1) * step;
 }

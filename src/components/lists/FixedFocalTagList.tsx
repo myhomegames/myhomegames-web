@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useLocation } from "react-router-dom";
 import type { TagItem } from "../../types";
 import { useSkin } from "../../contexts/SkinContext";
-import { readGridTopInsetPx } from "../../utils/readGridTopInsetPx";
+import { readGridTopInsetPx, readLibraryBarBandPx } from "../../utils/readGridTopInsetPx";
 import { notifyFixedFocalIndexChange } from "../../utils/fixedFocalStepSound";
 import { applyWheelDeltaStep, readWheelStepThresholdPx } from "../../utils/stepScrollSnap";
 import {
@@ -277,7 +277,8 @@ export default function FixedFocalTagList({
           coverHeight,
           TAG_GAP_PX,
           scaleValues.unselected,
-          packedRows
+          packedRows,
+          readLibraryBarBandPx(listRef.current),
         );
 
         return (

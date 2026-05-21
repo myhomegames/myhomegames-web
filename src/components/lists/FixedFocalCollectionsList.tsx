@@ -4,7 +4,7 @@ import type { CollectionItem } from "../../types";
 import type { GamesPathType } from "./CollectionsList";
 import { CollectionListItem } from "./CollectionsList";
 import { useSkin } from "../../contexts/SkinContext";
-import { readFixedFocalTopPx } from "../../utils/readGridTopInsetPx";
+import { readFixedFocalTopPx, readLibraryBarBandPx } from "../../utils/readGridTopInsetPx";
 import { notifyFixedFocalIndexChange } from "../../utils/fixedFocalStepSound";
 import { applyWheelDeltaStep, readWheelStepThresholdPx } from "../../utils/stepScrollSnap";
 import { portraitCoverHeight } from "../../utils/coverPortrait";
@@ -325,7 +325,8 @@ export default function FixedFocalCollectionsList({
           coverHeight,
           GAP,
           scaleValues.unselected,
-          packedRows
+          packedRows,
+          readLibraryBarBandPx(listRef.current),
         );
 
         return (

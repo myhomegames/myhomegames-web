@@ -52,6 +52,31 @@ function readFirstCssVarHeightPx(
  * Resolves `--mhg-grid-top-inset` to used CSS pixels for the given element's
  * cascade context (same as VirtualizedGamesList / VirtualizedCollectionsList).
  */
+/** Libraries bar band relative to a fixed-focal list (px). `null` = no bar skip (context-rail). */
+export type LibraryBarBandPx = { top: number; bottom: number };
+
+export function readLibraryBarBandPx(listEl?: HTMLElement | null): LibraryBarBandPx | null {
+  if (typeof window === "undefined" || typeof document === "undefined") return null;
+  const list = listEl?.isConnected ? listEl : null;
+  if (!list) return null;
+  if (
+    list.closest(
+      ".library-item-detail-context-games, .tag-games-context-games, .tag-games-page-shell--context-rail .tag-games-context-games",
+    )
+  ) {
+    return null;
+  }
+  const doc = list.ownerDocument ?? document;
+  const bar = doc.querySelector(".mhg-libraries-bar");
+  if (!(bar instanceof HTMLElement)) return null;
+  const rect = bar.getBoundingClientRect();
+  const listTop = list.getBoundingClientRect().top;
+  const top = rect.top - listTop;
+  const bottom = rect.bottom - listTop;
+  if (!Number.isFinite(top) || !Number.isFinite(bottom) || bottom <= top) return null;
+  return { top, bottom };
+}
+
 /** Context-rail column 2 (detail + tag games beside the fixed cover). */
 export function isContextRailGamesScroll(containerEl?: HTMLElement | null): boolean {
   return !!containerEl?.closest(
