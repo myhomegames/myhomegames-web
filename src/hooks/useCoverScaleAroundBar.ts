@@ -64,7 +64,7 @@ function readScaleSelected(): number {
 
 function findContextRailFocalLineY(): number | null {
   const cover = document.querySelector<HTMLElement>(
-    ".library-item-detail-context-rail-cover, .tag-games-context-rail-cover",
+    ".library-item-detail-context-rail-cover, .tag-games-context-rail-cover, .recommended-section-context-rail-title-block",
   );
   if (!cover) return null;
   const rect = cover.getBoundingClientRect();
@@ -84,7 +84,11 @@ function findLibraryFocalLineY(): number | null {
 }
 
 function findFocalLineY(scroller: HTMLElement): number | null {
-  if (scroller.closest(".library-item-detail-context-games, .tag-games-context-games")) {
+  if (
+    scroller.closest(
+      ".library-item-detail-context-games, .tag-games-context-games, .recommended-section-context-games",
+    )
+  ) {
     return findContextRailFocalLineY();
   }
   return findLibraryFocalLineY();

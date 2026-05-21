@@ -13,6 +13,10 @@ import type { GameItem, CollectionItem } from "../types";
 import { API_BASE } from "../config";
 import { getTwitchClientId, getTwitchClientSecret } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
+import {
+  setRecommendedSectionsCache,
+  type RecommendedSectionsNavState,
+} from "../utils/recommendedSectionsCache";
 import { titleMatchesFilter } from "../utils/titleFilter";
 
 type RecommendedSection = {
@@ -79,14 +83,16 @@ export default function RecommendedPage({
   }, [sections, titleFilterQuery]);
 
   const handleGameUpdate = (updatedGame: GameItem) => {
-    setSections((prevSections) =>
-      prevSections.map((section) => ({
+    setSections((prevSections) => {
+      const next = prevSections.map((section) => ({
         ...section,
         games: section.games.map((game) =>
           String(game.id) === String(updatedGame.id) ? updatedGame : game
         ),
-      }))
-    );
+      }));
+      setRecommendedSectionsCache(next);
+      return next;
+    });
     window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
   };
 
@@ -96,14 +102,16 @@ export default function RecommendedPage({
       const customEvent = event as CustomEvent<{ game: GameItem }>;
       const updatedGame = customEvent.detail?.game;
       if (updatedGame) {
-        setSections((prevSections) =>
-          prevSections.map((section) => ({
+        setSections((prevSections) => {
+          const next = prevSections.map((section) => ({
             ...section,
             games: section.games.map((game) =>
               String(game.id) === String(updatedGame.id) ? updatedGame : game
             ),
-          }))
-        );
+          }));
+          setRecommendedSectionsCache(next);
+          return next;
+        });
       }
     };
 
@@ -179,9 +187,15 @@ export default function RecommendedPage({
 
   const handleStripClick = useCallback(
     (section: { id: string; title: string }) => {
-      navigate(`/recommended/${encodeURIComponent(section.id)}`);
+      const snapshot = sections;
+      setRecommendedSectionsCache(snapshot);
+      const navState: RecommendedSectionsNavState = {
+        recommendedSectionsSnapshot: snapshot,
+        skipRecommendedFetch: true,
+      };
+      navigate(`/recommended/${encodeURIComponent(section.id)}`, { state: navState });
     },
-    [navigate],
+    [navigate, sections],
   );
 
   useEffect(() => {
@@ -245,6 +259,7 @@ export default function RecommendedPage({
 
       // Show library data immediately so the page is fast
       setSections(parsedSections);
+      setRecommendedSectionsCache(parsedSections);
       onGamesLoadedRef.current(parsedSections.flatMap((s) => s.games));
       setIsFetching(false);
       setLoadingRef.current(false);
@@ -293,6 +308,7 @@ export default function RecommendedPage({
                   const next = prev.map((s) =>
                     s.id === section.id ? { ...s, games: [...s.games, ...igdbGames] } : s
                   );
+                  setRecommendedSectionsCache(next);
                   onGamesLoadedRef.current(next.flatMap((s) => s.games));
                   return next;
                 });

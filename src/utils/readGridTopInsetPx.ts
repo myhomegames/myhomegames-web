@@ -74,7 +74,7 @@ export function readLibraryBarBandPx(listEl?: HTMLElement | null): LibraryBarBan
   if (!list) return null;
   if (
     list.closest(
-      ".library-item-detail-context-games, .tag-games-context-games, .tag-games-page-shell--context-rail .tag-games-context-games",
+      ".library-item-detail-context-games, .tag-games-context-games, .recommended-section-context-games, .tag-games-page-shell--context-rail .tag-games-context-games",
     )
   ) {
     return null;
@@ -166,7 +166,7 @@ export function readRecommendedStripFocalTopPx(listEl?: HTMLElement | null): num
 /** Context-rail column 2 (detail + tag games beside the fixed cover). */
 export function isContextRailGamesScroll(containerEl?: HTMLElement | null): boolean {
   return !!containerEl?.closest(
-    ".library-item-detail-context-games, .tag-games-context-games",
+    ".library-item-detail-context-games, .tag-games-context-games, .recommended-section-context-games",
   );
 }
 
@@ -174,7 +174,7 @@ function readContextRailFocalNudgePx(containerEl?: HTMLElement | null): number {
   if (typeof window === "undefined" || typeof document === "undefined") return 0;
   const host =
     containerEl?.closest(
-      ".library-item-detail-page-shell--context-rail, .tag-games-page-shell--context-rail",
+      ".library-item-detail-page-shell--context-rail, .tag-games-page-shell--context-rail, .recommended-section-detail-shell--context-rail",
     ) ?? containerEl;
   const mounts: HTMLElement[] = [];
   if (host instanceof HTMLElement) mounts.push(host);
@@ -193,8 +193,9 @@ function readContextRailFocalNudgePx(containerEl?: HTMLElement | null): number {
 export function readContextRailCoverTopPx(containerEl?: HTMLElement | null): number {
   if (typeof window === "undefined" || typeof document === "undefined") return 0;
   const host =
-    containerEl?.closest(".library-item-detail-context-games, .tag-games-context-games") ??
-    containerEl;
+    containerEl?.closest(
+      ".library-item-detail-context-games, .tag-games-context-games, .recommended-section-context-games",
+    ) ?? containerEl;
   const mounts =
     host instanceof HTMLElement ? [host] : gridInsetMountCandidates(containerEl);
   if (mounts.length === 0) mounts.push(document.documentElement);
@@ -214,12 +215,16 @@ export function readContextRailFocalTopPx(
   const list = listEl?.isConnected ? listEl : null;
   const doc = list?.ownerDocument ?? scrollContainerEl?.ownerDocument ?? document;
   const col1Cover = doc.querySelector(
-    ".library-item-detail-context-rail-cover, .tag-games-context-rail-cover",
+    ".library-item-detail-context-rail-cover, .tag-games-context-rail-cover, .recommended-section-context-rail-title-block",
   );
 
   const scrollHost =
-    scrollContainerEl?.closest(".library-item-detail-context-games, .tag-games-context-games") ??
-    list?.closest(".library-item-detail-context-games, .tag-games-context-games");
+    scrollContainerEl?.closest(
+      ".library-item-detail-context-games, .tag-games-context-games, .recommended-section-context-games",
+    ) ??
+    list?.closest(
+      ".library-item-detail-context-games, .tag-games-context-games, .recommended-section-context-games",
+    );
   const scrollTop =
     scrollHost instanceof HTMLElement && Number.isFinite(scrollHost.scrollTop)
       ? scrollHost.scrollTop
