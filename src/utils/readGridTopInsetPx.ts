@@ -105,7 +105,7 @@ export function readActiveLibraryIconCenterXPx(): number | null {
   return Number.isFinite(raw) ? raw : null;
 }
 
-/** Active library icon left edge X in viewport coordinates (px). */
+/** Active library icon tile left edge X in viewport coordinates (px). */
 export function readActiveLibraryIconLeftXPx(): number | null {
   if (typeof window === "undefined" || typeof document === "undefined") return null;
   const activeIcon = document.querySelector(".mhg-libraries-bar .mhg-library-active");
@@ -117,6 +117,28 @@ export function readActiveLibraryIconLeftXPx(): number | null {
     getComputedStyle(document.documentElement).getPropertyValue("--mhg-active-library-icon-left-x"),
   );
   return Number.isFinite(raw) ? raw : null;
+}
+
+/** Visible ::before glyph left edge X in viewport coordinates (px). */
+export function readActiveLibraryIconGraphicLeftXPx(): number | null {
+  if (typeof window === "undefined" || typeof document === "undefined") return null;
+  const raw = parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue(
+      "--mhg-active-library-icon-graphic-left-x",
+    ),
+  );
+  if (Number.isFinite(raw)) return raw;
+  const centerX = readActiveLibraryIconCenterXPx();
+  if (centerX == null) return readActiveLibraryIconLeftXPx();
+  const activeIcon = document.querySelector(".mhg-libraries-bar .mhg-library-active");
+  if (activeIcon instanceof HTMLElement) {
+    const beforeStyle = getComputedStyle(activeIcon, "::before");
+    const glyphFontSize = parseFloat(beforeStyle.fontSize);
+    if (Number.isFinite(glyphFontSize) && glyphFontSize > 0) {
+      return centerX - glyphFontSize * 0.5;
+    }
+  }
+  return centerX - 26;
 }
 
 /** Extra inset after icon left for recommended strip titles (`--mhg-recommended-strip-title-anchor-inset-left`). */

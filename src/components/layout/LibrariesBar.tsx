@@ -737,9 +737,18 @@ export default function LibrariesBar({
       const rect = activeButton.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
       const centerY = rect.top + rect.height / 2;
+      const beforeStyle = getComputedStyle(activeButton, "::before");
+      const glyphFontSize = parseFloat(beforeStyle.fontSize);
+      const glyphHalfWidth =
+        Number.isFinite(glyphFontSize) && glyphFontSize > 0 ? glyphFontSize * 0.5 : 26;
+      const graphicLeftX = centerX - glyphHalfWidth;
       document.documentElement.style.setProperty("--mhg-active-library-icon-center-x", `${centerX}px`);
       document.documentElement.style.setProperty("--mhg-active-library-icon-center-y", `${centerY}px`);
       document.documentElement.style.setProperty("--mhg-active-library-icon-left-x", `${rect.left}px`);
+      document.documentElement.style.setProperty(
+        "--mhg-active-library-icon-graphic-left-x",
+        `${graphicLeftX}px`,
+      );
     };
     updateActiveIconLine();
     const onResize = () => updateActiveIconLine();

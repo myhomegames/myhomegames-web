@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import { useSkin } from "../../contexts/SkinContext";
 import {
   readActiveLibraryIconBandPx,
-  readActiveLibraryIconLeftXPx,
+  readActiveLibraryIconGraphicLeftXPx,
   readRecommendedStripFocalTopPx,
   readRecommendedStripTitleAnchorInsetLeftPx,
 } from "../../utils/readGridTopInsetPx";
@@ -103,11 +103,11 @@ export default function FixedFocalRecommendedSectionsList({
   const syncIconAnchorLeft = useCallback(() => {
     const list = listRef.current;
     if (!list) return;
-    const iconLeftX = readActiveLibraryIconLeftXPx();
-    if (iconLeftX == null) return;
+    const iconGraphicLeftX = readActiveLibraryIconGraphicLeftXPx();
+    if (iconGraphicLeftX == null) return;
     const listLeft = list.getBoundingClientRect().left;
     const inset = readRecommendedStripTitleAnchorInsetLeftPx();
-    setIconAnchorLeftPx(iconLeftX - listLeft + inset);
+    setIconAnchorLeftPx(iconGraphicLeftX - listLeft + inset);
   }, []);
 
   useEffect(() => {
@@ -296,7 +296,7 @@ export default function FixedFocalRecommendedSectionsList({
               top,
               width: "max-content",
               maxWidth:
-                "min(var(--mhg-tag-vertical-column-width, var(--mhg-vertical-column-width)), calc(100vw - var(--mhg-active-library-icon-left-x, 0px) - var(--mhg-vertical-column-viewport-margin, 72px) - var(--mhg-recommended-strip-title-anchor-inset-left, 0px)))",
+                "min(var(--mhg-tag-vertical-column-width, var(--mhg-vertical-column-width)), calc(100vw - var(--mhg-active-library-icon-graphic-left-x, var(--mhg-active-library-icon-left-x, 0px)) - var(--mhg-vertical-column-viewport-margin, 72px) - var(--mhg-recommended-strip-title-anchor-inset-left, 0px)))",
               boxSizing: "border-box",
               minHeight: rowHeightPx,
               ["--mhg-cell-scale" as string]: (
