@@ -105,6 +105,33 @@ export function readActiveLibraryIconCenterXPx(): number | null {
   return Number.isFinite(raw) ? raw : null;
 }
 
+/** Active library icon left edge X in viewport coordinates (px). */
+export function readActiveLibraryIconLeftXPx(): number | null {
+  if (typeof window === "undefined" || typeof document === "undefined") return null;
+  const activeIcon = document.querySelector(".mhg-libraries-bar .mhg-library-active");
+  if (activeIcon instanceof HTMLElement) {
+    const { left } = activeIcon.getBoundingClientRect();
+    if (Number.isFinite(left)) return left;
+  }
+  const raw = parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue("--mhg-active-library-icon-left-x"),
+  );
+  return Number.isFinite(raw) ? raw : null;
+}
+
+/** Extra inset after icon left for recommended strip titles (`--mhg-recommended-strip-title-anchor-inset-left`). */
+export function readRecommendedStripTitleAnchorInsetLeftPx(fallback = 0): number {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return fallback;
+  }
+  const raw = parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue(
+      "--mhg-recommended-strip-title-anchor-inset-left",
+    ),
+  );
+  return Number.isFinite(raw) ? raw : fallback;
+}
+
 /** Active library icon button band relative to a list root (recommended title skip). */
 export function readActiveLibraryIconBandPx(listEl?: HTMLElement | null): LibraryBarBandPx | null {
   if (typeof window === "undefined" || typeof document === "undefined") return null;
