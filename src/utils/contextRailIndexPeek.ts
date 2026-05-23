@@ -56,6 +56,95 @@ export type ContextRailNavState = {
   contextRailMotion?: boolean;
 };
 
+const CONTEXT_RAIL_RETURN_SESSION_KEY = "mhg:context-rail-return";
+
+export function writeContextRailReturnSession(
+  libraryKey: string,
+  snapshot: ContextRailIndexPeekSnapshot,
+): void {
+  if (typeof sessionStorage === "undefined") return;
+  try {
+    sessionStorage.setItem(
+      CONTEXT_RAIL_RETURN_SESSION_KEY,
+      JSON.stringify({ libraryKey, snapshot }),
+    );
+  } catch {
+    // Ignore quota / private mode
+  }
+}
+
+export function readContextRailReturnSession(
+  libraryKey: string,
+): ContextRailIndexPeekSnapshot | null {
+  if (typeof sessionStorage === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(CONTEXT_RAIL_RETURN_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as {
+      libraryKey?: string;
+      snapshot?: ContextRailIndexPeekSnapshot;
+    };
+    if (parsed.libraryKey !== libraryKey || !parsed.snapshot?.items?.length) return null;
+    return parsed.snapshot;
+  } catch {
+    return null;
+  }
+}
+
+export function clearContextRailReturnSession(): void {
+  if (typeof sessionStorage === "undefined") return;
+  try {
+    sessionStorage.removeItem(CONTEXT_RAIL_RETURN_SESSION_KEY);
+  } catch {
+    // Ignore
+  }
+}
+
+/** Resolve return peek from navigation state or session (browser back). */
+export function resolveContextRailReturnPeek(
+  libraryKey: string,
+  locationState: unknown,
+): ContextRailIndexPeekSnapshot | null {
+  const nav = readContextRailNavState(locationState);
+  if (nav?.contextRailIndexPeek && nav.contextRailMotion) {
+    return nav.contextRailIndexPeek;
+  }
+  return readContextRailReturnSession(libraryKey);
+}
+
+export function resolveSnapshotSelectedIndex<T extends { id: string | number }>(
+  items: T[],
+  snapshot: ContextRailIndexPeekSnapshot,
+): number {
+  if (items.length === 0) return 0;
+  const anchor = snapshot.items[snapshot.selectedIndex];
+  if (anchor) {
+    const byId = items.findIndex((item) => String(item.id) === anchor.id);
+    if (byId >= 0) return byId;
+  }
+  return Math.max(0, Math.min(items.length - 1, snapshot.selectedIndex));
+}
+
+function runContextRailNavigation(
+  navigate: NavigateFunction,
+  to: string,
+  state: ContextRailNavState,
+): void {
+  const go = () => {
+    flushSync(() => {
+      navigate(to, { state });
+    });
+  };
+
+  if (typeof document !== "undefined" && "startViewTransition" in document) {
+    (
+      document as Document & { startViewTransition: (cb: () => void) => void }
+    ).startViewTransition(go);
+  } else {
+    go();
+  }
+}
+
 /** Shared element names for index → detail context-rail transition. */
 export const CONTEXT_RAIL_COVER_VIEW_TRANSITION = "mhg-context-rail-cover";
 export const CONTEXT_RAIL_LIBRARY_VIEW_TRANSITION = "mhg-context-rail-library";
@@ -151,22 +240,27 @@ export function navigateWithContextRailPeek(
   navigate: NavigateFunction,
   to: string,
   snapshot: ContextRailIndexPeekSnapshot,
+  libraryKey: string,
 ): void {
-  const state: ContextRailNavState = {
+  writeContextRailReturnSession(libraryKey, snapshot);
+  runContextRailNavigation(navigate, to, {
     contextRailIndexPeek: snapshot,
     contextRailMotion: true,
-  };
-  const go = () => {
-    flushSync(() => {
-      navigate(to, { state });
-    });
-  };
+  });
+}
 
-  if (typeof document !== "undefined" && "startViewTransition" in document) {
-    (
-      document as Document & { startViewTransition: (cb: () => void) => void }
-    ).startViewTransition(go);
-  } else {
-    go();
+/** Animated return to the index list (library tab + restored focal selection). */
+export function navigateBackToContextRailIndex(
+  navigate: NavigateFunction,
+  libraryKey: string,
+  snapshot: ContextRailIndexPeekSnapshot,
+): void {
+  if (typeof localStorage !== "undefined") {
+    localStorage.setItem("lastSelectedLibrary", libraryKey);
   }
+  writeContextRailReturnSession(libraryKey, snapshot);
+  runContextRailNavigation(navigate, "/", {
+    contextRailIndexPeek: snapshot,
+    contextRailMotion: true,
+  });
 }

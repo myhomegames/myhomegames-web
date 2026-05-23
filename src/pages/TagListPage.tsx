@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useLoading } from "../contexts/LoadingContext";
@@ -20,7 +20,10 @@ import { buildApiHeaders, buildApiUrl, buildCoverUrl } from "../utils/api";
 import {
   buildTagIndexPeekSnapshot,
   captureIndexListLayoutAnchor,
+  clearContextRailReturnSession,
   navigateWithContextRailPeek,
+  resolveContextRailReturnPeek,
+  resolveSnapshotSelectedIndex,
 } from "../utils/contextRailIndexPeek";
 
 type TagListPageProps = {
@@ -75,6 +78,7 @@ export default function TagListPage({
   const titleFilterQuery = useTitleFilterQuery();
   const { activeSkinWeb } = useSkin();
   const navigate = useNavigate();
+  const location = useLocation();
   const contextRailPeekEnabled =
     activeSkinWeb.verticalCoverAlignment && activeSkinWeb.compactCollectionLikeDetail;
   const tagListCoverSize = coverSize * 2;
@@ -261,7 +265,7 @@ export default function TagListPage({
   const handleItemActivate = useCallback(
     (item: TagItem, index: number) => {
       const route = `${routeBase}/${encodeURIComponent(item.id)}`;
-      if (contextRailPeekEnabled) {
+      if (contextRailPeekEnabled && tagKey) {
         navigateWithContextRailPeek(
           navigate,
           route,
@@ -271,13 +275,32 @@ export default function TagListPage({
             tagListCoverSize,
             captureIndexListLayoutAnchor(scrollContainerRef.current),
           ),
+          tagKey,
         );
         return;
       }
       navigate(route);
     },
-    [contextRailPeekEnabled, displayItems, navigate, routeBase, tagListCoverSize],
+    [contextRailPeekEnabled, displayItems, navigate, routeBase, tagKey, tagListCoverSize],
   );
+
+  const contextRailReturnPeek = useMemo(() => {
+    if (!contextRailPeekEnabled || !tagKey) return null;
+    return resolveContextRailReturnPeek(tagKey, location.state);
+  }, [contextRailPeekEnabled, tagKey, location.state]);
+
+  const contextRailMotionReturn = contextRailReturnPeek != null;
+
+  const restoreSelectedIndex = useMemo(() => {
+    if (!contextRailReturnPeek || displayItems.length === 0) return undefined;
+    return resolveSnapshotSelectedIndex(displayItems, contextRailReturnPeek);
+  }, [contextRailReturnPeek, displayItems]);
+
+  useEffect(() => {
+    if (contextRailReturnPeek) {
+      clearContextRailReturnSession();
+    }
+  }, [contextRailReturnPeek]);
 
   const handleItemUpdate = (updatedItem: TagItem) => {
     const isMatch = (item: TagItem) => String(item.id) === String(updatedItem.id);
@@ -385,7 +408,9 @@ export default function TagListPage({
   return (
     <main className="flex-1 home-page-content">
       <div className="home-page-layout">
-        <div className={`home-page-content-wrapper home-page-fade-in${isReady && isScrollRestored ? " home-page-fade-in--ready" : ""}`}>
+        <div
+          className={`home-page-content-wrapper home-page-fade-in${isReady && isScrollRestored ? " home-page-fade-in--ready" : ""}${contextRailMotionReturn ? " mhg-context-rail-motion-return" : ""}`}
+        >
           <div ref={scrollContainerRef} className="home-page-scroll-container">
             {!isLoading && (
               <TagList
@@ -400,6 +425,7 @@ export default function TagListPage({
                 getCoverUrl={getCoverUrl}
                 emptyMessage={emptyMessage}
                 onItemActivate={fixedFocalTags ? handleItemActivate : undefined}
+                restoreSelectedIndex={restoreSelectedIndex}
               />
             )}
           </div>

@@ -37,6 +37,7 @@ type CollectionsListProps = {
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
   onFocalSelectionChange?: (collection: CollectionItem | null) => void;
   onCollectionActivate?: (collection: CollectionItem, index: number) => void;
+  restoreSelectedIndex?: number;
 };
 
 type CollectionListItemProps = {
@@ -209,6 +210,7 @@ export default function CollectionsList({
   scrollContainerRef,
   onFocalSelectionChange,
   onCollectionActivate,
+  restoreSelectedIndex,
 }: CollectionsListProps) {
   const { t } = useTranslation();
   const { activeSkinWeb } = useSkin();
@@ -350,6 +352,7 @@ export default function CollectionsList({
           buildCoverUrl={buildCoverUrl}
           onSelectionChange={onFocalSelectionChange}
           onCollectionActivate={onCollectionActivate}
+          restoreSelectedIndex={restoreSelectedIndex}
         />
       ) : (
       <div

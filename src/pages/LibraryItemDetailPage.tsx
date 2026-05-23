@@ -2148,7 +2148,11 @@ function LibraryItemDetailContent({
                                 ? { viewTransitionName: CONTEXT_RAIL_LIBRARY_VIEW_TRANSITION }
                                 : undefined
                             }
-                            onClick={() => navigateToLibraryRoot(navigate, contextRailLibraryKey)}
+                            onClick={() =>
+                              navigateToLibraryRoot(navigate, contextRailLibraryKey, {
+                                contextRailReturn: indexPeekSnapshot ?? undefined,
+                              })
+                            }
                           >
                             <span className="mhg-library-button-label">
                               {t(`libraries.${contextRailLibraryKey}`)}

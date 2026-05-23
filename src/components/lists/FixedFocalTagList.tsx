@@ -67,6 +67,7 @@ export type FixedFocalTagListProps = {
   contextRailPeek?: boolean;
   onItemActivate?: (item: TagItem, index: number) => void;
   onSelectionChange?: (item: TagItem | null, index: number) => void;
+  restoreSelectedIndex?: number;
 };
 
 /**
@@ -87,6 +88,7 @@ export default function FixedFocalTagList({
   contextRailPeek = false,
   onItemActivate,
   onSelectionChange,
+  restoreSelectedIndex,
 }: FixedFocalTagListProps) {
   const location = useLocation();
   const listRef = useRef<HTMLDivElement>(null);
@@ -173,6 +175,15 @@ export default function FixedFocalTagList({
       setIsRestored(true);
       return;
     }
+    if (interactive && restoreSelectedIndex !== undefined) {
+      const idx = Math.max(0, Math.min(items.length - 1, restoreSelectedIndex));
+      setSelectedIndex(idx);
+      if (rowHeight > 0) {
+        saveScrollTop(storageKey, idx * rowHeight);
+      }
+      setIsRestored(true);
+      return;
+    }
     const saved = getSavedScrollTop(storageKey);
     if (saved > 0 && rowHeight > 0) {
       const idx = Math.round(saved / rowHeight);
@@ -181,7 +192,15 @@ export default function FixedFocalTagList({
       setSelectedIndex(0);
     }
     setIsRestored(true);
-  }, [location.pathname, items.length, rowHeight, storageKey, interactive, lockedSelectedIndex]);
+  }, [
+    location.pathname,
+    items.length,
+    rowHeight,
+    storageKey,
+    interactive,
+    lockedSelectedIndex,
+    restoreSelectedIndex,
+  ]);
 
   useEffect(() => {
     if (!interactive || !isRestored || rowHeight <= 0) return;

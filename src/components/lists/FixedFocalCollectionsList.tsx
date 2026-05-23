@@ -100,6 +100,7 @@ export type FixedFocalCollectionsListProps = {
   interactive?: boolean;
   contextRailPeek?: boolean;
   onCollectionActivate?: (collection: CollectionItem, index: number) => void;
+  restoreSelectedIndex?: number;
 };
 
 /**
@@ -125,6 +126,7 @@ export default function FixedFocalCollectionsList({
   interactive = true,
   contextRailPeek = false,
   onCollectionActivate,
+  restoreSelectedIndex,
 }: FixedFocalCollectionsListProps) {
   const location = useLocation();
   const listRef = useRef<HTMLDivElement>(null);
@@ -228,6 +230,15 @@ export default function FixedFocalCollectionsList({
       setIsRestored(true);
       return;
     }
+    if (interactive && restoreSelectedIndex !== undefined) {
+      const idx = Math.max(0, Math.min(collections.length - 1, restoreSelectedIndex));
+      setSelectedIndex(idx);
+      if (rowHeight > 0) {
+        setScrollPosition(storageKey, idx * rowHeight, 0);
+      }
+      setIsRestored(true);
+      return;
+    }
     const saved = getScrollPosition(storageKey);
     if (saved && rowHeight > 0) {
       const idx = Math.round(saved.scrollTop / rowHeight);
@@ -236,7 +247,16 @@ export default function FixedFocalCollectionsList({
       setSelectedIndex(0);
     }
     setIsRestored(true);
-  }, [location.pathname, collections.length, rowHeight, storageKey, gamesPath, interactive, lockedSelectedIndex]);
+  }, [
+    location.pathname,
+    collections.length,
+    rowHeight,
+    storageKey,
+    gamesPath,
+    interactive,
+    lockedSelectedIndex,
+    restoreSelectedIndex,
+  ]);
 
   useEffect(() => {
     if (!interactive || !isRestored || rowHeight <= 0) return;

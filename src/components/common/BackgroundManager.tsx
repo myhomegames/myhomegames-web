@@ -82,7 +82,12 @@ export default function BackgroundManager({
   useLayoutEffect(() => {
     const root = document.getElementById("root");
     if (!root) return undefined;
-    /* Portal sits before #root in the DOM; skins should set #root { position: relative; z-index: 1 } so the app paints above this layer. */
+    /*
+     * Portal is the first child of #root so it shares the app stacking context
+     * (fixed full-bleed layer under .background-manager-foreground). Mounting on
+     * body before #root left the image behind z-index:1 #root and invisible once
+     * page shells went transparent for context-rail backdrops.
+     */
     const mount = document.createElement("div");
     mount.setAttribute("data-mhg-background-portal", "");
     mount.setAttribute("aria-hidden", "true");
@@ -93,7 +98,7 @@ export default function BackgroundManager({
     mount.style.minHeight = "100vh";
     mount.style.pointerEvents = "none";
     mount.style.zIndex = "0";
-    document.body.insertBefore(mount, root);
+    root.insertBefore(mount, root.firstChild);
     setPortalHost(mount);
     return () => {
       mount.remove();
@@ -156,7 +161,10 @@ export default function BackgroundManager({
   const showPortalPaint =
     Boolean(portalHost) && hasBackground && isBackgroundVisible && backgroundUrl.trim() !== "";
 
-  /* Portal paints full viewport; root duplicate + overlay caused two-tone columns on context-rail pages. */
+  /*
+   * Portal paints full viewport when mounted; keep root paint only until the portal
+   * host exists (first frame). Never stack image on both — that caused two-tone columns.
+   */
   const paintedBackgroundStyle =
     showPortalPaint
       ? undefined

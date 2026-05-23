@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useLayoutEffect, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useLoading } from "../contexts/LoadingContext";
 import { usePublishers } from "../contexts/PublishersContext";
@@ -17,7 +17,10 @@ import FocalSelectionBackgroundShell, {
 import {
   buildCollectionIndexPeekSnapshot,
   captureIndexListLayoutAnchor,
+  clearContextRailReturnSession,
   navigateWithContextRailPeek,
+  resolveContextRailReturnPeek,
+  resolveSnapshotSelectedIndex,
 } from "../utils/contextRailIndexPeek";
 
 type PublishersPageProps = {
@@ -31,6 +34,7 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
   const titleFilterQuery = useTitleFilterQuery();
   const { activeSkinWeb } = useSkin();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isReady, setIsReady] = useState(false);
   const [sortAscending] = useState(true);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -90,6 +94,7 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
             "publishers",
             captureIndexListLayoutAnchor(scrollContainerRef.current),
           ),
+          "publishers",
         );
         return;
       }
@@ -97,6 +102,24 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
     },
     [contextRailPeekEnabled, sortedPublishers, navigate, coverSize],
   );
+
+  const contextRailReturnPeek = useMemo(() => {
+    if (!contextRailPeekEnabled) return null;
+    return resolveContextRailReturnPeek("publishers", location.state);
+  }, [contextRailPeekEnabled, location.state]);
+
+  const contextRailMotionReturn = contextRailReturnPeek != null;
+
+  const restoreSelectedIndex = useMemo(() => {
+    if (!contextRailReturnPeek || sortedPublishers.length === 0) return undefined;
+    return resolveSnapshotSelectedIndex(sortedPublishers, contextRailReturnPeek);
+  }, [contextRailReturnPeek, sortedPublishers]);
+
+  useEffect(() => {
+    if (contextRailReturnPeek) {
+      clearContextRailReturnSession();
+    }
+  }, [contextRailReturnPeek]);
 
   function handlePublisherClick(publisher: CollectionItem) {
     const index = sortedPublishers.findIndex(
@@ -133,7 +156,9 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
     >
     <main className="flex-1 home-page-content">
       <div className="home-page-layout">
-        <div className={`home-page-content-wrapper home-page-fade-in${isReady ? " home-page-fade-in--ready" : ""}`}>
+        <div
+          className={`home-page-content-wrapper home-page-fade-in${isReady ? " home-page-fade-in--ready" : ""}${contextRailMotionReturn ? " mhg-context-rail-motion-return" : ""}`}
+        >
           <div ref={scrollContainerRef} className="home-page-scroll-container">
             <CollectionsList
               collections={sortedPublishers}
@@ -152,6 +177,7 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
               onFocalSelectionChange={
                 focalBackgroundEnabled ? handleFocalSelectionChange : undefined
               }
+              restoreSelectedIndex={restoreSelectedIndex}
             />
           </div>
         </div>

@@ -589,7 +589,11 @@ export default function TagGamesPage({
                         ? { viewTransitionName: CONTEXT_RAIL_LIBRARY_VIEW_TRANSITION }
                         : undefined
                     }
-                    onClick={() => navigateToLibraryRoot(navigate, tagKey)}
+                    onClick={() =>
+                      navigateToLibraryRoot(navigate, tagKey, {
+                        contextRailReturn: indexPeekSnapshot ?? undefined,
+                      })
+                    }
                   >
                     <span className="mhg-library-button-label">
                       {t(`libraries.${tagKey}`)}

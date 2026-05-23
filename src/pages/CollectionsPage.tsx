@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useLayoutEffect, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useLoading } from "../contexts/LoadingContext";
 import { useCollections } from "../contexts/CollectionsContext";
@@ -17,7 +17,10 @@ import FocalSelectionBackgroundShell, {
 import {
   buildCollectionIndexPeekSnapshot,
   captureIndexListLayoutAnchor,
+  clearContextRailReturnSession,
   navigateWithContextRailPeek,
+  resolveContextRailReturnPeek,
+  resolveSnapshotSelectedIndex,
 } from "../utils/contextRailIndexPeek";
 
 type CollectionsPageProps = {
@@ -34,6 +37,7 @@ export default function CollectionsPage({
   const titleFilterQuery = useTitleFilterQuery();
   const { activeSkinWeb } = useSkin();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isReady, setIsReady] = useState(false);
   const [sortAscending] = useState(true);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -102,6 +106,7 @@ export default function CollectionsPage({
             "collections",
             captureIndexListLayoutAnchor(scrollContainerRef.current),
           ),
+          "collections",
         );
         return;
       }
@@ -109,6 +114,24 @@ export default function CollectionsPage({
     },
     [contextRailPeekEnabled, sortedCollections, navigate, coverSize],
   );
+
+  const contextRailReturnPeek = useMemo(() => {
+    if (!contextRailPeekEnabled) return null;
+    return resolveContextRailReturnPeek("collections", location.state);
+  }, [contextRailPeekEnabled, location.state]);
+
+  const contextRailMotionReturn = contextRailReturnPeek != null;
+
+  const restoreSelectedIndex = useMemo(() => {
+    if (!contextRailReturnPeek || sortedCollections.length === 0) return undefined;
+    return resolveSnapshotSelectedIndex(sortedCollections, contextRailReturnPeek);
+  }, [contextRailReturnPeek, sortedCollections]);
+
+  useEffect(() => {
+    if (contextRailReturnPeek) {
+      clearContextRailReturnSession();
+    }
+  }, [contextRailReturnPeek]);
 
   function handleCollectionClick(collection: CollectionItem) {
     const index = sortedCollections.findIndex(
@@ -156,7 +179,9 @@ export default function CollectionsPage({
     >
     <main className="flex-1 home-page-content">
       <div className="home-page-layout">
-      <div className={`home-page-content-wrapper home-page-fade-in${isReady ? " home-page-fade-in--ready" : ""}`}>
+      <div
+        className={`home-page-content-wrapper home-page-fade-in${isReady ? " home-page-fade-in--ready" : ""}${contextRailMotionReturn ? " mhg-context-rail-motion-return" : ""}`}
+      >
         <div
           ref={scrollContainerRef}
           className="home-page-scroll-container"
@@ -177,6 +202,7 @@ export default function CollectionsPage({
             onFocalSelectionChange={
               focalBackgroundEnabled ? handleFocalSelectionChange : undefined
             }
+            restoreSelectedIndex={restoreSelectedIndex}
           />
         </div>
       </div>

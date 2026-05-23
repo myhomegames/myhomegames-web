@@ -20,6 +20,7 @@ type TagListProps = {
   routeBase?: string;
   onItemActivate?: (item: TagItem, index: number) => void;
   onSelectionChange?: (item: TagItem | null, index: number) => void;
+  restoreSelectedIndex?: number;
 };
 
 type TagListItemProps = {
@@ -144,6 +145,7 @@ export default function TagList({
   routeBase = "",
   onItemActivate,
   onSelectionChange,
+  restoreSelectedIndex,
 }: TagListProps) {
   const { t } = useTranslation();
   const { activeSkinWeb } = useSkin();
@@ -174,6 +176,7 @@ export default function TagList({
         getRoute={getRoute}
         onItemActivate={onItemActivate}
         onSelectionChange={onSelectionChange}
+        restoreSelectedIndex={restoreSelectedIndex}
       />
     );
   }
