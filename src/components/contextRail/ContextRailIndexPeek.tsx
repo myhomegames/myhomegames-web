@@ -19,7 +19,8 @@ import {
 } from "../../utils/fixedFocalLayout";
 
 /** Shift the peek column up by this many index fixed-focal rows. */
-const PEEK_LIFT_COVER_ROWS = 3;
+const PEEK_LIFT_COVER_ROWS_COLLECTION = 3;
+const PEEK_LIFT_COVER_ROWS_TAG = 2;
 
 type ContextRailIndexPeekProps = {
   snapshot: ContextRailIndexPeekSnapshot;
@@ -54,6 +55,7 @@ function computePeekLiftPx(
   unselected: number,
   packed: boolean,
   librariesStripBand: LibraryBarBandPx | null,
+  liftRows: number,
 ): number {
   const step = fixedFocalVirtualRowStep(coverHeight, gap, unselected, packed);
   const top0 = fixedFocalItemTop(
@@ -67,7 +69,7 @@ function computePeekLiftPx(
   );
   const topBefore = fixedFocalItemTop(
     focalTopPx,
-    -PEEK_LIFT_COVER_ROWS,
+    -liftRows,
     coverHeight,
     gap,
     unselected,
@@ -78,7 +80,7 @@ function computePeekLiftPx(
   if (Number.isFinite(fromLayout) && fromLayout > 0) {
     return Math.round(fromLayout);
   }
-  return Math.round(PEEK_LIFT_COVER_ROWS * step);
+  return Math.round(liftRows * step);
 }
 
 /**
@@ -122,6 +124,7 @@ export default function ContextRailIndexPeek({ snapshot }: ContextRailIndexPeekP
   }, [focalTopPx]);
 
   const librariesStripBand = readLibraryBarBandPx(stackRef.current);
+  const peekLiftRows = isTag ? PEEK_LIFT_COVER_ROWS_TAG : PEEK_LIFT_COVER_ROWS_COLLECTION;
 
   const peekLiftPx = useMemo(
     () =>
@@ -132,6 +135,7 @@ export default function ContextRailIndexPeek({ snapshot }: ContextRailIndexPeekP
         scaleValues.unselected,
         packedRows,
         librariesStripBand,
+        peekLiftRows,
       ),
     [
       resolvedFocalTopPx,
@@ -140,6 +144,7 @@ export default function ContextRailIndexPeek({ snapshot }: ContextRailIndexPeekP
       scaleValues.unselected,
       packedRows,
       librariesStripBand,
+      peekLiftRows,
     ],
   );
 
