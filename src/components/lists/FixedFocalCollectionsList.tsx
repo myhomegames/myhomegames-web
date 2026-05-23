@@ -11,7 +11,6 @@ import { useSkin } from "../../contexts/SkinContext";
 import { readFixedFocalTopPx, readLibraryBarBandPx } from "../../utils/readGridTopInsetPx";
 import { notifyFixedFocalIndexChange } from "../../utils/fixedFocalStepSound";
 import { applyWheelDeltaStep, readWheelStepThresholdPx } from "../../utils/stepScrollSnap";
-import { portraitCoverHeight } from "../../utils/coverPortrait";
 import {
   fixedFocalCoverHeight,
   fixedFocalItemTop,
@@ -414,7 +413,10 @@ export default function FixedFocalCollectionsList({
               left: 0,
               top,
               width: laneWidth,
-              minHeight: portraitCoverHeight(coverSize),
+              height: coverHeight,
+              minHeight: coverHeight,
+              maxHeight: coverHeight,
+              overflow: "visible",
               boxSizing: "border-box",
               ["--mhg-cell-scale" as string]: (
                 isSelected ? scaleValues.selected : scaleValues.unselected

@@ -11,7 +11,6 @@ import {
 } from "../../utils/readGridTopInsetPx";
 import { notifyFixedFocalIndexChange } from "../../utils/fixedFocalStepSound";
 import { applyWheelDeltaStep, readWheelStepThresholdPx } from "../../utils/stepScrollSnap";
-import { portraitCoverHeight } from "../../utils/coverPortrait";
 import {
   fixedFocalCoverHeight,
   fixedFocalItemTop,
@@ -406,9 +405,10 @@ export default function FixedFocalGamesList({
               left: 0,
               top,
               width: fullColumnSlot ? "100%" : coverSize + GAP,
-              ...(fullColumnSlot
-                ? { minHeight: portraitCoverHeight(coverSize), height: "auto" }
-                : { height: portraitCoverHeight(coverSize) }),
+              height: coverHeight,
+              minHeight: coverHeight,
+              maxHeight: coverHeight,
+              overflow: "visible",
               boxSizing: "border-box",
               ["--mhg-cell-scale" as string]: (
                 isSelected ? scaleValues.selected : scaleValues.unselected

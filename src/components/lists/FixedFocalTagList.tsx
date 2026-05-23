@@ -365,6 +365,10 @@ export default function FixedFocalTagList({
                 laneWidth ??
                 "min(var(--mhg-tag-vertical-column-width, var(--mhg-vertical-column-width)), calc(100vw - var(--mhg-vertical-column-viewport-margin, 72px)))",
               maxWidth: laneWidth,
+              height: coverHeight,
+              minHeight: coverHeight,
+              maxHeight: coverHeight,
+              overflow: "visible",
               boxSizing: "border-box",
               ["--mhg-cell-scale" as string]: (
                 isSelected ? scaleValues.selected : scaleValues.unselected
