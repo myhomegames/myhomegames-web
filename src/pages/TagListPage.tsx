@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useLoading } from "../contexts/LoadingContext";
@@ -16,6 +17,10 @@ import { resolveTagDisplayLabel } from "../utils/resolveTagDisplayLabel";
 import type { TagKey } from "../utils/tagPages";
 import { API_BASE } from "../config";
 import { buildApiHeaders, buildApiUrl, buildCoverUrl } from "../utils/api";
+import {
+  buildTagIndexPeekSnapshot,
+  navigateWithContextRailPeek,
+} from "../utils/contextRailIndexPeek";
 
 type TagListPageProps = {
   coverSize: number;
@@ -68,6 +73,10 @@ export default function TagListPage({
   const { isLoading, setLoading } = useLoading();
   const titleFilterQuery = useTitleFilterQuery();
   const { activeSkinWeb } = useSkin();
+  const navigate = useNavigate();
+  const contextRailPeekEnabled =
+    activeSkinWeb.verticalCoverAlignment && activeSkinWeb.compactCollectionLikeDetail;
+  const tagListCoverSize = coverSize * 2;
   const { tagLabels } = useTagLists();
   const { games, isLoading: gamesLoading } = useLibraryGames();
   const [items, setItems] = useState<TagItem[]>([]);
@@ -248,6 +257,22 @@ export default function TagListPage({
     });
   }, [items, titleFilterQuery, resolveItemLabel]);
 
+  const handleItemActivate = useCallback(
+    (item: TagItem, index: number) => {
+      const route = `${routeBase}/${encodeURIComponent(item.id)}`;
+      if (contextRailPeekEnabled) {
+        navigateWithContextRailPeek(
+          navigate,
+          route,
+          buildTagIndexPeekSnapshot(displayItems, index, tagListCoverSize),
+        );
+        return;
+      }
+      navigate(route);
+    },
+    [contextRailPeekEnabled, displayItems, navigate, routeBase, tagListCoverSize],
+  );
+
   const handleItemUpdate = (updatedItem: TagItem) => {
     const isMatch = (item: TagItem) => String(item.id) === String(updatedItem.id);
 
@@ -359,7 +384,7 @@ export default function TagListPage({
             {!isLoading && (
               <TagList
                 items={displayItems}
-                coverSize={coverSize * 2}
+                coverSize={tagListCoverSize}
                 itemRefs={itemRefs}
                 scrollContainerRef={scrollContainerRef}
                 routeBase={routeBase}
@@ -368,6 +393,7 @@ export default function TagListPage({
                 getRoute={getRoute}
                 getCoverUrl={getCoverUrl}
                 emptyMessage={emptyMessage}
+                onItemActivate={fixedFocalTags ? handleItemActivate : undefined}
               />
             )}
           </div>

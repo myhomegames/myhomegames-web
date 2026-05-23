@@ -18,6 +18,8 @@ type TagListProps = {
   emptyMessage?: string;
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
   routeBase?: string;
+  onItemActivate?: (item: TagItem, index: number) => void;
+  onSelectionChange?: (item: TagItem | null, index: number) => void;
 };
 
 type TagListItemProps = {
@@ -30,6 +32,9 @@ type TagListItemProps = {
   getDisplayName?: (item: TagItem) => string;
   getCoverUrl?: (item: TagItem) => string;
   getRoute?: (item: TagItem) => string;
+  navigationDisabled?: boolean;
+  onActivate?: () => void;
+  viewTransitionName?: string;
 };
 
 export function TagListItem({
@@ -42,6 +47,9 @@ export function TagListItem({
   getDisplayName,
   getCoverUrl,
   getRoute,
+  navigationDisabled = false,
+  onActivate,
+  viewTransitionName,
 }: TagListItemProps) {
   const navigate = useNavigate();
   const coverHeight = coverSize * (9 / 16); // 16:9 aspect ratio (1280x720px)
@@ -49,6 +57,11 @@ export function TagListItem({
   const coverUrl = getCoverUrl ? getCoverUrl(item) : "";
 
   const handleClick = () => {
+    if (navigationDisabled) return;
+    if (onActivate) {
+      onActivate();
+      return;
+    }
     const route = getRoute ? getRoute(item) : `/category/${item.id}`;
     navigate(route);
   };
@@ -69,14 +82,19 @@ export function TagListItem({
           itemRefs.current.set(String(item.id), el);
         }
       }}
-      className={`group cursor-pointer tag-list-item${isSelected ? " mhg-cover-scale-selected" : ""}`}
+      className={`group tag-list-item${navigationDisabled ? "" : " cursor-pointer"}${isSelected ? " mhg-cover-scale-selected" : ""}`}
       style={
         forceVerticalAlignment
           ? {
               width: "min(var(--mhg-tag-vertical-column-width, var(--mhg-vertical-column-width)), calc(100vw - var(--mhg-vertical-column-viewport-margin, 72px)))",
               minWidth: "min(var(--mhg-tag-vertical-column-width, var(--mhg-vertical-column-width)), calc(100vw - var(--mhg-vertical-column-viewport-margin, 72px)))",
+              ...(viewTransitionName
+                ? { viewTransitionName } as React.CSSProperties
+                : {}),
             }
-          : undefined
+          : viewTransitionName
+            ? ({ viewTransitionName } as React.CSSProperties)
+            : undefined
       }
       onClick={handleClick}
     >
@@ -124,6 +142,8 @@ export default function TagList({
   emptyMessage,
   scrollContainerRef,
   routeBase = "",
+  onItemActivate,
+  onSelectionChange,
 }: TagListProps) {
   const { t } = useTranslation();
   const { activeSkinWeb } = useSkin();
@@ -152,6 +172,8 @@ export default function TagList({
         getDisplayName={getDisplayName}
         getCoverUrl={getCoverUrl}
         getRoute={getRoute}
+        onItemActivate={onItemActivate}
+        onSelectionChange={onSelectionChange}
       />
     );
   }

@@ -30,6 +30,8 @@ import BackgroundToggle from "../components/ui/BackgroundToggle";
 import NewGamesToggle from "../components/ui/NewGamesToggle";
 import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
 import { navigateToLibraryRoot } from "../utils/libraryNavigation";
+import { readContextRailNavState } from "../utils/contextRailIndexPeek";
+import ContextRailIndexPeek from "../components/contextRail/ContextRailIndexPeek";
 import { compareTitles } from "../utils/stringUtils";
 import { titleMatchesFilter } from "../utils/titleFilter";
 import { parseCollectionLikePseudoGameId } from "../utils/collectionLikePseudoGame";
@@ -1184,6 +1186,7 @@ function LibraryItemDetailContent({
   setTopBarRightActions,
 }: LibraryItemDetailContentProps) {
   const navigate = useNavigate();
+  const routerLocation = useLocation();
   const { hasBackground, isBackgroundVisible, setBackgroundVisible } = useBackground();
   const { isLoading } = useLoading();
   const { activeSkinWeb } = useSkin();
@@ -1196,6 +1199,9 @@ function LibraryItemDetailContent({
   const compactDetail = activeSkinWeb.compactCollectionLikeDetail;
   /** Context rail: hide the icon strip; left column = library tab + cover, right column = scrollable games. */
   const contextRailLayout = compactDetail && activeSkinWeb.verticalCoverAlignment;
+  const contextRailNavState = readContextRailNavState(routerLocation.state);
+  const indexPeekSnapshot = contextRailNavState?.contextRailIndexPeek;
+  const contextRailMotionEnter = contextRailNavState?.contextRailMotion === true;
 
   useEffect(() => {
     if (!contextRailLayout) return;
@@ -1900,7 +1906,7 @@ function LibraryItemDetailContent({
         />
       </div>
       <div
-        className={`library-item-detail-page-shell${contextRailLayout ? " library-item-detail-page-shell--context-rail" : ""}`}
+        className={`library-item-detail-page-shell${contextRailLayout ? " library-item-detail-page-shell--context-rail" : ""}${contextRailMotionEnter ? " mhg-context-rail-motion-enter" : ""}`}
       >
         <div className="home-page-main-container library-item-detail-main-inner">
           <main className="flex-1 home-page-content library-item-detail-main-min-h">
@@ -2137,7 +2143,10 @@ function LibraryItemDetailContent({
                               {t(`libraries.${contextRailLibraryKey}`)}
                             </span>
                           </button>
-                          <div className="library-item-detail-context-rail-cover">
+                          <div
+                            className="library-item-detail-context-rail-cover"
+                            style={{ viewTransitionName: "mhg-context-rail-cover" } as React.CSSProperties}
+                          >
                             <Cover
                               title={item.title}
                               coverUrl={itemCoverUrl}
@@ -2164,6 +2173,9 @@ function LibraryItemDetailContent({
                       )}
                       {contextRailLayout && item ? (
                         <div className="mhg-context-rail-bridge" aria-hidden="true" />
+                      ) : null}
+                      {contextRailLayout && indexPeekSnapshot ? (
+                        <ContextRailIndexPeek snapshot={indexPeekSnapshot} />
                       ) : null}
                       <div
                         ref={contextRailLayout ? scrollContainerRef : undefined}

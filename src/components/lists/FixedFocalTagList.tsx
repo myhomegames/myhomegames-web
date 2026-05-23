@@ -56,6 +56,13 @@ export type FixedFocalTagListProps = {
   getDisplayName?: (item: TagItem) => string;
   getCoverUrl?: (item: TagItem) => string;
   getRoute?: (item: TagItem) => string;
+  /** Frozen index column (context-rail peek): no wheel, no navigation. */
+  lockedSelectedIndex?: number;
+  interactive?: boolean;
+  /** Narrow blurred lane between context cover and games column. */
+  contextRailPeek?: boolean;
+  onItemActivate?: (item: TagItem, index: number) => void;
+  onSelectionChange?: (item: TagItem | null, index: number) => void;
 };
 
 /**
@@ -71,6 +78,11 @@ export default function FixedFocalTagList({
   getDisplayName,
   getCoverUrl,
   getRoute,
+  lockedSelectedIndex,
+  interactive = true,
+  contextRailPeek = false,
+  onItemActivate,
+  onSelectionChange,
 }: FixedFocalTagListProps) {
   const location = useLocation();
   const listRef = useRef<HTMLDivElement>(null);
@@ -87,13 +99,22 @@ export default function FixedFocalTagList({
   const rowHeight = fixedFocalVirtualRowStep(coverHeight, TAG_GAP_PX, scaleValues.unselected, packedRows);
   const neighborSlots = readFixedFocalNeighborSlots(18);
 
+  const peekFocalTopPx = useMemo(() => {
+    const scaledHeight = coverHeight * scaleValues.selected;
+    return Math.max(0, Math.round(scaledHeight * 0.5 + TAG_GAP_PX));
+  }, [coverHeight, scaleValues.selected]);
+
   useEffect(() => {
-    setFocalTopPx(readGridTopInsetPx(containerRef.current));
+    setFocalTopPx(
+      contextRailPeek ? peekFocalTopPx : readGridTopInsetPx(containerRef.current),
+    );
     const t = window.setTimeout(() => {
-      setFocalTopPx(readGridTopInsetPx(containerRef.current));
+      setFocalTopPx(
+        contextRailPeek ? peekFocalTopPx : readGridTopInsetPx(containerRef.current),
+      );
     }, 50);
     return () => window.clearTimeout(t);
-  }, [activeSkinId, containerRef]);
+  }, [activeSkinId, containerRef, contextRailPeek, peekFocalTopPx]);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -115,7 +136,9 @@ export default function FixedFocalTagList({
         width: contentWidth || rect.width,
         height: Math.max(contentHeight, rect.height, viewportHeight) || viewportHeight - 200,
       });
-      setFocalTopPx(readGridTopInsetPx(containerRef.current));
+      setFocalTopPx(
+        contextRailPeek ? peekFocalTopPx : readGridTopInsetPx(containerRef.current),
+      );
     };
 
     updateDimensions();
@@ -131,12 +154,17 @@ export default function FixedFocalTagList({
       window.removeEventListener("resize", updateDimensions);
       resizeObserver.disconnect();
     };
-  }, [containerRef, activeSkinId]);
+  }, [containerRef, activeSkinId, contextRailPeek, peekFocalTopPx]);
 
   useLayoutEffect(() => {
     setIsRestored(false);
     if (items.length === 0) {
       setSelectedIndex(0);
+      setIsRestored(true);
+      return;
+    }
+    if (!interactive && lockedSelectedIndex !== undefined) {
+      setSelectedIndex(Math.max(0, Math.min(items.length - 1, lockedSelectedIndex)));
       setIsRestored(true);
       return;
     }
@@ -148,12 +176,23 @@ export default function FixedFocalTagList({
       setSelectedIndex(0);
     }
     setIsRestored(true);
-  }, [location.pathname, items.length, rowHeight, storageKey]);
+  }, [location.pathname, items.length, rowHeight, storageKey, interactive, lockedSelectedIndex]);
 
   useEffect(() => {
-    if (!isRestored || rowHeight <= 0) return;
+    if (!interactive || !isRestored || rowHeight <= 0) return;
     saveScrollTop(storageKey, selectedIndex * rowHeight);
-  }, [selectedIndex, rowHeight, isRestored, storageKey]);
+  }, [selectedIndex, rowHeight, isRestored, storageKey, interactive]);
+
+  useEffect(() => {
+    if (!interactive || lockedSelectedIndex === undefined) return;
+    setSelectedIndex(Math.max(0, Math.min(items.length - 1, lockedSelectedIndex)));
+  }, [interactive, lockedSelectedIndex, items.length]);
+
+  useEffect(() => {
+    if (!onSelectionChange || !isRestored) return;
+    const item = items.length > 0 ? items[selectedIndex] ?? null : null;
+    onSelectionChange(item, selectedIndex);
+  }, [items, selectedIndex, onSelectionChange, isRestored]);
 
   useEffect(() => {
     setSelectedIndex((prev) => Math.max(0, Math.min(items.length - 1, prev)));
@@ -174,6 +213,7 @@ export default function FixedFocalTagList({
   const wheelAccumRef = useRef({ accumulated: 0 });
 
   useEffect(() => {
+    if (!interactive) return;
     let cancelled = false;
     const attachTimers: number[] = [];
     let cleanupFn: (() => void) | null = null;
@@ -239,7 +279,7 @@ export default function FixedFocalTagList({
       attachTimers.forEach((id) => window.clearTimeout(id));
       cleanupFn?.();
     };
-  }, [containerRef, dimensions.width, dimensions.height, items.length, rowHeight]);
+  }, [containerRef, dimensions.width, dimensions.height, items.length, rowHeight, interactive]);
 
   const visibleIndices = useMemo(() => {
     if (items.length === 0) return [];
@@ -271,6 +311,10 @@ export default function FixedFocalTagList({
         const item = items[index];
         const offset = index - selectedIndex;
         const isSelected = offset === 0;
+        const laneWidth =
+          contextRailPeek && dimensions.width > 0
+            ? dimensions.width
+            : undefined;
         const top = fixedFocalItemTop(
           focalTopPx,
           offset,
@@ -289,8 +333,11 @@ export default function FixedFocalTagList({
               position: "absolute",
               left: 0,
               top,
-              width: "min(var(--mhg-tag-vertical-column-width, var(--mhg-vertical-column-width)), calc(100vw - var(--mhg-vertical-column-viewport-margin, 72px)))",
-              minWidth: "min(var(--mhg-tag-vertical-column-width, var(--mhg-vertical-column-width)), calc(100vw - var(--mhg-vertical-column-viewport-margin, 72px)))",
+              width: laneWidth ?? "min(var(--mhg-tag-vertical-column-width, var(--mhg-vertical-column-width)), calc(100vw - var(--mhg-vertical-column-viewport-margin, 72px)))",
+              minWidth:
+                laneWidth ??
+                "min(var(--mhg-tag-vertical-column-width, var(--mhg-vertical-column-width)), calc(100vw - var(--mhg-vertical-column-viewport-margin, 72px)))",
+              maxWidth: laneWidth,
               boxSizing: "border-box",
               ["--mhg-cell-scale" as string]: (
                 isSelected ? scaleValues.selected : scaleValues.unselected
@@ -303,10 +350,17 @@ export default function FixedFocalTagList({
               forceVerticalAlignment={true}
               isSelected={isSelected}
               itemRefs={itemRefs}
-              onItemEdit={onItemEdit}
+              onItemEdit={interactive ? onItemEdit : undefined}
               getDisplayName={getDisplayName}
               getCoverUrl={getCoverUrl}
               getRoute={getRoute}
+              navigationDisabled={!interactive}
+              onActivate={
+                interactive && onItemActivate
+                  ? () => onItemActivate(item, index)
+                  : undefined
+              }
+              viewTransitionName={interactive && isSelected ? "mhg-context-rail-cover" : undefined}
             />
           </div>
         );

@@ -14,6 +14,10 @@ import { buildCoverUrl } from "../utils/api";
 import FocalSelectionBackgroundShell, {
   type FocalSelectionMedia,
 } from "../components/common/FocalSelectionBackgroundShell";
+import {
+  buildCollectionIndexPeekSnapshot,
+  navigateWithContextRailPeek,
+} from "../utils/contextRailIndexPeek";
 
 type DevelopersPageProps = {
   onPlay?: (game: import("../types").GameItem) => void;
@@ -51,10 +55,6 @@ export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProp
   }, []);
   useScrollRestoration(scrollContainerRef, "developers", !fixedFocalCollections);
 
-  function handleDeveloperClick(developer: CollectionItem) {
-    navigate(`/developers/${developer.id}`);
-  }
-
   const sortedDevelopers = useMemo(() => {
     const unique = developers.filter((d, i, self) =>
       i === self.findIndex((x) => String(x.id) === String(d.id))
@@ -71,6 +71,32 @@ export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProp
       i === self.findIndex((x) => String(x.id) === String(d.id))
     );
   }, [developers]);
+
+  const contextRailPeekEnabled =
+    fixedFocalCollections && activeSkinWeb.compactCollectionLikeDetail;
+
+  const handleDeveloperActivate = useCallback(
+    (developer: CollectionItem, index: number) => {
+      const path = `/developers/${developer.id}`;
+      if (contextRailPeekEnabled) {
+        navigateWithContextRailPeek(
+          navigate,
+          path,
+          buildCollectionIndexPeekSnapshot(sortedDevelopers, index, coverSize, "developers"),
+        );
+        return;
+      }
+      navigate(path);
+    },
+    [contextRailPeekEnabled, sortedDevelopers, navigate, coverSize],
+  );
+
+  function handleDeveloperClick(developer: CollectionItem) {
+    const index = sortedDevelopers.findIndex(
+      (entry) => String(entry.id) === String(developer.id),
+    );
+    handleDeveloperActivate(developer, index >= 0 ? index : 0);
+  }
 
   useLayoutEffect(() => {
     if (developersLoading) setIsReady(false);
@@ -106,6 +132,7 @@ export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProp
               collections={sortedDevelopers}
               allItemsForCount={allDevelopersForCount}
               onCollectionClick={handleDeveloperClick}
+              onCollectionActivate={contextRailPeekEnabled ? handleDeveloperActivate : undefined}
               onPlay={onPlay}
               isLoading={developersLoading}
               showEdit={true}

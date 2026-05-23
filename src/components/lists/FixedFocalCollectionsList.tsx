@@ -92,6 +92,10 @@ export type FixedFocalCollectionsListProps = {
   gamesPath?: GamesPathType;
   buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean) => string;
   onSelectionChange?: (collection: CollectionItem | null) => void;
+  lockedSelectedIndex?: number;
+  interactive?: boolean;
+  contextRailPeek?: boolean;
+  onCollectionActivate?: (collection: CollectionItem, index: number) => void;
 };
 
 /**
@@ -113,6 +117,10 @@ export default function FixedFocalCollectionsList({
   gamesPath = "collections",
   buildCoverUrl,
   onSelectionChange,
+  lockedSelectedIndex,
+  interactive = true,
+  contextRailPeek = false,
+  onCollectionActivate,
 }: FixedFocalCollectionsListProps) {
   const location = useLocation();
   const listRef = useRef<HTMLDivElement>(null);
@@ -133,15 +141,28 @@ export default function FixedFocalCollectionsList({
   const rowHeight = fixedFocalVirtualRowStep(coverHeight, GAP, scaleValues.unselected, packedRows);
   const neighborSlots = readFixedFocalNeighborSlots(18);
 
+  const peekFocalTopPx = useMemo(() => {
+    const scaledHeight = coverHeight * scaleValues.selected;
+    return Math.max(0, Math.round(scaledHeight * 0.5 + GAP));
+  }, [coverHeight, scaleValues.selected, GAP]);
+
   useEffect(() => {
     setSpacing(readGridSpacing());
-    setFocalTopPx(readFixedFocalTopPx(listRef.current, containerRef.current));
+    setFocalTopPx(
+      contextRailPeek
+        ? peekFocalTopPx
+        : readFixedFocalTopPx(listRef.current, containerRef.current),
+    );
     const t = window.setTimeout(() => {
       setSpacing(readGridSpacing());
-      setFocalTopPx(readFixedFocalTopPx(listRef.current, containerRef.current));
+      setFocalTopPx(
+        contextRailPeek
+          ? peekFocalTopPx
+          : readFixedFocalTopPx(listRef.current, containerRef.current),
+      );
     }, 50);
     return () => window.clearTimeout(t);
-  }, [activeSkinId, containerRef]);
+  }, [activeSkinId, containerRef, contextRailPeek, peekFocalTopPx]);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -159,7 +180,11 @@ export default function FixedFocalCollectionsList({
         width: contentWidth || rect.width,
         height: contentHeight || rect.height || window.innerHeight - 200,
       });
-      setFocalTopPx(readFixedFocalTopPx(listRef.current, containerRef.current));
+      setFocalTopPx(
+        contextRailPeek
+          ? peekFocalTopPx
+          : readFixedFocalTopPx(listRef.current, containerRef.current),
+      );
     };
 
     updateDimensions();
@@ -175,17 +200,26 @@ export default function FixedFocalCollectionsList({
       window.removeEventListener("resize", updateDimensions);
       resizeObserver.disconnect();
     };
-  }, [containerRef, dimensions.width, dimensions.height]);
+  }, [containerRef, dimensions.width, dimensions.height, contextRailPeek, peekFocalTopPx]);
 
   useLayoutEffect(() => {
     if (dimensions.width === 0 || dimensions.height === 0) return;
-    setFocalTopPx(readFixedFocalTopPx(listRef.current, containerRef.current));
-  }, [containerRef, dimensions.width, dimensions.height, activeSkinId]);
+    setFocalTopPx(
+      contextRailPeek
+        ? peekFocalTopPx
+        : readFixedFocalTopPx(listRef.current, containerRef.current),
+    );
+  }, [containerRef, dimensions.width, dimensions.height, activeSkinId, contextRailPeek, peekFocalTopPx]);
 
   useLayoutEffect(() => {
     setIsRestored(false);
     if (collections.length === 0) {
       setSelectedIndex(0);
+      setIsRestored(true);
+      return;
+    }
+    if (!interactive && lockedSelectedIndex !== undefined) {
+      setSelectedIndex(Math.max(0, Math.min(collections.length - 1, lockedSelectedIndex)));
       setIsRestored(true);
       return;
     }
@@ -197,12 +231,17 @@ export default function FixedFocalCollectionsList({
       setSelectedIndex(0);
     }
     setIsRestored(true);
-  }, [location.pathname, collections.length, rowHeight, storageKey, gamesPath]);
+  }, [location.pathname, collections.length, rowHeight, storageKey, gamesPath, interactive, lockedSelectedIndex]);
 
   useEffect(() => {
-    if (!isRestored || rowHeight <= 0) return;
+    if (!interactive || !isRestored || rowHeight <= 0) return;
     setScrollPosition(storageKey, selectedIndex * rowHeight, 0);
-  }, [selectedIndex, rowHeight, isRestored, storageKey]);
+  }, [selectedIndex, rowHeight, isRestored, storageKey, interactive]);
+
+  useEffect(() => {
+    if (!interactive || lockedSelectedIndex === undefined) return;
+    setSelectedIndex(Math.max(0, Math.min(collections.length - 1, lockedSelectedIndex)));
+  }, [interactive, lockedSelectedIndex, collections.length]);
 
   useEffect(() => {
     setSelectedIndex((prev) => Math.max(0, Math.min(collections.length - 1, prev)));
@@ -228,6 +267,7 @@ export default function FixedFocalCollectionsList({
   const wheelAccumRef = useRef({ accumulated: 0 });
 
   useEffect(() => {
+    if (!interactive) return;
     let cancelled = false;
     const attachTimers: number[] = [];
     let cleanupFn: (() => void) | null = null;
@@ -284,7 +324,7 @@ export default function FixedFocalCollectionsList({
       attachTimers.forEach((id) => window.clearTimeout(id));
       cleanupFn?.();
     };
-  }, [containerRef, dimensions.width, dimensions.height, collections.length]);
+  }, [containerRef, dimensions.width, dimensions.height, collections.length, interactive]);
 
   const visibleIndices = useMemo(() => {
     if (collections.length === 0) return [];
@@ -319,6 +359,8 @@ export default function FixedFocalCollectionsList({
         const collection = collections[index];
         const offset = index - selectedIndex;
         const isSelected = offset === 0;
+        const laneWidth =
+          contextRailPeek && dimensions.width > 0 ? dimensions.width : coverSize + GAP;
         const top = fixedFocalItemTop(
           focalTopPx,
           offset,
@@ -344,7 +386,7 @@ export default function FixedFocalCollectionsList({
               position: "absolute",
               left: 0,
               top,
-              width: coverSize + GAP,
+              width: laneWidth,
               minHeight: portraitCoverHeight(coverSize),
               boxSizing: "border-box",
               ["--mhg-cell-scale" as string]: (
@@ -355,7 +397,15 @@ export default function FixedFocalCollectionsList({
             <CollectionListItem
               collection={collection}
               displayCount={displayCountById[String(collection.id)]}
-              onCollectionClick={onCollectionClick}
+              onCollectionClick={
+                interactive
+                  ? onCollectionActivate
+                    ? () => onCollectionActivate(collection, index)
+                    : onCollectionClick
+                  : () => {}
+              }
+              navigationDisabled={!interactive}
+              viewTransitionName={interactive && isSelected ? "mhg-context-rail-cover" : undefined}
               onPlay={onPlay}
               onEditClick={onEditClick}
               onCollectionDelete={onCollectionDelete}

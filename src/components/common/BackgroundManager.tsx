@@ -156,14 +156,18 @@ export default function BackgroundManager({
   const showPortalPaint =
     Boolean(portalHost) && hasBackground && isBackgroundVisible && backgroundUrl.trim() !== "";
 
-  const paintedBackgroundStyle = showPortalPaint
-    ? {
-        backgroundImage: backgroundImageValue(backgroundUrl),
-        backgroundSize: "cover" as const,
-        backgroundPosition: "center" as const,
-        backgroundRepeat: "no-repeat" as const,
-      }
-    : undefined;
+  /* Portal paints full viewport; root duplicate + overlay caused two-tone columns on context-rail pages. */
+  const paintedBackgroundStyle =
+    showPortalPaint
+      ? undefined
+      : hasBackground && isBackgroundVisible && backgroundUrl.trim() !== ""
+        ? {
+            backgroundImage: backgroundImageValue(backgroundUrl),
+            backgroundSize: "cover" as const,
+            backgroundPosition: "center" as const,
+            backgroundRepeat: "no-repeat" as const,
+          }
+        : undefined;
 
   /*
    * Foreground must participate in flex layouts (e.g. `.home-page-layout > .home-page-content-wrapper`).
@@ -185,19 +189,22 @@ export default function BackgroundManager({
   const portalLayer =
     showPortalPaint &&
     createPortal(
-      <div
-        className="background-manager-portal-bg"
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          backgroundImage: backgroundImageValue(backgroundUrl),
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-        }}
-      />,
+      <>
+        <div
+          className="background-manager-portal-bg"
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            backgroundImage: backgroundImageValue(backgroundUrl),
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+          }}
+        />
+        <div className="background-manager-portal-overlay" aria-hidden="true" />
+      </>,
       portalHost!
     );
 
@@ -208,7 +215,9 @@ export default function BackgroundManager({
         className={`background-manager-root${hasBackground && isBackgroundVisible ? " background-manager-root--clickable" : " background-manager-root--solid"}`}
         style={{ ...bgLayerStyle, ...paintedBackgroundStyle }}
       >
-        {hasBackground && isBackgroundVisible && <div className="background-manager-overlay" />}
+        {hasBackground && isBackgroundVisible && !showPortalPaint && (
+          <div className="background-manager-overlay" />
+        )}
       </div>
       <div className="background-manager-foreground" style={foregroundStyle}>
         {children}

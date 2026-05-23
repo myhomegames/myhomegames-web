@@ -14,6 +14,10 @@ import { buildCoverUrl } from "../utils/api";
 import FocalSelectionBackgroundShell, {
   type FocalSelectionMedia,
 } from "../components/common/FocalSelectionBackgroundShell";
+import {
+  buildCollectionIndexPeekSnapshot,
+  navigateWithContextRailPeek,
+} from "../utils/contextRailIndexPeek";
 
 type PublishersPageProps = {
   onPlay?: (game: import("../types").GameItem) => void;
@@ -51,10 +55,6 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
   }, []);
   useScrollRestoration(scrollContainerRef, "publishers", !fixedFocalCollections);
 
-  function handlePublisherClick(publisher: CollectionItem) {
-    navigate(`/publishers/${publisher.id}`);
-  }
-
   const sortedPublishers = useMemo(() => {
     const unique = publishers.filter((p, i, self) =>
       i === self.findIndex((x) => String(x.id) === String(p.id))
@@ -71,6 +71,32 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
       i === self.findIndex((x) => String(x.id) === String(p.id))
     );
   }, [publishers]);
+
+  const contextRailPeekEnabled =
+    fixedFocalCollections && activeSkinWeb.compactCollectionLikeDetail;
+
+  const handlePublisherActivate = useCallback(
+    (publisher: CollectionItem, index: number) => {
+      const path = `/publishers/${publisher.id}`;
+      if (contextRailPeekEnabled) {
+        navigateWithContextRailPeek(
+          navigate,
+          path,
+          buildCollectionIndexPeekSnapshot(sortedPublishers, index, coverSize, "publishers"),
+        );
+        return;
+      }
+      navigate(path);
+    },
+    [contextRailPeekEnabled, sortedPublishers, navigate, coverSize],
+  );
+
+  function handlePublisherClick(publisher: CollectionItem) {
+    const index = sortedPublishers.findIndex(
+      (entry) => String(entry.id) === String(publisher.id),
+    );
+    handlePublisherActivate(publisher, index >= 0 ? index : 0);
+  }
 
   useLayoutEffect(() => {
     if (publishersLoading) setIsReady(false);
@@ -106,6 +132,7 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
               collections={sortedPublishers}
               allItemsForCount={allPublishersForCount}
               onCollectionClick={handlePublisherClick}
+              onCollectionActivate={contextRailPeekEnabled ? handlePublisherActivate : undefined}
               onPlay={onPlay}
               isLoading={publishersLoading}
               showEdit={true}

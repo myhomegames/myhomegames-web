@@ -36,6 +36,7 @@ type CollectionsListProps = {
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
   onFocalSelectionChange?: (collection: CollectionItem | null) => void;
+  onCollectionActivate?: (collection: CollectionItem, index: number) => void;
 };
 
 type CollectionListItemProps = {
@@ -54,6 +55,8 @@ type CollectionListItemProps = {
   coverSize: number;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
   showTitle?: boolean;
+  navigationDisabled?: boolean;
+  viewTransitionName?: string;
 };
 
 export function CollectionListItem({
@@ -71,6 +74,8 @@ export function CollectionListItem({
   coverSize,
   itemRefs,
   showTitle,
+  navigationDisabled = false,
+  viewTransitionName,
 }: CollectionListItemProps) {
   const { t } = useTranslation();
   const coverHeight = portraitCoverHeight(coverSize);
@@ -137,7 +142,8 @@ export function CollectionListItem({
           itemRefs.current.set(String(collection.id), el);
         }
       }}
-      className="group cursor-pointer collections-list-item collections-list-item--sized"
+      className={`group collections-list-item collections-list-item--sized${navigationDisabled ? "" : " cursor-pointer"}`}
+      style={viewTransitionName ? ({ viewTransitionName } as React.CSSProperties) : undefined}
     >
       <Cover
         key={`${collection.id}-${collection.cover}`}
@@ -146,7 +152,10 @@ export function CollectionListItem({
         width={coverSize}
         height={coverHeight}
         onPlay={onPlay ? handlePlayClick : undefined}
-        onClick={() => onCollectionClick(collection)}
+        onClick={() => {
+          if (navigationDisabled) return;
+          onCollectionClick(collection);
+        }}
         onEdit={onEditClick ? () => onEditClick(collection) : undefined}
         collectionId={gamesPath === "collections" ? collection.id : undefined}
         developerId={gamesPath === "developers" ? collection.id : undefined}
@@ -199,6 +208,7 @@ export default function CollectionsList({
   itemRefs,
   scrollContainerRef,
   onFocalSelectionChange,
+  onCollectionActivate,
 }: CollectionsListProps) {
   const { t } = useTranslation();
   const { activeSkinWeb } = useSkin();
@@ -339,6 +349,7 @@ export default function CollectionsList({
           gamesPath={gamesPath}
           buildCoverUrl={buildCoverUrl}
           onSelectionChange={onFocalSelectionChange}
+          onCollectionActivate={onCollectionActivate}
         />
       ) : (
       <div

@@ -14,6 +14,10 @@ import { buildCoverUrl } from "../utils/api";
 import FocalSelectionBackgroundShell, {
   type FocalSelectionMedia,
 } from "../components/common/FocalSelectionBackgroundShell";
+import {
+  buildCollectionIndexPeekSnapshot,
+  navigateWithContextRailPeek,
+} from "../utils/contextRailIndexPeek";
 
 type CollectionsPageProps = {
   onPlay?: (game: any) => void;
@@ -56,10 +60,6 @@ export default function CollectionsPage({
   }, []);
   useScrollRestoration(scrollContainerRef, "collections", !fixedFocalCollections);
 
-  function handleCollectionClick(collection: CollectionItem) {
-    navigate(`/collections/${collection.id}`);
-  }
-
   const handleCollectionUpdate = (updatedCollection: CollectionItem) => {
     // Update via context (which will also dispatch the event)
     updateCollection(updatedCollection);
@@ -83,6 +83,32 @@ export default function CollectionsPage({
     });
     return sorted.filter((c) => titleMatchesFilter(c.title, titleFilterQuery));
   }, [collections, sortAscending, titleFilterQuery]);
+
+  const contextRailPeekEnabled =
+    fixedFocalCollections && activeSkinWeb.compactCollectionLikeDetail;
+
+  const handleCollectionActivate = useCallback(
+    (collection: CollectionItem, index: number) => {
+      const path = `/collections/${collection.id}`;
+      if (contextRailPeekEnabled) {
+        navigateWithContextRailPeek(
+          navigate,
+          path,
+          buildCollectionIndexPeekSnapshot(sortedCollections, index, coverSize, "collections"),
+        );
+        return;
+      }
+      navigate(path);
+    },
+    [contextRailPeekEnabled, sortedCollections, navigate, coverSize],
+  );
+
+  function handleCollectionClick(collection: CollectionItem) {
+    const index = sortedCollections.findIndex(
+      (entry) => String(entry.id) === String(collection.id),
+    );
+    handleCollectionActivate(collection, index >= 0 ? index : 0);
+  }
 
   const allCollectionsForCount = useMemo(() => {
     return collections.filter((collection, index, self) =>
@@ -132,6 +158,7 @@ export default function CollectionsPage({
             collections={sortedCollections}
             allItemsForCount={allCollectionsForCount}
             onCollectionClick={handleCollectionClick}
+            onCollectionActivate={contextRailPeekEnabled ? handleCollectionActivate : undefined}
             onPlay={onPlay as any}
             isLoading={collectionsLoading}
             onCollectionUpdate={handleCollectionUpdate}

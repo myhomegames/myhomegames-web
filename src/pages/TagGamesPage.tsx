@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import type { ReactNode } from "react";
-import { useParams, useSearchParams, useOutletContext, useNavigate } from "react-router-dom";
+import type { CSSProperties, ReactNode } from "react";
+import { useParams, useSearchParams, useOutletContext, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useLoading } from "../contexts/LoadingContext";
 import { useSkin } from "../contexts/SkinContext";
@@ -22,6 +22,8 @@ import type { FilterField } from "../components/filters/types";
 import { TAG_PAGE_CONFIGS, type TagKey } from "../utils/tagPages";
 import { resolveTagDisplayLabel } from "../utils/resolveTagDisplayLabel";
 import { navigateToLibraryRoot } from "../utils/libraryNavigation";
+import { readContextRailNavState } from "../utils/contextRailIndexPeek";
+import ContextRailIndexPeek from "../components/contextRail/ContextRailIndexPeek";
 import type { MainAppOutletContext } from "../layouts/MainAppLayout";
 import { API_BASE } from "../config";
 import { buildApiHeaders, buildApiUrl, buildCoverUrl } from "../utils/api";
@@ -52,6 +54,10 @@ export default function TagGamesPage({
 }: TagGamesPageProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const contextRailNavState = readContextRailNavState(location.state);
+  const indexPeekSnapshot = contextRailNavState?.contextRailIndexPeek;
+  const contextRailMotionEnter = contextRailNavState?.contextRailMotion === true;
   const outletContext = useOutletContext<MainAppOutletContext | null>();
   const { activeSkinWeb } = useSkin();
   const tagConfig = tagKey ? TAG_PAGE_CONFIGS[tagKey] : undefined;
@@ -561,7 +567,7 @@ export default function TagGamesPage({
         </div>
       ) : null}
       <div
-        className={`bg-[#1a1a1a] home-page-main-container${contextRailLayout ? " tag-games-page-shell tag-games-page-shell--context-rail" : ""}`}
+        className={`bg-[#1a1a1a] home-page-main-container${contextRailLayout ? " tag-games-page-shell tag-games-page-shell--context-rail" : ""}${contextRailMotionEnter ? " mhg-context-rail-motion-enter" : ""}`}
       >
         <main className="flex-1 home-page-content">
           <div className={`home-page-layout${contextRailLayout ? " tag-games-page-layout-min-h" : ""}`}>
@@ -578,8 +584,15 @@ export default function TagGamesPage({
                       {t(`libraries.${tagKey}`)}
                     </span>
                   </button>
-                  <div className="tag-games-context-rail-cover tag-list-item"
-                    style={{ ["--tag-list-cover-size" as string]: `${coverSize}px` }}>
+                  <div
+                    className="tag-games-context-rail-cover tag-list-item"
+                    style={
+                      {
+                        ["--tag-list-cover-size" as string]: `${coverSize}px`,
+                        viewTransitionName: "mhg-context-rail-cover",
+                      } as CSSProperties
+                    }
+                  >
                     <Cover
                       title={tagDisplayTitle}
                       coverUrl={tagCoverUrl}
@@ -594,6 +607,9 @@ export default function TagGamesPage({
                   </div>
                 </aside>
                 <div className="mhg-context-rail-bridge" aria-hidden="true" />
+                {indexPeekSnapshot ? (
+                  <ContextRailIndexPeek snapshot={indexPeekSnapshot} />
+                ) : null}
                 <div
                   ref={hook.scrollContainerRef}
                   className="tag-games-context-games"
