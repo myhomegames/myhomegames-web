@@ -139,7 +139,10 @@ export default function DropdownMenu({
   /** Persistent shell / top tool dock: escape overflow clipping via body portal + fixed position */
   const isLibrariesTopMenu = className.includes('mhg-libraries-menu-dropdown');
   const isDetailDockMenu = className.includes('library-item-detail-dropdown-menu');
+  /** Game detail ⋮: portal to body so PS3 right sheet (z-index 10100) covers the overlay dock. */
+  const isGameDetailMenu = className.includes('game-detail-dropdown-menu');
   const useDockPortalMenu = isLibrariesTopMenu || isDetailDockMenu;
+  const useBodyPortalMenu = useDockPortalMenu || isGameDetailMenu;
   
   // Check if we're in search (popup or results page) to use portal so menu isn't clipped and clicks work
   const [isInSearchDropdown, setIsInSearchDropdown] = useState(false);
@@ -814,7 +817,7 @@ export default function DropdownMenu({
         );
         
         // Use portal for search dropdown, cover, or games table (escape overflow and stay on top)
-        return (isInSearchDropdown || isInCover || isInGamesTable || useDockPortalMenu)
+        return (isInSearchDropdown || isInCover || isInGamesTable || useBodyPortalMenu)
           ? createPortal(popupContent, document.body)
           : popupContent;
       })()}
