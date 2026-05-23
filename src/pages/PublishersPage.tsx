@@ -16,6 +16,7 @@ import FocalSelectionBackgroundShell, {
 } from "../components/common/FocalSelectionBackgroundShell";
 import {
   buildCollectionIndexPeekSnapshot,
+  captureIndexListLayoutAnchor,
   navigateWithContextRailPeek,
 } from "../utils/contextRailIndexPeek";
 
@@ -82,7 +83,13 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
         navigateWithContextRailPeek(
           navigate,
           path,
-          buildCollectionIndexPeekSnapshot(sortedPublishers, index, coverSize, "publishers"),
+          buildCollectionIndexPeekSnapshot(
+            sortedPublishers,
+            index,
+            coverSize,
+            "publishers",
+            captureIndexListLayoutAnchor(scrollContainerRef.current),
+          ),
         );
         return;
       }

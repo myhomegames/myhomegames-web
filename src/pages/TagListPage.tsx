@@ -19,6 +19,7 @@ import { API_BASE } from "../config";
 import { buildApiHeaders, buildApiUrl, buildCoverUrl } from "../utils/api";
 import {
   buildTagIndexPeekSnapshot,
+  captureIndexListLayoutAnchor,
   navigateWithContextRailPeek,
 } from "../utils/contextRailIndexPeek";
 
@@ -264,7 +265,12 @@ export default function TagListPage({
         navigateWithContextRailPeek(
           navigate,
           route,
-          buildTagIndexPeekSnapshot(displayItems, index, tagListCoverSize),
+          buildTagIndexPeekSnapshot(
+            displayItems,
+            index,
+            tagListCoverSize,
+            captureIndexListLayoutAnchor(scrollContainerRef.current),
+          ),
         );
         return;
       }

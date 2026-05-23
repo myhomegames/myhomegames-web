@@ -16,6 +16,7 @@ import FocalSelectionBackgroundShell, {
 } from "../components/common/FocalSelectionBackgroundShell";
 import {
   buildCollectionIndexPeekSnapshot,
+  captureIndexListLayoutAnchor,
   navigateWithContextRailPeek,
 } from "../utils/contextRailIndexPeek";
 
@@ -82,7 +83,13 @@ export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProp
         navigateWithContextRailPeek(
           navigate,
           path,
-          buildCollectionIndexPeekSnapshot(sortedDevelopers, index, coverSize, "developers"),
+          buildCollectionIndexPeekSnapshot(
+            sortedDevelopers,
+            index,
+            coverSize,
+            "developers",
+            captureIndexListLayoutAnchor(scrollContainerRef.current),
+          ),
         );
         return;
       }

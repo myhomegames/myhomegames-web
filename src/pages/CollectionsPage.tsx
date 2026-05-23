@@ -16,6 +16,7 @@ import FocalSelectionBackgroundShell, {
 } from "../components/common/FocalSelectionBackgroundShell";
 import {
   buildCollectionIndexPeekSnapshot,
+  captureIndexListLayoutAnchor,
   navigateWithContextRailPeek,
 } from "../utils/contextRailIndexPeek";
 
@@ -94,7 +95,13 @@ export default function CollectionsPage({
         navigateWithContextRailPeek(
           navigate,
           path,
-          buildCollectionIndexPeekSnapshot(sortedCollections, index, coverSize, "collections"),
+          buildCollectionIndexPeekSnapshot(
+            sortedCollections,
+            index,
+            coverSize,
+            "collections",
+            captureIndexListLayoutAnchor(scrollContainerRef.current),
+          ),
         );
         return;
       }

@@ -1,6 +1,7 @@
 import type { NavigateFunction } from "react-router-dom";
 import type { CollectionItem, TagItem } from "../types";
 import type { GamesPathType } from "../components/lists/CollectionsList";
+import { readFixedFocalTopPx } from "./readGridTopInsetPx";
 
 export type ContextRailIndexPeekItem = {
   id: string;
@@ -17,7 +18,37 @@ export type ContextRailIndexPeekSnapshot = {
   selectedIndex: number;
   coverSize: number;
   gamesPath?: GamesPathType;
+  /** Fixed-focal Y of the selected tile, from the index list at navigation time. */
+  focalTopPx: number;
+  /** Viewport top of the index fixed-focal list root at navigation time. */
+  listViewportTop: number;
 };
+
+export type IndexListLayoutAnchor = {
+  focalTopPx: number;
+  listViewportTop: number;
+};
+
+/** Capture index list geometry so the detail peek column can match original spacing. */
+export function captureIndexListLayoutAnchor(
+  scrollContainer: HTMLElement | null,
+): IndexListLayoutAnchor {
+  if (typeof document === "undefined") {
+    return { focalTopPx: 0, listViewportTop: 0 };
+  }
+  const listEl = scrollContainer?.querySelector(
+    ".fixed-focal-tag-list, .fixed-focal-collections-list",
+  );
+  const list = listEl instanceof HTMLElement ? listEl : null;
+  const listViewportTop =
+    list?.getBoundingClientRect().top ??
+    scrollContainer?.getBoundingClientRect().top ??
+    0;
+  return {
+    focalTopPx: readFixedFocalTopPx(list, scrollContainer),
+    listViewportTop,
+  };
+}
 
 export type ContextRailNavState = {
   contextRailIndexPeek?: ContextRailIndexPeekSnapshot;
@@ -50,12 +81,15 @@ export function buildTagIndexPeekSnapshot(
   items: TagItem[],
   selectedIndex: number,
   coverSize: number,
+  layoutAnchor: IndexListLayoutAnchor,
 ): ContextRailIndexPeekSnapshot {
   return {
     kind: "tag",
     items: toContextRailPeekItemsFromTags(items),
     selectedIndex: Math.max(0, Math.min(items.length - 1, selectedIndex)),
     coverSize,
+    focalTopPx: layoutAnchor.focalTopPx,
+    listViewportTop: layoutAnchor.listViewportTop,
   };
 }
 
@@ -64,6 +98,7 @@ export function buildCollectionIndexPeekSnapshot(
   selectedIndex: number,
   coverSize: number,
   gamesPath: GamesPathType,
+  layoutAnchor: IndexListLayoutAnchor,
 ): ContextRailIndexPeekSnapshot {
   return {
     kind: "collection",
@@ -71,6 +106,8 @@ export function buildCollectionIndexPeekSnapshot(
     selectedIndex: Math.max(0, Math.min(items.length - 1, selectedIndex)),
     coverSize,
     gamesPath,
+    focalTopPx: layoutAnchor.focalTopPx,
+    listViewportTop: layoutAnchor.listViewportTop,
   };
 }
 
