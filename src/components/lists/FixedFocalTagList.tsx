@@ -13,6 +13,10 @@ import {
   readFixedFocalPackedRows,
 } from "../../utils/fixedFocalLayout";
 import { TagListItem } from "./TagList";
+import {
+  CONTEXT_RAIL_COVER_VIEW_TRANSITION,
+  contextRailViewTransitionsEnabled,
+} from "../../utils/contextRailIndexPeek";
 
 const TAG_GAP_PX = 20;
 
@@ -92,6 +96,7 @@ export default function FixedFocalTagList({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isRestored, setIsRestored] = useState(false);
   const { activeSkinId, activeSkinWeb } = useSkin();
+  const contextRailCoverTransition = contextRailViewTransitionsEnabled(activeSkinWeb);
 
   const coverHeight = fixedFocalCoverHeight(coverSize, false);
   const scaleValues = readScaleValues();
@@ -360,7 +365,11 @@ export default function FixedFocalTagList({
                   ? () => onItemActivate(item, index)
                   : undefined
               }
-              viewTransitionName={interactive && isSelected ? "mhg-context-rail-cover" : undefined}
+              viewTransitionName={
+                interactive && isSelected && contextRailCoverTransition
+                  ? CONTEXT_RAIL_COVER_VIEW_TRANSITION
+                  : undefined
+              }
             />
           </div>
         );

@@ -30,7 +30,12 @@ import BackgroundToggle from "../components/ui/BackgroundToggle";
 import NewGamesToggle from "../components/ui/NewGamesToggle";
 import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
 import { navigateToLibraryRoot } from "../utils/libraryNavigation";
-import { readContextRailNavState } from "../utils/contextRailIndexPeek";
+import {
+  CONTEXT_RAIL_COVER_VIEW_TRANSITION,
+  CONTEXT_RAIL_LIBRARY_VIEW_TRANSITION,
+  contextRailViewTransitionsEnabled,
+  readContextRailNavState,
+} from "../utils/contextRailIndexPeek";
 import ContextRailIndexPeek from "../components/contextRail/ContextRailIndexPeek";
 import { compareTitles } from "../utils/stringUtils";
 import { titleMatchesFilter } from "../utils/titleFilter";
@@ -1199,6 +1204,7 @@ function LibraryItemDetailContent({
   const compactDetail = activeSkinWeb.compactCollectionLikeDetail;
   /** Context rail: hide the icon strip; left column = library tab + cover, right column = scrollable games. */
   const contextRailLayout = compactDetail && activeSkinWeb.verticalCoverAlignment;
+  const contextRailViewTransitions = contextRailViewTransitionsEnabled(activeSkinWeb);
   const contextRailNavState = readContextRailNavState(routerLocation.state);
   const indexPeekSnapshot = contextRailNavState?.contextRailIndexPeek;
   const contextRailMotionEnter = contextRailNavState?.contextRailMotion === true;
@@ -2137,6 +2143,11 @@ function LibraryItemDetailContent({
                             type="button"
                             className="mhg-library-button mhg-library-active library-item-detail-context-rail-library"
                             data-mhg-library-key={contextRailLibraryKey}
+                            style={
+                              contextRailViewTransitions
+                                ? { viewTransitionName: CONTEXT_RAIL_LIBRARY_VIEW_TRANSITION }
+                                : undefined
+                            }
                             onClick={() => navigateToLibraryRoot(navigate, contextRailLibraryKey)}
                           >
                             <span className="mhg-library-button-label">
@@ -2145,7 +2156,13 @@ function LibraryItemDetailContent({
                           </button>
                           <div
                             className="library-item-detail-context-rail-cover"
-                            style={{ viewTransitionName: "mhg-context-rail-cover" } as React.CSSProperties}
+                            style={
+                              {
+                                ...(contextRailViewTransitions
+                                  ? { viewTransitionName: CONTEXT_RAIL_COVER_VIEW_TRANSITION }
+                                  : {}),
+                              } as React.CSSProperties
+                            }
                           >
                             <Cover
                               title={item.title}

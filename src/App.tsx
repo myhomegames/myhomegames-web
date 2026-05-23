@@ -1183,7 +1183,7 @@ function GameDetailPage({
 
 export default function App() {
   return (
-    <BrowserRouter basename="/app/">
+    <BrowserRouter basename="/app/" unstable_useTransitions={false}>
       <TitleFilterProvider>
         <AppContent />
       </TitleFilterProvider>

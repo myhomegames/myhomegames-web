@@ -22,7 +22,12 @@ import type { FilterField } from "../components/filters/types";
 import { TAG_PAGE_CONFIGS, type TagKey } from "../utils/tagPages";
 import { resolveTagDisplayLabel } from "../utils/resolveTagDisplayLabel";
 import { navigateToLibraryRoot } from "../utils/libraryNavigation";
-import { readContextRailNavState } from "../utils/contextRailIndexPeek";
+import {
+  CONTEXT_RAIL_COVER_VIEW_TRANSITION,
+  CONTEXT_RAIL_LIBRARY_VIEW_TRANSITION,
+  contextRailViewTransitionsEnabled,
+  readContextRailNavState,
+} from "../utils/contextRailIndexPeek";
 import ContextRailIndexPeek from "../components/contextRail/ContextRailIndexPeek";
 import type { MainAppOutletContext } from "../layouts/MainAppLayout";
 import { API_BASE } from "../config";
@@ -77,6 +82,7 @@ export default function TagGamesPage({
     !!tagKey &&
     activeSkinWeb.compactCollectionLikeDetail &&
     activeSkinWeb.verticalCoverAlignment;
+  const contextRailViewTransitions = contextRailViewTransitionsEnabled(activeSkinWeb);
   const scopedStorageKey = useMemo(
     () => `${storageKey}_${tagValue ?? "__all__"}`,
     [storageKey, tagValue]
@@ -578,6 +584,11 @@ export default function TagGamesPage({
                     type="button"
                     className="mhg-library-button mhg-library-active tag-games-context-rail-library"
                     data-mhg-library-key={tagKey}
+                    style={
+                      contextRailViewTransitions
+                        ? { viewTransitionName: CONTEXT_RAIL_LIBRARY_VIEW_TRANSITION }
+                        : undefined
+                    }
                     onClick={() => navigateToLibraryRoot(navigate, tagKey)}
                   >
                     <span className="mhg-library-button-label">
@@ -589,7 +600,9 @@ export default function TagGamesPage({
                     style={
                       {
                         ["--tag-list-cover-size" as string]: `${coverSize}px`,
-                        viewTransitionName: "mhg-context-rail-cover",
+                        ...(contextRailViewTransitions
+                          ? { viewTransitionName: CONTEXT_RAIL_COVER_VIEW_TRANSITION }
+                          : {}),
                       } as CSSProperties
                     }
                   >

@@ -1,3 +1,4 @@
+import { flushSync } from "react-dom";
 import type { NavigateFunction } from "react-router-dom";
 import type { CollectionItem, TagItem } from "../types";
 import type { GamesPathType } from "../components/lists/CollectionsList";
@@ -54,6 +55,34 @@ export type ContextRailNavState = {
   contextRailIndexPeek?: ContextRailIndexPeekSnapshot;
   contextRailMotion?: boolean;
 };
+
+/** Shared element names for index → detail context-rail transition. */
+export const CONTEXT_RAIL_COVER_VIEW_TRANSITION = "mhg-context-rail-cover";
+export const CONTEXT_RAIL_LIBRARY_VIEW_TRANSITION = "mhg-context-rail-library";
+
+export function contextRailViewTransitionsEnabled(skin: {
+  compactCollectionLikeDetail?: boolean;
+  verticalCoverAlignment?: boolean;
+}): boolean {
+  return !!(skin.compactCollectionLikeDetail && skin.verticalCoverAlignment);
+}
+
+/** Detail routes that render the left context rail (icon + cover). */
+export function isContextRailDetailPathname(pathname: string): boolean {
+  return (
+    /^\/collections\/[^/]+/.test(pathname) ||
+    /^\/category\/[^/]+/.test(pathname) ||
+    /^\/series\/[^/]+/.test(pathname) ||
+    /^\/franchise\/[^/]+/.test(pathname) ||
+    /^\/platforms\/[^/]+/.test(pathname) ||
+    /^\/themes\/[^/]+/.test(pathname) ||
+    /^\/developers\/[^/]+/.test(pathname) ||
+    /^\/publishers\/[^/]+/.test(pathname) ||
+    /^\/game-engines\/[^/]+/.test(pathname) ||
+    /^\/game-modes\/[^/]+/.test(pathname) ||
+    /^\/player-perspectives\/[^/]+/.test(pathname)
+  );
+}
 
 export function toContextRailPeekItemsFromTags(items: TagItem[]): ContextRailIndexPeekItem[] {
   return items.map((item) => ({
@@ -127,7 +156,11 @@ export function navigateWithContextRailPeek(
     contextRailIndexPeek: snapshot,
     contextRailMotion: true,
   };
-  const go = () => navigate(to, { state });
+  const go = () => {
+    flushSync(() => {
+      navigate(to, { state });
+    });
+  };
 
   if (typeof document !== "undefined" && "startViewTransition" in document) {
     (

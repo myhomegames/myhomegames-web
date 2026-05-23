@@ -3,6 +3,10 @@ import { useLocation } from "react-router-dom";
 import type { CollectionItem } from "../../types";
 import type { GamesPathType } from "./CollectionsList";
 import { CollectionListItem } from "./CollectionsList";
+import {
+  CONTEXT_RAIL_COVER_VIEW_TRANSITION,
+  contextRailViewTransitionsEnabled,
+} from "../../utils/contextRailIndexPeek";
 import { useSkin } from "../../contexts/SkinContext";
 import { readFixedFocalTopPx, readLibraryBarBandPx } from "../../utils/readGridTopInsetPx";
 import { notifyFixedFocalIndexChange } from "../../utils/fixedFocalStepSound";
@@ -133,6 +137,7 @@ export default function FixedFocalCollectionsList({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isRestored, setIsRestored] = useState(false);
   const { activeSkinId, activeSkinWeb } = useSkin();
+  const contextRailCoverTransition = contextRailViewTransitionsEnabled(activeSkinWeb);
 
   const { gap: GAP } = spacing;
   const scaleValues = readScaleValues();
@@ -405,7 +410,11 @@ export default function FixedFocalCollectionsList({
                   : () => {}
               }
               navigationDisabled={!interactive}
-              viewTransitionName={interactive && isSelected ? "mhg-context-rail-cover" : undefined}
+              viewTransitionName={
+                interactive && isSelected && contextRailCoverTransition
+                  ? CONTEXT_RAIL_COVER_VIEW_TRANSITION
+                  : undefined
+              }
               onPlay={onPlay}
               onEditClick={onEditClick}
               onCollectionDelete={onCollectionDelete}

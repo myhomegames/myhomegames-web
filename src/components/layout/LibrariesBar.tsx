@@ -1,5 +1,5 @@
 import { useState, useLayoutEffect, useRef, useMemo, useEffect, useCallback } from "react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useLoading } from "../../contexts/LoadingContext";
@@ -20,6 +20,11 @@ import ActivitySpinner from "./ActivitySpinner";
 import { useTopDockSlot } from "../../contexts/TopDockSlotContext";
 import { playFixedFocalStepSound } from "../../utils/fixedFocalStepSound";
 import { applyWheelDeltaStep, readWheelStepThresholdPx } from "../../utils/stepScrollSnap";
+import {
+  CONTEXT_RAIL_LIBRARY_VIEW_TRANSITION,
+  contextRailViewTransitionsEnabled,
+  isContextRailDetailPathname,
+} from "../../utils/contextRailIndexPeek";
 
 type CollectionShortcut = {
   id: string;
@@ -279,6 +284,15 @@ export default function LibrariesBar({
     ? registerSlotInContext
     : undefined;
   const { activeSkinWeb } = useSkin();
+  const contextRailViewTransitions = contextRailViewTransitionsEnabled(activeSkinWeb);
+  const contextRailDetailRoute = isContextRailDetailPathname(pathname);
+  const libraryActiveViewTransitionStyle = useCallback(
+    (isActive: boolean): CSSProperties | undefined =>
+      isActive && contextRailViewTransitions && !contextRailDetailRoute
+        ? { viewTransitionName: CONTEXT_RAIL_LIBRARY_VIEW_TRANSITION }
+        : undefined,
+    [contextRailViewTransitions, contextRailDetailRoute],
+  );
   const { games: libraryGamesAll } = useLibraryGames();
   const libraryGamesCount = libraryGamesAll.length;
   const installedGamesCount = useMemo(
@@ -1070,6 +1084,9 @@ export default function LibrariesBar({
                           ? "mhg-library-active"
                           : ""
                       }`}
+                      style={libraryActiveViewTransitionStyle(
+                        showLibraryActiveHighlight && activeLibrary?.key === s.key,
+                      )}
                       onClick={() => selectLibraryPage(s)}
                       onMouseEnter={() => handleLibraryHoverSelect(s)}
                     >
