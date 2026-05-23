@@ -21,6 +21,7 @@ type TagListProps = {
   onItemActivate?: (item: TagItem, index: number) => void;
   onSelectionChange?: (item: TagItem | null, index: number) => void;
   restoreSelectedIndex?: number;
+  activationLocked?: boolean;
 };
 
 type TagListItemProps = {
@@ -146,6 +147,7 @@ export default function TagList({
   onItemActivate,
   onSelectionChange,
   restoreSelectedIndex,
+  activationLocked = false,
 }: TagListProps) {
   const { t } = useTranslation();
   const { activeSkinWeb } = useSkin();
@@ -177,6 +179,7 @@ export default function TagList({
         onItemActivate={onItemActivate}
         onSelectionChange={onSelectionChange}
         restoreSelectedIndex={restoreSelectedIndex}
+        activationLocked={activationLocked}
       />
     );
   }

@@ -1,0 +1,9 @@
+/* Full-page input freeze after context-rail return (ghost click / history). */
+html.mhg-context-rail-activation-lock-global,
+html.mhg-context-rail-activation-lock-global body,
+html.mhg-context-rail-activation-lock-global #root,
+html.mhg-context-rail-activation-lock-global #root * {
+  pointer-events: none !important;
+  user-select: none !important;
+  cursor: default !important;
+}

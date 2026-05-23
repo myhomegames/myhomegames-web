@@ -101,6 +101,7 @@ export type FixedFocalCollectionsListProps = {
   contextRailPeek?: boolean;
   onCollectionActivate?: (collection: CollectionItem, index: number) => void;
   restoreSelectedIndex?: number;
+  activationLocked?: boolean;
 };
 
 /**
@@ -127,6 +128,7 @@ export default function FixedFocalCollectionsList({
   contextRailPeek = false,
   onCollectionActivate,
   restoreSelectedIndex,
+  activationLocked = false,
 }: FixedFocalCollectionsListProps) {
   const location = useLocation();
   const listRef = useRef<HTMLDivElement>(null);
@@ -369,7 +371,7 @@ export default function FixedFocalCollectionsList({
       ref={listRef}
       className={`fixed-focal-collections-list collections-list-container collections-list-container--fixed-focal virtualized-list-fade${
         isRestored ? " virtualized-list-fade--ready" : ""
-      }`}
+      }${activationLocked ? " mhg-context-rail-activation-locked" : ""}`}
       style={{
         ["--collections-list-cover-size" as string]: `${coverSize}px`,
         ["--mhg-fixed-focal-cover-size" as string]: `${coverSize}px`,
@@ -423,13 +425,13 @@ export default function FixedFocalCollectionsList({
               collection={collection}
               displayCount={displayCountById[String(collection.id)]}
               onCollectionClick={
-                interactive
+                interactive && !activationLocked
                   ? onCollectionActivate
                     ? () => onCollectionActivate(collection, index)
                     : onCollectionClick
                   : () => {}
               }
-              navigationDisabled={!interactive}
+              navigationDisabled={!interactive || activationLocked}
               viewTransitionName={
                 interactive && isSelected && contextRailCoverTransition
                   ? CONTEXT_RAIL_COVER_VIEW_TRANSITION

@@ -22,6 +22,8 @@ import {
   resolveContextRailReturnPeek,
   resolveSnapshotSelectedIndex,
 } from "../utils/contextRailIndexPeek";
+import { useActivationLockUntilPointerMove } from "../hooks/useActivationLockUntilPointerMove";
+import { isContextRailActivationLocked } from "../utils/contextRailActivationLock";
 
 type PublishersPageProps = {
   onPlay?: (game: import("../types").GameItem) => void;
@@ -82,6 +84,7 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
 
   const handlePublisherActivate = useCallback(
     (publisher: CollectionItem, index: number) => {
+      if (isContextRailActivationLocked()) return;
       const path = `/publishers/${publisher.id}`;
       if (contextRailPeekEnabled) {
         navigateWithContextRailPeek(
@@ -109,6 +112,7 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
   }, [contextRailPeekEnabled, location.state]);
 
   const contextRailMotionReturn = contextRailReturnPeek != null;
+  const activationLocked = useActivationLockUntilPointerMove(contextRailMotionReturn);
 
   const restoreSelectedIndex = useMemo(() => {
     if (!contextRailReturnPeek || sortedPublishers.length === 0) return undefined;
@@ -178,6 +182,7 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
                 focalBackgroundEnabled ? handleFocalSelectionChange : undefined
               }
               restoreSelectedIndex={restoreSelectedIndex}
+              activationLocked={activationLocked}
             />
           </div>
         </div>

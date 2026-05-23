@@ -38,6 +38,7 @@ type CollectionsListProps = {
   onFocalSelectionChange?: (collection: CollectionItem | null) => void;
   onCollectionActivate?: (collection: CollectionItem, index: number) => void;
   restoreSelectedIndex?: number;
+  activationLocked?: boolean;
 };
 
 type CollectionListItemProps = {
@@ -211,6 +212,7 @@ export default function CollectionsList({
   onFocalSelectionChange,
   onCollectionActivate,
   restoreSelectedIndex,
+  activationLocked = false,
 }: CollectionsListProps) {
   const { t } = useTranslation();
   const { activeSkinWeb } = useSkin();
@@ -353,6 +355,7 @@ export default function CollectionsList({
           onSelectionChange={onFocalSelectionChange}
           onCollectionActivate={onCollectionActivate}
           restoreSelectedIndex={restoreSelectedIndex}
+          activationLocked={activationLocked}
         />
       ) : (
       <div

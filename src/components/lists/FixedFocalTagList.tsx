@@ -68,6 +68,8 @@ export type FixedFocalTagListProps = {
   onItemActivate?: (item: TagItem, index: number) => void;
   onSelectionChange?: (item: TagItem | null, index: number) => void;
   restoreSelectedIndex?: number;
+  /** Block cover activation until the pointer moves (context-rail return). */
+  activationLocked?: boolean;
 };
 
 /**
@@ -89,6 +91,7 @@ export default function FixedFocalTagList({
   onItemActivate,
   onSelectionChange,
   restoreSelectedIndex,
+  activationLocked = false,
 }: FixedFocalTagListProps) {
   const location = useLocation();
   const listRef = useRef<HTMLDivElement>(null);
@@ -323,7 +326,7 @@ export default function FixedFocalTagList({
       ref={listRef}
       className={`fixed-focal-tag-list tag-list-container virtualized-list-fade${
         isRestored ? " virtualized-list-fade--ready" : ""
-      }`}
+      }${activationLocked ? " mhg-context-rail-activation-locked" : ""}`}
       style={{
         ["--tag-list-cover-size" as string]: `${coverSize}px`,
         width: "100%",
@@ -378,9 +381,9 @@ export default function FixedFocalTagList({
               getDisplayName={getDisplayName}
               getCoverUrl={getCoverUrl}
               getRoute={getRoute}
-              navigationDisabled={!interactive}
+              navigationDisabled={!interactive || activationLocked}
               onActivate={
-                interactive && onItemActivate
+                interactive && !activationLocked && onItemActivate
                   ? () => onItemActivate(item, index)
                   : undefined
               }

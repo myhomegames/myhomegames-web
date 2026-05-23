@@ -22,6 +22,8 @@ import {
   resolveContextRailReturnPeek,
   resolveSnapshotSelectedIndex,
 } from "../utils/contextRailIndexPeek";
+import { useActivationLockUntilPointerMove } from "../hooks/useActivationLockUntilPointerMove";
+import { isContextRailActivationLocked } from "../utils/contextRailActivationLock";
 
 type DevelopersPageProps = {
   onPlay?: (game: import("../types").GameItem) => void;
@@ -82,6 +84,7 @@ export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProp
 
   const handleDeveloperActivate = useCallback(
     (developer: CollectionItem, index: number) => {
+      if (isContextRailActivationLocked()) return;
       const path = `/developers/${developer.id}`;
       if (contextRailPeekEnabled) {
         navigateWithContextRailPeek(
@@ -109,6 +112,7 @@ export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProp
   }, [contextRailPeekEnabled, location.state]);
 
   const contextRailMotionReturn = contextRailReturnPeek != null;
+  const activationLocked = useActivationLockUntilPointerMove(contextRailMotionReturn);
 
   const restoreSelectedIndex = useMemo(() => {
     if (!contextRailReturnPeek || sortedDevelopers.length === 0) return undefined;
@@ -178,6 +182,7 @@ export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProp
                   focalBackgroundEnabled ? handleFocalSelectionChange : undefined
                 }
                 restoreSelectedIndex={restoreSelectedIndex}
+                activationLocked={activationLocked}
             />
           </div>
         </div>

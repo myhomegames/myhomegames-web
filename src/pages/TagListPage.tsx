@@ -25,6 +25,8 @@ import {
   resolveContextRailReturnPeek,
   resolveSnapshotSelectedIndex,
 } from "../utils/contextRailIndexPeek";
+import { useActivationLockUntilPointerMove } from "../hooks/useActivationLockUntilPointerMove";
+import { isContextRailActivationLocked } from "../utils/contextRailActivationLock";
 
 type TagListPageProps = {
   coverSize: number;
@@ -264,6 +266,7 @@ export default function TagListPage({
 
   const handleItemActivate = useCallback(
     (item: TagItem, index: number) => {
+      if (isContextRailActivationLocked()) return;
       const route = `${routeBase}/${encodeURIComponent(item.id)}`;
       if (contextRailPeekEnabled && tagKey) {
         navigateWithContextRailPeek(
@@ -290,6 +293,7 @@ export default function TagListPage({
   }, [contextRailPeekEnabled, tagKey, location.state]);
 
   const contextRailMotionReturn = contextRailReturnPeek != null;
+  const activationLocked = useActivationLockUntilPointerMove(contextRailMotionReturn);
 
   const restoreSelectedIndex = useMemo(() => {
     if (!contextRailReturnPeek || displayItems.length === 0) return undefined;
@@ -426,6 +430,7 @@ export default function TagListPage({
                 emptyMessage={emptyMessage}
                 onItemActivate={fixedFocalTags ? handleItemActivate : undefined}
                 restoreSelectedIndex={restoreSelectedIndex}
+                activationLocked={activationLocked}
               />
             )}
           </div>

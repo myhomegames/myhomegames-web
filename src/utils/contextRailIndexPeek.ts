@@ -2,6 +2,10 @@ import { flushSync } from "react-dom";
 import type { NavigateFunction } from "react-router-dom";
 import type { CollectionItem, TagItem } from "../types";
 import type { GamesPathType } from "../components/lists/CollectionsList";
+import {
+  engageContextRailActivationLock,
+  isContextRailActivationLocked,
+} from "./contextRailActivationLock";
 import { readFixedFocalTopPx } from "./readGridTopInsetPx";
 
 export type ContextRailIndexPeekItem = {
@@ -57,6 +61,25 @@ export type ContextRailNavState = {
 };
 
 const CONTEXT_RAIL_RETURN_SESSION_KEY = "mhg:context-rail-return";
+const CONTEXT_RAIL_ACTIVATION_LOCK_KEY = "mhg:context-rail-activation-lock";
+
+export function peekContextRailActivationLockSession(): boolean {
+  if (typeof sessionStorage === "undefined") return false;
+  try {
+    return sessionStorage.getItem(CONTEXT_RAIL_ACTIVATION_LOCK_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function clearContextRailActivationLockSession(): void {
+  if (typeof sessionStorage === "undefined") return;
+  try {
+    sessionStorage.removeItem(CONTEXT_RAIL_ACTIVATION_LOCK_KEY);
+  } catch {
+    // Ignore
+  }
+}
 
 export function writeContextRailReturnSession(
   libraryKey: string,
@@ -68,6 +91,7 @@ export function writeContextRailReturnSession(
       CONTEXT_RAIL_RETURN_SESSION_KEY,
       JSON.stringify({ libraryKey, snapshot }),
     );
+    sessionStorage.setItem(CONTEXT_RAIL_ACTIVATION_LOCK_KEY, "1");
   } catch {
     // Ignore quota / private mode
   }
@@ -242,6 +266,7 @@ export function navigateWithContextRailPeek(
   snapshot: ContextRailIndexPeekSnapshot,
   libraryKey: string,
 ): void {
+  if (isContextRailActivationLocked()) return;
   writeContextRailReturnSession(libraryKey, snapshot);
   runContextRailNavigation(navigate, to, {
     contextRailIndexPeek: snapshot,
@@ -249,7 +274,7 @@ export function navigateWithContextRailPeek(
   });
 }
 
-/** Animated return to the index list (library tab + restored focal selection). */
+/** Return to the index list (library tab + restored focal selection). */
 export function navigateBackToContextRailIndex(
   navigate: NavigateFunction,
   libraryKey: string,
@@ -259,8 +284,23 @@ export function navigateBackToContextRailIndex(
     localStorage.setItem("lastSelectedLibrary", libraryKey);
   }
   writeContextRailReturnSession(libraryKey, snapshot);
-  runContextRailNavigation(navigate, "/", {
+  engageContextRailActivationLock(true);
+
+  const returnState: ContextRailNavState = {
     contextRailIndexPeek: snapshot,
     contextRailMotion: true,
+  };
+
+  /*
+   * Do not push another "/" on top of the detail route: that left detail in
+   * history so the very next back (or ghost click) reopened it immediately.
+   * Pop the detail entry when possible; otherwise replace it.
+   */
+  flushSync(() => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+    navigate("/", { replace: true, state: returnState });
   });
 }

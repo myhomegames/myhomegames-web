@@ -22,6 +22,8 @@ import {
   resolveContextRailReturnPeek,
   resolveSnapshotSelectedIndex,
 } from "../utils/contextRailIndexPeek";
+import { useActivationLockUntilPointerMove } from "../hooks/useActivationLockUntilPointerMove";
+import { isContextRailActivationLocked } from "../utils/contextRailActivationLock";
 
 type CollectionsPageProps = {
   onPlay?: (game: any) => void;
@@ -94,6 +96,7 @@ export default function CollectionsPage({
 
   const handleCollectionActivate = useCallback(
     (collection: CollectionItem, index: number) => {
+      if (isContextRailActivationLocked()) return;
       const path = `/collections/${collection.id}`;
       if (contextRailPeekEnabled) {
         navigateWithContextRailPeek(
@@ -121,6 +124,7 @@ export default function CollectionsPage({
   }, [contextRailPeekEnabled, location.state]);
 
   const contextRailMotionReturn = contextRailReturnPeek != null;
+  const activationLocked = useActivationLockUntilPointerMove(contextRailMotionReturn);
 
   const restoreSelectedIndex = useMemo(() => {
     if (!contextRailReturnPeek || sortedCollections.length === 0) return undefined;
@@ -203,6 +207,7 @@ export default function CollectionsPage({
               focalBackgroundEnabled ? handleFocalSelectionChange : undefined
             }
             restoreSelectedIndex={restoreSelectedIndex}
+            activationLocked={activationLocked}
           />
         </div>
       </div>
