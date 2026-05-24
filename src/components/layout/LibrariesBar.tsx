@@ -12,6 +12,8 @@ import DropdownMenu from "../common/DropdownMenu";
 import { useBackground } from "../common/BackgroundManager";
 import { API_BASE, getApiToken } from "../../config";
 import { useSkin } from "../../contexts/SkinContext";
+import { useSettings } from "../../contexts/SettingsContext";
+import ProfileDropdown from "./ProfileDropdown";
 import { useLibraryGames } from "../../contexts/LibraryGamesContext";
 import type { ViewMode, GameLibrarySection, GameItem, CollectionItem } from "../../types";
 import SidebarSearchOverlay from "./SidebarSearchOverlay";
@@ -284,6 +286,7 @@ export default function LibrariesBar({
     ? registerSlotInContext
     : undefined;
   const { activeSkinWeb } = useSkin();
+  const { twitchLoginEnabled } = useSettings();
   const contextRailViewTransitions = contextRailViewTransitionsEnabled(activeSkinWeb);
   const contextRailDetailRoute = isContextRailDetailPathname(pathname);
   const libraryActiveViewTransitionStyle = useCallback(
@@ -850,7 +853,8 @@ export default function LibrariesBar({
   const showAddGameInLibrariesBar = showHeaderActionsInLibrariesBar;
   const isAddGameRoute = pathname === "/add-game";
   const isSettingsRoute = pathname === "/settings";
-  const isProfileRoute = pathname === "/profile";
+  const showProfileInLibrariesBar =
+    showHeaderActionsInLibrariesBar && twitchLoginEnabled && !!getApiToken();
 
   return (
     <div
@@ -1131,20 +1135,7 @@ export default function LibrariesBar({
                     </span>
                   </button>
                 )}
-                {showHeaderActionsInLibrariesBar && (
-                  <button
-                    type="button"
-                    data-mhg-library-key="mhg-header-profile"
-                    className={`mhg-library-button flex min-w-0 items-center gap-2 text-left ${
-                      isProfileRoute ? "mhg-library-active" : ""
-                    }`}
-                    onClick={() => navigateFromBar("/profile", isProfileRoute)}
-                  >
-                    <span className="mhg-library-button-label min-w-0 flex-1 truncate">
-                      {t("header.profile")}
-                    </span>
-                  </button>
-                )}
+                {showProfileInLibrariesBar && <ProfileDropdown triggerVariant="library" />}
                 {showSidebarSearchPopup && (
                   <button
                     type="button"
