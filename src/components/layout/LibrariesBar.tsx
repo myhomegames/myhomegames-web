@@ -238,6 +238,8 @@ type LibrariesBarProps = {
    * shared context (and reset it to `null` when they unmount on navigation).
    */
   registerTopDockSlot?: boolean;
+  /** PS3 search results: title block between top dock and library icon strip. */
+  betweenDockAndStrip?: ReactNode;
 };
 
 export default function LibrariesBar({
@@ -272,6 +274,7 @@ export default function LibrariesBar({
   rightActionsBeforeMainGames,
   rightActions,
   registerTopDockSlot = false,
+  betweenDockAndStrip,
 }: LibrariesBarProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -951,6 +954,7 @@ export default function LibrariesBar({
           </div>
         </div>
       )}
+      {betweenDockAndStrip}
       <div className="mhg-libraries-bar-container" ref={containerRef}>
         {/* Menu dropdown bottom-left (hidden when using fixed top-right dock) */}
         {!topRightToolDock && API_BASE && getApiToken() && (

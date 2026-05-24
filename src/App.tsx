@@ -928,6 +928,7 @@ function AppContent() {
                 <SearchResultsPage
                   onPlay={openLauncher}
                   onGameClick={handleGameClick}
+                  onAddGameClick={() => setAddGameOpen(true)}
                 />
               </ProtectedRoute>
             }

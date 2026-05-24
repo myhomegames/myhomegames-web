@@ -1,22 +1,40 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import LibrariesBar from "../components/layout/LibrariesBar";
+import { TopDockSlotProvider } from "../contexts/TopDockSlotContext";
+import { useCollections } from "../contexts/CollectionsContext";
+import { useDevelopers } from "../contexts/DevelopersContext";
+import { usePublishers } from "../contexts/PublishersContext";
+import { useLibraryGames } from "../contexts/LibraryGamesContext";
+import { useLoading } from "../contexts/LoadingContext";
+import { useSkin } from "../contexts/SkinContext";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useGameEvents } from "../hooks/useGameEvents";
+import { useLibrariesShellState } from "../layouts/useLibrariesShellState";
 import SearchResultsList from "../components/search/SearchResultsList";
 import type { GameItem, CollectionItem } from "../types";
+
 type SearchResultsPageProps = {
   onGameClick: (game: GameItem) => void;
   onPlay?: (item: GameItem | CollectionItem) => void;
+  onAddGameClick?: () => void;
 };
 
 export default function SearchResultsPage({
   onGameClick,
   onPlay,
+  onAddGameClick,
 }: SearchResultsPageProps) {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+  const { activeSkinWeb } = useSkin();
+  const { isLoading } = useLoading();
+  const { games: allGamesForSearch } = useLibraryGames();
+  const { collections: allCollections } = useCollections();
+  const { developers: allDevelopersForSearch } = useDevelopers();
+  const { publishers: allPublishersForSearch } = usePublishers();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isReady, setIsReady] = useState(false);
   const [gamesState, setGamesState] = useState<GameItem[]>([]);
@@ -24,10 +42,40 @@ export default function SearchResultsPage({
   const [developersState, setDevelopersState] = useState<CollectionItem[]>([]);
   const [publishersState, setPublishersState] = useState<CollectionItem[]>([]);
 
+  const {
+    libraries,
+    activeLibrary,
+    error,
+    coverSize,
+    handleCoverSizeChange,
+    viewMode,
+    handleViewModeChange,
+    mainGamesOnly,
+    setMainGamesOnly,
+    onSelectLibrary,
+  } = useLibrariesShellState({
+    syncCoverSizeWithPathname: false,
+    navigateHomeWhenLibraryChanges: true,
+  });
+
+  const collectionsPageEnabled = libraries.some((lib) => lib.key === "collections");
+  const showCollectionShortcuts =
+    activeSkinWeb.collectionsShortcutList && collectionsPageEnabled;
+
+  /** PS3: dock + library bar on this route. Plex and other skins keep the classic full-page layout. */
+  const useLibrariesShellOnSearchResults = activeSkinWeb.topRightToolDock;
+  const pageSurfaceClass = useLibrariesShellOnSearchResults ? "" : "bg-[#1a1a1a] ";
+
   useScrollRestoration(scrollContainerRef);
 
   const { searchQuery, games, collections, developers, publishers } =
-    (location.state as { searchQuery?: string; games?: GameItem[]; collections?: CollectionItem[]; developers?: CollectionItem[]; publishers?: CollectionItem[] }) || {};
+    (location.state as {
+      searchQuery?: string;
+      games?: GameItem[];
+      collections?: CollectionItem[];
+      developers?: CollectionItem[];
+      publishers?: CollectionItem[];
+    }) || {};
 
   useLayoutEffect(() => {
     if (games) setGamesState(games);
@@ -36,20 +84,26 @@ export default function SearchResultsPage({
     if (publishers) setPublishersState(publishers);
   }, [games, collections, developers, publishers]);
 
-  // Listen for game events to update games state
-  useGameEvents({ 
-    setGames: setGamesState, 
-    enabledEvents: ["gameUpdated", "gameDeleted"] 
+  useGameEvents({
+    setGames: setGamesState,
+    enabledEvents: ["gameUpdated", "gameDeleted"],
   });
 
-  // Sync gamesState with location.state when it changes (but not on initial load)
   useLayoutEffect(() => {
-    if (location.state && typeof location.state === 'object' && gamesState.length > 0) {
-      const currentState = location.state as { games?: GameItem[]; collections?: CollectionItem[]; searchQuery?: string };
+    if (location.state && typeof location.state === "object" && gamesState.length > 0) {
+      const currentState = location.state as {
+        games?: GameItem[];
+        collections?: CollectionItem[];
+        searchQuery?: string;
+      };
       const currentGames = currentState.games || [];
-      // Only update if gamesState is different from current location.state games
-      if (currentGames.length !== gamesState.length || 
-          currentGames.some((g, i) => String(g.id) !== String(gamesState[i]?.id) || g.title !== gamesState[i]?.title)) {
+      if (
+        currentGames.length !== gamesState.length ||
+        currentGames.some(
+          (g, i) =>
+            String(g.id) !== String(gamesState[i]?.id) || g.title !== gamesState[i]?.title,
+        )
+      ) {
         navigate(location.pathname, {
           state: { ...currentState, games: gamesState },
           replace: true,
@@ -61,14 +115,17 @@ export default function SearchResultsPage({
   const handleGameUpdate = (updatedGame: GameItem) => {
     setGamesState((prevGames) =>
       prevGames.map((game) =>
-        String(game.id) === String(updatedGame.id) ? updatedGame : game
-      )
+        String(game.id) === String(updatedGame.id) ? updatedGame : game,
+      ),
     );
-    // Update location state as well
-    if (location.state && typeof location.state === 'object') {
-      const currentState = location.state as { games?: GameItem[]; collections?: CollectionItem[]; searchQuery?: string };
+    if (location.state && typeof location.state === "object") {
+      const currentState = location.state as {
+        games?: GameItem[];
+        collections?: CollectionItem[];
+        searchQuery?: string;
+      };
       const updatedGames = (currentState.games || []).map((game) =>
-        String(game.id) === String(updatedGame.id) ? updatedGame : game
+        String(game.id) === String(updatedGame.id) ? updatedGame : game,
       );
       navigate(location.pathname, {
         state: { ...currentState, games: updatedGames },
@@ -79,13 +136,16 @@ export default function SearchResultsPage({
 
   const handleGameDelete = (deletedGame: GameItem) => {
     setGamesState((prevGames) =>
-      prevGames.filter((game) => String(game.id) !== String(deletedGame.id))
+      prevGames.filter((game) => String(game.id) !== String(deletedGame.id)),
     );
-    // Update location state as well
-    if (location.state && typeof location.state === 'object') {
-      const currentState = location.state as { games?: GameItem[]; collections?: CollectionItem[]; searchQuery?: string };
-      const updatedGames = (currentState.games || []).filter((game) =>
-        String(game.id) !== String(deletedGame.id)
+    if (location.state && typeof location.state === "object") {
+      const currentState = location.state as {
+        games?: GameItem[];
+        collections?: CollectionItem[];
+        searchQuery?: string;
+      };
+      const updatedGames = (currentState.games || []).filter(
+        (game) => String(game.id) !== String(deletedGame.id),
       );
       navigate(location.pathname, {
         state: { ...currentState, games: updatedGames },
@@ -97,14 +157,17 @@ export default function SearchResultsPage({
   const handleCollectionUpdate = (updatedCollection: CollectionItem) => {
     setCollectionsState((prevCollections) =>
       prevCollections.map((collection) =>
-        collection.id === updatedCollection.id ? updatedCollection : collection
-      )
+        collection.id === updatedCollection.id ? updatedCollection : collection,
+      ),
     );
-    // Update location state as well
-    if (location.state && typeof location.state === 'object') {
-      const currentState = location.state as { games?: GameItem[]; collections?: CollectionItem[]; searchQuery?: string };
+    if (location.state && typeof location.state === "object") {
+      const currentState = location.state as {
+        games?: GameItem[];
+        collections?: CollectionItem[];
+        searchQuery?: string;
+      };
       const updatedCollections = (currentState.collections || []).map((collection) =>
-        collection.id === updatedCollection.id ? updatedCollection : collection
+        collection.id === updatedCollection.id ? updatedCollection : collection,
       );
       navigate(location.pathname, {
         state: { ...currentState, collections: updatedCollections },
@@ -113,11 +176,8 @@ export default function SearchResultsPage({
     }
   };
 
-  // Check if we came from game detail page and should redirect
   useLayoutEffect(() => {
     const savedFrom = sessionStorage.getItem("gameDetailFrom");
-    // If we have a saved "from" that's not search-results, and we don't have search state,
-    // redirect to the saved location
     if (!searchQuery && savedFrom && savedFrom !== "/search-results") {
       sessionStorage.removeItem("gameDetailFrom");
       navigate(savedFrom, { replace: true });
@@ -125,8 +185,12 @@ export default function SearchResultsPage({
   }, [searchQuery, navigate]);
 
   useLayoutEffect(() => {
-    if (gamesState.length > 0 || collectionsState.length > 0 || developersState.length > 0 || publishersState.length > 0) {
-      // Wait for next frame to ensure DOM is ready
+    if (
+      gamesState.length > 0 ||
+      collectionsState.length > 0 ||
+      developersState.length > 0 ||
+      publishersState.length > 0
+    ) {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setIsReady(true);
@@ -137,32 +201,102 @@ export default function SearchResultsPage({
     }
   }, [gamesState, collectionsState, developersState, publishersState]);
 
-  if (!searchQuery || searchQuery.trim().length < 2) {
+  const renderSearchResultsHeader = (options?: { showCount?: boolean; count?: number }) => (
+    <div className="search-results-header">
+      <div className="search-results-header-content">
+        <div className="search-results-title">
+          {t("searchResults.title", { query: searchQuery })}
+        </div>
+        {options?.showCount && options.count != null ? (
+          <div className="search-results-count">
+            {t("searchResults.foundGames", { count: options.count })}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+
+  const wrapPage = (content: ReactNode, options?: { betweenDockAndStrip?: ReactNode }) => {
+    if (!useLibrariesShellOnSearchResults) {
+      return <>{content}</>;
+    }
+
     return (
-      <div className="bg-[#1a1a1a] text-white flex items-center justify-center search-results-page-empty">
+      <TopDockSlotProvider>
+        <div className="search-results-shell">
+          <LibrariesBar
+            registerTopDockSlot
+            betweenDockAndStrip={options?.betweenDockAndStrip}
+            libraries={libraries}
+            activeLibrary={activeLibrary}
+            onSelectLibrary={onSelectLibrary}
+            loading={isLoading}
+            error={error}
+            coverSize={coverSize}
+            onCoverSizeChange={handleCoverSizeChange}
+            viewMode={viewMode}
+            onViewModeChange={handleViewModeChange}
+            showMainGamesToggle={false}
+            mainGamesOnly={mainGamesOnly}
+            onMainGamesOnlyChange={setMainGamesOnly}
+            collectionShortcuts={
+              showCollectionShortcuts
+                ? allCollections.map((collection) => ({
+                    id: collection.id,
+                    title: collection.title,
+                  }))
+                : []
+            }
+            onSelectCollectionShortcut={
+              showCollectionShortcuts
+                ? (collectionId) =>
+                    navigate(`/collections/${encodeURIComponent(collectionId)}`)
+                : undefined
+            }
+            sidebarSearchGames={allGamesForSearch}
+            sidebarSearchCollections={allCollections}
+            sidebarSearchDevelopers={allDevelopersForSearch}
+            sidebarSearchPublishers={allPublishersForSearch}
+            onSidebarSearchGameSelect={(game) =>
+              navigate(`/game/${game.id}`, {
+                state: { from: location.pathname + location.search },
+              })
+            }
+            onSidebarSearchPlay={onPlay}
+            onAddGameClick={onAddGameClick}
+          />
+          {content}
+        </div>
+      </TopDockSlotProvider>
+    );
+  };
+
+  if (!searchQuery || searchQuery.trim().length < 2) {
+    return wrapPage(
+      <div
+        className={`${pageSurfaceClass}text-white flex items-center justify-center search-results-page-empty`}
+      >
         <div className="text-center">
           <div className="text-gray-400">
-            {!searchQuery 
+            {!searchQuery
               ? t("searchResults.noResults")
-              : t("search.minimumCharacters", "Please enter at least 2 characters to search")
-            }
+              : t("search.minimumCharacters", "Please enter at least 2 characters to search")}
           </div>
         </div>
-      </div>
+      </div>,
     );
   }
 
-  const totalResults = gamesState.length + collectionsState.length + developersState.length + publishersState.length;
+  const totalResults =
+    gamesState.length +
+    collectionsState.length +
+    developersState.length +
+    publishersState.length;
+
   if (totalResults === 0) {
-    return (
-      <div className="bg-[#1a1a1a] text-white search-results-page">
-        <div className="search-results-header">
-          <div className="search-results-header-content">
-            <div className="search-results-title">
-              {t("searchResults.title", { query: searchQuery })}
-            </div>
-          </div>
-        </div>
+    const emptyPage = (
+      <div className={`${pageSurfaceClass}text-white search-results-page`}>
+        {!useLibrariesShellOnSearchResults ? renderSearchResultsHeader() : null}
         <div className="search-results-content">
           <div className="search-results-content-inner">
             <div className="search-results-empty">
@@ -202,22 +336,19 @@ export default function SearchResultsPage({
         </div>
       </div>
     );
+
+    return wrapPage(emptyPage, {
+      betweenDockAndStrip: renderSearchResultsHeader(),
+    });
   }
 
-  return (
+  const resultsPage = (
     <div
-      className={`bg-[#1a1a1a] text-white search-results-page search-results-page--fade${isReady ? " search-results-page--fade-ready" : ""}`}
+      className={`${pageSurfaceClass}text-white search-results-page search-results-page--fade${isReady ? " search-results-page--fade-ready" : ""}`}
     >
-      <div className="search-results-header">
-        <div className="search-results-header-content">
-          <div className="search-results-title">
-            {t("searchResults.title", { query: searchQuery })}
-          </div>
-          <div className="search-results-count">
-            {t("searchResults.foundGames", { count: totalResults })}
-          </div>
-        </div>
-      </div>
+      {!useLibrariesShellOnSearchResults
+        ? renderSearchResultsHeader({ showCount: true, count: totalResults })
+        : null}
       <div ref={scrollContainerRef} className="search-results-content">
         <div className="search-results-content-inner">
           <SearchResultsList
@@ -235,4 +366,8 @@ export default function SearchResultsPage({
       </div>
     </div>
   );
+
+  return wrapPage(resultsPage, {
+    betweenDockAndStrip: renderSearchResultsHeader({ showCount: true, count: totalResults }),
+  });
 }

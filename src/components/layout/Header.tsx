@@ -20,8 +20,7 @@ function pathnameUsesHeaderLogoOnly(pathname: string): boolean {
   return (
     pathname === "/settings" ||
     pathname === "/profile" ||
-    pathname === "/add-game" ||
-    pathname === "/search-results"
+    pathname === "/add-game"
   );
 }
 
