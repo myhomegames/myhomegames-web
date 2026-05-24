@@ -92,7 +92,8 @@
         "compactCollectionLikeDetail": "Compact collection detail (hide hero and headings)",
         "verticalCoverAlignment": "Vertical cover alignment",
         "fixedFocalStepSound": "Navigation sound",
-        "autoShowBackgroundOnSelection": "Show background on focal selection"
+        "autoShowBackgroundOnSelection": "Show background on focal selection",
+        "disableTitleTooltips": "Hide tooltips"
       }
     }
   },

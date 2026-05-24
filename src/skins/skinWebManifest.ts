@@ -54,6 +54,8 @@ export type SkinWebManifest = {
    * navigation — no click required), show its background automatically (XMB-style).
    */
   autoShowBackgroundOnSelection: boolean;
+  /** Do not show hover tooltips anywhere in the UI. */
+  disableTitleTooltips: boolean;
 };
 
 export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
@@ -71,6 +73,7 @@ export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
   verticalCoverAlignment: false,
   fixedFocalStepSound: false,
   autoShowBackgroundOnSelection: false,
+  disableTitleTooltips: false,
 };
 
 export const SKIN_WEB_KEYS = [
@@ -88,6 +91,7 @@ export const SKIN_WEB_KEYS = [
   "verticalCoverAlignment",
   "fixedFocalStepSound",
   "autoShowBackgroundOnSelection",
+  "disableTitleTooltips",
 ] as const satisfies readonly (keyof SkinWebManifest)[];
 
 /** @deprecated renamed to `SKIN_WEB_KEYS`, kept as alias to avoid churning internal imports. */

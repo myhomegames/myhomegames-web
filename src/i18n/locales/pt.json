@@ -92,7 +92,8 @@
         "compactCollectionLikeDetail": "Detalhe de coleção compacto (oculta o hero e os títulos)",
         "verticalCoverAlignment": "Alinhamento vertical das capas",
         "fixedFocalStepSound": "Som de navegação",
-        "autoShowBackgroundOnSelection": "Mostrar fundo na seleção focal"
+        "autoShowBackgroundOnSelection": "Mostrar fundo na seleção focal",
+        "disableTitleTooltips": "Ocultar dicas"
       }
     }
   },

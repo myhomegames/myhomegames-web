@@ -92,7 +92,8 @@
         "compactCollectionLikeDetail": "コンパクトなコレクション詳細（ヒーローと見出しを非表示）",
         "verticalCoverAlignment": "カバーの縦整列",
         "fixedFocalStepSound": "ナビゲーション音",
-        "autoShowBackgroundOnSelection": "フォーカス選択時に背景を表示"
+        "autoShowBackgroundOnSelection": "フォーカス選択時に背景を表示",
+        "disableTitleTooltips": "ツールチップを非表示"
       }
     }
   },

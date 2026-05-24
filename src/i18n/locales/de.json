@@ -92,7 +92,8 @@
         "compactCollectionLikeDetail": "Kompakte Sammlungs-Detailansicht (ohne Hero und Überschriften)",
         "verticalCoverAlignment": "Vertikale Cover-Ausrichtung",
         "fixedFocalStepSound": "Navigationston",
-        "autoShowBackgroundOnSelection": "Hintergrund bei Fokusauswahl anzeigen"
+        "autoShowBackgroundOnSelection": "Hintergrund bei Fokusauswahl anzeigen",
+        "disableTitleTooltips": "Tooltips ausblenden"
       }
     }
   },

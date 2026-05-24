@@ -92,7 +92,8 @@
         "compactCollectionLikeDetail": "紧凑的合集详情（隐藏封面区和标题）",
         "verticalCoverAlignment": "封面垂直对齐",
         "fixedFocalStepSound": "导航音效",
-        "autoShowBackgroundOnSelection": "焦点选中时显示背景"
+        "autoShowBackgroundOnSelection": "焦点选中时显示背景",
+        "disableTitleTooltips": "隐藏工具提示"
       }
     }
   },

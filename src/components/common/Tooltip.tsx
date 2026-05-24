@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useSettings } from "../../contexts/SettingsContext";
 type TooltipProps = {
   text: string;
   position?: "top" | "bottom" | "left" | "right";
@@ -13,6 +14,7 @@ export default function Tooltip({
   delay = 1000,
   children,
 }: TooltipProps) {
+  const { skinWeb } = useSettings();
   const [isVisible, setIsVisible] = useState(false);
   const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({});
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -118,6 +120,10 @@ export default function Tooltip({
       window.removeEventListener("scroll", onViewportChange, true);
     };
   }, [isVisible, text, position]);
+
+  if (skinWeb.disableTitleTooltips) {
+    return <div className="tooltip-wrapper">{children}</div>;
+  }
 
   return (
     <>

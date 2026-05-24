@@ -92,7 +92,8 @@
         "compactCollectionLikeDetail": "Dettaglio collezioni sintetico (nasconde hero e intestazioni)",
         "verticalCoverAlignment": "Allineamento cover verticale",
         "fixedFocalStepSound": "Suono di navigazione",
-        "autoShowBackgroundOnSelection": "Mostra sfondo alla selezione focale"
+        "autoShowBackgroundOnSelection": "Mostra sfondo alla selezione focale",
+        "disableTitleTooltips": "Nascondi i tooltip"
       }
     }
   },

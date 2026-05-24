@@ -92,7 +92,8 @@
         "compactCollectionLikeDetail": "Détail de collection compact (masque la bannière et les titres)",
         "verticalCoverAlignment": "Alignement vertical des jaquettes",
         "fixedFocalStepSound": "Son de navigation",
-        "autoShowBackgroundOnSelection": "Afficher l'arrière-plan à la sélection focale"
+        "autoShowBackgroundOnSelection": "Afficher l'arrière-plan à la sélection focale",
+        "disableTitleTooltips": "Masquer les infobulles"
       }
     }
   },

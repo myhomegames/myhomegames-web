@@ -92,7 +92,8 @@
         "compactCollectionLikeDetail": "Detalle de colección compacto (oculta la portada y los encabezados)",
         "verticalCoverAlignment": "Alineación vertical de portadas",
         "fixedFocalStepSound": "Sonido de navegación",
-        "autoShowBackgroundOnSelection": "Mostrar fondo al seleccionar con foco"
+        "autoShowBackgroundOnSelection": "Mostrar fondo al seleccionar con foco",
+        "disableTitleTooltips": "Ocultar tooltips"
       }
     }
   },
