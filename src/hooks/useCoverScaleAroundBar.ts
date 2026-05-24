@@ -285,6 +285,10 @@ function isFixedFocalGamesCoverEl(el: HTMLElement): boolean {
   return Boolean(el.closest(".fixed-focal-games-list"));
 }
 
+function isGameDetailCollectionsCoverEl(el: HTMLElement): boolean {
+  return Boolean(el.closest(".game-detail-collections-section"));
+}
+
 function updateGlobalScales(): void {
   const pads = document.querySelectorAll<HTMLElement>(GLOBAL_PAD_SELECTORS);
   if (pads.length === 0) return;
@@ -296,7 +300,8 @@ function updateGlobalScales(): void {
         isLibraryVerticalGamesCoverEl(pad) ||
         isFixedFocalTagCoverEl(pad) ||
         isFixedFocalCollectionsCoverEl(pad) ||
-        isFixedFocalGamesCoverEl(pad)
+        isFixedFocalGamesCoverEl(pad) ||
+        isGameDetailCollectionsCoverEl(pad)
       ) {
         return;
       }
@@ -336,7 +341,8 @@ function updateGlobalScales(): void {
       isLibraryVerticalGamesCoverEl(pad) ||
       isFixedFocalTagCoverEl(pad) ||
       isFixedFocalCollectionsCoverEl(pad) ||
-      isFixedFocalGamesCoverEl(pad)
+      isFixedFocalGamesCoverEl(pad) ||
+      isGameDetailCollectionsCoverEl(pad)
     ) {
       return;
     }

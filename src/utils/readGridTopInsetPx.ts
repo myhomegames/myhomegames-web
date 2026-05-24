@@ -63,6 +63,15 @@ function findLibrariesStripEl(doc: Document): HTMLElement | null {
   return strip instanceof HTMLElement ? strip : bar;
 }
 
+/** GOG-style shell: libraries strip is a full-height left column, not a top icon band. */
+function isPersistentSidebarLibrariesStrip(
+  strip: HTMLElement,
+  doc: Document = document,
+): boolean {
+  const shell = doc.querySelector(".app-main-container[data-mhg-persistent-library-shell='true']");
+  return !!(shell && shell.contains(strip));
+}
+
 /**
  * Band occupied by the libraries icon strip (`.mhg-libraries-bar-container`), not
  * the optional top tool dock (`.mhg-top-right-tool-dock`). Covers may pass behind
@@ -398,7 +407,7 @@ export function readFixedFocalTopPx(
 
   if (list) {
     const strip = findLibrariesStripEl(doc);
-    if (strip) {
+    if (strip && !isPersistentSidebarLibrariesStrip(strip, doc)) {
       const stripBottom = strip.getBoundingClientRect().bottom;
       const listTop = list.getBoundingClientRect().top;
       const aligned = stripBottom + readFocalBelowBarGapPx(doc) - listTop;

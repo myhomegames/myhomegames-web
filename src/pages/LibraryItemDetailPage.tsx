@@ -2419,6 +2419,7 @@ function LibraryItemDetailContent({
                                         }/${encodeURIComponent(String(parent.id))}`
                                       : undefined
                                   }
+                                  disableVerticalCoverAlignment
                                   disableAutoTranslate
                                   games={slideItems}
                                   onGameClick={(selected) => {

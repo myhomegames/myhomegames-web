@@ -796,6 +796,7 @@ function GameDetailContent({
                     sectionId={`collection-${collection.id}`}
                     titleOverride={collection.title}
                     titleHref={`/collections/${collection.id}`}
+                    disableVerticalCoverAlignment
                     disableAutoTranslate
                     games={slideItems}
                     onGameClick={handleRelatedGameClick}

@@ -46,6 +46,8 @@ type ScrollableGamesSectionProps = {
   onPlayFirstInCollectionLike?: (resourceType: string, cid: string) => void | Promise<void>;
   onCollectionLikePseudoAddToParent?: (source: CollectionItem, parentId?: string) => void | Promise<void>;
   onCollectionLikePseudoUpdated?: (updated: CollectionInfo) => void;
+  /** Game detail collection sliders: keep classic horizontal covers (not vertical alignment). */
+  disableVerticalCoverAlignment?: boolean;
 };
 
 export default function ScrollableGamesSection({
@@ -68,12 +70,14 @@ export default function ScrollableGamesSection({
   onPlayFirstInCollectionLike,
   onCollectionLikePseudoAddToParent,
   onCollectionLikePseudoUpdated,
+  disableVerticalCoverAlignment = false,
 }: ScrollableGamesSectionProps) {
   const { activeSkinWeb } = useSkin();
   const location = useLocation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const storageKey = `${location.pathname}:${sectionId}`;
-  const forceVerticalCovers = activeSkinWeb.verticalCoverAlignment;
+  const forceVerticalCovers =
+    activeSkinWeb.verticalCoverAlignment && !disableVerticalCoverAlignment;
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [isRestoring, setIsRestoring] = useState(true);
@@ -243,7 +247,14 @@ export default function ScrollableGamesSection({
   }
 
   return (
-    <div className="scrollable-section">
+    <div
+      className={[
+        "scrollable-section",
+        disableVerticalCoverAlignment ? "scrollable-section--classic-covers" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       {showTitle && (
         <div className="scrollable-section-header">
           <h2 className="scrollable-section-title">
