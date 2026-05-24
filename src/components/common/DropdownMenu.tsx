@@ -142,7 +142,8 @@ export default function DropdownMenu({
   /** Game detail ⋮: portal to body so PS3 right sheet (z-index 10100) covers the overlay dock. */
   const isGameDetailMenu = className.includes('game-detail-dropdown-menu');
   const useDockPortalMenu = isLibrariesTopMenu || isDetailDockMenu;
-  const useBodyPortalMenu = useDockPortalMenu || isGameDetailMenu;
+  /** Body portal + fixed position under trigger (dock, detail sheet, game detail actions). */
+  const useFixedBodyPortalMenu = useDockPortalMenu || isGameDetailMenu;
   
   // Check if we're in search (popup or results page) to use portal so menu isn't clipped and clicks work
   const [isInSearchDropdown, setIsInSearchDropdown] = useState(false);
@@ -473,7 +474,7 @@ export default function DropdownMenu({
         const popupContent = (
           <div 
             ref={popupRef} 
-            className={`dropdown-menu-popup ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''} ${isInGamesTable ? 'dropdown-menu-popup-in-games-table' : ''} ${useDockPortalMenu ? 'dropdown-menu-popup-in-libraries-top' : ''}`}
+            className={`dropdown-menu-popup ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''} ${isInGamesTable ? 'dropdown-menu-popup-in-games-table' : ''} ${useFixedBodyPortalMenu ? 'dropdown-menu-popup-in-libraries-top' : ''}`}
             onMouseLeave={handlePopupMouseLeave}
             style={(() => {
               if (!menuRef.current) return undefined;
@@ -510,7 +511,7 @@ export default function DropdownMenu({
                 };
               }
 
-              if (useDockPortalMenu) {
+              if (useFixedBodyPortalMenu) {
                 const rect = menuRef.current.getBoundingClientRect();
                 const margin = 8;
                 // Match .dropdown-menu-popup min-width — right-align under the ⋮ like default absolute layout
@@ -817,7 +818,7 @@ export default function DropdownMenu({
         );
         
         // Use portal for search dropdown, cover, or games table (escape overflow and stay on top)
-        return (isInSearchDropdown || isInCover || isInGamesTable || useBodyPortalMenu)
+        return (isInSearchDropdown || isInCover || isInGamesTable || useFixedBodyPortalMenu)
           ? createPortal(popupContent, document.body)
           : popupContent;
       })()}
