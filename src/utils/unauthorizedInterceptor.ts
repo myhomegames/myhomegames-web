@@ -1,7 +1,8 @@
 /**
  * Global fetch interceptor:
  * - On 401 from our API: invalidate session and redirect (AuthProvider handler).
- * - On network/certificate error (fetch throws): redirect to API_BASE so user can accept cert at app open.
+ * - On network/certificate error to a **local HTTPS** API: redirect to API_BASE so the user
+ *   can accept a self-signed cert once. Skipped for remote APIs (Cloudflare Tunnel, etc.).
  */
 
 import { API_BASE } from "../config";
@@ -57,6 +58,31 @@ function isNetworkOrCertError(message: string): boolean {
   );
 }
 
+/**
+ * Cert-acceptance redirect only applies when the API is local HTTPS (self-signed).
+ * Remote APIs (e.g. Cloudflare Tunnel) must not redirect: server GET / would bounce
+ * back to FRONTEND_URL and cause an infinite loop.
+ */
+export function isLocalHttpsApiBase(apiBase: string = API_BASE): boolean {
+  try {
+    const u = new URL(apiBase);
+    const host = u.hostname.toLowerCase();
+    const isLocal =
+      host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host === "::1";
+    return isLocal && u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function shouldRedirectForCertAcceptance(url: string, message: string): boolean {
+  return (
+    isOurApiRequest(url) &&
+    isNetworkOrCertError(message) &&
+    isLocalHttpsApiBase()
+  );
+}
+
 function redirectToApiBase(): void {
   const serverUrl = API_BASE.replace(/\/$/, "");
   window.location.href = serverUrl;
@@ -77,7 +103,7 @@ window.fetch = async function (
     return response;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    if (isOurApi && isNetworkOrCertError(message)) {
+    if (shouldRedirectForCertAcceptance(url, message)) {
       redirectToApiBase();
     }
     throw err;
