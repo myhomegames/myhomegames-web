@@ -230,7 +230,7 @@ function GameDetailContent({
 }) {
   const navigate = useNavigate();
   const outletContext = useOutletContext<MainAppOutletContext | null>();
-  const { twitchLoginEnabled } = useSettings();
+  const { igdbEnabled } = useSettings();
   const { activeSkinWeb } = useSkin();
   const { tagLabels, tagLabelsReady } = useTagLists();
   const categoriesList = useMemo(
@@ -377,9 +377,9 @@ function GameDetailContent({
 
   // When login is disabled, hide IGDB-only games (those with "New" badge)
   const similarGamesToShow = useMemo((): SimilarGameDisplayItem[] => {
-    if (twitchLoginEnabled) return allSimilarGamesOrdered;
+    if (igdbEnabled) return allSimilarGamesOrdered;
     return allSimilarGamesOrdered.filter((item) => item.type === "library");
-  }, [twitchLoginEnabled, allSimilarGamesOrdered]);
+  }, [igdbEnabled, allSimilarGamesOrdered]);
 
   const dispatchCollectionLikeUpdated = (updatedItem: CollectionInfo) => {
     window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collection: updatedItem } }));

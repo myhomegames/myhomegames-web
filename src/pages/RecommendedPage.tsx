@@ -48,7 +48,7 @@ export default function RecommendedPage({
   const navigate = useNavigate();
   const titleFilterQuery = useTitleFilterQuery();
   const { token } = useAuth();
-  const { twitchLoginEnabled, settingsLoaded } = useSettings();
+  const { twitchLoginEnabled, igdbEnabled, settingsLoaded } = useSettings();
   const { setLoading } = useLoading();
   const { activeSkinWeb } = useSkin();
   const verticalStripsLayout = activeSkinWeb.verticalCoverAlignment;
@@ -68,13 +68,13 @@ export default function RecommendedPage({
     (game: GameItem) => {
       setRecommendedSectionsCache(sections);
       markRecommendedReturnFromGame();
-      if (twitchLoginEnabled && (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly) {
+      if (igdbEnabled && (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly) {
         navigate(`/igdb-game/${game.id}`);
       } else {
         onGameClick(game);
       }
     },
-    [twitchLoginEnabled, navigate, onGameClick, sections]
+    [igdbEnabled, navigate, onGameClick, sections]
   );
   
   useScrollRestoration(scrollContainerRef, undefined, !verticalStripsLayout);
@@ -293,7 +293,7 @@ export default function RecommendedPage({
       setIsFetching(false);
       setLoadingRef.current(false);
 
-      if (twitchLoginEnabled) {
+      if (igdbEnabled) {
         const clientId = getTwitchClientId();
         const clientSecret = getTwitchClientSecret();
         if (clientId && clientSecret) {

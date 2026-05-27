@@ -3,15 +3,28 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { useTranslation } from "react-i18next";
+import { formatTwitchAuthError } from "../utils/twitchAuthErrors";
+
 export default function LoginPage() {
   const { user, login, isLoading } = useAuth();
-  const { twitchClientId, twitchClientSecret } = useSettings();
+  const { twitchApiEnabled, twitchClientId, twitchClientSecret } = useSettings();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [hasCredentials, setHasCredentials] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   useEffect(() => {
-    setHasCredentials(!!(twitchClientId && twitchClientSecret));
-  }, [twitchClientId, twitchClientSecret]);
+    setHasCredentials(
+      twitchApiEnabled && !!twitchClientId.trim() && !!twitchClientSecret.trim()
+    );
+  }, [twitchApiEnabled, twitchClientId, twitchClientSecret]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const err = params.get("auth_error");
+    if (!err) return;
+    setAuthError(formatTwitchAuthError(err));
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }, []);
 
   // Redirect to home if already authenticated
   useEffect(() => {
@@ -27,6 +40,12 @@ export default function LoginPage() {
   return (
     <div className="login-page-root">
       <h1 className="login-page-title">{t("login.title", "Welcome to MyHomeGames")}</h1>
+
+      {authError ? (
+        <p className="login-page-missing-primary" role="alert">
+          {t("login.authError", "Login failed")}: {authError}
+        </p>
+      ) : null}
 
       {hasCredentials ? (
         <>

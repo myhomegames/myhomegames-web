@@ -109,7 +109,7 @@ export default function LibraryItemDetailPage({
   const { collections: allCollectionsFromContext } = useCollections();
   const { developers: allDevelopers, updateDeveloper } = useDevelopers();
   const { publishers: allPublishers, updatePublisher } = usePublishers();
-  const { twitchLoginEnabled } = useSettings();
+  const { igdbEnabled } = useSettings();
   const { activeSkinWeb } = useSkin();
   const fixedFocalContextRail =
     activeSkinWeb.compactCollectionLikeDetail && activeSkinWeb.verticalCoverAlignment;
@@ -177,14 +177,14 @@ export default function LibraryItemDetailPage({
   const igdbTagKey: IgdbTagKey | null =
     resourceType === "developers" ? "developers" : resourceType === "publishers" ? "publishers" : null;
   const { igdbGames: igdbTagGames, loading: _igdbTagLoading } = useIgdbGamesForTag(
-    twitchLoginEnabled && igdbTagKey && id ? igdbTagKey : null,
+    igdbEnabled && igdbTagKey && id ? igdbTagKey : null,
     id ?? null,
     libraryGameIds,
     true,
     undefined
   );
 
-  const canShowNewGamesToggle = (resourceType === "developers" || resourceType === "publishers") && !!twitchLoginEnabled;
+  const canShowNewGamesToggle = (resourceType === "developers" || resourceType === "publishers") && !!igdbEnabled;
   const storageKeyForNewGames = resourceType === "developers" ? "developers" : "publishers";
   const [showNewGames, setShowNewGames] = useState<boolean>(() => {
     if (resourceType !== "developers" && resourceType !== "publishers") return false;

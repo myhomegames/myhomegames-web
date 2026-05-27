@@ -67,7 +67,7 @@ export default function TagGamesPage({
   const { activeSkinWeb } = useSkin();
   const tagConfig = tagKey ? TAG_PAGE_CONFIGS[tagKey] : undefined;
   const { games: libraryGames } = useLibraryGames();
-  const { twitchLoginEnabled } = useSettings();
+  const { igdbEnabled } = useSettings();
   const { tagLabels } = useTagLists();
   const [searchParams] = useSearchParams();
   const { isLoading, setLoading } = useLoading();
@@ -193,13 +193,13 @@ export default function TagGamesPage({
   }, [effectiveTagKey, effectiveTagValueResolved, isEffectiveIgdbTag, tagLabels]);
 
   const { igdbGames, loading: igdbLoading } = useIgdbGamesForSeriesFranchise(
-    isEffectiveSeriesOrFranchise && twitchLoginEnabled ? effectiveTagKey as "series" | "franchise" : null,
+    isEffectiveSeriesOrFranchise && igdbEnabled ? effectiveTagKey as "series" | "franchise" : null,
     effectiveTagValueResolved,
     libraryGameIds,
     true
   );
   const { igdbGames: igdbTagGames, loading: igdbTagLoading, tagName: igdbTagName } = useIgdbGamesForTag(
-    isEffectiveIgdbTag && twitchLoginEnabled ? (effectiveTagKey as IgdbTagKey) : null,
+    isEffectiveIgdbTag && igdbEnabled ? (effectiveTagKey as IgdbTagKey) : null,
     effectiveTagValueResolved,
     libraryGameIds,
     true,
@@ -207,7 +207,7 @@ export default function TagGamesPage({
   );
 
   const mergedGamesForSeriesFranchise = useMemo(() => {
-    if (!isEffectiveSeriesOrFranchise || !twitchLoginEnabled) return null;
+    if (!isEffectiveSeriesOrFranchise || !igdbEnabled) return null;
     const libraryGamesInSeries = hook.filteredAndSortedGames;
     const libraryById = new Map(libraryGamesInSeries.map((g) => [String(g.id), g]));
     const seenIds = new Set<string>();
@@ -233,10 +233,10 @@ export default function TagGamesPage({
       }
     }
     return sortGamesList(merged, hook.sortField, hook.sortAscending);
-  }, [isEffectiveSeriesOrFranchise, twitchLoginEnabled, hook.filteredAndSortedGames, igdbGames, hook.sortField, hook.sortAscending]);
+  }, [isEffectiveSeriesOrFranchise, igdbEnabled, hook.filteredAndSortedGames, igdbGames, hook.sortField, hook.sortAscending]);
 
   const mergedGamesForIgdbTag = useMemo(() => {
-    if (!isEffectiveIgdbTag || !twitchLoginEnabled) return null;
+    if (!isEffectiveIgdbTag || !igdbEnabled) return null;
     const libraryGamesFiltered = hook.filteredAndSortedGames;
     const libraryById = new Map(libraryGamesFiltered.map((g) => [String(g.id), g]));
     const seenIds = new Set<string>();
@@ -262,7 +262,7 @@ export default function TagGamesPage({
       }
     }
     return sortGamesList(merged, hook.sortField, hook.sortAscending);
-  }, [isEffectiveIgdbTag, twitchLoginEnabled, hook.filteredAndSortedGames, igdbTagGames, hook.sortField, hook.sortAscending]);
+  }, [isEffectiveIgdbTag, igdbEnabled, hook.filteredAndSortedGames, igdbTagGames, hook.sortField, hook.sortAscending]);
 
   const mergedGamesOverride = mergedGamesForSeriesFranchise ?? mergedGamesForIgdbTag;
   const selectedValueMatchesTag = useMemo(() => {
@@ -283,7 +283,7 @@ export default function TagGamesPage({
     }
   }, [tagField, tagValue, hook.selectedThemes, hook.selectedPlatforms, hook.selectedGameModes, hook.selectedPlayerPerspectives, hook.selectedGameEngines, hook.selectedDevelopers, hook.selectedPublishers, hook.selectedGenre, hook.selectedSeries, hook.selectedFranchise]);
   const canShowNewGamesToggle =
-    (isSeriesOrFranchise || isIgdbTag) && !!twitchLoginEnabled && hook.filterField !== "all";
+    (isSeriesOrFranchise || isIgdbTag) && !!igdbEnabled && hook.filterField !== "all";
   const usePersistentTopBarTagToggles = usePersistentShell;
   const injectedTopBarTagToggles: ReactNode = useMemo(() => {
     if (!usePersistentTopBarTagToggles || viewMode !== "grid") return null;

@@ -44,7 +44,7 @@ export default function RecommendedSectionDetailPage({
   const { sectionId: rawSectionId } = useParams<{ sectionId: string }>();
   const sectionId = rawSectionId ? decodeURIComponent(rawSectionId) : null;
   const { token } = useAuth();
-  const { twitchLoginEnabled, settingsLoaded } = useSettings();
+  const { twitchLoginEnabled, igdbEnabled, settingsLoaded } = useSettings();
   const { setLoading } = useLoading();
   const { activeSkinWeb } = useSkin();
   const persistentShell = activeSkinWeb.persistentLibraryShell;
@@ -101,13 +101,13 @@ export default function RecommendedSectionDetailPage({
         }
         markRecommendedReturnFromGame();
       }
-      if (twitchLoginEnabled && (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly) {
+      if (igdbEnabled && (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly) {
         navigate(`/igdb-game/${game.id}`);
       } else {
         onGameClick(game);
       }
     },
-    [twitchLoginEnabled, navigate, onGameClick, sectionId, games],
+    [igdbEnabled, navigate, onGameClick, sectionId, games],
   );
 
   useEffect(() => {

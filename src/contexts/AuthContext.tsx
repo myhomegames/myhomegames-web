@@ -6,6 +6,11 @@ import type { ReactNode } from "react";
 import { API_BASE, updateApiToken } from "../config";
 import { setUnauthorizedHandler } from "../utils/unauthorizedInterceptor";
 import { useSettings } from "./SettingsContext";
+import {
+  applyTwitchCredentialsToLocalStorage,
+  resolveTwitchClientId,
+  resolveTwitchClientSecret,
+} from "../utils/twitchCredentials";
 
 interface User {
   userId: string;
@@ -31,7 +36,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { twitchLoginEnabled, twitchClientId, twitchClientSecret } = useSettings();
+  const {
+    twitchLoginEnabled,
+    twitchApiEnabled,
+    twitchClientId,
+    twitchClientSecret,
+    settingsLoaded,
+  } = useSettings();
+
+  const twitchCredsSource = {
+    twitchApiEnabled,
+    serverClientId: twitchClientId,
+    serverClientSecret: twitchClientSecret,
+    settingsLoaded,
+  };
+
+  useEffect(() => {
+    if (!settingsLoaded) return;
+    applyTwitchCredentialsToLocalStorage(twitchClientId, twitchClientSecret, twitchApiEnabled);
+  }, [settingsLoaded, twitchApiEnabled, twitchClientId, twitchClientSecret]);
 
   // Check authentication status
   const checkAuth = async () => {
@@ -41,6 +64,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const urlParams = new URLSearchParams(window.location.search);
       const twitchToken = urlParams.get("twitch_token");
       const userId = urlParams.get("user_id");
+
+      const callbackClientId = urlParams.get("twitch_client_id");
+      if (callbackClientId) {
+        localStorage.setItem("twitch_client_id", callbackClientId);
+      }
 
       if (twitchToken && userId) {
         // Save token to localStorage
@@ -63,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const storedToken = localStorage.getItem("twitch_token");
       if (storedToken) {
         // Check if we have client_id (required for Twitch token validation)
-        const clientId = localStorage.getItem("twitch_client_id") || twitchClientId;
+        const clientId = resolveTwitchClientId(twitchCredsSource);
         if (!clientId) {
           // No client_id means we can't validate the Twitch token
           // Clear it and continue to check dev token
@@ -110,8 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Fetch user info from server
   // Returns true if authentication succeeded, false otherwise
   const fetchUserInfo = async (authToken: string): Promise<boolean> => {
-    // Get clientId from localStorage for Twitch token validation
-    const clientId = localStorage.getItem("twitch_client_id") || twitchClientId;
+    const clientId = resolveTwitchClientId(twitchCredsSource);
     
     // Check if this is a dev token (don't require clientId for dev tokens)
     const isDevToken = DEV_TOKEN && authToken === DEV_TOKEN;
@@ -195,11 +222,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Initiate Twitch login
   const login = async (forceVerify = false) => {
-    // Get credentials from localStorage
-    const clientId = localStorage.getItem("twitch_client_id") || twitchClientId;
-    const clientSecret = localStorage.getItem("twitch_client_secret") || twitchClientSecret;
+    const clientId = resolveTwitchClientId(twitchCredsSource);
+    const clientSecret = resolveTwitchClientSecret(twitchCredsSource);
     
-    if (!clientId || !clientSecret) {
+    if (!clientId) {
       // Don't show alert - let the LoginPage handle it
       // The LoginPage will show the credentials form
       return;
@@ -211,11 +237,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const cleanClientSecret = String(clientSecret).trim();
       const cleanForceVerify = Boolean(forceVerify);
       
-      const requestBody = {
+      const basePath = import.meta.env.BASE || "/";
+      const frontendUrl = `${window.location.origin}${basePath.startsWith("/") ? basePath : `/${basePath}`}`;
+
+      const requestBody: Record<string, unknown> = {
         clientId: cleanClientId,
-        clientSecret: cleanClientSecret,
         forceVerify: cleanForceVerify,
+        frontendUrl,
       };
+      if (cleanClientSecret) {
+        requestBody.clientSecret = cleanClientSecret;
+      }
       
       const response = await fetch(`${API_BASE}/auth/twitch`, {
         method: "POST",
@@ -279,10 +311,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Check auth on mount
+  // Wait for settings (client id) before validating Twitch tokens
   useEffect(() => {
+    if (!settingsLoaded) return;
     checkAuth();
-  }, []);
+  }, [settingsLoaded]);
 
   // Global 401 handling: when Twitch login is enabled, invalidate session and redirect; when disabled, do nothing
   const logoutRef = useRef(logout);

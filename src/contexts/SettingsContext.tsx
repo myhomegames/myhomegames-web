@@ -1,7 +1,19 @@
-import { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  useMemo,
+} from "react";
 import type { ReactNode } from "react";
 import { API_BASE } from "../config";
 import { buildApiHeaders } from "../utils/api";
+import {
+  applyTwitchCredentialsToLocalStorage,
+  isIgdbApiActive,
+} from "../utils/twitchCredentials";
 import {
   DEFAULT_SKIN_WEB_MANIFEST,
   normalizeSkinWebManifest,
@@ -11,8 +23,12 @@ import {
 interface SettingsContextType {
   twitchLoginEnabled: boolean;
   setTwitchLoginEnabled: (value: boolean) => void;
+  twitchApiEnabled: boolean;
+  setTwitchApiEnabled: (value: boolean) => void;
   twitchClientId: string;
   twitchClientSecret: string;
+  /** True when API credentials are enabled and Client ID + Secret are set. */
+  igdbEnabled: boolean;
   /**
    * Effective skin web flags as persisted in the server settings. Initialized from the active
    * skin's skin.json whenever the active skin changes, and from user toggles in the Settings
@@ -33,6 +49,7 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [twitchLoginEnabled, setTwitchLoginEnabled] = useState(false);
+  const [twitchApiEnabled, setTwitchApiEnabled] = useState(false);
   const [twitchClientId, setTwitchClientId] = useState("");
   const [twitchClientSecret, setTwitchClientSecret] = useState("");
   const [skinWeb, setSkinWeb] = useState<SkinWebManifest>(DEFAULT_SKIN_WEB_MANIFEST);
@@ -61,16 +78,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (res.ok) {
         const data = await res.json();
         setTwitchLoginEnabled(!!data.twitchLoginEnabled);
+        const serverApiEnabled = !!data.twitchApiEnabled;
+        setTwitchApiEnabled(serverApiEnabled);
         const serverClientId = typeof data.twitchClientId === "string" ? data.twitchClientId : "";
         const serverClientSecret = typeof data.twitchClientSecret === "string" ? data.twitchClientSecret : "";
         setTwitchClientId(serverClientId);
         setTwitchClientSecret(serverClientSecret);
         applySkinWeb(data.skinWeb);
-        // Keep localStorage in sync for existing code paths that still read from it.
-        if (serverClientId) localStorage.setItem("twitch_client_id", serverClientId);
-        else localStorage.removeItem("twitch_client_id");
-        if (serverClientSecret) localStorage.setItem("twitch_client_secret", serverClientSecret);
-        else localStorage.removeItem("twitch_client_secret");
+        applyTwitchCredentialsToLocalStorage(serverClientId, serverClientSecret, serverApiEnabled);
       }
     } catch (err) {
       console.error("Failed to refresh settings:", err);
@@ -122,13 +137,21 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
   }, [skinWeb.verticalCoverAlignment]);
 
+  const igdbEnabled = useMemo(
+    () => isIgdbApiActive(twitchApiEnabled, twitchClientId, twitchClientSecret),
+    [twitchApiEnabled, twitchClientId, twitchClientSecret]
+  );
+
   return (
     <SettingsContext.Provider
       value={{
         twitchLoginEnabled,
         setTwitchLoginEnabled,
+        twitchApiEnabled,
+        setTwitchApiEnabled,
         twitchClientId,
         twitchClientSecret,
+        igdbEnabled,
         skinWeb,
         updateSkinWebFlags,
         refreshSettings,

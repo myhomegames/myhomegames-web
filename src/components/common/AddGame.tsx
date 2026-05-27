@@ -23,7 +23,7 @@ export default function AddGame({
 }: AddGameProps) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { twitchLoginEnabled } = useSettings();
+  const { igdbEnabled } = useSettings();
   const [searchQuery, setSearchQuery] = useState("");
   const [createTitle, setCreateTitle] = useState("");
   const [results, setResults] = useState<IGDBGame[]>([]);
@@ -56,14 +56,14 @@ export default function AddGame({
   }
 
   useEffect(() => {
-    if (isOpen && !twitchLoginEnabled) {
+    if (isOpen && !igdbEnabled) {
       // Ensure create-from-scratch input gets focus when search is unavailable.
       const focusTimeout = setTimeout(() => {
         createTitleInputRef.current?.focus();
       }, 0);
       return () => clearTimeout(focusTimeout);
     }
-  }, [isOpen, twitchLoginEnabled]);
+  }, [isOpen, igdbEnabled]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -340,7 +340,7 @@ export default function AddGame({
     
     lastEffectQueryRef.current = trimmedQuery;
     
-    if (!twitchLoginEnabled) {
+    if (!igdbEnabled) {
       setResults([]);
       setError(null);
       setIsSearching(false);
@@ -362,7 +362,7 @@ export default function AddGame({
         searchTimeoutRef.current = null;
       }
     };
-  }, [searchQuery, twitchLoginEnabled]);
+  }, [searchQuery, igdbEnabled]);
 
   if (!isOpen) return null;
 
@@ -380,7 +380,7 @@ export default function AddGame({
         </div>
 
         <div className="add-game-content">
-          {twitchLoginEnabled && (
+          {igdbEnabled && (
             <div className="add-game-search-container">
               <label htmlFor="add-game-search" className="add-game-sr-only">
                 {t("addGame.searchPlaceholder")}
@@ -435,7 +435,7 @@ export default function AddGame({
                 placeholder={t("addGame.newGameTitlePlaceholder")}
                 className="add-game-search-input add-game-create-input"
                 disabled={isCreating}
-                autoFocus={!twitchLoginEnabled}
+                autoFocus={!igdbEnabled}
               />
               <button
                 type="submit"
@@ -450,13 +450,13 @@ export default function AddGame({
             )}
           </div>
 
-          {twitchLoginEnabled && error && (
+          {igdbEnabled && error && (
             <div className="add-game-error">
               {t("addGame.error")}: {error}
             </div>
           )}
 
-          {twitchLoginEnabled && (
+          {igdbEnabled && (
           <div className="add-game-results">
             {isSearching ? (
               <div className="add-game-loading">
