@@ -2,7 +2,7 @@
  * API utility functions for building URLs and headers
  */
 
-import { getApiToken, getTwitchClientId } from "../config";
+import { getApiToken } from "../config";
 
 /**
  * Builds an API URL with optional query parameters
@@ -24,28 +24,18 @@ export function buildApiUrl(
 /**
  * Builds standard API headers with authentication
  * @param additionalHeaders - Optional additional headers to include
- * @returns Headers object with X-Auth-Token and optionally X-Twitch-Client-Id
+ * @returns Headers object with X-Auth-Token when available
  */
 export function buildApiHeaders(additionalHeaders: Record<string, string> = {}): Record<string, string> {
   const token = getApiToken();
   const headers: Record<string, string> = {
     ...additionalHeaders,
   };
-  
+
   if (token) {
     headers["X-Auth-Token"] = token;
-    
-    // Add Twitch Client ID if available and token is not a dev token
-    // Dev tokens are those from VITE_API_TOKEN env var
-    const devToken = import.meta.env.VITE_API_TOKEN;
-    const isDevToken = devToken && token === devToken;
-    const clientId = getTwitchClientId();
-    
-    if (clientId && !isDevToken) {
-      headers["X-Twitch-Client-Id"] = clientId;
-    }
   }
-  
+
   return headers;
 }
 

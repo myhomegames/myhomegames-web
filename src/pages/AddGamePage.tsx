@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { formatIGDBGameDate } from "../utils/date";
 import { displayGameType } from "../utils/igdbGameType";
-import { API_BASE, getApiToken, getTwitchClientId, getTwitchClientSecret } from "../config";
+import { API_BASE } from "../config";
+import { buildApiHeaders } from "../utils/api";
 import type { IGDBGame } from "../types";
 import Cover from "../components/games/Cover";
 type AddGamePageProps = {
@@ -51,21 +52,12 @@ export default function AddGamePage({
       try {
         const url = new URL("/igdb/search", API_BASE);
 
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "X-Auth-Token": getApiToken(),
-        };
-        
-        // Add Twitch credentials for IGDB API
-        const clientId = getTwitchClientId();
-        const clientSecret = getTwitchClientSecret();
-        if (clientId) headers["X-Twitch-Client-Id"] = clientId;
-        if (clientSecret) headers["X-Twitch-Client-Secret"] = clientSecret;
-
         const res = await fetch(url.toString(), {
           method: "POST",
-          headers,
+          headers: buildApiHeaders({
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          }),
           body: JSON.stringify({ query: searchQuery.trim() }),
         });
 

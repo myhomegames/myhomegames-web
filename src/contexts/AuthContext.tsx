@@ -5,12 +5,8 @@ import { createContext, useContext, useState, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { API_BASE, updateApiToken } from "../config";
 import { setUnauthorizedHandler } from "../utils/unauthorizedInterceptor";
+import { buildApiHeaders } from "../utils/api";
 import { useSettings } from "./SettingsContext";
-import {
-  applyTwitchCredentialsToLocalStorage,
-  resolveTwitchClientId,
-  resolveTwitchClientSecret,
-} from "../utils/twitchCredentials";
 
 interface User {
   userId: string;
@@ -36,94 +32,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const {
-    twitchLoginEnabled,
-    twitchApiEnabled,
-    twitchClientId,
-    twitchClientSecret,
-    settingsLoaded,
-  } = useSettings();
-
-  const twitchCredsSource = {
-    twitchApiEnabled,
-    serverClientId: twitchClientId,
-    serverClientSecret: twitchClientSecret,
-    settingsLoaded,
-  };
-
-  useEffect(() => {
-    if (!settingsLoaded) return;
-    applyTwitchCredentialsToLocalStorage(twitchClientId, twitchClientSecret, twitchApiEnabled);
-  }, [settingsLoaded, twitchApiEnabled, twitchClientId, twitchClientSecret]);
+  const { twitchLoginEnabled, twitchApiEnabled, settingsLoaded } = useSettings();
 
   // Check authentication status
   const checkAuth = async () => {
     setIsLoading(true);
     try {
-      // Check if there's a Twitch token in URL (from OAuth callback)
       const urlParams = new URLSearchParams(window.location.search);
       const twitchToken = urlParams.get("twitch_token");
       const userId = urlParams.get("user_id");
 
-      const callbackClientId = urlParams.get("twitch_client_id");
-      if (callbackClientId) {
-        localStorage.setItem("twitch_client_id", callbackClientId);
-      }
-
       if (twitchToken && userId) {
-        // Save token to localStorage
         localStorage.setItem("twitch_token", twitchToken);
         localStorage.setItem("twitch_user_id", userId);
-        
-        // Clean URL
         window.history.replaceState({}, document.title, window.location.pathname);
-        
-        // Fetch user info
         const success = await fetchUserInfo(twitchToken);
-        // If validation succeeded, return
         if (success) {
           return;
         }
-        // If validation failed, continue to check dev token
       }
 
-      // Check localStorage for Twitch token
       const storedToken = localStorage.getItem("twitch_token");
       if (storedToken) {
-        // Check if we have client_id (required for Twitch token validation)
-        const clientId = resolveTwitchClientId(twitchCredsSource);
-        if (!clientId) {
-          // No client_id means we can't validate the Twitch token
-          // Clear it and continue to check dev token
-          localStorage.removeItem("twitch_token");
-          localStorage.removeItem("twitch_user_id");
-        } else {
-          const success = await fetchUserInfo(storedToken);
-          // If validation succeeded, return
-          if (success) {
-            return;
-          }
-          // If validation failed, clear it and continue to check dev token
-          localStorage.removeItem("twitch_token");
-          localStorage.removeItem("twitch_user_id");
+        const success = await fetchUserInfo(storedToken);
+        if (success) {
+          return;
         }
+        localStorage.removeItem("twitch_token");
+        localStorage.removeItem("twitch_user_id");
       }
 
-      // Fallback to development token if available
       if (DEV_TOKEN && DEV_TOKEN !== "") {
-        // Clear entire localStorage when using dev token to avoid conflicts
         localStorage.clear();
-        // Verify dev token with server by calling /auth/me
         await fetchUserInfo(DEV_TOKEN);
         return;
       }
 
-      // No authentication
       setUser(null);
       setToken(null);
     } catch (error) {
       console.error("Auth check error:", error);
-      // Try dev token as last resort if available
       if (DEV_TOKEN && DEV_TOKEN !== "") {
         await fetchUserInfo(DEV_TOKEN);
       } else {
@@ -135,29 +83,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Fetch user info from server
-  // Returns true if authentication succeeded, false otherwise
   const fetchUserInfo = async (authToken: string): Promise<boolean> => {
-    const clientId = resolveTwitchClientId(twitchCredsSource);
-    
-    // Check if this is a dev token (don't require clientId for dev tokens)
     const isDevToken = DEV_TOKEN && authToken === DEV_TOKEN;
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     try {
-      const headers: Record<string, string> = {
-        "X-Auth-Token": authToken,
-      };
-      
-      // Add clientId header if available (required for Twitch token validation)
-      // Don't add it for dev tokens if not available
-      if (clientId && !isDevToken) {
-        headers["X-Twitch-Client-Id"] = clientId;
-      }
-
       const controller = new AbortController();
       timeoutId = setTimeout(() => controller.abort(), 90000);
       const response = await fetch(`${API_BASE}/auth/me`, {
-        headers,
+        headers: buildApiHeaders(),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
@@ -168,98 +101,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(authToken);
         updateApiToken();
         return true;
-      } else {
-        // Token invalid
-        const errorText = await response.text().catch(() => "");
-        console.error(`Failed to validate token: ${response.status} ${errorText}`);
-        
-        // Only clear localStorage if this is a Twitch token (not a dev token)
-        if (!isDevToken) {
-          localStorage.removeItem("twitch_token");
-          localStorage.removeItem("twitch_user_id");
-          setUser(null);
-          setToken(null);
-          return false;
-        } else {
-          // For dev tokens, if validation fails, still set the token and user
-          // This allows development to continue even if server validation fails
-          setToken(authToken);
-          setUser({
-            userId: "dev",
-            userName: "Development User",
-            userImage: null,
-            isDev: true,
-          });
-          updateApiToken();
-          return true;
-        }
       }
-    } catch (error) {
-      clearTimeout(timeoutId);
-      console.error("Failed to fetch user info:", error);
-      // Only clear localStorage if this is a Twitch token (not a dev token)
+
+      const errorText = await response.text().catch(() => "");
+      console.error(`Failed to validate token: ${response.status} ${errorText}`);
+
       if (!isDevToken) {
         localStorage.removeItem("twitch_token");
         localStorage.removeItem("twitch_user_id");
         setUser(null);
         setToken(null);
         return false;
-      } else {
-        // For dev tokens, if fetch fails (network error, etc.), still set the token and user
-        // This allows development to continue even if server is unreachable
-        setToken(authToken);
-        setUser({
-          userId: "dev",
-          userName: "Development User",
-          userImage: null,
-          isDev: true,
-        });
-        updateApiToken();
-        return true;
       }
+
+      setToken(authToken);
+      setUser({
+        userId: "dev",
+        userName: "Development User",
+        userImage: null,
+        isDev: true,
+      });
+      updateApiToken();
+      return true;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      console.error("Failed to fetch user info:", error);
+      if (!isDevToken) {
+        localStorage.removeItem("twitch_token");
+        localStorage.removeItem("twitch_user_id");
+        setUser(null);
+        setToken(null);
+        return false;
+      }
+      setToken(authToken);
+      setUser({
+        userId: "dev",
+        userName: "Development User",
+        userImage: null,
+        isDev: true,
+      });
+      updateApiToken();
+      return true;
     }
   };
 
-  // Initiate Twitch login
   const login = async (forceVerify = false) => {
-    const clientId = resolveTwitchClientId(twitchCredsSource);
-    const clientSecret = resolveTwitchClientSecret(twitchCredsSource);
-    
-    if (!clientId) {
-      // Don't show alert - let the LoginPage handle it
-      // The LoginPage will show the credentials form
+    if (!twitchApiEnabled) {
       return;
     }
-    
+
     try {
-      // Ensure we have valid string values
-      const cleanClientId = String(clientId).trim();
-      const cleanClientSecret = String(clientSecret).trim();
-      const cleanForceVerify = Boolean(forceVerify);
-      
       const basePath = import.meta.env.BASE || "/";
       const frontendUrl = `${window.location.origin}${basePath.startsWith("/") ? basePath : `/${basePath}`}`;
 
-      const requestBody: Record<string, unknown> = {
-        clientId: cleanClientId,
-        forceVerify: cleanForceVerify,
-        frontendUrl,
-      };
-      if (cleanClientSecret) {
-        requestBody.clientSecret = cleanClientSecret;
-      }
-      
       const response = await fetch(`${API_BASE}/auth/twitch`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
+        headers: buildApiHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          forceVerify: Boolean(forceVerify),
+          frontendUrl,
+        }),
       });
-      
+
       if (response.ok) {
         const data = await response.json();
-        // Redirect to Twitch OAuth
         window.location.href = data.authUrl;
       } else {
         const errorText = await response.text().catch(() => "Unknown error");
@@ -274,58 +179,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Login error:", error);
       const errorMessage = error instanceof Error ? error.message : "Si è verificato un errore sconosciuto";
-      // "Failed to fetch" or network errors: redirect to server (same as first-time app load)
-      // This helps when frontend (e.g. Vite dev) cannot reach API due to CORS/network
-      const isFetchError = errorMessage === "Failed to fetch" ||
+      const isFetchError =
+        errorMessage === "Failed to fetch" ||
         errorMessage?.toLowerCase().includes("network") ||
         errorMessage?.toLowerCase().includes("fetch");
       if (isFetchError) {
-        const serverUrl = API_BASE.replace(/\/$/, "");
-        window.location.href = serverUrl;
+        window.location.href = API_BASE.replace(/\/$/, "");
       } else {
-        if (error instanceof Error) {
-          alert(`Errore durante il login: ${errorMessage}`);
-        } else {
-          alert(`Errore durante il login: ${errorMessage}`);
-        }
+        alert(`Errore durante il login: ${errorMessage}`);
       }
     }
   };
 
-  // Logout: remove session only; keep Twitch client credentials so user can re-login without re-entering them
   const logout = () => {
     localStorage.removeItem("twitch_token");
     localStorage.removeItem("twitch_user_id");
     setUser(null);
     setToken(null);
     updateApiToken();
-    
-    // Call logout endpoint
+
     if (token) {
       fetch(`${API_BASE}/auth/logout`, {
         method: "POST",
-        headers: {
-          "X-Auth-Token": token,
-        },
+        headers: buildApiHeaders(),
       }).catch(console.error);
     }
   };
 
-  // Wait for settings (client id) before validating Twitch tokens
   useEffect(() => {
     if (!settingsLoaded) return;
     checkAuth();
   }, [settingsLoaded]);
 
-  // Global 401 handling: when Twitch login is enabled, invalidate session and redirect; when disabled, do nothing
   const logoutRef = useRef(logout);
   logoutRef.current = logout;
   useEffect(() => {
     setUnauthorizedHandler(() => {
       if (!twitchLoginEnabled) return;
       logoutRef.current();
-      const serverUrl = API_BASE.replace(/\/$/, "");
-      window.location.href = serverUrl;
+      window.location.href = API_BASE.replace(/\/$/, "");
     });
   }, [twitchLoginEnabled]);
 
@@ -348,4 +240,3 @@ export function useAuth() {
   }
   return context;
 }
-

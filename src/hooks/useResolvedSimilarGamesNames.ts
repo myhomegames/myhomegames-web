@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { API_BASE } from "../config";
-import { getApiToken, getTwitchClientId, getTwitchClientSecret } from "../config";
-import { buildApiUrl } from "../utils/api";
+import { buildApiHeaders, buildApiUrl } from "../utils/api";
 
 type SimilarGameEntry = { id: number; name: string };
 
@@ -17,20 +16,10 @@ function isNumericName(sg: SimilarGameEntry): boolean {
  * Fetches game names from IGDB for the given ids and returns a map id -> name.
  */
 async function fetchIgdbNamesByIds(ids: number[]): Promise<Record<string, string>> {
-  const clientId = getTwitchClientId();
-  const clientSecret = getTwitchClientSecret();
-  if (!clientId || !clientSecret) return {};
-  const token = getApiToken();
-  if (!token) return {};
-
   const url = buildApiUrl(API_BASE, "/igdb/game-names-by-ids", { ids: ids.join(",") });
   const res = await fetch(url, {
     method: "GET",
-    headers: {
-      "X-Auth-Token": token,
-      "X-Twitch-Client-Id": clientId,
-      "X-Twitch-Client-Secret": clientSecret,
-    },
+    headers: buildApiHeaders(),
   });
   if (!res.ok) return {};
   const data = (await res.json()) as { names?: Record<string, string> };

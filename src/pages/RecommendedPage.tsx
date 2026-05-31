@@ -11,7 +11,6 @@ import ScrollableGamesSection from "../components/common/ScrollableGamesSection"
 import FixedFocalRecommendedSectionsList from "../components/lists/FixedFocalRecommendedSectionsList";
 import type { GameItem, CollectionItem } from "../types";
 import { API_BASE } from "../config";
-import { getTwitchClientId, getTwitchClientSecret } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 import {
   clearRecommendedSectionsCache,
@@ -294,9 +293,6 @@ export default function RecommendedPage({
       setLoadingRef.current(false);
 
       if (igdbEnabled) {
-        const clientId = getTwitchClientId();
-        const clientSecret = getTwitchClientSecret();
-        if (clientId && clientSecret) {
           // Fetch IGDB data in background; update each section as its response arrives
           parsedSections.forEach((section) => {
             const excludeIds = section.games
@@ -305,13 +301,9 @@ export default function RecommendedPage({
             const igdbUrl = buildApiUrl(API_BASE, "/igdb/games-by-keyword");
             fetch(igdbUrl, {
               method: "POST",
-              headers: {
+              headers: buildApiHeaders({
                 "Content-Type": "application/json",
-                ...buildApiHeaders({
-                  "X-Twitch-Client-Id": clientId,
-                  "X-Twitch-Client-Secret": clientSecret,
-                }),
-              },
+              }),
               body: JSON.stringify({ keyword: section.id, excludeIds }),
             })
               .then((igdbRes) => {
@@ -344,7 +336,6 @@ export default function RecommendedPage({
               })
               .catch(() => {});
           });
-        }
       }
     } catch (err: any) {
       clearTimeout(timeoutId);

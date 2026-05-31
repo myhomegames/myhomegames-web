@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { API_BASE } from "../config";
-import { getApiToken, getTwitchClientId, getTwitchClientSecret } from "../config";
-import { buildApiUrl } from "../utils/api";
+import { buildApiHeaders, buildApiUrl } from "../utils/api";
 
 export type SimilarGameDetails = { name: string; cover?: string; releaseDate?: number | null };
 
@@ -26,23 +25,10 @@ export function useSimilarGamesDetails(
     let cancelled = false;
     setIsLoading(true);
 
-    const clientId = getTwitchClientId();
-    const clientSecret = getTwitchClientSecret();
-    const token = getApiToken();
-    if (!clientId || !clientSecret || !token) {
-      setDetailsById({});
-      setIsLoading(false);
-      return;
-    }
-
     const url = buildApiUrl(API_BASE, "/igdb/game-names-by-ids", { ids: idsKey });
     fetch(url, {
       method: "GET",
-      headers: {
-        "X-Auth-Token": token,
-        "X-Twitch-Client-Id": clientId,
-        "X-Twitch-Client-Secret": clientSecret,
-      },
+      headers: buildApiHeaders(),
     })
       .then((res) => (res.ok ? res.json() : {}))
       .then((data: { names?: Record<string, string>; covers?: Record<string, string>; releaseDates?: Record<string, number> }) => {
@@ -70,7 +56,7 @@ export function useSimilarGamesDetails(
     return () => {
       cancelled = true;
     };
-  }, [idsKey]);
+  }, [idsKey, ids.length]);
 
   return { detailsById, isLoading };
 }

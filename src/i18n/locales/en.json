@@ -65,14 +65,12 @@
     "chinese": "中文",
     "japanese": "日本語",
     "twitch": {
-      "title": "Twitch OAuth",
-      "description": "Configure your Twitch OAuth application credentials. You can get these from the Twitch Developer Console.",
-      "clientId": "Client ID",
-      "clientSecret": "Client Secret",
-      "clientIdPlaceholder": "Enter your Twitch Client ID",
-      "clientSecretPlaceholder": "Enter your Twitch Client Secret",
-      "clientIdHelp": "Your Twitch application Client ID",
-      "clientSecretHelp": "Your Twitch application Client Secret (keep this secure)"
+      "title": "IGDB / Twitch",
+      "description": "Enable catalog search via IGDB. Application credentials are provided by the API host, not stored in the app.",
+      "enableApi": "Enable IGDB API",
+      "enableApiHelp": "When off, the app does not call IGDB endpoints.",
+      "enableLogin": "Enable Twitch login",
+      "enableLoginHelp": "When on, users must sign in with Twitch. When off, the app is open without login."
     },
     "skinOptions": {
       "title": "Options",
@@ -145,8 +143,8 @@
     "subtitle": "Please login to continue",
     "button": "Login with Twitch",
     "orGoToSettings": "Or go to Settings",
-    "credentialsNeeded": "Twitch OAuth credentials are required to login. Please configure them in Settings first.",
-    "configureFirst": "You can get your Twitch Client ID and Client Secret from the Twitch Developer Console.",
+    "apiNotEnabled": "Enable IGDB API in Settings to use Twitch login.",
+    "gatewayHint": "Application credentials are configured on the API host, not in this app.",
     "goToSettings": "Go to Settings"
   },
   "search": {
@@ -184,7 +182,7 @@
     "noResults": "No games found",
     "typeToSearch": "Type at least 2 characters to search",
     "error": "Error searching games",
-    "credentialsRequired": "Configure Twitch credentials in Settings to search IGDB.",
+    "igdbApiDisabled": "Enable IGDB API in Settings to search the catalog.",
     "new": "New"
   },
   "viewMode": {

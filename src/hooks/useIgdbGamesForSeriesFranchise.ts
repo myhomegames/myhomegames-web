@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { buildApiUrl } from "../utils/api";
-import { API_BASE, getApiToken, getTwitchClientId, getTwitchClientSecret } from "../config";
+import { API_BASE } from "../config";
+import { buildApiHeaders } from "../utils/api";
 
 export type IgdbGameForTag = {
   id: number;
@@ -34,13 +35,6 @@ export function useIgdbGamesForSeriesFranchise(
         return;
       }
 
-      const clientId = getTwitchClientId();
-      const clientSecret = getTwitchClientSecret();
-      if (!clientId || !clientSecret) {
-        setIgdbGames([]);
-        return;
-      }
-
       setLoading(true);
       setError(null);
       try {
@@ -52,12 +46,7 @@ export function useIgdbGamesForSeriesFranchise(
         const excludeIds = fetchAll ? [] : libraryGameIds;
         const res = await fetch(url, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Auth-Token": getApiToken() || "",
-            "X-Twitch-Client-Id": clientId,
-            "X-Twitch-Client-Secret": clientSecret,
-          },
+          headers: buildApiHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({ excludeIds }),
         });
         if (!res.ok) {

@@ -24,16 +24,6 @@ export function getApiToken(): string {
   return "";
 }
 
-// Get Twitch Client ID from localStorage (saved during login)
-export function getTwitchClientId(): string | null {
-  return localStorage.getItem("twitch_client_id");
-}
-
-// Get Twitch Client Secret from localStorage (saved during login)
-export function getTwitchClientSecret(): string | null {
-  return localStorage.getItem("twitch_client_secret");
-}
-
 // For backward compatibility - this will be updated dynamically
 // Components should use getApiToken() or useAuth().token instead
 export let API_TOKEN = getApiToken();

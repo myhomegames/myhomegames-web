@@ -65,14 +65,12 @@
     "chinese": "Cinese",
     "japanese": "Giapponese",
     "twitch": {
-      "title": "Twitch OAuth",
-      "description": "Configura le credenziali della tua applicazione Twitch OAuth. Puoi ottenerle dalla Console Sviluppatori di Twitch.",
-      "clientId": "Client ID",
-      "clientSecret": "Client Secret",
-      "clientIdPlaceholder": "Inserisci il tuo Twitch Client ID",
-      "clientSecretPlaceholder": "Inserisci il tuo Twitch Client Secret",
-      "clientIdHelp": "Il Client ID della tua applicazione Twitch",
-      "clientSecretHelp": "Il Client Secret della tua applicazione Twitch (mantieni questo segreto)"
+      "title": "IGDB / Twitch",
+      "description": "Abilita la ricerca catalogo via IGDB. Le credenziali applicazione sono sul host API, non in questa app.",
+      "enableApi": "Abilita API IGDB",
+      "enableApiHelp": "Se disattivato, l'app non chiama gli endpoint IGDB.",
+      "enableLogin": "Abilita login Twitch",
+      "enableLoginHelp": "Se attivo, serve l'accesso con Twitch. Se disattivo, l'app è aperta senza login."
     },
     "skinOptions": {
       "title": "Opzioni",
@@ -145,8 +143,8 @@
     "subtitle": "Effettua il login per continuare",
     "button": "Accedi con Twitch",
     "orGoToSettings": "Oppure vai alle Impostazioni",
-    "credentialsNeeded": "Le credenziali Twitch OAuth sono necessarie per effettuare il login. Configurale prima nelle Impostazioni.",
-    "configureFirst": "Puoi ottenere il tuo Twitch Client ID e Client Secret dalla Console Sviluppatori di Twitch.",
+    "apiNotEnabled": "Abilita l'API IGDB nelle Impostazioni per usare il login Twitch.",
+    "gatewayHint": "Le credenziali applicazione sono configurate sul host API, non in questa app.",
     "goToSettings": "Vai alle Impostazioni"
   },
   "search": {
@@ -184,7 +182,7 @@
     "noResults": "Nessun gioco trovato",
     "typeToSearch": "Digita almeno 2 caratteri per cercare",
     "error": "Errore nella ricerca dei giochi",
-    "credentialsRequired": "Configura le credenziali Twitch nelle Impostazioni per cercare su IGDB.",
+    "igdbApiDisabled": "Abilita l'API IGDB nelle Impostazioni per cercare nel catalogo.",
     "new": "Nuovo"
   },
   "viewMode": {

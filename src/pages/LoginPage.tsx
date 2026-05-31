@@ -7,16 +7,14 @@ import { formatTwitchAuthError } from "../utils/twitchAuthErrors";
 
 export default function LoginPage() {
   const { user, login, isLoading } = useAuth();
-  const { twitchApiEnabled, twitchClientId, twitchClientSecret } = useSettings();
+  const { twitchApiEnabled } = useSettings();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [hasCredentials, setHasCredentials] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   useEffect(() => {
-    setHasCredentials(
-      twitchApiEnabled && !!twitchClientId.trim() && !!twitchClientSecret.trim()
-    );
-  }, [twitchApiEnabled, twitchClientId, twitchClientSecret]);
+    setHasCredentials(twitchApiEnabled);
+  }, [twitchApiEnabled]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -62,10 +60,10 @@ export default function LoginPage() {
       ) : (
         <>
           <p className="login-page-missing-primary">
-            {t("login.credentialsNeeded", "Twitch OAuth credentials are required to login. Please configure them in Settings first.")}
+            {t("login.apiNotEnabled", "Enable IGDB API in Settings to use Twitch login.")}
           </p>
           <p className="login-page-missing-secondary">
-            {t("login.configureFirst", "You can get your Twitch Client ID and Client Secret from the Twitch Developer Console.")}
+            {t("login.gatewayHint", "Application credentials are configured on the API host, not in this app.")}
           </p>
           <Link to="/settings" className="login-page-settings-cta">
             {t("login.goToSettings", "Go to Settings")}

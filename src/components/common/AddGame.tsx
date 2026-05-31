@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { formatIGDBGameDate } from "../../utils/date";
 import { displayGameType } from "../../utils/igdbGameType";
-import { API_BASE, API_TOKEN, getTwitchClientId, getTwitchClientSecret } from "../../config";
+import { API_BASE } from "../../config";
+import { buildApiHeaders } from "../../utils/api";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useCreateGame } from "./actions";
 import type { GameItem, IGDBGame } from "../../types";
@@ -279,10 +280,10 @@ export default function AddGame({
       // Clear the ref after execution to prevent cleanup from clearing it
       searchTimeoutRef.current = null;
       try {
-        const clientId = getTwitchClientId();
-        const clientSecret = getTwitchClientSecret();
-        if (!clientId || !clientSecret) {
-          setError(t("addGame.credentialsRequired", "Configure Twitch credentials in Settings to search IGDB."));
+        if (!igdbEnabled) {
+          setError(
+            t("addGame.igdbApiDisabled", "Enable IGDB API in Settings to search the catalog.")
+          );
           setResults([]);
           setIsSearching(false);
           return;
@@ -291,15 +292,8 @@ export default function AddGame({
         const url = new URL("/igdb/search", API_BASE);
         url.searchParams.set("q", trimmedQuery);
 
-        const headers: Record<string, string> = {
-          Accept: "application/json",
-          "X-Auth-Token": API_TOKEN,
-          "X-Twitch-Client-Id": clientId,
-          "X-Twitch-Client-Secret": clientSecret,
-        };
-
         const res = await fetch(url.toString(), {
-          headers,
+          headers: buildApiHeaders({ Accept: "application/json" }),
         });
 
         if (!res.ok) {
@@ -332,7 +326,7 @@ export default function AddGame({
       }
     }, 500);
     searchTimeoutRef.current = timeoutId;
-  }, []);
+  }, [igdbEnabled, t]);
 
   useEffect(() => {
     const trimmedQuery = searchQuery.trim();

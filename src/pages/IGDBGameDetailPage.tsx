@@ -12,7 +12,8 @@ import LibrariesBar from "../components/layout/LibrariesBar";
 import Tooltip from "../components/common/Tooltip";
 import { useAddGame } from "../components/common/actions";
 import { buildApiUrl } from "../utils/api";
-import { API_BASE, getApiToken, getTwitchClientId, getTwitchClientSecret } from "../config";
+import { API_BASE } from "../config";
+import { buildApiHeaders } from "../utils/api";
 import { useLoading } from "../contexts/LoadingContext";
 import { useSkin } from "../contexts/SkinContext";
 import { useCollections } from "../contexts/CollectionsContext";
@@ -52,19 +53,8 @@ export default function IGDBGameDetailPage() {
     try {
       // Fetch game details with high-res cover from dedicated endpoint
       const url = buildApiUrl(API_BASE, `/igdb/game/${gameId}`);
-      const headers: Record<string, string> = {
-        Accept: "application/json",
-        "X-Auth-Token": getApiToken(),
-      };
-      
-      // Add Twitch credentials for IGDB API
-      const clientId = getTwitchClientId();
-      const clientSecret = getTwitchClientSecret();
-      if (clientId) headers["X-Twitch-Client-Id"] = clientId;
-      if (clientSecret) headers["X-Twitch-Client-Secret"] = clientSecret;
-
       const res = await fetch(url, {
-        headers,
+        headers: buildApiHeaders({ Accept: "application/json" }),
       });
 
       if (!res.ok) {

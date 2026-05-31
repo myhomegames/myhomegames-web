@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { buildApiUrl } from "../utils/api";
-import { API_BASE, getApiToken, getTwitchClientId, getTwitchClientSecret } from "../config";
+import { API_BASE } from "../config";
+import { buildApiHeaders } from "../utils/api";
 
 export type IgdbGameForTag = {
   id: number;
@@ -74,14 +75,6 @@ export function useIgdbGamesForTag(
       return;
     }
 
-    const clientId = getTwitchClientId();
-    const clientSecret = getTwitchClientSecret();
-    if (!clientId || !clientSecret) {
-      setIgdbGames([]);
-      setTagName(null);
-      return;
-    }
-
     if (useByName && endpointByName && tagNameFromUrlOrLabels?.trim()) {
       setLoading(true);
       setError(null);
@@ -91,12 +84,7 @@ export function useIgdbGamesForTag(
         const excludeIds = fetchAll ? [] : libraryGameIds;
         const res = await fetch(url, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Auth-Token": getApiToken() || "",
-            "X-Twitch-Client-Id": clientId,
-            "X-Twitch-Client-Secret": clientSecret,
-          },
+          headers: buildApiHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({ name, excludeIds }),
         });
         if (!res.ok) {
@@ -142,12 +130,7 @@ export function useIgdbGamesForTag(
       const namePromise =
         nameType
           ? fetch(buildApiUrl(API_BASE, `/igdb/tag-name/${nameType}/${id}`), {
-              headers: {
-                Accept: "application/json",
-                "X-Auth-Token": getApiToken() || "",
-                "X-Twitch-Client-Id": clientId,
-                "X-Twitch-Client-Secret": clientSecret,
-              },
+              headers: buildApiHeaders({ Accept: "application/json" }),
             }).then((r) => (r.ok ? r.json() : { name: null })).then((d) => d.name ?? null)
           : Promise.resolve(null);
 
@@ -155,12 +138,7 @@ export function useIgdbGamesForTag(
       const excludeIds = fetchAll ? [] : libraryGameIds;
       const res = await fetch(url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Auth-Token": getApiToken() || "",
-          "X-Twitch-Client-Id": clientId,
-          "X-Twitch-Client-Secret": clientSecret,
-        },
+        headers: buildApiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ excludeIds }),
       });
       if (!res.ok) {
