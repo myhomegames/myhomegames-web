@@ -26,6 +26,7 @@ import SearchResultsPage from "./pages/SearchResultsPage";
 import LibraryItemDetailPage from "./pages/LibraryItemDetailPage";
 import TagGamesRoutePage from "./pages/TagGamesRoutePage";
 import LoginPage from "./pages/LoginPage";
+import TunnelLoginPage from "./pages/TunnelLoginPage";
 import IGDBGameDetailPage from "./pages/IGDBGameDetailPage";
 import RecommendedSectionDetailPage from "./pages/RecommendedSectionDetailPage";
 
@@ -261,6 +262,7 @@ function AppContent() {
         <Routes>
           {/* Login page - public, no header */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/tunnel/login" element={<TunnelLoginPage />} />
 
           {!persistentLibraryShell ? (
             <>

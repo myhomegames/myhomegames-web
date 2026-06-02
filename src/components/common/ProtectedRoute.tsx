@@ -1,6 +1,7 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSettings } from "../../contexts/SettingsContext";
+import { useTunnel } from "../../contexts/TunnelContext";
 
 type ProtectedRouteProps = {
   children: React.ReactNode;
@@ -9,13 +10,18 @@ type ProtectedRouteProps = {
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
   const { twitchLoginEnabled, settingsLoaded } = useSettings();
-  
+  const { featureEnabled, tunnelReady, statusLoaded } = useTunnel();
+
   // Check if we're in development mode (VITE_API_TOKEN is set)
   const DEV_TOKEN = import.meta.env.VITE_API_TOKEN || "";
   const isDevMode = DEV_TOKEN !== "";
 
-  if (isLoading || !settingsLoaded) {
+  if (isLoading || !settingsLoaded || !statusLoaded) {
     return null;
+  }
+
+  if (featureEnabled && !tunnelReady) {
+    return <Navigate to="/tunnel/login" replace />;
   }
 
   // In dev mode, allow access even without user (VITE_API_TOKEN will be used)

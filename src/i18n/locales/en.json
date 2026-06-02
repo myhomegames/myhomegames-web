@@ -138,6 +138,15 @@
     "accountType": "Account Type",
     "developmentAccount": "Development Account"
   },
+  "tunnel": {
+    "title": "Connect Cloudflare Tunnel",
+    "lead": "Sign in with Cloudflare Access on the tunnel manager, then connect this device.",
+    "step1": "Open the tunnel manager and complete Cloudflare login.",
+    "step2": "Return here and fetch your personal tunnel token.",
+    "openManager": "Open tunnel manager",
+    "connect": "Connect tunnel",
+    "connecting": "Connecting…"
+  },
   "login": {
     "title": "Welcome to MyHomeGames",
     "subtitle": "Please login to continue",

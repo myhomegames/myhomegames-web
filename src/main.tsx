@@ -5,6 +5,7 @@ import "./i18n/config";
 import "./utils/unauthorizedInterceptor";
 import App from "./App.tsx";
 import { AuthProvider } from "./contexts/AuthContext";
+import { TunnelProvider } from "./contexts/TunnelContext";
 import { SettingsProvider } from "./contexts/SettingsContext";
 import { LoadingProvider } from "./contexts/LoadingContext";
 import { CollectionsProvider } from "./contexts/CollectionsContext";
@@ -28,7 +29,8 @@ if (isServerSkinId(activeSkinId)) {
 
 createRoot(document.getElementById("root")!).render(
   <SettingsProvider>
-    <AuthProvider>
+    <TunnelProvider>
+      <AuthProvider>
       <SkinProvider>
         <LoadingProvider>
           <CollectionsProvider>
@@ -44,6 +46,7 @@ createRoot(document.getElementById("root")!).render(
           </CollectionsProvider>
         </LoadingProvider>
       </SkinProvider>
-    </AuthProvider>
+      </AuthProvider>
+    </TunnelProvider>
   </SettingsProvider>
 );
