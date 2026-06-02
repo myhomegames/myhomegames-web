@@ -6,6 +6,7 @@
  */
 
 import { API_BASE } from "../config";
+import { shouldSkipApiBaseBrowserRedirect } from "./apiRedirectGuard";
 
 let unauthorizedHandler: (() => void) | null = null;
 
@@ -81,6 +82,9 @@ export function isLocalHttpsApiBase(apiBase: string = API_BASE): boolean {
 }
 
 function shouldRedirectForCertAcceptance(url: string, message: string): boolean {
+  if (shouldSkipApiBaseBrowserRedirect()) {
+    return false;
+  }
   return (
     isOurApiRequest(url) &&
     isNetworkOrCertError(message) &&

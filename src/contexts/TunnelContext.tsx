@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { setTunnelApiBase } from "../config";
+import { clearTunnelApiBase, syncTunnelApiBaseFromStatus } from "../config";
 import {
   connectTunnel,
   disconnectTunnel,
@@ -15,7 +15,6 @@ import {
   fetchTunnelTokenFromManager,
   type TunnelStatus,
 } from "../utils/tunnelApi";
-import { clearTunnelApiBase } from "../config";
 
 type TunnelContextValue = {
   status: TunnelStatus | null;
@@ -45,9 +44,7 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
     try {
       const next = await fetchTunnelStatus();
       setStatus(next);
-      if (next.publicUrl) {
-        setTunnelApiBase(next.publicUrl);
-      }
+      syncTunnelApiBaseFromStatus(next);
     } catch {
       setStatus({
         featureEnabled: false,
@@ -55,6 +52,7 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
         connected: false,
         publicUrl: "",
       });
+      clearTunnelApiBase();
     } finally {
       setStatusLoaded(true);
     }
@@ -71,7 +69,7 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
       const { token, url } = await fetchTunnelTokenFromManager();
       const next = await connectTunnel(token, url);
       setStatus(next);
-      setTunnelApiBase(url.startsWith("http") ? url : `https://${url}`);
+      syncTunnelApiBaseFromStatus(next);
     } catch (err) {
       setConnectError(err instanceof Error ? err.message : String(err));
       throw err;
@@ -88,7 +86,7 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
 
   const featureEnabled = Boolean(status?.featureEnabled) && !isDevMode;
   const tunnelReady =
-    !featureEnabled || Boolean(status?.hasStoredToken || status?.connected);
+    !featureEnabled || Boolean(status?.connected);
 
   const value = useMemo(
     () => ({

@@ -28,8 +28,8 @@ if (isServerSkinId(activeSkinId)) {
 }
 
 createRoot(document.getElementById("root")!).render(
-  <SettingsProvider>
-    <TunnelProvider>
+  <TunnelProvider>
+    <SettingsProvider>
       <AuthProvider>
       <SkinProvider>
         <LoadingProvider>
@@ -47,6 +47,6 @@ createRoot(document.getElementById("root")!).render(
         </LoadingProvider>
       </SkinProvider>
       </AuthProvider>
-    </TunnelProvider>
-  </SettingsProvider>
+    </SettingsProvider>
+  </TunnelProvider>
 );

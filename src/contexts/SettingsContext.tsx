@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 import { API_BASE } from "../config";
 import { buildApiHeaders } from "../utils/api";
 import { clearLegacyIgdbCredentialStorage, isIgdbApiEnabled } from "../utils/igdbApi";
+import { useTunnel } from "./TunnelContext";
 import {
   DEFAULT_SKIN_WEB_MANIFEST,
   normalizeSkinWebManifest,
@@ -43,6 +44,7 @@ interface SettingsContextType {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
+  const { featureEnabled, statusLoaded } = useTunnel();
   const [twitchLoginEnabled, setTwitchLoginEnabled] = useState(false);
   const [twitchApiEnabled, setTwitchApiEnabled] = useState(false);
   const [skinWeb, setSkinWeb] = useState<SkinWebManifest>(DEFAULT_SKIN_WEB_MANIFEST);
@@ -112,9 +114,18 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [applySkinWeb]
   );
 
-  // Load settings as soon as the app mounts (don't wait for auth)
+  // Load settings after tunnel status is known when tunnel mode is enabled
   useEffect(() => {
-    refreshSettings();
+    if (featureEnabled && !statusLoaded) return;
+    void refreshSettings();
+  }, [featureEnabled, statusLoaded, refreshSettings]);
+
+  useEffect(() => {
+    const onApiBaseChanged = () => {
+      void refreshSettings();
+    };
+    window.addEventListener("mhg-api-base-changed", onApiBaseChanged);
+    return () => window.removeEventListener("mhg-api-base-changed", onApiBaseChanged);
   }, [refreshSettings]);
 
   useEffect(() => {

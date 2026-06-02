@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useLoading } from "../contexts/LoadingContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { API_BASE } from "../config";
 import { buildApiHeaders } from "../utils/api";
 import { clearLegacyIgdbCredentialStorage } from "../utils/igdbApi";
+import { shouldSkipApiBaseBrowserRedirect } from "../utils/apiRedirectGuard";
+import { useTunnel } from "../contexts/TunnelContext";
 import { LIBRARY_ORDER, normalizeVisibleLibraries } from "../utils/librarySections";
 import SettingsSkinSection from "../components/settings/SettingsSkinSection";
 
@@ -12,6 +14,9 @@ export default function SettingsPage() {
   const { t, i18n } = useTranslation();
   const { setLoading } = useLoading();
   const { refreshSettings } = useSettings();
+  const { featureEnabled, tunnelReady } = useTunnel();
+  const skipApiRedirect = () =>
+    shouldSkipApiBaseBrowserRedirect({ tunnelFeatureEnabled: featureEnabled, tunnelReady });
   const [language, setLanguage] = useState("en");
   const [visibleLibraries, setVisibleLibraries] = useState<string[]>([...LIBRARY_ORDER]);
   const [twitchLoginEnabled, setTwitchLoginEnabled] = useState(false);
@@ -120,7 +125,7 @@ export default function SettingsPage() {
         message === "Failed to fetch" ||
         message?.toLowerCase().includes("network") ||
         message?.toLowerCase().includes("fetch");
-      if (isFetchError && API_BASE) {
+      if (isFetchError && API_BASE && !skipApiRedirect()) {
         const serverUrl = API_BASE.replace(/\/$/, "");
         window.location.href = serverUrl;
         return;
@@ -202,7 +207,7 @@ export default function SettingsPage() {
         message === "Failed to fetch" ||
         message?.toLowerCase().includes("network") ||
         message?.toLowerCase().includes("fetch");
-      if (isFetchError && API_BASE) {
+      if (isFetchError && API_BASE && !skipApiRedirect()) {
         const serverUrl = API_BASE.replace(/\/$/, "");
         window.location.href = serverUrl;
         return;

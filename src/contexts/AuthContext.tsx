@@ -6,7 +6,9 @@ import type { ReactNode } from "react";
 import { API_BASE, updateApiToken } from "../config";
 import { setUnauthorizedHandler } from "../utils/unauthorizedInterceptor";
 import { buildApiHeaders } from "../utils/api";
+import { shouldSkipApiBaseBrowserRedirect } from "../utils/apiRedirectGuard";
 import { useSettings } from "./SettingsContext";
+import { useTunnel } from "./TunnelContext";
 
 interface User {
   userId: string;
@@ -33,6 +35,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { twitchLoginEnabled, twitchApiEnabled, settingsLoaded } = useSettings();
+  const { featureEnabled, tunnelReady } = useTunnel();
+
+  const skipApiRedirect = () =>
+    shouldSkipApiBaseBrowserRedirect({ tunnelFeatureEnabled: featureEnabled, tunnelReady });
 
   // Check authentication status
   const checkAuth = async () => {
@@ -183,7 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         errorMessage === "Failed to fetch" ||
         errorMessage?.toLowerCase().includes("network") ||
         errorMessage?.toLowerCase().includes("fetch");
-      if (isFetchError) {
+      if (isFetchError && !skipApiRedirect()) {
         window.location.href = API_BASE.replace(/\/$/, "");
       } else {
         alert(`Errore durante il login: ${errorMessage}`);
@@ -216,10 +222,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setUnauthorizedHandler(() => {
       if (!twitchLoginEnabled) return;
+      if (skipApiRedirect()) return;
       logoutRef.current();
       window.location.href = API_BASE.replace(/\/$/, "");
     });
-  }, [twitchLoginEnabled]);
+  }, [twitchLoginEnabled, featureEnabled, tunnelReady]);
 
   const value: AuthContextType = {
     user,
