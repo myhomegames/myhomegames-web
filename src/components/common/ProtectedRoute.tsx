@@ -21,7 +21,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (featureEnabled && !tunnelReady) {
-    return <Navigate to="/tunnel/login" replace />;
+    return null;
   }
 
   // In dev mode, allow access even without user (VITE_API_TOKEN will be used)

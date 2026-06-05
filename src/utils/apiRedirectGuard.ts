@@ -1,14 +1,5 @@
 import { API_BASE, LOCAL_API_BASE } from "../config";
 
-export function isTunnelLoginRoute(): boolean {
-  try {
-    const p = window.location.pathname;
-    return p === "/tunnel/login" || p.endsWith("/tunnel/login");
-  } catch {
-    return false;
-  }
-}
-
 export function isLocalHttpApiBase(apiBase: string = API_BASE): boolean {
   try {
     const u = new URL(apiBase);
@@ -29,9 +20,6 @@ export function shouldSkipApiBaseBrowserRedirect(options?: {
   tunnelFeatureEnabled?: boolean;
   tunnelReady?: boolean;
 }): boolean {
-  if (isTunnelLoginRoute()) {
-    return true;
-  }
   if (options?.tunnelFeatureEnabled && !options?.tunnelReady) {
     return true;
   }

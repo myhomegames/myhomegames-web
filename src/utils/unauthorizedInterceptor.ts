@@ -41,12 +41,7 @@ function isSettingsRequest(url: string): boolean {
 function isLoginPage(): boolean {
   try {
     const p = window.location.pathname;
-    return (
-      p === "/login" ||
-      p.endsWith("/login") ||
-      p === "/tunnel/login" ||
-      p.endsWith("/tunnel/login")
-    );
+    return p === "/login" || p.endsWith("/login");
   } catch {
     return false;
   }

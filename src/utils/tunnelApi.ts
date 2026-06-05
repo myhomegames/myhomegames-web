@@ -19,6 +19,58 @@ export function getTunnelManagerUrl(): string {
   return (fromEnv || DEFAULT_TUNNEL_MANAGER_URL).replace(/\/$/, "");
 }
 
+export function getAppReturnUrl(): string {
+  if (typeof window === "undefined") return "";
+  const base = import.meta.env.BASE || "/";
+  const path = base.startsWith("/") ? base : `/${base}`;
+  return `${window.location.origin}${path}`;
+}
+
+/** Cloudflare Access login; with returnTo, the manager redirects back to the web app after auth. */
+export function getTunnelManagerAuthUrl(returnTo?: string): string {
+  const url = new URL(`${getTunnelManagerUrl()}/api/get-token`);
+  const dest = returnTo?.trim() || getAppReturnUrl();
+  if (dest) {
+    url.searchParams.set("return_to", dest);
+  }
+  return url.toString();
+}
+
+function decodeBase64Url(value: string): string {
+  const padded = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padLen = (4 - (padded.length % 4)) % 4;
+  return atob(padded + "=".repeat(padLen));
+}
+
+/** Token + hostname passed in URL hash after Cloudflare Access browser redirect. */
+export function readTunnelPayloadFromReturn(): TunnelTokenResponse | null {
+  if (typeof window === "undefined") return null;
+  const raw = window.location.hash.replace(/^#/, "");
+  if (!raw.startsWith("tunnel=")) return null;
+  try {
+    const json = JSON.parse(decodeBase64Url(raw.slice("tunnel=".length))) as {
+      token?: string;
+      url?: string;
+    };
+    const token = json.token?.trim();
+    let url = json.url?.trim();
+    if (!token || !url) return null;
+    if (!/^https?:\/\//i.test(url)) {
+      url = `https://${url}`;
+    }
+    return { token, url };
+  } catch {
+    return null;
+  }
+}
+
+export function clearTunnelReturnHash(): void {
+  if (typeof window === "undefined") return;
+  if (!window.location.hash.startsWith("#tunnel=")) return;
+  const next = `${window.location.pathname}${window.location.search}`;
+  window.history.replaceState({}, document.title, next);
+}
+
 export async function fetchTunnelStatus(): Promise<TunnelStatus> {
   const res = await fetch(`${LOCAL_API_BASE}/tunnel/status`);
   if (!res.ok) {
@@ -61,6 +113,21 @@ export async function connectTunnel(token: string, url: string): Promise<TunnelS
         : typeof body?.detail === "string"
           ? body.detail
           : `tunnel connect failed (${res.status})`;
+    throw new Error(message);
+  }
+  return fetchTunnelStatus();
+}
+
+export async function reconnectTunnel(): Promise<TunnelStatus> {
+  const res = await fetch(`${LOCAL_API_BASE}/tunnel/reconnect`, { method: "POST" });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const message =
+      typeof body?.error === "string"
+        ? body.error
+        : typeof body?.detail === "string"
+          ? body.detail
+          : `tunnel reconnect failed (${res.status})`;
     throw new Error(message);
   }
   return fetchTunnelStatus();
