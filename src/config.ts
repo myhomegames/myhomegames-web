@@ -4,48 +4,13 @@ if (!envApiBase) {
 }
 
 const TUNNEL_API_BASE_KEY = "mhg_tunnel_api_base";
-const USER_TUNNEL_HOST_SUFFIX = "-myhomegames-server.vige.it";
-const INTERIM_API_SUFFIX = "-api.vige.it";
-const LEGACY_NESTED_SUFFIX = ".myhomegames-server.vige.it";
-
-function migrateUserTunnelPublicUrl(url: string): string {
-  const raw = url.trim().replace(/\/$/, "");
-  if (!raw) return raw;
-  try {
-    const normalized = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
-    const host = new URL(normalized).hostname.toLowerCase();
-    if (host.endsWith(USER_TUNNEL_HOST_SUFFIX)) {
-      return raw;
-    }
-    if (host.endsWith(INTERIM_API_SUFFIX)) {
-      const username = host.slice(0, -INTERIM_API_SUFFIX.length);
-      if (username && !username.includes(".")) {
-        return `https://${username}${USER_TUNNEL_HOST_SUFFIX}`;
-      }
-    }
-    const nested = host.match(/^([a-z0-9-]+)\.myhomegames-server\.vige\.it$/);
-    if (nested) {
-      return `https://${nested[1]}${USER_TUNNEL_HOST_SUFFIX}`;
-    }
-    if (host.endsWith(LEGACY_NESTED_SUFFIX)) {
-      return raw;
-    }
-    return raw;
-  } catch {
-    return raw;
-  }
-}
 
 /** Per-user public API after tunnel connect (https://user-myhomegames-server.vige.it). */
 export function readStoredPublicApiBase(): string | null {
   try {
     const stored = localStorage.getItem(TUNNEL_API_BASE_KEY);
     if (stored?.trim()) {
-      const migrated = migrateUserTunnelPublicUrl(stored.trim());
-      if (migrated !== stored.trim().replace(/\/$/, "")) {
-        localStorage.setItem(TUNNEL_API_BASE_KEY, migrated);
-      }
-      return migrated.replace(/\/$/, "");
+      return stored.trim().replace(/\/$/, "");
     }
   } catch {
     // ignore
@@ -64,7 +29,7 @@ function resolveApiBase(): string {
 export let API_BASE = resolveApiBase();
 
 export function setTunnelApiBase(url: string): void {
-  const normalized = migrateUserTunnelPublicUrl(url.trim()).replace(/\/$/, "");
+  const normalized = url.trim().replace(/\/$/, "");
   const withScheme = /^https?:\/\//i.test(normalized)
     ? normalized
     : `https://${normalized}`;
