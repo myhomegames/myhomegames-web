@@ -16,6 +16,7 @@ import {
   disconnectTunnel,
   fetchTunnelStatus,
   fetchTunnelTokenFromManager,
+  getCloudflareAccessLogoutUrl,
   getTunnelManagerAuthUrl,
   readTunnelPayloadFromReturn,
   reconnectTunnel,
@@ -227,18 +228,24 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
   const disconnect = useCallback(async () => {
     clearWarmupTimer();
     setWarmupPending(false);
-    await disconnectTunnel();
-    clearTunnelApiBase();
+    returnedFromAuthRef.current = false;
     tunnelPayloadRef.current = null;
-    tunnelWasConnectedOnLoadRef.current = false;
+    clearTunnelReturnHash();
     clearStashedTunnelPayload();
     try {
       sessionStorage.removeItem(TUNNEL_AUTH_SESSION_KEY);
     } catch {
       // ignore
     }
-    await refreshStatus();
-  }, [refreshStatus, clearWarmupTimer]);
+    try {
+      await disconnectTunnel();
+    } catch {
+      // Still clear the Cloudflare Access session even if local logout fails.
+    }
+    clearTunnelApiBase();
+    tunnelWasConnectedOnLoadRef.current = false;
+    window.location.assign(getCloudflareAccessLogoutUrl());
+  }, [clearWarmupTimer]);
 
   const featureEnabled = Boolean(status?.featureEnabled);
   const tunnelReady =

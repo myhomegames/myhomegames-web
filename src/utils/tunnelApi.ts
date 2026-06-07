@@ -26,7 +26,7 @@ export function getAppReturnUrl(): string {
   return `${window.location.origin}${path}`;
 }
 
-/** Cloudflare Access login; with returnTo, the manager redirects back to the web app after auth. */
+/** Cloudflare Access login; return_to query param on the protected /api/get-token path. */
 export function getTunnelManagerAuthUrl(returnTo?: string): string {
   const url = new URL(`${getTunnelManagerUrl()}/api/get-token`);
   const dest = returnTo?.trim() || getAppReturnUrl();
@@ -34,6 +34,16 @@ export function getTunnelManagerAuthUrl(returnTo?: string): string {
     url.searchParams.set("return_to", dest);
   }
   return url.toString();
+}
+
+/**
+ * Cloudflare Access logout. Clears the Access session cookie on the manager domain.
+ * After logout, lands on get-token with return_to so login can send the user back to the app.
+ */
+export function getCloudflareAccessLogoutUrl(): string {
+  const authUrl = getTunnelManagerAuthUrl();
+  const logout = `${getTunnelManagerUrl()}/cdn-cgi/access/logout?redirect_url=${encodeURIComponent(authUrl)}`;
+  return logout;
 }
 
 function decodeBase64Url(value: string): string {
