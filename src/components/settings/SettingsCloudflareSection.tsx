@@ -80,7 +80,7 @@ export default function SettingsCloudflareSection() {
                 href={publicUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#9146ff] hover:underline break-all"
+                className="break-all hover:underline"
               >
                 {publicUrl}
               </a>
@@ -95,7 +95,7 @@ export default function SettingsCloudflareSection() {
               href={managerUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#9146ff] hover:underline break-all"
+              className="break-all hover:underline"
             >
               {managerUrl}
             </a>
