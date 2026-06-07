@@ -4,13 +4,48 @@ if (!envApiBase) {
 }
 
 const TUNNEL_API_BASE_KEY = "mhg_tunnel_api_base";
+const USER_TUNNEL_HOST_SUFFIX = "-myhomegames-server.vige.it";
+const INTERIM_API_SUFFIX = "-api.vige.it";
+const LEGACY_NESTED_SUFFIX = ".myhomegames-server.vige.it";
 
-/** Per-user public API after tunnel connect (https://user.myhomegames-server.vige.it). */
+function migrateUserTunnelPublicUrl(url: string): string {
+  const raw = url.trim().replace(/\/$/, "");
+  if (!raw) return raw;
+  try {
+    const normalized = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    const host = new URL(normalized).hostname.toLowerCase();
+    if (host.endsWith(USER_TUNNEL_HOST_SUFFIX)) {
+      return raw;
+    }
+    if (host.endsWith(INTERIM_API_SUFFIX)) {
+      const username = host.slice(0, -INTERIM_API_SUFFIX.length);
+      if (username && !username.includes(".")) {
+        return `https://${username}${USER_TUNNEL_HOST_SUFFIX}`;
+      }
+    }
+    const nested = host.match(/^([a-z0-9-]+)\.myhomegames-server\.vige\.it$/);
+    if (nested) {
+      return `https://${nested[1]}${USER_TUNNEL_HOST_SUFFIX}`;
+    }
+    if (host.endsWith(LEGACY_NESTED_SUFFIX)) {
+      return raw;
+    }
+    return raw;
+  } catch {
+    return raw;
+  }
+}
+
+/** Per-user public API after tunnel connect (https://user-myhomegames-server.vige.it). */
 export function readStoredPublicApiBase(): string | null {
   try {
     const stored = localStorage.getItem(TUNNEL_API_BASE_KEY);
     if (stored?.trim()) {
-      return stored.trim().replace(/\/$/, "");
+      const migrated = migrateUserTunnelPublicUrl(stored.trim());
+      if (migrated !== stored.trim().replace(/\/$/, "")) {
+        localStorage.setItem(TUNNEL_API_BASE_KEY, migrated);
+      }
+      return migrated.replace(/\/$/, "");
     }
   } catch {
     // ignore
@@ -18,35 +53,18 @@ export function readStoredPublicApiBase(): string | null {
   return null;
 }
 
-function resolveLocalApiBase(): string {
-  const envBase = String(envApiBase).trim().replace(/\/$/, "");
-  // Vite proxies API paths to envBase when HTTPS dev server is on (see vite.config.ts).
-  if (
-    import.meta.env.DEV &&
-    import.meta.env.VITE_HTTPS_ENABLED === "true" &&
-    typeof window !== "undefined"
-  ) {
-    return window.location.origin;
-  }
-  return envBase;
-}
-
-/** Local Node server — tunnel control and API calls before the public URL is set. */
-export const LOCAL_API_BASE = resolveLocalApiBase();
+/** Local Node — tunnel control only (`/tunnel/*` in tunnelApi.ts). Not used for app API in normal flow. */
+export const LOCAL_API_BASE = String(envApiBase).trim().replace(/\/$/, "");
 
 function resolveApiBase(): string {
-  // In dev, start on local/proxy until /tunnel/status confirms cloudflared is connected.
-  if (import.meta.env.DEV) {
-    return LOCAL_API_BASE;
-  }
   return readStoredPublicApiBase() ?? LOCAL_API_BASE;
 }
 
-/** API used by the app: stored public URL after connect, otherwise local Node. */
+/** API used by the app: public tunnel URL after connect, otherwise unset until /tunnel/status runs. */
 export let API_BASE = resolveApiBase();
 
 export function setTunnelApiBase(url: string): void {
-  const normalized = url.trim().replace(/\/$/, "");
+  const normalized = migrateUserTunnelPublicUrl(url.trim()).replace(/\/$/, "");
   const withScheme = /^https?:\/\//i.test(normalized)
     ? normalized
     : `https://${normalized}`;
@@ -78,13 +96,6 @@ export function syncTunnelApiBaseFromStatus(status: {
   connected: boolean;
   publicUrl: string;
 }): void {
-  // Dev: always use Vite → local Node (see vite.config.ts). cloudflared is for external
-  // access (OAuth, remote clients); the browser SPA must not call the public hostname if
-  // edge TLS/DNS is misconfigured (ERR_SSL_VERSION_OR_CIPHER_MISMATCH).
-  if (import.meta.env.DEV) {
-    clearTunnelApiBase();
-    return;
-  }
   if (status.featureEnabled && status.connected && status.publicUrl) {
     setTunnelApiBase(status.publicUrl);
     return;

@@ -15,8 +15,10 @@ This guide covers the development environment setup for MyHomeGames Web Applicat
    ```
 
 2. The `.env` file is committed to the repository:
-   - On the `0.X.X-SNAPSHOT` branch: contains development configuration (`VITE_API_TOKEN=changeme`, `VITE_API_BASE=http://127.0.0.1:4000`)
+   - On the `0.X.X-SNAPSHOT` branch: development configuration (`VITE_API_TOKEN=changeme`, `VITE_API_BASE=http://127.0.0.1:4000`)
    - On the `main` branch: contains production configuration
+
+   `VITE_API_BASE` is the local Node URL for `/tunnel/*` control only. Once cloudflared connects, app API calls use the public tunnel URL (same as production).
 
 3. Start the development server:
    ```bash
@@ -77,14 +79,15 @@ mv localhost+1-key.pem key.pem
 
 For development, the web application uses:
 
-- `VITE_API_BASE` - Base URL of the API server
-  - Development (HTTP): `http://127.0.0.1:4000`
-  - Development (HTTPS): `https://localhost:41440`
+- `VITE_API_BASE` - Local Node URL for `/tunnel/*` control (connect, status, logout)
+  - Development: `http://127.0.0.1:4000`
+  - App API calls use the public tunnel URL after cloudflared connects (not this URL)
 - `VITE_API_TOKEN` - Authentication token for development (optional)
   - Development: `changeme`
-  - Only used when Twitch OAuth is not configured
+  - Skips Twitch login UI only; does not bypass the tunnel
 - `VITE_HTTPS_ENABLED` (default: `false`) - Enable HTTPS for Vite dev server (`true`/`false`)
-  - When enabled, Vite will serve the app over HTTPS using certificates from the `certs/` directory
+  - When enabled, Vite serves the app over HTTPS using certificates from the `certs/` directory
+  - Recommended when using Cloudflare tunnel (SPA on `https://localhost:5173`, API on tunnel subdomain)
 
 - `VITE_GITHUB_REPO` (optional) - GitHub repository in the form `owner/repo` (e.g. `MyHomeGames/MyHomeGames`)
   - When set, the app periodically checks the [GitHub Releases](https://docs.github.com/en/repositories/releasing-projects-on-github) API

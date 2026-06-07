@@ -1,4 +1,5 @@
 import { Navigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useTunnel } from "../../contexts/TunnelContext";
@@ -8,11 +9,11 @@ type ProtectedRouteProps = {
 };
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
+  const { t } = useTranslation();
   const { user, isLoading } = useAuth();
   const { twitchLoginEnabled, settingsLoaded } = useSettings();
-  const { featureEnabled, tunnelReady, statusLoaded } = useTunnel();
+  const { featureEnabled, tunnelReady, statusLoaded, isConnecting, connectError } = useTunnel();
 
-  // Check if we're in development mode (VITE_API_TOKEN is set)
   const DEV_TOKEN = import.meta.env.VITE_API_TOKEN || "";
   const isDevMode = DEV_TOKEN !== "";
 
@@ -21,7 +22,16 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (featureEnabled && !tunnelReady) {
-    return null;
+    return (
+      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 px-6 text-center">
+        <p className="text-lg font-medium">
+          {isConnecting ? t("tunnel.connecting") : t("tunnel.lead")}
+        </p>
+        {connectError ? (
+          <p className="max-w-md text-sm text-red-400">{connectError}</p>
+        ) : null}
+      </div>
+    );
   }
 
   // In dev mode, allow access even without user (VITE_API_TOKEN will be used)

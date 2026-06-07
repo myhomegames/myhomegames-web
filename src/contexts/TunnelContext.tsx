@@ -36,9 +36,6 @@ type TunnelContextValue = {
 
 const TunnelContext = createContext<TunnelContextValue | null>(null);
 
-const DEV_TOKEN = (import.meta.env.VITE_API_TOKEN as string | undefined) || "";
-const isDevMode = DEV_TOKEN !== "";
-
 const TUNNEL_AUTH_SESSION_KEY = "mhg_tunnel_auth_redirect";
 
 function readTunnelAuthFromUrl(): "ok" | "error" | null {
@@ -133,7 +130,7 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
   }, [redirectToManagerForAuth]);
 
   const runAutoConnect = useCallback(async () => {
-    if (isDevMode || autoConnectInFlightRef.current) return;
+    if (autoConnectInFlightRef.current) return;
     if (!status?.featureEnabled || status.connected) return;
 
     autoConnectInFlightRef.current = true;
@@ -195,7 +192,7 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
     await refreshStatus();
   }, [refreshStatus]);
 
-  const featureEnabled = Boolean(status?.featureEnabled) && !isDevMode;
+  const featureEnabled = Boolean(status?.featureEnabled);
   const tunnelReady = !featureEnabled || Boolean(status?.connected);
 
   const value = useMemo(

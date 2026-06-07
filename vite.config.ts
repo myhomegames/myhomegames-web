@@ -3,9 +3,6 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { readFileSync, writeFileSync } from 'fs'
 import path from 'path'
-import { DEV_API_PROXY_PATH_PATTERN, devApiProxyTarget } from './devApiProxy'
-import { devIgdbProxyPluginFromEnv } from './devIgdbProxyPlugin'
-
 // Read package.json to get version
 const packageJson = JSON.parse(readFileSync('./package.json', 'utf-8'))
 
@@ -78,14 +75,11 @@ export default defineConfig(({ mode }) => {
   
   // Check if HTTPS is enabled via environment variable
   const HTTPS_ENABLED = env.VITE_HTTPS_ENABLED === 'true';
-  const apiProxyTarget = devApiProxyTarget(env.VITE_API_BASE || 'http://127.0.0.1:4000');
-  const igdbProxyPlugin = devIgdbProxyPluginFromEnv(env);
 
   return {
     base: '/app/',
     appType: 'spa',
     plugins: [
-      ...(igdbProxyPlugin ? [igdbProxyPlugin] : []),
       tailwindEntryVirtualPlugin(),
       tailwindcss(),
       react(),
@@ -154,16 +148,6 @@ export default defineConfig(({ mode }) => {
         path: '/',
         ...(HTTPS_ENABLED && { protocol: 'wss', host: 'localhost' }),
       },
-      // HTTPS Vite → HTTP Node without mixed content (browser calls https://localhost:5173/…)
-      ...(HTTPS_ENABLED && {
-        proxy: {
-          [DEV_API_PROXY_PATH_PATTERN]: {
-            target: apiProxyTarget,
-            changeOrigin: true,
-            secure: false,
-          },
-        },
-      }),
     },
   }
 })
