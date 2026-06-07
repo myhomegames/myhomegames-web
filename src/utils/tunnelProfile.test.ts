@@ -4,16 +4,18 @@ import { parseCloudflareTunnelProfile } from "./tunnelProfile";
 describe("parseCloudflareTunnelProfile", () => {
   it("extracts username from user tunnel hostname", () => {
     expect(
-      parseCloudflareTunnelProfile("https://luca-myhomegames-server.vige.it"),
+      parseCloudflareTunnelProfile("https://luca-stancapiano-vige-it-myhomegames-server.vige.it"),
     ).toEqual({
-      userName: "luca",
-      userId: "luca-myhomegames-server.vige.it",
-      publicUrl: "https://luca-myhomegames-server.vige.it",
+      userName: "luca-stancapiano-vige-it",
+      userId: "luca-stancapiano-vige-it-myhomegames-server.vige.it",
+      publicUrl: "https://luca-stancapiano-vige-it-myhomegames-server.vige.it",
     });
   });
 
   it("accepts hostname without scheme", () => {
-    expect(parseCloudflareTunnelProfile("luca-myhomegames-server.vige.it")?.userName).toBe("luca");
+    expect(
+      parseCloudflareTunnelProfile("luca-stancapiano-gmail-com-myhomegames-server.vige.it")?.userName,
+    ).toBe("luca-stancapiano-gmail-com");
   });
 
   it("returns null for manager hostname", () => {
