@@ -11,9 +11,8 @@ import BackgroundManager, { useBackground } from "../components/common/Backgroun
 import LibrariesBar from "../components/layout/LibrariesBar";
 import Tooltip from "../components/common/Tooltip";
 import { useAddGame } from "../components/common/actions";
-import { buildApiUrl } from "../utils/api";
-import { API_BASE } from "../config";
 import { buildApiHeaders } from "../utils/api";
+import { buildIgdbApiUrl } from "../utils/igdbApi";
 import { useLoading } from "../contexts/LoadingContext";
 import { useSkin } from "../contexts/SkinContext";
 import { useCollections } from "../contexts/CollectionsContext";
@@ -52,7 +51,7 @@ export default function IGDBGameDetailPage() {
     setLoading(true);
     try {
       // Fetch game details with high-res cover from dedicated endpoint
-      const url = buildApiUrl(API_BASE, `/igdb/game/${gameId}`);
+      const url = buildIgdbApiUrl(`/igdb/game/${gameId}`);
       const res = await fetch(url, {
         headers: buildApiHeaders({ Accept: "application/json" }),
       });

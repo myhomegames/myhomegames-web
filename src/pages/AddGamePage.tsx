@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { formatIGDBGameDate } from "../utils/date";
 import { displayGameType } from "../utils/igdbGameType";
-import { API_BASE } from "../config";
+import { buildIgdbApiUrl } from "../utils/igdbApi";
 import { buildApiHeaders } from "../utils/api";
 import type { IGDBGame } from "../types";
 import Cover from "../components/games/Cover";
@@ -50,7 +50,7 @@ export default function AddGamePage({
     setIsSearching(true);
     searchTimeoutRef.current = setTimeout(async () => {
       try {
-        const url = new URL("/igdb/search", API_BASE);
+        const url = new URL(buildIgdbApiUrl("/igdb/search"));
 
         const res = await fetch(url.toString(), {
           method: "POST",

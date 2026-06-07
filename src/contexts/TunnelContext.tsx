@@ -10,6 +10,7 @@ import {
 } from "react";
 import { clearTunnelApiBase, syncTunnelApiBaseFromStatus } from "../config";
 import {
+  clearStashedTunnelPayload,
   clearTunnelReturnHash,
   connectTunnel,
   disconnectTunnel,
@@ -31,12 +32,15 @@ type TunnelContextValue = {
   connectFromManager: () => Promise<void>;
   disconnect: () => Promise<void>;
   isConnecting: boolean;
+  warmupPending: boolean;
   connectError: string | null;
 };
 
 const TunnelContext = createContext<TunnelContextValue | null>(null);
 
 const TUNNEL_AUTH_SESSION_KEY = "mhg_tunnel_auth_redirect";
+/** Brief pause after first connect so Cloudflare edge routing can settle before SPA API calls. */
+const PUBLIC_API_WARMUP_MS = 2500;
 
 function readTunnelAuthFromUrl(): "ok" | "error" | null {
   if (typeof window === "undefined") return null;
@@ -50,9 +54,12 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
   const [statusLoaded, setStatusLoaded] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
+  const [warmupPending, setWarmupPending] = useState(false);
   const tunnelPayloadRef = useRef(readTunnelPayloadFromReturn());
   const returnedFromAuthRef = useRef(readTunnelAuthFromUrl() === "ok");
   const autoConnectInFlightRef = useRef(false);
+  const tunnelWasConnectedOnLoadRef = useRef<boolean | null>(null);
+  const warmupTimerRef = useRef<number | undefined>(undefined);
 
   const clearTunnelAuthQuery = useCallback(() => {
     const params = new URLSearchParams(window.location.search);
@@ -65,6 +72,33 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
     window.history.replaceState({}, document.title, next);
     return reason;
   }, []);
+
+  const clearWarmupTimer = useCallback(() => {
+    if (warmupTimerRef.current !== undefined) {
+      window.clearTimeout(warmupTimerRef.current);
+      warmupTimerRef.current = undefined;
+    }
+  }, []);
+
+  const schedulePublicApiWarmup = useCallback(() => {
+    clearWarmupTimer();
+    setWarmupPending(true);
+    warmupTimerRef.current = window.setTimeout(() => {
+      warmupTimerRef.current = undefined;
+      setWarmupPending(false);
+    }, PUBLIC_API_WARMUP_MS);
+  }, [clearWarmupTimer]);
+
+  const applyTunnelStatus = useCallback(
+    (next: TunnelStatus, options?: { warmupAfterConnect?: boolean }) => {
+      setStatus(next);
+      syncTunnelApiBaseFromStatus(next);
+      if (options?.warmupAfterConnect && next.connected) {
+        schedulePublicApiWarmup();
+      }
+    },
+    [schedulePublicApiWarmup],
+  );
 
   const redirectToManagerForAuth = useCallback(() => {
     try {
@@ -82,8 +116,10 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
   const refreshStatus = useCallback(async () => {
     try {
       const next = await fetchTunnelStatus();
-      setStatus(next);
-      syncTunnelApiBaseFromStatus(next);
+      if (tunnelWasConnectedOnLoadRef.current === null) {
+        tunnelWasConnectedOnLoadRef.current = next.connected;
+      }
+      applyTunnelStatus(next);
     } catch {
       setStatus({
         featureEnabled: false,
@@ -95,17 +131,22 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
     } finally {
       setStatusLoaded(true);
     }
-  }, []);
+  }, [applyTunnelStatus]);
 
   useEffect(() => {
     void refreshStatus();
-  }, [refreshStatus]);
+    return () => {
+      clearWarmupTimer();
+    };
+  }, [refreshStatus, clearWarmupTimer]);
 
   useEffect(() => {
     const auth = readTunnelAuthFromUrl();
     if (auth === "ok") {
       clearTunnelAuthQuery();
-      clearTunnelReturnHash();
+      if (!tunnelPayloadRef.current) {
+        tunnelPayloadRef.current = readTunnelPayloadFromReturn();
+      }
       try {
         sessionStorage.removeItem(TUNNEL_AUTH_SESSION_KEY);
       } catch {
@@ -116,6 +157,7 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
     if (auth === "error") {
       const reason = clearTunnelAuthQuery();
       clearTunnelReturnHash();
+      clearStashedTunnelPayload();
       setConnectError(`Cloudflare tunnel auth failed: ${reason || "unknown"}`);
       try {
         sessionStorage.removeItem(TUNNEL_AUTH_SESSION_KEY);
@@ -156,8 +198,10 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      setStatus(next);
-      syncTunnelApiBaseFromStatus(next);
+      clearTunnelReturnHash();
+      clearStashedTunnelPayload();
+      const needsWarmup = !tunnelWasConnectedOnLoadRef.current;
+      applyTunnelStatus(next, { warmupAfterConnect: needsWarmup });
       try {
         sessionStorage.removeItem(TUNNEL_AUTH_SESSION_KEY);
       } catch {
@@ -170,7 +214,7 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
       setIsConnecting(false);
       autoConnectInFlightRef.current = false;
     }
-  }, [status, connectWithPayload, redirectToManagerForAuth]);
+  }, [status, connectWithPayload, redirectToManagerForAuth, applyTunnelStatus]);
 
   useEffect(() => {
     if (!tunnelPayloadRef.current) {
@@ -181,19 +225,24 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
   }, [statusLoaded, status?.featureEnabled, status?.connected, status?.hasStoredToken, runAutoConnect]);
 
   const disconnect = useCallback(async () => {
+    clearWarmupTimer();
+    setWarmupPending(false);
     await disconnectTunnel();
     clearTunnelApiBase();
     tunnelPayloadRef.current = null;
+    tunnelWasConnectedOnLoadRef.current = false;
+    clearStashedTunnelPayload();
     try {
       sessionStorage.removeItem(TUNNEL_AUTH_SESSION_KEY);
     } catch {
       // ignore
     }
     await refreshStatus();
-  }, [refreshStatus]);
+  }, [refreshStatus, clearWarmupTimer]);
 
   const featureEnabled = Boolean(status?.featureEnabled);
-  const tunnelReady = !featureEnabled || Boolean(status?.connected);
+  const tunnelReady =
+    !featureEnabled || (Boolean(status?.connected) && !isConnecting && !warmupPending);
 
   const value = useMemo(
     () => ({
@@ -206,6 +255,7 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
       connectFromManager,
       disconnect,
       isConnecting,
+      warmupPending,
       connectError,
     }),
     [
@@ -217,6 +267,7 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
       connectFromManager,
       disconnect,
       isConnecting,
+      warmupPending,
       connectError,
     ],
   );

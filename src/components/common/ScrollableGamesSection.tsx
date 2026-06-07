@@ -7,7 +7,7 @@ import type { CollectionLikeResourceType } from "../collections/EditCollectionLi
 import { buildCoverUrl } from "../../utils/api";
 import { useAutoTranslate } from "../../hooks/useAutoTranslate";
 import { useSkin } from "../../contexts/SkinContext";
-// Helper per sessionStorage
+// sessionStorage helpers
 function getScrollPosition(key: string): number {
   try {
     const stored = sessionStorage.getItem(key);

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { formatIGDBGameDate } from "../../utils/date";
 import { displayGameType } from "../../utils/igdbGameType";
-import { API_BASE } from "../../config";
+import { buildIgdbApiUrl } from "../../utils/igdbApi";
 import { buildApiHeaders } from "../../utils/api";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useCreateGame } from "./actions";
@@ -289,7 +289,7 @@ export default function AddGame({
           return;
         }
 
-        const url = new URL("/igdb/search", API_BASE);
+        const url = new URL(buildIgdbApiUrl("/igdb/search"));
         url.searchParams.set("q", trimmedQuery);
 
         const res = await fetch(url.toString(), {

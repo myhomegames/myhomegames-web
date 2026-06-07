@@ -5,7 +5,7 @@
  *   can accept a self-signed cert once. Skipped for remote APIs (Cloudflare Tunnel, etc.).
  */
 
-import { API_BASE } from "../config";
+import { getApiBase, LOCAL_API_BASE } from "../config";
 import { shouldSkipApiBaseBrowserRedirect } from "./apiRedirectGuard";
 
 let unauthorizedHandler: (() => void) | null = null;
@@ -25,8 +25,14 @@ function getRequestUrl(input: RequestInfo | URL): string {
 }
 
 function isOurApiRequest(url: string): boolean {
-  const base = API_BASE.replace(/\/$/, "");
-  return url === base || url.startsWith(base + "/");
+  const base = getApiBase().replace(/\/$/, "");
+  const local = LOCAL_API_BASE.replace(/\/$/, "");
+  return (
+    url === base ||
+    url.startsWith(base + "/") ||
+    url === local ||
+    url.startsWith(local + "/")
+  );
 }
 
 function isSettingsRequest(url: string): boolean {
@@ -64,7 +70,7 @@ function isNetworkOrCertError(message: string): boolean {
  * Remote APIs (e.g. Cloudflare Tunnel) must not redirect: server GET / would bounce
  * back to FRONTEND_URL and cause an infinite loop.
  */
-export function isLocalHttpsApiBase(apiBase: string = API_BASE): boolean {
+export function isLocalHttpsApiBase(apiBase: string = getApiBase()): boolean {
   try {
     const u = new URL(apiBase);
     const host = u.hostname.toLowerCase();
@@ -88,7 +94,7 @@ function shouldRedirectForCertAcceptance(url: string, message: string): boolean 
 }
 
 function redirectToApiBase(): void {
-  const serverUrl = API_BASE.replace(/\/$/, "");
+  const serverUrl = getApiBase().replace(/\/$/, "");
   window.location.href = serverUrl;
 }
 

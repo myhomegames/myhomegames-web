@@ -2,7 +2,7 @@
  * API utility functions for building URLs and headers
  */
 
-import { getApiToken } from "../config";
+import { getApiBase, getApiToken } from "../config";
 
 /**
  * Builds an API URL with optional query parameters
@@ -19,6 +19,14 @@ export function buildApiUrl(
   const u = new URL(path, apiBase);
   Object.entries(params).forEach(([k, v]) => u.searchParams.set(k, String(v)));
   return u.toString();
+}
+
+/** App API URL using the effective base (public tunnel when connected). */
+export function buildAppApiUrl(
+  path: string,
+  params: Record<string, string | number | boolean> = {},
+): string {
+  return buildApiUrl(getApiBase(), path, params);
 }
 
 /**

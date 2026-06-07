@@ -9,10 +9,9 @@ import UpdateNotification from "./UpdateNotification";
 import Tooltip from "../common/Tooltip";
 import { useLoading } from "../../contexts/LoadingContext";
 import ActivitySpinner from "./ActivitySpinner";
-import { useSettings } from "../../contexts/SettingsContext";
-import { getApiToken } from "../../config";
 import { useSkin } from "../../contexts/SkinContext";
 import { useTitleFilter } from "../../contexts/TitleFilterContext";
+import { useActiveProfile } from "../../hooks/useActiveProfile";
 import type { GameItem, CollectionItem } from "../../types";
 
 /** Header-only pages: no `LibrariesBar`, so the dock logo is absent — keep the header logo when `topRightToolDock` is on. */
@@ -54,11 +53,9 @@ export default function Header({
   const { t } = useTranslation();
   const { pathname } = useLocation();
   const { isLoading } = useLoading();
-  const { twitchLoginEnabled } = useSettings();
   const { activeSkinWeb } = useSkin();
   const { setQuery: setTitleFilterQuery } = useTitleFilter();
-  const hasToken = !!getApiToken();
-  const showProfile = twitchLoginEnabled && hasToken;
+  const { showProfile } = useActiveProfile();
 
   const hideHeaderTitleFilter =
     pathname === "/settings" || pathname.startsWith("/game/");

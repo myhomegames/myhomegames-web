@@ -50,7 +50,7 @@ export function displayGameType(type: number | null | undefined): string {
 }
 
 /**
- * IGDB type id 0 = Main Game. Used for "solo principali": exclude DLC, remasters, etc.
+ * IGDB type id 0 = Main Game. Used for “main games only”: exclude DLC, remasters, etc.
  * If `type` is missing (legacy / not stored), treat as main. List APIs include `type` when set in metadata.
  */
 export function isMainGameType(game: { type?: number | { id: number } | null }): boolean {

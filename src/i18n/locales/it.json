@@ -72,6 +72,22 @@
       "enableLogin": "Abilita login Twitch",
       "enableLoginHelp": "Se attivo, serve l'accesso con Twitch. Se disattivo, l'app è aperta senza login."
     },
+    "cloudflare": {
+      "title": "Profilo Cloudflare",
+      "description": "Collega questo dispositivo al tuo Cloudflare Tunnel personale. Le API remote usano il tuo hostname pubblico; il controllo locale resta su questa macchina.",
+      "statusLabel": "Stato tunnel",
+      "status": {
+        "connecting": "Connessione in corso…",
+        "connected": "Connesso — cloudflared è in esecuzione.",
+        "stored": "Credenziali salvate — tunnel non attivo. Riconnetti o disconnetti per cancellare.",
+        "disconnected": "Non connesso."
+      },
+      "publicUrlLabel": "URL API pubblico",
+      "managerLabel": "Tunnel manager",
+      "connect": "Connetti tunnel",
+      "disconnect": "Disconnetti tunnel",
+      "confirmDisconnect": "Disconnettere il Cloudflare Tunnel su questo dispositivo e rimuovere le credenziali salvate?"
+    },
     "skinOptions": {
       "title": "Opzioni",
       "description": "Personalizza il comportamento dello skin attivo. Quando installi o cambi skin, queste opzioni vengono riportate ai valori dichiarati nel suo manifest.",
@@ -136,7 +152,11 @@
     "username": "Nome utente",
     "userId": "ID utente",
     "accountType": "Tipo account",
-    "developmentAccount": "Account di sviluppo"
+    "developmentAccount": "Account di sviluppo",
+    "cloudflareAccount": "Account Cloudflare",
+    "cloudflareTunnel": "Cloudflare Tunnel",
+    "publicApiUrl": "URL API pubblico",
+    "disconnectTunnel": "Disconnetti tunnel"
   },
   "tunnel": {
     "title": "Connetti Cloudflare Tunnel",
@@ -145,7 +165,8 @@
     "step2": "Torna qui e ottieni il token tunnel personale.",
     "openManager": "Apri tunnel manager",
     "connect": "Connetti tunnel",
-    "connecting": "Connessione…"
+    "connecting": "Connessione…",
+    "publicApiNotReady": "L'API pubblica non è ancora raggiungibile. Attendi qualche secondo e ricarica la pagina, oppure disconnetti e riconnetti il tunnel."
   },
   "login": {
     "title": "Benvenuto in MyHomeGames",

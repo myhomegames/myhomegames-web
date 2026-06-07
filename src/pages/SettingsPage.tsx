@@ -9,6 +9,7 @@ import { shouldSkipApiBaseBrowserRedirect } from "../utils/apiRedirectGuard";
 import { useTunnel } from "../contexts/TunnelContext";
 import { LIBRARY_ORDER, normalizeVisibleLibraries } from "../utils/librarySections";
 import SettingsSkinSection from "../components/settings/SettingsSkinSection";
+import SettingsCloudflareSection from "../components/settings/SettingsCloudflareSection";
 
 export default function SettingsPage() {
   const { t, i18n } = useTranslation();
@@ -292,6 +293,8 @@ export default function SettingsPage() {
         </div>
 
         <SettingsSkinSection />
+
+        <SettingsCloudflareSection />
 
         {/* Twitch OAuth Settings */}
         <div className="bg-[#1a1a1a] settings-card settings-card--spaced-top">

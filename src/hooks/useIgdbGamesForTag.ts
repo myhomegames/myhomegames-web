@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { buildApiUrl } from "../utils/api";
-import { API_BASE } from "../config";
 import { buildApiHeaders } from "../utils/api";
+import { buildIgdbApiUrl } from "../utils/igdbApi";
 
 export type IgdbGameForTag = {
   id: number;
@@ -80,7 +79,7 @@ export function useIgdbGamesForTag(
       setError(null);
       try {
         const name = tagNameFromUrlOrLabels.trim();
-        const url = buildApiUrl(API_BASE, endpointByName);
+        const url = buildIgdbApiUrl( endpointByName);
         const excludeIds = fetchAll ? [] : libraryGameIds;
         const res = await fetch(url, {
           method: "POST",
@@ -129,12 +128,12 @@ export function useIgdbGamesForTag(
       const nameType = tagKey ? TAG_NAME_TYPE_MAP[tagKey] : null;
       const namePromise =
         nameType
-          ? fetch(buildApiUrl(API_BASE, `/igdb/tag-name/${nameType}/${id}`), {
+          ? fetch(buildIgdbApiUrl( `/igdb/tag-name/${nameType}/${id}`), {
               headers: buildApiHeaders({ Accept: "application/json" }),
             }).then((r) => (r.ok ? r.json() : { name: null })).then((d) => d.name ?? null)
           : Promise.resolve(null);
 
-      const url = buildApiUrl(API_BASE, `${endpoint}/${id}`);
+      const url = buildIgdbApiUrl( `${endpoint}/${id}`);
       const excludeIds = fetchAll ? [] : libraryGameIds;
       const res = await fetch(url, {
         method: "POST",

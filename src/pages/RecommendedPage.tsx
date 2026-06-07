@@ -10,8 +10,8 @@ import { useSkin } from "../contexts/SkinContext";
 import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
 import FixedFocalRecommendedSectionsList from "../components/lists/FixedFocalRecommendedSectionsList";
 import type { GameItem, CollectionItem } from "../types";
-import { API_BASE } from "../config";
-import { buildApiUrl, buildApiHeaders } from "../utils/api";
+import { buildApiHeaders, buildAppApiUrl } from "../utils/api";
+import { buildIgdbApiUrl } from "../utils/igdbApi";
 import {
   clearRecommendedSectionsCache,
   consumeRecommendedReturnFromGame,
@@ -258,7 +258,7 @@ export default function RecommendedPage({
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90000);
     try {
-      const url = buildApiUrl(API_BASE, `/recommended`);
+      const url = buildAppApiUrl("/recommended");
       const res = await fetch(url, {
         headers: buildApiHeaders({ Accept: "application/json" }),
         signal: controller.signal,
@@ -298,7 +298,7 @@ export default function RecommendedPage({
             const excludeIds = section.games
               .map((g: GameItem) => Number(g.id))
               .filter((id: number) => !Number.isNaN(id));
-            const igdbUrl = buildApiUrl(API_BASE, "/igdb/games-by-keyword");
+            const igdbUrl = buildIgdbApiUrl("/igdb/games-by-keyword");
             fetch(igdbUrl, {
               method: "POST",
               headers: buildApiHeaders({

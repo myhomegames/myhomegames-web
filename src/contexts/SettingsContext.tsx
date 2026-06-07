@@ -8,7 +8,7 @@ import {
   useMemo,
 } from "react";
 import type { ReactNode } from "react";
-import { API_BASE } from "../config";
+import { getApiBase } from "../config";
 import { buildApiHeaders } from "../utils/api";
 import { clearLegacyIgdbCredentialStorage, isIgdbApiEnabled } from "../utils/igdbApi";
 import { useTunnel } from "./TunnelContext";
@@ -44,7 +44,7 @@ interface SettingsContextType {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const { featureEnabled, statusLoaded } = useTunnel();
+  const { featureEnabled, statusLoaded, tunnelReady } = useTunnel();
   const [twitchLoginEnabled, setTwitchLoginEnabled] = useState(false);
   const [twitchApiEnabled, setTwitchApiEnabled] = useState(false);
   const [skinWeb, setSkinWeb] = useState<SkinWebManifest>(DEFAULT_SKIN_WEB_MANIFEST);
@@ -65,23 +65,30 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshSettings = useCallback(async () => {
-    try {
-      const url = new URL("/settings", API_BASE);
-      const res = await fetch(url.toString(), {
-        headers: buildApiHeaders({ Accept: "application/json" }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setTwitchLoginEnabled(!!data.twitchLoginEnabled);
-        const serverApiEnabled = !!data.twitchApiEnabled;
-        setTwitchApiEnabled(serverApiEnabled);
-        applySkinWeb(data.skinWeb);
-        clearLegacyIgdbCredentialStorage();
+    const maxAttempts = 4;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        const url = new URL("/settings", getApiBase());
+        const res = await fetch(url.toString(), {
+          headers: buildApiHeaders({ Accept: "application/json" }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setTwitchLoginEnabled(!!data.twitchLoginEnabled);
+          const serverApiEnabled = !!data.twitchApiEnabled;
+          setTwitchApiEnabled(serverApiEnabled);
+          applySkinWeb(data.skinWeb);
+          clearLegacyIgdbCredentialStorage();
+          return;
+        }
+      } catch (err) {
+        if (attempt === maxAttempts - 1) {
+          console.error("Failed to refresh settings:", err);
+        }
       }
-    } catch (err) {
-      console.error("Failed to refresh settings:", err);
-    } finally {
-      setSettingsLoaded(true);
+      if (attempt < maxAttempts - 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 800));
+      }
     }
   }, [applySkinWeb]);
 
@@ -89,7 +96,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     async (partial: Partial<SkinWebManifest>) => {
       const token = ++latestSkinWebUpdateRef.current;
       try {
-        const url = new URL("/settings", API_BASE);
+        const url = new URL("/settings", getApiBase());
         const res = await fetch(url.toString(), {
           method: "PUT",
           headers: buildApiHeaders({ "Content-Type": "application/json" }),
@@ -114,11 +121,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [applySkinWeb]
   );
 
-  // Load settings after tunnel status is known when tunnel mode is enabled
+  // Load settings after tunnel is ready when tunnel mode is enabled
   useEffect(() => {
-    if (featureEnabled && !statusLoaded) return;
-    void refreshSettings();
-  }, [featureEnabled, statusLoaded, refreshSettings]);
+    if (featureEnabled && (!statusLoaded || !tunnelReady)) return;
+    void refreshSettings().finally(() => {
+      setSettingsLoaded(true);
+    });
+  }, [featureEnabled, statusLoaded, tunnelReady, refreshSettings]);
 
   useEffect(() => {
     const onApiBaseChanged = () => {

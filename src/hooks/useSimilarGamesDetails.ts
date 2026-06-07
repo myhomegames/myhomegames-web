@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { API_BASE } from "../config";
-import { buildApiHeaders, buildApiUrl } from "../utils/api";
+import { buildApiHeaders } from "../utils/api";
+import { buildIgdbApiUrl } from "../utils/igdbApi";
 
 export type SimilarGameDetails = { name: string; cover?: string; releaseDate?: number | null };
 
@@ -25,7 +25,7 @@ export function useSimilarGamesDetails(
     let cancelled = false;
     setIsLoading(true);
 
-    const url = buildApiUrl(API_BASE, "/igdb/game-names-by-ids", { ids: idsKey });
+    const url = buildIgdbApiUrl("/igdb/game-names-by-ids", { ids: idsKey });
     fetch(url, {
       method: "GET",
       headers: buildApiHeaders(),

@@ -5,6 +5,8 @@ import Tooltip from "../common/Tooltip";
 import ProfilePanelContent from "../profile/ProfilePanelContent";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSkin } from "../../contexts/SkinContext";
+import { useTunnel } from "../../contexts/TunnelContext";
+import { useActiveProfile } from "../../hooks/useActiveProfile";
 
 type ProfileDropdownPanel = "menu" | "profile";
 
@@ -17,6 +19,27 @@ type ProfileDropdownProps = {
   libraryActive?: boolean;
 };
 
+function ProfileAvatarPlaceholder({ size = 80 }: { size?: number }) {
+  return (
+    <div className="profile-dropdown-avatar-placeholder">
+      <svg
+        width={size}
+        height={size}
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        strokeWidth={1.5}
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+        />
+      </svg>
+    </div>
+  );
+}
+
 export default function ProfileDropdown({
   onViewProfile,
   onChangeUser,
@@ -25,13 +48,18 @@ export default function ProfileDropdown({
   libraryActive = false,
 }: ProfileDropdownProps) {
   const { t } = useTranslation();
-  const { user, login, logout } = useAuth();
+  const { login, logout } = useAuth();
   const { activeSkinWeb } = useSkin();
+  const { disconnect } = useTunnel();
+  const {
+    displayName,
+    displayImage,
+    hasTwitchProfile,
+    hasCloudflareProfile,
+  } = useActiveProfile();
   const navigate = useNavigate();
 
   const keepProfileInDropdown = activeSkinWeb.libraryBarHeaderActions;
-  const userName = user?.userName || "User";
-  const userImage = user?.userImage || undefined;
   const [isOpen, setIsOpen] = useState(false);
   const [panel, setPanel] = useState<ProfileDropdownPanel>("menu");
   const menuRef = useRef<HTMLDivElement>(null);
@@ -107,6 +135,14 @@ export default function ProfileDropdown({
     if (onLogout) {
       onLogout();
     }
+  };
+
+  const handleDisconnectTunnel = async () => {
+    if (!window.confirm(t("settings.cloudflare.confirmDisconnect"))) {
+      return;
+    }
+    setIsOpen(false);
+    await disconnect();
   };
 
   const libraryTrigger = triggerVariant === "library";
@@ -191,42 +227,43 @@ export default function ProfileDropdown({
                 className="profile-dropdown-item profile-dropdown-header-item"
                 onClick={handleViewProfile}
               >
-                {userImage ? (
-                  <img src={userImage} alt={userName} className="profile-dropdown-avatar" />
+                {displayImage ? (
+                  <img src={displayImage} alt={displayName} className="profile-dropdown-avatar" />
                 ) : (
-                  <div className="profile-dropdown-avatar-placeholder">
-                    <svg
-                      width="80"
-                      height="80"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
-                      />
-                    </svg>
-                  </div>
+                  <ProfileAvatarPlaceholder />
                 )}
-                <span className="profile-dropdown-username">{userName}</span>
+                <span className="profile-dropdown-username">{displayName}</span>
               </button>
               <button type="button" className="profile-dropdown-item" onClick={handleViewProfile}>
                 {t("profile.viewProfile", "View Profile")}
               </button>
-              <div className="profile-dropdown-separator" />
-              <button type="button" className="profile-dropdown-item" onClick={handleChangeUser}>
-                {t("profile.changeUser", "Change User")}
-              </button>
-              <button
-                type="button"
-                className="profile-dropdown-item profile-dropdown-item-danger"
-                onClick={handleLogout}
-              >
-                {t("profile.logout", "Logout")}
-              </button>
+              {hasTwitchProfile && (
+                <>
+                  <div className="profile-dropdown-separator" />
+                  <button type="button" className="profile-dropdown-item" onClick={handleChangeUser}>
+                    {t("profile.changeUser", "Change User")}
+                  </button>
+                  <button
+                    type="button"
+                    className="profile-dropdown-item profile-dropdown-item-danger"
+                    onClick={handleLogout}
+                  >
+                    {t("profile.logout", "Logout")}
+                  </button>
+                </>
+              )}
+              {hasCloudflareProfile && (
+                <>
+                  <div className="profile-dropdown-separator" />
+                  <button
+                    type="button"
+                    className="profile-dropdown-item profile-dropdown-item-danger"
+                    onClick={() => void handleDisconnectTunnel()}
+                  >
+                    {t("profile.disconnectTunnel", "Disconnect tunnel")}
+                  </button>
+                </>
+              )}
             </>
           ) : (
             <>

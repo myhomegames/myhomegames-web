@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { API_BASE } from "../config";
-import { buildApiHeaders, buildApiUrl } from "../utils/api";
+import { buildApiHeaders } from "../utils/api";
+import { buildIgdbApiUrl } from "../utils/igdbApi";
 
 type SimilarGameEntry = { id: number; name: string };
 
@@ -16,7 +16,7 @@ function isNumericName(sg: SimilarGameEntry): boolean {
  * Fetches game names from IGDB for the given ids and returns a map id -> name.
  */
 async function fetchIgdbNamesByIds(ids: number[]): Promise<Record<string, string>> {
-  const url = buildApiUrl(API_BASE, "/igdb/game-names-by-ids", { ids: ids.join(",") });
+  const url = buildIgdbApiUrl("/igdb/game-names-by-ids", { ids: ids.join(",") });
   const res = await fetch(url, {
     method: "GET",
     headers: buildApiHeaders(),

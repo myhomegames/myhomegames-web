@@ -28,6 +28,31 @@ function resolveApiBase(): string {
 /** API used by the app: public tunnel URL after connect, otherwise unset until /tunnel/status runs. */
 export let API_BASE = resolveApiBase();
 
+/** Prefer stored public tunnel URL (survives brief status/sync glitches). */
+export function getApiBase(): string {
+  return readStoredPublicApiBase() ?? API_BASE;
+}
+
+export function isLocalApiBase(apiBase: string = getApiBase()): boolean {
+  try {
+    const host = new URL(apiBase).hostname.toLowerCase();
+    return host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host === "::1";
+  } catch {
+    return false;
+  }
+}
+
+const USER_TUNNEL_HOST_SUFFIX = "-myhomegames-server.vige.it";
+
+export function isUserTunnelApiBase(apiBase: string = getApiBase()): boolean {
+  try {
+    const host = new URL(apiBase.startsWith("http") ? apiBase : `https://${apiBase}`).hostname.toLowerCase();
+    return host.endsWith(USER_TUNNEL_HOST_SUFFIX);
+  } catch {
+    return false;
+  }
+}
+
 export function setTunnelApiBase(url: string): void {
   const normalized = url.trim().replace(/\/$/, "");
   const withScheme = /^https?:\/\//i.test(normalized)
@@ -61,13 +86,17 @@ export function syncTunnelApiBaseFromStatus(status: {
   connected: boolean;
   publicUrl: string;
 }): void {
-  if (status.featureEnabled && status.connected && status.publicUrl) {
-    setTunnelApiBase(status.publicUrl);
+  if (!status.featureEnabled) {
     return;
   }
-  if (status.featureEnabled) {
-    clearTunnelApiBase();
+  if (status.connected) {
+    const nextUrl = status.publicUrl?.trim();
+    if (nextUrl) {
+      setTunnelApiBase(nextUrl);
+    }
+    return;
   }
+  clearTunnelApiBase();
 }
 
 export function hasPublicApiBase(): boolean {

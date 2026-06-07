@@ -36,7 +36,7 @@ To preview the production build locally:
 npm run preview
 ```
 
-This will serve the production build locally, typically at `http://localhost:4173`.
+This will serve the production build locally at `https://localhost:5173/app/` (same port as dev; HTTPS when `VITE_HTTPS_ENABLED=true`).
 
 ---
 

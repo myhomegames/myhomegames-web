@@ -42,8 +42,19 @@ function decodeBase64Url(value: string): string {
   return atob(padded + "=".repeat(padLen));
 }
 
-/** Token + hostname passed in URL hash after Cloudflare Access browser redirect. */
-export function readTunnelPayloadFromReturn(): TunnelTokenResponse | null {
+const TUNNEL_PAYLOAD_SESSION_KEY = "mhg_tunnel_connect_payload";
+
+function normalizeTunnelPayload(raw: { token?: string; url?: string }): TunnelTokenResponse | null {
+  const token = raw.token?.trim();
+  let url = raw.url?.trim();
+  if (!token || !url) return null;
+  if (!/^https?:\/\//i.test(url)) {
+    url = `https://${url}`;
+  }
+  return { token, url };
+}
+
+function readTunnelPayloadFromHash(): TunnelTokenResponse | null {
   if (typeof window === "undefined") return null;
   const raw = window.location.hash.replace(/^#/, "");
   if (!raw.startsWith("tunnel=")) return null;
@@ -52,16 +63,46 @@ export function readTunnelPayloadFromReturn(): TunnelTokenResponse | null {
       token?: string;
       url?: string;
     };
-    const token = json.token?.trim();
-    let url = json.url?.trim();
-    if (!token || !url) return null;
-    if (!/^https?:\/\//i.test(url)) {
-      url = `https://${url}`;
-    }
-    return { token, url };
+    return normalizeTunnelPayload(json);
   } catch {
     return null;
   }
+}
+
+export function stashTunnelPayload(payload: TunnelTokenResponse): void {
+  try {
+    sessionStorage.setItem(TUNNEL_PAYLOAD_SESSION_KEY, JSON.stringify(payload));
+  } catch {
+    // ignore
+  }
+}
+
+export function readStashedTunnelPayload(): TunnelTokenResponse | null {
+  try {
+    const raw = sessionStorage.getItem(TUNNEL_PAYLOAD_SESSION_KEY);
+    if (!raw) return null;
+    return normalizeTunnelPayload(JSON.parse(raw) as { token?: string; url?: string });
+  } catch {
+    return null;
+  }
+}
+
+export function clearStashedTunnelPayload(): void {
+  try {
+    sessionStorage.removeItem(TUNNEL_PAYLOAD_SESSION_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+/** Token + hostname from URL hash or session stash (survives hash cleanup / Strict Mode). */
+export function readTunnelPayloadFromReturn(): TunnelTokenResponse | null {
+  const fromHash = readTunnelPayloadFromHash();
+  if (fromHash) {
+    stashTunnelPayload(fromHash);
+    return fromHash;
+  }
+  return readStashedTunnelPayload();
 }
 
 export function clearTunnelReturnHash(): void {

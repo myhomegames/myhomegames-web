@@ -75,6 +75,13 @@ export default defineConfig(({ mode }) => {
   
   // Check if HTTPS is enabled via environment variable
   const HTTPS_ENABLED = env.VITE_HTTPS_ENABLED === 'true';
+  const devHttps =
+    HTTPS_ENABLED
+      ? {
+          key: readFileSync(path.resolve(__dirname, 'certs/key.pem')),
+          cert: readFileSync(path.resolve(__dirname, 'certs/cert.pem')),
+        }
+      : undefined;
 
   return {
     base: '/app/',
@@ -93,7 +100,7 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: 'docs/app',
-      emptyOutDir: true, // Svuota la directory prima del build
+      emptyOutDir: true, // Clear the output directory before each build
       rollupOptions: {
         output: {
           manualChunks: (id) => {
@@ -136,18 +143,18 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      ...(HTTPS_ENABLED && {
-        https: {
-          key: readFileSync(path.resolve(__dirname, 'certs/key.pem')),
-          cert: readFileSync(path.resolve(__dirname, 'certs/cert.pem')),
-        },
-      }),
+      ...(devHttps && { https: devHttps }),
       port: 5173,
       // HMR WebSocket: with base '/app/' the client would connect to wss://.../app/ but the server serves HMR at root
       hmr: {
         path: '/',
         ...(HTTPS_ENABLED && { protocol: 'wss', host: 'localhost' }),
       },
+    },
+    preview: {
+      ...(devHttps && { https: devHttps }),
+      port: 5173,
+      strictPort: true,
     },
   }
 })

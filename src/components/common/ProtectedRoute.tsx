@@ -12,7 +12,14 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { t } = useTranslation();
   const { user, isLoading } = useAuth();
   const { twitchLoginEnabled, settingsLoaded } = useSettings();
-  const { featureEnabled, tunnelReady, statusLoaded, isConnecting, connectError } = useTunnel();
+  const {
+    featureEnabled,
+    tunnelReady,
+    statusLoaded,
+    status,
+    isConnecting,
+    connectError,
+  } = useTunnel();
 
   const DEV_TOKEN = import.meta.env.VITE_API_TOKEN || "";
   const isDevMode = DEV_TOKEN !== "";
@@ -22,13 +29,15 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (featureEnabled && !tunnelReady) {
+    const showLead = !status?.connected && !isConnecting;
+    const errorMessage = connectError;
     return (
       <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 px-6 text-center">
         <p className="text-lg font-medium">
-          {isConnecting ? t("tunnel.connecting") : t("tunnel.lead")}
+          {showLead ? t("tunnel.lead") : t("tunnel.connecting")}
         </p>
-        {connectError ? (
-          <p className="max-w-md text-sm text-red-400">{connectError}</p>
+        {errorMessage ? (
+          <p className="max-w-md text-sm text-red-400">{errorMessage}</p>
         ) : null}
       </div>
     );

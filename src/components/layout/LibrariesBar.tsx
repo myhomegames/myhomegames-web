@@ -10,9 +10,9 @@ import NewGamesToggle from "../ui/NewGamesToggle";
 import MainGamesToggle from "../ui/MainGamesToggle";
 import DropdownMenu from "../common/DropdownMenu";
 import { useBackground } from "../common/BackgroundManager";
-import { API_BASE, getApiToken } from "../../config";
+import { API_BASE } from "../../config";
 import { useSkin } from "../../contexts/SkinContext";
-import { useSettings } from "../../contexts/SettingsContext";
+import { useActiveProfile } from "../../hooks/useActiveProfile";
 import ProfileDropdown from "./ProfileDropdown";
 import { useLibraryGames } from "../../contexts/LibraryGamesContext";
 import type { ViewMode, GameLibrarySection, GameItem, CollectionItem } from "../../types";
@@ -289,7 +289,7 @@ export default function LibrariesBar({
     ? registerSlotInContext
     : undefined;
   const { activeSkinWeb } = useSkin();
-  const { twitchLoginEnabled } = useSettings();
+  const { showProfile } = useActiveProfile();
   const contextRailViewTransitions = contextRailViewTransitionsEnabled(activeSkinWeb);
   const contextRailDetailRoute = isContextRailDetailPathname(pathname);
   const libraryActiveViewTransitionStyle = useCallback(
@@ -856,8 +856,7 @@ export default function LibrariesBar({
   const showAddGameInLibrariesBar = showHeaderActionsInLibrariesBar;
   const isAddGameRoute = pathname === "/add-game";
   const isSettingsRoute = pathname === "/settings";
-  const showProfileInLibrariesBar =
-    showHeaderActionsInLibrariesBar && twitchLoginEnabled && !!getApiToken();
+  const showProfileInLibrariesBar = showHeaderActionsInLibrariesBar && showProfile;
 
   return (
     <div
@@ -943,7 +942,7 @@ export default function LibrariesBar({
                 />
               </div>
             )}
-            {API_BASE && getApiToken() && (
+            {API_BASE && showProfile && (
               <div className="mhg-top-right-tool-dock-menu">
                 <DropdownMenu
                   className="mhg-libraries-menu-dropdown mhg-top-right-tool-dock-menu-dropdown"
@@ -957,7 +956,7 @@ export default function LibrariesBar({
       {betweenDockAndStrip}
       <div className="mhg-libraries-bar-container" ref={containerRef}>
         {/* Menu dropdown bottom-left (hidden when using fixed top-right dock) */}
-        {!topRightToolDock && API_BASE && getApiToken() && (
+        {!topRightToolDock && API_BASE && showProfile && (
           <div className="mhg-libraries-menu-container">
             <DropdownMenu
               className="mhg-libraries-menu-dropdown"

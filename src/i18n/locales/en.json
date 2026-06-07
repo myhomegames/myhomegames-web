@@ -72,6 +72,22 @@
       "enableLogin": "Enable Twitch login",
       "enableLoginHelp": "When on, users must sign in with Twitch. When off, the app is open without login."
     },
+    "cloudflare": {
+      "title": "Cloudflare profile",
+      "description": "Connect this device to your personal Cloudflare Tunnel. Remote API calls use your public hostname; local control stays on this machine.",
+      "statusLabel": "Tunnel status",
+      "status": {
+        "connecting": "Connecting…",
+        "connected": "Connected — cloudflared is running.",
+        "stored": "Credentials saved — tunnel not running. Connect again or disconnect to clear.",
+        "disconnected": "Not connected."
+      },
+      "publicUrlLabel": "Public API URL",
+      "managerLabel": "Tunnel manager",
+      "connect": "Connect tunnel",
+      "disconnect": "Disconnect tunnel",
+      "confirmDisconnect": "Disconnect Cloudflare Tunnel on this device and remove stored credentials?"
+    },
     "skinOptions": {
       "title": "Options",
       "description": "Fine-tune how the active skin renders the interface. When you install or switch to a skin, these options are reset to the values that skin declares in its manifest.",
@@ -136,7 +152,11 @@
     "username": "Username",
     "userId": "User ID",
     "accountType": "Account Type",
-    "developmentAccount": "Development Account"
+    "developmentAccount": "Development Account",
+    "cloudflareAccount": "Cloudflare account",
+    "cloudflareTunnel": "Cloudflare Tunnel",
+    "publicApiUrl": "Public API URL",
+    "disconnectTunnel": "Disconnect tunnel"
   },
   "tunnel": {
     "title": "Connect Cloudflare Tunnel",
@@ -145,7 +165,8 @@
     "step2": "Return here and fetch your personal tunnel token.",
     "openManager": "Open tunnel manager",
     "connect": "Connect tunnel",
-    "connecting": "Connecting…"
+    "connecting": "Connecting…",
+    "publicApiNotReady": "The public API is not reachable yet. Wait a moment and reload the page, or disconnect and connect again."
   },
   "login": {
     "title": "Welcome to MyHomeGames",

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 
-// Helper per sessionStorage
+// sessionStorage helpers
 function getScrollPosition(key: string): number {
   try {
     const stored = sessionStorage.getItem(key);

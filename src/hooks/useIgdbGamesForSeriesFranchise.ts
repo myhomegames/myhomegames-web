@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { buildApiUrl } from "../utils/api";
-import { API_BASE } from "../config";
 import { buildApiHeaders } from "../utils/api";
+import { buildIgdbApiUrl } from "../utils/igdbApi";
 
 export type IgdbGameForTag = {
   id: number;
@@ -42,7 +41,7 @@ export function useIgdbGamesForSeriesFranchise(
           tagKey === "franchise"
             ? `/igdb/games-by-franchise/${id}`
             : `/igdb/games-by-collection/${id}`;
-        const url = buildApiUrl(API_BASE, endpoint);
+        const url = buildIgdbApiUrl(endpoint);
         const excludeIds = fetchAll ? [] : libraryGameIds;
         const res = await fetch(url, {
           method: "POST",
