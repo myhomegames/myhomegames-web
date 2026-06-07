@@ -16,8 +16,6 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     featureEnabled,
     tunnelReady,
     statusLoaded,
-    status,
-    isConnecting,
     connectError,
   } = useTunnel();
 
@@ -29,13 +27,10 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (featureEnabled && !tunnelReady) {
-    const showLead = !status?.connected && !isConnecting;
     const errorMessage = connectError;
     return (
       <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 px-6 text-center">
-        <p className="text-lg font-medium">
-          {showLead ? t("tunnel.lead") : t("tunnel.connecting")}
-        </p>
+        <p className="text-lg font-medium">{t("tunnel.connecting")}</p>
         {errorMessage ? (
           <p className="max-w-md text-sm text-red-400">{errorMessage}</p>
         ) : null}
