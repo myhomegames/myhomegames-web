@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useLoading } from "../contexts/LoadingContext";
 import { useSettings } from "../contexts/SettingsContext";
@@ -24,10 +24,51 @@ export default function SettingsPage() {
   const [initialTwitchLoginEnabled, setInitialTwitchLoginEnabled] = useState<boolean | null>(null);
   const [twitchApiEnabled, setTwitchApiEnabled] = useState(false);
   const [initialTwitchApiEnabled, setInitialTwitchApiEnabled] = useState<boolean | null>(null);
+  const [twitchClientId, setTwitchClientId] = useState("");
+  const [twitchClientSecret, setTwitchClientSecret] = useState("");
+  const [initialTwitchClientId, setInitialTwitchClientId] = useState<string | null>(null);
+  const [initialTwitchClientSecret, setInitialTwitchClientSecret] = useState<string | null>(null);
+  const [cloudflareTunnelEnabled, setCloudflareTunnelEnabled] = useState(true);
 
   const [savingTwitch, setSavingTwitch] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [twitchSaveError, setTwitchSaveError] = useState<string | null>(null);
+  const twitchCredentialSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestTwitchRef = useRef({
+    twitchLoginEnabled,
+    twitchApiEnabled,
+    twitchClientId,
+    twitchClientSecret,
+  });
+  latestTwitchRef.current = {
+    twitchLoginEnabled,
+    twitchApiEnabled,
+    twitchClientId,
+    twitchClientSecret,
+  };
+  const twitchInitialsRef = useRef({
+    initialTwitchLoginEnabled,
+    initialTwitchApiEnabled,
+    initialTwitchClientId,
+    initialTwitchClientSecret,
+  });
+  twitchInitialsRef.current = {
+    initialTwitchLoginEnabled,
+    initialTwitchApiEnabled,
+    initialTwitchClientId,
+    initialTwitchClientSecret,
+  };
+  const showTwitchCredentialFields = !cloudflareTunnelEnabled;
+
+  useEffect(
+    () => () => {
+      if (twitchCredentialSaveTimerRef.current) {
+        clearTimeout(twitchCredentialSaveTimerRef.current);
+      }
+    },
+    []
+  );
+
   useEffect(() => {
     // Load settings from server
     const parseStoredLibraries = () => {
@@ -67,6 +108,14 @@ export default function SettingsPage() {
           const apiEnabled = !!data.twitchApiEnabled;
           setTwitchApiEnabled(apiEnabled);
           setInitialTwitchApiEnabled(apiEnabled);
+          setCloudflareTunnelEnabled(!!data.cloudflareTunnelEnabled);
+          const loadedClientId = typeof data.twitchClientId === "string" ? data.twitchClientId : "";
+          const loadedClientSecret =
+            typeof data.twitchClientSecret === "string" ? data.twitchClientSecret : "";
+          setTwitchClientId(loadedClientId);
+          setTwitchClientSecret(loadedClientSecret);
+          setInitialTwitchClientId(loadedClientId);
+          setInitialTwitchClientSecret(loadedClientSecret);
           clearLegacyIgdbCredentialStorage();
         } else {
           // Fallback to localStorage
@@ -77,6 +126,8 @@ export default function SettingsPage() {
           setVisibleLibraries(normalized);
           setInitialTwitchLoginEnabled(false);
           setInitialTwitchApiEnabled(false);
+          setInitialTwitchClientId("");
+          setInitialTwitchClientSecret("");
         }
       } catch (err) {
         clearTimeout(timeoutId);
@@ -89,6 +140,8 @@ export default function SettingsPage() {
         setVisibleLibraries(normalized);
         setInitialTwitchLoginEnabled(false);
         setInitialTwitchApiEnabled(false);
+        setInitialTwitchClientId("");
+        setInitialTwitchClientSecret("");
       } finally {
         setLoading(false);
       }
@@ -155,17 +208,57 @@ export default function SettingsPage() {
     applyGeneralSettings(language, normalized);
   };
 
+  function scheduleTwitchCredentialAutoSave() {
+    if (!showTwitchCredentialFields) return;
+    if (twitchCredentialSaveTimerRef.current) {
+      clearTimeout(twitchCredentialSaveTimerRef.current);
+    }
+    twitchCredentialSaveTimerRef.current = setTimeout(() => {
+      twitchCredentialSaveTimerRef.current = null;
+      const {
+        twitchLoginEnabled: en,
+        twitchApiEnabled: apiEn,
+        twitchClientId: id,
+        twitchClientSecret: sec,
+      } = latestTwitchRef.current;
+      const {
+        initialTwitchLoginEnabled: bEn,
+        initialTwitchApiEnabled: bApiEn,
+        initialTwitchClientId: bId,
+        initialTwitchClientSecret: bSec,
+      } = twitchInitialsRef.current;
+      void persistTwitchSettings({
+        twitchLoginEnabled: en,
+        twitchApiEnabled: apiEn,
+        twitchClientId: id,
+        twitchClientSecret: sec,
+        baselineEnabled: bEn,
+        baselineApiEnabled: bApiEn,
+        baselineClientId: bId,
+        baselineClientSecret: bSec,
+      });
+    }, 600);
+  }
+
   async function persistTwitchSettings(params: {
     twitchLoginEnabled: boolean;
     twitchApiEnabled: boolean;
+    twitchClientId?: string;
+    twitchClientSecret?: string;
     baselineEnabled: boolean | null;
     baselineApiEnabled: boolean | null;
+    baselineClientId?: string | null;
+    baselineClientSecret?: string | null;
   }) {
     const {
       twitchLoginEnabled: requestedLoginEnabled,
       twitchApiEnabled: nextApiEnabled,
+      twitchClientId: nextClientId = "",
+      twitchClientSecret: nextClientSecret = "",
       baselineEnabled,
       baselineApiEnabled,
+      baselineClientId = null,
+      baselineClientSecret = null,
     } = params;
     const nextEnabled = nextApiEnabled ? requestedLoginEnabled : false;
 
@@ -173,8 +266,30 @@ export default function SettingsPage() {
       baselineEnabled !== null && nextEnabled !== baselineEnabled;
     const didToggleApi =
       baselineApiEnabled !== null && nextApiEnabled !== baselineApiEnabled;
+    const didChangeCredentials =
+      showTwitchCredentialFields &&
+      ((baselineClientId !== null && nextClientId.trim() !== baselineClientId) ||
+        (baselineClientSecret !== null && nextClientSecret.trim() !== baselineClientSecret));
 
-    if (!didToggleLogin && !didToggleApi) {
+    if (!didToggleLogin && !didToggleApi && !didChangeCredentials) {
+      return;
+    }
+
+    if (showTwitchCredentialFields && nextApiEnabled && didChangeCredentials && !nextClientId.trim()) {
+      return;
+    }
+
+    if (
+      showTwitchCredentialFields &&
+      nextEnabled &&
+      (!nextApiEnabled || !nextClientId.trim() || !nextClientSecret.trim())
+    ) {
+      setTwitchSaveError(
+        t(
+          "settings.twitch.loginRequiresSecret",
+          "Twitch login requires API credentials enabled with both Client ID and Client Secret."
+        )
+      );
       return;
     }
 
@@ -183,13 +298,18 @@ export default function SettingsPage() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90000);
     try {
+      const payload: Record<string, unknown> = {
+        twitchLoginEnabled: nextEnabled,
+        twitchApiEnabled: nextApiEnabled,
+      };
+      if (didChangeCredentials) {
+        payload.twitchClientId = nextClientId.trim();
+        payload.twitchClientSecret = nextClientSecret.trim();
+      }
       const res = await fetch(new URL("/settings", API_BASE).toString(), {
         method: "PUT",
         headers: buildApiHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({
-          twitchLoginEnabled: nextEnabled,
-          twitchApiEnabled: nextApiEnabled,
-        }),
+        body: JSON.stringify(payload),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
@@ -199,6 +319,10 @@ export default function SettingsPage() {
       }
       setInitialTwitchLoginEnabled(nextEnabled);
       setInitialTwitchApiEnabled(nextApiEnabled);
+      if (didChangeCredentials) {
+        setInitialTwitchClientId(nextClientId.trim());
+        setInitialTwitchClientSecret(nextClientSecret.trim());
+      }
       await refreshSettings();
     } catch (err) {
       clearTimeout(timeoutId);
@@ -304,10 +428,15 @@ export default function SettingsPage() {
 
           <div className="settings-card-content">
             <p className="settings-help-text settings-help-text--twitch-intro">
-              {t(
-                "settings.twitch.description",
-                "IGDB catalog search uses Twitch app credentials configured on the API host (e.g. Cloudflare Worker). Enable the feature below when that gateway is ready."
-              )}
+              {showTwitchCredentialFields
+                ? t(
+                    "settings.twitch.descriptionLocal",
+                    "Credentials from the Twitch Developer Console. They are used for IGDB (catalog search) and, optionally, for signing in with Twitch."
+                  )
+                : t(
+                    "settings.twitch.description",
+                    "IGDB catalog search uses Twitch app credentials configured on the API host (e.g. Cloudflare Worker). Enable the feature below when that gateway is ready."
+                  )}
             </p>
 
             <div className="settings-field">
@@ -323,49 +452,146 @@ export default function SettingsPage() {
                     void persistTwitchSettings({
                       twitchLoginEnabled: nextLoginEnabled,
                       twitchApiEnabled: next,
+                      twitchClientId,
+                      twitchClientSecret,
                       baselineEnabled: initialTwitchLoginEnabled,
                       baselineApiEnabled: initialTwitchApiEnabled,
+                      baselineClientId: initialTwitchClientId,
+                      baselineClientSecret: initialTwitchClientSecret,
                     });
                   }}
                   className="settings-checkbox"
                 />
-                <span>{t("settings.twitch.enableApi", "Enable IGDB API")}</span>
+                <span>
+                  {showTwitchCredentialFields
+                    ? t("settings.twitch.enableApiLocal", "Enable Client ID / Secret (IGDB)")
+                    : t("settings.twitch.enableApi", "Enable IGDB API")}
+                </span>
               </label>
               <p className="settings-help-text">
-                {t(
-                  "settings.twitch.enableApiHelp",
-                  "When off, the app does not call IGDB endpoints. API credentials are provided by the API host, not stored in the app."
-                )}
+                {showTwitchCredentialFields
+                  ? t(
+                      "settings.twitch.enableApiHelpLocal",
+                      "When off, stored credentials are kept but IGDB and API calls do not use them. Turn on again without re-entering values."
+                    )
+                  : t(
+                      "settings.twitch.enableApiHelp",
+                      "When off, the app does not call IGDB endpoints. API credentials are provided by the API host, not stored in the app."
+                    )}
               </p>
             </div>
 
-            {twitchApiEnabled && (
-              <div className="settings-field mt-5">
-                <label className="settings-library-option">
+            {showTwitchCredentialFields && twitchApiEnabled ? (
+              <>
+                <div className="settings-field">
+                  <label className="settings-label" htmlFor="twitch-client-id">
+                    {t("settings.twitch.clientId", "Client ID")}
+                  </label>
                   <input
-                    type="checkbox"
-                    checked={twitchLoginEnabled}
+                    id="twitch-client-id"
+                    type="text"
+                    value={twitchClientId}
                     onChange={(e) => {
-                      const next = e.target.checked;
-                      setTwitchLoginEnabled(next);
-                      void persistTwitchSettings({
-                        twitchLoginEnabled: next,
-                        twitchApiEnabled,
-                        baselineEnabled: initialTwitchLoginEnabled,
-                        baselineApiEnabled: initialTwitchApiEnabled,
-                      });
+                      setTwitchClientId(e.target.value);
+                      scheduleTwitchCredentialAutoSave();
                     }}
-                    className="settings-checkbox"
+                    className="settings-input settings-input--tight-top"
+                    placeholder={t("settings.twitch.clientIdPlaceholder", "Enter your Twitch Client ID")}
                   />
-                  <span>{t("settings.twitch.enableLogin", "Enable Twitch login")}</span>
-                </label>
-                <p className="settings-help-text">
-                  {t(
-                    "settings.twitch.enableLoginHelp",
-                    "Yes: users must sign in with Twitch. No: open access; IGDB still works when enabled above."
-                  )}
-                </p>
-              </div>
+                  <p className="settings-help-text">
+                    {t(
+                      "settings.twitch.clientIdHelp",
+                      "Public application identifier. Required for IGDB and for Twitch login."
+                    )}
+                  </p>
+                </div>
+
+                <div className="settings-field">
+                  <label className="settings-label" htmlFor="twitch-client-secret">
+                    {t("settings.twitch.clientSecret", "Client Secret")}
+                  </label>
+                  <input
+                    id="twitch-client-secret"
+                    type="password"
+                    value={twitchClientSecret}
+                    onChange={(e) => {
+                      setTwitchClientSecret(e.target.value);
+                      scheduleTwitchCredentialAutoSave();
+                    }}
+                    className="settings-input settings-input--tight-top"
+                    placeholder={t(
+                      "settings.twitch.clientSecretPlaceholder",
+                      "Enter your Twitch Client Secret"
+                    )}
+                  />
+                  <p className="settings-help-text">
+                    {t(
+                      "settings.twitch.clientSecretHelp",
+                      "Required for IGDB API calls (Twitch client_credentials) and for Twitch login. Generate it under Manage → New Secret in the Twitch Developer Console."
+                    )}
+                  </p>
+                </div>
+
+                <div className="settings-field mt-5">
+                  <label className="settings-library-option">
+                    <input
+                      type="checkbox"
+                      checked={twitchLoginEnabled}
+                      onChange={(e) => {
+                        const next = e.target.checked;
+                        setTwitchLoginEnabled(next);
+                        void persistTwitchSettings({
+                          twitchLoginEnabled: next,
+                          twitchApiEnabled,
+                          twitchClientId,
+                          twitchClientSecret,
+                          baselineEnabled: initialTwitchLoginEnabled,
+                          baselineApiEnabled: initialTwitchApiEnabled,
+                          baselineClientId: initialTwitchClientId,
+                          baselineClientSecret: initialTwitchClientSecret,
+                        });
+                      }}
+                      className="settings-checkbox"
+                    />
+                    <span>{t("settings.twitch.enableLogin", "Enable Twitch login")}</span>
+                  </label>
+                  <p className="settings-help-text">
+                    {t(
+                      "settings.twitch.enableLoginHelp",
+                      "Yes: users must sign in with Twitch. No: open access; IGDB still works when enabled above."
+                    )}
+                  </p>
+                </div>
+              </>
+            ) : (
+              twitchApiEnabled && (
+                <div className="settings-field mt-5">
+                  <label className="settings-library-option">
+                    <input
+                      type="checkbox"
+                      checked={twitchLoginEnabled}
+                      onChange={(e) => {
+                        const next = e.target.checked;
+                        setTwitchLoginEnabled(next);
+                        void persistTwitchSettings({
+                          twitchLoginEnabled: next,
+                          twitchApiEnabled,
+                          baselineEnabled: initialTwitchLoginEnabled,
+                          baselineApiEnabled: initialTwitchApiEnabled,
+                        });
+                      }}
+                      className="settings-checkbox"
+                    />
+                    <span>{t("settings.twitch.enableLogin", "Enable Twitch login")}</span>
+                  </label>
+                  <p className="settings-help-text">
+                    {t(
+                      "settings.twitch.enableLoginHelp",
+                      "Yes: users must sign in with Twitch. No: open access; IGDB still works when enabled above."
+                    )}
+                  </p>
+                </div>
+              )
             )}
 
             {(savingTwitch || twitchSaveError) && (
