@@ -19,7 +19,13 @@ export default function UpdateNotification() {
   const portaledPopup = activeSkinWeb.disableTitleTooltips;
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen) return;
+    buttonRef.current?.blur();
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -115,6 +121,7 @@ export default function UpdateNotification() {
     <div ref={menuRef} className="update-notification-wrapper">
       <Tooltip text={t("header.updateAvailable", "New update available")} position="top" delay={200}>
         <button
+          ref={buttonRef}
           type="button"
           className="update-notification-button mhg-header-button"
           onClick={handleToggle}
