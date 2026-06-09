@@ -1,4 +1,7 @@
-import { LOCAL_API_BASE } from "../config";
+import { LOCAL_API_BASE, setTunnelApiBase } from "../config";
+
+const LOCAL_TUNNEL_PROBE_MS = 2500;
+const REMOTE_TUNNEL_PROBE_MS = 8000;
 
 export type TunnelStatus = {
   featureEnabled: boolean;
@@ -81,14 +84,20 @@ function decodeBase64Url(value: string): string {
 
 const TUNNEL_PAYLOAD_SESSION_KEY = "mhg_tunnel_connect_payload";
 
-function normalizeTunnelPayload(raw: { token?: string; url?: string }): TunnelTokenResponse | null {
-  const token = raw.token?.trim();
-  let url = raw.url?.trim();
-  if (!token || !url) return null;
+export function normalizePublicTunnelUrl(raw: string): string {
+  let url = raw.trim();
+  if (!url) return "";
   if (!/^https?:\/\//i.test(url)) {
     url = `https://${url}`;
   }
-  return { token, url };
+  return url.replace(/\/$/, "");
+}
+
+function normalizeTunnelPayload(raw: { token?: string; url?: string }): TunnelTokenResponse | null {
+  const token = raw.token?.trim();
+  const url = raw.url?.trim();
+  if (!token || !url) return null;
+  return { token, url: normalizePublicTunnelUrl(url) };
 }
 
 function readTunnelPayloadFromHash(): TunnelTokenResponse | null {
@@ -149,12 +158,79 @@ export function clearTunnelReturnHash(): void {
   window.history.replaceState({}, document.title, next);
 }
 
-export async function fetchTunnelStatus(): Promise<TunnelStatus> {
-  const res = await fetch(`${LOCAL_API_BASE}/tunnel/status`);
+export async function canReachLocalTunnelControl(): Promise<boolean> {
+  try {
+    const res = await fetch(`${LOCAL_API_BASE}/tunnel/status`, {
+      signal: AbortSignal.timeout(LOCAL_TUNNEL_PROBE_MS),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function fetchTunnelStatusAt(apiBase: string): Promise<TunnelStatus> {
+  const base = normalizePublicTunnelUrl(apiBase);
+  if (!base) {
+    throw new Error("tunnel_unreachable");
+  }
+  const res = await fetch(`${base}/tunnel/status`, {
+    signal: AbortSignal.timeout(REMOTE_TUNNEL_PROBE_MS),
+  });
   if (!res.ok) {
     throw new Error(`tunnel status failed (${res.status})`);
   }
-  return res.json() as Promise<TunnelStatus>;
+  const data = (await res.json()) as TunnelStatus;
+  return {
+    featureEnabled: Boolean(data.featureEnabled),
+    hasStoredToken: Boolean(data.hasStoredToken),
+    connected: Boolean(data.connected),
+    publicUrl: (data.publicUrl || base).replace(/\/$/, ""),
+  };
+}
+
+export async function fetchTunnelStatus(): Promise<TunnelStatus> {
+  return fetchTunnelStatusAt(LOCAL_API_BASE);
+}
+
+/**
+ * Remote browsers cannot POST /tunnel/connect to localhost. After Access login, adopt the
+ * public API URL and verify the home tunnel is up.
+ */
+export async function adoptRemoteTunnelApi(publicUrl: string): Promise<TunnelStatus> {
+  const base = normalizePublicTunnelUrl(publicUrl);
+  if (!base) {
+    throw new Error("tunnel_unreachable");
+  }
+  setTunnelApiBase(base);
+  let status: TunnelStatus;
+  try {
+    status = await fetchTunnelStatusAt(base);
+  } catch {
+    throw new Error("tunnel_unreachable");
+  }
+  if (!status.featureEnabled) {
+    throw new Error("tunnel_feature_disabled");
+  }
+  if (!status.connected) {
+    throw new Error("tunnel_not_connected");
+  }
+  return { ...status, publicUrl: status.publicUrl || base };
+}
+
+/** Start tunnel locally when the server is on this machine; otherwise adopt the public API URL. */
+export async function connectTunnelWithFallback(
+  token: string,
+  url: string,
+): Promise<TunnelStatus> {
+  const payload = normalizeTunnelPayload({ token, url });
+  if (!payload) {
+    throw new Error("Invalid tunnel credentials");
+  }
+  if (await canReachLocalTunnelControl()) {
+    return connectTunnel(payload.token, payload.url);
+  }
+  return adoptRemoteTunnelApi(payload.url);
 }
 
 export async function fetchTunnelTokenFromManager(): Promise<TunnelTokenResponse> {

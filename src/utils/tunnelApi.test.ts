@@ -1,5 +1,18 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getAppReturnUrl, getTunnelManagerAuthUrl } from "./tunnelApi";
+import {
+  adoptRemoteTunnelApi,
+  connectTunnelWithFallback,
+  getAppReturnUrl,
+  getTunnelManagerAuthUrl,
+  normalizePublicTunnelUrl,
+} from "./tunnelApi";
+
+vi.mock("../config", () => ({
+  LOCAL_API_BASE: "http://localhost:4000",
+  setTunnelApiBase: vi.fn(),
+}));
+
+import { setTunnelApiBase } from "../config";
 
 function mockLocation(origin: string, pathname: string) {
   vi.stubGlobal("location", {
@@ -33,5 +46,60 @@ describe("tunnelApi return URL", () => {
     const segment = url.pathname.slice("/api/get-token/r/".length);
     const decoded = atob(segment.replace(/-/g, "+").replace(/_/g, "/"));
     expect(decoded).toBe("https://myhomegames.vige.it/app/");
+  });
+});
+
+describe("normalizePublicTunnelUrl", () => {
+  it("adds https scheme and strips trailing slash", () => {
+    expect(normalizePublicTunnelUrl("user-myhomegames-server.vige.it/")).toBe(
+      "https://user-myhomegames-server.vige.it",
+    );
+  });
+});
+
+describe("connectTunnelWithFallback", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.mocked(setTunnelApiBase).mockClear();
+  });
+
+  it("adopts public URL when local tunnel control is unreachable", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          featureEnabled: true,
+          hasStoredToken: true,
+          connected: true,
+          publicUrl: "https://user-myhomegames-server.vige.it",
+        }),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const status = await connectTunnelWithFallback("tok", "user-myhomegames-server.vige.it");
+    expect(status.connected).toBe(true);
+    expect(setTunnelApiBase).toHaveBeenCalledWith("https://user-myhomegames-server.vige.it");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("adoptRemoteTunnelApi throws when home tunnel is not connected", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          featureEnabled: true,
+          hasStoredToken: true,
+          connected: false,
+          publicUrl: "https://user-myhomegames-server.vige.it",
+        }),
+      }),
+    );
+
+    await expect(
+      adoptRemoteTunnelApi("https://user-myhomegames-server.vige.it"),
+    ).rejects.toThrow("tunnel_not_connected");
   });
 });
