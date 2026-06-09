@@ -896,10 +896,7 @@ export default function LibrariesBar({
               isLoading={globalLoading}
               className="mhg-top-right-tool-dock-activity-spinner"
             />
-            <div
-              className="mhg-top-right-tool-dock-update"
-              style={activeSkinWeb.disableTitleTooltips ? { marginTop: 4 } : undefined}
-            >
+            <div className="mhg-top-right-tool-dock-update">
               <UpdateNotification />
             </div>
             <div className="mhg-top-right-tool-dock-page-toolbar-slot">

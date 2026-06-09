@@ -23,6 +23,17 @@ export default function UpdateNotification() {
 
   useEffect(() => {
     if (!isOpen) return;
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as HTMLElement;
       if (menuRef.current?.contains(target) || popupRef.current?.contains(target)) return;
@@ -55,7 +66,16 @@ export default function UpdateNotification() {
   if (!updateAvailable || !latestVersion) return null;
 
   const popup = (
-    <div ref={popupRef} className="update-notification-popup">
+    <div
+      ref={popupRef}
+      className="update-notification-popup"
+      onMouseDown={(event) => {
+        /* PS3 full-viewport overlay: close when clicking the dim band (not the right sheet). */
+        if (portaledPopup && event.target === event.currentTarget) {
+          setIsOpen(false);
+        }
+      }}
+    >
       <div className="update-notification-header">
         {t("header.newVersionAvailable", "New version {{version}} available", { version: latestVersion })}
       </div>
