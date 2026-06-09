@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import Tooltip from "../common/Tooltip";
+import { useSkin } from "../../contexts/SkinContext";
 import { useLatestRelease, type OsKind } from "../../hooks/useLatestRelease";
 const OS_LABEL_KEY: Record<OsKind, string> = {
   win: "header.downloadWindows",
@@ -12,7 +13,10 @@ const OS_LABEL_KEY: Record<OsKind, string> = {
 
 export default function UpdateNotification() {
   const { t } = useTranslation();
+  const { activeSkinWeb } = useSkin();
   const { updateAvailable, latestVersion, downloadUrl, downloadName, allDownloads, changelog } = useLatestRelease();
+  /** PS3 renders the update panel as a fixed right sheet; portal avoids dock `transform` clipping. */
+  const portaledPopup = activeSkinWeb.disableTitleTooltips;
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
@@ -117,7 +121,9 @@ export default function UpdateNotification() {
       </Tooltip>
 
       {isOpen &&
-        (typeof document !== "undefined" ? createPortal(popup, document.body) : popup)}
+        (portaledPopup && typeof document !== "undefined"
+          ? createPortal(popup, document.body)
+          : popup)}
     </div>
   );
 }
