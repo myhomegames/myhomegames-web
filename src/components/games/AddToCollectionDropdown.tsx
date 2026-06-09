@@ -284,6 +284,7 @@ export default function AddToCollectionDropdown({
     e.stopPropagation();
     e.preventDefault();
     setIsOpen(false);
+    window.dispatchEvent(new CustomEvent("mhg:close-dropdown-menus"));
     setTimeout(() => setModalResourceType(resourceType), 50);
   };
 

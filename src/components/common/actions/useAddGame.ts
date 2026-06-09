@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { API_BASE, getApiToken } from "../../../config";
-import { buildApiUrl } from "../../../utils/api";
+import { getApiToken } from "../../../config";
+import { buildApiHeaders, buildAppApiUrl } from "../../../utils/api";
 import { useLoading } from "../../../contexts/LoadingContext";
+import { useSettings } from "../../../contexts/SettingsContext";
 import type { IGDBGame, GameItem } from "../../../types";
 import { toGameTypeId } from "../../../utils/igdbGameType";
 
@@ -21,12 +22,13 @@ export function useAddGame({
   onError,
 }: UseAddGameParams = {}): UseAddGameReturn {
   const { setLoading } = useLoading();
+  const { twitchLoginEnabled } = useSettings();
   const [isAdding, setIsAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
   const addGame = async (igdbGame: IGDBGame): Promise<any | null> => {
     const apiToken = getApiToken();
-    if (!apiToken) {
+    if (twitchLoginEnabled && !apiToken) {
       const errorMsg = "Authentication required";
       setAddError(errorMsg);
       if (onError) {
@@ -40,14 +42,13 @@ export function useAddGame({
     setLoading(true);
 
     try {
-      const url = buildApiUrl(API_BASE, "/games/add-from-igdb");
+      const url = buildAppApiUrl("/games/add-from-igdb");
       const res = await fetch(url, {
         method: "POST",
-        headers: {
+        headers: buildApiHeaders({
           "Content-Type": "application/json",
           Accept: "application/json",
-          "X-Auth-Token": apiToken,
-        },
+        }),
         body: JSON.stringify({
           igdbId: igdbGame.id,
           name: igdbGame.name,

@@ -10,6 +10,7 @@ import {
   useCreateDeveloper,
   useCreatePublisher,
 } from "../common/actions";
+import { useSettings } from "../../contexts/SettingsContext";
 
 const RESOURCE_CONFIG: Record<
   CollectionLikeResourceType,
@@ -58,6 +59,7 @@ export default function AddCollectionLikeToCollectionLikeModal({
   onLinked,
 }: AddCollectionLikeToCollectionLikeModalProps) {
   const { t } = useTranslation();
+  const { twitchLoginEnabled } = useSettings();
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLinking, setIsLinking] = useState(false);
@@ -114,7 +116,7 @@ export default function AddCollectionLikeToCollectionLikeModal({
 
   const linkToParent = async (parent: CollectionItem) => {
     const token = getApiToken();
-    if (!token) return;
+    if (twitchLoginEnabled && !token) return;
     setIsLinking(true);
     setError(null);
     try {

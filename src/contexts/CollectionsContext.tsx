@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import type { CollectionItem } from "../types";
-import { API_BASE, getApiToken } from "../config";
-import { buildApiUrl, buildApiHeaders } from "../utils/api";
+import { getApiToken } from "../config";
+import { buildApiHeaders, buildAppApiUrl } from "../utils/api";
 import { compareTitles } from "../utils/stringUtils";
 import { useAuth } from "./AuthContext";
 import { useSettings } from "./SettingsContext";
@@ -48,7 +48,7 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90000);
     try {
-      const url = buildApiUrl(API_BASE, "/collections");
+      const url = buildAppApiUrl("/collections");
       const res = await fetch(url, {
         headers: buildApiHeaders({ Accept: "application/json" }),
         signal: controller.signal,
@@ -122,12 +122,15 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
         // Reload game IDs for this collection immediately to keep cache up to date
         const reloadGameIds = async () => {
           try {
-            const gamesUrl = buildApiUrl(API_BASE, `/collections/${collectionId}/games`);
+            const gamesUrl = buildAppApiUrl(`/collections/${collectionId}/games`);
             const gamesRes = await fetch(gamesUrl, {
               headers: buildApiHeaders({ Accept: "application/json" }),
+              cache: "no-store",
             });
             if (gamesRes.ok) {
-              const gamesJson = await gamesRes.json();
+              const bodyText = await gamesRes.text();
+              if (!bodyText.trim()) return;
+              const gamesJson = JSON.parse(bodyText);
               const gameIds = (gamesJson.games || []).map((g: any) => String(g.id));
               setCollectionGameIds((prev) => {
                 const updated = new Map(prev);
@@ -244,12 +247,23 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const gamesUrl = buildApiUrl(API_BASE, `/collections/${collectionId}/games`);
+      const gamesUrl = buildAppApiUrl(`/collections/${collectionId}/games`);
       const gamesRes = await fetch(gamesUrl, {
         headers: buildApiHeaders({ Accept: "application/json" }),
+        cache: "no-store",
       });
+      if (gamesRes.status === 304) {
+        const cached = collectionGameIdsRef.current.get(String(collectionId));
+        if (cached) return cached;
+      }
       if (gamesRes.ok) {
-        const gamesJson = await gamesRes.json();
+        const bodyText = await gamesRes.text();
+        if (!bodyText.trim()) {
+          const cached = collectionGameIdsRef.current.get(String(collectionId));
+          if (cached) return cached;
+          return [];
+        }
+        const gamesJson = JSON.parse(bodyText);
         const gameIds = (gamesJson.games || []).map((g: any) => String(g.id));
         setCollectionGameIds((prev) => {
           const collectionKey = String(collectionId);

@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { API_BASE, getApiToken } from "../../../config";
-import { buildApiUrl } from "../../../utils/api";
+import { getApiToken } from "../../../config";
+import { buildApiHeaders, buildAppApiUrl } from "../../../utils/api";
 import { useLoading } from "../../../contexts/LoadingContext";
 import { useCollections } from "../../../contexts/CollectionsContext";
+import { useSettings } from "../../../contexts/SettingsContext";
 
 type UseRemoveGameFromCollectionParams = {
   onSuccess?: () => void;
@@ -21,12 +22,13 @@ export function useRemoveGameFromCollection({
 }: UseRemoveGameFromCollectionParams = {}): UseRemoveGameFromCollectionReturn {
   const { t } = useTranslation();
   const { setLoading } = useLoading();
+  const { twitchLoginEnabled } = useSettings();
   const { removeGameFromCollectionCache } = useCollections();
   const [isRemoving, setIsRemoving] = useState(false);
 
   const removeGameFromCollection = async (gameId: string, collectionId: string) => {
     const apiToken = getApiToken();
-    if (!apiToken) {
+    if (twitchLoginEnabled && !apiToken) {
       onError?.(t("common.unauthorized", "Unauthorized"));
       return;
     }
@@ -36,12 +38,11 @@ export function useRemoveGameFromCollection({
 
     try {
       // First, get current games in the collection
-      const gamesUrl = buildApiUrl(API_BASE, `/collections/${collectionId}/games`);
+      const gamesUrl = buildAppApiUrl(`/collections/${collectionId}/games`);
       const gamesResponse = await fetch(gamesUrl, {
-        headers: {
+        headers: buildApiHeaders({
           Accept: "application/json",
-          "X-Auth-Token": apiToken,
-        },
+        }),
       });
 
       if (!gamesResponse.ok) {
@@ -55,13 +56,12 @@ export function useRemoveGameFromCollection({
       const updatedGameIds = currentGameIds.filter((id: string) => id !== String(gameId));
 
       // Update collection games order (without the removed game)
-      const orderUrl = buildApiUrl(API_BASE, `/collections/${collectionId}/games/order`);
+      const orderUrl = buildAppApiUrl(`/collections/${collectionId}/games/order`);
       const response = await fetch(orderUrl, {
         method: "PUT",
-        headers: {
+        headers: buildApiHeaders({
           "Content-Type": "application/json",
-          "X-Auth-Token": apiToken,
-        },
+        }),
         body: JSON.stringify({ gameIds: updatedGameIds }),
       });
 
