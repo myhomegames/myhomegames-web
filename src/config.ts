@@ -106,6 +106,11 @@ export function hasPublicApiBase(): boolean {
 /** GitHub repo "owner/repo" for checking releases (optional). e.g. MyHomeGames/MyHomeGames */
 export const GITHUB_REPO = (import.meta.env.VITE_GITHUB_REPO as string) || "";
 
+/** When true, localhost tunnel control may be unreachable (remote browser) — use Cloudflare Access + public API URL. */
+export function isCloudflareTunnelBuildEnabled(): boolean {
+  return import.meta.env.VITE_CLOUDFLARE_TUNNEL_ENABLED === "true";
+}
+
 // Get API token - prefer dev token if available, otherwise use Twitch token
 export function getApiToken(): string {
   // If VITE_API_TOKEN is set, prefer it (for development mode)

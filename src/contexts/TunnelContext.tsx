@@ -8,13 +8,14 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { clearTunnelApiBase, syncTunnelApiBaseFromStatus } from "../config";
+import { clearTunnelApiBase, isCloudflareTunnelBuildEnabled, readStoredPublicApiBase, syncTunnelApiBaseFromStatus } from "../config";
 import {
   clearStashedTunnelPayload,
   clearTunnelReturnHash,
-  connectTunnel,
+  connectTunnelWithFallback,
   disconnectTunnel,
   fetchTunnelStatus,
+  fetchTunnelStatusAt,
   fetchTunnelTokenFromManager,
   getCloudflareAccessLogoutUrl,
   getTunnelManagerAuthUrl,
@@ -42,6 +43,33 @@ const TunnelContext = createContext<TunnelContextValue | null>(null);
 const TUNNEL_AUTH_SESSION_KEY = "mhg_tunnel_auth_redirect";
 /** Brief pause after first connect so Cloudflare edge routing can settle before SPA API calls. */
 const PUBLIC_API_WARMUP_MS = 2500;
+
+const REMOTE_TUNNEL_IDLE: TunnelStatus = {
+  featureEnabled: true,
+  hasStoredToken: false,
+  connected: false,
+  publicUrl: "",
+};
+
+async function refreshRemoteTunnelStatus(
+  applyTunnelStatus: (next: TunnelStatus, options?: { warmupAfterConnect?: boolean }) => void,
+): Promise<void> {
+  const stored = readStoredPublicApiBase();
+  if (stored) {
+    try {
+      const remote = await fetchTunnelStatusAt(stored);
+      applyTunnelStatus({
+        ...remote,
+        featureEnabled: true,
+        publicUrl: remote.publicUrl || stored,
+      });
+      return;
+    } catch {
+      clearTunnelApiBase();
+    }
+  }
+  applyTunnelStatus(REMOTE_TUNNEL_IDLE);
+}
 
 function readTunnelAuthFromUrl(): "ok" | "error" | null {
   if (typeof window === "undefined") return null;
@@ -111,7 +139,7 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const connectWithPayload = useCallback(async (token: string, url: string): Promise<TunnelStatus> => {
-    return connectTunnel(token, url);
+    return connectTunnelWithFallback(token, url);
   }, []);
 
   const refreshStatus = useCallback(async () => {
@@ -122,13 +150,17 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
       }
       applyTunnelStatus(next);
     } catch {
-      setStatus({
-        featureEnabled: false,
-        hasStoredToken: false,
-        connected: false,
-        publicUrl: "",
-      });
-      clearTunnelApiBase();
+      if (isCloudflareTunnelBuildEnabled()) {
+        await refreshRemoteTunnelStatus(applyTunnelStatus);
+      } else {
+        setStatus({
+          featureEnabled: false,
+          hasStoredToken: false,
+          connected: false,
+          publicUrl: "",
+        });
+        clearTunnelApiBase();
+      }
     } finally {
       setStatusLoaded(true);
     }
