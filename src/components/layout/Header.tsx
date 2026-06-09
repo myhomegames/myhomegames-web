@@ -163,7 +163,9 @@ export default function Header({
               </button>
             </Tooltip>
           )}
-          <UpdateNotification />
+          {(!activeSkinWeb.topRightToolDock || pathnameUsesHeaderLogoOnly(pathname)) && (
+            <UpdateNotification />
+          )}
           {showProfile && !hideProfile && <ProfileDropdown />}
         </div>
       </div>

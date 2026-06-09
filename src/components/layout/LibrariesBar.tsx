@@ -19,6 +19,7 @@ import type { ViewMode, GameLibrarySection, GameItem, CollectionItem } from "../
 import SidebarSearchOverlay from "./SidebarSearchOverlay";
 import Logo from "../common/Logo";
 import ActivitySpinner from "./ActivitySpinner";
+import UpdateNotification from "./UpdateNotification";
 import { useTopDockSlot } from "../../contexts/TopDockSlotContext";
 import { playFixedFocalStepSound } from "../../utils/fixedFocalStepSound";
 import { applyWheelDeltaStep, readWheelStepThresholdPx } from "../../utils/stepScrollSnap";
@@ -895,6 +896,9 @@ export default function LibrariesBar({
               isLoading={globalLoading}
               className="mhg-top-right-tool-dock-activity-spinner"
             />
+            <div className="mhg-top-right-tool-dock-update">
+              <UpdateNotification />
+            </div>
             <div className="mhg-top-right-tool-dock-page-toolbar-slot">
               <div
                 className="mhg-top-right-tool-dock-page-toolbar-inner"

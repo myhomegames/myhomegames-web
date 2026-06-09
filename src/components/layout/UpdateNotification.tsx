@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import Tooltip from "../common/Tooltip";
 import { useLatestRelease, type OsKind } from "../../hooks/useLatestRelease";
@@ -49,6 +50,43 @@ export default function UpdateNotification() {
 
   if (!updateAvailable || !latestVersion) return null;
 
+  const popup = (
+    <div ref={popupRef} className="update-notification-popup">
+      <div className="update-notification-header">
+        {t("header.newVersionAvailable", "New version {{version}} available", { version: latestVersion })}
+      </div>
+      {changelog && (
+        <div className="update-notification-changelog">
+          <div className="update-notification-changelog-title">
+            {t("header.changelog", "Changelog")}
+          </div>
+          <div className="update-notification-changelog-body">{changelog}</div>
+        </div>
+      )}
+      <div className="update-notification-downloads">
+        {primaryUrl && downloadName && (
+          <button
+            type="button"
+            className="update-notification-download-primary"
+            onClick={() => handleDownload(primaryUrl)}
+          >
+            {t("header.downloadServer", "Download server")} ({downloadName})
+          </button>
+        )}
+        {otherDownloads.map(({ os, url, name }) => (
+          <button
+            key={url + name}
+            type="button"
+            className="update-notification-download-item"
+            onClick={() => handleDownload(url)}
+          >
+            {t(OS_LABEL_KEY[os], name)} — {name}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div ref={menuRef} className="update-notification-wrapper">
       <Tooltip text={t("header.updateAvailable", "New update available")} position="top" delay={200}>
@@ -78,42 +116,8 @@ export default function UpdateNotification() {
         </button>
       </Tooltip>
 
-      {isOpen && (
-        <div ref={popupRef} className="update-notification-popup">
-          <div className="update-notification-header">
-            {t("header.newVersionAvailable", "New version {{version}} available", { version: latestVersion })}
-          </div>
-          {changelog && (
-            <div className="update-notification-changelog">
-              <div className="update-notification-changelog-title">
-                {t("header.changelog", "Changelog")}
-              </div>
-              <div className="update-notification-changelog-body">{changelog}</div>
-            </div>
-          )}
-          <div className="update-notification-downloads">
-            {primaryUrl && downloadName && (
-              <button
-                type="button"
-                className="update-notification-download-primary"
-                onClick={() => handleDownload(primaryUrl)}
-              >
-                {t("header.downloadServer", "Download server")} ({downloadName})
-              </button>
-            )}
-            {otherDownloads.map(({ os, url, name }) => (
-              <button
-                key={url + name}
-                type="button"
-                className="update-notification-download-item"
-                onClick={() => handleDownload(url)}
-              >
-                {t(OS_LABEL_KEY[os], name)} — {name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {isOpen &&
+        (typeof document !== "undefined" ? createPortal(popup, document.body) : popup)}
     </div>
   );
 }
