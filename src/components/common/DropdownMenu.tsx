@@ -181,6 +181,15 @@ export default function DropdownMenu({
   }, [isOpen, gameId, collectionId]);
 
   useEffect(() => {
+    function handleCloseAllMenus() {
+      setIsOpen(false);
+      setIsCollectionLikeSubmenuOpen(false);
+    }
+    window.addEventListener("mhg:close-dropdown-menus", handleCloseAllMenus);
+    return () => window.removeEventListener("mhg:close-dropdown-menus", handleCloseAllMenus);
+  }, []);
+
+  useEffect(() => {
     if (!isOpen) return;
     
     function handleClickOutside(event: MouseEvent) {

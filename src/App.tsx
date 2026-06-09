@@ -64,7 +64,7 @@ function AppContent() {
   const { i18n } = useTranslation();
   const { setLoading } = useLoading();
   const { isLoading: authLoading } = useAuth();
-  const { setTwitchLoginEnabled, igdbEnabled } = useSettings();
+  const { setTwitchLoginEnabled, igdbEnabled, twitchLoginEnabled } = useSettings();
 
   const handleCloseLaunchModal = () => {
     setLaunchError(null);
@@ -79,7 +79,7 @@ function AppContent() {
   // Function to reload all metadata without full page reload
   async function handleReloadAllMetadata() {
     const apiToken = getApiToken();
-    if (!apiToken) return;
+    if (twitchLoginEnabled && !apiToken) return;
 
     setLoading(true);
     try {

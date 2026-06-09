@@ -23,7 +23,7 @@ import { useEditGame } from "../common/actions";
 import type { GameItem, CollectionItem, CollectionInfo } from "../../types";
 import { formatGameDate } from "../../utils/date";
 import { displayGameType, toGameTypeId } from "../../utils/igdbGameType";
-import { buildApiUrl, buildBackgroundUrl } from "../../utils/api";
+import { buildApiHeaders, buildApiUrl, buildAppApiUrl, buildBackgroundUrl } from "../../utils/api";
 import { API_BASE, getApiToken } from "../../config";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useSkin } from "../../contexts/SkinContext";
@@ -230,7 +230,7 @@ function GameDetailContent({
 }) {
   const navigate = useNavigate();
   const outletContext = useOutletContext<MainAppOutletContext | null>();
-  const { igdbEnabled } = useSettings();
+  const { igdbEnabled, twitchLoginEnabled } = useSettings();
   const { activeSkinWeb } = useSkin();
   const { tagLabels, tagLabelsReady } = useTagLists();
   const categoriesList = useMemo(
@@ -238,11 +238,11 @@ function GameDetailContent({
     [tagLabels.categories]
   );
   const { hasBackground, isBackgroundVisible, setBackgroundVisible } = useBackground();
-  const { getCollectionGameIds } = useCollections();
   const { games: libraryGames, updateGame } = useLibraryGames();
   const [collectionsWithSlideItems, setCollectionsWithSlideItems] = useState<
     Array<{ collection: CollectionItem; slideItems: GameItem[] }>
   >([]);
+  const [collectionsRevision, setCollectionsRevision] = useState(0);
   const [editingCollectionLike, setEditingCollectionLike] = useState<CollectionInfo | null>(null);
   const [isEditCollectionLikeModalOpen, setIsEditCollectionLikeModalOpen] = useState(false);
   const [linkSourceCollectionLike, setLinkSourceCollectionLike] = useState<CollectionItem | null>(null);
@@ -294,6 +294,16 @@ function GameDetailContent({
   const summaryMaxLines = calculateSummaryMaxLines();
 
   useEffect(() => {
+    const bumpCollectionsRevision = () => setCollectionsRevision((n) => n + 1);
+    window.addEventListener("collectionUpdated", bumpCollectionsRevision);
+    window.addEventListener("collectionDeleted", bumpCollectionsRevision);
+    return () => {
+      window.removeEventListener("collectionUpdated", bumpCollectionsRevision);
+      window.removeEventListener("collectionDeleted", bumpCollectionsRevision);
+    };
+  }, []);
+
+  useEffect(() => {
     let isActive = true;
     const loadCollectionsForGame = async () => {
       if (!allCollections.length) {
@@ -304,41 +314,54 @@ function GameDetailContent({
       }
 
       const token = getApiToken() || "";
-      const results: Array<{ collection: CollectionItem; slideItems: GameItem[] } | null> = [];
-      for (const collection of allCollections) {
-        try {
-          const gameIds = await getCollectionGameIds(collection.id);
-          if (!gameIds.includes(String(game.id))) {
-            results.push(null);
-            continue;
+      const results = await Promise.all(
+        allCollections.map(async (collection): Promise<{ collection: CollectionItem; slideItems: GameItem[] } | null> => {
+          try {
+            const gamesUrl = buildAppApiUrl(
+              `/collections/${encodeURIComponent(String(collection.id))}/games`,
+            );
+            const gamesRes = await fetch(gamesUrl, {
+              headers: buildApiHeaders({ Accept: "application/json" }),
+              cache: "no-store",
+            });
+            if (!gamesRes.ok) {
+              return null;
+            }
+
+            const bodyText = await gamesRes.text();
+            if (!bodyText.trim()) {
+              return null;
+            }
+
+            const collectionGames = parseGamesFromJson(JSON.parse(bodyText));
+            if (!collectionGames.some((g) => String(g.id) === String(game.id))) {
+              return null;
+            }
+
+            const childSlideItems = await buildChildCollectionLikeSlideItems(
+              collection,
+              allCollections,
+              token,
+            );
+            return { collection, slideItems: [...childSlideItems, ...collectionGames] };
+          } catch {
+            return null;
           }
-          const games = gameIds
-            .map((id) => libraryGames.find((g) => String(g.id) === String(id)))
-            .filter((g): g is GameItem => Boolean(g));
-          if (games.length === 0) {
-            results.push(null);
-            continue;
-          }
-          const childSlideItems = await buildChildCollectionLikeSlideItems(collection, allCollections, token);
-          const slideItems = [...childSlideItems, ...games];
-          results.push({ collection, slideItems });
-        } catch (error) {
-          results.push(null);
-        }
-      }
+        }),
+      );
 
       if (isActive) {
         setCollectionsWithSlideItems(
-          results.filter((entry): entry is { collection: CollectionItem; slideItems: GameItem[] } => Boolean(entry))
+          results.filter((entry): entry is { collection: CollectionItem; slideItems: GameItem[] } => Boolean(entry)),
         );
       }
     };
 
-    loadCollectionsForGame();
+    void loadCollectionsForGame();
     return () => {
       isActive = false;
     };
-  }, [allCollections, getCollectionGameIds, game.id, libraryGames]);
+  }, [allCollections, collectionsRevision, game.id]);
 
   const libraryMap = useMemo(() => {
     const map = new Map<string, GameItem>();
@@ -418,7 +441,7 @@ function GameDetailContent({
 
   const removeChildFromSliderParent = async (parentId: string, childId: string) => {
     const token = getApiToken();
-    if (!token) return;
+    if (twitchLoginEnabled && !token) return;
     try {
       const url = buildApiUrl(
         API_BASE,
@@ -441,7 +464,7 @@ function GameDetailContent({
       return;
     }
     const token = getApiToken();
-    if (!token) return;
+    if (twitchLoginEnabled && !token) return;
     try {
       const url = buildApiUrl(
         API_BASE,

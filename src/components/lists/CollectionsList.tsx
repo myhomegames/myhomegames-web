@@ -13,6 +13,7 @@ import type { CollectionItem, CollectionInfo, GameItem } from "../../types";
 import { filterRootCollectionLikes } from "../../utils/stringUtils";
 import { portraitCoverHeight } from "../../utils/coverPortrait";
 import { useSkin } from "../../contexts/SkinContext";
+import { useSettings } from "../../contexts/SettingsContext";
 const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are more than this many items
 
 export type GamesPathType = "collections" | "developers" | "publishers";
@@ -215,6 +216,7 @@ export default function CollectionsList({
   activationLocked = false,
 }: CollectionsListProps) {
   const { t } = useTranslation();
+  const { twitchLoginEnabled } = useSettings();
   const { activeSkinWeb } = useSkin();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedCollection, setSelectedCollection] = useState<CollectionInfo | null>(null);
@@ -299,7 +301,7 @@ export default function CollectionsList({
       return;
     }
     const token = getApiToken();
-    if (!token) return;
+    if (twitchLoginEnabled && !token) return;
     try {
       const url = buildApiUrl(
         API_BASE,
