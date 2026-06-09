@@ -27,7 +27,6 @@ import { buildApiHeaders, buildApiUrl, buildAppApiUrl, buildBackgroundUrl } from
 import { API_BASE, getApiToken } from "../../config";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useSkin } from "../../contexts/SkinContext";
-import { useCollections } from "../../contexts/CollectionsContext";
 import { useTagLists } from "../../contexts/TagListsContext";
 import { useLibraryGames } from "../../contexts/LibraryGamesContext";
 import type { MainAppOutletContext } from "../../layouts/MainAppLayout";
