@@ -13,26 +13,53 @@ export type TunnelTokenResponse = {
 };
 
 const DEFAULT_TUNNEL_MANAGER_URL = "https://myhomegames-server.vige.it";
+/** GitHub Pages SPA mount (must match vite.config base). */
+const SPA_MOUNT_PATH = "/app/";
 
 export function getTunnelManagerUrl(): string {
   const fromEnv = (import.meta.env.VITE_TUNNEL_MANAGER_URL as string | undefined)?.trim();
   return (fromEnv || DEFAULT_TUNNEL_MANAGER_URL).replace(/\/$/, "");
 }
 
-export function getAppReturnUrl(): string {
-  if (typeof window === "undefined") return "";
-  const base = import.meta.env.BASE || "/";
-  const path = base.startsWith("/") ? base : `/${base}`;
-  return `${window.location.origin}${path}`;
+function normalizeBasePath(base: string): string {
+  let path = (base || "/").trim();
+  if (!path.startsWith("/")) path = `/${path}`;
+  if (!path.endsWith("/")) path = `${path}/`;
+  return path;
 }
 
-/** Cloudflare Access login; return_to query param on the protected /api/get-token path. */
-export function getTunnelManagerAuthUrl(returnTo?: string): string {
-  const url = new URL(`${getTunnelManagerUrl()}/api/get-token`);
-  const dest = returnTo?.trim() || getAppReturnUrl();
-  if (dest) {
-    url.searchParams.set("return_to", dest);
+function encodeBase64Url(value: string): string {
+  return btoa(value).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/**
+ * OAuth return URL for the web SPA after Cloudflare Access.
+ * Prefer /app/ when the user is already under the SPA path (works even if BASE was baked as "/").
+ */
+export function getAppReturnUrl(): string {
+  if (typeof window === "undefined") return "";
+  const origin = window.location.origin;
+  const pathname = window.location.pathname;
+  if (pathname === "/app" || pathname.startsWith("/app/")) {
+    return `${origin}${SPA_MOUNT_PATH}`;
   }
+  const configured = normalizeBasePath(import.meta.env.BASE || SPA_MOUNT_PATH);
+  return `${origin}${configured}`;
+}
+
+/**
+ * Cloudflare Access login URL for the tunnel manager.
+ * return_to is embedded in the path (/api/get-token/r/<b64url>) so Access preserves it; query param is redundant backup.
+ */
+export function getTunnelManagerAuthUrl(returnTo?: string): string {
+  const dest = returnTo?.trim() || getAppReturnUrl();
+  const manager = getTunnelManagerUrl();
+  if (!dest) {
+    return `${manager}/api/get-token`;
+  }
+  const encoded = encodeBase64Url(dest);
+  const url = new URL(`${manager}/api/get-token/r/${encoded}`);
+  url.searchParams.set("return_to", dest);
   return url.toString();
 }
 
