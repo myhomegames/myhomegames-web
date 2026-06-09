@@ -42,6 +42,17 @@
         padding: 3rem 0;
       }
 
+      h1.site-logo {
+        margin-bottom: 1rem;
+      }
+
+      h1.site-logo img {
+        display: inline-block;
+        max-width: min(100%, 528px);
+        height: auto;
+        filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.2));
+      }
+
       h1 {
         font-size: 3rem;
         margin-bottom: 1rem;
@@ -217,6 +228,10 @@
       }
 
       @media (max-width: 768px) {
+        h1.site-logo img {
+          max-width: min(100%, 320px);
+        }
+
         h1 {
           font-size: 2rem;
         }
@@ -242,7 +257,15 @@
   <body>
     <div class="container">
       <header>
-        <h1>🎮 MyHomeGames</h1>
+        <h1 class="site-logo">
+          <img
+            src="logo.png"
+            alt="MyHomeGames"
+            width="528"
+            height="158"
+            decoding="async"
+          />
+        </h1>
         <p class="subtitle">Personal video game collection management system</p>
         <div style="margin-top: 2rem">
           <a href="/app/" id="webapp-link" class="cta-button">
@@ -351,6 +374,12 @@
           <p>
             Once the server is running, access the web application using the button at the top of this page
             or by visiting the web app URL directly. You can start managing your video game collection right away.
+          </p>
+          <p>
+            Ssign in with your <strong>email address</strong>.
+          </p>
+          <p>
+            Enter the <strong>verification code</strong> sent to your inbox to complete access.
           </p>
 
           <h3>3. Choose and Install Skins (optional)</h3>
