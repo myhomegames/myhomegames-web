@@ -29,6 +29,7 @@ import { useSettings } from "../../contexts/SettingsContext";
 import { useSkin } from "../../contexts/SkinContext";
 import { useTagLists } from "../../contexts/TagListsContext";
 import { useLibraryGames } from "../../contexts/LibraryGamesContext";
+import { useCollections } from "../../contexts/CollectionsContext";
 import type { MainAppOutletContext } from "../../layouts/MainAppLayout";
 import { useSimilarGamesDetails } from "../../hooks/useSimilarGamesDetails";
 import SimilarGamesList, { type SimilarGameDisplayItem } from "./SimilarGamesList";
@@ -238,6 +239,7 @@ function GameDetailContent({
   );
   const { hasBackground, isBackgroundVisible, setBackgroundVisible } = useBackground();
   const { games: libraryGames, updateGame } = useLibraryGames();
+  const { collectionGameIds, isLoading: collectionsLoading } = useCollections();
   const [collectionsWithSlideItems, setCollectionsWithSlideItems] = useState<
     Array<{ collection: CollectionItem; slideItems: GameItem[] }>
   >([]);
@@ -302,51 +304,69 @@ function GameDetailContent({
     };
   }, []);
 
+  const libraryMap = useMemo(() => {
+    const map = new Map<string, GameItem>();
+    for (const item of libraryGames) {
+      map.set(String(item.id), item);
+    }
+    return map;
+  }, [libraryGames]);
+
   useEffect(() => {
     let isActive = true;
     const loadCollectionsForGame = async () => {
-      if (!allCollections.length) {
+      if (collectionsLoading || !allCollections.length) {
+        if (isActive && !collectionsLoading) {
+          setCollectionsWithSlideItems([]);
+        }
+        return;
+      }
+
+      const gameId = String(game.id);
+      const matchingCollections = allCollections.filter((collection) =>
+        collectionGameIds.get(String(collection.id))?.includes(gameId),
+      );
+
+      if (!matchingCollections.length) {
         if (isActive) {
           setCollectionsWithSlideItems([]);
         }
         return;
       }
 
-      const token = getApiToken() || "";
+      const childLookup = { collectionGameIds, libraryById: libraryMap };
       const results = await Promise.all(
-        allCollections.map(async (collection): Promise<{ collection: CollectionItem; slideItems: GameItem[] } | null> => {
-          try {
-            const gamesUrl = buildAppApiUrl(
-              `/collections/${encodeURIComponent(String(collection.id))}/games`,
-            );
-            const gamesRes = await fetch(gamesUrl, {
-              headers: buildApiHeaders({ Accept: "application/json" }),
-              cache: "no-store",
-            });
-            if (!gamesRes.ok) {
+        matchingCollections.map(
+          async (collection): Promise<{ collection: CollectionItem; slideItems: GameItem[] } | null> => {
+            try {
+              const gamesUrl = buildAppApiUrl(
+                `/collections/${encodeURIComponent(String(collection.id))}/games`,
+              );
+              const gamesRes = await fetch(gamesUrl, {
+                headers: buildApiHeaders({ Accept: "application/json" }),
+                cache: "no-store",
+              });
+              if (!gamesRes.ok) {
+                return null;
+              }
+
+              const bodyText = await gamesRes.text();
+              if (!bodyText.trim()) {
+                return null;
+              }
+
+              const collectionGames = parseGamesFromJson(JSON.parse(bodyText));
+              const childSlideItems = buildChildCollectionLikeSlideItems(
+                collection,
+                allCollections,
+                childLookup,
+              );
+              return { collection, slideItems: [...childSlideItems, ...collectionGames] };
+            } catch {
               return null;
             }
-
-            const bodyText = await gamesRes.text();
-            if (!bodyText.trim()) {
-              return null;
-            }
-
-            const collectionGames = parseGamesFromJson(JSON.parse(bodyText));
-            if (!collectionGames.some((g) => String(g.id) === String(game.id))) {
-              return null;
-            }
-
-            const childSlideItems = await buildChildCollectionLikeSlideItems(
-              collection,
-              allCollections,
-              token,
-            );
-            return { collection, slideItems: [...childSlideItems, ...collectionGames] };
-          } catch {
-            return null;
-          }
-        }),
+          },
+        ),
       );
 
       if (isActive) {
@@ -360,15 +380,7 @@ function GameDetailContent({
     return () => {
       isActive = false;
     };
-  }, [allCollections, collectionsRevision, game.id]);
-
-  const libraryMap = useMemo(() => {
-    const map = new Map<string, GameItem>();
-    for (const item of libraryGames) {
-      map.set(String(item.id), item);
-    }
-    return map;
-  }, [libraryGames]);
+  }, [allCollections, collectionsRevision, game.id, collectionGameIds, collectionsLoading, libraryMap]);
 
   const similarGamesNotInLibraryIds = useMemo(() => {
     if (!game.similarGames || game.similarGames.length === 0) return [];

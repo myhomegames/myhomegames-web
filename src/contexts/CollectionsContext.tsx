@@ -69,9 +69,18 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
       }));
       parsed.sort((a, b) => compareTitles(a.title || "", b.title || ""));
       setCollections(parsed);
-      
-      // Don't pre-fetch game IDs for all collections - load them on demand via getCollectionGameIds
-      // This avoids unnecessary API calls when user is on library page or other pages that don't need this data
+      setCollectionGameIds((prev) => {
+        const updated = new Map(prev);
+        for (const v of items) {
+          if (Array.isArray(v.gameIds)) {
+            updated.set(
+              String(v.id),
+              v.gameIds.map((id: string | number) => String(id)),
+            );
+          }
+        }
+        return updated;
+      });
     } catch (err: any) {
       clearTimeout(timeoutId);
       const errorMessage = String(err.message || err);
