@@ -36,7 +36,7 @@ export function useCreateCollection({
     setLoading(true);
 
     try {
-      // Create collection via POST endpoint (server accepts without token when login disabled)
+      // Create collection via POST endpoint
       const url = buildApiUrl(API_BASE, "/collections");
       const response = await fetch(url, {
         method: "POST",

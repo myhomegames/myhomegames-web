@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { API_BASE, getApiToken } from "../../../config";
-import { buildApiUrl } from "../../../utils/api";
+import { API_BASE } from "../../../config";
+import { buildApiUrl, buildApiHeaders } from "../../../utils/api";
 import { useLoading } from "../../../contexts/LoadingContext";
-import { useSettings } from "../../../contexts/SettingsContext";
 import type { GameItem } from "../../../types";
 import type { CollectionInfo } from "../../../types";
 
@@ -35,15 +34,11 @@ export function useReloadGame({
 }: UseReloadGameParams): UseReloadGameReturn {
   const { t } = useTranslation();
   const { setLoading } = useLoading();
-  const { twitchLoginEnabled } = useSettings();
   const [isReloading, setIsReloading] = useState(false);
   const [reloadError, setReloadError] = useState<string | null>(null);
   const [showReloadConfirmModal, setShowReloadConfirmModal] = useState(false);
 
   const executeReload = async () => {
-    const apiToken = getApiToken();
-    if (twitchLoginEnabled && !apiToken) return;
-
     setIsReloading(true);
     setReloadError(null);
     setLoading(true);
@@ -61,9 +56,7 @@ export function useReloadGame({
 
       const response = await fetch(url, {
         method: "POST",
-        headers: {
-          "X-Auth-Token": apiToken,
-        },
+        headers: buildApiHeaders(),
       });
 
       if (response.ok) {

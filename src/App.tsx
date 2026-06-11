@@ -25,7 +25,6 @@ import AddGamePage from "./pages/AddGamePage";
 import SearchResultsPage from "./pages/SearchResultsPage";
 import LibraryItemDetailPage from "./pages/LibraryItemDetailPage";
 import TagGamesRoutePage from "./pages/TagGamesRoutePage";
-import LoginPage from "./pages/LoginPage";
 import IGDBGameDetailPage from "./pages/IGDBGameDetailPage";
 import RecommendedSectionDetailPage from "./pages/RecommendedSectionDetailPage";
 
@@ -64,7 +63,7 @@ function AppContent() {
   const { i18n } = useTranslation();
   const { setLoading } = useLoading();
   const { isLoading: authLoading } = useAuth();
-  const { setTwitchLoginEnabled, igdbEnabled, twitchLoginEnabled } = useSettings();
+  const { igdbEnabled } = useSettings();
 
   const handleCloseLaunchModal = () => {
     setLaunchError(null);
@@ -78,9 +77,6 @@ function AppContent() {
 
   // Function to reload all metadata without full page reload
   async function handleReloadAllMetadata() {
-    const apiToken = getApiToken();
-    if (twitchLoginEnabled && !apiToken) return;
-
     setLoading(true);
     try {
       // Call server to reload metadata
@@ -110,7 +106,6 @@ function AppContent() {
   }
 
   // Load settings from server on app startup (after auth is ready)
-  // GET /settings is public so we can load twitchLoginEnabled even without token
   useEffect(() => {
     if (authLoading) {
       return;
@@ -132,7 +127,6 @@ function AppContent() {
           if (i18n.language !== loadedLanguage) {
             i18n.changeLanguage(loadedLanguage);
           }
-          setTwitchLoginEnabled(!!data.twitchLoginEnabled);
           localStorage.setItem("language", loadedLanguage);
           if (Array.isArray(data.visibleLibraries)) {
             localStorage.setItem(
@@ -259,8 +253,6 @@ function AppContent() {
           : {})}
       >
         <Routes>
-          {/* Login page - public, no header */}
-          <Route path="/login" element={<LoginPage />} />
           {!persistentLibraryShell ? (
             <>
           {/* Protected routes - require authentication (unless VITE_API_TOKEN is set) */}

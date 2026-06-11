@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallback } fr
 import { useNavigate } from "react-router-dom";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useAutoTranslateBatch } from "../hooks/useAutoTranslate";
-import { useAuth } from "../contexts/AuthContext";
 import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
 import { useLoading } from "../contexts/LoadingContext";
 import { useSettings } from "../contexts/SettingsContext";
@@ -46,8 +45,7 @@ export default function RecommendedPage({
 }: RecommendedPageProps) {
   const navigate = useNavigate();
   const titleFilterQuery = useTitleFilterQuery();
-  const { token } = useAuth();
-  const { twitchLoginEnabled, igdbEnabled, settingsLoaded } = useSettings();
+  const { igdbEnabled, settingsLoaded } = useSettings();
   const { setLoading } = useLoading();
   const { activeSkinWeb } = useSkin();
   const verticalStripsLayout = activeSkinWeb.verticalCoverAlignment;
@@ -142,14 +140,6 @@ export default function RecommendedPage({
 
   useEffect(() => {
     if (!settingsLoaded) return;
-    if (twitchLoginEnabled && !token) {
-      clearRecommendedSectionsCache();
-      setSections([]);
-      onGamesLoadedRef.current([]);
-      setLoadingRef.current(false);
-      navigate("/login", { replace: true });
-      return;
-    }
     if (
       (consumeRecommendedReturnFromGame() || consumeRecommendedReturnToIndex()) &&
       hydrateFromCache()
@@ -157,7 +147,7 @@ export default function RecommendedPage({
       return;
     }
     fetchRecommendedSections();
-  }, [twitchLoginEnabled, token, settingsLoaded, navigate, hydrateFromCache]);
+  }, [settingsLoaded, navigate, hydrateFromCache]);
 
   // Listen for metadata reload event
   useEffect(() => {
@@ -243,14 +233,6 @@ export default function RecommendedPage({
       return;
     }
     if (!settingsLoaded) return;
-    if (twitchLoginEnabled && !token) {
-      setSections([]);
-      onGamesLoadedRef.current([]);
-      setIsFetching(false);
-      setLoadingRef.current(false);
-      navigate("/login", { replace: true });
-      return;
-    }
     fetchingRef.current = true;
     const generation = ++fetchGenerationRef.current;
     setIsFetching(true);

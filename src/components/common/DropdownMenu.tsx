@@ -1,8 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
-import { getApiToken } from "../../config";
-import { useSettings } from "../../contexts/SettingsContext";
 import { useDeleteGame, useReloadGame, useUnlinkExecutable, useRemoveGameFromCollection } from "./actions";
 import Tooltip from "./Tooltip";
 import type { CollectionItem } from "../../types";
@@ -75,12 +73,11 @@ export default function DropdownMenu({
   toolTipDelay = 0,
 }: DropdownMenuProps) {
   const { t } = useTranslation();
-  const { twitchLoginEnabled } = useSettings();
   /**
    * When Twitch auth is disabled the server accepts mutations without a token,
    * so delete/reload entries should remain available even without `getApiToken()`.
    */
-  const hasBackendAuth = !twitchLoginEnabled || !!getApiToken();
+  const hasBackendAuth = true;
   const [isOpen, setIsOpen] = useState(false);
   const [isCollectionLikeSubmenuOpen, setIsCollectionLikeSubmenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);

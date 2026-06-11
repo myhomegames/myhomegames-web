@@ -230,7 +230,7 @@ function GameDetailContent({
 }) {
   const navigate = useNavigate();
   const outletContext = useOutletContext<MainAppOutletContext | null>();
-  const { igdbEnabled, twitchLoginEnabled } = useSettings();
+  const { igdbEnabled } = useSettings();
   const { activeSkinWeb } = useSkin();
   const { tagLabels, tagLabelsReady } = useTagLists();
   const categoriesList = useMemo(
@@ -409,7 +409,7 @@ function GameDetailContent({
     });
   }, [game.similarGames, libraryMap, detailsById]);
 
-  // When login is disabled, hide IGDB-only games (those with "New" badge)
+  // Hide IGDB-only games (those with "New" badge) when IGDB is disabled
   const similarGamesToShow = useMemo((): SimilarGameDisplayItem[] => {
     if (igdbEnabled) return allSimilarGamesOrdered;
     return allSimilarGamesOrdered.filter((item) => item.type === "library");
@@ -451,8 +451,6 @@ function GameDetailContent({
   };
 
   const removeChildFromSliderParent = async (parentId: string, childId: string) => {
-    const token = getApiToken();
-    if (twitchLoginEnabled && !token) return;
     try {
       const url = buildApiUrl(
         API_BASE,
@@ -460,7 +458,7 @@ function GameDetailContent({
       );
       const res = await fetch(url, {
         method: "DELETE",
-        headers: { "X-Auth-Token": token },
+        headers: buildApiHeaders(),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collectionId: String(parentId) } }));
@@ -474,8 +472,6 @@ function GameDetailContent({
       setLinkSourceCollectionLike(source);
       return;
     }
-    const token = getApiToken();
-    if (twitchLoginEnabled && !token) return;
     try {
       const url = buildApiUrl(
         API_BASE,
@@ -483,7 +479,7 @@ function GameDetailContent({
       );
       const res = await fetch(url, {
         method: "POST",
-        headers: { "X-Auth-Token": token },
+        headers: buildApiHeaders(),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const recentKey = "recentCollectionLikeParents_collections";

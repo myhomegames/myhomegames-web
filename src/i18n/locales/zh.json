@@ -65,14 +65,15 @@
     "chinese": "中文",
     "japanese": "日语",
     "twitch": {
-      "title": "Twitch OAuth",
-      "description": "配置您的Twitch OAuth应用程序凭据。您可以从Twitch开发者控制台获取这些信息。",
+      "title": "IGDB / Twitch",
+      "description": "启用通过 IGDB 的目录搜索。应用程序凭据由 API 主机提供，不会存储在应用中。",
+      "descriptionLocal": "来自 Twitch 开发者控制台的凭据。用于 IGDB 目录搜索。",
       "clientId": "客户端ID",
       "clientSecret": "客户端密钥",
       "clientIdPlaceholder": "输入您的Twitch客户端ID",
       "clientSecretPlaceholder": "输入您的Twitch客户端密钥",
-      "clientIdHelp": "您的Twitch应用程序客户端ID",
-      "clientSecretHelp": "您的Twitch应用程序客户端密钥（请妥善保管）"
+      "clientIdHelp": "应用程序的公开标识符。访问 IGDB API 所必需。",
+      "clientSecretHelp": "IGDB API 调用（Twitch client_credentials）所必需。在 Twitch 开发者控制台的 Manage → New Secret 中生成。"
     },
     "skinOptions": {
       "title": "选项",
@@ -129,8 +130,6 @@
   },
   "profile": {
     "viewProfile": "查看个人资料",
-    "changeUser": "切换用户",
-    "logout": "退出",
     "title": "个人资料",
     "subtitle": "您的账户信息",
     "notLoggedIn": "您未登录",
@@ -139,15 +138,6 @@
     "userId": "用户ID",
     "accountType": "账户类型",
     "developmentAccount": "开发账户"
-  },
-  "login": {
-    "title": "欢迎使用 MyHomeGames",
-    "subtitle": "请登录以继续",
-    "button": "使用 Twitch 登录",
-    "orGoToSettings": "或前往设置",
-    "credentialsNeeded": "登录需要Twitch OAuth凭据。请先在设置中配置。",
-    "configureFirst": "您可以从Twitch开发者控制台获取您的Twitch客户端ID和客户端密钥。",
-    "goToSettings": "前往设置"
   },
   "search": {
     "noResults": "未找到术语 \"{{query}}\" 的结果",

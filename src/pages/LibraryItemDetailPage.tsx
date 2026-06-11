@@ -109,7 +109,7 @@ export default function LibraryItemDetailPage({
   const { collections: allCollectionsFromContext } = useCollections();
   const { developers: allDevelopers, updateDeveloper } = useDevelopers();
   const { publishers: allPublishers, updatePublisher } = usePublishers();
-  const { igdbEnabled, twitchLoginEnabled } = useSettings();
+  const { igdbEnabled } = useSettings();
   const { activeSkinWeb } = useSkin();
   const fixedFocalContextRail =
     activeSkinWeb.compactCollectionLikeDetail && activeSkinWeb.verticalCoverAlignment;
@@ -689,7 +689,6 @@ export default function LibraryItemDetailPage({
   const handleConfirmDelete = async () => {
     if (!id || !item) return;
     const apiToken = getApiToken();
-    if (twitchLoginEnabled && !apiToken) return;
     const base = resourceType; // "collections" | "developers" | "publishers"
     setIsDeleting(true);
     setDeleteError(null);
@@ -714,7 +713,6 @@ export default function LibraryItemDetailPage({
   const handleRemoveFromDeveloper = async (gameId: string) => {
     if (!developerId) return;
     const apiToken = getApiToken();
-    if (twitchLoginEnabled && !apiToken) return;
     try {
       const gameUrl = buildApiUrl(API_BASE, `/games/${gameId}`);
       const gameRes = await fetch(gameUrl, {
@@ -745,7 +743,6 @@ export default function LibraryItemDetailPage({
   const handleRemoveFromPublisher = async (gameId: string) => {
     if (!publisherId) return;
     const apiToken = getApiToken();
-    if (twitchLoginEnabled && !apiToken) return;
     try {
       const gameUrl = buildApiUrl(API_BASE, `/games/${gameId}`);
       const gameRes = await fetch(gameUrl, {
@@ -1192,7 +1189,6 @@ function LibraryItemDetailContent({
 }: LibraryItemDetailContentProps) {
   const navigate = useNavigate();
   const routerLocation = useLocation();
-  const { twitchLoginEnabled } = useSettings();
   const { hasBackground, isBackgroundVisible, setBackgroundVisible } = useBackground();
   const { isLoading } = useLoading();
   const { activeSkinWeb } = useSkin();
@@ -1774,7 +1770,6 @@ function LibraryItemDetailContent({
   const removeChildFromParent = async (childId: string) => {
     if (!item?.id) return;
     const token = getApiToken();
-    if (twitchLoginEnabled && !token) return;
     try {
       const url = buildApiUrl(
         API_BASE,
@@ -1806,7 +1801,6 @@ function LibraryItemDetailContent({
 
   const removeChildFromSliderParent = async (parentId: string, childId: string) => {
     const token = getApiToken();
-    if (twitchLoginEnabled && !token) return;
     try {
       const url = buildApiUrl(
         API_BASE,
@@ -1854,7 +1848,6 @@ function LibraryItemDetailContent({
       return;
     }
     const token = getApiToken();
-    if (twitchLoginEnabled && !token) return;
     try {
       const url = buildApiUrl(
         API_BASE,

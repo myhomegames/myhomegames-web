@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import type { CollectionItem } from "../types";
-import { getApiToken } from "../config";
 import { buildApiHeaders, buildAppApiUrl } from "../utils/api";
 import { compareTitles } from "../utils/stringUtils";
 import { useAuth } from "./AuthContext";
@@ -29,17 +28,14 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [collectionGameIds, setCollectionGameIds] = useState<Map<string, string[]>>(new Map());
   const collectionGameIdsRef = useRef(collectionGameIds);
-  const { isLoading: authLoading, token: authToken } = useAuth();
-  const { twitchLoginEnabled, settingsLoaded } = useSettings();
+  const { isLoading: authLoading } = useAuth();
+  const { settingsLoaded } = useSettings();
 
   const fetchCollections = useCallback(async () => {
     if (authLoading) {
       return;
     }
     if (!settingsLoaded) {
-      return;
-    }
-    if (twitchLoginEnabled && !getApiToken() && !authToken) {
       return;
     }
 
@@ -89,19 +85,15 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [authLoading, authToken, twitchLoginEnabled, settingsLoaded]);
+  }, [authLoading, settingsLoaded]);
 
   // Load collections on mount and when auth is ready (stagger to avoid all fetches at once)
   useEffect(() => {
     if (authLoading) return;
     if (!settingsLoaded) return;
-    if (twitchLoginEnabled && !getApiToken() && !authToken) {
-      setIsLoading(false);
-      return;
-    }
     const t = setTimeout(fetchCollections, 400);
     return () => clearTimeout(t);
-  }, [authLoading, authToken, twitchLoginEnabled, settingsLoaded, fetchCollections]);
+  }, [authLoading, settingsLoaded, fetchCollections]);
 
   useEffect(() => {
     collectionGameIdsRef.current = collectionGameIds;

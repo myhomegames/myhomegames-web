@@ -65,14 +65,15 @@
     "chinese": "中国語",
     "japanese": "日本語",
     "twitch": {
-      "title": "Twitch OAuth",
-      "description": "Twitch OAuthアプリケーションの認証情報を設定してください。これらはTwitch Developer Consoleから取得できます。",
+      "title": "IGDB / Twitch",
+      "description": "IGDBによるカタログ検索を有効にします。アプリケーション認証情報はAPIホストが提供し、アプリには保存されません。",
+      "descriptionLocal": "Twitch Developer Consoleの認証情報。IGDBカタログ検索に使用します。",
       "clientId": "クライアントID",
       "clientSecret": "クライアントシークレット",
       "clientIdPlaceholder": "TwitchクライアントIDを入力してください",
       "clientSecretPlaceholder": "Twitchクライアントシークレットを入力してください",
-      "clientIdHelp": "TwitchアプリケーションのクライアントID",
-      "clientSecretHelp": "Twitchアプリケーションのクライアントシークレット（安全に保管してください）"
+      "clientIdHelp": "アプリケーションの公開識別子。IGDB APIアクセスに必要です。",
+      "clientSecretHelp": "IGDB API呼び出し（Twitch client_credentials）に必要です。Twitch Developer ConsoleのManage → New Secretで生成してください。"
     },
     "skinOptions": {
       "title": "オプション",
@@ -129,8 +130,6 @@
   },
   "profile": {
     "viewProfile": "プロフィールを表示",
-    "changeUser": "ユーザーを変更",
-    "logout": "ログアウト",
     "title": "プロフィール",
     "subtitle": "アカウント情報",
     "notLoggedIn": "認証されていません",
@@ -139,15 +138,6 @@
     "userId": "ユーザーID",
     "accountType": "アカウントタイプ",
     "developmentAccount": "開発アカウント"
-  },
-  "login": {
-    "title": "MyHomeGamesへようこそ",
-    "subtitle": "続行するにはログインしてください",
-    "button": "Twitchでログイン",
-    "orGoToSettings": "または設定へ",
-    "credentialsNeeded": "ログインにはTwitch OAuth認証情報が必要です。まず設定で設定してください。",
-    "configureFirst": "Twitch Client IDとClient Secretは、Twitch Developer Consoleから取得できます。",
-    "goToSettings": "設定に移動"
   },
   "search": {
     "noResults": "用語 \"{{query}}\" の結果が見つかりません",

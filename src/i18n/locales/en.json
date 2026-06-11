@@ -67,20 +67,17 @@
     "twitch": {
       "title": "IGDB / Twitch",
       "description": "Enable catalog search via IGDB. Application credentials are provided by the API host, not stored in the app.",
-      "descriptionLocal": "Credentials from the Twitch Developer Console. They are used for IGDB (catalog search) and, optionally, for signing in with Twitch.",
+      "descriptionLocal": "Credentials from the Twitch Developer Console. Used for IGDB catalog search.",
       "enableApi": "Enable IGDB API",
       "enableApiLocal": "Enable Client ID / Secret (IGDB)",
       "enableApiHelp": "When off, the app does not call IGDB endpoints.",
       "enableApiHelpLocal": "When off, stored credentials are kept but IGDB and API calls do not use them. Turn on again without re-entering values.",
-      "enableLogin": "Enable Twitch login",
-      "enableLoginHelp": "When on, users must sign in with Twitch. When off, the app is open without login.",
       "clientId": "Client ID",
       "clientSecret": "Client Secret",
       "clientIdPlaceholder": "Enter your Twitch Client ID",
       "clientSecretPlaceholder": "Enter your Twitch Client Secret",
-      "clientIdHelp": "Public application identifier. Required for IGDB and for Twitch login.",
-      "clientSecretHelp": "Required for IGDB API calls (Twitch client_credentials) and for Twitch login. Generate it under Manage → New Secret in the Twitch Developer Console.",
-      "loginRequiresSecret": "Twitch login requires API credentials enabled with both Client ID and Client Secret."
+      "clientIdHelp": "Public application identifier. Required for IGDB API access.",
+      "clientSecretHelp": "Required for IGDB API calls (Twitch client_credentials). Generate it under Manage → New Secret in the Twitch Developer Console."
     },
     "cloudflare": {
       "title": "Cloudflare profile",
@@ -153,8 +150,6 @@
   },
   "profile": {
     "viewProfile": "View Profile",
-    "changeUser": "Change User",
-    "logout": "Logout",
     "title": "Profile",
     "subtitle": "Your account information",
     "notLoggedIn": "You are not authenticated",
@@ -177,15 +172,6 @@
     "connect": "Connect tunnel",
     "connecting": "Connecting…",
     "publicApiNotReady": "The public API is not reachable yet. Wait a moment and reload the page, or disconnect and connect again."
-  },
-  "login": {
-    "title": "Welcome to MyHomeGames",
-    "subtitle": "Please login to continue",
-    "button": "Login with Twitch",
-    "orGoToSettings": "Or go to Settings",
-    "apiNotEnabled": "Enable IGDB API in Settings to use Twitch login.",
-    "gatewayHint": "Application credentials are configured on the API host, not in this app.",
-    "goToSettings": "Go to Settings"
   },
   "search": {
     "noResults": "No results found for the term \"{{query}}\"",

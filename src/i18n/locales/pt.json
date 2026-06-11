@@ -65,14 +65,15 @@
     "chinese": "Chinês",
     "japanese": "Japonês",
     "twitch": {
-      "title": "Twitch OAuth",
-      "description": "Configure as credenciais da sua aplicação Twitch OAuth. Você pode obtê-las no Console de Desenvolvedores do Twitch.",
+      "title": "IGDB / Twitch",
+      "description": "Ative a busca de catálogo via IGDB. As credenciais da aplicação são fornecidas pelo host da API, não armazenadas no app.",
+      "descriptionLocal": "Credenciais do Console de Desenvolvedores do Twitch. Usadas para busca de catálogo IGDB.",
       "clientId": "Client ID",
       "clientSecret": "Client Secret",
       "clientIdPlaceholder": "Digite seu Twitch Client ID",
       "clientSecretPlaceholder": "Digite seu Twitch Client Secret",
-      "clientIdHelp": "Seu Client ID da aplicação Twitch",
-      "clientSecretHelp": "Seu Client Secret da aplicação Twitch (mantenha isso seguro)"
+      "clientIdHelp": "Identificador público da aplicação. Obrigatório para acesso à API IGDB.",
+      "clientSecretHelp": "Obrigatório para chamadas à API IGDB (client_credentials Twitch). Gere em Manage → New Secret no Console de Desenvolvedores do Twitch."
     },
     "skinOptions": {
       "title": "Opções",
@@ -129,8 +130,6 @@
   },
   "profile": {
     "viewProfile": "Ver perfil",
-    "changeUser": "Alterar usuário",
-    "logout": "Sair",
     "title": "Perfil",
     "subtitle": "Informações da sua conta",
     "notLoggedIn": "Você não está autenticado",
@@ -139,15 +138,6 @@
     "userId": "ID do usuário",
     "accountType": "Tipo de conta",
     "developmentAccount": "Conta de desenvolvimento"
-  },
-  "login": {
-    "title": "Bem-vindo ao MyHomeGames",
-    "subtitle": "Por favor, faça login para continuar",
-    "button": "Entrar com Twitch",
-    "orGoToSettings": "Ou ir para Configurações",
-    "credentialsNeeded": "As credenciais Twitch OAuth são necessárias para fazer login. Por favor, configure-as primeiro nas Configurações.",
-    "configureFirst": "Você pode obter seu Twitch Client ID e Client Secret no Console de Desenvolvedores do Twitch.",
-    "goToSettings": "Ir para Configurações"
   },
   "search": {
     "noResults": "Nenhum resultado encontrado para o termo \"{{query}}\"",

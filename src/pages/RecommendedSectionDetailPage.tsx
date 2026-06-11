@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useLayoutEffect, useCallback, useMemo } fr
 import { useParams, useNavigate, useLocation, useOutletContext } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAutoTranslate } from "../hooks/useAutoTranslate";
-import { useAuth } from "../contexts/AuthContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { useLoading } from "../contexts/LoadingContext";
 import { useSkin } from "../contexts/SkinContext";
@@ -43,8 +42,7 @@ export default function RecommendedSectionDetailPage({
   const outletContext = useOutletContext<MainAppOutletContext | null>();
   const { sectionId: rawSectionId } = useParams<{ sectionId: string }>();
   const sectionId = rawSectionId ? decodeURIComponent(rawSectionId) : null;
-  const { token } = useAuth();
-  const { twitchLoginEnabled, igdbEnabled, settingsLoaded } = useSettings();
+  const { igdbEnabled, settingsLoaded } = useSettings();
   const { setLoading } = useLoading();
   const { activeSkinWeb } = useSkin();
   const persistentShell = activeSkinWeb.persistentLibraryShell;
@@ -112,10 +110,6 @@ export default function RecommendedSectionDetailPage({
 
   useEffect(() => {
     if (!settingsLoaded || !sectionId) return;
-    if (twitchLoginEnabled && !token) {
-      navigate("/login", { replace: true });
-      return;
-    }
 
     const navState = location.state as RecommendedSectionsNavState | null;
     if (navState?.skipRecommendedFetch && navState.recommendedSectionsSnapshot.length > 0) {
@@ -186,8 +180,6 @@ export default function RecommendedSectionDetailPage({
   }, [
     sectionId,
     settingsLoaded,
-    twitchLoginEnabled,
-    token,
     navigate,
     setLoading,
     onGamesLoaded,

@@ -111,20 +111,12 @@ export function isCloudflareTunnelBuildEnabled(): boolean {
   return import.meta.env.VITE_CLOUDFLARE_TUNNEL_ENABLED === "true";
 }
 
-// Get API token - prefer dev token if available, otherwise use Twitch token
+/** Optional API token for development (`VITE_API_TOKEN`). */
 export function getApiToken(): string {
-  // If VITE_API_TOKEN is set, prefer it (for development mode)
   const devToken = import.meta.env.VITE_API_TOKEN;
   if (devToken && devToken !== "") {
     return devToken;
   }
-
-  // Fallback to Twitch token in localStorage
-  const twitchToken = localStorage.getItem("twitch_token");
-  if (twitchToken) {
-    return twitchToken;
-  }
-
   return "";
 }
 

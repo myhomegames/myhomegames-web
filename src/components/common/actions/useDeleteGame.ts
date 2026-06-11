@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { API_BASE, getApiToken } from "../../../config";
+import { API_BASE } from "../../../config";
 import { buildApiUrl, buildApiHeaders } from "../../../utils/api";
 import { useLoading } from "../../../contexts/LoadingContext";
-import { useSettings } from "../../../contexts/SettingsContext";
 
 type UseDeleteGameParams = {
   gameId?: string;
@@ -39,7 +38,6 @@ export function useDeleteGame({
 }: UseDeleteGameParams): UseDeleteGameReturn {
   const { t } = useTranslation();
   const { setLoading } = useLoading();
-  const { twitchLoginEnabled } = useSettings();
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -49,11 +47,6 @@ export function useDeleteGame({
   };
 
   const handleConfirmDelete = async () => {
-    // When Twitch auth is disabled the server does not require a token, so we
-    // only bail out if auth is enabled and we have none.
-    const apiToken = getApiToken();
-    if (twitchLoginEnabled && !apiToken) return;
-
     setIsDeleting(true);
     setDeleteError(null);
     setLoading(true);

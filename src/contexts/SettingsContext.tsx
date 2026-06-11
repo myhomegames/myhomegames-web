@@ -19,8 +19,6 @@ import {
 } from "../skins/skinWebManifest";
 
 interface SettingsContextType {
-  twitchLoginEnabled: boolean;
-  setTwitchLoginEnabled: (value: boolean) => void;
   twitchApiEnabled: boolean;
   setTwitchApiEnabled: (value: boolean) => void;
   /** True when IGDB API is enabled in server settings (credentials on API gateway). */
@@ -45,14 +43,9 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const { featureEnabled, statusLoaded, tunnelReady } = useTunnel();
-  const [twitchLoginEnabled, setTwitchLoginEnabled] = useState(false);
   const [twitchApiEnabled, setTwitchApiEnabled] = useState(false);
   const [skinWeb, setSkinWeb] = useState<SkinWebManifest>(DEFAULT_SKIN_WEB_MANIFEST);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
-  /*
-   * Used by `updateSkinWebFlags` to avoid losing a newer response under a concurrent
-   * refreshSettings(). Each PUT bumps the counter; only the latest wins.
-   */
   const latestSkinWebUpdateRef = useRef(0);
 
   const applySkinWeb = useCallback((raw: unknown) => {
@@ -74,7 +67,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         });
         if (res.ok) {
           const data = await res.json();
-          setTwitchLoginEnabled(!!data.twitchLoginEnabled);
           const serverApiEnabled = !!data.twitchApiEnabled;
           setTwitchApiEnabled(serverApiEnabled);
           applySkinWeb(data.skinWeb);
@@ -106,11 +98,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           throw new Error(`HTTP ${res.status}`);
         }
         const data = await res.json().catch(() => null);
-        /*
-         * The server already normalizes and persists the merged manifest. If a newer
-         * updateSkinWebFlags was issued while this one was in flight, ignore this response so
-         * we don't overwrite the newer state. `refreshSettings` further down re-syncs anyway.
-         */
         if (token === latestSkinWebUpdateRef.current && data?.settings?.skinWeb) {
           applySkinWeb(data.settings.skinWeb);
         }
@@ -121,7 +108,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [applySkinWeb]
   );
 
-  // Load settings after tunnel is ready when tunnel mode is enabled
   useEffect(() => {
     if (featureEnabled && (!statusLoaded || !tunnelReady)) return;
     void refreshSettings().finally(() => {
@@ -151,8 +137,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   return (
     <SettingsContext.Provider
       value={{
-        twitchLoginEnabled,
-        setTwitchLoginEnabled,
         twitchApiEnabled,
         setTwitchApiEnabled,
         igdbEnabled,

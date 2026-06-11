@@ -25,7 +25,7 @@ This will create an optimized production build in the `docs/app` directory.
 - The `.env` file is committed to the repository
 - On the `main` branch: `.env` contains production configuration (no `VITE_API_TOKEN`, `VITE_DISCOVERY_SERVICE`)
 - On the `0-X-SNAPSHOT` branch: `.env` contains development configuration (`VITE_API_TOKEN=changeme`, local `VITE_API_BASE`)
-- Do not set `VITE_API_TOKEN` in production - the application will use Twitch OAuth for authentication
+- Do not set `VITE_API_TOKEN` in production
 
 ### Preview Production Build Locally
 

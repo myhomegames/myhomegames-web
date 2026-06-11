@@ -9,7 +9,7 @@ import type { ViewMode, GameItem, SortField } from "../types";
 import type { FilterField, FilterValue } from "../components/filters/types";
 import { compareTitles } from "../utils/stringUtils";
 import { isMainGameType, toGameTypeId } from "../utils/igdbGameType";
-import { API_BASE, getApiToken } from "../config";
+import { API_BASE } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 import { useSettings } from "../contexts/SettingsContext";
 import { useSkin } from "../contexts/SkinContext";
@@ -402,7 +402,7 @@ export function useGamesListPage(
   const { collections, collectionGameIds: contextCollectionGameIds } = useCollections();
   const { developers } = useDevelopers();
   const { publishers } = usePublishers();
-  const { twitchLoginEnabled, settingsLoaded } = useSettings();
+  const { settingsLoaded } = useSettings();
 
   // Convert collections to availableCollections format
   const availableCollections = useMemo(() =>
@@ -415,7 +415,6 @@ export function useGamesListPage(
   useEffect(() => {
     let cancelled = false;
     if (!settingsLoaded) return;
-    if (twitchLoginEnabled && !getApiToken()) return;
     const toItems = (list: Array<{ id: number | string; title?: string; name?: string }>, _key: string) =>
       (list || []).map((x) => ({ id: String(x.id), title: String((x as any).title ?? (x as any).name ?? x.id) }));
     Promise.all([
@@ -432,7 +431,7 @@ export function useGamesListPage(
       }
     });
     return () => { cancelled = true; };
-  }, [twitchLoginEnabled, settingsLoaded]);
+  }, [settingsLoaded]);
 
   const availableDevelopers = useMemo(() =>
     developers.map((d) => ({ id: String(d.id), title: d.title || "" })),

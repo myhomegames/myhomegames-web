@@ -1,8 +1,6 @@
 import { useState } from "react";
-import { getApiToken } from "../../../config";
 import { buildApiHeaders, buildAppApiUrl } from "../../../utils/api";
 import { useLoading } from "../../../contexts/LoadingContext";
-import { useSettings } from "../../../contexts/SettingsContext";
 import type { IGDBGame, GameItem } from "../../../types";
 import { toGameTypeId } from "../../../utils/igdbGameType";
 
@@ -22,21 +20,10 @@ export function useAddGame({
   onError,
 }: UseAddGameParams = {}): UseAddGameReturn {
   const { setLoading } = useLoading();
-  const { twitchLoginEnabled } = useSettings();
   const [isAdding, setIsAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
   const addGame = async (igdbGame: IGDBGame): Promise<any | null> => {
-    const apiToken = getApiToken();
-    if (twitchLoginEnabled && !apiToken) {
-      const errorMsg = "Authentication required";
-      setAddError(errorMsg);
-      if (onError) {
-        onError(errorMsg);
-      }
-      return null;
-    }
-
     setIsAdding(true);
     setAddError(null);
     setLoading(true);

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { API_BASE, getApiToken } from "../../config";
-import { buildApiUrl } from "../../utils/api";
+import { API_BASE } from "../../config";
+import { buildApiUrl, buildApiHeaders } from "../../utils/api";
 import type { CollectionItem } from "../../types";
 import type { CollectionLikeResourceType } from "./EditCollectionLikeModal";
 import {
@@ -10,8 +10,6 @@ import {
   useCreateDeveloper,
   useCreatePublisher,
 } from "../common/actions";
-import { useSettings } from "../../contexts/SettingsContext";
-
 const RESOURCE_CONFIG: Record<
   CollectionLikeResourceType,
   {
@@ -59,7 +57,6 @@ export default function AddCollectionLikeToCollectionLikeModal({
   onLinked,
 }: AddCollectionLikeToCollectionLikeModalProps) {
   const { t } = useTranslation();
-  const { twitchLoginEnabled } = useSettings();
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLinking, setIsLinking] = useState(false);
@@ -115,8 +112,6 @@ export default function AddCollectionLikeToCollectionLikeModal({
   }, [searchQuery, availableParents]);
 
   const linkToParent = async (parent: CollectionItem) => {
-    const token = getApiToken();
-    if (twitchLoginEnabled && !token) return;
     setIsLinking(true);
     setError(null);
     try {
@@ -126,9 +121,7 @@ export default function AddCollectionLikeToCollectionLikeModal({
       );
       const res = await fetch(url, {
         method: "POST",
-        headers: {
-          "X-Auth-Token": token,
-        },
+        headers: buildApiHeaders(),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 

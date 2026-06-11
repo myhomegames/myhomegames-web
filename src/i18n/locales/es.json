@@ -65,14 +65,15 @@
     "chinese": "Chino",
     "japanese": "Japonés",
     "twitch": {
-      "title": "Twitch OAuth",
-      "description": "Configura las credenciales de tu aplicación Twitch OAuth. Puedes obtenerlas desde la Consola de Desarrolladores de Twitch.",
+      "title": "IGDB / Twitch",
+      "description": "Activa la búsqueda de catálogo vía IGDB. Las credenciales de la aplicación las proporciona el host de la API, no se almacenan en la app.",
+      "descriptionLocal": "Credenciales de la Consola de Desarrolladores de Twitch. Se usan para la búsqueda de catálogo IGDB.",
       "clientId": "Client ID",
       "clientSecret": "Client Secret",
       "clientIdPlaceholder": "Ingresa tu Twitch Client ID",
       "clientSecretPlaceholder": "Ingresa tu Twitch Client Secret",
-      "clientIdHelp": "Tu Client ID de la aplicación Twitch",
-      "clientSecretHelp": "Tu Client Secret de la aplicación Twitch (mantén esto seguro)"
+      "clientIdHelp": "Identificador público de la aplicación. Requerido para el acceso a la API IGDB.",
+      "clientSecretHelp": "Requerido para llamadas a la API IGDB (client_credentials de Twitch). Genéralo en Manage → New Secret en la Consola de Desarrolladores de Twitch."
     },
     "skinOptions": {
       "title": "Opciones",
@@ -129,8 +130,6 @@
   },
   "profile": {
     "viewProfile": "Ver perfil",
-    "changeUser": "Cambiar usuario",
-    "logout": "Salir",
     "title": "Perfil",
     "subtitle": "Información de tu cuenta",
     "notLoggedIn": "No estás autenticado",
@@ -139,15 +138,6 @@
     "userId": "ID de usuario",
     "accountType": "Tipo de cuenta",
     "developmentAccount": "Cuenta de desarrollo"
-  },
-  "login": {
-    "title": "Bienvenido a MyHomeGames",
-    "subtitle": "Por favor inicia sesión para continuar",
-    "button": "Iniciar sesión con Twitch",
-    "orGoToSettings": "O ir a Configuración",
-    "credentialsNeeded": "Las credenciales Twitch OAuth son necesarias para iniciar sesión. Por favor, configúralas primero en Configuración.",
-    "configureFirst": "Puedes obtener tu Twitch Client ID y Client Secret desde la Consola de Desarrolladores de Twitch.",
-    "goToSettings": "Ir a Configuración"
   },
   "search": {
     "noResults": "No se encontraron resultados para el término \"{{query}}\"",

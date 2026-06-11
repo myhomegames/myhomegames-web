@@ -29,7 +29,7 @@ describe("tunnelApi return URL", () => {
   });
 
   it("getAppReturnUrl uses /app/ when pathname is under the SPA mount", () => {
-    mockLocation("https://myhomegames.vige.it", "/app/login");
+    mockLocation("https://myhomegames.vige.it", "/app/settings");
     expect(getAppReturnUrl()).toBe("https://myhomegames.vige.it/app/");
   });
 
