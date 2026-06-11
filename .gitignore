@@ -32,6 +32,7 @@ certs/*.pem
 # - master branch: production configuration
 # - 0-X-SNAPSHOT branch: development configuration
 .env
+.env.production
 .env.local
 .env.*.local
 docs
