@@ -334,11 +334,8 @@
               </p>
             </div>
             <div class="feature-card">
-              <h4>🎮 IGDB Catalog</h4>
-              <p>
-                Optional: enrich your library with IGDB metadata (covers,
-                descriptions, similar games)
-              </p>
+              <h4>🔐 Optional Twitch Login</h4>
+              <p>Optional: sign in with Twitch for IGDB metadata and extra features</p>
             </div>
           </div>
         </section>
@@ -443,6 +440,58 @@
         </section>
 
         <section class="section">
+          <h2>🔐 Optional: Twitch Login</h2>
+          <p>
+            You can use MyHomeGames together with Twitch.
+            If you enable Twitch in the server settings, you get access to IGDB metadata (covers, descriptions, similar games, etc.) and sign in with your Twitch account.
+          </p>
+          <h3>Setting up Twitch (optional)</h3>
+          <p>If you want to use Twitch authentication and IGDB features:</p>
+          <ol>
+            <li>
+              Go to
+              <a
+                href="https://www.twitch.tv/signup"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Twitch Sign Up</a
+              >
+              if you don't have an account.
+            </li>
+            <li>
+              In the
+              <a
+                href="https://dev.twitch.tv/console/apps/create"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Twitch Developer Console</a
+              >, create a new application with:
+              <ul>
+                <li>Application Name: MyHomeGames</li>
+                <li>
+                  Application Callback URL:
+                  https://localhost:41440/auth/twitch/callback
+                </li>
+                <li>Category: Application Integration</li>
+              </ul>
+            </li>
+            <li>
+              Save your Client Id and Client Secret and configure them in the server (e.g. in Settings or environment).
+            </li>
+          </ol>
+          <div class="button-container">
+            <a
+              href="https://dev.twitch.tv/console/apps/create"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="button"
+            >
+              Twitch Developer Console
+            </a>
+          </div>
+        </section>
+
+        <section class="section">
           <h2>📚 Documentation</h2>
           <ul>
             <li>
@@ -486,7 +535,7 @@
       <footer>
         <p>© 2024 MyHomeGames - Manage Your Video Game Collection</p>
         <p style="margin-top: 0.5rem; opacity: 0.8">
-          Built with ❤️ using React, TypeScript, and Express.js
+          Built with ❤️ using React, TypeScript, Express.js and optional Twitch OAuth
         </p>
       </footer>
     </div>
