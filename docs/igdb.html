@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="How to enable IGDB catalog search in MyHomeGames — automatic proxy credentials or manual Twitch Developer Console setup."
+    />
+    <title>IGDB Catalog — MyHomeGames</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><rect width="32" height="32" fill="%23FFD700" rx="4"/><text x="16" y="16" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="black" text-anchor="middle" dominant-baseline="middle">MY</text></svg>'
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      header {
+        text-align: center;
+        color: white;
+        padding: 2rem 0 1rem;
+      }
+
+      header h1 {
+        font-size: 2.25rem;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      header p {
+        font-size: 1.15rem;
+        opacity: 0.95;
+        margin-top: 0.5rem;
+      }
+
+      .back-link {
+        display: inline-block;
+        margin-top: 1.25rem;
+        color: white;
+        text-decoration: underline;
+        opacity: 0.95;
+      }
+
+      .content {
+        background: white;
+        border-radius: 12px;
+        padding: 2.5rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        margin-top: 1.5rem;
+      }
+
+      h2 {
+        font-size: 1.75rem;
+        color: #667eea;
+        margin: 2rem 0 1rem;
+        border-bottom: 3px solid #667eea;
+        padding-bottom: 0.4rem;
+      }
+
+      h2:first-child {
+        margin-top: 0;
+      }
+
+      h3 {
+        font-size: 1.25rem;
+        color: #764ba2;
+        margin: 1.5rem 0 0.5rem;
+      }
+
+      p,
+      li {
+        margin-bottom: 0.75rem;
+        font-size: 1.05rem;
+      }
+
+      ul,
+      ol {
+        margin: 0.5rem 0 1rem 1.5rem;
+      }
+
+      code {
+        background: #f4f4f4;
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        font-family: "Courier New", monospace;
+        font-size: 0.92em;
+      }
+
+      .info {
+        background: #d1ecf1;
+        border-left: 4px solid #0dcaf0;
+        padding: 1rem;
+        border-radius: 4px;
+        margin: 1rem 0;
+      }
+
+      .button {
+        display: inline-block;
+        padding: 0.85rem 1.5rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 600;
+        margin: 0.5rem 0.5rem 0.5rem 0;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0;
+        font-size: 0.98rem;
+      }
+
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 0.6rem 0.75rem;
+        text-align: left;
+      }
+
+      th {
+        background: #f8f9fa;
+      }
+
+      footer {
+        text-align: center;
+        color: white;
+        padding: 2rem 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>🎮 IGDB Catalog</h1>
+        <p>Enrich your library with covers, descriptions, and catalog search</p>
+        <a class="back-link" href="/">← Back to MyHomeGames home</a>
+      </header>
+
+      <div class="content">
+        <p>
+          MyHomeGames uses the
+          <a
+            href="https://www.igdb.com/api"
+            target="_blank"
+            rel="noopener noreferrer"
+            >IGDB API</a
+          >
+          (via Twitch Developer Services) for personal catalog enrichment only.
+          You need <strong>Twitch application credentials</strong> (Client ID and
+          Client Secret). This is <em>not</em> a Twitch user login — no sign-in
+          with a Twitch account is required.
+        </p>
+
+        <h2>Automatic setup (recommended)</h2>
+        <p>
+          If you use the hosted <strong>Cloudflare Tunnel</strong> and API
+          gateway, IGDB credentials are injected automatically on
+          <code>/igdb/*</code> requests. You do not register your own Twitch app
+          and you do not enter Client ID or Secret in the web app.
+        </p>
+        <ol>
+          <li>Connect the tunnel from <strong>Settings → Cloudflare profile</strong>.</li>
+          <li>
+            Open <strong>Settings → IGDB / Twitch</strong> and enable
+            <strong>IGDB API</strong>.
+          </li>
+        </ol>
+        <div class="info" role="note">
+          Credentials are stored on the API gateway (Cloudflare Worker), not in
+          your browser or in server settings. See the
+          <a
+            href="https://github.com/myhomegames/myhomegames-proxy"
+            target="_blank"
+            rel="noopener noreferrer"
+            >myhomegames-proxy</a
+          >
+          repository for details.
+        </div>
+
+        <h2>Manual setup (self-hosted, no proxy)</h2>
+        <p>
+          Choose this path if you run the server locally (or without the
+          Cloudflare IGDB proxy) and want to use your own Twitch application
+          credentials.
+        </p>
+
+        <h3>1. Register a Twitch application</h3>
+        <ol>
+          <li>
+            Sign in to the
+            <a
+              href="https://dev.twitch.tv/console/apps"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Twitch Developer Console</a
+            >
+            (create a
+            <a
+              href="https://www.twitch.tv/signup"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Twitch account</a
+            >
+            first if needed).
+          </li>
+          <li>Click <strong>Register Your Application</strong>.</li>
+          <li>
+            Use a name such as <strong>MyHomeGames</strong>, category
+            <strong>Application Integration</strong>.
+          </li>
+          <li>
+            <strong>OAuth redirect URLs</strong> are not used for IGDB catalog
+            search. If the form requires a URL, you can use a placeholder such as
+            <code>http://localhost</code>.
+          </li>
+          <li>
+            Copy the <strong>Client ID</strong>, then under
+            <strong>Manage → New Secret</strong> generate a
+            <strong>Client Secret</strong> and store it safely.
+          </li>
+        </ol>
+        <p>
+          <a
+            href="https://dev.twitch.tv/console/apps/create"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="button"
+            >Open Twitch Developer Console</a
+          >
+        </p>
+
+        <h3>2. Configure MyHomeGames</h3>
+        <p>Enter the credentials in one of these places:</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Where</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Web UI (recommended)</td>
+              <td>
+                <strong>Settings → IGDB / Twitch</strong> — enable IGDB API,
+                enter Client ID and Client Secret
+              </td>
+            </tr>
+            <tr>
+              <td>Server <code>.env</code></td>
+              <td><code>TWITCH_CLIENT_ID</code> and <code>TWITCH_CLIENT_SECRET</code></td>
+            </tr>
+          </tbody>
+        </table>
+        <p>
+          The Settings page shows Client ID / Secret fields only when the app is
+          <em>not</em> in Cloudflare Tunnel mode
+          (<code>VITE_CLOUDFLARE_TUNNEL_ENABLED</code> is not set for production
+          builds that rely on the gateway).
+        </p>
+
+        <h3>3. Enable IGDB in the app</h3>
+        <p>
+          In <strong>Settings → IGDB / Twitch</strong>, turn on
+          <strong>Enable IGDB API</strong> (or
+          <strong>Enable Client ID / Secret (IGDB)</strong> when configuring
+          credentials locally).
+        </p>
+
+        <h2>Troubleshooting</h2>
+        <ul>
+          <li>
+            <strong>Credentials not available</strong> (tunnel): check Worker
+            secrets and that IGDB is enabled in Settings.
+          </li>
+          <li>
+            <strong>Credentials not available</strong> (local): check Client ID /
+            Secret in Settings or <code>.env</code>.
+          </li>
+          <li>
+            <strong>No credential fields in Settings</strong>: the app expects
+            the gateway to inject credentials — use manual setup only without
+            tunnel mode.
+          </li>
+        </ul>
+
+        <p style="margin-top: 2rem">
+          Full technical reference:
+          <a
+            href="https://github.com/myhomegames/myhomegames-server/blob/main/docs/IGDB.md"
+            >IGDB.md</a
+          >
+          in the server repository.
+        </p>
+      </div>
+
+      <footer>
+        <p>© 2024 MyHomeGames</p>
+      </footer>
+    </div>
+  </body>
+</html>
