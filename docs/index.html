@@ -183,9 +183,43 @@
         box-shadow: 0 6px 20px rgba(245, 87, 108, 0.6);
       }
 
+      .button-facebook {
+        background: linear-gradient(135deg, #1877f2 0%, #0d65d9 100%);
+        box-shadow: 0 4px 15px rgba(24, 119, 242, 0.45);
+      }
+
+      .button-facebook:hover {
+        box-shadow: 0 6px 20px rgba(24, 119, 242, 0.65);
+      }
+
+      .button-paypal {
+        background: linear-gradient(135deg, #0070ba 0%, #003087 100%);
+        box-shadow: 0 4px 15px rgba(0, 48, 135, 0.45);
+      }
+
+      .button-paypal:hover {
+        box-shadow: 0 6px 20px rgba(0, 48, 135, 0.65);
+      }
+
       .button-container {
         text-align: center;
         margin: 2rem 0;
+      }
+
+      .button-with-icon {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+      }
+
+      .button-icon {
+        width: 1.25em;
+        height: 1.25em;
+        flex-shrink: 0;
+      }
+
+      .button-icon--paypal {
+        width: 1.65em;
       }
 
       .feature-list {
@@ -461,6 +495,46 @@
               class="button button-secondary"
             >
               ▶️ YouTube Channel
+            </a>
+            <a
+              href="https://www.facebook.com/groups/1864095787557962"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="button button-facebook button-with-icon"
+            >
+              <svg
+                class="button-icon"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path
+                  fill="currentColor"
+                  d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
+                />
+              </svg>
+              Facebook Group
+            </a>
+            <a
+              href="https://www.paypal.com/paypalme/LStancapiano"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="button button-paypal button-with-icon"
+            >
+              <svg
+                class="button-icon button-icon--paypal"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path
+                  fill="currentColor"
+                  d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c-.013.076-.026.175-.041.254-.93 4.778-4.005 7.201-9.138 7.201h-2.19a.563.563 0 0 0-.556.479l-1.187 7.527h-.506l-.24 1.516a.56.56 0 0 0 .554.647h3.882c.483 0 .898-.354.969-.837l.038-.22.755-4.788.048-.28c.071-.483.486-.837.969-.837h.611c3.957 0 7.049-1.631 7.956-6.364.383-2.086-.096-3.835-1.331-4.972z"
+                />
+              </svg>
+              Contribute via PayPal
             </a>
           </div>
         </section>
