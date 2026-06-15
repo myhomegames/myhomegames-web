@@ -3,17 +3,31 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MyHomeGames — Self-Hosted Game Library &amp; Collection Manager</title>
     <meta
       name="description"
-      content="MyHomeGames — personal game library catalog. Does not distribute or provide video games; it only helps you organize metadata and links for your own collection."
+      content="MyHomeGames is a free, self-hosted catalog for your personal video game collection. Organize libraries, ratings, and IGDB metadata on Windows, macOS, and Linux. Not a game store or distributor."
     />
-    <title>MyHomeGames - Manage Your Video Game Collection</title>
+    <meta
+      name="keywords"
+      content="MyHomeGames, game library, video game collection, self-hosted, game catalog, IGDB, home server, game manager, personal library"
+    />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="author" content="MyHomeGames" />
+    <meta name="theme-color" content="#667eea" />
+    <link rel="canonical" href="https://myhomegames.vige.it/" />
+
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="MyHomeGames" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:url" content="https://myhomegames.vige.it/" />
-    <meta property="og:title" content="MyHomeGames - Manage Your Video Game Collection" />
+    <meta
+      property="og:title"
+      content="MyHomeGames — Self-Hosted Game Library &amp; Collection Manager"
+    />
     <meta
       property="og:description"
-      content="MyHomeGames — personal game library catalog. Does not distribute or provide video games; it only helps you organize metadata and links for your own collection."
+      content="Free self-hosted catalog for your personal video game collection. Windows, macOS, and Linux. Organize games, ratings, and IGDB metadata — not a game store."
     />
     <meta
       property="og:image"
@@ -21,11 +35,73 @@
     />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="MyHomeGames — personal video game collection manager"
+    />
+
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="MyHomeGames — Self-Hosted Game Library" />
+    <meta
+      name="twitter:description"
+      content="Free self-hosted catalog for your personal video game collection on Windows, macOS, and Linux."
+    />
     <meta
       name="twitter:image"
       content="https://myhomegames.vige.it/logo-facebook.png"
     />
+    <meta
+      name="twitter:image:alt"
+      content="MyHomeGames — personal video game collection manager"
+    />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://myhomegames.vige.it/#website",
+            "url": "https://myhomegames.vige.it/",
+            "name": "MyHomeGames",
+            "description": "Self-hosted personal video game library and collection manager.",
+            "inLanguage": "en",
+            "publisher": { "@id": "https://myhomegames.vige.it/#organization" }
+          },
+          {
+            "@type": "Organization",
+            "@id": "https://myhomegames.vige.it/#organization",
+            "name": "MyHomeGames",
+            "url": "https://myhomegames.vige.it/",
+            "logo": "https://myhomegames.vige.it/logo-facebook.png",
+            "sameAs": [
+              "https://github.com/myhomegames/myhomegames-server",
+              "https://www.youtube.com/@myhomegames-y5t",
+              "https://www.facebook.com/groups/1864095787557962"
+            ]
+          },
+          {
+            "@type": "SoftwareApplication",
+            "name": "MyHomeGames Server",
+            "applicationCategory": "GameApplication",
+            "applicationSubCategory": "Library management",
+            "operatingSystem": "Windows, macOS, Linux",
+            "description": "Self-hosted server and web app to catalog and organize your personal video game collection with optional IGDB metadata.",
+            "url": "https://myhomegames.vige.it/",
+            "downloadUrl": "https://github.com/myhomegames/myhomegames-server/releases",
+            "softwareHelp": "https://myhomegames.vige.it/igdb.html",
+            "license": "https://www.apache.org/licenses/LICENSE-2.0",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "publisher": { "@id": "https://myhomegames.vige.it/#organization" }
+          }
+        ]
+      }
+    </script>
+
     <link
       rel="icon"
       type="image/svg+xml"
@@ -324,10 +400,11 @@
         <h1 class="site-logo">
           <img
             src="logo.png"
-            alt="MyHomeGames"
+            alt="MyHomeGames — self-hosted video game library manager"
             width="528"
             height="158"
             decoding="async"
+            fetchpriority="high"
           />
         </h1>
         <p class="subtitle">Personal video game collection management system</p>
@@ -337,11 +414,13 @@
           </a>
         </div>
       </header>
-       <iframe
+
+      <main id="main-content">
+      <iframe
         width="100%"
         height="567"
         src="https://www.youtube.com/embed/0zaQ4R9pXk0"
-        title="MyHomeGames"
+        title="MyHomeGames overview video"
         frameborder="0"
         allow="
           accelerometer;
@@ -614,9 +693,10 @@
           </p>
         </section>
       </div>
+      </main>
 
       <footer>
-        <p>© 2024 MyHomeGames - Manage Your Video Game Collection</p>
+        <p>© 2026 MyHomeGames — Self-hosted game library catalog</p>
         <p style="margin-top: 0.5rem; opacity: 0.8">
           Built with ❤️ using React, TypeScript, and Express.js
         </p>
