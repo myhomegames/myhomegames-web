@@ -10,12 +10,17 @@ import { useTunnel } from "../contexts/TunnelContext";
 import { LIBRARY_ORDER, normalizeVisibleLibraries } from "../utils/librarySections";
 import SettingsSkinSection from "../components/settings/SettingsSkinSection";
 import SettingsCloudflareSection from "../components/settings/SettingsCloudflareSection";
+import { useServerVersion } from "../hooks/useServerVersion";
+import {
+  WEB_REQUIRES_MIN_SERVER_VERSION,
+} from "../utils/apiCompatibility";
 
 export default function SettingsPage() {
   const { t, i18n } = useTranslation();
   const { setLoading } = useLoading();
   const { refreshSettings } = useSettings();
   const { featureEnabled, tunnelReady } = useTunnel();
+  const { version: connectedServerVersion } = useServerVersion();
   const skipApiRedirect = () =>
     shouldSkipApiBaseBrowserRedirect({ tunnelFeatureEnabled: featureEnabled, tunnelReady });
   const [language, setLanguage] = useState("en");
@@ -323,6 +328,21 @@ export default function SettingsPage() {
               <div className="settings-label">
                 {t("settings.version")} {__APP_VERSION__}
               </div>
+            </div>
+
+            <div className="settings-field-small">
+              <p className="settings-help-text">
+                {t("settings.minServerVersionRequired", {
+                  version: WEB_REQUIRES_MIN_SERVER_VERSION,
+                  defaultValue: "Requires server version {{version}} or newer.",
+                })}
+              </p>
+              <p className="settings-help-text">
+                {t("settings.connectedServerVersion", {
+                  version: connectedServerVersion ?? "—",
+                  defaultValue: "Connected server version: {{version}}.",
+                })}
+              </p>
             </div>
 
             <div className="settings-field">

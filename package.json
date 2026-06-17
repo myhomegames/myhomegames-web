@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "compat:validate": "node ../compatibility/validate.mjs"
   },
   "dependencies": {
     "@types/react-tabs": "^5.0.5",

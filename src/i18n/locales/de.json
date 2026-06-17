@@ -125,6 +125,9 @@
     "downloadMacArm": "macOS (Apple Silicon)",
     "downloadMacIntel": "macOS (Intel)",
     "downloadLinux": "Linux",
+    "serverCompatibilityMismatch": "Server update required",
+    "serverCompatibilityTooltip": "Server incompatible with this web app",
+    "serverCompatibilityDetail": "This web app requires server version {{required}} or newer. The connected server is {{version}}. Update the server to a matching release.",
     "titleFilterPlaceholder": "Suchen…",
     "titleFilterAria": "Aktuelle Liste durchsuchen"
   },

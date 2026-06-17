@@ -5,6 +5,7 @@ import { normalizeSkinWebManifest, type SkinWebManifest } from "./skinWebManifes
 export type ServerSkinInfo = {
   id: string;
   name: string;
+  version?: string;
   snapshotUrl?: string;
   web: SkinWebManifest;
 };
@@ -26,6 +27,7 @@ export async function fetchSkinList(): Promise<ServerSkinInfo[]> {
     .map((s) => ({
       id: s.id,
       name: s.name,
+      version: typeof s.version === "string" && s.version.trim() ? s.version.trim() : undefined,
       snapshotUrl: typeof s.snapshotUrl === "string" ? s.snapshotUrl : undefined,
       web: normalizeSkinWebManifest((s as { web?: unknown }).web),
     }));

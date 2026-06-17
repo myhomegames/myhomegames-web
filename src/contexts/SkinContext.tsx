@@ -29,6 +29,7 @@ import { normalizeSkinWebManifest, type SkinWebManifest } from "../skins/skinWeb
 type SkinOption = {
   id: string;
   name: string;
+  version?: string;
   snapshotUrl?: string;
   snapshotVersion: number;
 };
@@ -160,6 +161,7 @@ export function SkinProvider({ children }: { children: ReactNode }) {
       serverSkins.map((s) => ({
         id: s.id,
         name: s.name,
+        version: s.version,
         snapshotUrl: s.snapshotUrl,
         snapshotVersion,
       })),
@@ -254,7 +256,15 @@ export function SkinProvider({ children }: { children: ReactNode }) {
       deleteSkin,
       refreshInstalledSkins,
     }),
-    [activeSkinId, activeSkinWeb, skins, selectSkin, uploadSkin, deleteSkin, refreshInstalledSkins]
+    [
+      activeSkinId,
+      activeSkinWeb,
+      skins,
+      selectSkin,
+      uploadSkin,
+      deleteSkin,
+      refreshInstalledSkins,
+    ]
   );
 
   return <SkinContext.Provider value={value}>{children}</SkinContext.Provider>;
