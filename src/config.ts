@@ -106,6 +106,11 @@ export function hasPublicApiBase(): boolean {
 /** GitHub repo "owner/repo" for checking releases (optional). e.g. MyHomeGames/MyHomeGames */
 export const GITHUB_REPO = (import.meta.env.VITE_GITHUB_REPO as string) || "";
 
+/** GitHub repo for official skin releases (optional). */
+export const SKINS_GITHUB_REPO =
+  (import.meta.env.VITE_SKINS_GITHUB_REPO as string | undefined)?.trim() ||
+  "myhomegames/myhomegames-skins";
+
 /** When true, localhost tunnel control may be unreachable (remote browser) — use Cloudflare Access + public API URL. */
 export function isCloudflareTunnelBuildEnabled(): boolean {
   return import.meta.env.VITE_CLOUDFLARE_TUNNEL_ENABLED === "true";

@@ -1,4 +1,5 @@
 import webCompatibility from "../../compatibility.json";
+import { parseSemver } from "./semver";
 
 export type ServerVersionInfo = {
   version: string | null;
@@ -7,13 +8,7 @@ export type ServerVersionInfo = {
 export const WEB_REQUIRES_MIN_SERVER_VERSION =
   webCompatibility.requires?.minServerVersion ?? "0.0.0";
 
-export function parseSemver(version: string): [number, number, number] | null {
-  const v = version.trim().replace(/^v/i, "");
-  const core = v.split("-")[0];
-  const parts = core.split(".").map((n) => parseInt(n, 10));
-  if (parts.length < 1 || parts.some((n) => Number.isNaN(n))) return null;
-  return [parts[0] ?? 0, parts[1] ?? 0, parts[2] ?? 0];
-}
+export { parseSemver } from "./semver";
 
 /** True when server `actual` >= required minimum semver. */
 export function isServerVersionCompatible(

@@ -25,6 +25,7 @@ import {
 } from "../skins/skinApi";
 import { getCachedSkinWebOrDefault, setCachedSkinWeb } from "../skins/skinWebCache";
 import { normalizeSkinWebManifest, type SkinWebManifest } from "../skins/skinWebManifest";
+import { useSkinAutoUpdateLogic, type SkinUpdatesState } from "../hooks/useSkinAutoUpdate";
 
 type SkinOption = {
   id: string;
@@ -43,6 +44,7 @@ type SkinContextValue = {
   uploadSkin: (file: File, displayName?: string) => Promise<void>;
   deleteSkin: (id: string) => Promise<void>;
   refreshInstalledSkins: () => Promise<ServerSkinInfo[]>;
+  skinUpdates: SkinUpdatesState;
 };
 
 const SkinContext = createContext<SkinContextValue | null>(null);
@@ -246,6 +248,14 @@ export function SkinProvider({ children }: { children: ReactNode }) {
     [refreshInstalledSkins, serverSkins, selectSkin]
   );
 
+  const skinUpdates = useSkinAutoUpdateLogic({
+    settingsLoaded,
+    skins: serverSkins,
+    activeSkinId,
+    refreshInstalledSkins,
+    selectSkin,
+  });
+
   const value = useMemo(
     () => ({
       activeSkinId,
@@ -255,6 +265,7 @@ export function SkinProvider({ children }: { children: ReactNode }) {
       uploadSkin,
       deleteSkin,
       refreshInstalledSkins,
+      skinUpdates,
     }),
     [
       activeSkinId,
@@ -264,6 +275,7 @@ export function SkinProvider({ children }: { children: ReactNode }) {
       uploadSkin,
       deleteSkin,
       refreshInstalledSkins,
+      skinUpdates,
     ]
   );
 
