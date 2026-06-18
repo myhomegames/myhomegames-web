@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
+import type { CSSProperties } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import SearchResultsList from "./SearchResultsList";
@@ -44,6 +45,86 @@ export default function SearchBar({ games, collections, developers = [], publish
   const blurTimeoutRef = useRef<number | null>(null);
   const isSelectingGameRef = useRef(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [dropdownLeftOffset, setDropdownLeftOffset] = useState(0);
+
+  const dropdownLayoutStyle = useMemo(
+    (): CSSProperties => ({ left: dropdownLeftOffset }),
+    [dropdownLeftOffset],
+  );
+
+  useLayoutEffect(() => {
+    if (!isOpen || isOnSearchResultsPage) {
+      setDropdownLeftOffset(0);
+      return;
+    }
+
+    const root = searchRef.current;
+    if (!root) return;
+
+    let cancelled = false;
+
+    const measure = () => {
+      if (cancelled) return;
+
+      const dropdown = root.querySelector<HTMLElement>(":scope > .mhg-dropdown");
+      if (!dropdown) {
+        setDropdownLeftOffset(0);
+        return;
+      }
+
+      const anchorRect = root.getBoundingClientRect();
+      const dropdownWidth = dropdown.getBoundingClientRect().width;
+      if (dropdownWidth <= 0) return;
+
+      const padding = 16;
+      let offset = 0;
+
+      const rightEdge = anchorRect.left + dropdownWidth;
+      const maxRight = window.innerWidth - padding;
+      if (rightEdge > maxRight) {
+        offset = maxRight - rightEdge;
+      }
+
+      const leftEdge = anchorRect.left + offset;
+      if (leftEdge < padding) {
+        offset += padding - leftEdge;
+      }
+
+      setDropdownLeftOffset(offset);
+    };
+
+    measure();
+    const rafId = requestAnimationFrame(measure);
+
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    const dropdown = root.querySelector<HTMLElement>(":scope > .mhg-dropdown");
+    if (resizeObserver) {
+      resizeObserver.observe(root);
+      if (dropdown) resizeObserver.observe(dropdown);
+    }
+
+    window.addEventListener("resize", measure);
+    window.addEventListener("scroll", measure, true);
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(rafId);
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("scroll", measure, true);
+    };
+  }, [
+    isOpen,
+    isOnSearchResultsPage,
+    searchQuery,
+    isFocused,
+    filteredGames.length,
+    filteredCollections.length,
+    filteredDevelopers.length,
+    filteredPublishers.length,
+    recentSearches.length,
+  ]);
 
   const saveRecentSearch = useCallback((query: string) => {
     if (query.trim() !== "") {
@@ -462,6 +543,7 @@ export default function SearchBar({ games, collections, developers = [], publish
       {((isOpen && !isOnSearchResultsPage && searchQuery.trim().length >= 2 && (filteredGames.length > 0 || filteredCollections.length > 0 || filteredDevelopers.length > 0 || filteredPublishers.length > 0)) || isModalOpen) && (
         <div
           className={`mhg-dropdown search-dropdown${isModalOpen ? " search-dropdown--modal-hidden" : ""}`}
+          style={dropdownLayoutStyle}
         >
           <div className="search-dropdown-scroll">
             <SearchResultsList
@@ -559,19 +641,19 @@ export default function SearchBar({ games, collections, developers = [], publish
       )}
 
       {isOpen && !isOnSearchResultsPage && searchQuery.trim().length >= 2 && filteredGames.length === 0 && filteredCollections.length === 0 && filteredDevelopers.length === 0 && filteredPublishers.length === 0 && (
-        <div className="mhg-dropdown search-no-results">
+        <div className="mhg-dropdown search-no-results" style={dropdownLayoutStyle}>
           {t("search.noResults", { query: searchQuery })}
         </div>
       )}
 
       {isOpen && !isOnSearchResultsPage && searchQuery.trim().length > 0 && searchQuery.trim().length < 2 && (
-        <div className="mhg-dropdown search-no-results">
+        <div className="mhg-dropdown search-no-results" style={dropdownLayoutStyle}>
           {t("search.minimumCharacters", "Please enter at least 2 characters to search")}
         </div>
       )}
 
       {isOpen && isFocused && searchQuery.trim() === "" && recentSearches.length > 0 && (
-        <div className="mhg-dropdown search-dropdown">
+        <div className="mhg-dropdown search-dropdown" style={dropdownLayoutStyle}>
           <div className="search-dropdown-header">
             {t("search.recentSearches")}
           </div>
