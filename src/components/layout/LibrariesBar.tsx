@@ -29,6 +29,7 @@ import {
   contextRailViewTransitionsEnabled,
   isContextRailDetailPathname,
 } from "../../utils/contextRailIndexPeek";
+import { librariesStripNeedsHorizontalScroll, syncLibrariesStripScroll } from "../../utils/librariesStripScroll";
 
 type CollectionShortcut = {
   id: string;
@@ -832,8 +833,11 @@ export default function LibrariesBar({
       if (
         libRow &&
         Math.abs(e.deltaX) > Math.abs(e.deltaY) &&
-        libRow.scrollWidth > libRow.clientWidth + 1
+        librariesStripNeedsHorizontalScroll(libRow)
       ) {
+        requestAnimationFrame(() => {
+          syncLibrariesStripScroll(libRow);
+        });
         return;
       }
 
@@ -889,6 +893,45 @@ export default function LibrariesBar({
   const isAddGameRoute = pathname === "/add-game";
   const isSettingsRoute = pathname === "/settings";
   const showProfileInLibrariesBar = showHeaderActionsInLibrariesBar && showProfile;
+
+  useEffect(() => {
+    if (isNarrow) return;
+    const row = containerRef.current?.querySelector<HTMLElement>(".mhg-libraries-container");
+    if (!row) return;
+
+    const scheduleClamp = () => {
+      requestAnimationFrame(() => {
+        syncLibrariesStripScroll(row);
+      });
+    };
+
+    scheduleClamp();
+    row.addEventListener("scroll", scheduleClamp, { passive: true });
+    window.addEventListener("resize", scheduleClamp);
+
+    const resizeObserver = new ResizeObserver(scheduleClamp);
+    resizeObserver.observe(row);
+    for (const child of row.children) {
+      if (child instanceof HTMLElement) resizeObserver.observe(child);
+    }
+
+    return () => {
+      row.removeEventListener("scroll", scheduleClamp);
+      window.removeEventListener("resize", scheduleClamp);
+      resizeObserver.disconnect();
+    };
+  }, [
+    isNarrow,
+    libraries.length,
+    pathname,
+    collectionShortcuts.length,
+    gamesSidebarExpanded,
+    showCollapsibleGamesSection,
+    inlineOwnedGamesInBar,
+    showHeaderActionsInLibrariesBar,
+    showSidebarSearchPopup,
+    librariesBarLayoutReady,
+  ]);
 
   const comboboxContainerLayoutStyle = useMemo((): CSSProperties | undefined => {
     if (!isNarrow) return undefined;
