@@ -26,6 +26,7 @@ import {
 import { getCachedSkinWebOrDefault, setCachedSkinWeb } from "../skins/skinWebCache";
 import { normalizeSkinWebManifest, type SkinWebManifest } from "../skins/skinWebManifest";
 import { useSkinAutoUpdateLogic, type SkinUpdatesState } from "../hooks/useSkinAutoUpdate";
+import { useServerVersion } from "../hooks/useServerVersion";
 
 type SkinOption = {
   id: string;
@@ -52,6 +53,7 @@ const SkinContext = createContext<SkinContextValue | null>(null);
 export function SkinProvider({ children }: { children: ReactNode }) {
   const { token, isLoading } = useAuth();
   const { settingsLoaded, skinWeb: settingsSkinWeb, refreshSettings } = useSettings();
+  const { version: serverVersion } = useServerVersion();
   const [activeSkinId, setActive] = useState(() => getActiveSkinId());
   const [serverSkins, setServerSkins] = useState<ServerSkinInfo[]>([]);
   const [snapshotVersion, setSnapshotVersion] = useState(() => Date.now());
@@ -250,6 +252,8 @@ export function SkinProvider({ children }: { children: ReactNode }) {
 
   const skinUpdates = useSkinAutoUpdateLogic({
     settingsLoaded,
+    serverVersion,
+    appVersion: __APP_VERSION__,
     skins: serverSkins,
     activeSkinId,
     refreshInstalledSkins,

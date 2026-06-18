@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  areSkinsReleaseRequirementsMet,
   findOutdatedInstalledSkins,
   isInstalledSkinOutdated,
   normalizeSkinName,
@@ -43,6 +44,14 @@ describe("skinCatalog", () => {
     expect(isInstalledSkinOutdated(installed[0], catalog[0])).toBe(true);
     expect(findOutdatedInstalledSkins(installed, catalog)).toHaveLength(1);
     expect(findOutdatedInstalledSkins(installed, catalog)[0].installed.id).toBe("a");
+  });
+
+  it("checks skins release compatibility requirements", () => {
+    const requires = { minServerVersion: "1.1.0", minWebVersion: "1.1.0" };
+    expect(areSkinsReleaseRequirementsMet(requires, "1.1.0", "1.1.0")).toBe(true);
+    expect(areSkinsReleaseRequirementsMet(requires, "1.0.9", "1.1.0")).toBe(false);
+    expect(areSkinsReleaseRequirementsMet(requires, "1.1.0", "1.0.9")).toBe(false);
+    expect(areSkinsReleaseRequirementsMet(null, "1.0.0", "1.0.0")).toBe(true);
   });
 
   it("treats missing installed version as 0.0.0", () => {

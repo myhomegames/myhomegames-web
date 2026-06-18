@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 import Tooltip from "../common/Tooltip";
 import { useSkin } from "../../contexts/SkinContext";
 import { useLatestRelease, type OsKind } from "../../hooks/useLatestRelease";
+import { useServerVersion } from "../../hooks/useServerVersion";
+import { isServerVersionCompatible, WEB_REQUIRES_MIN_SERVER_VERSION } from "../../utils/apiCompatibility";
 const OS_LABEL_KEY: Record<OsKind, string> = {
   win: "header.downloadWindows",
   "mac-arm64": "header.downloadMacArm",
@@ -14,10 +16,14 @@ const OS_LABEL_KEY: Record<OsKind, string> = {
 export default function UpdateNotification() {
   const { t } = useTranslation();
   const { activeSkinWeb, skinUpdates } = useSkin();
+  const { version: serverVersion, loading: serverVersionLoading } = useServerVersion();
   const { updateAvailable, latestVersion, downloadUrl, downloadName, allDownloads, changelog } = useLatestRelease();
   const { availableUpdates, updating: skinUpdating, updatingSkinId, applyUpdate } = skinUpdates;
+  const environmentCompatible = isServerVersionCompatible(serverVersion);
   const hasServerUpdate = Boolean(updateAvailable && latestVersion);
-  const hasSkinUpdates = availableUpdates.length > 0 || skinUpdating;
+  const hasSkinUpdates =
+    environmentCompatible && (availableUpdates.length > 0 || skinUpdating);
+  const serverUpdateRequired = !environmentCompatible && hasServerUpdate;
   /** PS3 renders the update panel as a fixed right sheet; portal avoids dock `transform` clipping. */
   const portaledPopup = activeSkinWeb.disableTitleTooltips;
   const [isOpen, setIsOpen] = useState(false);
@@ -76,7 +82,9 @@ export default function UpdateNotification() {
     ? allDownloads.filter((d) => d.url !== primaryUrl)
     : allDownloads;
 
-  if (!hasServerUpdate && !hasSkinUpdates) return null;
+  if (serverVersionLoading || (!hasServerUpdate && !hasSkinUpdates)) {
+    return null;
+  }
 
   const updatingOffer = skinUpdating
     ? availableUpdates.find((u) => u.installedId === updatingSkinId)
@@ -85,7 +93,9 @@ export default function UpdateNotification() {
   const tooltipText =
     skinUpdating && updatingOffer
       ? t("header.updatingSkin", "Updating {{name}}…", { name: updatingOffer.name })
-      : t("header.updateAvailable", "New update available");
+      : serverUpdateRequired
+        ? t("header.serverCompatibilityMismatch", "Server update required")
+        : t("header.updateAvailable", "New update available");
 
   const popup = (
     <div
@@ -101,7 +111,16 @@ export default function UpdateNotification() {
       {hasServerUpdate && (
         <>
           <div className="update-notification-header">
-            {t("header.newVersionAvailable", "New version {{version}} available", { version: latestVersion })}
+            {serverUpdateRequired
+              ? t("header.serverCompatibilityDetail", {
+                  required: WEB_REQUIRES_MIN_SERVER_VERSION,
+                  version: serverVersion ?? "—",
+                  defaultValue:
+                    "This web app requires server version {{required}} or newer. The connected server is {{version}}. Update the server to a matching release.",
+                })
+              : t("header.newVersionAvailable", "New version {{version}} available", {
+                  version: latestVersion,
+                })}
           </div>
           {changelog && (
             <div className="update-notification-changelog">

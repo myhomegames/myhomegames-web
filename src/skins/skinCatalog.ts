@@ -1,4 +1,5 @@
 import { SKINS_GITHUB_REPO } from "../config";
+import { isServerVersionCompatible } from "../utils/apiCompatibility";
 import { semverGreater } from "../utils/semver";
 import type { ServerSkinInfo } from "./skinApi";
 
@@ -17,8 +18,14 @@ export type CatalogSkin = {
   downloadUrl: string;
 };
 
+export type SkinsCompatibilityRequires = {
+  minServerVersion?: string;
+  minWebVersion?: string;
+};
+
 export type SkinsCatalog = {
   version: string | null;
+  requires: SkinsCompatibilityRequires | null;
   skins: CatalogSkin[];
 };
 
@@ -58,6 +65,40 @@ function catalogFromReleaseAssets(assets: GitHubAsset[]): CatalogSkin[] {
   return skins;
 }
 
+async function fetchSkinsCompatibility(
+  owner: string,
+  repo: string,
+  ref: string
+): Promise<SkinsCompatibilityRequires | null> {
+  if (!ref) return null;
+  try {
+    const res = await fetch(
+      `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/compatibility.json`
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { requires?: SkinsCompatibilityRequires };
+    if (!data.requires || typeof data.requires !== "object") return null;
+    return data.requires;
+  } catch {
+    return null;
+  }
+}
+
+/** True when the connected server and web app meet the skins release compatibility.json. */
+export function areSkinsReleaseRequirementsMet(
+  requires: SkinsCompatibilityRequires | null | undefined,
+  serverVersion: string | null | undefined,
+  appVersion: string | null | undefined
+): boolean {
+  if (requires?.minServerVersion && !isServerVersionCompatible(serverVersion, requires.minServerVersion)) {
+    return false;
+  }
+  if (requires?.minWebVersion && !isServerVersionCompatible(appVersion, requires.minWebVersion)) {
+    return false;
+  }
+  return true;
+}
+
 async function enrichCatalogSkins(
   skins: CatalogSkin[],
   owner: string,
@@ -87,7 +128,7 @@ async function enrichCatalogSkins(
 
 export async function fetchSkinsCatalog(): Promise<SkinsCatalog> {
   if (!SKINS_GITHUB_REPO?.includes("/")) {
-    return { version: null, skins: [] };
+    return { version: null, requires: null, skins: [] };
   }
 
   const cached = sessionStorage.getItem(CACHE_KEY);
@@ -104,7 +145,7 @@ export async function fetchSkinsCatalog(): Promise<SkinsCatalog> {
 
   const [owner, repo] = SKINS_GITHUB_REPO.split("/").map((s) => s.trim()).filter(Boolean);
   if (!owner || !repo) {
-    return { version: null, skins: [] };
+    return { version: null, requires: null, skins: [] };
   }
 
   const releaseRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/latest`, {
@@ -118,12 +159,13 @@ export async function fetchSkinsCatalog(): Promise<SkinsCatalog> {
   const tag = release.tag_name?.replace(/^v/i, "") ?? "";
   const ref = release.tag_name?.trim() || tag;
   let skins = catalogFromReleaseAssets(release.assets ?? []);
+  const requires = await fetchSkinsCompatibility(owner, repo, ref);
   if (skins.length === 0) {
-    return { version: tag || null, skins: [] };
+    return { version: tag || null, requires, skins: [] };
   }
 
   skins = await enrichCatalogSkins(skins, owner, repo, ref);
-  const payload = { version: tag || null, skins };
+  const payload = { version: tag || null, requires, skins };
   try {
     sessionStorage.setItem(CACHE_KEY, JSON.stringify({ at: Date.now(), payload }));
   } catch {

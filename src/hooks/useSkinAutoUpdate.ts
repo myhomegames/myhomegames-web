@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { isServerVersionCompatible } from "../utils/apiCompatibility";
 import { uploadSkinArchive, type ServerSkinInfo } from "../skins/skinApi";
 import {
+  areSkinsReleaseRequirementsMet,
   downloadSkinArchive,
   fetchSkinsCatalog,
   findOutdatedInstalledSkins,
@@ -26,6 +28,8 @@ export type SkinUpdatesState = {
 
 type SkinUpdatesParams = {
   settingsLoaded: boolean;
+  serverVersion: string | null;
+  appVersion: string;
   skins: Pick<ServerSkinInfo, "id" | "name" | "version">[];
   activeSkinId: string;
   refreshInstalledSkins: () => Promise<ServerSkinInfo[]>;
@@ -34,6 +38,8 @@ type SkinUpdatesParams = {
 
 export function useSkinAutoUpdateLogic({
   settingsLoaded,
+  serverVersion,
+  appVersion,
   skins,
   activeSkinId,
   refreshInstalledSkins,
@@ -49,10 +55,18 @@ export function useSkinAutoUpdateLogic({
     if (!settingsLoaded || checkInFlightRef.current || updateInFlightRef.current || skins.length === 0) {
       return;
     }
+    if (!isServerVersionCompatible(serverVersion)) {
+      setAvailableUpdates([]);
+      return;
+    }
 
     checkInFlightRef.current = true;
     try {
       const catalog = await fetchSkinsCatalog();
+      if (!areSkinsReleaseRequirementsMet(catalog.requires, serverVersion, appVersion)) {
+        setAvailableUpdates([]);
+        return;
+      }
       const outdated = findOutdatedInstalledSkins(skins, catalog.skins);
       setAvailableUpdates(
         outdated.map(({ installed, catalog: entry }) => ({
@@ -70,11 +84,12 @@ export function useSkinAutoUpdateLogic({
     } finally {
       checkInFlightRef.current = false;
     }
-  }, [settingsLoaded, skins]);
+  }, [settingsLoaded, serverVersion, appVersion, skins]);
 
   const applyUpdate = useCallback(
     async (installedId: string) => {
       if (updateInFlightRef.current) return;
+      if (!isServerVersionCompatible(serverVersion)) return;
 
       const offer = availableUpdates.find((u) => u.installedId === installedId);
       if (!offer) return;
@@ -99,7 +114,7 @@ export function useSkinAutoUpdateLogic({
         setUpdatingSkinId(null);
       }
     },
-    [availableUpdates, activeSkinId, refreshInstalledSkins, selectSkin]
+    [availableUpdates, activeSkinId, refreshInstalledSkins, selectSkin, serverVersion]
   );
 
   useEffect(() => {
