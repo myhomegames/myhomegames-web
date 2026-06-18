@@ -1,4 +1,3 @@
-import { ensureOverlayStackStyles } from "../styles/overlayStack";
 import { isServerSkinId } from "./skinIds";
 import { getActiveSkinId } from "./skinStorage";
 
@@ -23,5 +22,4 @@ export function applySkinCss(css: string): void {
   const active = getActiveSkinId();
   document.documentElement.dataset.mhgSkin =
     active && isServerSkinId(active) ? "server" : "none";
-  ensureOverlayStackStyles();
 }

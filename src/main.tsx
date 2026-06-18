@@ -1,6 +1,5 @@
 import { createRoot } from "react-dom/client";
 import "virtual:tailwind-entry.css";
-import "./styles/context-rail-activation-lock.css";
 import "./i18n/config";
 import "./utils/unauthorizedInterceptor";
 import App from "./App.tsx";
