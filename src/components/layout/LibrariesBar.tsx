@@ -464,7 +464,7 @@ export default function LibrariesBar({
 
       const windowWidth = window.innerWidth;
 
-      if (windowWidth < 800) {
+      if (windowWidth < 1024) {
         setIsNarrow(true);
         setLibrariesBarLayoutReady(true);
         return;
@@ -490,7 +490,17 @@ export default function LibrariesBar({
         return;
       }
 
-      const availableWidth = containerWidth - actionsWidth - 180;
+      // Right-side actions often mount after first paint; avoid flipping combobox → inline list.
+      if (actionsWidth < 48) {
+        setIsNarrow(true);
+        setLibrariesBarLayoutReady(true);
+        return;
+      }
+
+      const menuEl = containerEl.querySelector<HTMLElement>(".mhg-libraries-menu-container");
+      const menuReserve = menuEl?.offsetWidth ?? 0;
+      const sideReserve = Math.max(menuReserve, 24) + 48;
+      const availableWidth = containerWidth - actionsWidth - sideReserve;
       /*
        * Estimate minimum width to fit all inline bar items. Besides main page tabs, count the
        * sidebar search trigger when present, and the Games / Collections block (heading plus
@@ -529,11 +539,19 @@ export default function LibrariesBar({
         estimatedItems += collectionShortcuts.length;
       }
       const minButtonsWidth = estimatedItems * 110;
-      setIsNarrow(availableWidth < minButtonsWidth);
+      const fitsInlineList = availableWidth >= minButtonsWidth;
+      setIsNarrow((prev) => {
+        if (prev) {
+          // Hysteresis: keep combobox until inline tabs clearly fit (avoids left → centered snap).
+          return availableWidth < minButtonsWidth + 200;
+        }
+        return !fitsInlineList;
+      });
       setLibrariesBarLayoutReady(true);
     };
 
     const containerEl = containerRef.current;
+    const actionsEl = actionsRef.current;
     const resizeObserver =
       typeof ResizeObserver !== "undefined" && containerEl
         ? new ResizeObserver(() => {
@@ -542,6 +560,9 @@ export default function LibrariesBar({
         : null;
     if (resizeObserver && containerEl) {
       resizeObserver.observe(containerEl);
+    }
+    if (resizeObserver && actionsEl) {
+      resizeObserver.observe(actionsEl);
     }
 
     checkWidth();
@@ -859,6 +880,22 @@ export default function LibrariesBar({
   const isSettingsRoute = pathname === "/settings";
   const showProfileInLibrariesBar = showHeaderActionsInLibrariesBar && showProfile;
 
+  const comboboxContainerLayoutStyle = useMemo((): CSSProperties | undefined => {
+    if (!isNarrow) return undefined;
+    const hasLeftMenu = !topRightToolDock && !!API_BASE && showProfile;
+    const left = hasLeftMenu ? 72 : 24;
+    return {
+      position: "absolute",
+      left,
+      right: "auto",
+      transform: "none",
+      width: "auto",
+      maxWidth: `calc(100% - ${left + 136}px)`,
+      justifyContent: "flex-start",
+      overflow: "hidden",
+    };
+  }, [isNarrow, topRightToolDock, showProfile]);
+
   return (
     <div
       className={[
@@ -979,7 +1016,10 @@ export default function LibrariesBar({
                 style={{ minHeight: 64, visibility: "hidden" }}
               />
             ) : isNarrow ? (
-              <div className="mhg-libraries-combobox-container">
+              <div
+                className="mhg-libraries-combobox-container"
+                style={comboboxContainerLayoutStyle}
+              >
                 {isLoading && libraries.length === 0 ? null : (
                   <select
                     id="libraries-select"
