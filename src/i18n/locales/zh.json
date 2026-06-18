@@ -14,6 +14,8 @@
     "gameModes": "游戏模式",
     "playerPerspectives": "视角",
     "sidebarSearch": "搜索",
+    "toggleSidebar": "显示媒体库菜单",
+    "closeSidebar": "关闭媒体库菜单",
     "ownedGames": "拥有的游戏",
     "installedGames": "已安装",
     "gamesSidebar": "游戏",

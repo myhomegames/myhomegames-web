@@ -56,6 +56,11 @@ export type SkinWebManifest = {
   autoShowBackgroundOnSelection: boolean;
   /** Do not show hover tooltips anywhere in the UI. */
   disableTitleTooltips: boolean;
+  /**
+   * On narrow viewports, hide the persistent libraries sidebar off-screen; user opens it
+   * via a header toggle (main column uses full width while collapsed).
+   */
+  collapsibleLibrarySidebar: boolean;
 };
 
 export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
@@ -74,6 +79,7 @@ export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
   fixedFocalStepSound: false,
   autoShowBackgroundOnSelection: false,
   disableTitleTooltips: false,
+  collapsibleLibrarySidebar: false,
 };
 
 export const SKIN_WEB_KEYS = [
@@ -92,6 +98,7 @@ export const SKIN_WEB_KEYS = [
   "fixedFocalStepSound",
   "autoShowBackgroundOnSelection",
   "disableTitleTooltips",
+  "collapsibleLibrarySidebar",
 ] as const satisfies readonly (keyof SkinWebManifest)[];
 
 /** @deprecated renamed to `SKIN_WEB_KEYS`, kept as alias to avoid churning internal imports. */

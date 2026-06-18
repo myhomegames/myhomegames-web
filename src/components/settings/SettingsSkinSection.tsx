@@ -237,7 +237,7 @@ export default function SettingsSkinSection() {
                 <label key={key} className="settings-library-option">
                   <input
                     type="checkbox"
-                    checked={skinWeb[key]}
+                    checked={skinWeb[key] === true}
                     onChange={(e) => {
                       const partial: Partial<SkinWebManifest> = { [key]: e.target.checked };
                       void updateSkinWebFlags(partial);

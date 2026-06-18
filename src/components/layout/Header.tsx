@@ -14,6 +14,7 @@ import { useSkin } from "../../contexts/SkinContext";
 import { useTitleFilter } from "../../contexts/TitleFilterContext";
 import { useActiveProfile } from "../../hooks/useActiveProfile";
 import { usePhoneLayout } from "../../hooks/usePhoneLayout";
+import { useLibrarySidebarLayout } from "../../contexts/LibrarySidebarLayoutContext";
 import type { GameItem, CollectionItem } from "../../types";
 
 const PHONE_HEADER_BUTTON: CSSProperties = { width: 32, height: 32 };
@@ -62,6 +63,7 @@ export default function Header({
   const { setQuery: setTitleFilterQuery } = useTitleFilter();
   const { showProfile } = useActiveProfile();
   const isPhoneLayout = usePhoneLayout();
+  const { collapsibleActive, sidebarOpen, toggleSidebar } = useLibrarySidebarLayout();
 
   const phoneHeaderContainerStyle: CSSProperties | undefined = isPhoneLayout
     ? { gap: 8, padding: "0 8px", minWidth: 0 }
@@ -96,6 +98,33 @@ export default function Header({
         style={phoneHeaderContainerStyle}
         {...(isPhoneLayout ? { "data-mhg-phone-header": "true" } : {})}
       >
+        {collapsibleActive && (
+          <button
+            type="button"
+            className="mhg-library-sidebar-toggle mhg-header-button"
+            onClick={toggleSidebar}
+            aria-expanded={sidebarOpen}
+            aria-label={t("libraries.toggleSidebar")}
+            style={{
+              pointerEvents: "auto",
+              position: "relative",
+              zIndex: 10020,
+              ...(isPhoneLayout ? PHONE_HEADER_BUTTON : {}),
+            }}
+          >
+            <svg
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              style={isPhoneLayout ? PHONE_HEADER_ICON : undefined}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        )}
         {/* Logo on the left; with `topRightToolDock` it is duplicated in LibrariesBar on shell routes only. */}
         {!hideHeaderLogo && (
           <button

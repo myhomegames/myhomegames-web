@@ -4,6 +4,7 @@ import Header from "../components/layout/Header";
 import LibrariesBar from "../components/layout/LibrariesBar";
 import { useSkin } from "../contexts/SkinContext";
 import { TopDockSlotProvider } from "../contexts/TopDockSlotContext";
+import { LibrarySidebarLayoutProvider } from "../contexts/LibrarySidebarLayoutContext";
 import type { CollectionItem, GameItem, GameLibrarySection, ViewMode } from "../types";
 import { useLibrariesShellState } from "./useLibrariesShellState";
 
@@ -135,7 +136,8 @@ export default function MainAppLayout({
   );
 
   return (
-    <TopDockSlotProvider>
+    <LibrarySidebarLayoutProvider>
+      <TopDockSlotProvider>
       <Header
         onPlay={onPlay}
         allGames={allGames}
@@ -195,5 +197,6 @@ export default function MainAppLayout({
       />
       <Outlet context={outletContext} />
     </TopDockSlotProvider>
+    </LibrarySidebarLayoutProvider>
   );
 }

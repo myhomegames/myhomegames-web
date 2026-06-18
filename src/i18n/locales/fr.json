@@ -14,6 +14,8 @@
     "gameModes": "Modes de jeu",
     "playerPerspectives": "Perspectives de jeu",
     "sidebarSearch": "Recherche",
+    "toggleSidebar": "Afficher le menu des bibliothèques",
+    "closeSidebar": "Fermer le menu des bibliothèques",
     "ownedGames": "Jeux possédés",
     "installedGames": "Installés",
     "gamesSidebar": "Jeux",

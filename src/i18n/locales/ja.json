@@ -14,6 +14,8 @@
     "gameModes": "ゲームモード",
     "playerPerspectives": "視点",
     "sidebarSearch": "検索",
+    "toggleSidebar": "ライブラリメニューを表示",
+    "closeSidebar": "ライブラリメニューを閉じる",
     "ownedGames": "所持ゲーム",
     "installedGames": "インストール済み",
     "gamesSidebar": "ゲーム",

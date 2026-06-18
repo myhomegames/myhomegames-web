@@ -13,6 +13,7 @@ import { useBackground } from "../common/BackgroundManager";
 import { API_BASE } from "../../config";
 import { useSkin } from "../../contexts/SkinContext";
 import { useActiveProfile } from "../../hooks/useActiveProfile";
+import { useLibrarySidebarLayout } from "../../contexts/LibrarySidebarLayoutContext";
 import ProfileDropdown from "./ProfileDropdown";
 import { useLibraryGames } from "../../contexts/LibraryGamesContext";
 import type { ViewMode, GameLibrarySection, GameItem, CollectionItem } from "../../types";
@@ -291,6 +292,7 @@ export default function LibrariesBar({
     : undefined;
   const { activeSkinWeb } = useSkin();
   const { showProfile } = useActiveProfile();
+  const { collapsibleActive, sidebarOpen, closeSidebar } = useLibrarySidebarLayout();
   const contextRailViewTransitions = contextRailViewTransitionsEnabled(activeSkinWeb);
   const contextRailDetailRoute = isContextRailDetailPathname(pathname);
   const libraryActiveViewTransitionStyle = useCallback(
@@ -721,8 +723,9 @@ export default function LibrariesBar({
       playBarStepSound();
       if (filterField) applyLibraryFilter(filterField);
       onSelectLibrary(library);
+      if (collapsibleActive) closeSidebar();
     },
-    [applyLibraryFilter, isLibraryPageActive, onSelectLibrary, playBarStepSound],
+    [applyLibraryFilter, collapsibleActive, closeSidebar, isLibraryPageActive, onSelectLibrary, playBarStepSound],
   );
 
   const selectCollectionShortcutEntry = useCallback(
@@ -730,16 +733,18 @@ export default function LibrariesBar({
       if (activeCollectionShortcutId === collectionId) return;
       playBarStepSound();
       onSelectCollectionShortcut?.(collectionId);
+      if (collapsibleActive) closeSidebar();
     },
-    [activeCollectionShortcutId, onSelectCollectionShortcut, playBarStepSound],
+    [activeCollectionShortcutId, collapsibleActive, closeSidebar, onSelectCollectionShortcut, playBarStepSound],
   );
 
   const navigateFromBar = useCallback(
     (path: string, isAlreadyActive: boolean) => {
       if (!isAlreadyActive) playBarStepSound();
       navigate(path);
+      if (collapsibleActive) closeSidebar();
     },
-    [navigate, playBarStepSound],
+    [collapsibleActive, closeSidebar, navigate, playBarStepSound],
   );
 
   const handleLibraryHoverSelect = (
@@ -808,6 +813,7 @@ export default function LibrariesBar({
 
   useEffect(() => {
     if (!activeSkinWeb.verticalCoverAlignment) return;
+    if (collapsibleActive && sidebarOpen) return;
     const strip = containerRef.current;
     if (!strip) return;
     const wheelRoot =
@@ -873,7 +879,7 @@ export default function LibrariesBar({
 
     wheelRoot.addEventListener("wheel", onWheel, { passive: false, capture: true });
     return () => wheelRoot.removeEventListener("wheel", onWheel, { capture: true });
-  }, [activeSkinWeb.verticalCoverAlignment, activeLibrary?.key]);
+  }, [activeSkinWeb.verticalCoverAlignment, activeLibrary?.key, collapsibleActive, sidebarOpen]);
 
   /** Top-strip layout only; full sidebars ship column layout in skin CSS. */
   const verticalPageTabsLayout =
@@ -901,6 +907,17 @@ export default function LibrariesBar({
     };
   }, [isNarrow, topRightToolDock, showProfile, measuredActionsWidth]);
 
+  const collapsibleSidebarStyle = useMemo((): CSSProperties | undefined => {
+    if (!collapsibleActive) return undefined;
+    return {
+      transition: "left 0.22s ease",
+      left: sidebarOpen ? 0 : "calc(-1 * var(--mhg-sidebar-width, 300px))",
+      transform: "none",
+      pointerEvents: sidebarOpen ? "auto" : "none",
+      zIndex: 10005,
+    };
+  }, [collapsibleActive, sidebarOpen]);
+
   return (
     <div
       className={[
@@ -909,6 +926,7 @@ export default function LibrariesBar({
       ]
         .filter(Boolean)
         .join(" ")}
+      style={collapsibleSidebarStyle}
       {...{
         ...(activeSkinWeb.libraryPagesVerticalList
           ? { "data-mhg-library-pages-vertical-list": "true" }
