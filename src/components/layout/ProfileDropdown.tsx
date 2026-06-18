@@ -14,6 +14,8 @@ type ProfileDropdownProps = {
   /** PS3 libraries strip: same look as other `mhg-library-button` entries, opens sheet on click. */
   triggerVariant?: "header" | "library";
   libraryActive?: boolean;
+  /** Compact header icon row on phone-width viewports. */
+  compactHeader?: boolean;
 };
 
 function ProfileAvatarPlaceholder({ size = 80 }: { size?: number }) {
@@ -41,6 +43,7 @@ export default function ProfileDropdown({
   onViewProfile,
   triggerVariant = "header",
   libraryActive = false,
+  compactHeader = false,
 }: ProfileDropdownProps) {
   const { t } = useTranslation();
   const { activeSkinWeb } = useSkin();
@@ -125,12 +128,17 @@ export default function ProfileDropdown({
       onClick={handleToggle}
       aria-label={t("header.profile")}
       aria-expanded={isOpen}
+      style={
+        compactHeader && !libraryTrigger
+          ? { width: 32, height: 32, gap: 0, padding: 0 }
+          : undefined
+      }
     >
       {!libraryTrigger && (
         <>
           <svg
-            width="20"
-            height="20"
+            width={compactHeader ? 17 : 20}
+            height={compactHeader ? 17 : 20}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -150,6 +158,7 @@ export default function ProfileDropdown({
             stroke="currentColor"
             viewBox="0 0 24 24"
             strokeWidth={2}
+            style={compactHeader ? { display: "none" } : undefined}
           >
             <path
               strokeLinecap="round"

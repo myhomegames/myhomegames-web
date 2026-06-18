@@ -411,6 +411,7 @@ export default function LibrariesBar({
   const [gamesSidebarExpanded, setGamesSidebarExpanded] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
+  const [measuredActionsWidth, setMeasuredActionsWidth] = useState(136);
 
   useLayoutEffect(() => {
     if (!activeLibrary) {
@@ -463,6 +464,10 @@ export default function LibrariesBar({
       }
 
       const windowWidth = window.innerWidth;
+      const actionsEl = actionsRef.current;
+      if (actionsEl && actionsEl.offsetWidth >= 48) {
+        setMeasuredActionsWidth(actionsEl.offsetWidth);
+      }
 
       if (windowWidth < 1024) {
         setIsNarrow(true);
@@ -471,7 +476,6 @@ export default function LibrariesBar({
       }
 
       const containerEl = containerRef.current;
-      const actionsEl = actionsRef.current;
       if (!containerEl || !actionsEl) {
         requestAnimationFrame(() => {
           if (!cancelled) checkWidth();
@@ -884,17 +888,18 @@ export default function LibrariesBar({
     if (!isNarrow) return undefined;
     const hasLeftMenu = !topRightToolDock && !!API_BASE && showProfile;
     const left = hasLeftMenu ? 72 : 24;
+    const rightReserve = Math.max(measuredActionsWidth, 48) + 8;
     return {
       position: "absolute",
       left,
       right: "auto",
       transform: "none",
       width: "auto",
-      maxWidth: `calc(100% - ${left + 136}px)`,
+      maxWidth: `calc(100% - ${left + rightReserve}px)`,
       justifyContent: "flex-start",
       overflow: "hidden",
     };
-  }, [isNarrow, topRightToolDock, showProfile]);
+  }, [isNarrow, topRightToolDock, showProfile, measuredActionsWidth]);
 
   return (
     <div

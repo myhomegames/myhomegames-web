@@ -11,12 +11,14 @@ type SearchBarProps = {
   publishers?: CollectionItem[];
   onGameSelect: (game: GameItem) => void;
   onPlay?: (game: GameItem) => void;
+  /** Let the bar shrink inside a narrow header flex row (phone layout). */
+  shrinkToFit?: boolean;
 };
 
 const RECENT_SEARCHES_KEY = "recentSearches";
 const MAX_RECENT_SEARCHES = 10;
 
-export default function SearchBar({ games, collections, developers = [], publishers = [], onGameSelect, onPlay }: SearchBarProps) {
+export default function SearchBar({ games, collections, developers = [], publishers = [], onGameSelect, onPlay, shrinkToFit = false }: SearchBarProps) {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -367,9 +369,18 @@ export default function SearchBar({ games, collections, developers = [], publish
     }, 150);
   };
 
+  const shrinkStyle = shrinkToFit ? { minWidth: 0, width: "100%" } : undefined;
+
   return (
-    <div ref={searchRef} className="relative search-bar-container">
-      <div className={`mhg-search-container-wrapper search-bar-wrapper ${isFocused ? "search-focused" : ""}`}>
+    <div
+      ref={searchRef}
+      className="relative search-bar-container"
+      style={shrinkStyle}
+    >
+      <div
+        className={`mhg-search-container-wrapper search-bar-wrapper ${isFocused ? "search-focused" : ""}`}
+        style={shrinkStyle}
+      >
         <div className="mhg-search-icon-wrapper">
           <svg
             className={isFocused ? "search-icon-focused" : "text-gray-400"}

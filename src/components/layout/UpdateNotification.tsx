@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import Tooltip from "../common/Tooltip";
@@ -13,7 +14,13 @@ const OS_LABEL_KEY: Record<OsKind, string> = {
   linux: "header.downloadLinux",
 };
 
-export default function UpdateNotification() {
+export default function UpdateNotification({
+  buttonStyle,
+  iconStyle,
+}: {
+  buttonStyle?: CSSProperties;
+  iconStyle?: CSSProperties;
+} = {}) {
   const { t } = useTranslation();
   const { activeSkinWeb, skinUpdates } = useSkin();
   const { version: serverVersion, loading: serverVersionLoading } = useServerVersion();
@@ -197,10 +204,12 @@ export default function UpdateNotification() {
           onClick={handleToggle}
           aria-label={tooltipText}
           aria-expanded={isOpen}
+          style={buttonStyle}
         >
           <svg
             width="20"
             height="20"
+            style={iconStyle}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
