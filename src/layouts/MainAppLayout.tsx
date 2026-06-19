@@ -105,6 +105,11 @@ export default function MainAppLayout({
     [pathname]
   );
 
+  const isGameDetailRoute = useMemo(
+    () => /^\/game\/[^/]+/.test(pathname) || /^\/igdb-game\/[^/]+/.test(pathname),
+    [pathname]
+  );
+
   const outletContext = useMemo<MainAppOutletContext>(
     () => ({
       onGameClick,
@@ -159,10 +164,11 @@ export default function MainAppLayout({
         coverSize={coverSize}
         onCoverSizeChange={handleCoverSizeChange}
         viewMode={viewMode}
-        onViewModeChange={handleViewModeChange}
+        onViewModeChange={isGameDetailRoute ? undefined : handleViewModeChange}
         onReloadMetadata={onReloadMetadata}
         onAddGameClick={onAddGameClick}
         showMainGamesToggle={
+          !isGameDetailRoute &&
           (activeLibrary?.key === "library" || isCollectionLikeDetailRoute) &&
           (viewMode === "grid" || viewMode === "detail")
         }

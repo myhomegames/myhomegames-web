@@ -75,12 +75,22 @@ export default function Header({
     ? { gap: 2, flexShrink: 0 }
     : undefined;
 
-  const hideHeaderTitleFilter =
-    pathname === "/settings" || pathname.startsWith("/game/");
+  const isGameDetailRoute =
+    pathname.startsWith("/game/") || pathname.startsWith("/igdb-game/");
+  const hideHeaderTitleFilter = pathname === "/settings" || isGameDetailRoute;
   const hideSettings = hideSettingsAction || activeSkinWeb.libraryBarHeaderActions;
   const hideProfile = hideProfileAction || activeSkinWeb.libraryBarHeaderActions;
   /* Add Game follows the same relocation rule as settings/profile. */
   const hideAddGame = activeSkinWeb.libraryBarHeaderActions;
+  /*
+   * GOG persistent shell: keep the “+” in the header flex row (margin-left anchor) but hide it
+   * on game detail — removing it from the DOM shifts the settings icon.
+   */
+  const layoutOnlyAddGame =
+    activeSkinWeb.persistentLibraryShell && isGameDetailRoute && !hideAddGame;
+  const addGameTooltipWrapperStyle: CSSProperties | undefined = layoutOnlyAddGame
+    ? { visibility: "hidden", pointerEvents: "none" }
+    : undefined;
   const hideHeaderSearch = activeSkinWeb.libraryBarHeaderActions && activeSkinWeb.sidebarSearchPopup;
   const hideHeaderLogo =
     activeSkinWeb.topRightToolDock && !pathnameUsesHeaderLogoOnly(pathname);
@@ -168,10 +178,18 @@ export default function Header({
             />
           )}
           {!hideAddGame && (
-            <Tooltip text={t("header.addGame")} position="top" delay={200}>
+            <Tooltip
+              text={t("header.addGame")}
+              position="top"
+              delay={200}
+              wrapperStyle={addGameTooltipWrapperStyle}
+            >
               <button
                 className="mhg-header-button"
+                data-mhg-header-action="add-game"
                 aria-label={t("header.addGame")}
+                aria-hidden={layoutOnlyAddGame ? true : undefined}
+                tabIndex={layoutOnlyAddGame ? -1 : undefined}
                 onClick={onAddGameClick}
                 style={isPhoneLayout ? PHONE_HEADER_BUTTON : undefined}
               >
