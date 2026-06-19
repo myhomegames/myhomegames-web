@@ -15,6 +15,7 @@ import {
   applyCollapsibleLibrarySidebarLayout,
   clearCollapsibleLibrarySidebarLayout,
   LIBRARY_SIDEBAR_BACKDROP_STYLE,
+  syncChromeUnderLibraryDrawerDimming,
 } from "../utils/collapsibleLibrarySidebarLayout";
 
 type LibrarySidebarLayoutContextValue = {
@@ -63,14 +64,19 @@ export function LibrarySidebarLayoutProvider({ children }: { children: ReactNode
     root.setAttribute("data-mhg-library-sidebar-open", sidebarOpen ? "true" : "false");
     applyCollapsibleLibrarySidebarLayout(sidebarOpen);
 
+    const onLayoutChange = () => {
+      applyCollapsibleLibrarySidebarLayout(sidebarOpen);
+      syncChromeUnderLibraryDrawerDimming(sidebarOpen);
+    };
+
     const resizeObserver =
-      typeof ResizeObserver !== "undefined"
-        ? new ResizeObserver(() => applyCollapsibleLibrarySidebarLayout(sidebarOpen))
-        : null;
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(onLayoutChange) : null;
     resizeObserver?.observe(root);
+    window.addEventListener("resize", onLayoutChange);
 
     return () => {
       resizeObserver?.disconnect();
+      window.removeEventListener("resize", onLayoutChange);
     };
   }, [collapsibleActive, sidebarOpen]);
 

@@ -888,6 +888,9 @@ export default function LibrariesBar({
   /** Top-strip layout only; full sidebars ship column layout in skin CSS. */
   const verticalPageTabsLayout =
     activeSkinWeb.libraryPagesVerticalList && !activeSkinWeb.persistentLibraryShell;
+  /** Vertical sidebar list inside the persistent shell — native column scroll, not horizontal strip clamp. */
+  const verticalPersistentSidebar =
+    activeSkinWeb.persistentLibraryShell && activeSkinWeb.libraryPagesVerticalList;
   const showHeaderActionsInLibrariesBar = activeSkinWeb.libraryBarHeaderActions;
   const showAddGameInLibrariesBar = showHeaderActionsInLibrariesBar;
   const isAddGameRoute = pathname === "/add-game";
@@ -895,7 +898,7 @@ export default function LibrariesBar({
   const showProfileInLibrariesBar = showHeaderActionsInLibrariesBar && showProfile;
 
   useEffect(() => {
-    if (isNarrow) return;
+    if (isNarrow || verticalPersistentSidebar) return;
     const row = containerRef.current?.querySelector<HTMLElement>(".mhg-libraries-container");
     if (!row) return;
 
@@ -922,6 +925,7 @@ export default function LibrariesBar({
     };
   }, [
     isNarrow,
+    verticalPersistentSidebar,
     libraries.length,
     pathname,
     collectionShortcuts.length,
