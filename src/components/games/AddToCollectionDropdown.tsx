@@ -5,6 +5,7 @@ import type { CollectionItem, GameItem } from "../../types";
 import AddToCollectionLikeModal, { type AddToResourceType } from "./AddToCollectionLikeModal";
 import { useAddGameToCollection } from "../common/actions";
 import { useCollections } from "../../contexts/CollectionsContext";
+import { applyPortaledSubmenuPosition } from "../../utils/clampPortaledSubmenuPosition";
 type AddToCollectionDropdownProps = {
   game: GameItem;
   allCollections: CollectionItem[];
@@ -22,6 +23,7 @@ export default function AddToCollectionDropdown({
   const [isPositionReady, setIsPositionReady] = useState(false);
   const [shouldUsePortal, setShouldUsePortal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const menuItemRef = useRef<HTMLElement | null>(null);
   const { collectionGameIds } = useCollections();
   const isModalOpen = modalResourceType !== null;
@@ -149,73 +151,23 @@ export default function AddToCollectionDropdown({
       if (!menuItem) return;
 
       // When using portal, the menu is in document.body, not in dropdownRef
-      let menu = shouldUsePortal 
-        ? (document.querySelector('.add-to-collection-dropdown-menu') as HTMLElement)
-        : (dropdownRef.current?.querySelector('.add-to-collection-dropdown-menu') as HTMLElement);
+      const menu = menuRef.current;
       if (!menu) {
-        // Retry if menu not found yet (it might not be rendered yet when using portal)
-        if (shouldUsePortal) {
-          requestAnimationFrame(updatePosition);
-        }
+        requestAnimationFrame(updatePosition);
         return;
       }
 
       const rect = menuItem.getBoundingClientRect();
-      const spacing = 0; // No spacing to prevent gap that causes mouse leave
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      const padding = 8; // Padding from screen edges
+      applyPortaledSubmenuPosition(menu, rect);
 
-      // Get menu dimensions - use offsetWidth/offsetHeight as they're more reliable
-      const menuWidth = menu.offsetWidth || 200; // fallback to min-width
-      const menuHeight = menu.offsetHeight || 100; // fallback estimate
-
-      // Calculate horizontal position (prefer right side)
-      let left = rect.right + spacing;
-      
-      // Check if menu would overflow on the right
-      if (left + menuWidth + padding > viewportWidth) {
-        // Position to the left of the menu item
-        left = rect.left - menuWidth - spacing;
-        // If still overflowing on the left, align to left edge with padding
-        if (left < padding) {
-          left = padding;
+      // Re-clamp after layout with the measured width (long labels widen the menu).
+      requestAnimationFrame(() => {
+        if (menuRef.current && menuItem.isConnected) {
+          applyPortaledSubmenuPosition(menuRef.current, menuItem.getBoundingClientRect());
+          setIsPositionReady(true);
         }
-      } else if (left < padding) {
-        // If too close to left edge, add padding
-        left = padding;
-      }
-
-      // Calculate vertical position (align top of submenu with top of menu item)
-      // This positions the submenu at the same row as the parent menu item
-      let top = rect.top;
-      
-      // Check if menu would overflow on the bottom
-      if (top + menuHeight + padding > viewportHeight) {
-        // If menu would overflow, align bottom of menu with bottom of menu item
-        top = rect.bottom - menuHeight;
-        // If still overflowing, align to bottom edge with padding
-        if (top + menuHeight + padding > viewportHeight) {
-          top = viewportHeight - menuHeight - padding;
-        }
-      }
-      
-      // Check if menu would overflow on the top
-      if (top < padding) {
-        top = padding;
-      }
-
-      // When using portal, explicitly set position fixed
-      if (shouldUsePortal) {
-        menu.style.position = 'fixed';
-        menu.style.right = 'auto';
-        menu.style.bottom = 'auto';
-      }
-      menu.style.top = `${top}px`;
-      menu.style.left = `${left}px`;
-      
-      // Mark position as ready after applying styles
-      setIsPositionReady(true);
+      });
+      return;
     };
 
     // Initial position calculation - use requestAnimationFrame to ensure menu is rendered
@@ -290,6 +242,7 @@ export default function AddToCollectionDropdown({
 
   const submenuContent = isOpen ? (
     <div
+      ref={menuRef}
       className={`add-to-collection-dropdown-menu add-to-collection-dropdown-menu--positioning${isPositionReady ? " is-position-ready" : ""}`}
       onMouseEnter={() => setIsOpen(true)}
       onMouseLeave={(e) => {

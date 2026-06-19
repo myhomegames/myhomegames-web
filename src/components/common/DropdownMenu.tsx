@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useLayoutEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import { useDeleteGame, useReloadGame, useUnlinkExecutable, useRemoveGameFromCollection } from "./actions";
@@ -82,6 +82,7 @@ export default function DropdownMenu({
   const [isCollectionLikeSubmenuOpen, setIsCollectionLikeSubmenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
+  const collectionLikeSubmenuRef = useRef<HTMLDivElement>(null);
 
   // Use action hooks
   const deleteGame = useDeleteGame({
@@ -154,6 +155,22 @@ export default function DropdownMenu({
       setIsInSearchDropdown(false);
     }
   }, [isOpen]);
+
+  useLayoutEffect(() => {
+    if (!isCollectionLikeSubmenuOpen) return;
+    const submenu = collectionLikeSubmenuRef.current;
+    if (!submenu) return;
+
+    submenu.style.left = "";
+    submenu.style.right = "";
+
+    const padding = 8;
+    const rect = submenu.getBoundingClientRect();
+    if (rect.right > window.innerWidth - padding) {
+      submenu.style.left = "auto";
+      submenu.style.right = "calc(100% - 1px)";
+    }
+  }, [isCollectionLikeSubmenuOpen, isOpen]);
 
   // Close submenu when main dropdown closes
   useEffect(() => {
@@ -622,6 +639,7 @@ export default function DropdownMenu({
                     </svg>
                     {isCollectionLikeSubmenuOpen && (
                       <div
+                        ref={collectionLikeSubmenuRef}
                         className="dropdown-menu-collectionlike-submenu"
                         onMouseEnter={() => setIsCollectionLikeSubmenuOpen(true)}
                         onMouseLeave={(e) => {
