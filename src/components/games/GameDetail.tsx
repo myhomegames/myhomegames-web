@@ -248,7 +248,12 @@ function GameDetailContent({
   const [isEditCollectionLikeModalOpen, setIsEditCollectionLikeModalOpen] = useState(false);
   const [linkSourceCollectionLike, setLinkSourceCollectionLike] = useState<CollectionItem | null>(null);
   const topBarBackgroundAction: ReactNode = useMemo(() => {
-    if (!activeSkinWeb.persistentLibraryShell || !hasBackground) return null;
+    if (
+      !hasBackground ||
+      (!activeSkinWeb.persistentLibraryShell && !activeSkinWeb.topRightToolDock)
+    ) {
+      return null;
+    }
     return (
       <Tooltip text={isBackgroundVisible ? t("common.hideBackground") : t("common.showBackground")} delay={200}>
         <div className="library-item-detail-compact-top-action">
@@ -256,12 +261,20 @@ function GameDetailContent({
         </div>
       </Tooltip>
     );
-  }, [activeSkinWeb.persistentLibraryShell, hasBackground, isBackgroundVisible, setBackgroundVisible, t]);
+  }, [
+    activeSkinWeb.persistentLibraryShell,
+    activeSkinWeb.topRightToolDock,
+    hasBackground,
+    isBackgroundVisible,
+    setBackgroundVisible,
+    t,
+  ]);
 
   useEffect(() => {
+    if (!activeSkinWeb.persistentLibraryShell) return undefined;
     outletContext?.setTopBarBeforeMainGamesActions(topBarBackgroundAction);
     return () => outletContext?.setTopBarBeforeMainGamesActions(null);
-  }, [outletContext, topBarBackgroundAction]);
+  }, [outletContext, topBarBackgroundAction, activeSkinWeb.persistentLibraryShell]);
   
   // Helper function to format rating value (0-10 float)
   const formatRating = (value: number | null | undefined): string | null => {
@@ -556,7 +569,14 @@ function GameDetailContent({
           error={null}
           coverSize={coverSize}
           onCoverSizeChange={handleCoverSizeChange}
-          hideBackgroundToggle={activeSkinWeb.persistentLibraryShell}
+          hideBackgroundToggle={
+            activeSkinWeb.persistentLibraryShell || activeSkinWeb.topRightToolDock
+          }
+          rightActionsBeforeMainGames={
+            activeSkinWeb.topRightToolDock && !activeSkinWeb.persistentLibraryShell
+              ? topBarBackgroundAction
+              : undefined
+          }
           viewMode="grid"
           onViewModeChange={() => {}}
         />
