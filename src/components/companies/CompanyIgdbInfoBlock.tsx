@@ -1,0 +1,55 @@
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import type { IgdbCompanyInfo } from "../../types";
+
+type CompanyIgdbInfoBlockProps = {
+  info: IgdbCompanyInfo;
+  resourceType: "developers" | "publishers";
+};
+
+export default function CompanyIgdbInfoBlock({ info, resourceType }: CompanyIgdbInfoBlockProps) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  const hasInfo = Boolean(info.status || info.updatedTo || info.country || info.changedOn);
+  if (!hasInfo) {
+    return null;
+  }
+
+  const routeBase = resourceType === "developers" ? "/developers" : "/publishers";
+
+  return (
+    <div className="game-info-block library-item-detail-company-info">
+      {info.status && (
+        <div className="game-info-field">
+          <div className="text-white game-info-label">{t("igdbInfo.companyStatus", "Status")}</div>
+          <span className="game-info-list-item">{info.status}</span>
+        </div>
+      )}
+      {info.updatedTo && (
+        <div className="game-info-field">
+          <div className="text-white game-info-label">{t("igdbInfo.updatedTo", "Updated to")}</div>
+          <button
+            type="button"
+            className="game-info-list-item game-info-list-link"
+            onClick={() => navigate(`${routeBase}/${info.updatedTo!.id}`)}
+          >
+            {info.updatedTo.name}
+          </button>
+        </div>
+      )}
+      {info.country && (
+        <div className="game-info-field">
+          <div className="text-white game-info-label">{t("igdbInfo.country", "Country")}</div>
+          <span className="game-info-list-item">{info.country}</span>
+        </div>
+      )}
+      {info.changedOn && (
+        <div className="game-info-field">
+          <div className="text-white game-info-label">{t("igdbInfo.changedOn", "Changed on")}</div>
+          <span className="game-info-list-item">{info.changedOn}</span>
+        </div>
+      )}
+    </div>
+  );
+}

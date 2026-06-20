@@ -15,6 +15,7 @@ import { usePublishers } from "../contexts/PublishersContext";
 import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
 import { useIgdbGamesForTag, type IgdbTagKey } from "../hooks/useIgdbGamesForTag";
+import CompanyIgdbInfoBlock from "../components/companies/CompanyIgdbInfoBlock";
 import GamesList from "../components/games/GamesList";
 import Cover from "../components/games/Cover";
 import LibrariesBar from "../components/layout/LibrariesBar";
@@ -614,6 +615,7 @@ export default function LibraryItemDetailPage({
         background: data.background,
         showTitle: data.showTitle !== false,
         childs: data.childs || [],
+        igdbCompanyInfo: data.igdbCompanyInfo ?? null,
       });
     } catch (err) {
       console.error("Error fetching developer:", err);
@@ -658,6 +660,7 @@ export default function LibraryItemDetailPage({
         background: data.background,
         showTitle: data.showTitle !== false,
         childs: data.childs || [],
+        igdbCompanyInfo: data.igdbCompanyInfo ?? null,
       });
     } catch (err) {
       console.error("Error fetching publisher:", err);
@@ -2079,6 +2082,10 @@ function LibraryItemDetailContent({
                             <Summary summary={item.summary} maxLines={summaryMaxLines} />
                           </div>
                         )}
+                        {item?.igdbCompanyInfo &&
+                          (resourceType === "developers" || resourceType === "publishers") && (
+                            <CompanyIgdbInfoBlock info={item.igdbCompanyInfo} resourceType={resourceType} />
+                          )}
                       </div>
                     </div>
                   )}

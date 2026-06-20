@@ -632,7 +632,11 @@
     "genres": "Genres",
     "ratings": "Ratings",
     "criticRating": "Critic Rating",
-    "userRating": "User Rating"
+    "userRating": "User Rating",
+    "companyStatus": "Status",
+    "updatedTo": "Updated to",
+    "country": "Country",
+    "changedOn": "Changed on"
   },
   "igdbGameTypes": {
     "0": "Main Game",

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { buildApiHeaders, buildAppApiUrl } from "../../../utils/api";
+import { buildApiHeaders } from "../../../utils/api";
+import { buildIgdbApiUrl } from "../../../utils/igdbApi";
 import { useLoading } from "../../../contexts/LoadingContext";
 import type { IGDBGame, GameItem } from "../../../types";
 import { toGameTypeId } from "../../../utils/igdbGameType";
@@ -29,7 +30,7 @@ export function useAddGame({
     setLoading(true);
 
     try {
-      const url = buildAppApiUrl("/games/add-from-igdb");
+      const url = buildIgdbApiUrl("/igdb/import-game");
       const res = await fetch(url, {
         method: "POST",
         headers: buildApiHeaders({

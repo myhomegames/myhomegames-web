@@ -631,7 +631,11 @@
     "genres": "Generi",
     "ratings": "Valutazioni",
     "criticRating": "Valutazione della critica",
-    "userRating": "Valutazione del pubblico"
+    "userRating": "Valutazione del pubblico",
+    "companyStatus": "Stato",
+    "updatedTo": "Aggiornato a",
+    "country": "Paese",
+    "changedOn": "Modificato nel"
   },
   "igdbGameTypes": {
     "0": "Gioco principale",

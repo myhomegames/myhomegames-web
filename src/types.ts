@@ -68,6 +68,13 @@ export type TagItem = {
   hasCover?: boolean;
 };
 
+export type IgdbCompanyInfo = {
+  status?: string;
+  updatedTo?: { id: number; name: string };
+  country?: string;
+  changedOn?: string;
+};
+
 export type CollectionInfo = {
   id: string;
   title: string;
@@ -80,6 +87,8 @@ export type CollectionInfo = {
   externalBackgroundUrl?: string | null;
   showTitle?: boolean;
   childs?: Array<string | number>;
+  /** IGDB company metadata imported at first creation (developers/publishers with IGDB id). */
+  igdbCompanyInfo?: IgdbCompanyInfo | null;
 };
 
 export type IGDBGame = {
