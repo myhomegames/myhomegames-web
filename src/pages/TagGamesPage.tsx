@@ -573,7 +573,7 @@ export default function TagGamesPage({
         </div>
       ) : null}
       <div
-        className={`bg-[#1a1a1a] home-page-main-container${contextRailLayout ? " tag-games-page-shell tag-games-page-shell--context-rail" : ""}${contextRailMotionEnter ? " mhg-context-rail-motion-enter" : ""}`}
+        className={`bg-[#1a1a1a] home-page-main-container tag-games-page-shell${contextRailLayout ? " tag-games-page-shell--context-rail" : ""}${contextRailMotionEnter ? " mhg-context-rail-motion-enter" : ""}`}
       >
         <main className="flex-1 home-page-content">
           <div className={`home-page-layout${contextRailLayout ? " tag-games-page-layout-min-h" : ""}`}>

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useMemo } from "react";
+import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import { Grid } from "react-window";
 import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
@@ -292,19 +292,32 @@ export default function VirtualizedGamesList({
   }, [containerRef, games.length]);
 
   const { activeSkinId } = useSkin();
-  // Re-read grid spacing when the active skin changes (bundle.css is swapped).
-  // A small delay lets the new stylesheet apply before we measure CSS vars.
-  useEffect(() => {
+  const syncGridInsets = useCallback(() => {
     setSpacing(readGridSpacing());
     setTopInset(readGridTopInsetPx(containerRef.current));
     setBottomInset(readGridBottomInsetPx(containerRef.current));
-    const t = window.setTimeout(() => {
-      setSpacing(readGridSpacing());
-      setTopInset(readGridTopInsetPx(containerRef.current));
-      setBottomInset(readGridBottomInsetPx(containerRef.current));
-    }, 50);
+  }, [containerRef]);
+  // Re-read grid spacing when the active skin changes (bundle.css is swapped).
+  // A small delay lets the new stylesheet apply before we measure CSS vars.
+  useEffect(() => {
+    syncGridInsets();
+    const t = window.setTimeout(syncGridInsets, 50);
     return () => window.clearTimeout(t);
-  }, [activeSkinId, containerRef]);
+  }, [activeSkinId, syncGridInsets]);
+
+  // GOG-style shells change `--mhg-gog-scroll-top-inset` in width media queries.
+  useEffect(() => {
+    let raf = 0;
+    const onViewportChange = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(syncGridInsets);
+    };
+    window.addEventListener("resize", onViewportChange);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onViewportChange);
+    };
+  }, [syncGridInsets]);
 
   // Publish a `--mhg-cell-scale` CSS variable on each cover pad based on its
   // position relative to the libraries bar. Skins that want the "covers behind
