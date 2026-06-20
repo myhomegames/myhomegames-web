@@ -18,6 +18,7 @@ import {
   readGridTopInsetPx,
   virtualizedGridRowHeightPx,
 } from "../../utils/readGridTopInsetPx";
+import { MHG_LIST_TOOLBAR_CHROME_SYNC_EVENT } from "../../utils/syncInlineListToolbarChrome";
 import {
   applyVirtualizedStepSnap,
   applyWheelDeltaStep,
@@ -305,7 +306,7 @@ export default function VirtualizedGamesList({
     return () => window.clearTimeout(t);
   }, [activeSkinId, syncGridInsets]);
 
-  // GOG-style shells change `--mhg-gog-scroll-top-inset` in width media queries.
+  // Stacked page chrome may update `--mhg-scroll-top-inset` when the inline list toolbar resizes.
   useEffect(() => {
     let raf = 0;
     const onViewportChange = () => {
@@ -313,9 +314,11 @@ export default function VirtualizedGamesList({
       raf = requestAnimationFrame(syncGridInsets);
     };
     window.addEventListener("resize", onViewportChange);
+    window.addEventListener(MHG_LIST_TOOLBAR_CHROME_SYNC_EVENT, onViewportChange);
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", onViewportChange);
+      window.removeEventListener(MHG_LIST_TOOLBAR_CHROME_SYNC_EVENT, onViewportChange);
     };
   }, [syncGridInsets]);
 

@@ -15,6 +15,7 @@ import {
   readDetailViewScrollPaddingTopPx,
   readTableViewHeaderTopInsetPx,
 } from "../../utils/readGridTopInsetPx";
+import { MHG_LIST_TOOLBAR_CHROME_SYNC_EVENT } from "../../utils/syncInlineListToolbarChrome";
 import FocalSelectionBackgroundShell, {
   type FocalSelectionMedia,
 } from "../common/FocalSelectionBackgroundShell";
@@ -278,9 +279,11 @@ export default function GamesListPageContent({
     };
     apply();
     window.addEventListener("resize", apply);
+    window.addEventListener(MHG_LIST_TOOLBAR_CHROME_SYNC_EVENT, apply);
     const t = window.setTimeout(apply, 60);
     return () => {
       window.removeEventListener("resize", apply);
+      window.removeEventListener(MHG_LIST_TOOLBAR_CHROME_SYNC_EVENT, apply);
       window.clearTimeout(t);
       wrapper.style.removeProperty("--mhg-table-view-top-inset");
       scrollEl.style.removeProperty("overflow");

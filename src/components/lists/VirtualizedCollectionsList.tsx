@@ -13,6 +13,7 @@ import {
   readGridTopInsetCollectionsPx,
   virtualizedGridRowHeightPx,
 } from "../../utils/readGridTopInsetPx";
+import { MHG_LIST_TOOLBAR_CHROME_SYNC_EVENT } from "../../utils/syncInlineListToolbarChrome";
 import { virtualizedCoverCellRowHeight } from "../../utils/coverPortrait";
 import {
   applyVirtualizedStepSnap,
@@ -401,6 +402,7 @@ export default function VirtualizedCollectionsList({
 
     updateDimensionsRaf();
     window.addEventListener("resize", updateDimensionsRaf);
+    window.addEventListener(MHG_LIST_TOOLBAR_CHROME_SYNC_EVENT, updateDimensionsRaf);
     const resizeObserver = new ResizeObserver(updateDimensionsRaf);
     if (containerRef.current) {
       resizeObserver.observe(containerRef.current);
@@ -409,6 +411,7 @@ export default function VirtualizedCollectionsList({
     return () => {
       if (rafId !== null) cancelAnimationFrame(rafId);
       window.removeEventListener("resize", updateDimensionsRaf);
+      window.removeEventListener(MHG_LIST_TOOLBAR_CHROME_SYNC_EVENT, updateDimensionsRaf);
       resizeObserver.disconnect();
     };
   }, [containerRef]);

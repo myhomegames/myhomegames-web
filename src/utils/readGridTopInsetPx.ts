@@ -63,7 +63,7 @@ function findLibrariesStripEl(doc: Document): HTMLElement | null {
   return strip instanceof HTMLElement ? strip : bar;
 }
 
-/** GOG-style shell: libraries strip is a full-height left column, not a top icon band. */
+/** Persistent library shell: libraries strip is a full-height left column, not a top icon band. */
 function isPersistentSidebarLibrariesStrip(
   strip: HTMLElement,
   doc: Document = document,
