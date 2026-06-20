@@ -30,6 +30,7 @@ import {
   isContextRailDetailPathname,
 } from "../../utils/contextRailIndexPeek";
 import { librariesStripNeedsHorizontalScroll, syncLibrariesStripScroll } from "../../utils/librariesStripScroll";
+import { syncActiveLibraryIconPosition } from "../../utils/activeLibraryIconPosition";
 
 type CollectionShortcut = {
   id: string;
@@ -782,25 +783,7 @@ export default function LibrariesBar({
   useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
     const updateActiveIconLine = () => {
-      const containerEl = containerRef.current;
-      if (!containerEl) return;
-      const activeButton = containerEl.querySelector(".mhg-library-active") as HTMLElement | null;
-      if (!activeButton) return;
-      const rect = activeButton.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-      const beforeStyle = getComputedStyle(activeButton, "::before");
-      const glyphFontSize = parseFloat(beforeStyle.fontSize);
-      const glyphHalfWidth =
-        Number.isFinite(glyphFontSize) && glyphFontSize > 0 ? glyphFontSize * 0.5 : 26;
-      const graphicLeftX = centerX - glyphHalfWidth;
-      document.documentElement.style.setProperty("--mhg-active-library-icon-center-x", `${centerX}px`);
-      document.documentElement.style.setProperty("--mhg-active-library-icon-center-y", `${centerY}px`);
-      document.documentElement.style.setProperty("--mhg-active-library-icon-left-x", `${rect.left}px`);
-      document.documentElement.style.setProperty(
-        "--mhg-active-library-icon-graphic-left-x",
-        `${graphicLeftX}px`,
-      );
+      syncActiveLibraryIconPosition(containerRef.current);
     };
     updateActiveIconLine();
     const onResize = () => updateActiveIconLine();
@@ -837,6 +820,7 @@ export default function LibrariesBar({
       ) {
         requestAnimationFrame(() => {
           syncLibrariesStripScroll(libRow);
+          syncActiveLibraryIconPosition(strip);
         });
         return;
       }
@@ -905,6 +889,7 @@ export default function LibrariesBar({
     const scheduleClamp = () => {
       requestAnimationFrame(() => {
         syncLibrariesStripScroll(row);
+        syncActiveLibraryIconPosition(containerRef.current);
       });
     };
 
