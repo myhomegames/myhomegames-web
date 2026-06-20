@@ -217,58 +217,58 @@ export default function SearchResultsPage({
   );
 
   const wrapPage = (content: ReactNode, options?: { betweenDockAndStrip?: ReactNode }) => {
-    if (!useLibrariesShellOnSearchResults) {
-      return <>{content}</>;
+    if (useLibrariesShellOnSearchResults) {
+      return (
+        <TopDockSlotProvider>
+          <div className="search-results-shell">
+            <LibrariesBar
+              registerTopDockSlot
+              betweenDockAndStrip={options?.betweenDockAndStrip}
+              libraries={libraries}
+              activeLibrary={activeLibrary}
+              onSelectLibrary={onSelectLibrary}
+              loading={isLoading}
+              error={error}
+              coverSize={coverSize}
+              onCoverSizeChange={handleCoverSizeChange}
+              viewMode={viewMode}
+              onViewModeChange={handleViewModeChange}
+              showMainGamesToggle={false}
+              mainGamesOnly={mainGamesOnly}
+              onMainGamesOnlyChange={setMainGamesOnly}
+              collectionShortcuts={
+                showCollectionShortcuts
+                  ? allCollections.map((collection) => ({
+                      id: collection.id,
+                      title: collection.title,
+                    }))
+                  : []
+              }
+              onSelectCollectionShortcut={
+                showCollectionShortcuts
+                  ? (collectionId) =>
+                      navigate(`/collections/${encodeURIComponent(collectionId)}`)
+                  : undefined
+              }
+              sidebarSearchGames={allGamesForSearch}
+              sidebarSearchCollections={allCollections}
+              sidebarSearchDevelopers={allDevelopersForSearch}
+              sidebarSearchPublishers={allPublishersForSearch}
+              onSidebarSearchGameSelect={(game) =>
+                navigate(`/game/${game.id}`, {
+                  state: { from: location.pathname + location.search },
+                })
+              }
+              onSidebarSearchPlay={onPlay}
+              onAddGameClick={onAddGameClick}
+            />
+            {content}
+          </div>
+        </TopDockSlotProvider>
+      );
     }
 
-    return (
-      <TopDockSlotProvider>
-        <div className="search-results-shell">
-          <LibrariesBar
-            registerTopDockSlot
-            betweenDockAndStrip={options?.betweenDockAndStrip}
-            libraries={libraries}
-            activeLibrary={activeLibrary}
-            onSelectLibrary={onSelectLibrary}
-            loading={isLoading}
-            error={error}
-            coverSize={coverSize}
-            onCoverSizeChange={handleCoverSizeChange}
-            viewMode={viewMode}
-            onViewModeChange={handleViewModeChange}
-            showMainGamesToggle={false}
-            mainGamesOnly={mainGamesOnly}
-            onMainGamesOnlyChange={setMainGamesOnly}
-            collectionShortcuts={
-              showCollectionShortcuts
-                ? allCollections.map((collection) => ({
-                    id: collection.id,
-                    title: collection.title,
-                  }))
-                : []
-            }
-            onSelectCollectionShortcut={
-              showCollectionShortcuts
-                ? (collectionId) =>
-                    navigate(`/collections/${encodeURIComponent(collectionId)}`)
-                : undefined
-            }
-            sidebarSearchGames={allGamesForSearch}
-            sidebarSearchCollections={allCollections}
-            sidebarSearchDevelopers={allDevelopersForSearch}
-            sidebarSearchPublishers={allPublishersForSearch}
-            onSidebarSearchGameSelect={(game) =>
-              navigate(`/game/${game.id}`, {
-                state: { from: location.pathname + location.search },
-              })
-            }
-            onSidebarSearchPlay={onPlay}
-            onAddGameClick={onAddGameClick}
-          />
-          {content}
-        </div>
-      </TopDockSlotProvider>
-    );
+    return content;
   };
 
   if (!searchQuery || searchQuery.trim().length < 2) {
