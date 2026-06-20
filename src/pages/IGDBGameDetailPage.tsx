@@ -311,6 +311,7 @@ function IGDBGameDetailContent({
           {/* Game Info Panel */}
           <div className="igdb-game-detail-info-panel">
             <div className="igdb-game-detail-info-content">
+              <div className="game-detail-info-primary">
               <h1 className="text-white igdb-game-detail-title">
                 {game.name}
               </h1>
@@ -414,7 +415,12 @@ function IGDBGameDetailContent({
                   {markingAsOwned ? t("igdbGameDetail.adding") : t("igdbGameDetail.add")}
                 </button>
               </div>
-              {game.summary && <Summary summary={game.summary} maxLines={summaryMaxLines} />}
+              </div>
+              {game.summary && (
+                <div className="game-detail-summary">
+                  <Summary summary={game.summary} maxLines={summaryMaxLines} />
+                </div>
+              )}
             </div>
           </div>
         </div>

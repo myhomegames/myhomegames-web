@@ -1949,7 +1949,7 @@ function LibraryItemDetailContent({
                         />
                       </div>
                       <div className="library-item-detail-meta">
-                        <div className="library-item-detail-meta-header">
+                        <div className="library-item-detail-meta-header library-item-detail-meta-primary">
                           <h1 className="library-item-detail-title text-white">
                             {item.title}
                           </h1>
@@ -2073,8 +2073,12 @@ function LibraryItemDetailContent({
                               </div>
                             </div>
                           )}
-                          {item?.summary && <Summary summary={item.summary} maxLines={summaryMaxLines} />}
                         </div>
+                        {item?.summary && (
+                          <div className="library-item-detail-summary">
+                            <Summary summary={item.summary} maxLines={summaryMaxLines} />
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
