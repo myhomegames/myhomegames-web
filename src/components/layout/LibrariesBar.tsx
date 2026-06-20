@@ -29,8 +29,12 @@ import {
   contextRailViewTransitionsEnabled,
   isContextRailDetailPathname,
 } from "../../utils/contextRailIndexPeek";
-import { librariesStripNeedsHorizontalScroll, syncLibrariesStripScroll } from "../../utils/librariesStripScroll";
-import { syncActiveLibraryIconPosition } from "../../utils/activeLibraryIconPosition";
+import {
+  centerActiveLibraryInStrip,
+  librariesStripNeedsHorizontalScroll,
+  syncLibrariesStripScroll,
+  verticalCoverRailScrollLayoutForPath,
+} from "../../utils/librariesStripScroll";
 
 type CollectionShortcut = {
   id: string;
@@ -780,20 +784,39 @@ export default function LibrariesBar({
   /* On /collections/:id, highlight only the collection, not a “page” tab as well */
   const showLibraryActiveHighlight = activeCollectionShortcutId == null;
 
+  const syncActiveLibraryIconPosition = useCallback(() => {
+    const containerEl = containerRef.current;
+    if (!containerEl) return;
+    const activeButton = containerEl.querySelector(".mhg-library-active") as HTMLElement | null;
+    if (!activeButton) return;
+    const rect = activeButton.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const beforeStyle = getComputedStyle(activeButton, "::before");
+    const glyphFontSize = parseFloat(beforeStyle.fontSize);
+    const glyphHalfWidth =
+      Number.isFinite(glyphFontSize) && glyphFontSize > 0 ? glyphFontSize * 0.5 : 26;
+    const graphicLeftX = centerX - glyphHalfWidth;
+    document.documentElement.style.setProperty("--mhg-active-library-icon-center-x", `${centerX}px`);
+    document.documentElement.style.setProperty("--mhg-active-library-icon-center-y", `${centerY}px`);
+    document.documentElement.style.setProperty("--mhg-active-library-icon-left-x", `${rect.left}px`);
+    document.documentElement.style.setProperty(
+      "--mhg-active-library-icon-graphic-left-x",
+      `${graphicLeftX}px`,
+    );
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
-    const updateActiveIconLine = () => {
-      syncActiveLibraryIconPosition(containerRef.current);
-    };
-    updateActiveIconLine();
-    const onResize = () => updateActiveIconLine();
+    syncActiveLibraryIconPosition();
+    const onResize = () => syncActiveLibraryIconPosition();
     window.addEventListener("resize", onResize);
-    const t = window.setTimeout(updateActiveIconLine, 60);
+    const t = window.setTimeout(syncActiveLibraryIconPosition, 60);
     return () => {
       window.removeEventListener("resize", onResize);
       window.clearTimeout(t);
     };
-  }, [pathname, activeLibrary?.key, activeCollectionShortcutId, libraries.length]);
+  }, [pathname, activeLibrary?.key, activeCollectionShortcutId, libraries.length, syncActiveLibraryIconPosition]);
 
   useEffect(() => {
     if (!activeSkinWeb.verticalCoverAlignment) return;
@@ -820,7 +843,6 @@ export default function LibrariesBar({
       ) {
         requestAnimationFrame(() => {
           syncLibrariesStripScroll(libRow);
-          syncActiveLibraryIconPosition(strip);
         });
         return;
       }
@@ -882,6 +904,32 @@ export default function LibrariesBar({
   const showProfileInLibrariesBar = showHeaderActionsInLibrariesBar && showProfile;
 
   useEffect(() => {
+    if (!activeSkinWeb.verticalCoverAlignment || isNarrow || verticalPersistentSidebar) return;
+    const row = containerRef.current?.querySelector<HTMLElement>(".mhg-libraries-container");
+    if (!row) return;
+
+    const frame = requestAnimationFrame(() => {
+      centerActiveLibraryInStrip(row, verticalCoverRailScrollLayoutForPath(pathname));
+      syncActiveLibraryIconPosition();
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [
+    activeSkinWeb.verticalCoverAlignment,
+    isNarrow,
+    verticalPersistentSidebar,
+    pathname,
+    activeLibrary?.key,
+    activeCollectionShortcutId,
+    currentLibraryFilterField,
+    isAddGameRoute,
+    isSettingsRoute,
+    libraries.length,
+    collectionShortcuts.length,
+    syncActiveLibraryIconPosition,
+  ]);
+
+  useEffect(() => {
     if (isNarrow || verticalPersistentSidebar) return;
     const row = containerRef.current?.querySelector<HTMLElement>(".mhg-libraries-container");
     if (!row) return;
@@ -889,7 +937,6 @@ export default function LibrariesBar({
     const scheduleClamp = () => {
       requestAnimationFrame(() => {
         syncLibrariesStripScroll(row);
-        syncActiveLibraryIconPosition(containerRef.current);
       });
     };
 
