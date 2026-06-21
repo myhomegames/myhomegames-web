@@ -278,7 +278,7 @@ function AppContent() {
                   onGamesLoaded={() => {
                     // Games are now managed by LibraryGamesContext, no need to update here
                   }}
-                  onReloadMetadata={igdbEnabled ? handleReloadAllMetadata : undefined}
+                  onReloadMetadata={handleReloadAllMetadata}
                   allCollections={allCollections}
                   onOpenCollection={(collectionId) =>
                     navigate(`/collections/${encodeURIComponent(collectionId)}`)
@@ -656,7 +656,7 @@ function AppContent() {
                       onGamesLoaded={() => {
                         // Games are now managed by LibraryGamesContext, no need to update here
                       }}
-                      onReloadMetadata={igdbEnabled ? handleReloadAllMetadata : undefined}
+                      onReloadMetadata={handleReloadAllMetadata}
                       allCollections={allCollections}
                       allGames={allGames}
                       allDevelopers={allDevelopers}
