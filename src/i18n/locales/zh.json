@@ -582,6 +582,7 @@
     "companyStatus": "状态",
     "updatedTo": "更新为",
     "country": "国家",
+    "started": "成立",
     "changedOn": "变更于"
   },
   "igdbCompanyStatuses": {

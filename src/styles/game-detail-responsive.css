@@ -53,6 +53,62 @@
   text-align: left;
 }
 
+.library-item-detail-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  width: 100%;
+  min-width: 0;
+}
+
+.library-item-detail-title-row--with-company-info {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, min(380px, 42%));
+  column-gap: 24px;
+  align-items: stretch;
+}
+
+.library-item-detail-title-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.library-item-detail-title-column .library-item-detail-actions {
+  margin-top: 0;
+}
+
+.library-item-detail-title-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.library-item-detail-title-row--with-company-info .library-item-detail-company-info {
+  align-self: stretch;
+  max-width: none;
+  width: 100%;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+.library-item-detail-company-info {
+  flex-shrink: 0;
+  align-self: flex-start;
+  max-width: min(380px, 42%);
+  padding: 12px 16px;
+  gap: 12px 20px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.library-item-detail-company-info .game-info-field {
+  gap: 4px;
+}
+
 @container mhg-detail-scroll (max-width: 720px) {
   .game-detail-scroll-container,
   .igdb-game-detail-scroll-container,
@@ -102,6 +158,20 @@
     grid-row: 2;
     width: 100%;
     min-height: 0 !important;
+  }
+
+  .library-item-detail-title-row,
+  .library-item-detail-title-row--with-company-info {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .library-item-detail-company-info,
+  .library-item-detail-title-row--with-company-info .library-item-detail-company-info {
+    max-width: 100%;
+    width: 100%;
+    min-height: 0;
   }
 
   .game-detail-summary,

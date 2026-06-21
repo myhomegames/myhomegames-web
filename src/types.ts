@@ -74,6 +74,8 @@ export type IgdbCompanyInfo = {
   updatedTo?: { id: number; name: string };
   country?: string;
   changedOn?: string;
+  /** Company founding date from IGDB `start_date`. */
+  started?: string;
 };
 
 export type CollectionInfo = {

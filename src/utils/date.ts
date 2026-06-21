@@ -135,3 +135,60 @@ export function formatIGDBGameDate(game: IGDBGame, t: TFunction, i18nInstance?: 
   return null;
 }
 
+function getLanguage(t: TFunction, i18nInstance?: I18nType): string {
+  return (i18nInstance?.language || (t as { language?: string }).language || "en") as string;
+}
+
+function formatLocalizedYearMonth(
+  year: number,
+  month: number,
+  t: TFunction,
+  i18nInstance?: I18nType
+): string {
+  const monthName = t(`months.${month}`, { defaultValue: month.toString() });
+  const language = getLanguage(t, i18nInstance);
+
+  if (language.startsWith("ja") || language.startsWith("zh")) {
+    return `${year}年${month}月`;
+  }
+  if (language.startsWith("de")) {
+    return `${capitalize(monthName)} ${year}`;
+  }
+  if (language.startsWith("es") || language.startsWith("pt")) {
+    return `${monthName} de ${year}`;
+  }
+  if (language.startsWith("it") || language.startsWith("fr")) {
+    return `${monthName} ${year}`;
+  }
+  return `${capitalize(monthName)} ${year}`;
+}
+
+/**
+ * Formats IGDB company date strings stored by the server (e.g. "1998-12-31") according to locale.
+ */
+export function formatIgdbStoredDate(
+  dateStr: string,
+  t: TFunction,
+  i18nInstance?: I18nType
+): string {
+  const trimmed = dateStr?.trim();
+  if (!trimmed) return dateStr;
+
+  const fullMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (fullMatch) {
+    const year = Number(fullMatch[1]);
+    const month = Number(fullMatch[2]);
+    const day = Number(fullMatch[3]);
+    return (
+      formatGameDate({ year, month, day } as GameItem, t, i18nInstance) ?? trimmed
+    );
+  }
+
+  const monthMatch = /^(\d{4})-(\d{2})$/.exec(trimmed);
+  if (monthMatch) {
+    return formatLocalizedYearMonth(Number(monthMatch[1]), Number(monthMatch[2]), t, i18nInstance);
+  }
+
+  return trimmed;
+}
+

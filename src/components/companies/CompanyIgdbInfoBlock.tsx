@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import type { IgdbCompanyInfo } from "../../types";
+import { formatIgdbStoredDate } from "../../utils/date";
 
 type CompanyIgdbInfoBlockProps = {
   info: IgdbCompanyInfo;
@@ -8,10 +9,10 @@ type CompanyIgdbInfoBlockProps = {
 };
 
 export default function CompanyIgdbInfoBlock({ info, resourceType }: CompanyIgdbInfoBlockProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
-  const hasInfo = Boolean(info.status || info.updatedTo || info.country || info.changedOn);
+  const hasInfo = Boolean(info.status || info.updatedTo || info.country || info.changedOn || info.started);
   if (!hasInfo) {
     return null;
   }
@@ -47,10 +48,16 @@ export default function CompanyIgdbInfoBlock({ info, resourceType }: CompanyIgdb
           <span className="game-info-list-item">{info.country}</span>
         </div>
       )}
+      {info.started && (
+        <div className="game-info-field">
+          <div className="text-white game-info-label">{t("igdbInfo.started", "Started")}</div>
+          <span className="game-info-list-item">{formatIgdbStoredDate(info.started, t, i18n)}</span>
+        </div>
+      )}
       {info.changedOn && (
         <div className="game-info-field">
           <div className="text-white game-info-label">{t("igdbInfo.changedOn", "Changed on")}</div>
-          <span className="game-info-list-item">{info.changedOn}</span>
+          <span className="game-info-list-item">{formatIgdbStoredDate(info.changedOn, t, i18n)}</span>
         </div>
       )}
     </div>

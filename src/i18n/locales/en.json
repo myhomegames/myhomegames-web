@@ -636,6 +636,7 @@
     "companyStatus": "Status",
     "updatedTo": "Updated to",
     "country": "Country",
+    "started": "Started",
     "changedOn": "Changed on"
   },
   "igdbCompanyStatuses": {

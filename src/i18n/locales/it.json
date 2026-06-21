@@ -635,7 +635,8 @@
     "companyStatus": "Stato",
     "updatedTo": "Aggiornato a",
     "country": "Paese",
-    "changedOn": "Modificato nel"
+    "started": "Fondata nel",
+    "changedOn": "Ultimo aggiornamento"
   },
   "igdbCompanyStatuses": {
     "active": "In attività",

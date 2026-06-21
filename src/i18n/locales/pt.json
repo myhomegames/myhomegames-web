@@ -582,6 +582,7 @@
     "companyStatus": "Estado",
     "updatedTo": "Atualizado para",
     "country": "País",
+    "started": "Fundada em",
     "changedOn": "Alterado em"
   },
   "igdbCompanyStatuses": {

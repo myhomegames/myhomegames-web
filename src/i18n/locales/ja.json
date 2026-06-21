@@ -582,6 +582,7 @@
     "companyStatus": "ステータス",
     "updatedTo": "更新先",
     "country": "国",
+    "started": "設立",
     "changedOn": "変更日"
   },
   "igdbCompanyStatuses": {

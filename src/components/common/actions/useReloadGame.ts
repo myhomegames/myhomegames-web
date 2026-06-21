@@ -2,8 +2,10 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { API_BASE } from "../../../config";
 import { buildApiUrl, buildApiHeaders } from "../../../utils/api";
+import { buildIgdbApiUrl, isIgdbApiEnabled } from "../../../utils/igdbApi";
+import { useSettings } from "../../../contexts/SettingsContext";
 import { useLoading } from "../../../contexts/LoadingContext";
-import type { GameItem, CollectionInfo } from "../../../types";
+import type { GameItem, CollectionInfo, IgdbCompanyInfo } from "../../../types";
 
 type UseReloadGameParams = {
   gameId?: string;
@@ -87,6 +89,50 @@ function mapReloadedGame(data: Record<string, unknown>): GameItem {
   };
 }
 
+async function refreshIgdbGameMetadataViaApi(gameId: string): Promise<void> {
+  const igdbRes = await fetch(buildIgdbApiUrl(`/igdb/game/${gameId}`), {
+    headers: buildApiHeaders(),
+  });
+  if (!igdbRes.ok) return;
+
+  const igdbData = await igdbRes.json();
+
+  await fetch(buildApiUrl(API_BASE, `/games/${gameId}/merge-igdb-metadata`), {
+    method: "POST",
+    headers: {
+      ...buildApiHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(igdbData),
+  });
+}
+
+async function refreshIgdbCompanyInfoViaApi(
+  resourceType: "developers" | "publishers",
+  itemId: string,
+  title?: string
+): Promise<void> {
+  const params: Record<string, string> = {};
+  if (title?.trim()) params.name = title.trim();
+
+  const igdbRes = await fetch(buildIgdbApiUrl(`/igdb/company/${itemId}`, params), {
+    headers: buildApiHeaders(),
+  });
+  if (!igdbRes.ok) return;
+
+  const igdbData = (await igdbRes.json()) as { igdbCompanyInfo?: IgdbCompanyInfo | null };
+  if (!igdbData.igdbCompanyInfo) return;
+
+  await fetch(buildApiUrl(API_BASE, `/${resourceType}/${itemId}/merge-igdb-company-info`), {
+    method: "POST",
+    headers: {
+      ...buildApiHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ igdbCompanyInfo: igdbData.igdbCompanyInfo }),
+  });
+}
+
 export function useReloadGame({
   gameId,
   collectionId,
@@ -98,6 +144,7 @@ export function useReloadGame({
   onModalClose,
 }: UseReloadGameParams): UseReloadGameReturn {
   const { t } = useTranslation();
+  const { twitchApiEnabled } = useSettings();
   const { setLoading } = useLoading();
   const [isReloading, setIsReloading] = useState(false);
   const [reloadError, setReloadError] = useState<string | null>(null);
@@ -109,6 +156,34 @@ export function useReloadGame({
     setLoading(true);
 
     try {
+      const igdbEnabled = isIgdbApiEnabled(twitchApiEnabled);
+
+      if (igdbEnabled && gameId) {
+        try {
+          await refreshIgdbGameMetadataViaApi(gameId);
+        } catch (err) {
+          console.warn("IGDB game metadata refresh skipped during reload:", err);
+        }
+      } else if (igdbEnabled && (developerId || publisherId)) {
+        const resourceType = developerId ? "developers" : "publishers";
+        const itemId = developerId || publisherId || "";
+        let title = "";
+
+        const detailRes = await fetch(buildApiUrl(API_BASE, `/${resourceType}/${itemId}`), {
+          headers: buildApiHeaders(),
+        });
+        if (detailRes.ok) {
+          const detail = (await detailRes.json()) as { title?: string };
+          title = typeof detail.title === "string" ? detail.title : "";
+        }
+
+        try {
+          await refreshIgdbCompanyInfoViaApi(resourceType, itemId, title);
+        } catch (err) {
+          console.warn("IGDB company refresh skipped during reload:", err);
+        }
+      }
+
       let url: string;
 
       if (gameId) {
