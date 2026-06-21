@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo, useLayoutEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import { useDeleteGame, useReloadGame, useUnlinkExecutable, useRemoveGameFromCollection } from "./actions";
+import { useSettings } from "../../contexts/SettingsContext";
 import Tooltip from "./Tooltip";
 import type { CollectionItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
@@ -73,6 +74,12 @@ export default function DropdownMenu({
   toolTipDelay = 0,
 }: DropdownMenuProps) {
   const { t } = useTranslation();
+  const { igdbEnabled } = useSettings();
+  const canReloadMetadata =
+    igdbEnabled &&
+    (!!onReload ||
+      !!(gameId && onGameUpdate) ||
+      (!gameId && !collectionId && !developerId && !publisherId && !onEdit && !onDelete));
   /**
    * When Twitch auth is disabled the server accepts mutations without a token,
    * so delete/reload entries should remain available even without `getApiToken()`.
@@ -416,6 +423,10 @@ export default function DropdownMenu({
     e.stopPropagation();
     e.preventDefault();
     setIsOpen(false);
+
+    if (!canReloadMetadata) {
+      return;
+    }
     
     // If there's a gameId or collectionId, execute reload directly (single element)
     if (gameId || collectionId) {
@@ -720,7 +731,7 @@ export default function DropdownMenu({
                 (onRemoveFromParent && !gameId && (collectionId || developerId || publisherId))
               ) &&
               (onEdit ||
-                (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !developerId && !publisherId && !onEdit && !onDelete)) ||
+                canReloadMetadata ||
                 (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) ||
                 (onDelete || (hasBackendAuth && (gameId || collectionId || developerId || publisherId)))) && (
               <div 
@@ -790,7 +801,7 @@ export default function DropdownMenu({
                 </span>
               </button>
             )}
-            {((onRemoveFromCollection && gameId && collectionId) || (onRemoveFromDeveloper && gameId && developerId) || (onRemoveFromPublisher && gameId && publisherId) || (onRemoveFromParent && !gameId && (collectionId || developerId || publisherId))) && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !developerId && !publisherId && !onEdit && !onDelete)) || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (hasBackendAuth && (gameId || collectionId || developerId || publisherId)))) && (
+            {((onRemoveFromCollection && gameId && collectionId) || (onRemoveFromDeveloper && gameId && developerId) || (onRemoveFromPublisher && gameId && publisherId) || (onRemoveFromParent && !gameId && (collectionId || developerId || publisherId))) && (onEdit || canReloadMetadata || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (hasBackendAuth && (gameId || collectionId || developerId || publisherId)))) && (
               <div className="dropdown-menu-divider" />
             )}
             
@@ -803,7 +814,7 @@ export default function DropdownMenu({
                 <span>{t("common.edit", "Edit")}</span>
               </button>
             )}
-            {(onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !developerId && !publisherId && !onEdit && !onDelete)) && (
+            {canReloadMetadata && (
               <button
                 onClick={handleReload}
                 className="dropdown-menu-item"

@@ -971,7 +971,7 @@ export default function LibrariesBar({
 
   const comboboxContainerLayoutStyle = useMemo((): CSSProperties | undefined => {
     if (!isNarrow) return undefined;
-    const hasLeftMenu = !topRightToolDock && !!API_BASE && showProfile;
+    const hasLeftMenu = !topRightToolDock && !!API_BASE && (showProfile || !!onReloadMetadata);
     const left = hasLeftMenu ? 72 : 24;
     const rightReserve = Math.max(measuredActionsWidth, 48) + 8;
     return {
@@ -1085,7 +1085,7 @@ export default function LibrariesBar({
                 />
               </div>
             )}
-            {API_BASE && showProfile && (
+            {API_BASE && onReloadMetadata && (
               <div className="mhg-top-right-tool-dock-menu">
                 <DropdownMenu
                   className="mhg-libraries-menu-dropdown mhg-top-right-tool-dock-menu-dropdown"
@@ -1099,7 +1099,7 @@ export default function LibrariesBar({
       {betweenDockAndStrip}
       <div className="mhg-libraries-bar-container" ref={containerRef}>
         {/* Menu dropdown bottom-left (hidden when using fixed top-right dock) */}
-        {!topRightToolDock && API_BASE && showProfile && (
+        {!topRightToolDock && API_BASE && onReloadMetadata && (
           <div className="mhg-libraries-menu-container">
             <DropdownMenu
               className="mhg-libraries-menu-dropdown"
