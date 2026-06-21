@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import { useDeleteGame, useReloadGame, useUnlinkExecutable, useRemoveGameFromCollection } from "./actions";
 import Tooltip from "./Tooltip";
+import { useSkin } from "../../contexts/SkinContext";
+import { bindSheetBackdropClose } from "../../utils/sheetPopupBackdrop";
 import type { CollectionItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 
@@ -81,6 +83,7 @@ export default function DropdownMenu({
   toolTipDelay = 0,
 }: DropdownMenuProps) {
   const { t } = useTranslation();
+  const { activeSkinWeb } = useSkin();
   const canReloadMetadata =
     !!onReload ||
     !!(gameId && onGameUpdate) ||
@@ -98,6 +101,14 @@ export default function DropdownMenu({
    * When Twitch auth is disabled the server accepts mutations without a token,
    * so delete/reload entries should remain available even without `getApiToken()`.
    */
+  const closeDropdown = () => {
+    setIsOpen(false);
+    setIsCollectionLikeSubmenuOpen(false);
+  };
+  const sheetBackdropProps = bindSheetBackdropClose(
+    activeSkinWeb.disableTitleTooltips,
+    closeDropdown,
+  );
   const hasBackendAuth = true;
   const [isOpen, setIsOpen] = useState(false);
   const [isCollectionLikeSubmenuOpen, setIsCollectionLikeSubmenuOpen] = useState(false);
@@ -164,7 +175,7 @@ export default function DropdownMenu({
   /** Persistent shell / top tool dock: escape overflow clipping via body portal + fixed position */
   const isLibrariesTopMenu = className.includes('mhg-libraries-menu-dropdown');
   const isDetailDockMenu = className.includes('library-item-detail-dropdown-menu');
-  /** Game detail ⋮: portal to body so PS3 right sheet (z-index 10100) covers the overlay dock. */
+  /** Game detail ⋮: portal to body so the right sheet covers the overlay dock. */
   const isGameDetailMenu = className.includes('game-detail-dropdown-menu');
   const useDockPortalMenu = isLibrariesTopMenu || isDetailDockMenu;
   /** Body portal + fixed position under trigger (dock, detail sheet, game detail actions). */
@@ -530,6 +541,7 @@ export default function DropdownMenu({
             ref={popupRef} 
             className={`dropdown-menu-popup ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''} ${isInGamesTable ? 'dropdown-menu-popup-in-games-table' : ''} ${useFixedBodyPortalMenu ? 'dropdown-menu-popup-in-libraries-top' : ''}`}
             onMouseLeave={handlePopupMouseLeave}
+            {...sheetBackdropProps}
             style={(() => {
               if (!menuRef.current) return undefined;
               

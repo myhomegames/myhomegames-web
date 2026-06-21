@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Tooltip from "../common/Tooltip";
 import ProfilePanelContent from "../profile/ProfilePanelContent";
 import { useSkin } from "../../contexts/SkinContext";
+import { bindSheetBackdropClose } from "../../utils/sheetPopupBackdrop";
 import { useTunnel } from "../../contexts/TunnelContext";
 import { useActiveProfile } from "../../hooks/useActiveProfile";
 
@@ -11,7 +12,7 @@ type ProfileDropdownPanel = "menu" | "profile";
 
 type ProfileDropdownProps = {
   onViewProfile?: () => void;
-  /** PS3 libraries strip: same look as other `mhg-library-button` entries, opens sheet on click. */
+  /** Libraries strip: same look as other `mhg-library-button` entries, opens sheet on click. */
   triggerVariant?: "header" | "library";
   libraryActive?: boolean;
   /** Compact header icon row on phone-width viewports. */
@@ -191,6 +192,7 @@ export default function ProfileDropdown({
           ref={popupRef}
           className="profile-dropdown-popup"
           data-mhg-profile-dropdown-panel={panel}
+          {...bindSheetBackdropClose(activeSkinWeb.disableTitleTooltips, () => setIsOpen(false))}
         >
           {panel === "menu" ? (
             <>

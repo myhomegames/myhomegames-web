@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useLayoutEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { useSkin } from "../../contexts/SkinContext";
+import { bindSheetBackdropClose } from "../../utils/sheetPopupBackdrop";
 import type { ViewMode } from "../../types";
 type ViewModeSelectorProps = {
   value: ViewMode;
@@ -14,6 +16,7 @@ export default function ViewModeSelector({
   disabled = false,
 }: ViewModeSelectorProps) {
   const { t, i18n } = useTranslation();
+  const { activeSkinWeb } = useSkin();
   const [isOpen, setIsOpen] = useState(false);
   const [iconHover, setIconHover] = useState(false);
   const selectorRef = useRef<HTMLDivElement>(null);
@@ -155,6 +158,7 @@ export default function ViewModeSelector({
               marginTop: 0,
               zIndex: 10008,
             }}
+            {...bindSheetBackdropClose(activeSkinWeb.disableTitleTooltips, () => setIsOpen(false))}
           >
             {modes.map((mode) => (
               <button

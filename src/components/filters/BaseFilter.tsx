@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { useSkin } from "../../contexts/SkinContext";
+import { bindSheetBackdropClose } from "../../utils/sheetPopupBackdrop";
 import type { FilterType, FilterValue, GameItem } from "./types";
 
 export type FilterConfig = {
@@ -33,6 +35,7 @@ export default function BaseFilter({
   additionalData,
 }: BaseFilterProps) {
   const { t } = useTranslation();
+  const { activeSkinWeb } = useSkin();
   const [searchQuery, setSearchQuery] = useState("");
   const submenuRef = useRef<HTMLDivElement>(null);
 
@@ -101,7 +104,11 @@ export default function BaseFilter({
   if (!isOpen) return null;
 
   return (
-    <div className="filter-popup" ref={submenuRef}>
+    <div
+      className="filter-popup"
+      ref={submenuRef}
+      {...bindSheetBackdropClose(activeSkinWeb.disableTitleTooltips, onCloseCompletely)}
+    >
       <div className="filter-popup-header">
         <button
           className="filter-popup-back"

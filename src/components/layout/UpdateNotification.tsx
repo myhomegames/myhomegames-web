@@ -31,7 +31,7 @@ export default function UpdateNotification({
   const hasSkinUpdates =
     environmentCompatible && (availableUpdates.length > 0 || skinUpdating);
   const serverUpdateRequired = !environmentCompatible && hasServerUpdate;
-  /** PS3 renders the update panel as a fixed right sheet; portal avoids dock `transform` clipping. */
+  /** Full-viewport sheet: portal avoids dock `transform` clipping. */
   const portaledPopup = activeSkinWeb.disableTitleTooltips;
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -109,7 +109,7 @@ export default function UpdateNotification({
       ref={popupRef}
       className="update-notification-popup"
       onMouseDown={(event) => {
-        /* PS3 full-viewport overlay: close when clicking the dim band (not the right sheet). */
+        /* Full-viewport overlay: close when clicking the dim band (not the sheet). */
         if (portaledPopup && event.target === event.currentTarget) {
           setIsOpen(false);
         }

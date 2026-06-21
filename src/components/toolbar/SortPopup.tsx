@@ -1,5 +1,7 @@
 import { useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useSkin } from "../../contexts/SkinContext";
+import { bindSheetBackdropClose } from "../../utils/sheetPopupBackdrop";
 import type { SortField } from "../../types";
 type SortPopupProps = {
   isOpen: boolean;
@@ -19,6 +21,7 @@ export default function SortPopup({
   onSortDirectionChange,
 }: SortPopupProps) {
   const { t } = useTranslation();
+  const { activeSkinWeb } = useSkin();
   const sortRef = useRef<HTMLDivElement>(null);
 
   // Close popup when clicking outside
@@ -81,7 +84,11 @@ export default function SortPopup({
   if (!isOpen) return null;
 
   return (
-    <div className="sort-popup" ref={sortRef}>
+    <div
+      className="sort-popup"
+      ref={sortRef}
+      {...bindSheetBackdropClose(activeSkinWeb.disableTitleTooltips, onClose)}
+    >
       {sortOptions.map((option) => (
         <button
           key={option.value}
