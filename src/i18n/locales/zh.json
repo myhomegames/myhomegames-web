@@ -578,7 +578,17 @@
     "genres": "类型",
     "ratings": "评分",
     "criticRating": "评论家评分",
-    "userRating": "用户评分"
+    "userRating": "用户评分",
+    "companyStatus": "状态",
+    "updatedTo": "更新为",
+    "country": "国家",
+    "changedOn": "变更于"
+  },
+  "igdbCompanyStatuses": {
+    "active": "活跃",
+    "defunct": "已倒闭",
+    "merge": "合并",
+    "renamed": "已更名"
   },
   "igdbGameTypes": {
     "0": "主游戏",

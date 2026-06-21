@@ -637,6 +637,12 @@
     "country": "Paese",
     "changedOn": "Modificato nel"
   },
+  "igdbCompanyStatuses": {
+    "active": "In attività",
+    "defunct": "Cessata attività",
+    "merge": "Fusione",
+    "renamed": "Rinominata"
+  },
   "igdbGameTypes": {
     "0": "Gioco principale",
     "1": "DLC",

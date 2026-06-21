@@ -578,7 +578,17 @@
     "genres": "ジャンル",
     "ratings": "評価",
     "criticRating": "批評家評価",
-    "userRating": "ユーザー評価"
+    "userRating": "ユーザー評価",
+    "companyStatus": "ステータス",
+    "updatedTo": "更新先",
+    "country": "国",
+    "changedOn": "変更日"
+  },
+  "igdbCompanyStatuses": {
+    "active": "活動中",
+    "defunct": "解散",
+    "merge": "合併",
+    "renamed": "名称変更"
   },
   "igdbGameTypes": {
     "0": "メインゲーム",

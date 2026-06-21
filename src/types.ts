@@ -69,6 +69,7 @@ export type TagItem = {
 };
 
 export type IgdbCompanyInfo = {
+  /** IGDB `Company.status.name`; label via i18n `igdbCompanyStatuses.{name.toLowerCase()}`. */
   status?: string;
   updatedTo?: { id: number; name: string };
   country?: string;

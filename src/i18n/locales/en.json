@@ -638,6 +638,12 @@
     "country": "Country",
     "changedOn": "Changed on"
   },
+  "igdbCompanyStatuses": {
+    "active": "Active",
+    "defunct": "Defunct",
+    "merge": "Merge",
+    "renamed": "Renamed"
+  },
   "igdbGameTypes": {
     "0": "Main Game",
     "1": "DLC",

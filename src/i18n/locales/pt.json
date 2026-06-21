@@ -578,7 +578,17 @@
     "genres": "Gêneros",
     "ratings": "Avaliações",
     "criticRating": "Avaliação da crítica",
-    "userRating": "Avaliação dos usuários"
+    "userRating": "Avaliação dos usuários",
+    "companyStatus": "Estado",
+    "updatedTo": "Atualizado para",
+    "country": "País",
+    "changedOn": "Alterado em"
+  },
+  "igdbCompanyStatuses": {
+    "active": "Ativa",
+    "defunct": "Encerrada",
+    "merge": "Fusão",
+    "renamed": "Renomeada"
   },
   "igdbGameTypes": {
     "0": "Jogo principal",

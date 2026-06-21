@@ -17,13 +17,16 @@ export default function CompanyIgdbInfoBlock({ info, resourceType }: CompanyIgdb
   }
 
   const routeBase = resourceType === "developers" ? "/developers" : "/publishers";
+  const statusKey = info.status?.trim().toLowerCase() ?? "";
 
   return (
     <div className="game-info-block library-item-detail-company-info">
-      {info.status && (
+      {statusKey && (
         <div className="game-info-field">
           <div className="text-white game-info-label">{t("igdbInfo.companyStatus", "Status")}</div>
-          <span className="game-info-list-item">{info.status}</span>
+          <span className="igdb-company-status-badge" data-status={statusKey}>
+            {t(`igdbCompanyStatuses.${statusKey}`, info.status ?? statusKey)}
+          </span>
         </div>
       )}
       {info.updatedTo && (
