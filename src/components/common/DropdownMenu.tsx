@@ -32,10 +32,6 @@ type DropdownMenuProps = {
   onRemoveFromDeveloper?: () => void;
   onRemoveFromPublisher?: () => void;
   onRemoveFromParent?: () => void;
-  tagId?: string;
-  tagReloadRouteBase?: string;
-  tagResponseKey?: string;
-  onTagUpdate?: (tag: import("../../types").TagItem) => void;
   sourceCollectionLike?: CollectionItem;
   allCollectionLikes?: CollectionItem[];
   collectionLikeResourceType?: CollectionLikeResourceType;
@@ -69,10 +65,6 @@ export default function DropdownMenu({
   onRemoveFromDeveloper,
   onRemoveFromPublisher,
   onRemoveFromParent,
-  tagId,
-  tagReloadRouteBase,
-  tagResponseKey,
-  onTagUpdate,
   sourceCollectionLike,
   allCollectionLikes = [],
   collectionLikeResourceType,
@@ -89,12 +81,10 @@ export default function DropdownMenu({
     !!(gameId && onGameUpdate) ||
     !!(collectionId && onCollectionUpdate) ||
     !!((developerId || publisherId) && onCollectionUpdate) ||
-    !!(tagId && tagReloadRouteBase && onTagUpdate) ||
     (!gameId &&
       !collectionId &&
       !developerId &&
       !publisherId &&
-      !tagId &&
       !onEdit &&
       !onDelete);
   /**
@@ -138,12 +128,8 @@ export default function DropdownMenu({
     collectionId,
     developerId,
     publisherId,
-    tagId,
-    tagReloadRouteBase,
-    tagResponseKey,
     onGameUpdate,
     onCollectionUpdate,
-    onTagUpdate,
     onReload,
     onModalClose,
   });
@@ -460,7 +446,7 @@ export default function DropdownMenu({
     }
     
     // If there's a gameId or collectionId, execute reload directly (single element)
-    if (gameId || collectionId || developerId || publisherId || (tagId && tagReloadRouteBase)) {
+    if (gameId || collectionId || developerId || publisherId) {
       if (onReload) {
         // If there's a custom callback, use it
         onReload();
@@ -856,8 +842,7 @@ export default function DropdownMenu({
                   {gameId ||
                   collectionId ||
                   developerId ||
-                  publisherId ||
-                  (tagId && tagReloadRouteBase)
+                  publisherId
                     ? t("common.reloadSingleMetadata", "Reload metadata")
                     : t("common.reloadMetadata", "Reload all metadata")
                   }

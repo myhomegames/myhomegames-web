@@ -3,19 +3,15 @@ import { useTranslation } from "react-i18next";
 import { API_BASE } from "../../../config";
 import { buildApiUrl, buildApiHeaders } from "../../../utils/api";
 import { useLoading } from "../../../contexts/LoadingContext";
-import type { GameItem, CollectionInfo, TagItem } from "../../../types";
+import type { GameItem, CollectionInfo } from "../../../types";
 
 type UseReloadGameParams = {
   gameId?: string;
   collectionId?: string;
   developerId?: string;
   publisherId?: string;
-  tagId?: string;
-  tagReloadRouteBase?: string;
-  tagResponseKey?: string;
   onGameUpdate?: (game: GameItem) => void;
   onCollectionUpdate?: (collection: CollectionInfo) => void;
-  onTagUpdate?: (tag: TagItem) => void;
   onReload?: () => void;
   onModalClose?: () => void;
 };
@@ -96,12 +92,8 @@ export function useReloadGame({
   collectionId,
   developerId,
   publisherId,
-  tagId,
-  tagReloadRouteBase,
-  tagResponseKey,
   onGameUpdate,
   onCollectionUpdate,
-  onTagUpdate,
   onReload,
   onModalClose,
 }: UseReloadGameParams): UseReloadGameReturn {
@@ -127,8 +119,6 @@ export function useReloadGame({
         url = buildApiUrl(API_BASE, `/developers/${developerId}/reload`);
       } else if (publisherId) {
         url = buildApiUrl(API_BASE, `/publishers/${publisherId}/reload`);
-      } else if (tagId && tagReloadRouteBase) {
-        url = buildApiUrl(API_BASE, `${tagReloadRouteBase}/${tagId}/reload`);
       } else {
         url = buildApiUrl(API_BASE, `/reload-games`);
       }
@@ -163,22 +153,6 @@ export function useReloadGame({
           const key = developerId ? "developer" : "publisher";
           if (onCollectionUpdate && data[key]) {
             onCollectionUpdate(mapReloadedCollection(data[key]));
-          }
-          setIsReloading(false);
-          setLoading(false);
-          return;
-        }
-
-        if (tagId && tagResponseKey) {
-          if (onTagUpdate && data[tagResponseKey]) {
-            const raw = data[tagResponseKey];
-            onTagUpdate({
-              id: String(raw.id),
-              title: String(raw.title ?? ""),
-              cover: typeof raw.cover === "string" ? raw.cover : undefined,
-              showTitle: raw.showTitle,
-              hasCover: raw.hasCover,
-            });
           }
           setIsReloading(false);
           setLoading(false);
