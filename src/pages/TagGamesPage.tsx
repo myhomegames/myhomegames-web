@@ -17,7 +17,8 @@ import LibrariesBar from "../components/layout/LibrariesBar";
 import MainGamesToggle from "../components/ui/MainGamesToggle";
 import NewGamesToggle from "../components/ui/NewGamesToggle";
 import type { ViewMode } from "../types";
-import type { GameItem, CollectionItem } from "../types";
+import type { GameItem, CollectionItem, TagItem } from "../types";
+import DropdownMenu from "../components/common/DropdownMenu";
 import type { FilterField } from "../components/filters/types";
 import { TAG_PAGE_CONFIGS, type TagKey } from "../utils/tagPages";
 import { resolveTagDisplayLabel } from "../utils/resolveTagDisplayLabel";
@@ -494,6 +495,26 @@ export default function TagGamesPage({
     [tagListMeta?.cover],
   );
 
+  const tagReloadRouteBase = useMemo(() => {
+    if (!tagConfig) return undefined;
+    return tagConfig.list.editRouteBase || tagConfig.list.listEndpoint;
+  }, [tagConfig]);
+
+  const handleTagMetadataReload = useCallback(
+    (updated: TagItem) => {
+      setTagListMeta({ cover: updated.cover, title: updated.title });
+      window.dispatchEvent(new CustomEvent("tagListUpdated"));
+      const eventName = tagConfig?.list.updateEventName;
+      const payloadKey = tagConfig?.list.updateEventPayloadKey;
+      if (eventName && payloadKey) {
+        window.dispatchEvent(
+          new CustomEvent(eventName, { detail: { [payloadKey]: updated } })
+        );
+      }
+    },
+    [tagConfig]
+  );
+
   const tagRailCoverWidth = coverSize;
   const tagRailCoverHeight = coverSize * (9 / 16);
 
@@ -603,6 +624,7 @@ export default function TagGamesPage({
                     className="tag-games-context-rail-cover tag-list-item"
                     style={
                       {
+                        position: "relative",
                         ["--tag-list-cover-size" as string]: `${coverSize}px`,
                         ...(contextRailViewTransitions
                           ? { viewTransitionName: CONTEXT_RAIL_COVER_VIEW_TRANSITION }
@@ -621,6 +643,22 @@ export default function TagGamesPage({
                       showTitle={false}
                       showBorder={true}
                     />
+                    {tagValue && tagConfig ? (
+                      <div
+                        className="tag-games-context-rail-actions"
+                        style={{ position: "absolute", bottom: 8, right: 8, zIndex: 3 }}
+                      >
+                        <DropdownMenu
+                          tagId={tagValue}
+                          tagReloadRouteBase={tagReloadRouteBase}
+                          tagResponseKey={tagConfig.list.responseKey}
+                          onTagUpdate={handleTagMetadataReload}
+                          horizontal={true}
+                          className="library-item-detail-dropdown-menu"
+                          toolTipDelay={200}
+                        />
+                      </div>
+                    ) : null}
                   </div>
                 </aside>
                 <div className="mhg-context-rail-bridge" aria-hidden="true" />

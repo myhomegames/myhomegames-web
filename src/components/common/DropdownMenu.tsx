@@ -30,6 +30,10 @@ type DropdownMenuProps = {
   onRemoveFromDeveloper?: () => void;
   onRemoveFromPublisher?: () => void;
   onRemoveFromParent?: () => void;
+  tagId?: string;
+  tagReloadRouteBase?: string;
+  tagResponseKey?: string;
+  onTagUpdate?: (tag: import("../../types").TagItem) => void;
   sourceCollectionLike?: CollectionItem;
   allCollectionLikes?: CollectionItem[];
   collectionLikeResourceType?: CollectionLikeResourceType;
@@ -63,6 +67,10 @@ export default function DropdownMenu({
   onRemoveFromDeveloper,
   onRemoveFromPublisher,
   onRemoveFromParent,
+  tagId,
+  tagReloadRouteBase,
+  tagResponseKey,
+  onTagUpdate,
   sourceCollectionLike,
   allCollectionLikes = [],
   collectionLikeResourceType,
@@ -76,7 +84,16 @@ export default function DropdownMenu({
   const canReloadMetadata =
     !!onReload ||
     !!(gameId && onGameUpdate) ||
-    (!gameId && !collectionId && !developerId && !publisherId && !onEdit && !onDelete);
+    !!(collectionId && onCollectionUpdate) ||
+    !!((developerId || publisherId) && onCollectionUpdate) ||
+    !!(tagId && tagReloadRouteBase && onTagUpdate) ||
+    (!gameId &&
+      !collectionId &&
+      !developerId &&
+      !publisherId &&
+      !tagId &&
+      !onEdit &&
+      !onDelete);
   /**
    * When Twitch auth is disabled the server accepts mutations without a token,
    * so delete/reload entries should remain available even without `getApiToken()`.
@@ -108,8 +125,14 @@ export default function DropdownMenu({
   const reloadGame = useReloadGame({
     gameId,
     collectionId,
+    developerId,
+    publisherId,
+    tagId,
+    tagReloadRouteBase,
+    tagResponseKey,
     onGameUpdate,
     onCollectionUpdate,
+    onTagUpdate,
     onReload,
     onModalClose,
   });
@@ -426,7 +449,7 @@ export default function DropdownMenu({
     }
     
     // If there's a gameId or collectionId, execute reload directly (single element)
-    if (gameId || collectionId) {
+    if (gameId || collectionId || developerId || publisherId || (tagId && tagReloadRouteBase)) {
       if (onReload) {
         // If there's a custom callback, use it
         onReload();
@@ -818,7 +841,11 @@ export default function DropdownMenu({
                 disabled={reloadGame.isReloading}
               >
                 <span>
-                  {gameId
+                  {gameId ||
+                  collectionId ||
+                  developerId ||
+                  publisherId ||
+                  (tagId && tagReloadRouteBase)
                     ? t("common.reloadSingleMetadata", "Reload metadata")
                     : t("common.reloadMetadata", "Reload all metadata")
                   }

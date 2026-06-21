@@ -15,6 +15,8 @@ import { useTitleFilter } from "../../contexts/TitleFilterContext";
 import { useActiveProfile } from "../../hooks/useActiveProfile";
 import { usePhoneLayout } from "../../hooks/usePhoneLayout";
 import { useLibrarySidebarLayout } from "../../contexts/LibrarySidebarLayoutContext";
+import DropdownMenu from "../common/DropdownMenu";
+import { API_BASE } from "../../config";
 import type { GameItem, CollectionItem } from "../../types";
 
 const PHONE_HEADER_BUTTON: CSSProperties = { width: 32, height: 32 };
@@ -41,6 +43,7 @@ type HeaderProps = {
   onAddGameClick: () => void;
   hideSettingsAction?: boolean;
   hideProfileAction?: boolean;
+  onReloadMetadata?: () => Promise<void>;
 };
 
 export default function Header({
@@ -55,6 +58,7 @@ export default function Header({
   onAddGameClick,
   hideSettingsAction = false,
   hideProfileAction = false,
+  onReloadMetadata,
 }: HeaderProps) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
@@ -94,6 +98,12 @@ export default function Header({
   const hideHeaderSearch = activeSkinWeb.libraryBarHeaderActions && activeSkinWeb.sidebarSearchPopup;
   const hideHeaderLogo =
     activeSkinWeb.topRightToolDock && !pathnameUsesHeaderLogoOnly(pathname);
+  const showHeaderLibrariesMenu =
+    collapsibleActive &&
+    activeSkinWeb.persistentLibraryShell &&
+    !activeSkinWeb.topRightToolDock &&
+    !!API_BASE &&
+    !!onReloadMetadata;
 
   useEffect(() => {
     if (!activeSkinWeb.headerTitleFilter || hideHeaderTitleFilter) {
@@ -250,6 +260,14 @@ export default function Header({
           )}
           {showProfile && !hideProfile && (
             <ProfileDropdown compactHeader={isPhoneLayout} />
+          )}
+          {showHeaderLibrariesMenu && (
+            <div className="mhg-header-libraries-menu-container">
+              <DropdownMenu
+                className="mhg-libraries-menu-dropdown"
+                onReload={onReloadMetadata}
+              />
+            </div>
           )}
         </div>
       </div>

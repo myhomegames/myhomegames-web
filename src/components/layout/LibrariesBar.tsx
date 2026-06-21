@@ -897,6 +897,23 @@ export default function LibrariesBar({
   /** Vertical sidebar list inside the persistent shell — native column scroll, not horizontal strip clamp. */
   const verticalPersistentSidebar =
     activeSkinWeb.persistentLibraryShell && activeSkinWeb.libraryPagesVerticalList;
+  const showSidebarLibrariesMenu =
+    !topRightToolDock &&
+    !!API_BASE &&
+    !!onReloadMetadata &&
+    !(verticalPersistentSidebar && collapsibleActive);
+  const librariesMenuDropdown = showSidebarLibrariesMenu ? (
+    <div
+      className={`mhg-libraries-menu-container${
+        verticalPersistentSidebar ? " mhg-libraries-sidebar-header-tools" : ""
+      }`}
+    >
+      <DropdownMenu
+        className="mhg-libraries-menu-dropdown"
+        onReload={onReloadMetadata}
+      />
+    </div>
+  ) : null;
   const showHeaderActionsInLibrariesBar = activeSkinWeb.libraryBarHeaderActions;
   const showAddGameInLibrariesBar = showHeaderActionsInLibrariesBar;
   const isAddGameRoute = pathname === "/add-game";
@@ -1098,16 +1115,8 @@ export default function LibrariesBar({
       )}
       {betweenDockAndStrip}
       <div className="mhg-libraries-bar-container" ref={containerRef}>
-        {/* Menu dropdown bottom-left (hidden when using fixed top-right dock) */}
-        {!topRightToolDock && API_BASE && onReloadMetadata && (
-          <div className="mhg-libraries-menu-container">
-            <DropdownMenu
-              className="mhg-libraries-menu-dropdown"
-              onReload={onReloadMetadata}
-            />
-          </div>
-        )}
-        
+        {(!verticalPersistentSidebar || libraries.length === 0) && librariesMenuDropdown}
+
         {libraries.length > 0 && (
           <>
             {!librariesBarLayoutReady && !activeSkinWeb.libraryPagesVerticalList ? (
@@ -1117,7 +1126,7 @@ export default function LibrariesBar({
                 aria-busy="true"
                 style={{ minHeight: 64, visibility: "hidden" }}
               />
-            ) : isNarrow ? (
+            ) : isNarrow && !verticalPersistentSidebar ? (
               <div
                 className="mhg-libraries-combobox-container"
                 style={comboboxContainerLayoutStyle}
@@ -1175,6 +1184,7 @@ export default function LibrariesBar({
               </div>
             ) : (
               <div className="mhg-libraries-container">
+                {verticalPersistentSidebar && librariesMenuDropdown}
                 {/* Same order as combobox: library (all / installed) before other page tabs */}
                 {inlineOwnedGamesInBar && libraryForGamesSidebar && (
                   <>

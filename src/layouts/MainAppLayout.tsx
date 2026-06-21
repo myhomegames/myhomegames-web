@@ -153,6 +153,7 @@ export default function MainAppLayout({
         onHomeClick={() => navigate("/")}
         onSettingsClick={onSettingsClick}
         onAddGameClick={onAddGameClick}
+        onReloadMetadata={onReloadMetadata}
       />
       <LibrariesBar
         registerTopDockSlot
