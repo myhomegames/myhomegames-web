@@ -635,8 +635,12 @@
     "companyStatus": "Stato",
     "updatedTo": "Aggiornato a",
     "country": "Paese",
-    "started": "Fondata nel",
-    "changedOn": "Ultimo aggiornamento"
+    "started": "Dal",
+    "knownAs": "Conosciuta come",
+    "legalName": "Nome legale",
+    "formerly": "Precedentemente",
+    "parentCompany": "Società controllante",
+    "changedOn": "al"
   },
   "igdbCompanyStatuses": {
     "active": "In attività",

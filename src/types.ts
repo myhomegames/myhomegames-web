@@ -76,6 +76,14 @@ export type IgdbCompanyInfo = {
   changedOn?: string;
   /** Company founding date from IGDB `start_date`. */
   started?: string;
+  /** IGDB company type history: Known as. */
+  knownAs?: string;
+  /** IGDB company type history: Legal name. */
+  legalName?: string;
+  /** IGDB company type history: Formerly. */
+  formerly?: string;
+  /** IGDB `parent` or company type history: Parent company. */
+  parentCompany?: { id: number; name: string };
 };
 
 export type CollectionInfo = {

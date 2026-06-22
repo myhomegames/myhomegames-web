@@ -637,6 +637,10 @@
     "updatedTo": "Updated to",
     "country": "Country",
     "started": "Started",
+    "knownAs": "Known as",
+    "legalName": "Legal name",
+    "formerly": "Formerly",
+    "parentCompany": "Parent company",
     "changedOn": "Changed on"
   },
   "igdbCompanyStatuses": {

@@ -36,22 +36,70 @@ export default function CompanyIgdbInfoBlock({ info, resourceType }: CompanyIgdb
   if (info.country) {
     metaParts.push({ key: "country", node: info.country });
   }
-  if (info.started) {
+  if (info.started || info.changedOn) {
     metaParts.push({
-      key: "started",
+      key: "dates",
       node: (
         <>
-          {t("igdbInfo.started", "Started")} {formatIgdbStoredDate(info.started, t, i18n)}
+          {info.started ? (
+            <>
+              {t("igdbInfo.started", "Started")} {formatIgdbStoredDate(info.started, t, i18n)}
+            </>
+          ) : null}
+          {info.started && info.changedOn ? " " : null}
+          {info.changedOn ? (
+            <>
+              {t("igdbInfo.changedOn", "Changed on")}{" "}
+              {formatIgdbStoredDate(info.changedOn, t, i18n)}
+            </>
+          ) : null}
         </>
       ),
     });
   }
-  if (info.changedOn) {
+  if (info.knownAs) {
     metaParts.push({
-      key: "changedOn",
+      key: "knownAs",
       node: (
         <>
-          {t("igdbInfo.changedOn", "Changed on")} {formatIgdbStoredDate(info.changedOn, t, i18n)}
+          {t("igdbInfo.knownAs", "Known as")}: {info.knownAs}
+        </>
+      ),
+    });
+  }
+  if (info.legalName) {
+    metaParts.push({
+      key: "legalName",
+      node: (
+        <>
+          {t("igdbInfo.legalName", "Legal name")}: {info.legalName}
+        </>
+      ),
+    });
+  }
+  if (info.formerly) {
+    metaParts.push({
+      key: "formerly",
+      node: (
+        <>
+          {t("igdbInfo.formerly", "Formerly")}: {info.formerly}
+        </>
+      ),
+    });
+  }
+  if (info.parentCompany) {
+    metaParts.push({
+      key: "parentCompany",
+      node: (
+        <>
+          {t("igdbInfo.parentCompany", "Parent company")}:{" "}
+          <button
+            type="button"
+            className="game-info-list-link library-item-detail-company-link"
+            onClick={() => navigate(`${routeBase}/${info.parentCompany!.id}`)}
+          >
+            {info.parentCompany.name}
+          </button>
         </>
       ),
     });

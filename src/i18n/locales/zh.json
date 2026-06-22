@@ -583,6 +583,10 @@
     "updatedTo": "更新为",
     "country": "国家",
     "started": "成立",
+    "knownAs": "亦称",
+    "legalName": "法定名称",
+    "formerly": "曾用名",
+    "parentCompany": "母公司",
     "changedOn": "变更于"
   },
   "igdbCompanyStatuses": {

@@ -583,6 +583,10 @@
     "updatedTo": "Mis à jour vers",
     "country": "Pays",
     "started": "Fondée en",
+    "knownAs": "Connue sous",
+    "legalName": "Nom légal",
+    "formerly": "Anciennement",
+    "parentCompany": "Société mère",
     "changedOn": "Modifié en"
   },
   "igdbCompanyStatuses": {

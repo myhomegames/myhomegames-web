@@ -583,6 +583,10 @@
     "updatedTo": "Aktualisiert zu",
     "country": "Land",
     "started": "Gegründet",
+    "knownAs": "Bekannt als",
+    "legalName": "Rechtlicher Name",
+    "formerly": "Früher",
+    "parentCompany": "Muttergesellschaft",
     "changedOn": "Geändert am"
   },
   "igdbCompanyStatuses": {
