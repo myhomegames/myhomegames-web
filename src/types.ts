@@ -72,7 +72,8 @@ export type IgdbCompanyInfo = {
   /** IGDB `Company.status.name`; label via i18n `igdbCompanyStatuses.{name.toLowerCase()}`. */
   status?: string;
   updatedTo?: { id: number; name: string };
-  country?: string;
+  /** IGDB `country` ISO 3166-1 numeric code; label via `formatIgdbCountryCode`. */
+  countryCode?: number;
   changedOn?: string;
   /** Company founding date from IGDB `start_date`. */
   started?: string;

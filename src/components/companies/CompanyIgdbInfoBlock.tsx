@@ -5,7 +5,7 @@ import { useDevelopers } from "../../contexts/DevelopersContext";
 import { usePublishers } from "../../contexts/PublishersContext";
 import type { IgdbCompanyInfo } from "../../types";
 import { formatIgdbStoredDate } from "../../utils/date";
-import { formatIgdbCompanySize } from "../../utils/igdbCompany";
+import { formatIgdbCompanySize, formatIgdbCountryCode } from "../../utils/igdbCompany";
 
 type CompanyIgdbStatusBadgeProps = {
   status?: string | null;
@@ -57,8 +57,11 @@ export default function CompanyIgdbInfoBlock({ info, resourceType }: CompanyIgdb
 
   const metaParts: Array<{ key: string; node: ReactNode }> = [];
 
-  if (info.country) {
-    metaParts.push({ key: "country", node: info.country });
+  if (info.countryCode != null) {
+    const countryLabel = formatIgdbCountryCode(info.countryCode, i18n.language);
+    if (countryLabel) {
+      metaParts.push({ key: "country", node: countryLabel });
+    }
   }
   if (info.started || info.changedOn) {
     metaParts.push({
