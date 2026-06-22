@@ -133,7 +133,7 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
   }
 
   useLayoutEffect(() => {
-    if (publishersLoading) setIsReady(false);
+    if (publishersLoading && sortedPublishers.length === 0) setIsReady(false);
     else {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => setIsReady(true));

@@ -133,7 +133,7 @@ export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProp
   }
 
   useLayoutEffect(() => {
-    if (developersLoading) setIsReady(false);
+    if (developersLoading && sortedDevelopers.length === 0) setIsReady(false);
     else {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => setIsReady(true));

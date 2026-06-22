@@ -159,7 +159,7 @@ export default function CollectionsPage({
           setIsReady(true);
         });
       });
-    } else if (collectionsLoading) {
+    } else if (collectionsLoading && sortedCollections.length === 0) {
       setIsReady(false);
     }
   }, [collectionsLoading, sortedCollections.length]);

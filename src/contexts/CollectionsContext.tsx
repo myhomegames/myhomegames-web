@@ -28,6 +28,9 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [collectionGameIds, setCollectionGameIds] = useState<Map<string, string[]>>(new Map());
   const collectionGameIdsRef = useRef(collectionGameIds);
+  collectionGameIdsRef.current = collectionGameIds;
+  const collectionsRef = useRef(collections);
+  collectionsRef.current = collections;
   const { isLoading: authLoading } = useAuth();
   const { settingsLoaded } = useSettings();
 
@@ -39,7 +42,10 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    setIsLoading(true);
+    const showLoading = collectionsRef.current.length === 0;
+    if (showLoading) {
+      setIsLoading(true);
+    }
     setError(null);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90000);
@@ -83,7 +89,9 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
       console.error("Error fetching collections:", errorMessage);
       setError(errorMessage);
     } finally {
-      setIsLoading(false);
+      if (showLoading) {
+        setIsLoading(false);
+      }
     }
   }, [authLoading, settingsLoaded]);
 

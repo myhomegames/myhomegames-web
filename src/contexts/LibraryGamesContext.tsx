@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useMemo, useEffect } from "react";
+import { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import type { GameItem } from "../types";
 import { API_BASE } from "../config";
@@ -23,6 +23,8 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
   const [games, setGames] = useState<GameItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const gamesRef = useRef(games);
+  gamesRef.current = games;
   const { isLoading: authLoading } = useAuth();
   const { settingsLoaded } = useSettings();
 
@@ -34,7 +36,10 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    setIsLoading(true);
+    const showLoading = gamesRef.current.length === 0;
+    if (showLoading) {
+      setIsLoading(true);
+    }
     setError(null);
     try {
       const url = buildApiUrl(API_BASE, "/libraries/library/games", {
@@ -86,7 +91,9 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
       console.error("Error fetching library games:", errorMessage);
       setError(errorMessage);
     } finally {
-      setIsLoading(false);
+      if (showLoading) {
+        setIsLoading(false);
+      }
     }
   }, [authLoading, settingsLoaded]);
 

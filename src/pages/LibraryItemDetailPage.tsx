@@ -522,7 +522,9 @@ export default function LibraryItemDetailPage({
   useLayoutEffect(() => {
     if (!isLoading && item) {
       requestAnimationFrame(() => requestAnimationFrame(() => setIsReady(true)));
-    } else if (isLoading) setIsReady(false);
+    } else if (isLoading && !item) {
+      setIsReady(false);
+    }
   }, [isLoading, item, games.length]);
 
   async function fetchCollectionInfo(cid: string) {
@@ -2151,7 +2153,7 @@ function LibraryItemDetailContent({
                     </div>
                   )}
 
-                  {!isLoading && (
+                  {(!isLoading || item) && (
                     <div
                       className={`library-item-detail-section-full${contextRailLayout ? " library-item-detail-context-layout" : ""}`}
                     >

@@ -145,7 +145,7 @@ export function useReloadGame({
 }: UseReloadGameParams): UseReloadGameReturn {
   const { t } = useTranslation();
   const { twitchApiEnabled } = useSettings();
-  const { setLoading } = useLoading();
+  const { setActivityBusy } = useLoading();
   const [isReloading, setIsReloading] = useState(false);
   const [reloadError, setReloadError] = useState<string | null>(null);
   const [showReloadConfirmModal, setShowReloadConfirmModal] = useState(false);
@@ -153,7 +153,7 @@ export function useReloadGame({
   const executeReload = async () => {
     setIsReloading(true);
     setReloadError(null);
-    setLoading(true);
+    setActivityBusy(true);
 
     try {
       const igdbEnabled = isIgdbApiEnabled(twitchApiEnabled);
@@ -211,7 +211,7 @@ export function useReloadGame({
             onGameUpdate(mapReloadedGame(data.game));
           }
           setIsReloading(false);
-          setLoading(false);
+          setActivityBusy(false);
           return;
         }
 
@@ -220,7 +220,7 @@ export function useReloadGame({
             onCollectionUpdate(mapReloadedCollection(data.collection));
           }
           setIsReloading(false);
-          setLoading(false);
+          setActivityBusy(false);
           return;
         }
 
@@ -230,7 +230,7 @@ export function useReloadGame({
             onCollectionUpdate(mapReloadedCollection(data[key]));
           }
           setIsReloading(false);
-          setLoading(false);
+          setActivityBusy(false);
           return;
         }
 
@@ -241,18 +241,18 @@ export function useReloadGame({
           window.location.href = currentPath;
         }
         setIsReloading(false);
-        setLoading(false);
+        setActivityBusy(false);
       } else {
         console.error("Failed to reload metadata");
         setReloadError(t("common.reloadError", "Failed to reload metadata"));
         setIsReloading(false);
-        setLoading(false);
+        setActivityBusy(false);
       }
     } catch (error) {
       console.error("Error reloading metadata:", error);
       setReloadError(t("common.reloadError", "Failed to reload metadata"));
       setIsReloading(false);
-      setLoading(false);
+      setActivityBusy(false);
     }
   };
 

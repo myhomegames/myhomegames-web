@@ -62,7 +62,7 @@ export default function Header({
 }: HeaderProps) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
-  const { isLoading } = useLoading();
+  const { isLoading, isActivityBusy } = useLoading();
   const { activeSkinWeb } = useSkin();
   const { setQuery: setTitleFilterQuery } = useTitleFilter();
   const { showProfile } = useActiveProfile();
@@ -182,7 +182,7 @@ export default function Header({
         <div className="mhg-header-actions" style={phoneHeaderActionsStyle}>
           {!activeSkinWeb.topRightToolDock && (
             <ActivitySpinner
-              isLoading={isLoading}
+              isLoading={isLoading || isActivityBusy}
               style={isPhoneLayout ? PHONE_HEADER_BUTTON : undefined}
               iconStyle={isPhoneLayout ? PHONE_HEADER_ICON : undefined}
             />

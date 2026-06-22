@@ -397,7 +397,7 @@ export default function LibrariesBar({
     return [libraryForGamesSidebar, ...rest];
   }, [libraries, hideCollectionsOverviewRow, ownedGamesInGamesSidebar, libraryForGamesSidebar]);
 
-  const { isLoading: globalLoading } = useLoading();
+  const { isLoading: globalLoading, isActivityBusy } = useLoading();
   const { hasBackground, isBackgroundVisible, setBackgroundVisible } = useBackground();
   // Use global loading if prop is not provided, otherwise use prop
   const isLoading = loading !== undefined ? loading : globalLoading;
@@ -1049,7 +1049,7 @@ export default function LibrariesBar({
               <Logo />
             </button>
             <ActivitySpinner
-              isLoading={globalLoading}
+              isLoading={globalLoading || isActivityBusy}
               className="mhg-top-right-tool-dock-activity-spinner"
             />
             <div className="mhg-top-right-tool-dock-update">

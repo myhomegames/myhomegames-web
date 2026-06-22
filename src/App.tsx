@@ -61,7 +61,7 @@ function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const { i18n } = useTranslation();
-  const { setLoading } = useLoading();
+  const { setActivityBusy } = useLoading();
   const { isLoading: authLoading } = useAuth();
   const { igdbEnabled } = useSettings();
 
@@ -77,7 +77,7 @@ function AppContent() {
 
   // Function to reload all metadata without full page reload
   async function handleReloadAllMetadata() {
-    setLoading(true);
+    setActivityBusy(true);
     try {
       // Call server to reload metadata
       const url = buildApiUrlWithBase("/reload-games");
@@ -101,7 +101,7 @@ function AppContent() {
     } catch (error) {
       console.error("Error reloading metadata:", error);
     } finally {
-      setLoading(false);
+      setActivityBusy(false);
     }
   }
 

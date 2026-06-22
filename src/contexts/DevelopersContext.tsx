@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useMemo, useEffect } from "react";
+import { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import type { CollectionItem } from "../types";
 import { API_BASE } from "../config";
@@ -20,6 +20,8 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
   const [developers, setDevelopers] = useState<CollectionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const developersRef = useRef(developers);
+  developersRef.current = developers;
   const { isLoading: authLoading } = useAuth();
   const { settingsLoaded } = useSettings();
 
@@ -27,7 +29,10 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
     if (authLoading) return;
     if (!settingsLoaded) return;
 
-    setIsLoading(true);
+    const showLoading = developersRef.current.length === 0;
+    if (showLoading) {
+      setIsLoading(true);
+    }
     setError(null);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90000);
@@ -55,7 +60,9 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
       clearTimeout(timeoutId);
       setError(String(err.message || err));
     } finally {
-      setIsLoading(false);
+      if (showLoading) {
+        setIsLoading(false);
+      }
     }
   }, [authLoading, settingsLoaded]);
 

@@ -421,7 +421,7 @@ export default function GamesListPageContent({
             {t("common.loading", "Loading...")}
           </div>
         )}
-        {isReady && !isLoading && (
+        {isReady && (!isLoading || displayGames.length > 0) && (
           <>
             {displayGames.length === 0 ? (
               <div className="text-gray-400 text-center">{t("table.noGames")}</div>
