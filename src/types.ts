@@ -80,8 +80,12 @@ export type IgdbCompanyInfo = {
   knownAs?: string;
   /** IGDB company type history: Legal name. */
   legalName?: string;
-  /** IGDB company type history: Formerly. */
-  formerly?: string;
+  /** IGDB `company_size.name`. */
+  companySize?: string;
+  /** IGDB `company_size.id`; label via i18n `igdbCompanySizes.{id}`. */
+  companySizeId?: number;
+  /** IGDB company type history or renamed predecessor. */
+  formerly?: { id: number; name: string };
   /** IGDB `parent` or company type history: Parent company. */
   parentCompany?: { id: number; name: string };
 };

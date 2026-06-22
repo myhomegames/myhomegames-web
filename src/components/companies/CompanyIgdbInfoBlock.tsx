@@ -1,8 +1,11 @@
 import { Fragment, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { useDevelopers } from "../../contexts/DevelopersContext";
+import { usePublishers } from "../../contexts/PublishersContext";
 import type { IgdbCompanyInfo } from "../../types";
 import { formatIgdbStoredDate } from "../../utils/date";
+import { formatIgdbCompanySize } from "../../utils/igdbCompany";
 
 type CompanyIgdbStatusBadgeProps = {
   status?: string | null;
@@ -28,8 +31,29 @@ type CompanyIgdbInfoBlockProps = {
 export default function CompanyIgdbInfoBlock({ info, resourceType }: CompanyIgdbInfoBlockProps) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const { developers } = useDevelopers();
+  const { publishers } = usePublishers();
 
   const routeBase = resourceType === "developers" ? "/developers" : "/publishers";
+  const localCompanies = resourceType === "developers" ? developers : publishers;
+
+  const isLocalCompany = (id: number | undefined | null) =>
+    id != null && localCompanies.some((company) => String(company.id) === String(id));
+
+  const renderCompanyName = (company: { id?: number; name: string }) => {
+    if (company.id != null && isLocalCompany(company.id)) {
+      return (
+        <button
+          type="button"
+          className="game-info-list-link library-item-detail-company-link"
+          onClick={() => navigate(`${routeBase}/${company.id}`)}
+        >
+          {company.name}
+        </button>
+      );
+    }
+    return company.name;
+  };
 
   const metaParts: Array<{ key: string; node: ReactNode }> = [];
 
@@ -77,12 +101,27 @@ export default function CompanyIgdbInfoBlock({ info, resourceType }: CompanyIgdb
       ),
     });
   }
+  if (info.companySizeId != null) {
+    const companySizeLabel = formatIgdbCompanySize(info.companySizeId, t);
+    if (companySizeLabel) {
+      metaParts.push({
+        key: "companySize",
+        node: (
+          <>
+            {t("igdbInfo.companySize", "Company size")}: {companySizeLabel}
+          </>
+        ),
+      });
+    }
+  }
   if (info.formerly) {
+    const formerly =
+      typeof info.formerly === "string" ? { name: info.formerly } : info.formerly;
     metaParts.push({
       key: "formerly",
       node: (
         <>
-          {t("igdbInfo.formerly", "Formerly")}: {info.formerly}
+          {t("igdbInfo.formerly", "Formerly")}: {renderCompanyName(formerly)}
         </>
       ),
     });
@@ -92,14 +131,7 @@ export default function CompanyIgdbInfoBlock({ info, resourceType }: CompanyIgdb
       key: "parentCompany",
       node: (
         <>
-          {t("igdbInfo.parentCompany", "Parent company")}:{" "}
-          <button
-            type="button"
-            className="game-info-list-link library-item-detail-company-link"
-            onClick={() => navigate(`${routeBase}/${info.parentCompany!.id}`)}
-          >
-            {info.parentCompany.name}
-          </button>
+          {t("igdbInfo.parentCompany", "Parent company")}: {renderCompanyName(info.parentCompany)}
         </>
       ),
     });
@@ -109,14 +141,7 @@ export default function CompanyIgdbInfoBlock({ info, resourceType }: CompanyIgdb
       key: "updatedTo",
       node: (
         <>
-          {t("igdbInfo.updatedTo", "Updated to")}:{" "}
-          <button
-            type="button"
-            className="game-info-list-link library-item-detail-company-link"
-            onClick={() => navigate(`${routeBase}/${info.updatedTo!.id}`)}
-          >
-            {info.updatedTo.name}
-          </button>
+          {t("igdbInfo.updatedTo", "Updated to")}: {renderCompanyName(info.updatedTo)}
         </>
       ),
     });

@@ -585,6 +585,7 @@
     "started": "Gegründet",
     "knownAs": "Bekannt als",
     "legalName": "Rechtlicher Name",
+    "companySize": "Unternehmensgröße",
     "formerly": "Früher",
     "parentCompany": "Muttergesellschaft",
     "changedOn": "Geändert am"
@@ -594,6 +595,16 @@
     "defunct": "Aufgelöst",
     "merge": "Fusion",
     "renamed": "Umbenannt"
+  },
+  "igdbCompanySizes": {
+    "1": "0-1 Mitarbeiter",
+    "2": "2-10 Mitarbeiter",
+    "3": "11-50 Mitarbeiter",
+    "4": "51-200 Mitarbeiter",
+    "5": "201-500 Mitarbeiter",
+    "6": "501-1000 Mitarbeiter",
+    "7": "1001-5000 Mitarbeiter",
+    "8": "über 5000 Mitarbeiter"
   },
   "igdbGameTypes": {
     "0": "Hauptspiel",

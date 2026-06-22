@@ -639,6 +639,7 @@
     "started": "Started",
     "knownAs": "Known as",
     "legalName": "Legal name",
+    "companySize": "Company size",
     "formerly": "Formerly",
     "parentCompany": "Parent company",
     "changedOn": "Changed on"
@@ -648,6 +649,16 @@
     "defunct": "Defunct",
     "merge": "Merge",
     "renamed": "Renamed"
+  },
+  "igdbCompanySizes": {
+    "1": "0-1 employees",
+    "2": "2-10 employees",
+    "3": "11-50 employees",
+    "4": "51-200 employees",
+    "5": "201-500 employees",
+    "6": "501-1000 employees",
+    "7": "1001-5000 employees",
+    "8": "5000+ employees"
   },
   "igdbGameTypes": {
     "0": "Main Game",

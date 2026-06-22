@@ -638,8 +638,9 @@
     "started": "Dal",
     "knownAs": "Conosciuta come",
     "legalName": "Nome legale",
-    "formerly": "Precedentemente",
-    "parentCompany": "Società controllante",
+    "companySize": "Dimensione",
+    "formerly": "Prima",
+    "parentCompany": "Controllante",
     "changedOn": "al"
   },
   "igdbCompanyStatuses": {
@@ -647,6 +648,16 @@
     "defunct": "Cessata attività",
     "merge": "Fusione",
     "renamed": "Rinominata"
+  },
+  "igdbCompanySizes": {
+    "1": "0-1 dipendenti",
+    "2": "2-10 dipendenti",
+    "3": "11-50 dipendenti",
+    "4": "51-200 dipendenti",
+    "5": "201-500 dipendenti",
+    "6": "501-1000 dipendenti",
+    "7": "1001-5000 dipendenti",
+    "8": "oltre 5000 dipendenti"
   },
   "igdbGameTypes": {
     "0": "Gioco principale",

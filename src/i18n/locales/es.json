@@ -585,6 +585,7 @@
     "started": "Fundada en",
     "knownAs": "Conocida como",
     "legalName": "Nombre legal",
+    "companySize": "Tamaño de la empresa",
     "formerly": "Anteriormente",
     "parentCompany": "Empresa matriz",
     "changedOn": "Modificado en"
@@ -594,6 +595,16 @@
     "defunct": "Disuelta",
     "merge": "Fusión",
     "renamed": "Renombrada"
+  },
+  "igdbCompanySizes": {
+    "1": "0-1 empleados",
+    "2": "2-10 empleados",
+    "3": "11-50 empleados",
+    "4": "51-200 empleados",
+    "5": "201-500 empleados",
+    "6": "501-1000 empleados",
+    "7": "1001-5000 empleados",
+    "8": "más de 5000 empleados"
   },
   "igdbGameTypes": {
     "0": "Juego principal",
