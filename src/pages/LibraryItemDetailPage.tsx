@@ -2251,6 +2251,7 @@ function LibraryItemDetailContent({
                             <div className="library-item-detail-games-list library-item-detail-mt-games-list">
                               <GamesList
                                 scrollContainerRef={scrollContainerRef}
+                                enableVirtualization={contextRailLayout}
                                 forceSingleColumnVirtualized={contextRailLayout}
                                 fixedFocalSelection={contextRailLayout}
                                 onFocalSelectionChange={onFocalGameSelectionChange}
@@ -2377,6 +2378,7 @@ function LibraryItemDetailContent({
                           <div className="library-item-detail-games-list">
                             <GamesList
                               scrollContainerRef={scrollContainerRef}
+                              enableVirtualization={contextRailLayout}
                               forceSingleColumnVirtualized={contextRailLayout}
                               fixedFocalSelection={contextRailLayout}
                               onFocalSelectionChange={onFocalGameSelectionChange}
