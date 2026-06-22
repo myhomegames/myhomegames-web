@@ -15,13 +15,13 @@ import { usePublishers } from "../contexts/PublishersContext";
 import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
 import { useIgdbGamesForTag, type IgdbTagKey } from "../hooks/useIgdbGamesForTag";
-import CompanyIgdbInfoBlock from "../components/companies/CompanyIgdbInfoBlock";
 import GamesList from "../components/games/GamesList";
 import Cover from "../components/games/Cover";
 import LibrariesBar from "../components/layout/LibrariesBar";
 import StarRating from "../components/common/StarRating";
 import Summary from "../components/common/Summary";
 import EditCollectionLikeModal from "../components/collections/EditCollectionLikeModal";
+import CompanyIgdbInfoBlock, { CompanyIgdbStatusBadge } from "../components/companies/CompanyIgdbInfoBlock";
 import AddCollectionLikeToCollectionLikeModal from "../components/collections/AddCollectionLikeToCollectionLikeModal";
 import DropdownMenu from "../components/common/DropdownMenu";
 import Tooltip from "../components/common/Tooltip";
@@ -1953,19 +1953,24 @@ function LibraryItemDetailContent({
                       </div>
                       <div className="library-item-detail-meta">
                         <div className="library-item-detail-meta-header library-item-detail-meta-primary">
-                          <div
-                            className={`library-item-detail-title-row${
-                              item?.igdbCompanyInfo &&
-                              (resourceType === "developers" || resourceType === "publishers")
-                                ? " library-item-detail-title-row--with-company-info"
-                                : ""
-                            }`}
-                          >
-                            <div className="library-item-detail-title-column">
-                              <div className="library-item-detail-title-main">
+                          <div className="library-item-detail-title-column">
+                            <div className="library-item-detail-title-main">
+                              <div className="library-item-detail-title-heading">
                                 <h1 className="library-item-detail-title text-white">
                                   {item.title}
                                 </h1>
+                                {(resourceType === "developers" || resourceType === "publishers") &&
+                                  item?.igdbCompanyInfo && (
+                                    <CompanyIgdbStatusBadge status={item.igdbCompanyInfo.status} />
+                                  )}
+                              </div>
+                              {(resourceType === "developers" || resourceType === "publishers") &&
+                                item?.igdbCompanyInfo && (
+                                  <CompanyIgdbInfoBlock
+                                    info={item.igdbCompanyInfo}
+                                    resourceType={resourceType}
+                                  />
+                                )}
                                 {yearRange && (
                                   <div className="library-item-detail-year-range text-white">
                                     {yearRange}
@@ -2040,11 +2045,6 @@ function LibraryItemDetailContent({
                                 )}
                               </div>
                             </div>
-                            {item?.igdbCompanyInfo &&
-                              (resourceType === "developers" || resourceType === "publishers") && (
-                                <CompanyIgdbInfoBlock info={item.igdbCompanyInfo} resourceType={resourceType} />
-                              )}
-                          </div>
                           {item && (
                             <EditCollectionLikeModal
                               isOpen={isEditModalOpen}

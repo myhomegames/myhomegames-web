@@ -1,6 +1,5 @@
 import { isServerSkinId } from "./skinIds";
 import { getActiveSkinId } from "./skinStorage";
-import { applyLayoutOverrideCss } from "./skinLayoutOverrides";
 
 export const SKIN_STYLE_ELEMENT_ID = "mhg-active-skin-bundle";
 
@@ -23,5 +22,4 @@ export function applySkinCss(css: string): void {
   const active = getActiveSkinId();
   document.documentElement.dataset.mhgSkin =
     active && isServerSkinId(active) ? "server" : "none";
-  applyLayoutOverrideCss();
 }
