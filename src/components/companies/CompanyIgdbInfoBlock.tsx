@@ -107,14 +107,7 @@ export default function CompanyIgdbInfoBlock({ info, resourceType }: CompanyIgdb
   if (info.companySizeId != null) {
     const companySizeLabel = formatIgdbCompanySize(info.companySizeId, t);
     if (companySizeLabel) {
-      metaParts.push({
-        key: "companySize",
-        node: (
-          <>
-            {t("igdbInfo.companySize", "Company size")}: {companySizeLabel}
-          </>
-        ),
-      });
+      metaParts.push({ key: "companySize", node: companySizeLabel });
     }
   }
   if (info.formerly) {
