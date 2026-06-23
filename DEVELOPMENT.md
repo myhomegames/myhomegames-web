@@ -94,6 +94,10 @@ For development, the web application uses:
   - If a release with a version greater than the current app version exists, a yellow notification icon appears in the header
   - Clicking the icon opens a dropdown to download the server package for your operating system (Windows, macOS, Linux)
 
+- `VITE_TUNNEL_MANAGER_URL` (optional) - Tunnel manager base URL (e.g. `https://myhomegames-server.vige.it`) for Cloudflare Access login and run-token fetch. Required when using the in-app tunnel connect flow.
+
+**Cloudflare Tunnel**: the web app only talks to the local server for `/tunnel/*`. The server downloads and updates the `cloudflared` CLI under `METADATA_PATH/bin/` — see **myhomegames-server** [DEVELOPMENT.md](https://github.com/myhomegames/myhomegames-server/blob/main/DEVELOPMENT.md#cloudflare-tunnel-public-https-without-local-certificates) for npm vs binary versions and update behaviour.
+
 **Note**: `VITE_API_BASE` is required. The application will not start without it.
 
 ## Development Authentication
