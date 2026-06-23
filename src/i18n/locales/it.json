@@ -641,7 +641,12 @@
     "companySize": "Dimensione",
     "formerly": "Prima",
     "parentCompany": "Controllante",
-    "changedOn": "al"
+    "changedOn": "al",
+    "companyMetadata": "Metadati azienda",
+    "countryCodePlaceholder": "Codice numerico ISO 3166-1 (es. 380)",
+    "datePlaceholder": "AAAA, AAAA-MM o AAAA-MM-GG",
+    "companyIdPlaceholder": "ID IGDB",
+    "companyNamePlaceholder": "Nome azienda"
   },
   "igdbCompanyStatuses": {
     "active": "In attività",

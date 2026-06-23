@@ -642,7 +642,12 @@
     "companySize": "Company size",
     "formerly": "Formerly",
     "parentCompany": "Parent company",
-    "changedOn": "Changed on"
+    "changedOn": "Changed on",
+    "companyMetadata": "Company metadata",
+    "countryCodePlaceholder": "ISO 3166-1 numeric code (e.g. 380)",
+    "datePlaceholder": "YYYY, YYYY-MM, or YYYY-MM-DD",
+    "companyIdPlaceholder": "IGDB ID",
+    "companyNamePlaceholder": "Company name"
   },
   "igdbCompanyStatuses": {
     "active": "Active",

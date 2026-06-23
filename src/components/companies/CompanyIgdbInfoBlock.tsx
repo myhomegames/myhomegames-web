@@ -57,6 +57,9 @@ export default function CompanyIgdbInfoBlock({ info, resourceType }: CompanyIgdb
 
   const metaParts: Array<{ key: string; node: ReactNode }> = [];
 
+  if (info.legalName) {
+    metaParts.push({ key: "legalName", node: info.legalName });
+  }
   if (info.countryCode != null) {
     const countryLabel = formatIgdbCountryCode(info.countryCode, i18n.language);
     if (countryLabel) {
@@ -90,16 +93,6 @@ export default function CompanyIgdbInfoBlock({ info, resourceType }: CompanyIgdb
       node: (
         <>
           {t("igdbInfo.knownAs", "Known as")}: {info.knownAs}
-        </>
-      ),
-    });
-  }
-  if (info.legalName) {
-    metaParts.push({
-      key: "legalName",
-      node: (
-        <>
-          {t("igdbInfo.legalName", "Legal name")}: {info.legalName}
         </>
       ),
     });
