@@ -3,11 +3,77 @@ import { IGDB_COMPANY_SIZE_IDS } from "./igdbCompany";
 
 export const IGDB_COMPANY_STATUS_KEYS = ["active", "defunct", "merge", "renamed"] as const;
 
+export type YearMonthDayParts = {
+  year: string;
+  month: string;
+  day: string;
+};
+
+export function parseIgdbCompanyDateString(value?: string | null): YearMonthDayParts {
+  const empty: YearMonthDayParts = { year: "", month: "", day: "" };
+  const trimmed = value?.trim();
+  if (!trimmed) return empty;
+
+  const fullMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (fullMatch) {
+    return {
+      year: fullMatch[1],
+      month: String(Number(fullMatch[2])),
+      day: String(Number(fullMatch[3])),
+    };
+  }
+
+  const monthMatch = /^(\d{4})-(\d{2})$/.exec(trimmed);
+  if (monthMatch) {
+    return {
+      year: monthMatch[1],
+      month: String(Number(monthMatch[2])),
+      day: "",
+    };
+  }
+
+  const yearMatch = /^(\d{4})$/.exec(trimmed);
+  if (yearMatch) {
+    return { year: yearMatch[1], month: "", day: "" };
+  }
+
+  const quarterMatch = /^(\d{4})\s+Q[1-4]$/i.exec(trimmed);
+  if (quarterMatch) {
+    return { year: quarterMatch[1], month: "", day: "" };
+  }
+
+  return empty;
+}
+
+export function buildIgdbCompanyDateString(parts: YearMonthDayParts): string {
+  const year = parts.year.trim();
+  if (!year) return "";
+
+  const month = parts.month.trim();
+  const day = parts.day.trim();
+  const monthNum = month ? Number(month) : NaN;
+  const dayNum = day ? Number(day) : NaN;
+
+  if (!Number.isNaN(monthNum) && monthNum >= 1 && monthNum <= 12) {
+    const monthPadded = String(monthNum).padStart(2, "0");
+    if (!Number.isNaN(dayNum) && dayNum >= 1 && dayNum <= 31) {
+      return `${year}-${monthPadded}-${String(dayNum).padStart(2, "0")}`;
+    }
+    return `${year}-${monthPadded}`;
+  }
+
+  return year;
+}
+
 export type IgdbCompanyInfoFormState = {
   status: string;
   countryCode: string;
-  started: string;
-  changedOn: string;
+  startedYear: string;
+  startedMonth: string;
+  startedDay: string;
+  changedOnYear: string;
+  changedOnMonth: string;
+  changedOnDay: string;
   knownAs: string;
   legalName: string;
   companySizeId: string;
@@ -23,8 +89,12 @@ export function emptyIgdbCompanyInfoFormState(): IgdbCompanyInfoFormState {
   return {
     status: "",
     countryCode: "",
-    started: "",
-    changedOn: "",
+    startedYear: "",
+    startedMonth: "",
+    startedDay: "",
+    changedOnYear: "",
+    changedOnMonth: "",
+    changedOnDay: "",
     knownAs: "",
     legalName: "",
     companySizeId: "",
@@ -41,11 +111,17 @@ export function igdbCompanyInfoToFormState(
   info?: IgdbCompanyInfo | null
 ): IgdbCompanyInfoFormState {
   if (!info) return emptyIgdbCompanyInfoFormState();
+  const started = parseIgdbCompanyDateString(info.started);
+  const changedOn = parseIgdbCompanyDateString(info.changedOn);
   return {
     status: info.status?.trim().toLowerCase() ?? "",
     countryCode: info.countryCode != null ? String(info.countryCode) : "",
-    started: info.started ?? "",
-    changedOn: info.changedOn ?? "",
+    startedYear: started.year,
+    startedMonth: started.month,
+    startedDay: started.day,
+    changedOnYear: changedOn.year,
+    changedOnMonth: changedOn.month,
+    changedOnDay: changedOn.day,
     knownAs: info.knownAs ?? "",
     legalName: info.legalName ?? "",
     companySizeId: info.companySizeId != null ? String(info.companySizeId) : "",
@@ -85,10 +161,18 @@ export function formStateToIgdbCompanyInfo(
   const countryCode = parseOptionalId(state.countryCode);
   if (countryCode != null) info.countryCode = countryCode;
 
-  const started = state.started.trim();
+  const started = buildIgdbCompanyDateString({
+    year: state.startedYear,
+    month: state.startedMonth,
+    day: state.startedDay,
+  });
   if (started) info.started = started;
 
-  const changedOn = state.changedOn.trim();
+  const changedOn = buildIgdbCompanyDateString({
+    year: state.changedOnYear,
+    month: state.changedOnMonth,
+    day: state.changedOnDay,
+  });
   if (changedOn) info.changedOn = changedOn;
 
   const knownAs = state.knownAs.trim();

@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
-import { formatIgdbCompanySize, formatIgdbCountryCode } from "./igdbCompany";
+import { formatIgdbCompanySize, formatIgdbCountryCode, listIgdbCountryOptions } from "./igdbCompany";
 
 describe("formatIgdbCountryCode", () => {
   test("returns localized country name for Italy", () => {
@@ -12,6 +12,20 @@ describe("formatIgdbCountryCode", () => {
 
   test("returns null when code is missing", () => {
     expect(formatIgdbCountryCode(undefined, "it")).toBeNull();
+  });
+});
+
+describe("listIgdbCountryOptions", () => {
+  test("returns localized country options sorted by label", () => {
+    const options = listIgdbCountryOptions("it");
+    const italy = options.find((option) => option.code === 380);
+    const japan = options.find((option) => option.code === 392);
+
+    expect(italy?.label).toBe("Italia");
+    expect(japan?.label).toBe("Giappone");
+    expect(options[0].label.localeCompare(options[1].label, "it", { sensitivity: "base" })).toBeLessThanOrEqual(
+      0
+    );
   });
 });
 

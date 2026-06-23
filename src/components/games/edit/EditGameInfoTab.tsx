@@ -9,6 +9,7 @@ import {
   formatAgeRating,
 } from "../AgeRatings";
 import { displayGameType, IGDB_GAME_TYPE_IDS } from "../../../utils/igdbGameType";
+import EditYearMonthDayFields from "../../common/EditYearMonthDayFields";
 
 type AgeRatingEntry = { category: number; rating: number };
 
@@ -193,50 +194,16 @@ export default function EditGameInfoTab({
         </select>
       </div>
 
-      <div className="edit-game-modal-row">
-        <div className="edit-game-modal-field">
-          <label htmlFor="edit-game-year">{t("gameDetail.year", "Year")}</label>
-          <input
-            id="edit-game-year"
-            name="year"
-            type="number"
-            value={year}
-            onChange={(e) => setYear(e.target.value)}
-            disabled={saving}
-            placeholder="YYYY"
-          />
-        </div>
-
-        <div className="edit-game-modal-field">
-          <label htmlFor="edit-game-month">{t("gameDetail.month", "Month")}</label>
-          <input
-            id="edit-game-month"
-            name="month"
-            type="number"
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            disabled={saving}
-            placeholder="MM"
-            min="1"
-            max="12"
-          />
-        </div>
-
-        <div className="edit-game-modal-field">
-          <label htmlFor="edit-game-day">{t("gameDetail.day", "Day")}</label>
-          <input
-            id="edit-game-day"
-            name="day"
-            type="number"
-            value={day}
-            onChange={(e) => setDay(e.target.value)}
-            disabled={saving}
-            placeholder="DD"
-            min="1"
-            max="31"
-          />
-        </div>
-      </div>
+      <EditYearMonthDayFields
+        idPrefix="edit-game"
+        year={year}
+        month={month}
+        day={day}
+        onYearChange={setYear}
+        onMonthChange={setMonth}
+        onDayChange={setDay}
+        disabled={saving}
+      />
 
       <div className="edit-game-modal-row">
         <div className="edit-game-modal-field">
