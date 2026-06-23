@@ -588,7 +588,18 @@
     "companySize": "Taille de l'entreprise",
     "formerly": "Anciennement",
     "parentCompany": "Société mère",
-    "changedOn": "Modifié en"
+    "changedOn": "Modifié en",
+    "companyMetadata": "Métadonnées de l'entreprise",
+    "countryCodePlaceholder": "Code numérique ISO 3166-1 (p. ex. 380)",
+    "datePlaceholder": "AAAA, AAAA-MM ou AAAA-MM-JJ",
+    "companyIdPlaceholder": "ID IGDB",
+    "companyNamePlaceholder": "Nom de l'entreprise",
+    "searchCompanyToAdd": "Rechercher une entreprise à ajouter",
+    "searchCompanyPlaceholder": "Rechercher par nom...",
+    "noCompaniesFound": "Aucune entreprise trouvée",
+    "addFormerly": "Ajouter une entreprise",
+    "addParentCompany": "Ajouter une entreprise",
+    "addUpdatedTo": "Ajouter une entreprise"
   },
   "igdbCompanyStatuses": {
     "active": "Active",

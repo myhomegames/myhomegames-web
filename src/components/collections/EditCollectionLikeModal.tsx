@@ -607,6 +607,7 @@ export default function EditCollectionLikeModal({
                 value={igdbCompanyForm}
                 onChange={setIgdbCompanyForm}
                 disabled={saving}
+                currentCompanyId={item.id}
               />
             </>
           ) : (

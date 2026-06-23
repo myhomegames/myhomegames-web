@@ -588,7 +588,18 @@
     "companySize": "会社規模",
     "formerly": "旧称",
     "parentCompany": "親会社",
-    "changedOn": "変更日"
+    "changedOn": "変更日",
+    "companyMetadata": "会社メタデータ",
+    "countryCodePlaceholder": "ISO 3166-1 数値コード（例: 380）",
+    "datePlaceholder": "YYYY、YYYY-MM、または YYYY-MM-DD",
+    "companyIdPlaceholder": "IGDB ID",
+    "companyNamePlaceholder": "会社名",
+    "searchCompanyToAdd": "追加する会社を検索",
+    "searchCompanyPlaceholder": "名前で検索...",
+    "noCompaniesFound": "会社が見つかりません",
+    "addFormerly": "会社を追加",
+    "addParentCompany": "会社を追加",
+    "addUpdatedTo": "会社を追加"
   },
   "igdbCompanyStatuses": {
     "active": "活動中",

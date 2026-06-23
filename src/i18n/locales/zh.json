@@ -588,7 +588,18 @@
     "companySize": "公司规模",
     "formerly": "曾用名",
     "parentCompany": "母公司",
-    "changedOn": "变更于"
+    "changedOn": "变更于",
+    "companyMetadata": "公司元数据",
+    "countryCodePlaceholder": "ISO 3166-1 数字代码（例如 380）",
+    "datePlaceholder": "YYYY、YYYY-MM 或 YYYY-MM-DD",
+    "companyIdPlaceholder": "IGDB ID",
+    "companyNamePlaceholder": "公司名称",
+    "searchCompanyToAdd": "搜索要添加的公司",
+    "searchCompanyPlaceholder": "按名称搜索...",
+    "noCompaniesFound": "未找到公司",
+    "addFormerly": "添加公司",
+    "addParentCompany": "添加公司",
+    "addUpdatedTo": "添加公司"
   },
   "igdbCompanyStatuses": {
     "active": "活跃",

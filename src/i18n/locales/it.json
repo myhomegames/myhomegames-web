@@ -646,7 +646,13 @@
     "countryCodePlaceholder": "Codice numerico ISO 3166-1 (es. 380)",
     "datePlaceholder": "AAAA, AAAA-MM o AAAA-MM-GG",
     "companyIdPlaceholder": "ID IGDB",
-    "companyNamePlaceholder": "Nome azienda"
+    "companyNamePlaceholder": "Nome azienda",
+    "searchCompanyToAdd": "Cerca un'azienda da aggiungere",
+    "searchCompanyPlaceholder": "Cerca per nome...",
+    "noCompaniesFound": "Nessuna azienda trovata",
+    "addFormerly": "Aggiungi azienda",
+    "addParentCompany": "Aggiungi azienda",
+    "addUpdatedTo": "Aggiungi azienda"
   },
   "igdbCompanyStatuses": {
     "active": "In attività",
