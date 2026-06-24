@@ -201,8 +201,8 @@ export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
     supportsEdit: false,
     getDisplayName: () => (value) => value,
     getEmptyMessage: (t) =>
-      t("tags.noItemsFound", { type: t("igdbInfo.developers", "Developers") }),
-    getEditTitle: (t) => `${t("common.edit", "Edit")} ${t("igdbInfo.developers", "Developers")}`,
+      t("tags.noItemsFound", { type: t("catalogInfo.developers", "Developers") }),
+    getEditTitle: (t) => `${t("common.edit", "Edit")} ${t("catalogInfo.developers", "Developers")}`,
     getCoverDescription: (t) =>
       t("category.coverFormat", "Recommended ratio: 16:9 (e.g., 1280x720px)"),
   },
@@ -223,8 +223,8 @@ export const TAG_PAGE_CONFIGS: Record<TagKey, TagPageConfig> = {
     supportsEdit: false,
     getDisplayName: () => (value) => value,
     getEmptyMessage: (t) =>
-      t("tags.noItemsFound", { type: t("igdbInfo.publishers", "Publishers") }),
-    getEditTitle: (t) => `${t("common.edit", "Edit")} ${t("igdbInfo.publishers", "Publishers")}`,
+      t("tags.noItemsFound", { type: t("catalogInfo.publishers", "Publishers") }),
+    getEditTitle: (t) => `${t("common.edit", "Edit")} ${t("catalogInfo.publishers", "Publishers")}`,
     getCoverDescription: (t) =>
       t("category.coverFormat", "Recommended ratio: 16:9 (e.g., 1280x720px)"),
   },

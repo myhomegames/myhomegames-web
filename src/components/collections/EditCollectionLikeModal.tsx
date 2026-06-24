@@ -7,7 +7,7 @@ import Cover from "../games/Cover";
 import type { CollectionInfo } from "../../types";
 import { buildApiUrl } from "../../utils/api";
 import { normalizeGameCoverImage, normalizeWideImage } from "../../utils/imageUploadNormalize";
-import EditCompanyIgdbInfoFields from "../companies/EditCompanyIgdbInfoFields";
+import EditCompanyProfileFields from "../companies/EditCompanyProfileFields";
 import {
   companyProfileFormStatesEqual,
   companyProfileToFormState,
@@ -89,14 +89,14 @@ const RESOURCE_CONFIG: Record<
     responseKey: "developer",
     coverPrefix: "developer-covers",
     backgroundPrefix: "developer-backgrounds",
-    titleKey: "igdbInfo.editDeveloper",
+    titleKey: "catalogInfo.editDeveloper",
   },
   publishers: {
     routeBase: "publishers",
     responseKey: "publisher",
     coverPrefix: "publisher-covers",
     backgroundPrefix: "publisher-backgrounds",
-    titleKey: "igdbInfo.editPublisher",
+    titleKey: "catalogInfo.editPublisher",
   },
 };
 
@@ -593,7 +593,7 @@ export default function EditCollectionLikeModal({
           isCompanyResource ? (
             <>
               <div className="edit-game-modal-field">
-                <label htmlFor="edit-collection-like-title">{t("igdbInfo.name", "Name")}</label>
+                <label htmlFor="edit-collection-like-title">{t("catalogInfo.name", "Name")}</label>
                 <input
                   id="edit-collection-like-title"
                   name="title"
@@ -614,7 +614,7 @@ export default function EditCollectionLikeModal({
                   rows={5}
                 />
               </div>
-              <EditCompanyIgdbInfoFields
+              <EditCompanyProfileFields
                 value={companyProfileForm}
                 onChange={setCompanyProfileForm}
                 disabled={saving}

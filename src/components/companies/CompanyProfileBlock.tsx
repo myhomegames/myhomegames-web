@@ -4,32 +4,32 @@ import { useNavigate } from "react-router-dom";
 import { useDevelopers } from "../../contexts/DevelopersContext";
 import { usePublishers } from "../../contexts/PublishersContext";
 import type { CompanyProfileFields } from "../../types";
-import { formatIgdbStoredDate } from "../../utils/date";
-import { formatIgdbCompanySize, formatIgdbCountryCode } from "../../utils/igdbCompany";
+import { formatStoredCatalogDate } from "../../utils/date";
+import { formatCompanySize, formatCountryCode } from "../../utils/companyFormat";
 import { normalizeCompanyStatusKey } from "../../utils/editCompanyProfile";
 
-type CompanyIgdbStatusBadgeProps = {
+type CompanyStatusBadgeProps = {
   status?: string | null;
 };
 
-export function CompanyIgdbStatusBadge({ status }: CompanyIgdbStatusBadgeProps) {
+export function CompanyStatusBadge({ status }: CompanyStatusBadgeProps) {
   const { t } = useTranslation();
   const statusKey = normalizeCompanyStatusKey(status);
   if (!statusKey) return null;
 
   return (
-    <span className="igdb-company-status-badge" data-status={statusKey}>
-      {t(`igdbCompanyStatuses.${statusKey}`, status ?? statusKey)}
+    <span className="company-status-badge" data-status={statusKey}>
+      {t(`companyStatuses.${statusKey}`, status ?? statusKey)}
     </span>
   );
 }
 
-type CompanyIgdbInfoBlockProps = {
+type CompanyProfileBlockProps = {
   info: CompanyProfileFields;
   resourceType: "developers" | "publishers";
 };
 
-export default function CompanyIgdbInfoBlock({ info, resourceType }: CompanyIgdbInfoBlockProps) {
+export default function CompanyProfileBlock({ info, resourceType }: CompanyProfileBlockProps) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { developers } = useDevelopers();
@@ -62,7 +62,7 @@ export default function CompanyIgdbInfoBlock({ info, resourceType }: CompanyIgdb
     metaParts.push({ key: "legalName", node: info.legalName });
   }
   if (info.countryCode != null) {
-    const countryLabel = formatIgdbCountryCode(info.countryCode, i18n.language);
+    const countryLabel = formatCountryCode(info.countryCode, i18n.language);
     if (countryLabel) {
       metaParts.push({ key: "country", node: countryLabel });
     }
@@ -74,14 +74,14 @@ export default function CompanyIgdbInfoBlock({ info, resourceType }: CompanyIgdb
         <>
           {info.started ? (
             <>
-              {t("igdbInfo.started", "Started")} {formatIgdbStoredDate(info.started, t, i18n)}
+              {t("catalogInfo.started", "Started")} {formatStoredCatalogDate(info.started, t, i18n)}
             </>
           ) : null}
           {info.started && info.changedOn ? " " : null}
           {info.changedOn ? (
             <>
-              {t("igdbInfo.changedOn", "Changed on")}{" "}
-              {formatIgdbStoredDate(info.changedOn, t, i18n)}
+              {t("catalogInfo.changedOn", "Changed on")}{" "}
+              {formatStoredCatalogDate(info.changedOn, t, i18n)}
             </>
           ) : null}
         </>
@@ -93,13 +93,13 @@ export default function CompanyIgdbInfoBlock({ info, resourceType }: CompanyIgdb
       key: "knownAs",
       node: (
         <>
-          {t("igdbInfo.knownAs", "Known as")}: {info.knownAs}
+          {t("catalogInfo.knownAs", "Known as")}: {info.knownAs}
         </>
       ),
     });
   }
   if (info.companySizeId != null) {
-    const companySizeLabel = formatIgdbCompanySize(info.companySizeId, t);
+    const companySizeLabel = formatCompanySize(info.companySizeId, t);
     if (companySizeLabel) {
       metaParts.push({ key: "companySize", node: companySizeLabel });
     }
@@ -111,7 +111,7 @@ export default function CompanyIgdbInfoBlock({ info, resourceType }: CompanyIgdb
       key: "formerly",
       node: (
         <>
-          {t("igdbInfo.formerly", "Formerly")}: {renderCompanyName(formerly)}
+          {t("catalogInfo.formerly", "Formerly")}: {renderCompanyName(formerly)}
         </>
       ),
     });
@@ -121,7 +121,7 @@ export default function CompanyIgdbInfoBlock({ info, resourceType }: CompanyIgdb
       key: "parentCompany",
       node: (
         <>
-          {t("igdbInfo.parentCompany", "Parent company")}: {renderCompanyName(info.parentCompany)}
+          {t("catalogInfo.parentCompany", "Parent company")}: {renderCompanyName(info.parentCompany)}
         </>
       ),
     });
@@ -131,7 +131,7 @@ export default function CompanyIgdbInfoBlock({ info, resourceType }: CompanyIgdb
       key: "updatedTo",
       node: (
         <>
-          {t("igdbInfo.updatedTo", "Updated to")}: {renderCompanyName(info.updatedTo)}
+          {t("catalogInfo.updatedTo", "Updated to")}: {renderCompanyName(info.updatedTo)}
         </>
       ),
     });

@@ -8,8 +8,8 @@ import { useSettings } from "../contexts/SettingsContext";
 import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import { useTagLists } from "../contexts/TagListsContext";
 import { useGamesListPage, sortGamesList } from "../hooks/useGamesListPage";
-import { useIgdbGamesForSeriesFranchise } from "../hooks/useIgdbGamesForSeriesFranchise";
-import { useIgdbGamesForTag, type IgdbTagKey } from "../hooks/useIgdbGamesForTag";
+import { useCatalogGamesForSeriesFranchise } from "../hooks/useCatalogGamesForSeriesFranchise";
+import { useCatalogGamesForTag, type CatalogTagKey } from "../hooks/useCatalogGamesForTag";
 import GamesListPageContent from "../components/games/GamesListPageContent";
 import Cover from "../components/games/Cover";
 import AlphabetNavigator from "../components/ui/AlphabetNavigator";
@@ -32,7 +32,7 @@ import ContextRailIndexPeek from "../components/contextRail/ContextRailIndexPeek
 import type { MainAppOutletContext } from "../layouts/MainAppLayout";
 import { API_BASE } from "../config";
 import { buildApiHeaders, buildApiUrl, buildCoverUrl } from "../utils/api";
-import { isMainGameType } from "../utils/igdbGameType";
+import { isMainGameType } from "../utils/gameType";
 
 type TagGamesPageProps = {
   onGameClick: (game: GameItem) => void;
@@ -43,7 +43,7 @@ type TagGamesPageProps = {
   paramName: string;
   storageKey: string;
   tagKey?: TagKey;
-  onIgdbGameClick?: (igdbId: number) => void;
+  onCatalogGameClick?: (gameId: number) => void;
 };
 
 export default function TagGamesPage({
@@ -55,7 +55,7 @@ export default function TagGamesPage({
   paramName,
   storageKey,
   tagKey,
-  onIgdbGameClick,
+  onCatalogGameClick,
 }: TagGamesPageProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -67,7 +67,7 @@ export default function TagGamesPage({
   const { activeSkinWeb } = useSkin();
   const tagConfig = tagKey ? TAG_PAGE_CONFIGS[tagKey] : undefined;
   const { games: libraryGames } = useLibraryGames();
-  const { igdbEnabled } = useSettings();
+  const { catalogSearchEnabled } = useSettings();
   const { tagLabels } = useTagLists();
   const [searchParams] = useSearchParams();
   const { isLoading, setLoading } = useLoading();
@@ -93,15 +93,15 @@ export default function TagGamesPage({
   );
 
   const isSeriesOrFranchise = tagKey === "series" || tagKey === "franchise";
-  const isIgdbTag = tagKey === "themes" || tagKey === "platforms" || tagKey === "gameModes" || tagKey === "playerPerspectives" || tagKey === "gameEngines" || tagKey === "developers" || tagKey === "publishers" || tagKey === "categories";
+  const isCatalogTag = tagKey === "themes" || tagKey === "platforms" || tagKey === "gameModes" || tagKey === "playerPerspectives" || tagKey === "gameEngines" || tagKey === "developers" || tagKey === "publishers" || tagKey === "categories";
   const tagNameFromUrl = searchParams.get("name");
   const tagNameFromLabels = useMemo(() => {
-    if (!tagValue || !tagKey || !isIgdbTag) return null;
+    if (!tagValue || !tagKey || !isCatalogTag) return null;
     const key = tagKey as keyof typeof tagLabels;
     const map = tagLabels[key];
     return map && typeof map.get === "function" ? map.get(tagValue) ?? null : null;
-  }, [tagValue, tagKey, isIgdbTag, tagLabels]);
-  const igdbTagNameForFetch = tagNameFromUrl ?? tagNameFromLabels ?? undefined;
+  }, [tagValue, tagKey, isCatalogTag, tagLabels]);
+  const catalogTagNameForFetch = tagNameFromUrl ?? tagNameFromLabels ?? undefined;
 
   const usePersistentShell = activeSkinWeb.persistentLibraryShell;
   const [localViewMode, setLocalViewMode] = useState<ViewMode>(() => {
@@ -184,35 +184,35 @@ export default function TagGamesPage({
   }, [effectiveTagKey, hook.selectedThemes, hook.selectedPlatforms, hook.selectedGameModes, hook.selectedPlayerPerspectives, hook.selectedGameEngines, hook.selectedDevelopers, hook.selectedPublishers, hook.selectedSeries, hook.selectedFranchise]);
   const effectiveTagValueResolved = effectiveTagValue ?? (effectiveTagKey === tagField ? tagValue : null);
   const isEffectiveSeriesOrFranchise = effectiveTagKey === "series" || effectiveTagKey === "franchise";
-  const isEffectiveIgdbTag = effectiveTagKey !== null && effectiveTagKey !== "series" && effectiveTagKey !== "franchise";
+  const isEffectiveCatalogTag = effectiveTagKey !== null && effectiveTagKey !== "series" && effectiveTagKey !== "franchise";
   const effectiveTagNameForFetch = useMemo(() => {
-    if (!effectiveTagKey || !effectiveTagValueResolved || !isEffectiveIgdbTag) return undefined;
+    if (!effectiveTagKey || !effectiveTagValueResolved || !isEffectiveCatalogTag) return undefined;
     const key = effectiveTagKey as keyof typeof tagLabels;
     const map = tagLabels[key];
     return map && typeof map.get === "function" ? map.get(String(effectiveTagValueResolved)) ?? undefined : undefined;
-  }, [effectiveTagKey, effectiveTagValueResolved, isEffectiveIgdbTag, tagLabels]);
+  }, [effectiveTagKey, effectiveTagValueResolved, isEffectiveCatalogTag, tagLabels]);
 
-  const { igdbGames, loading: igdbLoading } = useIgdbGamesForSeriesFranchise(
-    isEffectiveSeriesOrFranchise && igdbEnabled ? effectiveTagKey as "series" | "franchise" : null,
+  const { catalogGames, loading: catalogLoading } = useCatalogGamesForSeriesFranchise(
+    isEffectiveSeriesOrFranchise && catalogSearchEnabled ? effectiveTagKey as "series" | "franchise" : null,
     effectiveTagValueResolved,
     libraryGameIds,
     true
   );
-  const { igdbGames: igdbTagGames, loading: igdbTagLoading, tagName: igdbTagName } = useIgdbGamesForTag(
-    isEffectiveIgdbTag && igdbEnabled ? (effectiveTagKey as IgdbTagKey) : null,
+  const { catalogGames: catalogTagGames, loading: catalogTagLoading, tagName: catalogTagName } = useCatalogGamesForTag(
+    isEffectiveCatalogTag && catalogSearchEnabled ? (effectiveTagKey as CatalogTagKey) : null,
     effectiveTagValueResolved,
     libraryGameIds,
     true,
-    effectiveTagNameForFetch ?? (effectiveTagKey === tagKey ? igdbTagNameForFetch : undefined)
+    effectiveTagNameForFetch ?? (effectiveTagKey === tagKey ? catalogTagNameForFetch : undefined)
   );
 
   const mergedGamesForSeriesFranchise = useMemo(() => {
-    if (!isEffectiveSeriesOrFranchise || !igdbEnabled) return null;
+    if (!isEffectiveSeriesOrFranchise || !catalogSearchEnabled) return null;
     const libraryGamesInSeries = hook.filteredAndSortedGames;
     const libraryById = new Map(libraryGamesInSeries.map((g) => [String(g.id), g]));
     const seenIds = new Set<string>();
     const merged: GameItem[] = [];
-    for (const ig of igdbGames) {
+    for (const ig of catalogGames) {
       seenIds.add(String(ig.id));
       const lib = libraryById.get(String(ig.id));
       if (lib) {
@@ -223,7 +223,7 @@ export default function TagGamesPage({
           title: ig.name,
           cover: ig.cover || undefined,
           year: ig.releaseDate ?? undefined,
-          isIgdbOnly: true,
+          isCatalogOnly: true,
         });
       }
     }
@@ -233,15 +233,15 @@ export default function TagGamesPage({
       }
     }
     return sortGamesList(merged, hook.sortField, hook.sortAscending);
-  }, [isEffectiveSeriesOrFranchise, igdbEnabled, hook.filteredAndSortedGames, igdbGames, hook.sortField, hook.sortAscending]);
+  }, [isEffectiveSeriesOrFranchise, catalogSearchEnabled, hook.filteredAndSortedGames, catalogGames, hook.sortField, hook.sortAscending]);
 
-  const mergedGamesForIgdbTag = useMemo(() => {
-    if (!isEffectiveIgdbTag || !igdbEnabled) return null;
+  const mergedGamesForCatalogTag = useMemo(() => {
+    if (!isEffectiveCatalogTag || !catalogSearchEnabled) return null;
     const libraryGamesFiltered = hook.filteredAndSortedGames;
     const libraryById = new Map(libraryGamesFiltered.map((g) => [String(g.id), g]));
     const seenIds = new Set<string>();
     const merged: GameItem[] = [];
-    for (const ig of igdbTagGames) {
+    for (const ig of catalogTagGames) {
       seenIds.add(String(ig.id));
       const lib = libraryById.get(String(ig.id));
       if (lib) {
@@ -252,7 +252,7 @@ export default function TagGamesPage({
           title: ig.name,
           cover: ig.cover || undefined,
           year: ig.releaseDate ?? undefined,
-          isIgdbOnly: true,
+          isCatalogOnly: true,
         });
       }
     }
@@ -262,9 +262,9 @@ export default function TagGamesPage({
       }
     }
     return sortGamesList(merged, hook.sortField, hook.sortAscending);
-  }, [isEffectiveIgdbTag, igdbEnabled, hook.filteredAndSortedGames, igdbTagGames, hook.sortField, hook.sortAscending]);
+  }, [isEffectiveCatalogTag, catalogSearchEnabled, hook.filteredAndSortedGames, catalogTagGames, hook.sortField, hook.sortAscending]);
 
-  const mergedGamesOverride = mergedGamesForSeriesFranchise ?? mergedGamesForIgdbTag;
+  const mergedGamesOverride = mergedGamesForSeriesFranchise ?? mergedGamesForCatalogTag;
   const selectedValueMatchesTag = useMemo(() => {
     if (!tagValue) return false;
     const normalized = String(tagValue);
@@ -283,7 +283,7 @@ export default function TagGamesPage({
     }
   }, [tagField, tagValue, hook.selectedThemes, hook.selectedPlatforms, hook.selectedGameModes, hook.selectedPlayerPerspectives, hook.selectedGameEngines, hook.selectedDevelopers, hook.selectedPublishers, hook.selectedGenre, hook.selectedSeries, hook.selectedFranchise]);
   const canShowNewGamesToggle =
-    (isSeriesOrFranchise || isIgdbTag) && !!igdbEnabled && hook.filterField !== "all";
+    (isSeriesOrFranchise || isCatalogTag) && !!catalogSearchEnabled && hook.filterField !== "all";
   const usePersistentTopBarTagToggles = usePersistentShell;
   const injectedTopBarTagToggles: ReactNode = useMemo(() => {
     if (!usePersistentTopBarTagToggles || viewMode !== "grid") return null;
@@ -420,7 +420,7 @@ export default function TagGamesPage({
   );
 
   const tagFilterLabel =
-    isIgdbTag && selectedValueMatchesTag ? (igdbTagName ?? undefined) : undefined;
+    isCatalogTag && selectedValueMatchesTag ? (catalogTagName ?? undefined) : undefined;
 
   const [tagListMeta, setTagListMeta] = useState<
     { cover?: string; title?: string } | undefined
@@ -502,7 +502,7 @@ export default function TagGamesPage({
       hook={hook}
       viewMode={viewMode}
       coverSize={coverSize}
-      isLoading={isLoading || igdbLoading || igdbTagLoading}
+      isLoading={isLoading || catalogLoading || catalogTagLoading}
       isReady={hook.isReady}
       allCollections={allCollections}
       onGameClick={onGameClick}
@@ -510,7 +510,7 @@ export default function TagGamesPage({
       onPlay={onPlay}
       buildCoverUrlFn={buildCoverUrlFn}
       gamesOverride={effectiveGamesOverride}
-      onIgdbGameClick={onIgdbGameClick}
+      onCatalogGameClick={onCatalogGameClick}
       selectedFilterValueLabel={tagFilterLabel}
       contextRailGamesColumn={contextRailLayout}
       scrollContainerRef={contextRailLayout ? hook.scrollContainerRef : undefined}

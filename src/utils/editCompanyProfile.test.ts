@@ -41,7 +41,7 @@ describe("editCompanyProfile", () => {
     });
   });
 
-  it("normalizes merged IGDB status to merge for the edit combo", () => {
+  it("normalizes merged catalog status to merge for the edit combo", () => {
     const form = companyProfileToFormState({ status: "merged" });
     expect(form.status).toBe("merge");
   });

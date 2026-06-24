@@ -42,7 +42,7 @@ export default function RecommendedSectionDetailPage({
   const outletContext = useOutletContext<MainAppOutletContext | null>();
   const { sectionId: rawSectionId } = useParams<{ sectionId: string }>();
   const sectionId = rawSectionId ? decodeURIComponent(rawSectionId) : null;
-  const { igdbEnabled, settingsLoaded } = useSettings();
+  const { catalogSearchEnabled, settingsLoaded } = useSettings();
   const { setLoading } = useLoading();
   const { activeSkinWeb } = useSkin();
   const persistentShell = activeSkinWeb.persistentLibraryShell;
@@ -99,13 +99,13 @@ export default function RecommendedSectionDetailPage({
         }
         markRecommendedReturnFromGame();
       }
-      if (igdbEnabled && (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly) {
-        navigate(`/igdb-game/${game.id}`);
+      if (catalogSearchEnabled && (game as GameItem & { isCatalogOnly?: boolean }).isCatalogOnly) {
+        navigate(`/catalog-game/${game.id}`);
       } else {
         onGameClick(game);
       }
     },
-    [igdbEnabled, navigate, onGameClick, sectionId, games],
+    [catalogSearchEnabled, navigate, onGameClick, sectionId, games],
   );
 
   useEffect(() => {

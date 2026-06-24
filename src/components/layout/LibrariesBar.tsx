@@ -241,7 +241,7 @@ type LibrariesBarProps = {
    * `TopDockSlotContext`. Only the shell-level `LibrariesBar` (the one
    * rendered above `<Outlet />` in `MainAppLayout`) should set this to true;
    * page-level `LibrariesBar` instances (e.g. inside `LibraryItemDetailPage`,
-   * `TagGamesPage`, `HomePageClassic`, `GameDetail`, `IGDBGameDetailPage`)
+   * `TagGamesPage`, `HomePageClassic`, `GameDetail`, `CatalogGameDetailPage`)
    * must leave it false so they don't overwrite the canonical slot in the
    * shared context (and reset it to `null` when they unmount on navigation).
    */

@@ -10,7 +10,7 @@ import {
 import type { ReactNode } from "react";
 import { getApiBase } from "../config";
 import { buildApiHeaders } from "../utils/api";
-import { clearLegacyIgdbCredentialStorage, isIgdbApiEnabled } from "../utils/igdbApi";
+import { clearLegacyCatalogCredentialStorage, isCatalogSearchEnabled } from "../utils/catalogApi";
 import { useTunnel } from "./TunnelContext";
 import {
   DEFAULT_SKIN_WEB_MANIFEST,
@@ -22,7 +22,7 @@ interface SettingsContextType {
   twitchApiEnabled: boolean;
   setTwitchApiEnabled: (value: boolean) => void;
   /** True when IGDB API is enabled in server settings (credentials on API gateway). */
-  igdbEnabled: boolean;
+  catalogSearchEnabled: boolean;
   /**
    * Effective skin web flags as persisted in the server settings. Initialized from the active
    * skin's skin.json whenever the active skin changes, and from user toggles in the Settings
@@ -70,7 +70,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           const serverApiEnabled = !!data.twitchApiEnabled;
           setTwitchApiEnabled(serverApiEnabled);
           applySkinWeb(data.skinWeb);
-          clearLegacyIgdbCredentialStorage();
+          clearLegacyCatalogCredentialStorage();
           return;
         }
       } catch (err) {
@@ -132,14 +132,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
   }, [skinWeb.verticalCoverAlignment]);
 
-  const igdbEnabled = useMemo(() => isIgdbApiEnabled(twitchApiEnabled), [twitchApiEnabled]);
+  const catalogSearchEnabled = useMemo(() => isCatalogSearchEnabled(twitchApiEnabled), [twitchApiEnabled]);
 
   return (
     <SettingsContext.Provider
       value={{
         twitchApiEnabled,
         setTwitchApiEnabled,
-        igdbEnabled,
+        catalogSearchEnabled,
         skinWeb,
         updateSkinWebFlags,
         refreshSettings,

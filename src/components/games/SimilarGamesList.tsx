@@ -9,7 +9,7 @@ import type { CSSProperties } from "react";
 import type { GameItem, CollectionItem } from "../../types";
 export type SimilarGameDisplayItem =
   | { type: "library"; game: GameItem }
-  | { type: "igdb"; id: number; name: string; cover?: string; year?: number | null };
+  | { type: "catalog"; id: number; name: string; cover?: string; year?: number | null };
 
 function getScrollPosition(key: string): number {
   try {
@@ -33,7 +33,7 @@ type SimilarGamesListProps = {
   coverSize?: number;
   allCollections?: CollectionItem[];
   onLibraryGameClick: (game: GameItem) => void;
-  onIgdbGameClick: (igdbId: number) => void;
+  onCatalogGameClick: (gameId: number) => void;
   onPlay?: (game: GameItem) => void;
   onGameUpdate?: (updatedGame: GameItem) => void;
   sectionTitle?: string;
@@ -44,7 +44,7 @@ export default function SimilarGamesList({
   coverSize = 140,
   allCollections = [],
   onLibraryGameClick,
-  onIgdbGameClick,
+  onCatalogGameClick,
   onPlay,
   onGameUpdate,
   sectionTitle,
@@ -181,13 +181,13 @@ export default function SimilarGamesList({
           }
           const coverUrl = item.cover || "";
           return (
-            <div key={`igdb-${item.id}`} className="games-list-item similar-games-cover-cell">
+            <div key={`catalog-${item.id}`} className="games-list-item similar-games-cover-cell">
               <Cover
                 title={item.name}
                 coverUrl={coverUrl}
                 width={coverSize}
                 height={coverHeight}
-                onClick={() => onIgdbGameClick(item.id)}
+                onClick={() => onCatalogGameClick(item.id)}
                 showTitle
                 subtitle={item.year != null ? item.year : null}
                 detail

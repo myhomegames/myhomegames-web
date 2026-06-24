@@ -220,8 +220,8 @@
     "noResults": "No games found",
     "typeToSearch": "Type at least 2 characters to search",
     "error": "Error searching games",
-    "igdbApiDisabled": "Enable IGDB API in Settings to search the catalog.",
-    "new": "New"
+    "new": "New",
+    "catalogSearchDisabled": "Enable catalog search in Settings to search the catalog."
   },
   "viewMode": {
     "grid": "Grid View",
@@ -334,12 +334,6 @@
     "cannotRemoveLast": "Cannot remove the last executable",
     "moveUp": "Move up",
     "moveDown": "Move down"
-  },
-  "igdbGameDetail": {
-    "notFound": "Game not found",
-    "add": "Add",
-    "adding": "Adding...",
-    "errorAdding": "Error adding game to library"
   },
   "common": {
     "loading": "Loading...",
@@ -537,7 +531,7 @@
     "editCategory": "Edit Category",
     "coverFormat": "Recommended ratio: 16:9 (e.g., 1280x720px)"
   },
-  "igdbInfo": {
+  "catalogInfo": {
     "gameId": "ID",
     "gameType": "Type",
     "themes": "Themes",
@@ -656,13 +650,13 @@
     "addParentCompany": "Add company",
     "addUpdatedTo": "Add company"
   },
-  "igdbCompanyStatuses": {
+  "companyStatuses": {
     "active": "Active",
     "defunct": "Defunct",
     "merge": "Merge",
     "renamed": "Renamed"
   },
-  "igdbCompanySizes": {
+  "companySizes": {
     "1": "0-1 employees",
     "2": "2-10 employees",
     "3": "11-50 employees",
@@ -672,7 +666,7 @@
     "7": "1001-5000 employees",
     "8": "5000+ employees"
   },
-  "igdbGameTypes": {
+  "gameTypes": {
     "0": "Main Game",
     "1": "DLC",
     "2": "Expansion",
@@ -688,5 +682,11 @@
     "12": "Fork",
     "13": "Pack",
     "14": "Update"
+  },
+  "catalogGameDetail": {
+    "notFound": "Game not found",
+    "add": "Add",
+    "adding": "Adding...",
+    "errorAdding": "Error adding game to library"
   }
 }

@@ -290,12 +290,6 @@
     "moveUp": "上に移動",
     "moveDown": "下に移動"
   },
-  "igdbGameDetail": {
-    "notFound": "ゲームが見つかりません",
-    "add": "追加",
-    "adding": "追加中...",
-    "errorAdding": "ライブラリにゲームを追加する際にエラーが発生しました"
-  },
   "common": {
     "loading": "読み込み中...",
     "error": "エラー",
@@ -492,7 +486,7 @@
     "editCategory": "カテゴリを編集",
     "coverFormat": "推奨比率：16:9（例：1280x720px）"
   },
-  "igdbInfo": {
+  "catalogInfo": {
     "gameId": "ID",
     "gameType": "タイプ",
     "themes": "テーマ",
@@ -602,13 +596,13 @@
     "addParentCompany": "会社を追加",
     "addUpdatedTo": "会社を追加"
   },
-  "igdbCompanyStatuses": {
+  "companyStatuses": {
     "active": "活動中",
     "defunct": "解散",
     "merge": "合併",
     "renamed": "名称変更"
   },
-  "igdbCompanySizes": {
+  "companySizes": {
     "1": "従業員 0-1 名",
     "2": "従業員 2-10 名",
     "3": "従業員 11-50 名",
@@ -618,7 +612,7 @@
     "7": "従業員 1001-5000 名",
     "8": "従業員 5000 名以上"
   },
-  "igdbGameTypes": {
+  "gameTypes": {
     "0": "メインゲーム",
     "1": "DLC",
     "2": "拡張",
@@ -634,5 +628,11 @@
     "12": "Fork",
     "13": "パック",
     "14": "アップデート"
+  },
+  "catalogGameDetail": {
+    "notFound": "ゲームが見つかりません",
+    "add": "追加",
+    "adding": "追加中...",
+    "errorAdding": "ライブラリにゲームを追加する際にエラーが発生しました"
   }
 }

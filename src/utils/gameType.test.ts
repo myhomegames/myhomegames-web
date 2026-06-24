@@ -1,16 +1,16 @@
 import { describe, it, expect } from "vitest";
 import {
-  IGDB_GAME_TYPE_IDS,
+  GAME_TYPE_IDS,
   toGameTypeId,
   displayGameType,
-} from "./igdbGameType";
+} from "./gameType";
 
-describe("IGDB_GAME_TYPE_IDS", () => {
+describe("GAME_TYPE_IDS", () => {
   it("lists ids 0 through 14", () => {
-    expect(IGDB_GAME_TYPE_IDS).toHaveLength(15);
-    expect(IGDB_GAME_TYPE_IDS[0]).toBe(0);
-    expect(IGDB_GAME_TYPE_IDS[14]).toBe(14);
-    expect([...IGDB_GAME_TYPE_IDS].sort((a, b) => a - b)).toEqual(
+    expect(GAME_TYPE_IDS).toHaveLength(15);
+    expect(GAME_TYPE_IDS[0]).toBe(0);
+    expect(GAME_TYPE_IDS[14]).toBe(14);
+    expect([...GAME_TYPE_IDS].sort((a, b) => a - b)).toEqual(
       Array.from({ length: 15 }, (_, i) => i)
     );
   });

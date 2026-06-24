@@ -8,7 +8,7 @@ type TagGamesRoutePageProps = {
   onPlay?: (game: GameItem) => void;
   allCollections?: CollectionItem[];
   tagKey: TagKey;
-  onIgdbGameClick?: (igdbId: number) => void;
+  onCatalogGameClick?: (gameId: number) => void;
 };
 
 export default function TagGamesRoutePage({
@@ -17,7 +17,7 @@ export default function TagGamesRoutePage({
   onPlay,
   allCollections,
   tagKey,
-  onIgdbGameClick,
+  onCatalogGameClick,
 }: TagGamesRoutePageProps) {
   const config = TAG_PAGE_CONFIGS[tagKey];
 
@@ -31,7 +31,7 @@ export default function TagGamesRoutePage({
       paramName={config.detail.paramName}
       storageKey={config.detail.storageKey}
       tagKey={tagKey}
-      onIgdbGameClick={onIgdbGameClick}
+      onCatalogGameClick={onCatalogGameClick}
     />
   );
 }

@@ -128,7 +128,7 @@ export function GameListItem({
   onCollectionLikePseudoUpdated,
 }: GameListItemProps) {
   const { t } = useTranslation();
-  const isIgdbOnly = (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly;
+  const isCatalogOnly = (game as GameItem & { isCatalogOnly?: boolean }).isCatalogOnly;
   const coverHeight = portraitCoverHeight(coverSize);
   const gameForCover = useMemo(() => {
     if (!platformIdForPlay) return game;
@@ -268,7 +268,7 @@ export function GameListItem({
             ? () => {
                 void onPlayFirstInCollectionLike(pseudo.resourceType, pseudo.childId);
               }
-            : !isIgdbOnly && onPlay
+            : !isCatalogOnly && onPlay
               ? (executableName?: string) => {
                   if (executableName !== undefined) {
                     (onPlay as (g: typeof game, ex?: string) => void)(game, executableName);
@@ -284,15 +284,15 @@ export function GameListItem({
         }
         onClick={() => onGameClick(game)}
         onEdit={
-          isPseudoCollectionLikeCard || !isIgdbOnly ? handleEditClickForCover : undefined
+          isPseudoCollectionLikeCard || !isCatalogOnly ? handleEditClickForCover : undefined
         }
         gameId={coverGameId}
         gameTitle={game.title}
-        game={isPseudoCollectionLikeCard || isIgdbOnly ? undefined : gameForCover}
-        fullGameForActions={isPseudoCollectionLikeCard || isIgdbOnly ? undefined : game}
+        game={isPseudoCollectionLikeCard || isCatalogOnly ? undefined : gameForCover}
+        fullGameForActions={isPseudoCollectionLikeCard || isCatalogOnly ? undefined : game}
         platformIdForPlay={platformIdForPlay}
         onGameDelete={
-          !isPseudoCollectionLikeCard && !isIgdbOnly && onGameDelete
+          !isPseudoCollectionLikeCard && !isCatalogOnly && onGameDelete
             ? (gameId: string) => {
                 const deletedGame = game.id === gameId ? game : null;
                 if (deletedGame) {
@@ -302,7 +302,7 @@ export function GameListItem({
             : undefined
         }
         onGameUpdate={
-          !isPseudoCollectionLikeCard && !isIgdbOnly && onGameUpdate
+          !isPseudoCollectionLikeCard && !isCatalogOnly && onGameUpdate
             ? (updatedGame) => {
                 if (updatedGame.id === game.id) {
                   onGameUpdate(updatedGame);
@@ -313,19 +313,19 @@ export function GameListItem({
         collectionId={coverCollectionId}
         collectionTitle={isPseudoCollectionLikeCard ? game.title : undefined}
         onRemoveFromCollection={
-          !isPseudoCollectionLikeCard && !isIgdbOnly && onRemoveFromCollection
+          !isPseudoCollectionLikeCard && !isCatalogOnly && onRemoveFromCollection
             ? () => onRemoveFromCollection(String(game.id))
             : undefined
         }
         developerId={coverDeveloperId}
         publisherId={coverPublisherId}
         onRemoveFromDeveloper={
-          !isPseudoCollectionLikeCard && !isIgdbOnly && onRemoveFromDeveloper
+          !isPseudoCollectionLikeCard && !isCatalogOnly && onRemoveFromDeveloper
             ? () => onRemoveFromDeveloper(String(game.id))
             : undefined
         }
         onRemoveFromPublisher={
-          !isPseudoCollectionLikeCard && !isIgdbOnly && onRemoveFromPublisher
+          !isPseudoCollectionLikeCard && !isCatalogOnly && onRemoveFromPublisher
             ? () => onRemoveFromPublisher(String(game.id))
             : undefined
         }
@@ -347,7 +347,7 @@ export function GameListItem({
         }
         showBorder={viewMode !== "detail"}
         allCollections={allCollections}
-        overlayContent={isIgdbOnly ? <span className="game-detail-similar-cover-badge">{t("addGame.new", "New")}</span> : undefined}
+        overlayContent={isCatalogOnly ? <span className="game-detail-similar-cover-badge">{t("addGame.new", "New")}</span> : undefined}
       />
     </div>
   );

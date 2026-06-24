@@ -8,7 +8,7 @@ import Tooltip from "../common/Tooltip";
 import AgeRatings from "./AgeRatings";
 import type { GameItem, CollectionItem } from "../../types";
 import { gameHasExecutableForPlatform, getExecutablesForPlatform } from "../../utils/gameExecutables";
-import { displayGameType, toGameTypeId } from "../../utils/igdbGameType";
+import { displayGameType, toGameTypeId } from "../../utils/gameType";
 type ColumnVisibility = {
   title: boolean;
   gameType: boolean;
@@ -24,7 +24,7 @@ type TableRowProps = {
   index: number;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
   onGameClick: (game: GameItem) => void;
-  onIgdbGameClick?: (igdbId: number) => void;
+  onCatalogGameClick?: (gameId: number) => void;
   onPlay?: (game: GameItem) => void;
   onGameUpdate?: (updatedGame: GameItem) => void;
   onGameDelete?: (deletedGame: GameItem) => void;
@@ -46,7 +46,7 @@ export default function TableRow({
   index,
   itemRefs,
   onGameClick,
-  onIgdbGameClick,
+  onCatalogGameClick,
   onPlay,
   onGameUpdate,
   onGameDelete,
@@ -61,7 +61,7 @@ export default function TableRow({
   useDiv = false,
   platformIdForPlay,
 }: TableRowProps) {
-  const isIgdbOnly = (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly;
+  const isCatalogOnly = (game as GameItem & { isCatalogOnly?: boolean }).isCatalogOnly;
   const hasPlay = platformIdForPlay ? gameHasExecutableForPlatform(game, platformIdForPlay) : !!(game.executables && game.executables.length > 0);
   const playFiltered = platformIdForPlay ? getExecutablesForPlatform(game, platformIdForPlay) : null;
   const playExecutables = platformIdForPlay ? (playFiltered?.executables ?? []) : game.executables;
@@ -69,8 +69,8 @@ export default function TableRow({
     ? { ...game, executables: playFiltered.executables, executableFileNames: playFiltered.executableFileNames }
     : game;
   const handleTitleClick = () => {
-    if (isIgdbOnly && onIgdbGameClick) {
-      onIgdbGameClick(Number(game.id));
+    if (isCatalogOnly && onCatalogGameClick) {
+      onCatalogGameClick(Number(game.id));
     } else {
       onGameClick(game);
     }
@@ -177,7 +177,7 @@ export default function TableRow({
         }
       }}
       role={useDiv ? "row" : undefined}
-      className={[rowDivClass, isDropdownOpen && "row-dropdown-open", isIgdbOnly && "igdb-only-row"].filter(Boolean).join(" ") || undefined}
+      className={[rowDivClass, isDropdownOpen && "row-dropdown-open", isCatalogOnly && "catalog-only-row"].filter(Boolean).join(" ") || undefined}
     >
       <CellTag className={`column-menu-cell ${cellDivClass}`.trim()} role={useDiv ? "cell" : undefined}></CellTag>
       {columnVisibility.title && (
@@ -235,8 +235,8 @@ export default function TableRow({
               gap={3} 
               color="rgba(255, 255, 255, 0.4)" 
               noStroke={true}
-              readOnly={!API_BASE || !API_TOKEN || isIgdbOnly}
-              onRatingChange={!isIgdbOnly && API_BASE && API_TOKEN ? (newStars) => handleRatingChange(game.id, newStars) : undefined}
+              readOnly={!API_BASE || !API_TOKEN || isCatalogOnly}
+              onRatingChange={!isCatalogOnly && API_BASE && API_TOKEN ? (newStars) => handleRatingChange(game.id, newStars) : undefined}
             />
           </div>
         </CellTag>
@@ -334,7 +334,7 @@ export default function TableRow({
         </CellTag>
       )}
       <CellTag className={`games-table-edit-cell ${rowClass} ${cellDivClass}`.trim()} role={useDiv ? "cell" : undefined}>
-        {!isIgdbOnly && (
+        {!isCatalogOnly && (
         <div className="games-table-actions">
           <button
             type="button"

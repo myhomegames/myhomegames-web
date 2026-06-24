@@ -40,7 +40,7 @@ type GamesListPageContentProps = {
   
   // Series/franchise: merged library + IGDB games in one list
   gamesOverride?: GameItem[] | null;
-  onIgdbGameClick?: (igdbId: number) => void;
+  onCatalogGameClick?: (gameId: number) => void;
   /** When on a tag page with an IGDB id, override the filter value label (e.g. show "Action" instead of "1") */
   selectedFilterValueLabel?: string;
   disableGridVirtualization?: boolean;
@@ -64,7 +64,7 @@ export default function GamesListPageContent({
   onPlay,
   buildCoverUrlFn,
   gamesOverride,
-  onIgdbGameClick,
+  onCatalogGameClick,
   selectedFilterValueLabel,
   disableGridVirtualization = false,
   forceSingleColumnGrid = false,
@@ -318,14 +318,14 @@ export default function GamesListPageContent({
   const hasInlineToolbar = !isLoading && displayGames.length > 0 && !toolbarInDock;
   const handleGameClick = useCallback(
     (game: GameItem) => {
-      const g = game as GameItem & { isIgdbOnly?: boolean };
-      if (g.isIgdbOnly && onIgdbGameClick) {
-        onIgdbGameClick(Number(game.id));
+      const g = game as GameItem & { isCatalogOnly?: boolean };
+      if (g.isCatalogOnly && onCatalogGameClick) {
+        onCatalogGameClick(Number(game.id));
       } else {
         onGameClick(game);
       }
     },
-    [onGameClick, onIgdbGameClick]
+    [onGameClick, onCatalogGameClick]
   );
 
   const toolbarNode =
@@ -453,7 +453,7 @@ export default function GamesListPageContent({
                   <GamesListDetail
                     games={displayGames}
                     onGameClick={handleGameClick}
-                    onIgdbGameClick={onIgdbGameClick}
+                    onCatalogGameClick={onCatalogGameClick}
                     onPlay={onPlay}
                     onGameUpdate={handleGameUpdate}
                     onGameDelete={handleGameDelete}
@@ -471,7 +471,7 @@ export default function GamesListPageContent({
                   <GamesListTable
                     games={displayGames}
                     onGameClick={handleGameClick}
-                    onIgdbGameClick={onIgdbGameClick}
+                    onCatalogGameClick={onCatalogGameClick}
                     onPlay={onPlay}
                     onGameUpdate={handleGameUpdate}
                     onGameDelete={handleGameDelete}

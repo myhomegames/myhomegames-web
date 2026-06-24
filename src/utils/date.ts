@@ -1,4 +1,4 @@
-import type { GameItem, IGDBGame } from "../types";
+import type { GameItem, CatalogGame } from "../types";
 import type { TFunction } from "i18next";
 import type { i18n as I18nType } from "i18next";
 
@@ -77,7 +77,7 @@ export function formatGameDate(game: GameItem, t: TFunction, i18nInstance?: I18n
  * @param i18nInstance - i18n instance from react-i18next (optional, will try to get from t if not provided)
  * @returns Formatted date string or year only, or null if no date available
  */
-export function formatIGDBGameDate(game: IGDBGame, t: TFunction, i18nInstance?: I18nType): string | null {
+export function formatCatalogGameDate(game: CatalogGame, t: TFunction, i18nInstance?: I18nType): string | null {
   if (game.releaseDateFull) {
     const { day, month, year } = game.releaseDateFull;
     if (day !== null && day !== undefined && month !== null && month !== undefined) {
@@ -166,7 +166,7 @@ function formatLocalizedYearMonth(
 /**
  * Formats IGDB company date strings stored by the server (e.g. "1998-12-31") according to locale.
  */
-export function formatIgdbStoredDate(
+export function formatStoredCatalogDate(
   dateStr: string,
   t: TFunction,
   i18nInstance?: I18nType

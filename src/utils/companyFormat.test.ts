@@ -1,23 +1,23 @@
 import { describe, expect, test, vi } from "vitest";
-import { formatIgdbCompanySize, formatIgdbCountryCode, listIgdbCountryOptions } from "./igdbCompany";
+import { formatCompanySize, formatCountryCode, listCountryOptions } from "./companyFormat";
 
-describe("formatIgdbCountryCode", () => {
+describe("formatCountryCode", () => {
   test("returns localized country name for Italy", () => {
-    expect(formatIgdbCountryCode(380, "it")).toBe("Italia");
+    expect(formatCountryCode(380, "it")).toBe("Italia");
   });
 
   test("returns localized country name for Japan in English", () => {
-    expect(formatIgdbCountryCode(392, "en")).toBe("Japan");
+    expect(formatCountryCode(392, "en")).toBe("Japan");
   });
 
   test("returns null when code is missing", () => {
-    expect(formatIgdbCountryCode(undefined, "it")).toBeNull();
+    expect(formatCountryCode(undefined, "it")).toBeNull();
   });
 });
 
-describe("listIgdbCountryOptions", () => {
+describe("listCountryOptions", () => {
   test("returns localized country options sorted by label", () => {
-    const options = listIgdbCountryOptions("it");
+    const options = listCountryOptions("it");
     const italy = options.find((option) => option.code === 380);
     const japan = options.find((option) => option.code === 392);
 
@@ -29,17 +29,17 @@ describe("listIgdbCountryOptions", () => {
   });
 });
 
-describe("formatIgdbCompanySize", () => {
+describe("formatCompanySize", () => {
   const t = vi.fn((key: string) => {
-    if (key === "igdbCompanySizes.7") return "1001-5000 dipendenti";
+    if (key === "companySizes.7") return "1001-5000 dipendenti";
     return key;
   });
 
-  test("uses igdbCompanySizes id", () => {
-    expect(formatIgdbCompanySize(7, t)).toBe("1001-5000 dipendenti");
+  test("uses companySizes id", () => {
+    expect(formatCompanySize(7, t as never)).toBe("1001-5000 dipendenti");
   });
 
   test("returns null when id is missing", () => {
-    expect(formatIgdbCompanySize(undefined, t)).toBeNull();
+    expect(formatCompanySize(undefined, t as never)).toBeNull();
   });
 });

@@ -4,7 +4,7 @@ import { useLoading } from "../contexts/LoadingContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { API_BASE } from "../config";
 import { buildApiHeaders } from "../utils/api";
-import { clearLegacyIgdbCredentialStorage } from "../utils/igdbApi";
+import { clearLegacyCatalogCredentialStorage } from "../utils/catalogApi";
 import { shouldSkipApiBaseBrowserRedirect } from "../utils/apiRedirectGuard";
 import { useTunnel } from "../contexts/TunnelContext";
 import { LIBRARY_ORDER, normalizeVisibleLibraries } from "../utils/librarySections";
@@ -112,7 +112,7 @@ export default function SettingsPage() {
           setTwitchClientSecret(loadedClientSecret);
           setInitialTwitchClientId(loadedClientId);
           setInitialTwitchClientSecret(loadedClientSecret);
-          clearLegacyIgdbCredentialStorage();
+          clearLegacyCatalogCredentialStorage();
         } else {
           // Fallback to localStorage
           const saved = localStorage.getItem("language") || "en";

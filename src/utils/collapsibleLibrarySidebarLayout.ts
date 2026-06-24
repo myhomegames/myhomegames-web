@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 const CHROME_UNDER_DRAWER_DIM_CLASS = "mhg-under-library-drawer";
 
 const MAIN_COLUMN_SELECTOR =
-  ".home-page-main-container, .library-item-detail-page-shell, .game-detail-container, .igdb-game-detail-container";
+  ".home-page-main-container, .library-item-detail-page-shell, .game-detail-container, .catalog-game-detail-container";
 const BACKDROP_LAYER_SELECTOR =
   ".background-manager-overlay, .background-manager-root.background-manager-root--solid";
 const SCROLL_ROOT_SELECTOR = "html, body, #root";

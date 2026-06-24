@@ -22,7 +22,7 @@ import LibrariesBar from "../layout/LibrariesBar";
 import { useEditGame } from "../common/actions";
 import type { GameItem, CollectionItem, CollectionInfo } from "../../types";
 import { formatGameDate } from "../../utils/date";
-import { displayGameType, toGameTypeId } from "../../utils/igdbGameType";
+import { displayGameType, toGameTypeId } from "../../utils/gameType";
 import { buildApiHeaders, buildApiUrl, buildAppApiUrl, buildBackgroundUrl } from "../../utils/api";
 import { API_BASE, getApiToken } from "../../config";
 import { useSettings } from "../../contexts/SettingsContext";
@@ -230,7 +230,7 @@ function GameDetailContent({
 }) {
   const navigate = useNavigate();
   const outletContext = useOutletContext<MainAppOutletContext | null>();
-  const { igdbEnabled } = useSettings();
+  const { catalogSearchEnabled } = useSettings();
   const { activeSkinWeb } = useSkin();
   const { tagLabels, tagLabelsReady } = useTagLists();
   const categoriesList = useMemo(
@@ -413,7 +413,7 @@ function GameDetailContent({
       }
       const details = detailsById[String(sg.id)];
       return {
-        type: "igdb",
+        type: "catalog",
         id: sg.id,
         name: details?.name ?? sg.name ?? String(sg.id),
         cover: details?.cover,
@@ -424,9 +424,9 @@ function GameDetailContent({
 
   // Hide IGDB-only games (those with "New" badge) when IGDB is disabled
   const similarGamesToShow = useMemo((): SimilarGameDisplayItem[] => {
-    if (igdbEnabled) return allSimilarGamesOrdered;
+    if (catalogSearchEnabled) return allSimilarGamesOrdered;
     return allSimilarGamesOrdered.filter((item) => item.type === "library");
-  }, [igdbEnabled, allSimilarGamesOrdered]);
+  }, [catalogSearchEnabled, allSimilarGamesOrdered]);
 
   const dispatchCollectionLikeUpdated = (updatedItem: CollectionInfo) => {
     window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collection: updatedItem } }));
@@ -908,10 +908,10 @@ function GameDetailContent({
               coverSize={coverSize}
               allCollections={allCollections}
               onLibraryGameClick={handleRelatedGameClick}
-              onIgdbGameClick={(id) => navigate(`/igdb-game/${id}`)}
+              onCatalogGameClick={(id) => navigate(`/catalog-game/${id}`)}
               onPlay={onPlay}
               onGameUpdate={handleRelatedGameUpdate}
-              sectionTitle={t("igdbInfo.similarGames", "Similar Games")}
+              sectionTitle={t("catalogInfo.similarGames", "Similar Games")}
             />
           </div>
         )}

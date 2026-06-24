@@ -10,7 +10,7 @@ import ScrollableGamesSection from "../components/common/ScrollableGamesSection"
 import FixedFocalRecommendedSectionsList from "../components/lists/FixedFocalRecommendedSectionsList";
 import type { GameItem, CollectionItem } from "../types";
 import { buildApiHeaders, buildAppApiUrl } from "../utils/api";
-import { buildIgdbApiUrl } from "../utils/igdbApi";
+import { buildCatalogApiUrl } from "../utils/catalogApi";
 import {
   clearRecommendedSectionsCache,
   consumeRecommendedReturnFromGame,
@@ -45,7 +45,7 @@ export default function RecommendedPage({
 }: RecommendedPageProps) {
   const navigate = useNavigate();
   const titleFilterQuery = useTitleFilterQuery();
-  const { igdbEnabled, settingsLoaded } = useSettings();
+  const { catalogSearchEnabled, settingsLoaded } = useSettings();
   const { setLoading } = useLoading();
   const { activeSkinWeb } = useSkin();
   const verticalStripsLayout = activeSkinWeb.verticalCoverAlignment;
@@ -65,13 +65,13 @@ export default function RecommendedPage({
     (game: GameItem) => {
       setRecommendedSectionsCache(sections);
       markRecommendedReturnFromGame();
-      if (igdbEnabled && (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly) {
-        navigate(`/igdb-game/${game.id}`);
+      if (catalogSearchEnabled && (game as GameItem & { isCatalogOnly?: boolean }).isCatalogOnly) {
+        navigate(`/catalog-game/${game.id}`);
       } else {
         onGameClick(game);
       }
     },
-    [igdbEnabled, navigate, onGameClick, sections]
+    [catalogSearchEnabled, navigate, onGameClick, sections]
   );
   
   useScrollRestoration(scrollContainerRef, undefined, !verticalStripsLayout);
@@ -274,42 +274,42 @@ export default function RecommendedPage({
       setIsFetching(false);
       setLoadingRef.current(false);
 
-      if (igdbEnabled) {
+      if (catalogSearchEnabled) {
           // Fetch IGDB data in background; update each section as its response arrives
           parsedSections.forEach((section) => {
             const excludeIds = section.games
               .map((g: GameItem) => Number(g.id))
               .filter((id: number) => !Number.isNaN(id));
-            const igdbUrl = buildIgdbApiUrl("/igdb/games-by-keyword");
-            fetch(igdbUrl, {
+            const catalogUrl = buildCatalogApiUrl("/igdb/games-by-keyword");
+            fetch(catalogUrl, {
               method: "POST",
               headers: buildApiHeaders({
                 "Content-Type": "application/json",
               }),
               body: JSON.stringify({ keyword: section.id, excludeIds }),
             })
-              .then((igdbRes) => {
+              .then((catalogRes) => {
                 if (generation !== fetchGenerationRef.current) return null;
-                return igdbRes.json().catch(() => ({})).then((igdbData) => ({ igdbRes, igdbData }));
+                return catalogRes.json().catch(() => ({})).then((catalogData) => ({ catalogRes, catalogData }));
               })
               .then((pair) => {
                 if (!pair || generation !== fetchGenerationRef.current) return;
-                const { igdbRes, igdbData } = pair;
-                if (!igdbRes.ok) return;
-                const igdbGamesList = (igdbData.games || []) as Array<{ id: number; name: string; cover?: string | null; releaseDate?: number | null }>;
-                const igdbGames = igdbGamesList.map(
+                const { catalogRes, catalogData } = pair;
+                if (!catalogRes.ok) return;
+                const catalogGamesList = (catalogData.games || []) as Array<{ id: number; name: string; cover?: string | null; releaseDate?: number | null }>;
+                const catalogGames = catalogGamesList.map(
                   (g) =>
                     ({
                       id: String(g.id),
                       title: g.name,
                       cover: g.cover || undefined,
                       year: g.releaseDate ?? undefined,
-                      isIgdbOnly: true,
+                      isCatalogOnly: true,
                     }) as GameItem
                 );
                 setSections((prev) => {
                   const next = prev.map((s) =>
-                    s.id === section.id ? { ...s, games: [...s.games, ...igdbGames] } : s
+                    s.id === section.id ? { ...s, games: [...s.games, ...catalogGames] } : s
                   );
                   setRecommendedSectionsCache(next);
                   onGamesLoadedRef.current(next.flatMap((s) => s.games));

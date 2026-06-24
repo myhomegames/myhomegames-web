@@ -113,7 +113,7 @@ export default function EditGameMediaTab({
             {(() => {
               const currentCoverUrl = coverRemoved ? "" : coverLocalPreviewUrl;
               const hasCover = currentCoverUrl && currentCoverUrl.trim() !== "";
-              const isCoverFromIgdb = false;
+              const isCoverFromCatalog = false;
               return (
                 <>
                   <Cover
@@ -129,7 +129,7 @@ export default function EditGameMediaTab({
                     aspectRatio="3/4"
                     onUpload={() => !uploadingCover && !saving && coverInputRef.current?.click()}
                     uploading={uploadingCover}
-                    showRemoveButton={!!hasCover && !coverRemoved && !isCoverFromIgdb}
+                    showRemoveButton={!!hasCover && !coverRemoved && !isCoverFromCatalog}
                     removeMediaType="cover"
                     removeResourceId={game.id}
                     removeResourceType="games"
@@ -189,7 +189,7 @@ export default function EditGameMediaTab({
             {(() => {
               const currentBackgroundUrl = backgroundRemoved ? "" : backgroundLocalPreviewUrl;
               const hasBackground = currentBackgroundUrl && currentBackgroundUrl.trim() !== "";
-              const isBackgroundFromIgdb = false;
+              const isBackgroundFromCatalog = false;
               return (
                 <>
                   <Cover
@@ -205,7 +205,7 @@ export default function EditGameMediaTab({
                     aspectRatio="16/9"
                     onUpload={() => !uploadingBackground && !saving && backgroundInputRef.current?.click()}
                     uploading={uploadingBackground}
-                    showRemoveButton={!!hasBackground && !backgroundRemoved && !isBackgroundFromIgdb}
+                    showRemoveButton={!!hasBackground && !backgroundRemoved && !isBackgroundFromCatalog}
                     removeMediaType="background"
                     removeResourceId={game.id}
                     removeResourceType="games"

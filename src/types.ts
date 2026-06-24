@@ -41,10 +41,10 @@ export type GameItem = {
   keywords?: string[];
   alternativeNames?: string[];
   similarGames?: Array<{ id: number; name: string }>;
-  /** IGDB game_type id (0–14); label via i18n `igdbGameTypes.{id}`. */
+  /** Catalog game_type id (0–14); label via i18n `gameTypes.{id}`. */
   type?: number | null;
-  /** True when game is from IGDB only (not in library); click navigates to igdb-game page, cover shows "Nuovo" badge */
-  isIgdbOnly?: boolean;
+  /** True when the game is catalog-only (not in library); opens catalog preview, cover shows "New" badge */
+  isCatalogOnly?: boolean;
 };
 
 export type CollectionItem = {
@@ -69,10 +69,10 @@ export type TagItem = {
 };
 
 export type CompanyProfileFields = {
-  /** Company status; label via i18n `igdbCompanyStatuses.{name.toLowerCase()}`. */
+  /** Company status; label via i18n `companyStatuses.{name.toLowerCase()}`. */
   status?: string;
   updatedTo?: { id: number; name: string };
-  /** ISO 3166-1 numeric code; label via `formatIgdbCountryCode`. */
+  /** ISO 3166-1 numeric code; label via `formatCountryCode`. */
   countryCode?: number;
   changedOn?: string;
   /** Company founding date. */
@@ -80,7 +80,7 @@ export type CompanyProfileFields = {
   knownAs?: string;
   legalName?: string;
   companySize?: string;
-  /** Label via i18n `igdbCompanySizes.{id}`. */
+  /** Label via i18n `companySizes.{id}`. */
   companySizeId?: number;
   formerly?: { id: number; name: string };
   parentCompany?: { id: number; name: string };
@@ -100,7 +100,7 @@ export type CollectionInfo = {
   childs?: Array<string | number>;
 } & CompanyProfileFields;
 
-export type IGDBGame = {
+export type CatalogGame = {
   id: number;
   name: string;
   summary: string;
@@ -133,7 +133,7 @@ export type IGDBGame = {
   similarGames?: Array<{ id: number; name: string }>;
   criticRating?: number | null;
   userRating?: number | null;
-  /** IGDB game_type id (0–14) */
+  /** Catalog game_type id (0–14) */
   type?: number | null;
 };
 

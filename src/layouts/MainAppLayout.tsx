@@ -106,7 +106,7 @@ export default function MainAppLayout({
   );
 
   const isGameDetailRoute = useMemo(
-    () => /^\/game\/[^/]+/.test(pathname) || /^\/igdb-game\/[^/]+/.test(pathname),
+    () => /^\/game\/[^/]+/.test(pathname) || /^\/catalog-game\/[^/]+/.test(pathname),
     [pathname]
   );
 

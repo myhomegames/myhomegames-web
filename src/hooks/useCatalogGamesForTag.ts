@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { buildApiHeaders } from "../utils/api";
-import { buildIgdbApiUrl } from "../utils/igdbApi";
+import { buildCatalogApiUrl } from "../utils/catalogApi";
 
-export type IgdbGameForTag = {
+export type CatalogGameForTag = {
   id: number;
   name: string;
   cover: string | null;
@@ -42,22 +42,22 @@ const TAG_NAME_TYPE_MAP: Record<string, string> = {
   categories: "genres",
 };
 
-export type IgdbTagKey = "themes" | "platforms" | "gameModes" | "playerPerspectives" | "gameEngines" | "developers" | "publishers" | "categories";
+export type CatalogTagKey = "themes" | "platforms" | "gameModes" | "playerPerspectives" | "gameEngines" | "developers" | "publishers" | "categories";
 
-export function useIgdbGamesForTag(
-  tagKey: IgdbTagKey | null,
+export function useCatalogGamesForTag(
+  tagKey: CatalogTagKey | null,
   tagId: string | null,
   libraryGameIds: number[],
   fetchAll = false,
   tagNameFromUrlOrLabels?: string | null
 ): {
-  igdbGames: IgdbGameForTag[];
+  catalogGames: CatalogGameForTag[];
   tagName: string | null;
   loading: boolean;
   error: string | null;
   refetch: () => void;
 } {
-  const [igdbGames, setIgdbGames] = useState<IgdbGameForTag[]>([]);
+  const [catalogGames, setCatalogGames] = useState<CatalogGameForTag[]>([]);
   const [tagName, setTagName] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +69,7 @@ export function useIgdbGamesForTag(
 
   const fetchGames = useCallback(async () => {
     if (!tagId) {
-      setIgdbGames([]);
+      setCatalogGames([]);
       setTagName(null);
       return;
     }
@@ -79,7 +79,7 @@ export function useIgdbGamesForTag(
       setError(null);
       try {
         const name = tagNameFromUrlOrLabels.trim();
-        const url = buildIgdbApiUrl( endpointByName);
+        const url = buildCatalogApiUrl( endpointByName);
         const excludeIds = fetchAll ? [] : libraryGameIds;
         const res = await fetch(url, {
           method: "POST",
@@ -97,11 +97,11 @@ export function useIgdbGamesForTag(
           cover: g.cover || null,
           releaseDate: g.releaseDate ?? null,
         }));
-        setIgdbGames(games);
+        setCatalogGames(games);
         setTagName(name);
       } catch (err: any) {
         setError(err?.message || "Failed to fetch");
-        setIgdbGames([]);
+        setCatalogGames([]);
         setTagName(null);
       } finally {
         setLoading(false);
@@ -110,14 +110,14 @@ export function useIgdbGamesForTag(
     }
 
     if (!endpoint) {
-      setIgdbGames([]);
+      setCatalogGames([]);
       setTagName(null);
       return;
     }
 
     const id = parseInt(tagId, 10);
     if (Number.isNaN(id) || id < 1) {
-      setIgdbGames([]);
+      setCatalogGames([]);
       setTagName(null);
       return;
     }
@@ -128,12 +128,12 @@ export function useIgdbGamesForTag(
       const nameType = tagKey ? TAG_NAME_TYPE_MAP[tagKey] : null;
       const namePromise =
         nameType
-          ? fetch(buildIgdbApiUrl( `/igdb/tag-name/${nameType}/${id}`), {
+          ? fetch(buildCatalogApiUrl( `/igdb/tag-name/${nameType}/${id}`), {
               headers: buildApiHeaders({ Accept: "application/json" }),
             }).then((r) => (r.ok ? r.json() : { name: null })).then((d) => d.name ?? null)
           : Promise.resolve(null);
 
-      const url = buildIgdbApiUrl( `${endpoint}/${id}`);
+      const url = buildCatalogApiUrl( `${endpoint}/${id}`);
       const excludeIds = fetchAll ? [] : libraryGameIds;
       const res = await fetch(url, {
         method: "POST",
@@ -151,12 +151,12 @@ export function useIgdbGamesForTag(
         cover: g.cover || null,
         releaseDate: g.releaseDate ?? null,
       }));
-      setIgdbGames(games);
+      setCatalogGames(games);
       const resolvedName = await namePromise;
       setTagName(resolvedName);
     } catch (err: any) {
       setError(err?.message || "Failed to fetch");
-      setIgdbGames([]);
+      setCatalogGames([]);
       setTagName(null);
     } finally {
       setLoading(false);
@@ -167,7 +167,7 @@ export function useIgdbGamesForTag(
   useEffect(() => {
     if (!(tagKey && tagId)) {
       lastFetchedRef.current = null;
-      setIgdbGames([]);
+      setCatalogGames([]);
       setTagName(null);
       setError(null);
       return;
@@ -184,5 +184,5 @@ export function useIgdbGamesForTag(
     fetchGames();
   }, [tagKey, tagId, tagNameFromUrlOrLabels, fetchGames]);
 
-  return { igdbGames, tagName, loading, error, refetch: fetchGames };
+  return { catalogGames, tagName, loading, error, refetch: fetchGames };
 }

@@ -235,7 +235,7 @@ export default function EditGameTagsTab({
       </div>
       <div className="edit-game-modal-field">
         <label className="edit-game-modal-label" htmlFor={tagInputFranchise}>
-          {t("igdbInfo.franchise", "Franchise")}
+          {t("catalogInfo.franchise", "Franchise")}
         </label>
         {isOpen && (
           <TagEditor
@@ -265,7 +265,7 @@ export default function EditGameTagsTab({
       </div>
       <div className="edit-game-modal-field">
         <label className="edit-game-modal-label" htmlFor={tagInputSeries}>
-          {t("igdbInfo.series", "Series")}
+          {t("catalogInfo.series", "Series")}
         </label>
         {isOpen && (
           <TagEditor

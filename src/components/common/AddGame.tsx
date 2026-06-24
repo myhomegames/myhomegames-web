@@ -2,13 +2,13 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { formatIGDBGameDate } from "../../utils/date";
-import { displayGameType } from "../../utils/igdbGameType";
-import { buildIgdbApiUrl } from "../../utils/igdbApi";
+import { formatCatalogGameDate } from "../../utils/date";
+import { displayGameType } from "../../utils/gameType";
+import { buildCatalogApiUrl } from "../../utils/catalogApi";
 import { buildApiHeaders } from "../../utils/api";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useCreateGame } from "./actions";
-import type { GameItem, IGDBGame } from "../../types";
+import type { GameItem, CatalogGame } from "../../types";
 import Cover from "../games/Cover";
 
 type AddGameProps = {
@@ -24,10 +24,10 @@ export default function AddGame({
 }: AddGameProps) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { igdbEnabled } = useSettings();
+  const { catalogSearchEnabled } = useSettings();
   const [searchQuery, setSearchQuery] = useState("");
   const [createTitle, setCreateTitle] = useState("");
-  const [results, setResults] = useState<IGDBGame[]>([]);
+  const [results, setResults] = useState<CatalogGame[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -50,21 +50,21 @@ export default function AddGame({
   }, [isOpen]);
 
   // Check if an IGDB game matches a local game (by ID)
-  function findMatchingLocalGame(igdbGame: IGDBGame): GameItem | undefined {
+  function findMatchingLocalGame(catalogGame: CatalogGame): GameItem | undefined {
     return allGames.find(
-      (localGame) => String(localGame.id) === String(igdbGame.id)
+      (localGame) => String(localGame.id) === String(catalogGame.id)
     );
   }
 
   useEffect(() => {
-    if (isOpen && !igdbEnabled) {
+    if (isOpen && !catalogSearchEnabled) {
       // Ensure create-from-scratch input gets focus when search is unavailable.
       const focusTimeout = setTimeout(() => {
         createTitleInputRef.current?.focus();
       }, 0);
       return () => clearTimeout(focusTimeout);
     }
-  }, [isOpen, igdbEnabled]);
+  }, [isOpen, catalogSearchEnabled]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -280,16 +280,16 @@ export default function AddGame({
       // Clear the ref after execution to prevent cleanup from clearing it
       searchTimeoutRef.current = null;
       try {
-        if (!igdbEnabled) {
+        if (!catalogSearchEnabled) {
           setError(
-            t("addGame.igdbApiDisabled", "Enable IGDB API in Settings to search the catalog.")
+            t("addGame.catalogSearchDisabled", "Enable catalog search in Settings to search the catalog.")
           );
           setResults([]);
           setIsSearching(false);
           return;
         }
 
-        const url = new URL(buildIgdbApiUrl("/igdb/search"));
+        const url = new URL(buildCatalogApiUrl("/igdb/search"));
         url.searchParams.set("q", trimmedQuery);
 
         const res = await fetch(url.toString(), {
@@ -326,7 +326,7 @@ export default function AddGame({
       }
     }, 500);
     searchTimeoutRef.current = timeoutId;
-  }, [igdbEnabled, t]);
+  }, [catalogSearchEnabled, t]);
 
   useEffect(() => {
     const trimmedQuery = searchQuery.trim();
@@ -334,7 +334,7 @@ export default function AddGame({
     
     lastEffectQueryRef.current = trimmedQuery;
     
-    if (!igdbEnabled) {
+    if (!catalogSearchEnabled) {
       setResults([]);
       setError(null);
       setIsSearching(false);
@@ -356,7 +356,7 @@ export default function AddGame({
         searchTimeoutRef.current = null;
       }
     };
-  }, [searchQuery, igdbEnabled]);
+  }, [searchQuery, catalogSearchEnabled]);
 
   if (!isOpen) return null;
 
@@ -374,7 +374,7 @@ export default function AddGame({
         </div>
 
         <div className="add-game-content">
-          {igdbEnabled && (
+          {catalogSearchEnabled && (
             <div className="add-game-search-container">
               <label htmlFor="add-game-search" className="add-game-sr-only">
                 {t("addGame.searchPlaceholder")}
@@ -382,7 +382,7 @@ export default function AddGame({
               <input
                 ref={inputRef}
                 id="add-game-search"
-                name="igdbSearchQuery"
+                name="catalogSearchQuery"
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -429,7 +429,7 @@ export default function AddGame({
                 placeholder={t("addGame.newGameTitlePlaceholder")}
                 className="add-game-search-input add-game-create-input"
                 disabled={isCreating}
-                autoFocus={!igdbEnabled}
+                autoFocus={!catalogSearchEnabled}
               />
               <button
                 type="submit"
@@ -444,13 +444,13 @@ export default function AddGame({
             )}
           </div>
 
-          {igdbEnabled && error && (
+          {catalogSearchEnabled && error && (
             <div className="add-game-error">
               {t("addGame.error")}: {error}
             </div>
           )}
 
-          {igdbEnabled && (
+          {catalogSearchEnabled && (
           <div className="add-game-results">
             {isSearching ? (
               <div className="add-game-loading">
@@ -483,7 +483,7 @@ export default function AddGame({
                           onClose();
                         } else {
                           // Navigate to IGDB game detail page with game data
-                          navigate(`/igdb-game/${game.id}`, {
+                          navigate(`/catalog-game/${game.id}`, {
                             state: { gameData: game }
                           });
                           onClose();
@@ -519,9 +519,9 @@ export default function AddGame({
                             </span>
                           )}
                         </div>
-                        {formatIGDBGameDate(game, t, i18n) && (
+                        {formatCatalogGameDate(game, t, i18n) && (
                           <div className="add-game-result-date">
-                            {formatIGDBGameDate(game, t, i18n)}
+                            {formatCatalogGameDate(game, t, i18n)}
                           </div>
                         )}
                         {game.summary && (

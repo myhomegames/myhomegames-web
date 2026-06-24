@@ -27,16 +27,16 @@ const RESOURCE_CONFIG: Record<
     newTitlePlaceholderKey: "collections.newCollectionTitle",
   },
   developers: {
-    titleKey: "igdbInfo.addToDeveloper",
-    searchKey: "igdbInfo.searchDevelopers",
-    emptyKey: "igdbInfo.noDevelopersFound",
-    newTitlePlaceholderKey: "igdbInfo.newDeveloperName",
+    titleKey: "catalogInfo.addToDeveloper",
+    searchKey: "catalogInfo.searchDevelopers",
+    emptyKey: "catalogInfo.noDevelopersFound",
+    newTitlePlaceholderKey: "catalogInfo.newDeveloperName",
   },
   publishers: {
-    titleKey: "igdbInfo.addToPublisher",
-    searchKey: "igdbInfo.searchPublishers",
-    emptyKey: "igdbInfo.noPublishersFound",
-    newTitlePlaceholderKey: "igdbInfo.newPublisherName",
+    titleKey: "catalogInfo.addToPublisher",
+    searchKey: "catalogInfo.searchPublishers",
+    emptyKey: "catalogInfo.noPublishersFound",
+    newTitlePlaceholderKey: "catalogInfo.newPublisherName",
   },
 };
 

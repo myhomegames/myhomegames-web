@@ -1,4 +1,4 @@
-import type { CollectionInfo, CollectionItem, CompanyProfileFields } from "../types";
+import type { CollectionInfo, CompanyProfileFields } from "../types";
 import {
   COMPANY_PROFILE_FIELD_KEYS,
   mergeCompanyProfileOntoCollectionInfo,
@@ -34,12 +34,11 @@ export function pickCompanyProfilePatch(item: CollectionInfo): CompanyProfilePat
   };
 }
 
-export function mergeCompanyProfileOntoItem<T extends CollectionItem>(
+export function mergeCompanyProfileOntoItem<T extends CollectionInfo>(
   item: T,
   profile: CompanyProfilePatch,
 ): T {
   if (String(item.id) !== String(profile.id)) return item;
-  const { id: _id, ...rest } = profile;
   return mergeCompanyProfileOntoCollectionInfo(
     {
       ...item,
@@ -84,7 +83,7 @@ export function dispatchCollectionLikeChildLinked(
   );
 }
 
-export function syncIgdbParentCompanyChildLinkInUI(
+export function syncParentCompanyChildLinkInUI(
   resourceType: "developers" | "publishers",
   item: CollectionInfo,
 ) {
@@ -107,7 +106,7 @@ export function dispatchDeveloperOrPublisherUpdated(
     );
   }
   dispatchCompanyProfileUpdated(updatedItem);
-  syncIgdbParentCompanyChildLinkInUI(resourceType, updatedItem);
+  syncParentCompanyChildLinkInUI(resourceType, updatedItem);
 }
 
 export { COMPANY_PROFILE_FIELD_KEYS };

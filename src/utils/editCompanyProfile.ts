@@ -1,9 +1,9 @@
-import type { CompanyProfileFields } from "../../types";
-import { IGDB_COMPANY_SIZE_IDS } from "./igdbCompany";
+import type { CompanyProfileFields } from "../types";
+import { COMPANY_SIZE_IDS } from "./companyFormat";
 
-export const IGDB_COMPANY_STATUS_KEYS = ["active", "defunct", "merge", "renamed"] as const;
+export const COMPANY_STATUS_KEYS = ["active", "defunct", "merge", "renamed"] as const;
 
-/** Canonical status key for i18n (`igdbCompanyStatuses.*`) and edit combo values. */
+/** Canonical status key for i18n (`companyStatuses.*`) and edit combo values. */
 export function normalizeCompanyStatusKey(status?: string | null): string {
   const key = status?.trim().toLowerCase() ?? "";
   if (key === "merged") return "merge";
@@ -16,7 +16,7 @@ export type YearMonthDayParts = {
   day: string;
 };
 
-export function parseIgdbCompanyDateString(value?: string | null): YearMonthDayParts {
+export function parseCompanyDateString(value?: string | null): YearMonthDayParts {
   const empty: YearMonthDayParts = { year: "", month: "", day: "" };
   const trimmed = value?.trim();
   if (!trimmed) return empty;
@@ -52,7 +52,7 @@ export function parseIgdbCompanyDateString(value?: string | null): YearMonthDayP
   return empty;
 }
 
-export function buildIgdbCompanyDateString(parts: YearMonthDayParts): string {
+export function buildCompanyDateString(parts: YearMonthDayParts): string {
   const year = parts.year.trim();
   if (!year) return "";
 
@@ -118,8 +118,8 @@ export function companyProfileToFormState(
   info?: CompanyProfileFields | null
 ): CompanyProfileFormState {
   if (!info) return emptyCompanyProfileFormState();
-  const started = parseIgdbCompanyDateString(info.started);
-  const changedOn = parseIgdbCompanyDateString(info.changedOn);
+  const started = parseCompanyDateString(info.started);
+  const changedOn = parseCompanyDateString(info.changedOn);
   return {
     status: normalizeCompanyStatusKey(info.status),
     countryCode: info.countryCode != null ? String(info.countryCode) : "",
@@ -168,14 +168,14 @@ export function formStateToCompanyProfile(
   const countryCode = parseOptionalId(state.countryCode);
   if (countryCode != null) info.countryCode = countryCode;
 
-  const started = buildIgdbCompanyDateString({
+  const started = buildCompanyDateString({
     year: state.startedYear,
     month: state.startedMonth,
     day: state.startedDay,
   });
   if (started) info.started = started;
 
-  const changedOn = buildIgdbCompanyDateString({
+  const changedOn = buildCompanyDateString({
     year: state.changedOnYear,
     month: state.changedOnMonth,
     day: state.changedOnDay,
@@ -191,7 +191,7 @@ export function formStateToCompanyProfile(
   const companySizeId = parseOptionalId(state.companySizeId);
   if (
     companySizeId != null &&
-    (IGDB_COMPANY_SIZE_IDS as readonly number[]).includes(companySizeId)
+    (COMPANY_SIZE_IDS as readonly number[]).includes(companySizeId)
   ) {
     info.companySizeId = companySizeId;
   }

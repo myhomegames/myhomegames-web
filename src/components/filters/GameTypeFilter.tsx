@@ -1,7 +1,7 @@
 import BaseFilter from "./BaseFilter";
 import type { FilterConfig } from "./BaseFilter";
 import type { FilterValue, GameItem } from "./types";
-import { getIgdbGameTypeLabel, toGameTypeId } from "../../utils/igdbGameType";
+import { getGameTypeLabel, toGameTypeId } from "../../utils/gameType";
 
 const gameTypeFilterConfig: FilterConfig = {
   type: "gameType",
@@ -17,14 +17,14 @@ const gameTypeFilterConfig: FilterConfig = {
       .sort((a, b) => a - b)
       .map((id) => ({
         value: String(id),
-        label: getIgdbGameTypeLabel(id),
+        label: getGameTypeLabel(id),
       }));
   },
   formatValue: (value: FilterValue): string => {
     if (value === null || value === undefined) return "";
     const n = typeof value === "string" ? parseInt(value, 10) : typeof value === "number" ? value : NaN;
     if (Number.isNaN(n)) return "";
-    return getIgdbGameTypeLabel(n);
+    return getGameTypeLabel(n);
   },
   isScrollable: true,
 };

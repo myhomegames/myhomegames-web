@@ -287,13 +287,13 @@ export default function AddToCollectionDropdown({
         className="add-to-collection-dropdown-item"
         onClick={handleOpenModal("developers")}
       >
-        {t("igdbInfo.addToDeveloper", "Add to Developer...")}
+        {t("catalogInfo.addToDeveloper", "Add to Developer...")}
       </div>
       <div
         className="add-to-collection-dropdown-item"
         onClick={handleOpenModal("publishers")}
       >
-        {t("igdbInfo.addToPublisher", "Add to Publisher...")}
+        {t("catalogInfo.addToPublisher", "Add to Publisher...")}
       </div>
 
       {recentCollections.length > 0 && (

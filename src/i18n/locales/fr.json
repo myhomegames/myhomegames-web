@@ -290,12 +290,6 @@
     "moveUp": "Déplacer vers le haut",
     "moveDown": "Déplacer vers le bas"
   },
-  "igdbGameDetail": {
-    "notFound": "Jeu non trouvé",
-    "add": "Ajouter",
-    "adding": "Ajout...",
-    "errorAdding": "Erreur lors de l'ajout du jeu à la bibliothèque"
-  },
   "common": {
     "loading": "Chargement...",
     "error": "Erreur",
@@ -492,7 +486,7 @@
     "editCategory": "Modifier la catégorie",
     "coverFormat": "Ratio recommandé : 16:9 (ex. 1280x720px)"
   },
-  "igdbInfo": {
+  "catalogInfo": {
     "gameId": "ID",
     "gameType": "Type",
     "themes": "Thèmes",
@@ -602,13 +596,13 @@
     "addParentCompany": "Ajouter une entreprise",
     "addUpdatedTo": "Ajouter une entreprise"
   },
-  "igdbCompanyStatuses": {
+  "companyStatuses": {
     "active": "Active",
     "defunct": "Dissoute",
     "merge": "Fusion",
     "renamed": "Renommée"
   },
-  "igdbCompanySizes": {
+  "companySizes": {
     "1": "0-1 employé",
     "2": "2-10 employés",
     "3": "11-50 employés",
@@ -618,7 +612,7 @@
     "7": "1001-5000 employés",
     "8": "plus de 5000 employés"
   },
-  "igdbGameTypes": {
+  "gameTypes": {
     "0": "Jeu principal",
     "1": "DLC",
     "2": "Extension",
@@ -634,5 +628,11 @@
     "12": "Fork",
     "13": "Pack",
     "14": "Mise à jour"
+  },
+  "catalogGameDetail": {
+    "notFound": "Jeu non trouvé",
+    "add": "Ajouter",
+    "adding": "Ajout...",
+    "errorAdding": "Erreur lors de l'ajout du jeu à la bibliothèque"
   }
 }

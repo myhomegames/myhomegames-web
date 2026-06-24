@@ -59,7 +59,7 @@ export default function CompanySearchModal({
     <div className="game-search-modal-overlay" onClick={onClose}>
       <div className="game-search-modal" onClick={(e) => e.stopPropagation()}>
         <div className="game-search-modal-header">
-          <h2>{title ?? t("igdbInfo.searchCompanyToAdd", "Search for a company to add")}</h2>
+          <h2>{title ?? t("catalogInfo.searchCompanyToAdd", "Search for a company to add")}</h2>
           <button
             type="button"
             className="game-search-modal-close"
@@ -71,7 +71,7 @@ export default function CompanySearchModal({
         </div>
         <div className="game-search-modal-search">
           <label htmlFor={searchInputId} className="game-search-modal-sr-only">
-            {t("igdbInfo.searchCompanyPlaceholder", "Search by name...")}
+            {t("catalogInfo.searchCompanyPlaceholder", "Search by name...")}
           </label>
           <input
             id={searchInputId}
@@ -79,7 +79,7 @@ export default function CompanySearchModal({
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t("igdbInfo.searchCompanyPlaceholder", "Search by name...")}
+            placeholder={t("catalogInfo.searchCompanyPlaceholder", "Search by name...")}
             autoComplete="off"
             autoFocus
           />
@@ -87,7 +87,7 @@ export default function CompanySearchModal({
         <div className="game-search-modal-list">
           {!hasResults ? (
             <div className="game-search-modal-empty">
-              {t("igdbInfo.noCompaniesFound", "No companies found")}
+              {t("catalogInfo.noCompaniesFound", "No companies found")}
             </div>
           ) : (
             <SearchResultsList

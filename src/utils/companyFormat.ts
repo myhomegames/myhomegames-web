@@ -2,18 +2,18 @@ import type { TFunction } from "i18next";
 import iso3166NumericToAlpha2 from "../data/iso3166NumericToAlpha2.json";
 
 /** IGDB `company_sizes` ids documented in the public API. */
-export const IGDB_COMPANY_SIZE_IDS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
+export const COMPANY_SIZE_IDS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 
 const numericToAlpha2 = iso3166NumericToAlpha2 as Record<string, string>;
 
-export type IgdbCountryOption = {
+export type CountryOption = {
   code: number;
   label: string;
 };
 
-const countryOptionCache = new Map<string, IgdbCountryOption[]>();
+const countryOptionCache = new Map<string, CountryOption[]>();
 
-export function listIgdbCountryOptions(language: string): IgdbCountryOption[] {
+export function listCountryOptions(language: string): CountryOption[] {
   const cacheKey = language || "en";
   const cached = countryOptionCache.get(cacheKey);
   if (cached) return cached;
@@ -25,7 +25,7 @@ export function listIgdbCountryOptions(language: string): IgdbCountryOption[] {
     display = null;
   }
 
-  const options: IgdbCountryOption[] = [];
+  const options: CountryOption[] = [];
   for (const [numericCode, alpha2] of Object.entries(numericToAlpha2)) {
     const code = Number(numericCode);
     if (Number.isNaN(code)) continue;
@@ -40,7 +40,7 @@ export function listIgdbCountryOptions(language: string): IgdbCountryOption[] {
   return options;
 }
 
-export function formatIgdbCountryCode(
+export function formatCountryCode(
   countryCode: number | undefined,
   language: string
 ): string | null {
@@ -57,10 +57,10 @@ export function formatIgdbCountryCode(
   }
 }
 
-export function formatIgdbCompanySize(
+export function formatCompanySize(
   companySizeId: number | undefined,
   t: TFunction
 ): string | null {
   if (companySizeId == null || Number.isNaN(companySizeId)) return null;
-  return String(t(`igdbCompanySizes.${companySizeId}`));
+  return String(t(`companySizes.${companySizeId}`));
 }

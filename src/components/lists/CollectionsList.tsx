@@ -242,9 +242,9 @@ export default function CollectionsList({
   if (!isLoading && collections.length === 0) {
     const emptyMessageKey =
       gamesPath === "developers"
-        ? "igdbInfo.noDevelopersFound"
+        ? "catalogInfo.noDevelopersFound"
         : gamesPath === "publishers"
-          ? "igdbInfo.noPublishersFound"
+          ? "catalogInfo.noPublishersFound"
           : "collections.noCollectionsFound";
     return (
       <div className="collections-list-empty">

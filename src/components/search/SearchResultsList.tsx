@@ -13,7 +13,7 @@ import { useCollectionHasPlayableGame } from "../common/hooks/useCollectionHasPl
 import type { GameItem, CollectionItem, CollectionInfo } from "../../types";
 import { dispatchDeveloperOrPublisherUpdated } from "../../utils/companyProfileSync";
 import { formatGameDate } from "../../utils/date";
-import { displayGameType } from "../../utils/igdbGameType";
+import { displayGameType } from "../../utils/gameType";
 import Tooltip from "../common/Tooltip";
 type SearchResultType = "game" | "collection" | "developer" | "publisher";
 

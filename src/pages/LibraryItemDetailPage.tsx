@@ -14,14 +14,14 @@ import { useDevelopers } from "../contexts/DevelopersContext";
 import { usePublishers } from "../contexts/PublishersContext";
 import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
-import { useIgdbGamesForTag, type IgdbTagKey } from "../hooks/useIgdbGamesForTag";
+import { useCatalogGamesForTag, type CatalogTagKey } from "../hooks/useCatalogGamesForTag";
 import GamesList from "../components/games/GamesList";
 import Cover from "../components/games/Cover";
 import LibrariesBar from "../components/layout/LibrariesBar";
 import StarRating from "../components/common/StarRating";
 import Summary from "../components/common/Summary";
 import EditCollectionLikeModal from "../components/collections/EditCollectionLikeModal";
-import CompanyIgdbInfoBlock, { CompanyIgdbStatusBadge } from "../components/companies/CompanyIgdbInfoBlock";
+import CompanyProfileBlock, { CompanyStatusBadge } from "../components/companies/CompanyProfileBlock";
 import AddCollectionLikeToCollectionLikeModal from "../components/collections/AddCollectionLikeToCollectionLikeModal";
 import DropdownMenu from "../components/common/DropdownMenu";
 import Tooltip from "../components/common/Tooltip";
@@ -43,14 +43,14 @@ import ContextRailIndexPeek from "../components/contextRail/ContextRailIndexPeek
 import { compareTitles } from "../utils/stringUtils";
 import { titleMatchesFilter } from "../utils/titleFilter";
 import { parseCollectionLikePseudoGameId, isTitleOnlyWrapperCollectionLike } from "../utils/collectionLikePseudoGame";
-import { isMainGameType } from "../utils/igdbGameType";
+import { isMainGameType } from "../utils/gameType";
 import { buildApiUrl, buildCoverUrl } from "../utils/api";
 import { API_BASE, getApiToken } from "../config";
 import type { GameItem, CollectionInfo, CollectionItem } from "../types";
 import type { CollectionLikeResourceType } from "../components/collections/EditCollectionLikeModal";
 type LibraryItemDetailPageProps = {
   onGameClick: (game: GameItem) => void;
-  onIgdbGameClick?: (igdbId: number) => void;
+  onCatalogGameClick?: (gameId: number) => void;
   onGamesLoaded: (games: GameItem[]) => void;
   onPlay?: (game: GameItem) => void;
   allCollections?: CollectionItem[];
@@ -92,7 +92,7 @@ function parseGamesFromJson(json: { games?: any[] }) {
 
 export default function LibraryItemDetailPage({
   onGameClick,
-  onIgdbGameClick,
+  onCatalogGameClick,
   onGamesLoaded,
   onPlay,
   allCollections = [],
@@ -112,7 +112,7 @@ export default function LibraryItemDetailPage({
   const { collections: allCollectionsFromContext } = useCollections();
   const { developers: allDevelopers, updateDeveloper } = useDevelopers();
   const { publishers: allPublishers, updatePublisher } = usePublishers();
-  const { igdbEnabled } = useSettings();
+  const { catalogSearchEnabled } = useSettings();
   const { activeSkinWeb } = useSkin();
   const fixedFocalContextRail =
     activeSkinWeb.compactCollectionLikeDetail && activeSkinWeb.verticalCoverAlignment;
@@ -188,17 +188,17 @@ export default function LibraryItemDetailPage({
     [libraryGames]
   );
 
-  const igdbTagKey: IgdbTagKey | null =
+  const catalogTagKey: CatalogTagKey | null =
     resourceType === "developers" ? "developers" : resourceType === "publishers" ? "publishers" : null;
-  const { igdbGames: igdbTagGames, loading: _igdbTagLoading } = useIgdbGamesForTag(
-    igdbEnabled && igdbTagKey && id ? igdbTagKey : null,
+  const { catalogGames: catalogTagGames, loading: _catalogTagLoading } = useCatalogGamesForTag(
+    catalogSearchEnabled && catalogTagKey && id ? catalogTagKey : null,
     id ?? null,
     libraryGameIds,
     true,
     undefined
   );
 
-  const canShowNewGamesToggle = (resourceType === "developers" || resourceType === "publishers") && !!igdbEnabled;
+  const canShowNewGamesToggle = (resourceType === "developers" || resourceType === "publishers") && !!catalogSearchEnabled;
   const storageKeyForNewGames = resourceType === "developers" ? "developers" : "publishers";
   const [showNewGames, setShowNewGames] = useState<boolean>(() => {
     if (resourceType !== "developers" && resourceType !== "publishers") return false;
@@ -775,7 +775,7 @@ export default function LibraryItemDetailPage({
     const libraryById = new Map(games.map((g) => [String(g.id), g]));
     const seenIds = new Set<string>();
     const result: GameItem[] = [];
-    for (const ig of igdbTagGames) {
+    for (const ig of catalogTagGames) {
       const sid = String(ig.id);
       seenIds.add(sid);
       const lib = libraryById.get(sid);
@@ -786,7 +786,7 @@ export default function LibraryItemDetailPage({
           title: ig.name,
           cover: ig.cover || undefined,
           year: ig.releaseDate ?? undefined,
-          isIgdbOnly: true,
+          isCatalogOnly: true,
         });
     }
     for (const g of games) {
@@ -801,7 +801,7 @@ export default function LibraryItemDetailPage({
       return compareTitles(a.title || "", b.title || "");
     });
     return result;
-  }, [canShowNewGamesToggle, id, igdbTagGames, games]);
+  }, [canShowNewGamesToggle, id, catalogTagGames, games]);
 
   const gamesToShow = canShowNewGamesToggle && showNewGames ? mergedGames : games;
 
@@ -892,8 +892,8 @@ export default function LibraryItemDetailPage({
     resourceType === "collections"
       ? "Collection not found"
       : resourceType === "developers"
-        ? t("tags.noItemsFound", { type: t("igdbInfo.developers", "Developers") })
-        : t("tags.noItemsFound", { type: t("igdbInfo.publishers", "Publishers") });
+        ? t("tags.noItemsFound", { type: t("catalogInfo.developers", "Developers") })
+        : t("tags.noItemsFound", { type: t("catalogInfo.publishers", "Publishers") });
 
   if (!id) {
     return (
@@ -949,7 +949,7 @@ export default function LibraryItemDetailPage({
         onPlay={onPlay}
         sortedGames={sortedGames}
         onGameClick={onGameClick}
-        onIgdbGameClick={onIgdbGameClick}
+        onCatalogGameClick={onCatalogGameClick}
         onGameUpdate={handleGameUpdate}
         onGameDelete={handleGameDelete}
         buildCoverUrl={(apiBase, cover, addTimestamp, customTimestamp) => buildCoverUrl(apiBase, cover, addTimestamp ?? false, customTimestamp)}
@@ -1080,7 +1080,7 @@ type LibraryItemDetailContentProps = {
   onPlay?: (game: GameItem) => void;
   sortedGames: GameItem[];
   onGameClick: (game: GameItem) => void;
-  onIgdbGameClick?: (igdbId: number) => void;
+  onCatalogGameClick?: (gameId: number) => void;
   onGameUpdate?: (updatedGame: GameItem) => void;
   onGameDelete?: (deletedGame: GameItem) => void;
   buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean, customTimestamp?: number) => string;
@@ -1140,7 +1140,7 @@ function LibraryItemDetailContent({
   onPlay,
   sortedGames,
   onGameClick,
-  onIgdbGameClick,
+  onCatalogGameClick,
   onGameUpdate,
   onGameDelete,
   buildCoverUrl,
@@ -1968,12 +1968,12 @@ function LibraryItemDetailContent({
                                 </h1>
                                 {(resourceType === "developers" || resourceType === "publishers") &&
                                   hasCompanyProfileFields(item) && (
-                                    <CompanyIgdbStatusBadge status={pickCompanyProfileFields(item).status} />
+                                    <CompanyStatusBadge status={pickCompanyProfileFields(item).status} />
                                   )}
                               </div>
                               {(resourceType === "developers" || resourceType === "publishers") &&
                                 hasCompanyProfileFields(item) && (
-                                  <CompanyIgdbInfoBlock
+                                  <CompanyProfileBlock
                                     info={pickCompanyProfileFields(item)}
                                     resourceType={resourceType}
                                   />
@@ -2235,8 +2235,8 @@ function LibraryItemDetailContent({
                                 resourceType === "collections"
                                   ? t("collections.subcollections", { count: subCollectionLikesFiltered.length })
                                   : resourceType === "developers"
-                                    ? t("igdbInfo.subDevelopers", { count: subCollectionLikesFiltered.length })
-                                    : t("igdbInfo.subPublishers", { count: subCollectionLikesFiltered.length });
+                                    ? t("catalogInfo.subDevelopers", { count: subCollectionLikesFiltered.length })
+                                    : t("catalogInfo.subPublishers", { count: subCollectionLikesFiltered.length });
                               return label.replace(/(\p{L})/u, (_, c) => c.toUpperCase());
                             })()}
                             {subCollectionLikes.length === 1 && subCollectionLikesFiltered.length === 1 && (
@@ -2262,9 +2262,9 @@ function LibraryItemDetailContent({
                                 onFocalSelectionChange={onFocalGameSelectionChange}
                                 games={singleSubCollectionGamesFiltered}
                                 onGameClick={(game) => {
-                                  const g = game as GameItem & { isIgdbOnly?: boolean };
-                                  if (g.isIgdbOnly && onIgdbGameClick) {
-                                    onIgdbGameClick(Number(game.id));
+                                  const g = game as GameItem & { isCatalogOnly?: boolean };
+                                  if (g.isCatalogOnly && onCatalogGameClick) {
+                                    onCatalogGameClick(Number(game.id));
                                   } else {
                                     onGameClick(game);
                                   }
@@ -2389,9 +2389,9 @@ function LibraryItemDetailContent({
                               onFocalSelectionChange={onFocalGameSelectionChange}
                               games={gridGames}
                               onGameClick={(game) => {
-                                const g = game as GameItem & { isIgdbOnly?: boolean };
-                                if (g.isIgdbOnly && onIgdbGameClick) {
-                                  onIgdbGameClick(Number(game.id));
+                                const g = game as GameItem & { isCatalogOnly?: boolean };
+                                if (g.isCatalogOnly && onCatalogGameClick) {
+                                  onCatalogGameClick(Number(game.id));
                                 } else {
                                   onGameClick(game);
                                 }
@@ -2425,7 +2425,7 @@ function LibraryItemDetailContent({
                           <h3 className="game-detail-section-title">
                             {resourceType === "collections"
                               ? t("libraries.collections", "Collections")
-                              : t("igdbInfo.acquiredBy", "Acquired by")}
+                              : t("catalogInfo.acquiredBy", "Acquired by")}
                           </h3>
                           <div className="game-detail-collections-list">
                             {parentCollectionLikesWithGamesForDisplay.map(({ parent, games, slideItems }) => {

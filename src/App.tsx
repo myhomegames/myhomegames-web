@@ -6,6 +6,7 @@ import {
   useNavigate,
   useParams,
   useLocation,
+  Navigate,
 } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Favicon from "./components/common/Favicon";
@@ -25,7 +26,7 @@ import AddGamePage from "./pages/AddGamePage";
 import SearchResultsPage from "./pages/SearchResultsPage";
 import LibraryItemDetailPage from "./pages/LibraryItemDetailPage";
 import TagGamesRoutePage from "./pages/TagGamesRoutePage";
-import IGDBGameDetailPage from "./pages/IGDBGameDetailPage";
+import CatalogGameDetailPage from "./pages/CatalogGameDetailPage";
 import RecommendedSectionDetailPage from "./pages/RecommendedSectionDetailPage";
 
 import type { GameItem, CollectionItem } from "./types";
@@ -50,6 +51,11 @@ function buildApiUrlWithBase(
   return buildApiUrl(API_BASE, path, params);
 }
 
+function RedirectToCatalogGame() {
+  const { gameId } = useParams<{ gameId: string }>();
+  return <Navigate to={`/catalog-game/${gameId ?? ""}`} replace />;
+}
+
 function AppContent() {
   const { collections: allCollections } = useCollections();
   const { developers: allDevelopers } = useDevelopers();
@@ -63,7 +69,7 @@ function AppContent() {
   const { i18n } = useTranslation();
   const { setActivityBusy } = useLoading();
   const { isLoading: authLoading } = useAuth();
-  const { igdbEnabled } = useSettings();
+  const { catalogSearchEnabled } = useSettings();
 
   const handleCloseLaunchModal = () => {
     setLaunchError(null);
@@ -323,7 +329,7 @@ function AppContent() {
                 />
                 <LibraryItemDetailPage
                   onGameClick={handleGameClick}
-                  onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                  onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                   onGamesLoaded={() => {}}
                   onPlay={openLauncher}
                   allCollections={allCollections}
@@ -403,7 +409,7 @@ function AppContent() {
                   onPlay={openLauncher}
                   allCollections={allCollections}
                   tagKey="series"
-                  onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                  onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                 />
               </ProtectedRoute>
             }
@@ -429,7 +435,7 @@ function AppContent() {
                   onPlay={openLauncher}
                   allCollections={allCollections}
                   tagKey="franchise"
-                  onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                  onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                 />
               </ProtectedRoute>
             }
@@ -457,7 +463,7 @@ function AppContent() {
                   onPlay={openLauncher}
                   allCollections={allCollections}
                   tagKey="platforms"
-                  onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                  onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                 />
               </ProtectedRoute>
             }
@@ -485,7 +491,7 @@ function AppContent() {
                   onPlay={openLauncher}
                   allCollections={allCollections}
                   tagKey="themes"
-                  onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                  onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                 />
               </ProtectedRoute>
             }
@@ -507,7 +513,7 @@ function AppContent() {
                 />
                 <LibraryItemDetailPage
                   onGameClick={handleGameClick}
-                  onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                  onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                   onGamesLoaded={() => {}}
                   onPlay={openLauncher}
                   allCollections={allCollections}
@@ -532,7 +538,7 @@ function AppContent() {
                 />
                 <LibraryItemDetailPage
                   onGameClick={handleGameClick}
-                  onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                  onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                   onGamesLoaded={() => {}}
                   onPlay={openLauncher}
                   allCollections={allCollections}
@@ -563,7 +569,7 @@ function AppContent() {
                   onPlay={openLauncher}
                   allCollections={allCollections}
                   tagKey="gameEngines"
-                  onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                  onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                 />
               </ProtectedRoute>
             }
@@ -591,7 +597,7 @@ function AppContent() {
                   onPlay={openLauncher}
                   allCollections={allCollections}
                   tagKey="gameModes"
-                  onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                  onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                 />
               </ProtectedRoute>
             }
@@ -619,13 +625,14 @@ function AppContent() {
                   onPlay={openLauncher}
                   allCollections={allCollections}
                   tagKey="playerPerspectives"
-                  onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                  onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                 />
               </ProtectedRoute>
             }
           />
+          <Route path="/igdb-game/:gameId" element={<RedirectToCatalogGame />} />
           <Route
-            path="/igdb-game/:igdbId"
+            path="/catalog-game/:gameId"
             element={
               <ProtectedRoute>
                 <Header
@@ -639,7 +646,7 @@ function AppContent() {
                   onSettingsClick={() => navigate("/settings")}
                   onAddGameClick={() => setAddGameOpen(true)}
                 />
-                <IGDBGameDetailPage />
+                <CatalogGameDetailPage />
               </ProtectedRoute>
             }
           />
@@ -689,7 +696,7 @@ function AppContent() {
                   element={
                     <LibraryItemDetailPage
                       onGameClick={handleGameClick}
-                      onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                      onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                       onGamesLoaded={() => {}}
                       onPlay={openLauncher}
                       allCollections={allCollections}
@@ -719,7 +726,7 @@ function AppContent() {
                       onPlay={openLauncher}
                       allCollections={allCollections}
                       tagKey="series"
-                      onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                      onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                     />
                   }
                 />
@@ -732,7 +739,7 @@ function AppContent() {
                       onPlay={openLauncher}
                       allCollections={allCollections}
                       tagKey="franchise"
-                      onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                      onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                     />
                   }
                 />
@@ -747,7 +754,7 @@ function AppContent() {
                       onPlay={openLauncher}
                       allCollections={allCollections}
                       tagKey="platforms"
-                      onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                      onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                     />
                   }
                 />
@@ -762,7 +769,7 @@ function AppContent() {
                       onPlay={openLauncher}
                       allCollections={allCollections}
                       tagKey="themes"
-                      onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                      onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                     />
                   }
                 />
@@ -771,7 +778,7 @@ function AppContent() {
                   element={
                     <LibraryItemDetailPage
                       onGameClick={handleGameClick}
-                      onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                      onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                       onGamesLoaded={() => {}}
                       onPlay={openLauncher}
                       allCollections={allCollections}
@@ -783,7 +790,7 @@ function AppContent() {
                   element={
                     <LibraryItemDetailPage
                       onGameClick={handleGameClick}
-                      onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                      onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                       onGamesLoaded={() => {}}
                       onPlay={openLauncher}
                       allCollections={allCollections}
@@ -801,7 +808,7 @@ function AppContent() {
                       onPlay={openLauncher}
                       allCollections={allCollections}
                       tagKey="gameEngines"
-                      onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                      onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                     />
                   }
                 />
@@ -816,7 +823,7 @@ function AppContent() {
                       onPlay={openLauncher}
                       allCollections={allCollections}
                       tagKey="gameModes"
-                      onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                      onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                     />
                   }
                 />
@@ -831,11 +838,12 @@ function AppContent() {
                       onPlay={openLauncher}
                       allCollections={allCollections}
                       tagKey="playerPerspectives"
-                      onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                      onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                     />
                   }
                 />
-                <Route path="igdb-game/:igdbId" element={<IGDBGameDetailPage />} />
+                <Route path="catalog-game/:gameId" element={<CatalogGameDetailPage />} />
+                <Route path="igdb-game/:gameId" element={<RedirectToCatalogGame />} />
               </Route>
             </>
           )}

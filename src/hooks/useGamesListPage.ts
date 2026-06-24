@@ -8,7 +8,7 @@ import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import type { ViewMode, GameItem, SortField } from "../types";
 import type { FilterField, FilterValue } from "../components/filters/types";
 import { compareTitles } from "../utils/stringUtils";
-import { isMainGameType, toGameTypeId } from "../utils/igdbGameType";
+import { isMainGameType, toGameTypeId } from "../utils/gameType";
 import { API_BASE } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 import { useSettings } from "../contexts/SettingsContext";

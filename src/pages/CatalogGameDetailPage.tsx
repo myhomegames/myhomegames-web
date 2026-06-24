@@ -12,7 +12,7 @@ import LibrariesBar from "../components/layout/LibrariesBar";
 import Tooltip from "../components/common/Tooltip";
 import { useAddGame } from "../components/common/actions";
 import { buildApiHeaders } from "../utils/api";
-import { buildIgdbApiUrl } from "../utils/igdbApi";
+import { buildCatalogApiUrl } from "../utils/catalogApi";
 import { useLoading } from "../contexts/LoadingContext";
 import { useSkin } from "../contexts/SkinContext";
 import { useCollections } from "../contexts/CollectionsContext";
@@ -20,17 +20,17 @@ import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import { useTagLists } from "../contexts/TagListsContext";
 import { useSimilarGamesDetails } from "../hooks/useSimilarGamesDetails";
 import SimilarGamesList, { type SimilarGameDisplayItem } from "../components/games/SimilarGamesList";
-import type { IGDBGame } from "../types";
-import { formatIGDBGameDate } from "../utils/date";
-import { displayGameType, toGameTypeId } from "../utils/igdbGameType";
+import type { CatalogGame } from "../types";
+import { formatCatalogGameDate } from "../utils/date";
+import { displayGameType, toGameTypeId } from "../utils/gameType";
 import type { TFunction } from "i18next";
-export default function IGDBGameDetailPage() {
+export default function CatalogGameDetailPage() {
   const { t, i18n } = useTranslation();
-  const { igdbId } = useParams<{ igdbId: string }>();
+  const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
   const { isLoading, setLoading } = useLoading();
   const { activeSkinWeb } = useSkin();
-  const [game, setGame] = useState<IGDBGame | null>(null);
+  const [game, setGame] = useState<CatalogGame | null>(null);
   
   const addGame = useAddGame({
     onGameAdded: (addedGame) => {
@@ -43,15 +43,15 @@ export default function IGDBGameDetailPage() {
       }
     },
     onError: (error) => {
-      alert(t("igdbGameDetail.errorAdding") + ": " + error);
+      alert(t("catalogGameDetail.errorAdding") + ": " + error);
     },
   });
 
-  const fetchIGDBGame = useCallback(async (gameId: number) => {
+  const fetchCatalogGame = useCallback(async (gameId: number) => {
     setLoading(true);
     try {
       // Fetch game details with high-res cover from dedicated endpoint
-      const url = buildIgdbApiUrl(`/igdb/game/${gameId}`);
+      const url = buildCatalogApiUrl(`/igdb/game/${gameId}`);
       const res = await fetch(url, {
         headers: buildApiHeaders({ Accept: "application/json" }),
       });
@@ -84,10 +84,10 @@ export default function IGDBGameDetailPage() {
   useEffect(() => {
     // Always fetch game details with high-res cover from dedicated endpoint
     // This ensures we get the high-resolution cover even if game data was passed via state
-    if (igdbId) {
-      fetchIGDBGame(parseInt(igdbId, 10));
+    if (gameId) {
+      fetchCatalogGame(parseInt(gameId, 10));
     }
-  }, [igdbId, fetchIGDBGame]);
+  }, [gameId, fetchCatalogGame]);
 
   async function handleMarkAsOwned() {
     if (!game) return;
@@ -100,9 +100,9 @@ export default function IGDBGameDetailPage() {
 
   if (!game) {
     return (
-      <div className="bg-[#1a1a1a] text-white flex items-center justify-center igdb-game-detail-not-found">
+      <div className="bg-[#1a1a1a] text-white flex items-center justify-center catalog-game-detail-not-found">
         <div className="text-center">
-          <div className="text-gray-400">{t("igdbGameDetail.notFound")}</div>
+          <div className="text-gray-400">{t("catalogGameDetail.notFound")}</div>
         </div>
       </div>
     );
@@ -128,10 +128,10 @@ export default function IGDBGameDetailPage() {
     <BackgroundManager 
       backgroundUrl={backgroundUrl} 
       hasBackground={hasBackground}
-      elementId={`igdb-${game.id}`}
+      elementId={`catalog-${game.id}`}
       autoShowWhenAvailable={activeSkinWeb.autoShowBackgroundOnSelection}
     >
-      <IGDBGameDetailContent
+      <CatalogGameDetailContent
         game={game}
         coverUrl={coverUrl}
         coverWidth={coverWidth}
@@ -147,7 +147,7 @@ export default function IGDBGameDetailPage() {
   );
 }
 
-function IGDBGameDetailContent({
+function CatalogGameDetailContent({
   game,
   coverUrl,
   coverWidth,
@@ -159,7 +159,7 @@ function IGDBGameDetailContent({
   t,
   i18n,
 }: {
-  game: IGDBGame;
+  game: CatalogGame;
   coverUrl: string;
   coverWidth: number;
   coverHeight: number;
@@ -171,8 +171,8 @@ function IGDBGameDetailContent({
   i18n: import("i18next").i18n;
 }) {
   // Helper function to format release date
-  const formatReleaseDate = (game: IGDBGame): string | null => {
-    return formatIGDBGameDate(game, t, i18n);
+  const formatReleaseDate = (game: CatalogGame): string | null => {
+    return formatCatalogGameDate(game, t, i18n);
   };
 
   // Helper function to format rating value (IGDB uses 0-100 scale, convert to 0-10)
@@ -232,7 +232,7 @@ function IGDBGameDetailContent({
       }
       const details = detailsById[String(sg.id)];
       return {
-        type: "igdb",
+        type: "catalog",
         id: sg.id,
         name: details?.name ?? sg.name ?? String(sg.id),
         cover: details?.cover,
@@ -270,7 +270,7 @@ function IGDBGameDetailContent({
   return (
     <>
       <div 
-        className={`igdb-game-detail-libraries-bar-wrapper ${hasBackground && isBackgroundVisible ? 'game-detail-libraries-bar-transparent' : ''}`}
+        className={`catalog-game-detail-libraries-bar-wrapper ${hasBackground && isBackgroundVisible ? 'game-detail-libraries-bar-transparent' : ''}`}
       >
         <LibrariesBar
           libraries={[]}
@@ -285,15 +285,15 @@ function IGDBGameDetailContent({
           hideBackgroundToggle={true}
         />
       </div>
-      <div className="igdb-game-detail-container">
-        <div className="home-page-main-container igdb-game-detail-main-container">
-          <main className="flex-1 home-page-content igdb-game-detail-content">
-          <div className="home-page-layout igdb-game-detail-layout">
-            <div className="home-page-content-wrapper igdb-game-detail-content-wrapper">
-              <div className="home-page-scroll-container igdb-game-detail-scroll-container">
-        <div className="pt-8 igdb-game-detail-header">
+      <div className="catalog-game-detail-container">
+        <div className="home-page-main-container catalog-game-detail-main-container">
+          <main className="flex-1 home-page-content catalog-game-detail-content">
+          <div className="home-page-layout catalog-game-detail-layout">
+            <div className="home-page-content-wrapper catalog-game-detail-content-wrapper">
+              <div className="home-page-scroll-container catalog-game-detail-scroll-container">
+        <div className="pt-8 catalog-game-detail-header">
           {/* Cover Image */}
-          <div className="igdb-game-detail-cover-wrapper">
+          <div className="catalog-game-detail-cover-wrapper">
             <Cover
               title={game.name}
               coverUrl={coverUrl}
@@ -309,10 +309,10 @@ function IGDBGameDetailContent({
           </div>
 
           {/* Game Info Panel */}
-          <div className="igdb-game-detail-info-panel">
-            <div className="igdb-game-detail-info-content">
+          <div className="catalog-game-detail-info-panel">
+            <div className="catalog-game-detail-info-content">
               <div className="game-detail-info-primary">
-              <h1 className="text-white igdb-game-detail-title">
+              <h1 className="text-white catalog-game-detail-title">
                 {game.name}
               </h1>
               {(() => {
@@ -325,16 +325,16 @@ function IGDBGameDetailContent({
                 if (!hasReleaseTypeOrAgeRatings) return null;
                 
                 return (
-                  <div className="text-white igdb-game-detail-release-date">
+                  <div className="text-white catalog-game-detail-release-date">
                     {releaseDate ? <span>{releaseDate}</span> : null}
                     {releaseDate && gameTypeLabel ? (
-                      <span className="igdb-game-detail-age-ratings-inline">{" • "}</span>
+                      <span className="catalog-game-detail-age-ratings-inline">{" • "}</span>
                     ) : null}
                     {gameTypeLabel ? (
-                      <span className="igdb-game-detail-type-label">{gameTypeLabel}</span>
+                      <span className="catalog-game-detail-type-label">{gameTypeLabel}</span>
                     ) : null}
                     {(releaseDate || gameTypeLabel) && hasValidAgeRatings && (
-                      <span className="igdb-game-detail-age-ratings-inline">
+                      <span className="catalog-game-detail-age-ratings-inline">
                         {"•   "}
                         <AgeRatings ageRatings={game.ageRatings || []} />
                       </span>
@@ -351,10 +351,10 @@ function IGDBGameDetailContent({
               />
             )}
               {(criticRatingFormatted !== null) || (userRatingFormatted !== null) ? (
-                  <div className="igdb-game-detail-ratings">
+                  <div className="catalog-game-detail-ratings">
                     {criticRatingFormatted !== null && (
                       <Tooltip text={t("gameDetail.criticRating")}>
-                        <div className="text-white igdb-game-detail-rating-item">
+                        <div className="text-white catalog-game-detail-rating-item">
                           <svg
                             width="16"
                             height="16"
@@ -364,7 +364,7 @@ function IGDBGameDetailContent({
                             strokeWidth="1.5"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            className="igdb-game-detail-rating-icon"
+                            className="catalog-game-detail-rating-icon"
                           >
                             <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
                           </svg>
@@ -374,7 +374,7 @@ function IGDBGameDetailContent({
                     )}
                     {userRatingFormatted !== null && (
                       <Tooltip text={t("gameDetail.userRating")}>
-                        <div className="text-white igdb-game-detail-rating-item">
+                        <div className="text-white catalog-game-detail-rating-item">
                           <svg
                             width="16"
                             height="16"
@@ -384,7 +384,7 @@ function IGDBGameDetailContent({
                             strokeWidth="1.5"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            className="igdb-game-detail-rating-icon"
+                            className="catalog-game-detail-rating-icon"
                           >
                             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                             <circle cx="9" cy="7" r="4" />
@@ -401,18 +401,18 @@ function IGDBGameDetailContent({
                 <button
                   onClick={onMarkAsOwned}
                   disabled={markingAsOwned}
-                  className="igdb-game-detail-mark-owned-button"
+                  className="catalog-game-detail-mark-owned-button"
                 >
                   <svg
                     width="28"
                     height="28"
                     viewBox="0 0 24 24"
                     fill="currentColor"
-                    className="igdb-game-detail-mark-owned-button-icon"
+                    className="catalog-game-detail-mark-owned-button-icon"
                   >
                     <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
                   </svg>
-                  {markingAsOwned ? t("igdbGameDetail.adding") : t("igdbGameDetail.add")}
+                  {markingAsOwned ? t("catalogGameDetail.adding") : t("catalogGameDetail.add")}
                 </button>
               </div>
               </div>
@@ -427,26 +427,26 @@ function IGDBGameDetailContent({
         
         {/* Media Gallery - Full Width */}
         {((game.screenshots && game.screenshots.length > 0) || (game.videos && game.videos.length > 0)) && (
-          <div className="igdb-game-detail-media-section">
+          <div className="catalog-game-detail-media-section">
             <MediaGallery screenshots={game.screenshots} videos={game.videos} />
           </div>
         )}
         
         {/* Game Info Block - Full Width */}
-        <div className="igdb-game-detail-info-section">
+        <div className="catalog-game-detail-info-section">
           <GameInfoBlock game={game} />
         </div>
 
         {/* Similar Games */}
         {game.similarGames && game.similarGames.length > 0 && (
-          <div className="igdb-game-detail-similar-section">
+          <div className="catalog-game-detail-similar-section">
             <SimilarGamesList
               items={allSimilarGamesOrdered}
               coverSize={coverSize}
               allCollections={allCollections}
               onLibraryGameClick={(g) => navigate(`/game/${g.id}`)}
-              onIgdbGameClick={(id) => navigate(`/igdb-game/${id}`)}
-              sectionTitle={t("igdbInfo.similarGames", "Similar Games")}
+              onCatalogGameClick={(id) => navigate(`/catalog-game/${id}`)}
+              sectionTitle={t("catalogInfo.similarGames", "Similar Games")}
             />
           </div>
         )}

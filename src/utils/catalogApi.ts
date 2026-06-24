@@ -7,7 +7,7 @@ const LEGACY_CLIENT_SECRET_KEY = "twitch_client_secret";
 /**
  * IGDB routes must hit the user tunnel hostname so the Cloudflare worker can inject Twitch credentials.
  */
-export function resolveIgdbApiBase(): string {
+export function resolveCatalogApiBase(): string {
   const stored = readStoredPublicApiBase();
   if (stored && isUserTunnelApiBase(stored)) {
     return stored;
@@ -22,20 +22,20 @@ export function resolveIgdbApiBase(): string {
   return current;
 }
 
-export function buildIgdbApiUrl(
+export function buildCatalogApiUrl(
   path: string,
   params: Record<string, string | number | boolean> = {},
 ): string {
-  return buildApiUrl(resolveIgdbApiBase(), path, params);
+  return buildApiUrl(resolveCatalogApiBase(), path, params);
 }
 
 /** Remove legacy Twitch app credential keys from localStorage (credentials live on API gateway). */
-export function clearLegacyIgdbCredentialStorage(): void {
+export function clearLegacyCatalogCredentialStorage(): void {
   localStorage.removeItem(LEGACY_CLIENT_ID_KEY);
   localStorage.removeItem(LEGACY_CLIENT_SECRET_KEY);
 }
 
 /** IGDB catalog features when the server setting enables the API (no app-stored credentials). */
-export function isIgdbApiEnabled(twitchApiEnabled: boolean): boolean {
+export function isCatalogSearchEnabled(twitchApiEnabled: boolean): boolean {
   return twitchApiEnabled;
 }

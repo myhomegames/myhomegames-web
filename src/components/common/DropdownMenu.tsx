@@ -691,8 +691,8 @@ export default function DropdownMenu({
                             {collectionLikeResourceType === "collections"
                               ? t("collections.addToCollection", "Add to Collection...")
                               : collectionLikeResourceType === "developers"
-                                ? t("igdbInfo.addToDeveloper", "Add to Developer...")
-                                : t("igdbInfo.addToPublisher", "Add to Publisher...")}
+                                ? t("catalogInfo.addToDeveloper", "Add to Developer...")
+                                : t("catalogInfo.addToPublisher", "Add to Publisher...")}
                           </span>
                         </button>
                         {recentCollectionLikeParents.length > 0 && (
@@ -786,7 +786,7 @@ export default function DropdownMenu({
                 }}
                 className="dropdown-menu-item dropdown-menu-item-danger"
               >
-                <span>{t("igdbInfo.removeFromDeveloper", "Remove from developer")}</span>
+                <span>{t("catalogInfo.removeFromDeveloper", "Remove from developer")}</span>
               </button>
             )}
             {onRemoveFromPublisher && gameId && publisherId && (
@@ -798,7 +798,7 @@ export default function DropdownMenu({
                 }}
                 className="dropdown-menu-item dropdown-menu-item-danger"
               >
-                <span>{t("igdbInfo.removeFromPublisher", "Remove from publisher")}</span>
+                <span>{t("catalogInfo.removeFromPublisher", "Remove from publisher")}</span>
               </button>
             )}
             {onRemoveFromParent && !gameId && (collectionId || developerId || publisherId) && (
@@ -814,8 +814,8 @@ export default function DropdownMenu({
                   {collectionId
                     ? t("collections.removeFromCollection", "Remove from collection")
                     : developerId
-                      ? t("igdbInfo.removeFromDeveloper", "Remove from developer")
-                      : t("igdbInfo.removeFromPublisher", "Remove from publisher")}
+                      ? t("catalogInfo.removeFromDeveloper", "Remove from developer")
+                      : t("catalogInfo.removeFromPublisher", "Remove from publisher")}
                 </span>
               </button>
             )}

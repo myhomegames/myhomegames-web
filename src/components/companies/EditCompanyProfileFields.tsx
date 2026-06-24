@@ -4,12 +4,12 @@ import { useDevelopers } from "../../contexts/DevelopersContext";
 import { usePublishers } from "../../contexts/PublishersContext";
 import type { CollectionItem } from "../../types";
 import type { CompanyProfileFormState } from "../../utils/editCompanyProfile";
-import { IGDB_COMPANY_STATUS_KEYS } from "../../utils/editCompanyProfile";
-import { IGDB_COMPANY_SIZE_IDS, listIgdbCountryOptions } from "../../utils/igdbCompany";
+import { COMPANY_STATUS_KEYS } from "../../utils/editCompanyProfile";
+import { COMPANY_SIZE_IDS, listCountryOptions } from "../../utils/companyFormat";
 import EditYearMonthDayFields from "../common/EditYearMonthDayFields";
 import CompanySearchModal from "./CompanySearchModal";
 
-type EditCompanyIgdbInfoFieldsProps = {
+type EditCompanyProfileFieldsProps = {
   value: CompanyProfileFormState;
   onChange: (next: CompanyProfileFormState) => void;
   disabled?: boolean;
@@ -31,27 +31,27 @@ const LINKED_COMPANY_FIELDS: Array<{
     key: "formerly",
     idField: "formerlyId",
     nameField: "formerlyName",
-    legendKey: "igdbInfo.formerly",
+    legendKey: "catalogInfo.formerly",
     legendDefault: "Formerly",
-    addKey: "igdbInfo.addFormerly",
+    addKey: "catalogInfo.addFormerly",
     addDefault: "Add company",
   },
   {
     key: "parentCompany",
     idField: "parentCompanyId",
     nameField: "parentCompanyName",
-    legendKey: "igdbInfo.parentCompany",
+    legendKey: "catalogInfo.parentCompany",
     legendDefault: "Parent company",
-    addKey: "igdbInfo.addParentCompany",
+    addKey: "catalogInfo.addParentCompany",
     addDefault: "Add company",
   },
   {
     key: "updatedTo",
     idField: "updatedToId",
     nameField: "updatedToName",
-    legendKey: "igdbInfo.updatedTo",
+    legendKey: "catalogInfo.updatedTo",
     legendDefault: "Updated to",
-    addKey: "igdbInfo.addUpdatedTo",
+    addKey: "catalogInfo.addUpdatedTo",
     addDefault: "Add company",
   },
 ];
@@ -81,19 +81,19 @@ function resolveLinkedCompanyName(
   return nameValue.trim();
 }
 
-export default function EditCompanyIgdbInfoFields({
+export default function EditCompanyProfileFields({
   value,
   onChange,
   disabled = false,
   currentCompanyId,
-}: EditCompanyIgdbInfoFieldsProps) {
+}: EditCompanyProfileFieldsProps) {
   const { t, i18n } = useTranslation();
   const { developers } = useDevelopers();
   const { publishers } = usePublishers();
   const [openLinkedField, setOpenLinkedField] = useState<LinkedCompanyFieldKey | null>(null);
 
   const countryOptions = useMemo(
-    () => listIgdbCountryOptions(i18n.language),
+    () => listCountryOptions(i18n.language),
     [i18n.language]
   );
 
@@ -122,26 +122,26 @@ export default function EditCompanyIgdbInfoFields({
   return (
     <>
       <div className="edit-game-modal-field">
-        <label htmlFor="edit-company-igdb-status">{t("igdbInfo.companyStatus", "Status")}</label>
+        <label htmlFor="edit-company-status">{t("catalogInfo.companyStatus", "Status")}</label>
         <select
-          id="edit-company-igdb-status"
+          id="edit-company-status"
           value={value.status}
           onChange={(e) => updateField(value, onChange, "status", e.target.value)}
           disabled={disabled}
         >
           <option value="">{t("gameDetail.gameTypeNotSet", "Not set")}</option>
-          {IGDB_COMPANY_STATUS_KEYS.map((statusKey) => (
+          {COMPANY_STATUS_KEYS.map((statusKey) => (
             <option key={statusKey} value={statusKey}>
-              {t(`igdbCompanyStatuses.${statusKey}`, statusKey)}
+              {t(`companyStatuses.${statusKey}`, statusKey)}
             </option>
           ))}
         </select>
       </div>
 
       <div className="edit-game-modal-field">
-        <label htmlFor="edit-company-igdb-country-code">{t("igdbInfo.country", "Country")}</label>
+        <label htmlFor="edit-company-country-code">{t("catalogInfo.country", "Country")}</label>
         <select
-          id="edit-company-igdb-country-code"
+          id="edit-company-country-code"
           value={value.countryCode}
           onChange={(e) => updateField(value, onChange, "countryCode", e.target.value)}
           disabled={disabled}
@@ -156,9 +156,9 @@ export default function EditCompanyIgdbInfoFields({
       </div>
 
       <div className="edit-game-modal-field">
-        <div className="edit-game-modal-label">{t("igdbInfo.started", "Started")}</div>
+        <div className="edit-game-modal-label">{t("catalogInfo.started", "Started")}</div>
         <EditYearMonthDayFields
-          idPrefix="edit-company-igdb-started"
+          idPrefix="edit-company-started"
           year={value.startedYear}
           month={value.startedMonth}
           day={value.startedDay}
@@ -170,9 +170,9 @@ export default function EditCompanyIgdbInfoFields({
       </div>
 
       <div className="edit-game-modal-field">
-        <div className="edit-game-modal-label">{t("igdbInfo.changedOn", "Changed on")}</div>
+        <div className="edit-game-modal-label">{t("catalogInfo.changedOn", "Changed on")}</div>
         <EditYearMonthDayFields
-          idPrefix="edit-company-igdb-changed-on"
+          idPrefix="edit-company-changed-on"
           year={value.changedOnYear}
           month={value.changedOnMonth}
           day={value.changedOnDay}
@@ -186,9 +186,9 @@ export default function EditCompanyIgdbInfoFields({
       </div>
 
       <div className="edit-game-modal-field">
-        <label htmlFor="edit-company-igdb-known-as">{t("igdbInfo.knownAs", "Known as")}</label>
+        <label htmlFor="edit-company-known-as">{t("catalogInfo.knownAs", "Known as")}</label>
         <input
-          id="edit-company-igdb-known-as"
+          id="edit-company-known-as"
           type="text"
           value={value.knownAs}
           onChange={(e) => updateField(value, onChange, "knownAs", e.target.value)}
@@ -197,9 +197,9 @@ export default function EditCompanyIgdbInfoFields({
       </div>
 
       <div className="edit-game-modal-field">
-        <label htmlFor="edit-company-igdb-legal-name">{t("igdbInfo.legalName", "Legal name")}</label>
+        <label htmlFor="edit-company-legal-name">{t("catalogInfo.legalName", "Legal name")}</label>
         <input
-          id="edit-company-igdb-legal-name"
+          id="edit-company-legal-name"
           type="text"
           value={value.legalName}
           onChange={(e) => updateField(value, onChange, "legalName", e.target.value)}
@@ -208,17 +208,17 @@ export default function EditCompanyIgdbInfoFields({
       </div>
 
       <div className="edit-game-modal-field">
-        <label htmlFor="edit-company-igdb-company-size">{t("igdbInfo.companySize", "Company size")}</label>
+        <label htmlFor="edit-company-company-size">{t("catalogInfo.companySize", "Company size")}</label>
         <select
-          id="edit-company-igdb-company-size"
+          id="edit-company-company-size"
           value={value.companySizeId}
           onChange={(e) => updateField(value, onChange, "companySizeId", e.target.value)}
           disabled={disabled}
         >
           <option value="">{t("gameDetail.gameTypeNotSet", "Not set")}</option>
-          {IGDB_COMPANY_SIZE_IDS.map((sizeId) => (
+          {COMPANY_SIZE_IDS.map((sizeId) => (
             <option key={sizeId} value={String(sizeId)}>
-              {t(`igdbCompanySizes.${sizeId}`, String(sizeId))}
+              {t(`companySizes.${sizeId}`, String(sizeId))}
             </option>
           ))}
         </select>
@@ -282,7 +282,7 @@ export default function EditCompanyIgdbInfoFields({
           if (field) handleSelectLinkedCompany(field, company);
         }}
         excludeCompanyIds={excludeCompanyIds}
-        title={t("igdbInfo.searchCompanyToAdd", "Search for a company to add")}
+        title={t("catalogInfo.searchCompanyToAdd", "Search for a company to add")}
       />
     </>
   );

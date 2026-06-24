@@ -5,7 +5,7 @@ import SortPopup from "../toolbar/SortPopup";
 import type { FilterField, GameItem } from "../filters/types";
 import type { SortField } from "../../types";
 import { formatAgeRating } from "./AgeRatings";
-import { getIgdbGameTypeLabel } from "../../utils/igdbGameType";
+import { getGameTypeLabel } from "../../utils/gameType";
 import { useTagLists } from "../../contexts/TagListsContext";
 import {
   clearListToolbarLayoutState,
@@ -334,7 +334,7 @@ export default function GamesListToolbar({
     }
     if (currentFilter === "gameType" && selectedGameType !== null) {
       const n = parseInt(selectedGameType, 10);
-      if (!Number.isNaN(n)) return getIgdbGameTypeLabel(n);
+      if (!Number.isNaN(n)) return getGameTypeLabel(n);
       return String(selectedGameType);
     }
     const filterOptions = [

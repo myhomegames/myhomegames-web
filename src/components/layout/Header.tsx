@@ -80,7 +80,7 @@ export default function Header({
     : undefined;
 
   const isGameDetailRoute =
-    pathname.startsWith("/game/") || pathname.startsWith("/igdb-game/");
+    pathname.startsWith("/game/") || pathname.startsWith("/catalog-game/");
   const hideHeaderTitleFilter = pathname === "/settings" || isGameDetailRoute;
   const hideSettings = hideSettingsAction || activeSkinWeb.libraryBarHeaderActions;
   const hideProfile = hideProfileAction || activeSkinWeb.libraryBarHeaderActions;

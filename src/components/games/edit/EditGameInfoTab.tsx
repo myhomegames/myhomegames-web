@@ -8,7 +8,7 @@ import {
   AGE_RATING_VALUES_BY_ORG,
   formatAgeRating,
 } from "../AgeRatings";
-import { displayGameType, IGDB_GAME_TYPE_IDS } from "../../../utils/igdbGameType";
+import { displayGameType, GAME_TYPE_IDS } from "../../../utils/gameType";
 import EditYearMonthDayFields from "../../common/EditYearMonthDayFields";
 
 type AgeRatingEntry = { category: number; rating: number };
@@ -186,7 +186,7 @@ export default function EditGameInfoTab({
           disabled={saving}
         >
           <option value="">{t("gameDetail.gameTypeNotSet", "Not set")}</option>
-          {IGDB_GAME_TYPE_IDS.filter((id) => id !== 0).map((id) => (
+          {GAME_TYPE_IDS.filter((id) => id !== 0).map((id) => (
             <option key={id} value={String(id)}>
               {displayGameType(id)}
             </option>
@@ -295,7 +295,7 @@ export default function EditGameInfoTab({
               Object.entries(AGE_RATING_VALUES_BY_ORG[parseInt(newAgeRatingCategory, 10)]).map(
                 ([rat, name]) => (
                   <option key={rat} value={rat}>
-                    {t(`igdbInfo.ageRating.${AGE_RATING_CATEGORIES[parseInt(newAgeRatingCategory, 10)]}.${name}`, name)}
+                    {t(`catalogInfo.ageRating.${AGE_RATING_CATEGORIES[parseInt(newAgeRatingCategory, 10)]}.${name}`, name)}
                   </option>
                 )
               )}
