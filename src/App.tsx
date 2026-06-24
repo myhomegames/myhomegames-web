@@ -6,7 +6,6 @@ import {
   useNavigate,
   useParams,
   useLocation,
-  Navigate,
 } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Favicon from "./components/common/Favicon";
@@ -49,11 +48,6 @@ function buildApiUrlWithBase(
   params: Record<string, string | number | boolean> = {}
 ) {
   return buildApiUrl(API_BASE, path, params);
-}
-
-function RedirectToCatalogGame() {
-  const { gameId } = useParams<{ gameId: string }>();
-  return <Navigate to={`/catalog-game/${gameId ?? ""}`} replace />;
 }
 
 function AppContent() {
@@ -630,7 +624,6 @@ function AppContent() {
               </ProtectedRoute>
             }
           />
-          <Route path="/igdb-game/:gameId" element={<RedirectToCatalogGame />} />
           <Route
             path="/catalog-game/:gameId"
             element={
@@ -843,7 +836,6 @@ function AppContent() {
                   }
                 />
                 <Route path="catalog-game/:gameId" element={<CatalogGameDetailPage />} />
-                <Route path="igdb-game/:gameId" element={<RedirectToCatalogGame />} />
               </Route>
             </>
           )}
