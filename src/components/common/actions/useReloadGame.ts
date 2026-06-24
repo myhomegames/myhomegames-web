@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { API_BASE } from "../../../config";
 import { buildApiUrl, buildApiHeaders } from "../../../utils/api";
 import { buildIgdbApiUrl, isIgdbApiEnabled } from "../../../utils/igdbApi";
+import { dispatchDeveloperOrPublisherUpdated } from "../../../utils/companyProfileSync";
 import { useSettings } from "../../../contexts/SettingsContext";
 import { useLoading } from "../../../contexts/LoadingContext";
 import type { GameItem, CollectionInfo, IgdbCompanyInfo } from "../../../types";
@@ -226,8 +227,13 @@ export function useReloadGame({
 
         if (developerId || publisherId) {
           const key = developerId ? "developer" : "publisher";
-          if (onCollectionUpdate && data[key]) {
-            onCollectionUpdate(mapReloadedCollection(data[key]));
+          const resourceType = developerId ? "developers" : "publishers";
+          if (data[key]) {
+            const updated = mapReloadedCollection(data[key] as Record<string, unknown>);
+            if (onCollectionUpdate) {
+              onCollectionUpdate(updated);
+            }
+            dispatchDeveloperOrPublisherUpdated(resourceType, updated);
           }
           setIsReloading(false);
           setActivityBusy(false);

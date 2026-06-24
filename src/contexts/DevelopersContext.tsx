@@ -5,6 +5,10 @@ import { API_BASE } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 import { useAuth } from "./AuthContext";
 import { useSettings } from "./SettingsContext";
+import {
+  mergeCompanyProfileOntoItem,
+  type CompanyProfilePatch,
+} from "../utils/companyProfileSync";
 
 interface DevelopersContextType {
   developers: CollectionItem[];
@@ -104,8 +108,17 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
       }
     };
     const handleGameAdded = () => fetchDevelopers();
+    const handleCompanyProfileUpdated = (e: Event) => {
+      const ev = e as CustomEvent<{ profile?: CompanyProfilePatch }>;
+      const profile = ev.detail?.profile;
+      if (!profile?.id) return;
+      setDevelopers((prev) =>
+        prev.map((item) => mergeCompanyProfileOntoItem(item, profile)),
+      );
+    };
 
     window.addEventListener("developerUpdated", handleUpdate as EventListener);
+    window.addEventListener("companyProfileUpdated", handleCompanyProfileUpdated as EventListener);
     window.addEventListener("developerAdded", handleAdded as EventListener);
     window.addEventListener("developerDeleted", handleDeleted as EventListener);
     window.addEventListener("metadataReloaded", fetchDevelopers);
@@ -113,6 +126,7 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
     window.addEventListener("gameDeleted", handleGameAdded);
     return () => {
       window.removeEventListener("developerUpdated", handleUpdate as EventListener);
+      window.removeEventListener("companyProfileUpdated", handleCompanyProfileUpdated as EventListener);
       window.removeEventListener("developerAdded", handleAdded as EventListener);
       window.removeEventListener("developerDeleted", handleDeleted as EventListener);
       window.removeEventListener("metadataReloaded", fetchDevelopers);

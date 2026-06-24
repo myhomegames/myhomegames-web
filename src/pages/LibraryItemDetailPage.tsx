@@ -27,6 +27,7 @@ import DropdownMenu from "../components/common/DropdownMenu";
 import Tooltip from "../components/common/Tooltip";
 import BackgroundManager, { useBackground } from "../components/common/BackgroundManager";
 import { resolveFocalBackdropUrl } from "../components/common/FocalSelectionBackgroundShell";
+import { dispatchDeveloperOrPublisherUpdated, mergeCompanyProfileOntoItem, type CompanyProfilePatch } from "../utils/companyProfileSync";
 import BackgroundToggle from "../components/ui/BackgroundToggle";
 import NewGamesToggle from "../components/ui/NewGamesToggle";
 import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
@@ -164,6 +165,17 @@ export default function LibraryItemDetailPage({
   useEffect(() => {
     setFocalGameBackground(undefined);
   }, [id]);
+
+  useEffect(() => {
+    if (resourceType !== "developers" && resourceType !== "publishers") return;
+    const handleCompanyProfileUpdated = (event: Event) => {
+      const profile = (event as CustomEvent<{ profile: CompanyProfilePatch }>).detail?.profile;
+      if (!profile || !id || String(profile.id) !== String(id)) return;
+      setItem((prev) => (prev ? mergeCompanyProfileOntoItem(prev, profile) : prev));
+    };
+    window.addEventListener("companyProfileUpdated", handleCompanyProfileUpdated);
+    return () => window.removeEventListener("companyProfileUpdated", handleCompanyProfileUpdated);
+  }, [resourceType, id]);
 
   const scrollStorageKey = `${location.pathname}:modalScroll`;
 
@@ -1752,10 +1764,8 @@ function LibraryItemDetailContent({
   const dispatchCollectionLikeUpdated = (updatedItem: CollectionInfo) => {
     if (resourceType === "collections") {
       window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collection: updatedItem } }));
-    } else if (resourceType === "developers") {
-      window.dispatchEvent(new CustomEvent("developerUpdated", { detail: { developer: updatedItem } }));
-    } else if (resourceType === "publishers") {
-      window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: { publisher: updatedItem } }));
+    } else if (resourceType === "developers" || resourceType === "publishers") {
+      dispatchDeveloperOrPublisherUpdated(resourceType, updatedItem);
     }
   };
 

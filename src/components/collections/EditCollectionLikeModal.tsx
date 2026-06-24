@@ -14,6 +14,7 @@ import {
   igdbCompanyInfoToFormState,
   type IgdbCompanyInfoFormState,
 } from "../../utils/editIgdbCompanyInfo";
+import { dispatchDeveloperOrPublisherUpdated } from "../../utils/companyProfileSync";
 function normExt(s: string | null | undefined) {
   return (s ?? "").trim();
 }
@@ -543,10 +544,8 @@ export default function EditCollectionLikeModal({
   function dispatchUpdate(updatedItem: CollectionInfo) {
     if (resourceType === "collections") {
       window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collection: updatedItem } }));
-    } else if (resourceType === "developers") {
-      window.dispatchEvent(new CustomEvent("developerUpdated", { detail: { developer: updatedItem } }));
-    } else if (resourceType === "publishers") {
-      window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: { publisher: updatedItem } }));
+    } else if (resourceType === "developers" || resourceType === "publishers") {
+      dispatchDeveloperOrPublisherUpdated(resourceType, updatedItem);
     }
   }
 

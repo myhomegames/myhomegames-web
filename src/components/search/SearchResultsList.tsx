@@ -11,6 +11,7 @@ import { useEditGame } from "../common/actions";
 import { useNavigate } from "react-router-dom";
 import { useCollectionHasPlayableGame } from "../common/hooks/useCollectionHasPlayableGame";
 import type { GameItem, CollectionItem, CollectionInfo } from "../../types";
+import { dispatchDeveloperOrPublisherUpdated } from "../../utils/companyProfileSync";
 import { formatGameDate } from "../../utils/date";
 import { displayGameType } from "../../utils/igdbGameType";
 import Tooltip from "../common/Tooltip";
@@ -409,20 +410,21 @@ export default function SearchResultsList({
   };
 
   const handleCollectionLikeUpdate = (updated: CollectionInfo) => {
-    const updatedItem: CollectionItem = {
-      id: updated.id,
-      title: updated.title,
-      summary: updated.summary,
-      cover: updated.cover,
-      background: updated.background,
-    };
     if (selectedCollectionLike?.resourceType === "collections") {
+      const updatedItem: CollectionItem = {
+        id: updated.id,
+        title: updated.title,
+        summary: updated.summary,
+        cover: updated.cover,
+        background: updated.background,
+      };
       window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collection: updatedItem } }));
       if (onCollectionUpdate) onCollectionUpdate(updatedItem);
-    } else if (selectedCollectionLike?.resourceType === "developers") {
-      window.dispatchEvent(new CustomEvent("developerUpdated", { detail: { developer: updatedItem } }));
-    } else if (selectedCollectionLike?.resourceType === "publishers") {
-      window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: { publisher: updatedItem } }));
+    } else if (
+      selectedCollectionLike?.resourceType === "developers" ||
+      selectedCollectionLike?.resourceType === "publishers"
+    ) {
+      dispatchDeveloperOrPublisherUpdated(selectedCollectionLike.resourceType, updated);
     }
     setIsEditCollectionLikeModalOpen(false);
     setSelectedCollectionLike(null);

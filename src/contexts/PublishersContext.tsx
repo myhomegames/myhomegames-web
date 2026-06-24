@@ -5,6 +5,10 @@ import { API_BASE } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 import { useAuth } from "./AuthContext";
 import { useSettings } from "./SettingsContext";
+import {
+  mergeCompanyProfileOntoItem,
+  type CompanyProfilePatch,
+} from "../utils/companyProfileSync";
 
 interface PublishersContextType {
   publishers: CollectionItem[];
@@ -104,8 +108,17 @@ export function PublishersProvider({ children }: { children: ReactNode }) {
       }
     };
     const handleGameAdded = () => fetchPublishers();
+    const handleCompanyProfileUpdated = (e: Event) => {
+      const ev = e as CustomEvent<{ profile?: CompanyProfilePatch }>;
+      const profile = ev.detail?.profile;
+      if (!profile?.id) return;
+      setPublishers((prev) =>
+        prev.map((item) => mergeCompanyProfileOntoItem(item, profile)),
+      );
+    };
 
     window.addEventListener("publisherUpdated", handleUpdate as EventListener);
+    window.addEventListener("companyProfileUpdated", handleCompanyProfileUpdated as EventListener);
     window.addEventListener("publisherAdded", handleAdded as EventListener);
     window.addEventListener("publisherDeleted", handleDeleted as EventListener);
     window.addEventListener("metadataReloaded", fetchPublishers);
@@ -113,6 +126,7 @@ export function PublishersProvider({ children }: { children: ReactNode }) {
     window.addEventListener("gameDeleted", handleGameAdded);
     return () => {
       window.removeEventListener("publisherUpdated", handleUpdate as EventListener);
+      window.removeEventListener("companyProfileUpdated", handleCompanyProfileUpdated as EventListener);
       window.removeEventListener("publisherAdded", handleAdded as EventListener);
       window.removeEventListener("publisherDeleted", handleDeleted as EventListener);
       window.removeEventListener("metadataReloaded", fetchPublishers);
