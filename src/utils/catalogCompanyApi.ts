@@ -1,7 +1,7 @@
 import { getApiBase } from "../config";
 import { buildApiUrl, buildApiHeaders } from "./api";
 import { buildCatalogApiUrl } from "./catalogApi";
-import { parseCompanyProfileFromApi } from "./companyProfile";
+import { parseCompanyMergePayloadFromApi } from "./companyProfile";
 
 type CompanyRole = "developers" | "publishers";
 
@@ -9,12 +9,16 @@ type CompanyRef = { id: number; name?: string | null };
 
 /**
  * Fetch company profile via /igdb/* (proxy) and merge into local library storage.
+ * When the profile references a parent company, merges the parent IGDB profile too.
  */
 export async function refreshRemoteCompanyProfileViaApi(
   resourceType: CompanyRole,
   itemId: string,
   title?: string,
+  options: { syncParent?: boolean } = {},
 ): Promise<void> {
+  const syncParent = options.syncParent !== false;
+
   const params: Record<string, string> = {};
   if (title?.trim()) params.name = title.trim();
 
@@ -24,7 +28,7 @@ export async function refreshRemoteCompanyProfileViaApi(
   if (!catalogRes.ok) return;
 
   const catalogData = (await catalogRes.json()) as Record<string, unknown> | null;
-  const profile = parseCompanyProfileFromApi(catalogData ?? undefined);
+  const profile = parseCompanyMergePayloadFromApi(catalogData ?? undefined);
   if (Object.keys(profile).length === 0) return;
 
   const mergeRes = await fetch(buildApiUrl(getApiBase(), `/${resourceType}/${itemId}/merge-company-profile`), {
@@ -41,10 +45,23 @@ export async function refreshRemoteCompanyProfileViaApi(
       mergeRes.status,
       await mergeRes.text().catch(() => ""),
     );
+    return;
+  }
+
+  if (!syncParent) return;
+
+  const parent = profile.parentCompany;
+  if (parent?.id != null) {
+    await refreshRemoteCompanyProfileViaApi(
+      resourceType,
+      String(parent.id),
+      parent.name ?? undefined,
+      { syncParent: true },
+    );
   }
 }
 
-/** Best-effort company profile sync after catalog game import (IGDB reads only via /igdb/*). */
+/** Company profile sync after catalog game import (IGDB reads only via /igdb/*). */
 export async function syncCompanyProfilesAfterGameImport(
   developers?: CompanyRef[] | null,
   publishers?: CompanyRef[] | null,
@@ -60,5 +77,5 @@ export async function syncCompanyProfilesAfterGameImport(
       tasks.push(refreshRemoteCompanyProfileViaApi("publishers", String(item.id), item.name ?? undefined));
     }
   }
-  await Promise.allSettled(tasks);
+  await Promise.all(tasks);
 }

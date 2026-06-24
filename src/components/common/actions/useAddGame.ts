@@ -134,7 +134,7 @@ export function useAddGame({
       }
 
       if (isCatalogSearchEnabled(twitchApiEnabled)) {
-        void syncCompanyProfilesAfterGameImport(
+        await syncCompanyProfilesAfterGameImport(
           catalogGame.developers as Array<{ id: number; name?: string }> | undefined,
           catalogGame.publishers as Array<{ id: number; name?: string }> | undefined,
         ).catch((err) => {

@@ -99,4 +99,24 @@ export function collectionInfoFromApi(raw: Record<string, unknown>): CollectionI
   };
 }
 
+const COMPANY_MERGE_STORAGE_KEYS = ["title", "summary", "externalCoverUrl", "externalBackgroundUrl"] as const;
+
+export function parseCompanyMergePayloadFromApi(
+  raw: Record<string, unknown> | null | undefined,
+): CompanyProfileFields & Partial<Pick<CollectionInfo, (typeof COMPANY_MERGE_STORAGE_KEYS)[number]>> {
+  const fields = parseCompanyProfileFromApi(raw);
+  const payload: CompanyProfileFields &
+    Partial<Pick<CollectionInfo, (typeof COMPANY_MERGE_STORAGE_KEYS)[number]>> = { ...fields };
+
+  for (const key of COMPANY_MERGE_STORAGE_KEYS) {
+    const value = raw?.[key];
+    if (value === undefined) continue;
+    if (typeof value === "string") {
+      (payload as Record<string, unknown>)[key] = value;
+    }
+  }
+
+  return payload;
+}
+
 export { COMPANY_PROFILE_FIELD_KEYS };
