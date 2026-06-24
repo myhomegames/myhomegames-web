@@ -556,6 +556,7 @@
     },
     "developers": "開発者",
     "publishers": "パブリッシャー",
+    "acquiredBy": "買収元",
     "noDevelopersFound": "開発者が見つかりません",
     "noPublishersFound": "パブリッシャーが見つかりません",
     "subDevelopers": "開発者",

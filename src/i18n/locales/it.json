@@ -601,6 +601,7 @@
     },
     "developers": "Sviluppato da",
     "publishers": "Prodotto da",
+    "acquiredBy": "Acquisito da",
     "addToDeveloper": "Sviluppatore",
     "addToPublisher": "Produttore",
     "searchDevelopers": "Cerca sviluppatori...",

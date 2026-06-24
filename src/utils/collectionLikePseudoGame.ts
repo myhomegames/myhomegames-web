@@ -1,4 +1,17 @@
 import type { CollectionLikeResourceType } from "../components/collections/EditCollectionLikeModal";
+import type { CollectionItem } from "../types";
+
+/** Collection-like wrapper: one sub-collection-like child and no direct games → title only, no cover. */
+export function isTitleOnlyWrapperCollectionLike(
+  item: Pick<CollectionItem, "childs">,
+  directGamesCount: number,
+): boolean {
+  if (directGamesCount > 0) return false;
+  const childIds = Array.isArray(item.childs)
+    ? item.childs.map((id) => String(id)).filter((id) => id.length > 0)
+    : [];
+  return childIds.length === 1;
+}
 
 /** Synthetic game id used in sliders: `collectionlike:{collections|developers|publishers}:{id}` */
 export function parseCollectionLikePseudoGameId(id: unknown): {

@@ -68,26 +68,21 @@ export type TagItem = {
   hasCover?: boolean;
 };
 
-export type IgdbCompanyInfo = {
-  /** IGDB `Company.status.name`; label via i18n `igdbCompanyStatuses.{name.toLowerCase()}`. */
+export type CompanyProfileFields = {
+  /** Company status; label via i18n `igdbCompanyStatuses.{name.toLowerCase()}`. */
   status?: string;
   updatedTo?: { id: number; name: string };
-  /** IGDB `country` ISO 3166-1 numeric code; label via `formatIgdbCountryCode`. */
+  /** ISO 3166-1 numeric code; label via `formatIgdbCountryCode`. */
   countryCode?: number;
   changedOn?: string;
-  /** Company founding date from IGDB `start_date`. */
+  /** Company founding date. */
   started?: string;
-  /** IGDB company type history: Known as. */
   knownAs?: string;
-  /** IGDB company type history: Legal name. */
   legalName?: string;
-  /** IGDB `company_size.name`. */
   companySize?: string;
-  /** IGDB `company_size.id`; label via i18n `igdbCompanySizes.{id}`. */
+  /** Label via i18n `igdbCompanySizes.{id}`. */
   companySizeId?: number;
-  /** IGDB company type history or renamed predecessor. */
   formerly?: { id: number; name: string };
-  /** IGDB `parent` or company type history: Parent company. */
   parentCompany?: { id: number; name: string };
 };
 
@@ -103,9 +98,7 @@ export type CollectionInfo = {
   externalBackgroundUrl?: string | null;
   showTitle?: boolean;
   childs?: Array<string | number>;
-  /** IGDB company metadata imported at first creation (developers/publishers with IGDB id). */
-  igdbCompanyInfo?: IgdbCompanyInfo | null;
-};
+} & CompanyProfileFields;
 
 export type IGDBGame = {
   id: number;

@@ -1,7 +1,14 @@
-import type { IgdbCompanyInfo } from "../types";
+import type { CompanyProfileFields } from "../../types";
 import { IGDB_COMPANY_SIZE_IDS } from "./igdbCompany";
 
 export const IGDB_COMPANY_STATUS_KEYS = ["active", "defunct", "merge", "renamed"] as const;
+
+/** Canonical status key for i18n (`igdbCompanyStatuses.*`) and edit combo values. */
+export function normalizeCompanyStatusKey(status?: string | null): string {
+  const key = status?.trim().toLowerCase() ?? "";
+  if (key === "merged") return "merge";
+  return key;
+}
 
 export type YearMonthDayParts = {
   year: string;
@@ -65,7 +72,7 @@ export function buildIgdbCompanyDateString(parts: YearMonthDayParts): string {
   return year;
 }
 
-export type IgdbCompanyInfoFormState = {
+export type CompanyProfileFormState = {
   status: string;
   countryCode: string;
   startedYear: string;
@@ -85,7 +92,7 @@ export type IgdbCompanyInfoFormState = {
   updatedToName: string;
 };
 
-export function emptyIgdbCompanyInfoFormState(): IgdbCompanyInfoFormState {
+export function emptyCompanyProfileFormState(): CompanyProfileFormState {
   return {
     status: "",
     countryCode: "",
@@ -107,14 +114,14 @@ export function emptyIgdbCompanyInfoFormState(): IgdbCompanyInfoFormState {
   };
 }
 
-export function igdbCompanyInfoToFormState(
-  info?: IgdbCompanyInfo | null
-): IgdbCompanyInfoFormState {
-  if (!info) return emptyIgdbCompanyInfoFormState();
+export function companyProfileToFormState(
+  info?: CompanyProfileFields | null
+): CompanyProfileFormState {
+  if (!info) return emptyCompanyProfileFormState();
   const started = parseIgdbCompanyDateString(info.started);
   const changedOn = parseIgdbCompanyDateString(info.changedOn);
   return {
-    status: info.status?.trim().toLowerCase() ?? "",
+    status: normalizeCompanyStatusKey(info.status),
     countryCode: info.countryCode != null ? String(info.countryCode) : "",
     startedYear: started.year,
     startedMonth: started.month,
@@ -151,10 +158,10 @@ function buildCompanyReference(
   return id != null ? { id, name } : { name };
 }
 
-export function formStateToIgdbCompanyInfo(
-  state: IgdbCompanyInfoFormState
-): IgdbCompanyInfo | null {
-  const info: IgdbCompanyInfo = {};
+export function formStateToCompanyProfile(
+  state: CompanyProfileFormState
+): CompanyProfileFields | null {
+  const info: CompanyProfileFields = {};
   const status = state.status.trim().toLowerCase();
   if (status) info.status = status;
 
@@ -190,13 +197,13 @@ export function formStateToIgdbCompanyInfo(
   }
 
   const formerly = buildCompanyReference(state.formerlyId, state.formerlyName);
-  if (formerly) info.formerly = formerly as IgdbCompanyInfo["formerly"];
+  if (formerly) info.formerly = formerly as CompanyProfileFields["formerly"];
 
   const parentCompany = buildCompanyReference(state.parentCompanyId, state.parentCompanyName);
-  if (parentCompany) info.parentCompany = parentCompany as IgdbCompanyInfo["parentCompany"];
+  if (parentCompany) info.parentCompany = parentCompany as CompanyProfileFields["parentCompany"];
 
   const updatedTo = buildCompanyReference(state.updatedToId, state.updatedToName);
-  if (updatedTo) info.updatedTo = updatedTo as IgdbCompanyInfo["updatedTo"];
+  if (updatedTo) info.updatedTo = updatedTo as CompanyProfileFields["updatedTo"];
 
   return Object.keys(info).length > 0 ? info : null;
 }
@@ -205,9 +212,9 @@ function stableStringify(value: unknown): string {
   return JSON.stringify(value ?? null);
 }
 
-export function igdbCompanyInfoFormStatesEqual(
-  a: IgdbCompanyInfoFormState,
-  b: IgdbCompanyInfoFormState
+export function companyProfileFormStatesEqual(
+  a: CompanyProfileFormState,
+  b: CompanyProfileFormState
 ): boolean {
-  return stableStringify(formStateToIgdbCompanyInfo(a)) === stableStringify(formStateToIgdbCompanyInfo(b));
+  return stableStringify(formStateToCompanyProfile(a)) === stableStringify(formStateToCompanyProfile(b));
 }

@@ -9,9 +9,12 @@ import {
   mergeCompanyProfileOntoItem,
   type CompanyProfilePatch,
 } from "../utils/companyProfileSync";
+import { filterRootCollectionLikes } from "../utils/stringUtils";
 
 interface DevelopersContextType {
   developers: CollectionItem[];
+  /** Root-level developers only (excludes items linked as children). */
+  rootDevelopers: CollectionItem[];
   isLoading: boolean;
   error: string | null;
   refreshDevelopers: () => Promise<void>;
@@ -116,9 +119,28 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
         prev.map((item) => mergeCompanyProfileOntoItem(item, profile)),
       );
     };
+    const handleChildLinked = (e: Event) => {
+      const ev = e as CustomEvent<{
+        resourceType?: string;
+        parentId?: string | number;
+        childId?: string | number;
+      }>;
+      if (ev.detail?.resourceType !== "developers") return;
+      const { parentId, childId } = ev.detail;
+      if (parentId == null || childId == null) return;
+      setDevelopers((prev) =>
+        prev.map((item) => {
+          if (String(item.id) !== String(parentId)) return item;
+          const childs = Array.isArray(item.childs) ? item.childs : [];
+          if (childs.some((id) => String(id) === String(childId))) return item;
+          return { ...item, childs: [...childs, childId] };
+        }),
+      );
+    };
 
     window.addEventListener("developerUpdated", handleUpdate as EventListener);
     window.addEventListener("companyProfileUpdated", handleCompanyProfileUpdated as EventListener);
+    window.addEventListener("collectionLikeChildLinked", handleChildLinked as EventListener);
     window.addEventListener("developerAdded", handleAdded as EventListener);
     window.addEventListener("developerDeleted", handleDeleted as EventListener);
     window.addEventListener("metadataReloaded", fetchDevelopers);
@@ -127,6 +149,7 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener("developerUpdated", handleUpdate as EventListener);
       window.removeEventListener("companyProfileUpdated", handleCompanyProfileUpdated as EventListener);
+      window.removeEventListener("collectionLikeChildLinked", handleChildLinked as EventListener);
       window.removeEventListener("developerAdded", handleAdded as EventListener);
       window.removeEventListener("developerDeleted", handleDeleted as EventListener);
       window.removeEventListener("metadataReloaded", fetchDevelopers);
@@ -142,9 +165,21 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const rootDevelopers = useMemo(
+    () => filterRootCollectionLikes(developers),
+    [developers],
+  );
+
   const value = useMemo(
-    () => ({ developers, isLoading, error, refreshDevelopers, updateDeveloper }),
-    [developers, isLoading, error, refreshDevelopers, updateDeveloper]
+    () => ({
+      developers,
+      rootDevelopers,
+      isLoading,
+      error,
+      refreshDevelopers,
+      updateDeveloper,
+    }),
+    [developers, rootDevelopers, isLoading, error, refreshDevelopers, updateDeveloper],
   );
 
   return <DevelopersContext.Provider value={value}>{children}</DevelopersContext.Provider>;

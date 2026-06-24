@@ -3,9 +3,10 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useDevelopers } from "../../contexts/DevelopersContext";
 import { usePublishers } from "../../contexts/PublishersContext";
-import type { IgdbCompanyInfo } from "../../types";
+import type { CompanyProfileFields } from "../../types";
 import { formatIgdbStoredDate } from "../../utils/date";
 import { formatIgdbCompanySize, formatIgdbCountryCode } from "../../utils/igdbCompany";
+import { normalizeCompanyStatusKey } from "../../utils/editCompanyProfile";
 
 type CompanyIgdbStatusBadgeProps = {
   status?: string | null;
@@ -13,7 +14,7 @@ type CompanyIgdbStatusBadgeProps = {
 
 export function CompanyIgdbStatusBadge({ status }: CompanyIgdbStatusBadgeProps) {
   const { t } = useTranslation();
-  const statusKey = status?.trim().toLowerCase() ?? "";
+  const statusKey = normalizeCompanyStatusKey(status);
   if (!statusKey) return null;
 
   return (
@@ -24,7 +25,7 @@ export function CompanyIgdbStatusBadge({ status }: CompanyIgdbStatusBadgeProps) 
 }
 
 type CompanyIgdbInfoBlockProps = {
-  info: IgdbCompanyInfo;
+  info: CompanyProfileFields;
   resourceType: "developers" | "publishers";
 };
 

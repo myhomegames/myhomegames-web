@@ -3,7 +3,6 @@ import type { CSSProperties } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import SearchResultsList from "./SearchResultsList";
-import { filterRootCollectionLikes } from "../../utils/stringUtils";
 import type { GameItem, CollectionItem } from "../../types";
 type SearchBarProps = {
   games: GameItem[];
@@ -390,16 +389,13 @@ export default function SearchBar({ games, collections, developers = [], publish
       const filtered = games.filter((game) =>
         game.title.toLowerCase().includes(queryLower)
       );
-      const rootCollections = filterRootCollectionLikes(collections);
-      const rootDevelopers = filterRootCollectionLikes(developers);
-      const rootPublishers = filterRootCollectionLikes(publishers);
-      const filteredCols = rootCollections.filter((collection: CollectionItem) =>
+      const filteredCols = collections.filter((collection: CollectionItem) =>
         collection.title.toLowerCase().includes(queryLower)
       );
-      const filteredDevs = rootDevelopers.filter((d: CollectionItem) =>
+      const filteredDevs = developers.filter((d: CollectionItem) =>
         (d.title || "").toLowerCase().includes(queryLower)
       );
-      const filteredPubs = rootPublishers.filter((p: CollectionItem) =>
+      const filteredPubs = publishers.filter((p: CollectionItem) =>
         (p.title || "").toLowerCase().includes(queryLower)
       );
       saveRecentSearch(query);

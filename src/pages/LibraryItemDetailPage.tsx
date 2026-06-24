@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useLayoutEffect, useCallback } from "react";
 import type { ReactNode } from "react";
-import { useParams, useNavigate, useLocation, useOutletContext } from "react-router-dom";
+import { useParams, useNavigate, useLocation, useOutletContext, Link } from "react-router-dom";
 import type { MainAppOutletContext } from "../layouts/MainAppLayout";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -27,7 +27,8 @@ import DropdownMenu from "../components/common/DropdownMenu";
 import Tooltip from "../components/common/Tooltip";
 import BackgroundManager, { useBackground } from "../components/common/BackgroundManager";
 import { resolveFocalBackdropUrl } from "../components/common/FocalSelectionBackgroundShell";
-import { dispatchDeveloperOrPublisherUpdated, mergeCompanyProfileOntoItem, type CompanyProfilePatch } from "../utils/companyProfileSync";
+import { dispatchDeveloperOrPublisherUpdated, mergeCompanyProfileOntoItem, type CompanyProfilePatch, dispatchCollectionLikeChildLinked } from "../utils/companyProfileSync";
+import { collectionInfoFromApi, hasCompanyProfileFields, pickCompanyProfileFields } from "../utils/companyProfile";
 import BackgroundToggle from "../components/ui/BackgroundToggle";
 import NewGamesToggle from "../components/ui/NewGamesToggle";
 import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
@@ -41,7 +42,7 @@ import {
 import ContextRailIndexPeek from "../components/contextRail/ContextRailIndexPeek";
 import { compareTitles } from "../utils/stringUtils";
 import { titleMatchesFilter } from "../utils/titleFilter";
-import { parseCollectionLikePseudoGameId } from "../utils/collectionLikePseudoGame";
+import { parseCollectionLikePseudoGameId, isTitleOnlyWrapperCollectionLike } from "../utils/collectionLikePseudoGame";
 import { isMainGameType } from "../utils/igdbGameType";
 import { buildApiUrl, buildCoverUrl } from "../utils/api";
 import { API_BASE, getApiToken } from "../config";
@@ -621,16 +622,7 @@ export default function LibraryItemDetailPage({
       });
       if (!res.ok) return;
       const data = await res.json();
-      setItem({
-        id: String(data.id),
-        title: data.title,
-        summary: data.summary,
-        cover: data.cover,
-        background: data.background,
-        showTitle: data.showTitle !== false,
-        childs: data.childs || [],
-        igdbCompanyInfo: data.igdbCompanyInfo ?? null,
-      });
+      setItem(collectionInfoFromApi(data));
     } catch (err) {
       console.error("Error fetching developer:", err);
     }
@@ -666,16 +658,7 @@ export default function LibraryItemDetailPage({
       });
       if (!res.ok) return;
       const data = await res.json();
-      setItem({
-        id: String(data.id),
-        title: data.title,
-        summary: data.summary,
-        cover: data.cover,
-        background: data.background,
-        showTitle: data.showTitle !== false,
-        childs: data.childs || [],
-        igdbCompanyInfo: data.igdbCompanyInfo ?? null,
-      });
+      setItem(collectionInfoFromApi(data));
     } catch (err) {
       console.error("Error fetching publisher:", err);
     }
@@ -1510,6 +1493,15 @@ function LibraryItemDetailContent({
     [singleSubCollectionGames, titleFilterQuery]
   );
 
+  const collectionLikeDetailPath = (id: string) =>
+    `/${
+      resourceType === "collections"
+        ? "collections"
+        : resourceType === "developers"
+          ? "developers"
+          : "publishers"
+    }/${encodeURIComponent(id)}`;
+
   // Display count for each sub-collection card: games assigned directly + first-level sub-collections only (aligned with CollectionsList).
   const subCollectionDisplayCountById = useMemo(() => {
     const map: Record<string, number> = {};
@@ -1881,10 +1873,13 @@ function LibraryItemDetailContent({
 
       if (resourceType === "collections") {
         window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collectionId: String(parentId) } }));
-      } else if (resourceType === "developers") {
-        window.dispatchEvent(new CustomEvent("developerUpdated", { detail: {} }));
       } else {
-        window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: {} }));
+        dispatchCollectionLikeChildLinked(resourceType, parentId, source.id);
+        if (resourceType === "developers") {
+          window.dispatchEvent(new CustomEvent("developerUpdated", { detail: {} }));
+        } else {
+          window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: {} }));
+        }
       }
     } catch (err) {
       console.error("Error adding child to parent:", err);
@@ -1972,14 +1967,14 @@ function LibraryItemDetailContent({
                                   {item.title}
                                 </h1>
                                 {(resourceType === "developers" || resourceType === "publishers") &&
-                                  item?.igdbCompanyInfo && (
-                                    <CompanyIgdbStatusBadge status={item.igdbCompanyInfo.status} />
+                                  hasCompanyProfileFields(item) && (
+                                    <CompanyIgdbStatusBadge status={pickCompanyProfileFields(item).status} />
                                   )}
                               </div>
                               {(resourceType === "developers" || resourceType === "publishers") &&
-                                item?.igdbCompanyInfo && (
+                                hasCompanyProfileFields(item) && (
                                   <CompanyIgdbInfoBlock
-                                    info={item.igdbCompanyInfo}
+                                    info={pickCompanyProfileFields(item)}
                                     resourceType={resourceType}
                                   />
                                 )}
@@ -2430,25 +2425,40 @@ function LibraryItemDetailContent({
                           <h3 className="game-detail-section-title">
                             {resourceType === "collections"
                               ? t("libraries.collections", "Collections")
-                              : resourceType === "developers"
-                                ? t("igdbInfo.developers", "Developers")
-                                : t("igdbInfo.publishers", "Publishers")}
+                              : t("igdbInfo.acquiredBy", "Acquired by")}
                           </h3>
                           <div className="game-detail-collections-list">
-                            {parentCollectionLikesWithGamesForDisplay.map(({ parent, slideItems }) => (
+                            {parentCollectionLikesWithGamesForDisplay.map(({ parent, games, slideItems }) => {
+                              const parentTitleOnly = isTitleOnlyWrapperCollectionLike(parent, games.length);
+                              if (parentTitleOnly) {
+                                return (
+                                  <div
+                                    key={String(parent.id)}
+                                    className="game-detail-collection-group game-detail-collection-group--title-only"
+                                  >
+                                    <h2 className="scrollable-section-title">
+                                      {onCollectionClick ? (
+                                        <Link
+                                          to={collectionLikeDetailPath(String(parent.id))}
+                                          className="scrollable-section-title-link"
+                                        >
+                                          {parent.title}
+                                        </Link>
+                                      ) : (
+                                        parent.title
+                                      )}
+                                    </h2>
+                                  </div>
+                                );
+                              }
+                              return (
                               <div key={String(parent.id)} className="game-detail-collection-group">
                                 <ScrollableGamesSection
                                   sectionId={`parent-${resourceType}-${String(parent.id)}`}
                                   titleOverride={parent.title}
                                   titleHref={
                                     onCollectionClick
-                                      ? `/${
-                                          resourceType === "collections"
-                                            ? "collections"
-                                            : resourceType === "developers"
-                                              ? "developers"
-                                              : "publishers"
-                                        }/${encodeURIComponent(String(parent.id))}`
+                                      ? collectionLikeDetailPath(String(parent.id))
                                       : undefined
                                   }
                                   disableVerticalCoverAlignment
@@ -2482,7 +2492,8 @@ function LibraryItemDetailContent({
                                   onCollectionLikePseudoUpdated={dispatchCollectionLikeUpdated}
                                 />
                               </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       )}

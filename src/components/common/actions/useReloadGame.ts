@@ -4,9 +4,10 @@ import { API_BASE } from "../../../config";
 import { buildApiUrl, buildApiHeaders } from "../../../utils/api";
 import { buildIgdbApiUrl, isIgdbApiEnabled } from "../../../utils/igdbApi";
 import { dispatchDeveloperOrPublisherUpdated } from "../../../utils/companyProfileSync";
+import { collectionInfoFromApi, parseCompanyProfileFromApi } from "../../../utils/companyProfile";
 import { useSettings } from "../../../contexts/SettingsContext";
 import { useLoading } from "../../../contexts/LoadingContext";
-import type { GameItem, CollectionInfo, IgdbCompanyInfo } from "../../../types";
+import type { GameItem, CollectionInfo } from "../../../types";
 
 type UseReloadGameParams = {
   gameId?: string;
@@ -29,27 +30,7 @@ type UseReloadGameReturn = {
 };
 
 function mapReloadedCollection(raw: Record<string, unknown>): CollectionInfo {
-  return {
-    id: String(raw.id),
-    title: String(raw.title ?? ""),
-    summary: typeof raw.summary === "string" ? raw.summary : "",
-    cover: typeof raw.cover === "string" ? raw.cover : undefined,
-    background: typeof raw.background === "string" ? raw.background : undefined,
-    externalCoverUrl:
-      raw.externalCoverUrl === null || typeof raw.externalCoverUrl === "string"
-        ? (raw.externalCoverUrl as string | null)
-        : undefined,
-    externalBackgroundUrl:
-      raw.externalBackgroundUrl === null || typeof raw.externalBackgroundUrl === "string"
-        ? (raw.externalBackgroundUrl as string | null)
-        : undefined,
-    showTitle: raw.showTitle !== false,
-    childs: Array.isArray(raw.childs) ? raw.childs : [],
-    igdbCompanyInfo:
-      raw.igdbCompanyInfo && typeof raw.igdbCompanyInfo === "object"
-        ? (raw.igdbCompanyInfo as CollectionInfo["igdbCompanyInfo"])
-        : undefined,
-  };
+  return collectionInfoFromApi(raw);
 }
 
 function mapReloadedGame(data: Record<string, unknown>): GameItem {
@@ -108,7 +89,7 @@ async function refreshIgdbGameMetadataViaApi(gameId: string): Promise<void> {
   });
 }
 
-async function refreshIgdbCompanyInfoViaApi(
+async function refreshRemoteCompanyProfileViaApi(
   resourceType: "developers" | "publishers",
   itemId: string,
   title?: string
@@ -121,16 +102,17 @@ async function refreshIgdbCompanyInfoViaApi(
   });
   if (!igdbRes.ok) return;
 
-  const igdbData = (await igdbRes.json()) as { igdbCompanyInfo?: IgdbCompanyInfo | null };
-  if (!igdbData.igdbCompanyInfo) return;
+  const igdbData = (await igdbRes.json()) as Record<string, unknown> | null;
+  const profile = parseCompanyProfileFromApi(igdbData ?? undefined);
+  if (Object.keys(profile).length === 0) return;
 
-  await fetch(buildApiUrl(API_BASE, `/${resourceType}/${itemId}/merge-igdb-company-info`), {
+  await fetch(buildApiUrl(API_BASE, `/${resourceType}/${itemId}/merge-company-profile`), {
     method: "POST",
     headers: {
       ...buildApiHeaders(),
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ igdbCompanyInfo: igdbData.igdbCompanyInfo }),
+    body: JSON.stringify(profile),
   });
 }
 
@@ -179,7 +161,7 @@ export function useReloadGame({
         }
 
         try {
-          await refreshIgdbCompanyInfoViaApi(resourceType, itemId, title);
+          await refreshRemoteCompanyProfileViaApi(resourceType, itemId, title);
         } catch (err) {
           console.warn("IGDB company refresh skipped during reload:", err);
         }

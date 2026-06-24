@@ -3,15 +3,15 @@ import { useTranslation } from "react-i18next";
 import { useDevelopers } from "../../contexts/DevelopersContext";
 import { usePublishers } from "../../contexts/PublishersContext";
 import type { CollectionItem } from "../../types";
-import type { IgdbCompanyInfoFormState } from "../../utils/editIgdbCompanyInfo";
-import { IGDB_COMPANY_STATUS_KEYS } from "../../utils/editIgdbCompanyInfo";
+import type { CompanyProfileFormState } from "../../utils/editCompanyProfile";
+import { IGDB_COMPANY_STATUS_KEYS } from "../../utils/editCompanyProfile";
 import { IGDB_COMPANY_SIZE_IDS, listIgdbCountryOptions } from "../../utils/igdbCompany";
 import EditYearMonthDayFields from "../common/EditYearMonthDayFields";
 import CompanySearchModal from "./CompanySearchModal";
 
 type EditCompanyIgdbInfoFieldsProps = {
-  value: IgdbCompanyInfoFormState;
-  onChange: (next: IgdbCompanyInfoFormState) => void;
+  value: CompanyProfileFormState;
+  onChange: (next: CompanyProfileFormState) => void;
   disabled?: boolean;
   currentCompanyId?: string;
 };
@@ -56,11 +56,11 @@ const LINKED_COMPANY_FIELDS: Array<{
   },
 ];
 
-function updateField<K extends keyof IgdbCompanyInfoFormState>(
-  value: IgdbCompanyInfoFormState,
-  onChange: (next: IgdbCompanyInfoFormState) => void,
+function updateField<K extends keyof CompanyProfileFormState>(
+  value: CompanyProfileFormState,
+  onChange: (next: CompanyProfileFormState) => void,
   key: K,
-  fieldValue: IgdbCompanyInfoFormState[K]
+  fieldValue: CompanyProfileFormState[K]
 ) {
   onChange({ ...value, [key]: fieldValue });
 }

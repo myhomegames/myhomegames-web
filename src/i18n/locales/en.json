@@ -601,6 +601,7 @@
     },
     "developers": "Developers",
     "publishers": "Publishers",
+    "acquiredBy": "Acquired by",
     "addToDeveloper": "Developer",
     "addToPublisher": "Publisher",
     "searchDevelopers": "Search developers...",

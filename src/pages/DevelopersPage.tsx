@@ -7,7 +7,7 @@ import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
 import { useSkin } from "../contexts/SkinContext";
 import CollectionsList from "../components/lists/CollectionsList";
 import AlphabetNavigator from "../components/ui/AlphabetNavigator";
-import { compareTitles, filterRootCollectionLikes } from "../utils/stringUtils";
+import { compareTitles } from "../utils/stringUtils";
 import { titleMatchesFilter } from "../utils/titleFilter";
 import type { CollectionItem } from "../types";
 import { buildCoverUrl } from "../utils/api";
@@ -32,7 +32,7 @@ type DevelopersPageProps = {
 
 export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProps) {
   const { setLoading } = useLoading();
-  const { developers, isLoading: developersLoading, updateDeveloper } = useDevelopers();
+  const { developers, rootDevelopers, isLoading: developersLoading, updateDeveloper } = useDevelopers();
   const titleFilterQuery = useTitleFilterQuery();
   const { activeSkinWeb } = useSkin();
   const navigate = useNavigate();
@@ -63,15 +63,14 @@ export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProp
   useScrollRestoration(scrollContainerRef, "developers", !fixedFocalCollections);
 
   const sortedDevelopers = useMemo(() => {
-    const unique = developers.filter((d, i, self) =>
+    const unique = rootDevelopers.filter((d, i, self) =>
       i === self.findIndex((x) => String(x.id) === String(d.id))
     );
-    const rootOnly = filterRootCollectionLikes(unique);
-    const sorted = [...rootOnly].sort((a, b) =>
+    const sorted = [...unique].sort((a, b) =>
       sortAscending ? compareTitles(a.title || "", b.title || "") : -compareTitles(a.title || "", b.title || "")
     );
     return sorted.filter((d) => titleMatchesFilter(d.title, titleFilterQuery));
-  }, [developers, sortAscending, titleFilterQuery]);
+  }, [rootDevelopers, sortAscending, titleFilterQuery]);
 
   const allDevelopersForCount = useMemo(() => {
     return developers.filter((d, i, self) =>

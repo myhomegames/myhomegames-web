@@ -7,7 +7,7 @@ import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
 import { useSkin } from "../contexts/SkinContext";
 import CollectionsList from "../components/lists/CollectionsList";
 import AlphabetNavigator from "../components/ui/AlphabetNavigator";
-import { compareTitles, filterRootCollectionLikes } from "../utils/stringUtils";
+import { compareTitles } from "../utils/stringUtils";
 import { titleMatchesFilter } from "../utils/titleFilter";
 import type { CollectionItem } from "../types";
 import { buildCoverUrl } from "../utils/api";
@@ -32,7 +32,7 @@ type PublishersPageProps = {
 
 export default function PublishersPage({ onPlay, coverSize }: PublishersPageProps) {
   const { setLoading } = useLoading();
-  const { publishers, isLoading: publishersLoading, updatePublisher } = usePublishers();
+  const { publishers, rootPublishers, isLoading: publishersLoading, updatePublisher } = usePublishers();
   const titleFilterQuery = useTitleFilterQuery();
   const { activeSkinWeb } = useSkin();
   const navigate = useNavigate();
@@ -63,15 +63,14 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
   useScrollRestoration(scrollContainerRef, "publishers", !fixedFocalCollections);
 
   const sortedPublishers = useMemo(() => {
-    const unique = publishers.filter((p, i, self) =>
+    const unique = rootPublishers.filter((p, i, self) =>
       i === self.findIndex((x) => String(x.id) === String(p.id))
     );
-    const rootOnly = filterRootCollectionLikes(unique);
-    const sorted = [...rootOnly].sort((a, b) =>
+    const sorted = [...unique].sort((a, b) =>
       sortAscending ? compareTitles(a.title || "", b.title || "") : -compareTitles(a.title || "", b.title || "")
     );
     return sorted.filter((p) => titleMatchesFilter(p.title, titleFilterQuery));
-  }, [publishers, sortAscending, titleFilterQuery]);
+  }, [rootPublishers, sortAscending, titleFilterQuery]);
 
   const allPublishersForCount = useMemo(() => {
     return publishers.filter((p, i, self) =>

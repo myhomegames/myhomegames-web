@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { API_BASE } from "../../config";
 import { buildApiUrl, buildApiHeaders } from "../../utils/api";
+import { dispatchCollectionLikeChildLinked } from "../../utils/companyProfileSync";
 import type { CollectionItem } from "../../types";
 import type { CollectionLikeResourceType } from "./EditCollectionLikeModal";
 import {
@@ -134,10 +135,13 @@ export default function AddCollectionLikeToCollectionLikeModal({
         window.dispatchEvent(
           new CustomEvent("collectionUpdated", { detail: { collectionId: String(parent.id) } })
         );
-      } else if (resourceType === "developers") {
-        window.dispatchEvent(new CustomEvent("developerUpdated", { detail: {} }));
       } else {
-        window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: {} }));
+        dispatchCollectionLikeChildLinked(resourceType, parent.id, sourceItem.id);
+        if (resourceType === "developers") {
+          window.dispatchEvent(new CustomEvent("developerUpdated", { detail: {} }));
+        } else {
+          window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: {} }));
+        }
       }
 
       onLinked?.();

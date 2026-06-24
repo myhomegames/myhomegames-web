@@ -556,6 +556,7 @@
     },
     "developers": "Desarrolladores",
     "publishers": "Editores",
+    "acquiredBy": "Adquirido por",
     "noDevelopersFound": "No se encontraron desarrolladores",
     "noPublishersFound": "No se encontraron editores",
     "subDevelopers": "Desarrolladores",

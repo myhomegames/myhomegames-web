@@ -9,11 +9,17 @@ import { buildApiUrl } from "../../utils/api";
 import { normalizeGameCoverImage, normalizeWideImage } from "../../utils/imageUploadNormalize";
 import EditCompanyIgdbInfoFields from "../companies/EditCompanyIgdbInfoFields";
 import {
-  formStateToIgdbCompanyInfo,
-  igdbCompanyInfoFormStatesEqual,
-  igdbCompanyInfoToFormState,
-  type IgdbCompanyInfoFormState,
-} from "../../utils/editIgdbCompanyInfo";
+  companyProfileFormStatesEqual,
+  companyProfileToFormState,
+  formStateToCompanyProfile,
+  type CompanyProfileFormState,
+} from "../../utils/editCompanyProfile";
+import {
+  applyCompanyProfileFieldsToPayload,
+  collectionInfoFromApi,
+  mergeCompanyProfileOntoCollectionInfo,
+  pickCompanyProfileFields,
+} from "../../utils/companyProfile";
 import { dispatchDeveloperOrPublisherUpdated } from "../../utils/companyProfileSync";
 function normExt(s: string | null | undefined) {
   return (s ?? "").trim();
@@ -135,11 +141,11 @@ export default function EditCollectionLikeModal({
   const [showTitleInPreview, setShowTitleInPreview] = useState(false);
   const [localExternalCover, setLocalExternalCover] = useState("");
   const [localExternalBackground, setLocalExternalBackground] = useState("");
-  const [igdbCompanyForm, setIgdbCompanyForm] = useState<IgdbCompanyInfoFormState>(() =>
-    igdbCompanyInfoToFormState(item.igdbCompanyInfo)
+  const [companyProfileForm, setCompanyProfileForm] = useState<CompanyProfileFormState>(() =>
+    companyProfileToFormState(pickCompanyProfileFields(item))
   );
-  const [initialIgdbCompanyForm, setInitialIgdbCompanyForm] = useState<IgdbCompanyInfoFormState>(() =>
-    igdbCompanyInfoToFormState(item.igdbCompanyInfo)
+  const [initialCompanyProfileForm, setInitialCompanyProfileForm] = useState<CompanyProfileFormState>(() =>
+    companyProfileToFormState(pickCompanyProfileFields(item))
   );
 
   // Never show fallback/IGDB covers in edit - same as when no cover present
@@ -177,9 +183,9 @@ export default function EditCollectionLikeModal({
       setShowTitleInPreview((item as any).showTitle !== false);
       setLocalExternalCover(initialExternalCoverUrl(item));
       setLocalExternalBackground(initialExternalBackgroundUrl(item));
-      const nextIgdbForm = igdbCompanyInfoToFormState(item.igdbCompanyInfo);
-      setIgdbCompanyForm(nextIgdbForm);
-      setInitialIgdbCompanyForm(nextIgdbForm);
+      const nextCompanyProfileForm = companyProfileToFormState(pickCompanyProfileFields(item));
+      setCompanyProfileForm(nextCompanyProfileForm);
+      setInitialCompanyProfileForm(nextCompanyProfileForm);
       setError(null);
       setActiveTab("INFO");
       setCoverPreview(null);
@@ -241,7 +247,7 @@ export default function EditCollectionLikeModal({
       normExt(localExternalCover) !== normExt(initialExternalCoverUrl(item)) ||
       (hasBackground &&
         normExt(localExternalBackground) !== normExt(initialExternalBackgroundUrl(item))) ||
-      (isCompanyResource && !igdbCompanyInfoFormStatesEqual(igdbCompanyForm, initialIgdbCompanyForm)) ||
+      (isCompanyResource && !companyProfileFormStatesEqual(companyProfileForm, initialCompanyProfileForm)) ||
       coverFile !== null ||
       (hasBackground && backgroundFile !== null) ||
       coverRemoved ||
@@ -249,13 +255,8 @@ export default function EditCollectionLikeModal({
     );
   };
 
-  const mergeIgdbCompanyInfoOnItem = (updatedItem: CollectionInfo, data: CollectionInfo | undefined) => ({
-    ...updatedItem,
-    igdbCompanyInfo:
-      data && Object.prototype.hasOwnProperty.call(data, "igdbCompanyInfo")
-        ? data.igdbCompanyInfo ?? null
-        : updatedItem.igdbCompanyInfo,
-  });
+  const mergeCompanyProfileOnItem = (updatedItem: CollectionInfo, data: CollectionInfo | undefined) =>
+    data ? mergeCompanyProfileOntoCollectionInfo(updatedItem, pickCompanyProfileFields(data)) : updatedItem;
 
   const handleCoverFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -426,8 +427,11 @@ export default function EditCollectionLikeModal({
           ? localExternalBackground.trim()
           : null;
       }
-      if (isCompanyResource && !igdbCompanyInfoFormStatesEqual(igdbCompanyForm, initialIgdbCompanyForm)) {
-        updates.igdbCompanyInfo = formStateToIgdbCompanyInfo(igdbCompanyForm);
+      if (isCompanyResource && !companyProfileFormStatesEqual(companyProfileForm, initialCompanyProfileForm)) {
+        Object.assign(
+          updates,
+          applyCompanyProfileFieldsToPayload({}, formStateToCompanyProfile(companyProfileForm)),
+        );
       }
 
       if (Object.keys(updates).length > 0) {
@@ -459,26 +463,31 @@ export default function EditCollectionLikeModal({
           const sep = finalBackground.includes("?") ? "&" : "?";
           finalBackground = `${finalBackground}${sep}t=${Date.now()}`;
         }
-        const updatedItem: CollectionInfo = mergeIgdbCompanyInfoOnItem(
-          {
-            id: data?.id ?? item.id,
-            title: data?.title ?? item.title,
-            summary: data?.summary ?? item.summary ?? "",
-            cover: finalCover,
-            background: finalBackground,
-            externalCoverUrl:
-              data?.externalCoverUrl !== undefined
-                ? data.externalCoverUrl
-                : (item.externalCoverUrl ?? null),
-            externalBackgroundUrl:
-              data?.externalBackgroundUrl !== undefined
-                ? data.externalBackgroundUrl
-                : (item.externalBackgroundUrl ?? null),
-            showTitle: hasShowTitle ? (data?.showTitle ?? (item as any).showTitle) : undefined,
-            ...(typeof (data as any)?.gameCount === "number" ? { gameCount: (data as any).gameCount } : {}),
-          },
-          data
-        );
+        const updatedItem: CollectionInfo = {
+          ...mergeCompanyProfileOnItem(
+            {
+              ...collectionInfoFromApi((data ?? {}) as Record<string, unknown>),
+              id: String(data?.id ?? item.id),
+              title: data?.title ?? item.title,
+              summary: data?.summary ?? item.summary ?? "",
+              cover: finalCover,
+              background: finalBackground,
+              externalCoverUrl:
+                data?.externalCoverUrl !== undefined
+                  ? data.externalCoverUrl
+                  : (item.externalCoverUrl ?? null),
+              externalBackgroundUrl:
+                data?.externalBackgroundUrl !== undefined
+                  ? data.externalBackgroundUrl
+                  : (item.externalBackgroundUrl ?? null),
+              showTitle: hasShowTitle ? (data?.showTitle ?? (item as any).showTitle) : undefined,
+              ...(typeof (data as any)?.gameCount === "number"
+                ? { gameCount: (data as any).gameCount }
+                : {}),
+            },
+            data,
+          ),
+        };
         dispatchUpdate(updatedItem);
         onItemUpdate(updatedItem);
       } else if (coverFile || (hasBackground && backgroundFile) || coverRemoved || (hasBackground && backgroundRemoved)) {
@@ -505,9 +514,10 @@ export default function EditCollectionLikeModal({
             const sep = finalBackground.includes("?") ? "&" : "?";
             finalBackground = `${finalBackground}${sep}t=${Date.now()}`;
           }
-          const updatedItem: CollectionInfo = mergeIgdbCompanyInfoOnItem(
+          const updatedItem: CollectionInfo = mergeCompanyProfileOnItem(
             {
-              id: data?.id ?? item.id,
+              ...collectionInfoFromApi((data ?? {}) as Record<string, unknown>),
+              id: String(data?.id ?? item.id),
               title: data?.title ?? item.title,
               summary: data?.summary ?? item.summary ?? "",
               cover: finalCover,
@@ -521,9 +531,11 @@ export default function EditCollectionLikeModal({
                   ? data.externalBackgroundUrl
                   : (item.externalBackgroundUrl ?? null),
               showTitle: hasShowTitle ? (data?.showTitle ?? (item as any).showTitle) : undefined,
-              ...(typeof (data as any)?.gameCount === "number" ? { gameCount: (data as any).gameCount } : {}),
+              ...(typeof (data as any)?.gameCount === "number"
+                ? { gameCount: (data as any).gameCount }
+                : {}),
             },
-            data
+            data,
           );
           dispatchUpdate(updatedItem);
           onItemUpdate(updatedItem);
@@ -603,8 +615,8 @@ export default function EditCollectionLikeModal({
                 />
               </div>
               <EditCompanyIgdbInfoFields
-                value={igdbCompanyForm}
-                onChange={setIgdbCompanyForm}
+                value={companyProfileForm}
+                onChange={setCompanyProfileForm}
                 disabled={saving}
                 currentCompanyId={item.id}
               />

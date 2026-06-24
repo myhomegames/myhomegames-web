@@ -9,9 +9,12 @@ import {
   mergeCompanyProfileOntoItem,
   type CompanyProfilePatch,
 } from "../utils/companyProfileSync";
+import { filterRootCollectionLikes } from "../utils/stringUtils";
 
 interface PublishersContextType {
   publishers: CollectionItem[];
+  /** Root-level publishers only (excludes items linked as children). */
+  rootPublishers: CollectionItem[];
   isLoading: boolean;
   error: string | null;
   refreshPublishers: () => Promise<void>;
@@ -116,9 +119,28 @@ export function PublishersProvider({ children }: { children: ReactNode }) {
         prev.map((item) => mergeCompanyProfileOntoItem(item, profile)),
       );
     };
+    const handleChildLinked = (e: Event) => {
+      const ev = e as CustomEvent<{
+        resourceType?: string;
+        parentId?: string | number;
+        childId?: string | number;
+      }>;
+      if (ev.detail?.resourceType !== "publishers") return;
+      const { parentId, childId } = ev.detail;
+      if (parentId == null || childId == null) return;
+      setPublishers((prev) =>
+        prev.map((item) => {
+          if (String(item.id) !== String(parentId)) return item;
+          const childs = Array.isArray(item.childs) ? item.childs : [];
+          if (childs.some((id) => String(id) === String(childId))) return item;
+          return { ...item, childs: [...childs, childId] };
+        }),
+      );
+    };
 
     window.addEventListener("publisherUpdated", handleUpdate as EventListener);
     window.addEventListener("companyProfileUpdated", handleCompanyProfileUpdated as EventListener);
+    window.addEventListener("collectionLikeChildLinked", handleChildLinked as EventListener);
     window.addEventListener("publisherAdded", handleAdded as EventListener);
     window.addEventListener("publisherDeleted", handleDeleted as EventListener);
     window.addEventListener("metadataReloaded", fetchPublishers);
@@ -127,6 +149,7 @@ export function PublishersProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener("publisherUpdated", handleUpdate as EventListener);
       window.removeEventListener("companyProfileUpdated", handleCompanyProfileUpdated as EventListener);
+      window.removeEventListener("collectionLikeChildLinked", handleChildLinked as EventListener);
       window.removeEventListener("publisherAdded", handleAdded as EventListener);
       window.removeEventListener("publisherDeleted", handleDeleted as EventListener);
       window.removeEventListener("metadataReloaded", fetchPublishers);
@@ -142,9 +165,21 @@ export function PublishersProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const rootPublishers = useMemo(
+    () => filterRootCollectionLikes(publishers),
+    [publishers],
+  );
+
   const value = useMemo(
-    () => ({ publishers, isLoading, error, refreshPublishers, updatePublisher }),
-    [publishers, isLoading, error, refreshPublishers, updatePublisher]
+    () => ({
+      publishers,
+      rootPublishers,
+      isLoading,
+      error,
+      refreshPublishers,
+      updatePublisher,
+    }),
+    [publishers, rootPublishers, isLoading, error, refreshPublishers, updatePublisher],
   );
 
   return <PublishersContext.Provider value={value}>{children}</PublishersContext.Provider>;

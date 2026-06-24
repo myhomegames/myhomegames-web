@@ -1,4 +1,9 @@
-import type { CollectionInfo, CollectionItem } from "../types";
+import type { CollectionInfo, CollectionItem, CompanyProfileFields } from "../types";
+import {
+  COMPANY_PROFILE_FIELD_KEYS,
+  mergeCompanyProfileOntoCollectionInfo,
+  pickCompanyProfileFields,
+} from "./companyProfile";
 
 export type CompanyProfilePatch = Pick<
   CollectionInfo,
@@ -11,8 +16,8 @@ export type CompanyProfilePatch = Pick<
   | "externalBackgroundUrl"
   | "showTitle"
   | "childs"
-  | "igdbCompanyInfo"
->;
+> &
+  CompanyProfileFields;
 
 export function pickCompanyProfilePatch(item: CollectionInfo): CompanyProfilePatch {
   return {
@@ -25,7 +30,7 @@ export function pickCompanyProfilePatch(item: CollectionInfo): CompanyProfilePat
     externalBackgroundUrl: item.externalBackgroundUrl,
     showTitle: item.showTitle,
     childs: item.childs,
-    igdbCompanyInfo: item.igdbCompanyInfo,
+    ...pickCompanyProfileFields(item),
   };
 }
 
@@ -34,23 +39,25 @@ export function mergeCompanyProfileOntoItem<T extends CollectionItem>(
   profile: CompanyProfilePatch,
 ): T {
   if (String(item.id) !== String(profile.id)) return item;
-  return {
-    ...item,
-    title: profile.title ?? item.title,
-    summary: profile.summary ?? item.summary,
-    cover: profile.cover !== undefined ? profile.cover : item.cover,
-    background: profile.background !== undefined ? profile.background : item.background,
-    externalCoverUrl:
-      profile.externalCoverUrl !== undefined ? profile.externalCoverUrl : item.externalCoverUrl,
-    externalBackgroundUrl:
-      profile.externalBackgroundUrl !== undefined
-        ? profile.externalBackgroundUrl
-        : item.externalBackgroundUrl,
-    showTitle: profile.showTitle !== undefined ? profile.showTitle : item.showTitle,
-    childs: profile.childs !== undefined ? profile.childs : item.childs,
-    igdbCompanyInfo:
-      profile.igdbCompanyInfo !== undefined ? profile.igdbCompanyInfo : item.igdbCompanyInfo,
-  };
+  const { id: _id, ...rest } = profile;
+  return mergeCompanyProfileOntoCollectionInfo(
+    {
+      ...item,
+      title: profile.title ?? item.title,
+      summary: profile.summary ?? item.summary,
+      cover: profile.cover !== undefined ? profile.cover : item.cover,
+      background: profile.background !== undefined ? profile.background : item.background,
+      externalCoverUrl:
+        profile.externalCoverUrl !== undefined ? profile.externalCoverUrl : item.externalCoverUrl,
+      externalBackgroundUrl:
+        profile.externalBackgroundUrl !== undefined
+          ? profile.externalBackgroundUrl
+          : item.externalBackgroundUrl,
+      showTitle: profile.showTitle !== undefined ? profile.showTitle : item.showTitle,
+      childs: profile.childs !== undefined ? profile.childs : item.childs,
+    },
+    pickCompanyProfileFields(profile),
+  );
 }
 
 export function dispatchCompanyProfileUpdated(item: CollectionInfo) {
@@ -59,6 +66,31 @@ export function dispatchCompanyProfileUpdated(item: CollectionInfo) {
       detail: { profile: pickCompanyProfilePatch(item) },
     }),
   );
+}
+
+export function dispatchCollectionLikeChildLinked(
+  resourceType: "developers" | "publishers" | "collections",
+  parentId: string | number,
+  childId: string | number,
+) {
+  window.dispatchEvent(
+    new CustomEvent("collectionLikeChildLinked", {
+      detail: {
+        resourceType,
+        parentId: String(parentId),
+        childId: String(childId),
+      },
+    }),
+  );
+}
+
+export function syncIgdbParentCompanyChildLinkInUI(
+  resourceType: "developers" | "publishers",
+  item: CollectionInfo,
+) {
+  const parent = pickCompanyProfileFields(item).parentCompany;
+  if (parent?.id == null) return;
+  dispatchCollectionLikeChildLinked(resourceType, parent.id, item.id);
 }
 
 export function dispatchDeveloperOrPublisherUpdated(
@@ -75,4 +107,7 @@ export function dispatchDeveloperOrPublisherUpdated(
     );
   }
   dispatchCompanyProfileUpdated(updatedItem);
+  syncIgdbParentCompanyChildLinkInUI(resourceType, updatedItem);
 }
+
+export { COMPANY_PROFILE_FIELD_KEYS };
