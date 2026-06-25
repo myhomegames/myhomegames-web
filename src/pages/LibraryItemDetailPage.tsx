@@ -43,6 +43,11 @@ import ContextRailIndexPeek from "../components/contextRail/ContextRailIndexPeek
 import { compareTitles } from "../utils/stringUtils";
 import { titleMatchesFilter } from "../utils/titleFilter";
 import { parseCollectionLikePseudoGameId, isTitleOnlyWrapperCollectionLike } from "../utils/collectionLikePseudoGame";
+import {
+  loadCollectionLikeSlideSections,
+  parseGamesListFromApiJson,
+  type CollectionLikeSlideSection,
+} from "../utils/collectionLikeSectionGames";
 import { isMainGameType } from "../utils/gameType";
 import { buildApiUrl, buildCoverUrl } from "../utils/api";
 import { API_BASE, getApiToken } from "../config";
@@ -56,38 +61,8 @@ type LibraryItemDetailPageProps = {
   allCollections?: CollectionItem[];
 };
 
-function parseGamesFromJson(json: { games?: any[] }) {
-  const items = (json.games || []) as any[];
-  return items.map((v) => ({
-    id: v.id,
-    title: v.title,
-    summary: v.summary,
-    cover: v.cover,
-    background: v.background,
-    day: v.day,
-    month: v.month,
-    year: v.year,
-    stars: v.stars,
-    executables: v.executables || null,
-    themes: v.themes || null,
-    platforms: v.platforms || null,
-    gameModes: v.gameModes || null,
-    playerPerspectives: v.playerPerspectives || null,
-    websites: v.websites || null,
-    ageRatings: v.ageRatings || null,
-    developers: v.developers || null,
-    publishers: v.publishers || null,
-    franchise: v.franchise || null,
-    collection: v.collection || null,
-    series: v.series ?? v.collection ?? null,
-    screenshots: v.screenshots || null,
-    videos: v.videos || null,
-    gameEngines: v.gameEngines || null,
-    keywords: v.keywords || null,
-    alternativeNames: v.alternativeNames || null,
-    similarGames: v.similarGames || null,
-    type: v.type ?? null,
-  }));
+function parseGamesFromJson(json: { games?: unknown[] }) {
+  return parseGamesListFromApiJson(json);
 }
 
 export default function LibraryItemDetailPage({
@@ -1378,9 +1353,11 @@ function LibraryItemDetailContent({
   const [linkSourceCollectionLike, setLinkSourceCollectionLike] = useState<CollectionItem | null>(null);
   const [hydratedCollectionLikes, setHydratedCollectionLikes] = useState<CollectionItem[]>([]);
   const [parentCollectionLikesWithGames, setParentCollectionLikesWithGames] = useState<
-    Array<{ parent: CollectionItem; games: GameItem[]; slideItems: GameItem[] }>
+    CollectionLikeSlideSection[]
   >([]);
-  const [singleSubCollectionGames, setSingleSubCollectionGames] = useState<GameItem[]>([]);
+  const [subCollectionLikesWithGames, setSubCollectionLikesWithGames] = useState<
+    CollectionLikeSlideSection[]
+  >([]);
 
   const completeCollectionLikes = useMemo(() => {
     const byId = new Map<string, CollectionItem>();
@@ -1419,79 +1396,6 @@ function LibraryItemDetailContent({
     () => subCollectionLikes.filter((c) => titleMatchesFilter(c.title, titleFilterQuery)),
     [subCollectionLikes, titleFilterQuery]
   );
-  const singleSubTitleFilterActive = titleFilterQuery.trim().length > 0;
-  const singleSubCollectionId =
-    subCollectionLikes.length === 1 ? String(subCollectionLikes[0].id) : null;
-  const singleSubCollectionDragEnabled =
-    resourceType === "collections" && !mainGamesOnly && !singleSubTitleFilterActive && !!singleSubCollectionId;
-
-  const handleSingleSubCollectionGameUpdate = (updatedGame: GameItem) => {
-    setSingleSubCollectionGames((prev) =>
-      prev.map((g) => (String(g.id) === String(updatedGame.id) ? updatedGame : g))
-    );
-    window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
-  };
-
-  const handleSingleSubCollectionGameDelete = (deletedGame: GameItem) => {
-    setSingleSubCollectionGames((prev) =>
-      prev.filter((g) => String(g.id) !== String(deletedGame.id))
-    );
-  };
-
-  const handleSingleSubCollectionRemoveFromCollection = (gameId: string) => {
-    setSingleSubCollectionGames((prev) => prev.filter((g) => String(g.id) !== String(gameId)));
-  };
-
-  const handleSingleSubCollectionDragEnd = async (
-    sourceIndex: number,
-    destinationIndex: number
-  ) => {
-    if (sourceIndex === destinationIndex || !singleSubCollectionId) return;
-    const newGames = [...singleSubCollectionGames];
-    const [removed] = newGames.splice(sourceIndex, 1);
-    newGames.splice(destinationIndex, 0, removed);
-    setSingleSubCollectionGames(newGames);
-    try {
-      const url = buildApiUrl(
-        API_BASE,
-        `/collections/${encodeURIComponent(singleSubCollectionId)}/games/order`
-      );
-      const res = await fetch(url, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", "X-Auth-Token": getApiToken() },
-        body: JSON.stringify({ gameIds: newGames.map((g) => g.id) }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    } catch {
-      try {
-        const url = buildApiUrl(
-          API_BASE,
-          `/collections/${encodeURIComponent(singleSubCollectionId)}/games`
-        );
-        const res = await fetch(url, {
-          headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
-        });
-        if (res.ok) {
-          const json = await res.json();
-          setSingleSubCollectionGames(parseGamesFromJson(json));
-        }
-      } catch {
-        // ignore
-      }
-    }
-  };
-
-  const parentCollectionLikesWithGamesForDisplay = useMemo(
-    // Title filter must affect only the current collection-like scope (its children and games),
-    // not parent collection-like blocks rendered for context.
-    () => parentCollectionLikesWithGames,
-    [parentCollectionLikesWithGames]
-  );
-
-  const singleSubCollectionGamesFiltered = useMemo(
-    () => singleSubCollectionGames.filter((g) => titleMatchesFilter(g.title, titleFilterQuery)),
-    [singleSubCollectionGames, titleFilterQuery]
-  );
 
   const collectionLikeDetailPath = (id: string) =>
     `/${
@@ -1501,6 +1405,13 @@ function LibraryItemDetailContent({
           ? "developers"
           : "publishers"
     }/${encodeURIComponent(id)}`;
+
+  const parentCollectionLikesWithGamesForDisplay = useMemo(
+    // Title filter must affect only the current collection-like scope (its children and games),
+    // not parent collection-like blocks rendered for context.
+    () => parentCollectionLikesWithGames,
+    [parentCollectionLikesWithGames]
+  );
 
   // Display count for each sub-collection card: games assigned directly + first-level sub-collections only (aligned with CollectionsList).
   const subCollectionDisplayCountById = useMemo(() => {
@@ -1605,113 +1516,11 @@ function LibraryItemDetailContent({
         return;
       }
       const token = getApiToken() || "";
-      const childRangeCache = new Map<string, string>();
-
-      const toYearRange = (games: GameItem[]): string => {
-        const years = games
-          .map((g) => g.year)
-          .filter((y): y is number => typeof y === "number" && y > 0);
-        if (years.length === 0) return "";
-        const min = Math.min(...years);
-        const max = Math.max(...years);
-        return min === max ? String(min) : `${min} - ${max}`;
-      };
-
-      const loadChildCollectionLikeItems = async (parent: CollectionItem): Promise<GameItem[]> => {
-        const parentChildIds = Array.isArray(parent.childs) ? parent.childs.map((id) => String(id)) : [];
-        const childCollectionLikes = parentChildIds
-          .map((childId) => completeCollectionLikes.find((c) => String(c.id) === childId))
-          .filter((c): c is CollectionItem => Boolean(c))
-          .sort((a, b) => compareTitles(a.title || "", b.title || ""));
-
-        const childItems = await Promise.all(
-          childCollectionLikes.map(async (child) => {
-            const childId = String(child.id);
-            let range =
-              (child as any).yearRange ??
-              (child as any).dateRange ??
-              (child as any).releaseRange ??
-              "";
-            if (typeof range !== "string") range = "";
-            range = range.trim();
-
-            if (!range) {
-              const cached = childRangeCache.get(childId);
-              if (cached !== undefined) {
-                range = cached;
-              } else {
-                try {
-                  const childUrl = buildApiUrl(
-                    API_BASE,
-                    `/${resourceType}/${encodeURIComponent(childId)}/games`
-                  );
-                  const childRes = await fetch(childUrl, {
-                    headers: { Accept: "application/json", "X-Auth-Token": token },
-                  });
-                  if (childRes.ok) {
-                    const childJson = await childRes.json();
-                    range = toYearRange(parseGamesFromJson(childJson));
-                  }
-                } catch {
-                  // ignore child range fetch errors
-                }
-                childRangeCache.set(childId, range);
-              }
-            }
-
-            return {
-              id: `collectionlike:${resourceType}:${childId}`,
-              title: child.title,
-              subtitle: range || null,
-              summary: child.summary || "",
-              cover: child.cover,
-              year: null,
-              month: null,
-              day: null,
-              executables: null,
-              stars: null,
-            } as GameItem;
-          })
-        );
-
-        return childItems;
-      };
-
-      const loaded = await Promise.all(
-        parentCollectionLikes.map(async (parent) => {
-          try {
-            const url = buildApiUrl(
-              API_BASE,
-              `/${resourceType}/${encodeURIComponent(String(parent.id))}/games`
-            );
-            const res = await fetch(url, {
-              headers: { Accept: "application/json", "X-Auth-Token": token },
-            });
-            const childCollectionLikeItems = await loadChildCollectionLikeItems(parent);
-
-            if (!res.ok) {
-              return {
-                parent,
-                games: [] as GameItem[],
-                slideItems: childCollectionLikeItems,
-              };
-            }
-            const json = await res.json();
-            const games = parseGamesFromJson(json);
-            return {
-              parent,
-              games,
-              slideItems: [...childCollectionLikeItems, ...games],
-            };
-          } catch {
-            const childCollectionLikeItems = await loadChildCollectionLikeItems(parent);
-            return {
-              parent,
-              games: [] as GameItem[],
-              slideItems: childCollectionLikeItems,
-            };
-          }
-        })
+      const loaded = await loadCollectionLikeSlideSections(
+        parentCollectionLikes,
+        resourceType,
+        completeCollectionLikes,
+        token,
       );
       if (!cancelled) {
         setParentCollectionLikesWithGames(loaded);
@@ -1725,33 +1534,27 @@ function LibraryItemDetailContent({
 
   useEffect(() => {
     let cancelled = false;
-    const loadSingleSubCollectionGames = async () => {
+    const loadSubCollectionLikeGames = async () => {
       if (subCollectionLikes.length !== 1) {
-        setSingleSubCollectionGames([]);
+        setSubCollectionLikesWithGames([]);
         return;
       }
-      const onlyChild = subCollectionLikes[0];
-      try {
-        const url = buildApiUrl(API_BASE, `/${resourceType}/${encodeURIComponent(String(onlyChild.id))}/games`);
-        const res = await fetch(url, {
-          headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
-        });
-        if (!res.ok) {
-          if (!cancelled) setSingleSubCollectionGames([]);
-          return;
-        }
-        const json = await res.json();
-        const parsed = parseGamesFromJson(json);
-        if (!cancelled) setSingleSubCollectionGames(parsed);
-      } catch {
-        if (!cancelled) setSingleSubCollectionGames([]);
+      const token = getApiToken() || "";
+      const loaded = await loadCollectionLikeSlideSections(
+        [subCollectionLikes[0]],
+        resourceType,
+        completeCollectionLikes,
+        token,
+      );
+      if (!cancelled) {
+        setSubCollectionLikesWithGames(loaded);
       }
     };
-    loadSingleSubCollectionGames();
+    loadSubCollectionLikeGames();
     return () => {
       cancelled = true;
     };
-  }, [subCollectionLikes, resourceType]);
+  }, [subCollectionLikes, resourceType, completeCollectionLikes]);
 
   const dispatchCollectionLikeUpdated = (updatedItem: CollectionInfo) => {
     if (resourceType === "collections") {
@@ -1885,6 +1688,88 @@ function LibraryItemDetailContent({
       console.error("Error adding child to parent:", err);
     }
   }
+
+  const renderCollectionLikeSlideSectionBlock = useCallback(
+    ({ parent, games, slideItems }: CollectionLikeSlideSection, sectionIdPrefix: string) => {
+      const parentTitleOnly = isTitleOnlyWrapperCollectionLike(parent, games.length);
+      if (parentTitleOnly) {
+        return (
+          <div
+            key={String(parent.id)}
+            className="game-detail-collection-group game-detail-collection-group--title-only"
+          >
+            <h2 className="scrollable-section-title">
+              {onCollectionClick ? (
+                <Link
+                  to={collectionLikeDetailPath(String(parent.id))}
+                  className="scrollable-section-title-link"
+                >
+                  {parent.title}
+                </Link>
+              ) : (
+                parent.title
+              )}
+            </h2>
+          </div>
+        );
+      }
+
+      return (
+        <div key={String(parent.id)} className="game-detail-collection-group">
+          <ScrollableGamesSection
+            sectionId={`${sectionIdPrefix}-${resourceType}-${String(parent.id)}`}
+            titleOverride={parent.title}
+            titleHref={
+              onCollectionClick ? collectionLikeDetailPath(String(parent.id)) : undefined
+            }
+            disableVerticalCoverAlignment
+            disableAutoTranslate
+            games={slideItems}
+            onGameClick={(selected) => {
+              const rawId = String(selected.id ?? "");
+              if (rawId.startsWith("collectionlike:")) {
+                const parts = rawId.split(":");
+                const linkedId = parts[2];
+                if (linkedId && onCollectionClick) {
+                  onCollectionClick(linkedId);
+                  return;
+                }
+              }
+              onGameClick(selected);
+            }}
+            onPlay={onPlay}
+            onGameUpdate={onGameUpdate}
+            coverSize={140}
+            allCollections={allCollections}
+            allCollectionLikes={allCollectionLikes}
+            collectionLikeResourceType={resourceType}
+            sliderParentCollectionLikeId={String(parent.id)}
+            onRemoveChildFromSliderParent={(childId) =>
+              removeChildFromSliderParent(String(parent.id), childId)
+            }
+            onCollectionLikePseudoEdit={handleCollectionLikePseudoEdit}
+            onPlayFirstInCollectionLike={onPlayFirstInCollectionLike}
+            onCollectionLikePseudoAddToParent={addChildToParent}
+            onCollectionLikePseudoUpdated={dispatchCollectionLikeUpdated}
+          />
+        </div>
+      );
+    },
+    [
+      allCollectionLikes,
+      allCollections,
+      collectionLikeDetailPath,
+      dispatchCollectionLikeUpdated,
+      onCollectionClick,
+      onGameClick,
+      onGameUpdate,
+      onPlay,
+      onPlayFirstInCollectionLike,
+      addChildToParent,
+      removeChildFromSliderParent,
+      resourceType,
+    ],
+  );
 
   return (
     <>
@@ -2239,53 +2124,12 @@ function LibraryItemDetailContent({
                                     : t("catalogInfo.subPublishers", { count: subCollectionLikesFiltered.length });
                               return label.replace(/(\p{L})/u, (_, c) => c.toUpperCase());
                             })()}
-                            {subCollectionLikes.length === 1 && subCollectionLikesFiltered.length === 1 && (
-                              <>
-                                {": "}
-                                <button
-                                  type="button"
-                                  className="library-item-detail-subcollection-title-link"
-                                  onClick={() => onCollectionClick?.(String(subCollectionLikesFiltered[0].id))}
-                                >
-                                  {subCollectionLikesFiltered[0].title}
-                                </button>
-                              </>
-                            )}
                           </h2>
                           {subCollectionLikes.length === 1 && subCollectionLikesFiltered.length === 1 ? (
-                            <div className="library-item-detail-games-list library-item-detail-mt-games-list">
-                              <GamesList
-                                scrollContainerRef={scrollContainerRef}
-                                enableVirtualization={contextRailLayout}
-                                forceSingleColumnVirtualized={contextRailLayout}
-                                fixedFocalSelection={contextRailLayout}
-                                onFocalSelectionChange={onFocalGameSelectionChange}
-                                games={singleSubCollectionGamesFiltered}
-                                onGameClick={(game) => {
-                                  const g = game as GameItem & { isCatalogOnly?: boolean };
-                                  if (g.isCatalogOnly && onCatalogGameClick) {
-                                    onCatalogGameClick(Number(game.id));
-                                  } else {
-                                    onGameClick(game);
-                                  }
-                                }}
-                                onPlay={onPlay}
-                                onGameUpdate={handleSingleSubCollectionGameUpdate}
-                                onGameDelete={handleSingleSubCollectionGameDelete}
-                                buildCoverUrl={buildCoverUrl}
-                                coverCacheBustTimestamp={listLoadTimestamp}
-                                coverSize={coverSize}
-                                itemRefs={itemRefs}
-                                draggable={singleSubCollectionDragEnabled}
-                                onDragEnd={
-                                  singleSubCollectionDragEnabled
-                                    ? handleSingleSubCollectionDragEnd
-                                    : undefined
-                                }
-                                allCollections={isCollection ? allCollections : undefined}
-                                collectionId={singleSubCollectionId ?? undefined}
-                                onRemoveFromCollection={handleSingleSubCollectionRemoveFromCollection}
-                              />
+                            <div className="game-detail-collections-list library-item-detail-collections-list-mt">
+                              {subCollectionLikesWithGames.map((block) =>
+                                renderCollectionLikeSlideSectionBlock(block, "sub"),
+                              )}
                             </div>
                           ) : (
                             <div className="library-item-detail-collections-list library-item-detail-collections-list-mt">
@@ -2428,72 +2272,9 @@ function LibraryItemDetailContent({
                               : t("catalogInfo.acquiredBy", "Acquired by")}
                           </h3>
                           <div className="game-detail-collections-list">
-                            {parentCollectionLikesWithGamesForDisplay.map(({ parent, games, slideItems }) => {
-                              const parentTitleOnly = isTitleOnlyWrapperCollectionLike(parent, games.length);
-                              if (parentTitleOnly) {
-                                return (
-                                  <div
-                                    key={String(parent.id)}
-                                    className="game-detail-collection-group game-detail-collection-group--title-only"
-                                  >
-                                    <h2 className="scrollable-section-title">
-                                      {onCollectionClick ? (
-                                        <Link
-                                          to={collectionLikeDetailPath(String(parent.id))}
-                                          className="scrollable-section-title-link"
-                                        >
-                                          {parent.title}
-                                        </Link>
-                                      ) : (
-                                        parent.title
-                                      )}
-                                    </h2>
-                                  </div>
-                                );
-                              }
-                              return (
-                              <div key={String(parent.id)} className="game-detail-collection-group">
-                                <ScrollableGamesSection
-                                  sectionId={`parent-${resourceType}-${String(parent.id)}`}
-                                  titleOverride={parent.title}
-                                  titleHref={
-                                    onCollectionClick
-                                      ? collectionLikeDetailPath(String(parent.id))
-                                      : undefined
-                                  }
-                                  disableVerticalCoverAlignment
-                                  disableAutoTranslate
-                                  games={slideItems}
-                                  onGameClick={(selected) => {
-                                    const rawId = String(selected.id ?? "");
-                                    if (rawId.startsWith("collectionlike:")) {
-                                      const parts = rawId.split(":");
-                                      const linkedId = parts[2];
-                                      if (linkedId && onCollectionClick) {
-                                        onCollectionClick(linkedId);
-                                        return;
-                                      }
-                                    }
-                                    onGameClick(selected);
-                                  }}
-                                  onPlay={onPlay}
-                                  onGameUpdate={onGameUpdate}
-                                  coverSize={140}
-                                  allCollections={allCollections}
-                                  allCollectionLikes={allCollectionLikes}
-                                  collectionLikeResourceType={resourceType}
-                                  sliderParentCollectionLikeId={String(parent.id)}
-                                  onRemoveChildFromSliderParent={(childId) =>
-                                    removeChildFromSliderParent(String(parent.id), childId)
-                                  }
-                                  onCollectionLikePseudoEdit={handleCollectionLikePseudoEdit}
-                                  onPlayFirstInCollectionLike={onPlayFirstInCollectionLike}
-                                  onCollectionLikePseudoAddToParent={addChildToParent}
-                                  onCollectionLikePseudoUpdated={dispatchCollectionLikeUpdated}
-                                />
-                              </div>
-                              );
-                            })}
+                            {parentCollectionLikesWithGamesForDisplay.map((block) =>
+                              renderCollectionLikeSlideSectionBlock(block, "parent"),
+                            )}
                           </div>
                         </div>
                       )}
