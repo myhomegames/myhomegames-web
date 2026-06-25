@@ -80,6 +80,42 @@ export default function RecommendedSectionDetailPage({
     return () => window.removeEventListener("mhg-cover-size-changed", handler as EventListener);
   }, [persistentShell]);
 
+  useEffect(() => {
+    const handleGameDeleted = (event: Event) => {
+      const deletedGameId = (event as CustomEvent<{ gameId?: string | number }>).detail?.gameId;
+      if (deletedGameId == null) return;
+      const gameIdStr = String(deletedGameId);
+      setGames((prev) => prev.filter((g) => String(g.id) !== gameIdStr));
+    };
+
+    const handleRecommendedUpdated = () => {
+      if (!sectionId || !settingsLoaded) return;
+      void (async () => {
+        try {
+          const res = await fetch(buildApiUrl(API_BASE, "/recommended"), {
+            headers: buildApiHeaders({ Accept: "application/json" }),
+          });
+          if (!res.ok) return;
+          const json = await res.json();
+          const sections = (json.sections || []) as Array<{ id: string; games?: GameItem[] }>;
+          const section = sections.find((s) => String(s.id) === String(sectionId));
+          if (!section) return;
+          setGames(section.games ?? []);
+          onGamesLoaded(section.games ?? []);
+        } catch {
+          /* ignore */
+        }
+      })();
+    };
+
+    window.addEventListener("gameDeleted", handleGameDeleted);
+    window.addEventListener("recommendedUpdated", handleRecommendedUpdated);
+    return () => {
+      window.removeEventListener("gameDeleted", handleGameDeleted);
+      window.removeEventListener("recommendedUpdated", handleRecommendedUpdated);
+    };
+  }, [sectionId, settingsLoaded, onGamesLoaded]);
+
   const sectionTitle = useAutoTranslate(sectionId ?? "", `recommended.${sectionId ?? ""}`, {
     disabled: !sectionId,
   });

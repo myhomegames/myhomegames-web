@@ -120,10 +120,37 @@ export default function RecommendedPage({
       }
     };
 
+    const handleGameDeleted = (event: Event) => {
+      const customEvent = event as CustomEvent<{ gameId?: string | number }>;
+      const deletedGameId = customEvent.detail?.gameId;
+      if (deletedGameId == null) return;
+      const gameIdStr = String(deletedGameId);
+      setSections((prevSections) => {
+        const next = prevSections
+          .map((section) => ({
+            ...section,
+            games: section.games.filter((game) => String(game.id) !== gameIdStr),
+          }))
+          .filter((section) => section.games.length > 0);
+        setRecommendedSectionsCache(next);
+        return next;
+      });
+    };
+
+    const handleRecommendedUpdated = () => {
+      clearRecommendedSectionsCache();
+      setIsReady(false);
+      fetchRecommendedSections();
+    };
+
     window.addEventListener("gameUpdated", handleGameUpdated as EventListener);
+    window.addEventListener("gameDeleted", handleGameDeleted as EventListener);
+    window.addEventListener("recommendedUpdated", handleRecommendedUpdated);
     
     return () => {
       window.removeEventListener("gameUpdated", handleGameUpdated as EventListener);
+      window.removeEventListener("gameDeleted", handleGameDeleted as EventListener);
+      window.removeEventListener("recommendedUpdated", handleRecommendedUpdated);
     };
   }, []);
 

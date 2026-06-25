@@ -2,6 +2,7 @@ import { useState } from "react";
 import { API_BASE } from "../../../config";
 import { buildApiUrl, buildApiHeaders } from "../../../utils/api";
 import { useLoading } from "../../../contexts/LoadingContext";
+import { schedulePostGameImportLibraryRefresh } from "../../../utils/librarySyncEvents";
 import type { GameItem } from "../../../types";
 
 type UseCreateGameParams = {
@@ -93,6 +94,7 @@ export function useCreateGame({
       };
 
       window.dispatchEvent(new CustomEvent("gameAdded", { detail: { game: addedGame } }));
+      schedulePostGameImportLibraryRefresh();
       if (onGameAdded) onGameAdded(addedGame);
       return addedGame;
     } catch (error: unknown) {

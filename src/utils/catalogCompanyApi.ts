@@ -48,6 +48,12 @@ export async function refreshRemoteCompanyProfileViaApi(
     return;
   }
 
+  if (resourceType === "developers") {
+    window.dispatchEvent(new CustomEvent("developerUpdated", { detail: {} }));
+  } else {
+    window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: {} }));
+  }
+
   if (!syncParent) return;
 
   const parent = profile.parentCompany;

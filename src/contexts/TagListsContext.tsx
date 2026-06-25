@@ -95,8 +95,16 @@ export function TagListsProvider({ children }: { children: ReactNode }) {
   // When a new game is added (possibly with new tags), refresh tag lists so new tags show titles instead of ids
   useEffect(() => {
     const handleGameAdded = () => refreshTagLists();
+    const handleGameDeleted = () => refreshTagLists();
+    const handleRecommendedUpdated = () => refreshTagLists();
     window.addEventListener("gameAdded", handleGameAdded);
-    return () => window.removeEventListener("gameAdded", handleGameAdded);
+    window.addEventListener("gameDeleted", handleGameDeleted);
+    window.addEventListener("recommendedUpdated", handleRecommendedUpdated);
+    return () => {
+      window.removeEventListener("gameAdded", handleGameAdded);
+      window.removeEventListener("gameDeleted", handleGameDeleted);
+      window.removeEventListener("recommendedUpdated", handleRecommendedUpdated);
+    };
   }, [refreshTagLists]);
 
   // When a tag list is updated (e.g. from EditTagModal for any tag type), refresh so labels stay in sync

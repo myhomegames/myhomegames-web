@@ -2,6 +2,7 @@ import { useState } from "react";
 import { buildApiHeaders } from "../../../utils/api";
 import { buildCatalogApiUrl, isCatalogSearchEnabled } from "../../../utils/catalogApi";
 import { syncCompanyProfilesAfterGameImport } from "../../../utils/catalogCompanyApi";
+import { schedulePostGameImportLibraryRefresh, schedulePostCompanyProfileSyncRefresh } from "../../../utils/librarySyncEvents";
 import { useSettings } from "../../../contexts/SettingsContext";
 import { useLoading } from "../../../contexts/LoadingContext";
 import type { CatalogGame, GameItem } from "../../../types";
@@ -133,13 +134,19 @@ export function useAddGame({
         onGameAdded(addedGame);
       }
 
+      schedulePostGameImportLibraryRefresh();
+
       if (isCatalogSearchEnabled(twitchApiEnabled)) {
-        await syncCompanyProfilesAfterGameImport(
+        void syncCompanyProfilesAfterGameImport(
           catalogGame.developers as Array<{ id: number; name?: string }> | undefined,
           catalogGame.publishers as Array<{ id: number; name?: string }> | undefined,
-        ).catch((err) => {
-          console.warn("Company profile sync skipped after game import:", err);
-        });
+        )
+          .then(() => {
+            schedulePostCompanyProfileSyncRefresh();
+          })
+          .catch((err) => {
+            console.warn("Company profile sync skipped after game import:", err);
+          });
       }
 
       return addedGame;

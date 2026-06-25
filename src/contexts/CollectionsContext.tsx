@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { CollectionItem } from "../types";
 import { buildApiHeaders, buildAppApiUrl } from "../utils/api";
 import { compareTitles } from "../utils/stringUtils";
+import { schedulePostGameDeleteLibraryRefresh } from "../utils/librarySyncEvents";
 import { useAuth } from "./AuthContext";
 import { useSettings } from "./SettingsContext";
 
@@ -180,13 +181,49 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
       fetchCollections();
     };
 
+    const handleGameDeleted = (event: Event) => {
+      const customEvent = event as CustomEvent<{ gameId?: string | number }>;
+      const deletedGameId = customEvent.detail?.gameId;
+      if (deletedGameId == null) return;
+
+      const gameIdStr = String(deletedGameId);
+      const affectedCollectionIds: string[] = [];
+
+      setCollectionGameIds((prev) => {
+        const updated = new Map(prev);
+        for (const [collectionId, gameIds] of prev) {
+          if (!gameIds.includes(gameIdStr)) continue;
+          affectedCollectionIds.push(collectionId);
+          updated.set(
+            collectionId,
+            gameIds.filter((id) => id !== gameIdStr),
+          );
+        }
+        return updated;
+      });
+
+      if (affectedCollectionIds.length > 0) {
+        setCollections((prev) =>
+          prev.map((col) => {
+            if (!affectedCollectionIds.includes(String(col.id))) return col;
+            const nextCount = Math.max(0, (col.gameCount ?? 1) - 1);
+            return { ...col, gameCount: nextCount };
+          }),
+        );
+      }
+
+      schedulePostGameDeleteLibraryRefresh(affectedCollectionIds);
+    };
+
     window.addEventListener("collectionUpdated", handleCollectionUpdated as EventListener);
     window.addEventListener("collectionDeleted", handleCollectionDeleted as EventListener);
     window.addEventListener("metadataReloaded", handleMetadataReloaded);
+    window.addEventListener("gameDeleted", handleGameDeleted as EventListener);
     return () => {
       window.removeEventListener("collectionUpdated", handleCollectionUpdated as EventListener);
       window.removeEventListener("collectionDeleted", handleCollectionDeleted as EventListener);
       window.removeEventListener("metadataReloaded", handleMetadataReloaded);
+      window.removeEventListener("gameDeleted", handleGameDeleted as EventListener);
     };
   }, [fetchCollections]);
 
