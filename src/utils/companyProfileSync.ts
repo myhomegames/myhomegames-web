@@ -83,15 +83,6 @@ export function dispatchCollectionLikeChildLinked(
   );
 }
 
-export function syncParentCompanyChildLinkInUI(
-  resourceType: "developers" | "publishers",
-  item: CollectionInfo,
-) {
-  const parent = pickCompanyProfileFields(item).parentCompany;
-  if (parent?.id == null) return;
-  dispatchCollectionLikeChildLinked(resourceType, parent.id, item.id);
-}
-
 export function dispatchDeveloperOrPublisherUpdated(
   resourceType: "developers" | "publishers",
   updatedItem: CollectionInfo,
@@ -106,7 +97,6 @@ export function dispatchDeveloperOrPublisherUpdated(
     );
   }
   dispatchCompanyProfileUpdated(updatedItem);
-  syncParentCompanyChildLinkInUI(resourceType, updatedItem);
 }
 
 export { COMPANY_PROFILE_FIELD_KEYS };

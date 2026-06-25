@@ -14,7 +14,6 @@ describe("editCompanyProfile", () => {
       legalName: "Capcom Co., Ltd.",
       companySizeId: 7,
       formerly: { id: 41283, name: "Flagship" },
-      parentCompany: { id: 99, name: "Mattel" },
     };
 
     const form = companyProfileToFormState(info);
@@ -27,8 +26,6 @@ describe("editCompanyProfile", () => {
     expect(form.companySizeId).toBe("7");
     expect(form.formerlyId).toBe("41283");
     expect(form.formerlyName).toBe("Flagship");
-    expect(form.parentCompanyId).toBe("99");
-    expect(form.parentCompanyName).toBe("Mattel");
 
     expect(formStateToCompanyProfile(form)).toEqual({
       status: "active",
@@ -37,7 +34,6 @@ describe("editCompanyProfile", () => {
       legalName: "Capcom Co., Ltd.",
       companySizeId: 7,
       formerly: { id: 41283, name: "Flagship" },
-      parentCompany: { id: 99, name: "Mattel" },
     });
   });
 

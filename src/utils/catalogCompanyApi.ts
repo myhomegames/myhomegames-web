@@ -1,6 +1,7 @@
 import { getApiBase } from "../config";
 import { buildApiUrl, buildApiHeaders } from "./api";
 import { buildCatalogApiUrl } from "./catalogApi";
+import type { CatalogCompanyInfo } from "../types";
 import { parseCompanyMergePayloadFromApi } from "./companyProfile";
 
 type CompanyRole = "developers" | "publishers";
@@ -27,9 +28,16 @@ export async function refreshRemoteCompanyProfileViaApi(
   });
   if (!catalogRes.ok) return;
 
-  const catalogData = (await catalogRes.json()) as Record<string, unknown> | null;
+  const catalogData = (await catalogRes.json()) as CatalogCompanyInfo | null;
   const profile = parseCompanyMergePayloadFromApi(catalogData ?? undefined);
-  if (Object.keys(profile).length === 0) return;
+  const parentCompany = catalogData?.parentCompany;
+  const hasParentHint = parentCompany?.id != null;
+  if (Object.keys(profile).length === 0 && !hasParentHint) return;
+
+  const mergeBody: Record<string, unknown> = { ...profile };
+  if (hasParentHint) {
+    mergeBody.parentCompany = parentCompany;
+  }
 
   const mergeRes = await fetch(buildApiUrl(getApiBase(), `/${resourceType}/${itemId}/merge-company-profile`), {
     method: "POST",
@@ -37,7 +45,7 @@ export async function refreshRemoteCompanyProfileViaApi(
       ...buildApiHeaders(),
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(profile),
+    body: JSON.stringify(mergeBody),
   });
   if (!mergeRes.ok) {
     console.warn(
@@ -56,7 +64,7 @@ export async function refreshRemoteCompanyProfileViaApi(
 
   if (!syncParent) return;
 
-  const parent = profile.parentCompany;
+  const parent = catalogData?.parentCompany;
   if (parent?.id != null) {
     await refreshRemoteCompanyProfileViaApi(
       resourceType,

@@ -86,8 +86,6 @@ export type CompanyProfileFormState = {
   companySizeId: string;
   formerlyId: string;
   formerlyName: string;
-  parentCompanyId: string;
-  parentCompanyName: string;
   updatedToId: string;
   updatedToName: string;
 };
@@ -107,8 +105,6 @@ export function emptyCompanyProfileFormState(): CompanyProfileFormState {
     companySizeId: "",
     formerlyId: "",
     formerlyName: "",
-    parentCompanyId: "",
-    parentCompanyName: "",
     updatedToId: "",
     updatedToName: "",
   };
@@ -134,8 +130,6 @@ export function companyProfileToFormState(
     companySizeId: info.companySizeId != null ? String(info.companySizeId) : "",
     formerlyId: info.formerly?.id != null ? String(info.formerly.id) : "",
     formerlyName: info.formerly?.name ?? "",
-    parentCompanyId: info.parentCompany?.id != null ? String(info.parentCompany.id) : "",
-    parentCompanyName: info.parentCompany?.name ?? "",
     updatedToId: info.updatedTo?.id != null ? String(info.updatedTo.id) : "",
     updatedToName: info.updatedTo?.name ?? "",
   };
@@ -198,9 +192,6 @@ export function formStateToCompanyProfile(
 
   const formerly = buildCompanyReference(state.formerlyId, state.formerlyName);
   if (formerly) info.formerly = formerly as CompanyProfileFields["formerly"];
-
-  const parentCompany = buildCompanyReference(state.parentCompanyId, state.parentCompanyName);
-  if (parentCompany) info.parentCompany = parentCompany as CompanyProfileFields["parentCompany"];
 
   const updatedTo = buildCompanyReference(state.updatedToId, state.updatedToName);
   if (updatedTo) info.updatedTo = updatedTo as CompanyProfileFields["updatedTo"];

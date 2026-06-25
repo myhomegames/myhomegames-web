@@ -10,7 +10,6 @@ const COMPANY_PROFILE_FIELD_KEYS = [
   "companySize",
   "companySizeId",
   "formerly",
-  "parentCompany",
   "updatedTo",
 ] as const satisfies ReadonlyArray<keyof CompanyProfileFields>;
 

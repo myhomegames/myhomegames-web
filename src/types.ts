@@ -83,7 +83,15 @@ export type CompanyProfileFields = {
   /** Label via i18n `companySizes.{id}`. */
   companySizeId?: number;
   formerly?: { id: number; name: string };
+};
+
+/** IGDB catalog company payload; parent is used only during import to build childs links. */
+export type CatalogCompanyInfo = CompanyProfileFields & {
   parentCompany?: { id: number; name: string };
+  title?: string;
+  summary?: string;
+  externalCoverUrl?: string | null;
+  externalBackgroundUrl?: string | null;
 };
 
 export type CollectionInfo = {

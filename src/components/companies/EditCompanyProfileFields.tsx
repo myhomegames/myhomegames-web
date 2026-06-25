@@ -16,12 +16,12 @@ type EditCompanyProfileFieldsProps = {
   currentCompanyId?: string;
 };
 
-type LinkedCompanyFieldKey = "formerly" | "parentCompany" | "updatedTo";
+type LinkedCompanyFieldKey = "formerly" | "updatedTo";
 
 const LINKED_COMPANY_FIELDS: Array<{
   key: LinkedCompanyFieldKey;
-  idField: "formerlyId" | "parentCompanyId" | "updatedToId";
-  nameField: "formerlyName" | "parentCompanyName" | "updatedToName";
+  idField: "formerlyId" | "updatedToId";
+  nameField: "formerlyName" | "updatedToName";
   legendKey: string;
   legendDefault: string;
   addKey: string;
@@ -34,15 +34,6 @@ const LINKED_COMPANY_FIELDS: Array<{
     legendKey: "catalogInfo.formerly",
     legendDefault: "Formerly",
     addKey: "catalogInfo.addFormerly",
-    addDefault: "Add company",
-  },
-  {
-    key: "parentCompany",
-    idField: "parentCompanyId",
-    nameField: "parentCompanyName",
-    legendKey: "catalogInfo.parentCompany",
-    legendDefault: "Parent company",
-    addKey: "catalogInfo.addParentCompany",
     addDefault: "Add company",
   },
   {

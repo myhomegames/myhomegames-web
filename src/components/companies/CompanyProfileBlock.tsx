@@ -116,16 +116,6 @@ export default function CompanyProfileBlock({ info, resourceType }: CompanyProfi
       ),
     });
   }
-  if (info.parentCompany) {
-    metaParts.push({
-      key: "parentCompany",
-      node: (
-        <>
-          {t("catalogInfo.parentCompany", "Parent company")}: {renderCompanyName(info.parentCompany)}
-        </>
-      ),
-    });
-  }
   if (info.updatedTo) {
     metaParts.push({
       key: "updatedTo",
