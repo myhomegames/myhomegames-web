@@ -1,4 +1,6 @@
 import type { CollectionInfo, CompanyProfileFields } from "../types";
+import { API_BASE } from "../config";
+import { buildApiHeaders, buildApiUrl } from "./api";
 
 const COMPANY_PROFILE_FIELD_KEYS = [
   "status",
@@ -75,6 +77,21 @@ export function applyCompanyProfileFieldsToPayload(
     }
   }
   return next;
+}
+
+export async function fetchCollectionLikeDetail(
+  routeBase: string,
+  id: string | number,
+  signal?: AbortSignal,
+): Promise<CollectionInfo | null> {
+  const url = buildApiUrl(API_BASE, `/${routeBase}/${encodeURIComponent(String(id))}`);
+  const res = await fetch(url, {
+    headers: buildApiHeaders({ Accept: "application/json" }),
+    signal,
+  });
+  if (!res.ok) return null;
+  const data = (await res.json()) as Record<string, unknown>;
+  return collectionInfoFromApi(data);
 }
 
 export function collectionInfoFromApi(raw: Record<string, unknown>): CollectionInfo {
