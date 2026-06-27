@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 
 import type { ActivityProgress } from "../contexts/LoadingContext";
 import {
-  clearPersistedActivity,
   readPersistedActivity,
   updatePersistedBulkCheckpoint,
   updatePersistedProgress,
@@ -159,7 +158,6 @@ export function useResumeActivityJob({
       } catch (error) {
         console.error("Failed to resume activity job after reload:", error);
       } finally {
-        clearPersistedActivity();
         setActivityBusy(false);
         setActivityProgress(null);
         clearBulkMetadataReloadCancel();

@@ -1,9 +1,11 @@
-import { createContext, useContext, useState, useCallback, useMemo } from "react";
+import { createContext, useContext, useState, useCallback, useMemo, useEffect } from "react";
+import { isBulkMetadataReloadRunning } from "../utils/bulkMetadataReloadContext";
 import type { ReactNode } from "react";
 
 import {
   clearPersistedActivity,
   hasPersistedActivityJob,
+  isSingleMetadataReloadInProgress,
   readPersistedActivity,
   updatePersistedProgress,
 } from "../utils/activitySession";
@@ -22,6 +24,8 @@ export type ActivityProgressPhase =
 export type ActivityProgress = {
   phase: ActivityProgressPhase;
   percent: number;
+  /** Library id of the entity currently being reloaded (single-item jobs). */
+  itemId?: string;
   /** Display name of the entity currently being reloaded. */
   itemLabel?: string;
   /** 1-based index of the current step in the overall bulk run. */
@@ -87,6 +91,15 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
       clearPersistedActivity();
     }
   }, []);
+
+  useEffect(() => {
+    if (!isActivityBusy) return;
+    if (hasPersistedActivityJob()) return;
+    if (isBulkMetadataReloadRunning()) return;
+    if (isSingleMetadataReloadInProgress()) return;
+    setIsActivityBusy(false);
+    setActivityProgressState(null);
+  }, [isActivityBusy]);
 
   const value: LoadingContextType = useMemo(
     () => ({

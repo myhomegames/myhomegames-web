@@ -115,9 +115,10 @@ export function beginPersistedBulkJob(input: {
 }
 
 export function beginPersistedSingleJob(input: PersistedSingleMetadataJob): void {
+  const job: PersistedSingleMetadataJob = { ...input, id: String(input.id) };
   writeRaw({
-    progress: buildSingleMetadataReloadProgress(input.target, 0, input.title, input.id),
-    job: input,
+    progress: buildSingleMetadataReloadProgress(job.target, 0, job.title, job.id),
+    job,
   });
 }
 
@@ -131,6 +132,7 @@ export function buildSingleMetadataReloadProgress(
   return {
     phase,
     percent,
+    itemId: String(id),
     itemLabel,
     step: 1,
     totalSteps: 1,
@@ -150,11 +152,18 @@ export function resolveSingleMetadataReloadTarget(input: {
   developerId?: string;
   publisherId?: string;
 }): SingleMetadataReloadTarget | null {
-  if (input.gameId) return { target: "game", id: input.gameId };
-  if (input.collectionId) return { target: "collection", id: input.collectionId };
-  if (input.developerId) return { target: "developer", id: input.developerId };
-  if (input.publisherId) return { target: "publisher", id: input.publisherId };
+  if (input.gameId) return { target: "game", id: String(input.gameId) };
+  if (input.collectionId) return { target: "collection", id: String(input.collectionId) };
+  if (input.developerId) return { target: "developer", id: String(input.developerId) };
+  if (input.publisherId) return { target: "publisher", id: String(input.publisherId) };
   return null;
+}
+
+function singleMetadataTargetsMatch(
+  left: SingleMetadataReloadTarget,
+  right: SingleMetadataReloadTarget,
+): boolean {
+  return left.target === right.target && String(left.id) === String(right.id);
 }
 
 export function isPersistedSingleMetadataReloadFor(
@@ -163,7 +172,31 @@ export function isPersistedSingleMetadataReloadFor(
   if (!target) return false;
   const persisted = readPersistedActivity();
   if (persisted?.job?.kind !== "single-metadata") return false;
-  return persisted.job.target === target.target && persisted.job.id === target.id;
+  return singleMetadataTargetsMatch(
+    { target: persisted.job.target, id: persisted.job.id },
+    target,
+  );
+}
+
+export function singleMetadataReloadProgressMatchesTarget(
+  progress: ActivityProgress | null,
+  target: SingleMetadataReloadTarget | null,
+): boolean {
+  if (!progress || !target) return false;
+  if (progress.phase !== target.target) return false;
+  if (progress.itemId == null) return false;
+  return String(progress.itemId) === String(target.id);
+}
+
+export function isSingleMetadataReloadActiveFor(
+  target: SingleMetadataReloadTarget | null,
+  progress: ActivityProgress | null = null,
+): boolean {
+  if (!target) return false;
+  return (
+    isPersistedSingleMetadataReloadFor(target) ||
+    singleMetadataReloadProgressMatchesTarget(progress, target)
+  );
 }
 
 let singleReloadAbortController: AbortController | null = null;
@@ -191,6 +224,7 @@ export function isSingleMetadataReloadCancelRequested(): boolean {
 
 export function isSingleMetadataReloadInProgress(): boolean {
   if (singleReloadCancelRequested) return false;
+  if (singleReloadAbortController != null) return true;
   const persisted = readPersistedActivity();
   return persisted?.job?.kind === "single-metadata";
 }

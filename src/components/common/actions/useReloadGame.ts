@@ -156,9 +156,9 @@ export function useReloadGame({
       } else if (collectionId) {
         response = await reloadCollectionMetadataItem(collectionId);
       } else if (developerId) {
-        response = await reloadDeveloperMetadataItem(developerId, undefined, catalogSearchEnabled);
+        response = await reloadDeveloperMetadataItem(developerId, itemTitle, catalogSearchEnabled);
       } else if (publisherId) {
-        response = await reloadPublisherMetadataItem(publisherId, undefined, catalogSearchEnabled);
+        response = await reloadPublisherMetadataItem(publisherId, itemTitle, catalogSearchEnabled);
       } else {
         response = await fetch(buildApiUrl(API_BASE, "/reload-games"), {
           method: "POST",

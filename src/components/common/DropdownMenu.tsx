@@ -8,7 +8,7 @@ import { useLoading } from "../../contexts/LoadingContext";
 import { isBulkMetadataReloadInProgress, cancelBulkMetadataReload } from "../../utils/bulkMetadataReloadContext";
 import {
   cancelSingleMetadataReload,
-  isPersistedSingleMetadataReloadFor,
+  isSingleMetadataReloadActiveFor,
   resolveSingleMetadataReloadTarget,
 } from "../../utils/activitySession";
 import { bindSheetBackdropClose } from "../../utils/sheetPopupBackdrop";
@@ -83,7 +83,7 @@ export default function DropdownMenu({
 }: DropdownMenuProps) {
   const { t } = useTranslation();
   const { activeSkinWeb } = useSkin();
-  const { isActivityBusy } = useLoading();
+  const { isActivityBusy, activityProgress } = useLoading();
   const metadataReloadBlocked = isActivityBusy && isBulkMetadataReloadInProgress();
   const singleMetadataReloadTarget = resolveSingleMetadataReloadTarget({
     gameId,
@@ -156,7 +156,7 @@ export default function DropdownMenu({
     isSingleItemReloadMenu &&
     !metadataReloadBlocked &&
     (reloadGame.isReloading ||
-      (isActivityBusy && isPersistedSingleMetadataReloadFor(singleMetadataReloadTarget)));
+      isSingleMetadataReloadActiveFor(singleMetadataReloadTarget, activityProgress));
   const metadataReloadInProgressLabel = metadataReloadBlocked || isThisSingleReloadInProgress;
 
   // Always call the hook (React rules of hooks); hook no-ops when gameId or onGameUpdate missing

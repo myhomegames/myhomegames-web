@@ -112,12 +112,17 @@ async function resolveCompanyTitle(
   signal?: AbortSignal,
 ): Promise<string> {
   throwIfMetadataReloadAborted();
-  if (title?.trim()) return title.trim();
+  if (title?.trim()) {
+    return title.trim();
+  }
+
   const detailRes = await fetch(buildApiUrl(API_BASE, `/${resourceType}/${itemId}`), {
     headers: buildApiHeaders(),
     signal,
   });
-  if (!detailRes.ok) return "";
+  if (!detailRes.ok) {
+    return "";
+  }
   const detail = (await detailRes.json()) as { title?: string };
   return typeof detail.title === "string" ? detail.title : "";
 }
@@ -178,6 +183,7 @@ export async function reloadDeveloperMetadataItem(
   catalogSearchEnabled: boolean,
 ): Promise<Response> {
   const signal = metadataReloadSignal();
+
   throwIfMetadataReloadAborted();
   if (catalogSearchEnabled) {
     try {
@@ -186,10 +192,13 @@ export async function reloadDeveloperMetadataItem(
         signal,
       });
     } catch (err) {
-      if (isBulkMetadataReloadAbortedError(err)) throw err;
+      if (isBulkMetadataReloadAbortedError(err)) {
+        throw err;
+      }
       console.warn(`IGDB developer metadata refresh skipped for ${developerId}:`, err);
     }
   }
+
   throwIfMetadataReloadAborted();
   return postReload(`/developers/${developerId}/reload`, signal);
 }
@@ -201,6 +210,7 @@ export async function reloadPublisherMetadataItem(
   catalogSearchEnabled: boolean,
 ): Promise<Response> {
   const signal = metadataReloadSignal();
+
   throwIfMetadataReloadAborted();
   if (catalogSearchEnabled) {
     try {
@@ -209,10 +219,13 @@ export async function reloadPublisherMetadataItem(
         signal,
       });
     } catch (err) {
-      if (isBulkMetadataReloadAbortedError(err)) throw err;
+      if (isBulkMetadataReloadAbortedError(err)) {
+        throw err;
+      }
       console.warn(`IGDB publisher metadata refresh skipped for ${publisherId}:`, err);
     }
   }
+
   throwIfMetadataReloadAborted();
   return postReload(`/publishers/${publisherId}/reload`, signal);
 }

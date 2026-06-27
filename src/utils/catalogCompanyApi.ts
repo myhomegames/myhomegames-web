@@ -3,7 +3,10 @@ import { buildApiUrl, buildApiHeaders } from "./api";
 import { buildCatalogApiUrl } from "./catalogApi";
 import type { CatalogCompanyInfo } from "../types";
 import { parseCompanyMergePayloadFromApi } from "./companyProfile";
-import { throwIfMetadataReloadAborted } from "./bulkMetadataReloadContext";
+import {
+  isBulkMetadataReloadAbortedError,
+  throwIfMetadataReloadAborted,
+} from "./bulkMetadataReloadContext";
 
 type CompanyRole = "developers" | "publishers";
 
@@ -12,7 +15,13 @@ type CompanyRef = { id: number; name?: string | null };
 type RefreshRemoteCompanyProfileOptions = {
   syncParent?: boolean;
   signal?: AbortSignal;
+  relationDepth?: number;
+  /** Company ids already synced in this relation walk (prevents formerly ↔ updatedTo loops). */
+  visitedIds?: Set<string>;
 };
+
+/** Safety cap for IGDB company relation chains (parent / updatedTo / formerly). */
+const MAX_COMPANY_RELATION_SYNC_DEPTH = 16;
 
 /**
  * Fetch company profile via /igdb/* (proxy) and merge into local library storage.
@@ -27,6 +36,18 @@ export async function refreshRemoteCompanyProfileViaApi(
 ): Promise<void> {
   const syncParent = options.syncParent !== false;
   const signal = options.signal;
+  const depth = options.relationDepth ?? 0;
+  const visited = options.visitedIds ?? new Set<string>();
+
+  if (depth > MAX_COMPANY_RELATION_SYNC_DEPTH) {
+    return;
+  }
+
+  if (visited.has(itemId)) {
+    return;
+  }
+
+  visited.add(itemId);
 
   throwIfMetadataReloadAborted();
 
@@ -37,9 +58,13 @@ export async function refreshRemoteCompanyProfileViaApi(
     headers: buildApiHeaders(),
     signal,
   });
-  if (!catalogRes.ok) return;
+
+  if (!catalogRes.ok) {
+    return;
+  }
 
   const catalogData = (await catalogRes.json()) as CatalogCompanyInfo | null;
+
   throwIfMetadataReloadAborted();
 
   const profile = parseCompanyMergePayloadFromApi(catalogData ?? undefined);
@@ -49,14 +74,18 @@ export async function refreshRemoteCompanyProfileViaApi(
     hasParentHint ||
     catalogData?.updatedTo?.id != null ||
     catalogData?.formerly?.id != null;
-  if (Object.keys(profile).length === 0 && !hasRelationHint) return;
+
+  if (Object.keys(profile).length === 0 && !hasRelationHint) {
+    return;
+  }
 
   const mergeBody: Record<string, unknown> = { ...profile };
   if (hasParentHint) {
     mergeBody.parentCompany = parentCompany;
   }
 
-  const mergeRes = await fetch(buildApiUrl(getApiBase(), `/${resourceType}/${itemId}/merge-company-profile`), {
+  const mergeUrl = buildApiUrl(getApiBase(), `/${resourceType}/${itemId}/merge-company-profile`);
+  const mergeRes = await fetch(mergeUrl, {
     method: "POST",
     headers: {
       ...buildApiHeaders(),
@@ -65,11 +94,13 @@ export async function refreshRemoteCompanyProfileViaApi(
     body: JSON.stringify(mergeBody),
     signal,
   });
+
   if (!mergeRes.ok) {
+    const body = await mergeRes.text().catch(() => "");
     console.warn(
       `Company profile merge failed for ${resourceType}/${itemId}:`,
       mergeRes.status,
-      await mergeRes.text().catch(() => ""),
+      body,
     );
     return;
   }
@@ -80,26 +111,46 @@ export async function refreshRemoteCompanyProfileViaApi(
     window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: {} }));
   }
 
-  if (!syncParent) return;
+  if (!syncParent) {
+    return;
+  }
 
-  const relatedIds = new Set<string>();
-  const syncRelated = async (ref: { id?: number; name?: string | null } | undefined) => {
+  const syncRelated = async (
+    relation: "parentCompany" | "updatedTo" | "formerly",
+    ref: { id?: number; name?: string | null } | undefined,
+  ) => {
     throwIfMetadataReloadAborted();
-    if (ref?.id == null) return;
+
+    if (ref?.id == null) {
+      return;
+    }
+
     const relatedId = String(ref.id);
-    if (relatedId === itemId || relatedIds.has(relatedId)) return;
-    relatedIds.add(relatedId);
-    await refreshRemoteCompanyProfileViaApi(
-      resourceType,
-      relatedId,
-      ref.name ?? undefined,
-      { syncParent: true, signal },
-    );
+    if (relatedId === itemId || visited.has(relatedId)) {
+      return;
+    }
+
+    try {
+      await refreshRemoteCompanyProfileViaApi(
+        resourceType,
+        relatedId,
+        ref.name ?? undefined,
+        {
+          syncParent: true,
+          signal,
+          relationDepth: depth + 1,
+          visitedIds: visited,
+        },
+      );
+    } catch (error) {
+      if (isBulkMetadataReloadAbortedError(error)) throw error;
+      throw error;
+    }
   };
 
-  await syncRelated(parentCompany);
-  await syncRelated(catalogData?.updatedTo);
-  await syncRelated(catalogData?.formerly);
+  await syncRelated("parentCompany", parentCompany);
+  await syncRelated("updatedTo", catalogData?.updatedTo);
+  await syncRelated("formerly", catalogData?.formerly);
 }
 
 /** Company profile sync after catalog game import (IGDB reads only via /igdb/*). */
