@@ -318,6 +318,7 @@
     "deleteError": "ゲームの削除に失敗しました",
     "reloadMetadata": "すべてのメタデータを再読み込み",
     "reloadSingleMetadata": "メタデータを再読み込み",
+    "singleMetadataReloadInProgress": "更新中",
     "reloadingMetadata": "メタデータを再読み込み中...",
     "confirmReload": "すべてのメタデータを再読み込みしてもよろしいですか？これにより、すべてのゲーム、コレクション、カテゴリが更新されます。",
     "confirmCancelBulkReload": "進行中のメタデータ更新をキャンセルしますか？",
@@ -340,6 +341,11 @@
       "publisher": "パブリッシャーを更新中",
       "game": "ゲームを更新中",
       "collection": "コレクションを更新中"
+    },
+    "tooltip": {
+      "withItem": "{{phase}}: {{item}} — {{step}}/{{total}} ({{percent}}%)、{{phaseIndex}}/{{phaseTotal}} 件目",
+      "progress": "{{phase}} — {{step}}/{{total}} ({{percent}}%)",
+      "simple": "{{phase}} ({{percent}}%)"
     }
   },
   "categories": {

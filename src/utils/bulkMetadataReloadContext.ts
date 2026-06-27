@@ -1,5 +1,10 @@
 import type { ActivityProgressPhase } from "../contexts/LoadingContext";
-import { clearPersistedActivity, readPersistedActivity } from "./activitySession";
+import {
+  clearPersistedActivity,
+  getSingleMetadataReloadAbortSignal,
+  isSingleMetadataReloadCancelRequested,
+  readPersistedActivity,
+} from "./activitySession";
 
 export type BulkMetadataReloadProgress = {
   completedSteps: number;
@@ -43,6 +48,13 @@ export function getBulkMetadataReloadAbortSignal(): AbortSignal | undefined {
 
 export function throwIfBulkMetadataReloadAborted(): void {
   if (bulkReloadCancelRequested || bulkReloadAbortController?.signal.aborted) {
+    throw new BulkMetadataReloadAbortedError();
+  }
+}
+
+export function throwIfMetadataReloadAborted(): void {
+  throwIfBulkMetadataReloadAborted();
+  if (isSingleMetadataReloadCancelRequested() || getSingleMetadataReloadAbortSignal()?.aborted) {
     throw new BulkMetadataReloadAbortedError();
   }
 }

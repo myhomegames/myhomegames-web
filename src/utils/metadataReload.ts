@@ -2,7 +2,7 @@ import { API_BASE } from "../config";
 import { buildApiUrl, buildApiHeaders } from "./api";
 import { buildCatalogApiUrl } from "./catalogApi";
 import { refreshRemoteCompanyProfileViaApi } from "./catalogCompanyApi";
-import type { ActivityProgressPhase } from "../contexts/LoadingContext";
+import type { ActivityProgress, ActivityProgressPhase } from "../contexts/LoadingContext";
 import {
   clearBulkMetadataReloadProgressIfRun,
   getBulkMetadataReloadAbortSignal,
@@ -10,16 +10,21 @@ import {
   isBulkMetadataReloadAbortedError,
   isBulkMetadataReloadCancelRequested,
   setBulkMetadataReloadProgress,
-  throwIfBulkMetadataReloadAborted,
+  throwIfMetadataReloadAborted,
 } from "./bulkMetadataReloadContext";
+import { getSingleMetadataReloadAbortSignal } from "./activitySession";
 
-export type MetadataReloadProgress = {
-  phase: ActivityProgressPhase;
-  percent: number;
-};
+export type MetadataReloadProgress = ActivityProgress;
 
 /** Pause between bulk IGDB-backed reloads to stay under Twitch/IGDB rate limits. */
 const BULK_IGDB_ITEM_DELAY_MS = 500;
+
+type MetadataEntity = { id: string; title?: string };
+
+function formatItemLabel(title: string | undefined, id: string): string {
+  const trimmed = title?.trim();
+  return trimmed || `#${id}`;
+}
 
 function syncBulkMetadataReloadProgress(
   phase: ActivityProgressPhase,
@@ -31,17 +36,44 @@ function syncBulkMetadataReloadProgress(
   setBulkMetadataReloadProgress({ phase, completedSteps, totalSteps, percent });
 }
 
+function buildProgressSnapshot(input: {
+  phase: ActivityProgressPhase;
+  completedSteps: number;
+  totalSteps: number;
+  itemLabel?: string;
+  phaseIndex?: number;
+  phaseTotal?: number;
+}): ActivityProgress {
+  const { phase, completedSteps, totalSteps, itemLabel, phaseIndex, phaseTotal } = input;
+  const percent =
+    totalSteps > 0 ? Math.min(100, Math.round((completedSteps / totalSteps) * 100)) : 0;
+
+  return {
+    phase,
+    percent,
+    itemLabel,
+    step: Math.min(totalSteps, completedSteps + 1),
+    totalSteps,
+    phaseIndex,
+    phaseTotal,
+  };
+}
+
 function reportProgress(
   onProgress: ReloadAllMetadataInput["onProgress"],
-  phase: ActivityProgressPhase,
-  completed: number,
-  total: number,
+  input: {
+    phase: ActivityProgressPhase;
+    completedSteps: number;
+    totalSteps: number;
+    itemLabel?: string;
+    phaseIndex?: number;
+    phaseTotal?: number;
+  },
 ) {
-  throwIfBulkMetadataReloadAborted();
-  syncBulkMetadataReloadProgress(phase, completed, total);
-  if (!onProgress || total <= 0) return;
-  const percent = Math.min(100, Math.round((completed / total) * 100));
-  onProgress({ phase, percent });
+  throwIfMetadataReloadAborted();
+  syncBulkMetadataReloadProgress(input.phase, input.completedSteps, input.totalSteps);
+  if (!onProgress || input.totalSteps <= 0) return;
+  onProgress(buildProgressSnapshot(input));
 }
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
@@ -79,7 +111,7 @@ async function resolveCompanyTitle(
   title?: string,
   signal?: AbortSignal,
 ): Promise<string> {
-  throwIfBulkMetadataReloadAborted();
+  throwIfMetadataReloadAborted();
   if (title?.trim()) return title.trim();
   const detailRes = await fetch(buildApiUrl(API_BASE, `/${resourceType}/${itemId}`), {
     headers: buildApiHeaders(),
@@ -95,7 +127,7 @@ export async function refreshCatalogGameMetadataViaApi(
   gameId: string,
   signal?: AbortSignal,
 ): Promise<void> {
-  throwIfBulkMetadataReloadAborted();
+  throwIfMetadataReloadAborted();
   const catalogRes = await fetch(buildCatalogApiUrl(`/igdb/game/${gameId}`), {
     headers: buildApiHeaders(),
     signal,
@@ -103,7 +135,7 @@ export async function refreshCatalogGameMetadataViaApi(
   if (!catalogRes.ok) return;
 
   const catalogData = await catalogRes.json();
-  throwIfBulkMetadataReloadAborted();
+  throwIfMetadataReloadAborted();
 
   await fetch(buildApiUrl(API_BASE, `/games/${gameId}/merge-catalog-metadata`), {
     method: "POST",
@@ -116,8 +148,8 @@ export async function refreshCatalogGameMetadataViaApi(
   });
 }
 
-function bulkReloadSignal(): AbortSignal | undefined {
-  return getBulkMetadataReloadAbortSignal();
+function metadataReloadSignal(): AbortSignal | undefined {
+  return getBulkMetadataReloadAbortSignal() ?? getSingleMetadataReloadAbortSignal();
 }
 
 /** Same steps as “Aggiorna metadati” on a single game. */
@@ -125,8 +157,8 @@ export async function reloadGameMetadataItem(
   gameId: string,
   catalogSearchEnabled: boolean,
 ): Promise<Response> {
-  const signal = bulkReloadSignal();
-  throwIfBulkMetadataReloadAborted();
+  const signal = metadataReloadSignal();
+  throwIfMetadataReloadAborted();
   if (catalogSearchEnabled) {
     try {
       await refreshCatalogGameMetadataViaApi(gameId, signal);
@@ -135,7 +167,7 @@ export async function reloadGameMetadataItem(
       console.warn(`IGDB game metadata refresh skipped for ${gameId}:`, err);
     }
   }
-  throwIfBulkMetadataReloadAborted();
+  throwIfMetadataReloadAborted();
   return postReload(`/games/${gameId}/reload`, signal);
 }
 
@@ -145,8 +177,8 @@ export async function reloadDeveloperMetadataItem(
   title: string | undefined,
   catalogSearchEnabled: boolean,
 ): Promise<Response> {
-  const signal = bulkReloadSignal();
-  throwIfBulkMetadataReloadAborted();
+  const signal = metadataReloadSignal();
+  throwIfMetadataReloadAborted();
   if (catalogSearchEnabled) {
     try {
       const resolvedTitle = await resolveCompanyTitle("developers", developerId, title, signal);
@@ -158,7 +190,7 @@ export async function reloadDeveloperMetadataItem(
       console.warn(`IGDB developer metadata refresh skipped for ${developerId}:`, err);
     }
   }
-  throwIfBulkMetadataReloadAborted();
+  throwIfMetadataReloadAborted();
   return postReload(`/developers/${developerId}/reload`, signal);
 }
 
@@ -168,8 +200,8 @@ export async function reloadPublisherMetadataItem(
   title: string | undefined,
   catalogSearchEnabled: boolean,
 ): Promise<Response> {
-  const signal = bulkReloadSignal();
-  throwIfBulkMetadataReloadAborted();
+  const signal = metadataReloadSignal();
+  throwIfMetadataReloadAborted();
   if (catalogSearchEnabled) {
     try {
       const resolvedTitle = await resolveCompanyTitle("publishers", publisherId, title, signal);
@@ -181,31 +213,28 @@ export async function reloadPublisherMetadataItem(
       console.warn(`IGDB publisher metadata refresh skipped for ${publisherId}:`, err);
     }
   }
-  throwIfBulkMetadataReloadAborted();
+  throwIfMetadataReloadAborted();
   return postReload(`/publishers/${publisherId}/reload`, signal);
 }
 
 export async function reloadCollectionMetadataItem(collectionId: string): Promise<Response> {
-  const signal = bulkReloadSignal();
-  throwIfBulkMetadataReloadAborted();
+  const signal = metadataReloadSignal();
+  throwIfMetadataReloadAborted();
   return postReload(`/collections/${collectionId}/reload`, signal);
 }
 
-export type MetadataReloadCheckpoint = {
+export type MetadataReloadCheckpoint = ActivityProgress & {
   completedSteps: number;
-  totalSteps: number;
-  phase: ActivityProgressPhase;
-  percent: number;
 };
 
 export type BulkMetadataReloadOutcome = "completed" | "cancelled" | "failed";
 
 export type ReloadAllMetadataInput = {
   catalogSearchEnabled: boolean;
-  gameIds: string[];
-  developers: Array<{ id: string; title?: string }>;
-  publishers: Array<{ id: string; title?: string }>;
-  collectionIds?: string[];
+  games: MetadataEntity[];
+  developers: MetadataEntity[];
+  publishers: MetadataEntity[];
+  collections?: MetadataEntity[];
   startAtCompletedSteps?: number;
   onProgress?: (progress: MetadataReloadProgress) => void;
   onCheckpoint?: (checkpoint: MetadataReloadCheckpoint) => void;
@@ -215,13 +244,13 @@ function currentPhaseForStep(
   completedSteps: number,
   developers: readonly unknown[],
   publishers: readonly unknown[],
-  gameIds: readonly unknown[],
-  collectionIds: readonly unknown[],
+  games: readonly unknown[],
+  collections: readonly unknown[],
 ): ActivityProgressPhase {
   if (completedSteps < developers.length) return "developers";
   if (completedSteps < developers.length + publishers.length) return "publishers";
-  if (completedSteps < developers.length + publishers.length + gameIds.length) return "games";
-  if (completedSteps < developers.length + publishers.length + gameIds.length + collectionIds.length) {
+  if (completedSteps < developers.length + publishers.length + games.length) return "games";
+  if (completedSteps < developers.length + publishers.length + games.length + collections.length) {
     return "collections";
   }
   return "cache";
@@ -234,16 +263,15 @@ function currentPhaseForStep(
  */
 function emitCheckpoint(
   onCheckpoint: ReloadAllMetadataInput["onCheckpoint"],
-  phase: ActivityProgressPhase,
+  progress: ActivityProgress,
   completedSteps: number,
   totalSteps: number,
 ) {
   if (!onCheckpoint || totalSteps <= 0) return;
-  const percent = Math.min(100, Math.round((completedSteps / totalSteps) * 100));
-  onCheckpoint({ completedSteps, totalSteps, phase, percent });
+  onCheckpoint({ ...progress, completedSteps, totalSteps });
 }
 
-async function processMetadataPhase<T>(
+async function processMetadataPhase<T extends MetadataEntity>(
   phase: ActivityProgressPhase,
   items: readonly T[],
   phaseStartStep: number,
@@ -254,26 +282,58 @@ async function processMetadataPhase<T>(
   onCheckpoint: ReloadAllMetadataInput["onCheckpoint"],
   fn: (item: T) => Promise<unknown>,
 ): Promise<boolean> {
-  const signal = bulkReloadSignal();
+  const signal = metadataReloadSignal();
   const skip = Math.max(0, completedStepsRef.value - phaseStartStep);
   const remaining = items.slice(skip);
+  const phaseTotal = items.length;
 
   for (let i = 0; i < remaining.length; i += 1) {
     if (isBulkMetadataReloadCancelRequested()) {
       return false;
     }
-    reportProgress(onProgress, phase, completedStepsRef.value, totalSteps);
+
+    const item = remaining[i];
+    const phaseIndex = skip + i + 1;
+    const inProgressSnapshot = buildProgressSnapshot({
+      phase,
+      completedSteps: completedStepsRef.value,
+      totalSteps,
+      itemLabel: formatItemLabel(item.title, item.id),
+      phaseIndex,
+      phaseTotal,
+    });
+
+    reportProgress(onProgress, {
+      phase,
+      completedSteps: completedStepsRef.value,
+      totalSteps,
+      itemLabel: inProgressSnapshot.itemLabel,
+      phaseIndex,
+      phaseTotal,
+    });
+
     try {
-      await fn(remaining[i]);
+      await fn(item);
     } catch (err) {
       if (isBulkMetadataReloadAbortedError(err) || isBulkMetadataReloadCancelRequested()) {
         return false;
       }
       throw err;
     }
+
     completedStepsRef.value += 1;
-    reportProgress(onProgress, phase, completedStepsRef.value, totalSteps);
-    emitCheckpoint(onCheckpoint, phase, completedStepsRef.value, totalSteps);
+    const completedSnapshot = buildProgressSnapshot({
+      phase,
+      completedSteps: completedStepsRef.value,
+      totalSteps,
+    });
+    reportProgress(onProgress, {
+      phase,
+      completedSteps: completedStepsRef.value,
+      totalSteps,
+    });
+    emitCheckpoint(onCheckpoint, completedSnapshot, completedStepsRef.value, totalSteps);
+
     if (delayMs > 0 && i < remaining.length - 1) {
       try {
         await sleep(delayMs, signal);
@@ -294,20 +354,20 @@ export async function reloadAllMetadataItems(
 ): Promise<BulkMetadataReloadOutcome> {
   const {
     catalogSearchEnabled,
-    gameIds,
+    games,
     developers,
     publishers,
-    collectionIds = [],
+    collections = [],
     startAtCompletedSteps = 0,
     onProgress,
     onCheckpoint,
   } = input;
 
   const runId = getBulkMetadataReloadRunId();
-  const signal = bulkReloadSignal();
+  const signal = metadataReloadSignal();
 
   const totalSteps =
-    developers.length + publishers.length + gameIds.length + collectionIds.length + 1;
+    developers.length + publishers.length + games.length + collections.length + 1;
   const completedStepsRef = { value: Math.min(startAtCompletedSteps, totalSteps) };
 
   try {
@@ -320,23 +380,23 @@ export async function reloadAllMetadataItems(
     }
 
     syncBulkMetadataReloadProgress("developers", completedStepsRef.value, totalSteps);
-    onProgress?.({
-      phase: currentPhaseForStep(
-        completedStepsRef.value,
-        developers,
-        publishers,
-        gameIds,
-        collectionIds,
-      ),
-      percent:
-        totalSteps > 0
-          ? Math.min(100, Math.round((completedStepsRef.value / totalSteps) * 100))
-          : 0,
-    });
+    onProgress?.(
+      buildProgressSnapshot({
+        phase: currentPhaseForStep(
+          completedStepsRef.value,
+          developers,
+          publishers,
+          games,
+          collections,
+        ),
+        completedSteps: completedStepsRef.value,
+        totalSteps,
+      }),
+    );
 
     const developersEnd = developers.length;
     const publishersEnd = developersEnd + publishers.length;
-    const gamesEnd = publishersEnd + gameIds.length;
+    const gamesEnd = publishersEnd + games.length;
 
     if (
       !(await processMetadataPhase(
@@ -371,14 +431,14 @@ export async function reloadAllMetadataItems(
     if (
       !(await processMetadataPhase(
         "games",
-        gameIds,
+        games,
         publishersEnd,
         BULK_IGDB_ITEM_DELAY_MS,
         completedStepsRef,
         totalSteps,
         onProgress,
         onCheckpoint,
-        (id) => reloadGameMetadataItem(id, catalogSearchEnabled),
+        (item) => reloadGameMetadataItem(item.id, catalogSearchEnabled),
       ))
     ) {
       return "cancelled";
@@ -386,14 +446,14 @@ export async function reloadAllMetadataItems(
     if (
       !(await processMetadataPhase(
         "collections",
-        collectionIds,
+        collections,
         gamesEnd,
         0,
         completedStepsRef,
         totalSteps,
         onProgress,
         onCheckpoint,
-        (id) => reloadCollectionMetadataItem(id),
+        (item) => reloadCollectionMetadataItem(item.id),
       ))
     ) {
       return "cancelled";
@@ -407,7 +467,11 @@ export async function reloadAllMetadataItems(
       return "completed";
     }
 
-    reportProgress(onProgress, "cache", completedStepsRef.value, totalSteps);
+    reportProgress(onProgress, {
+      phase: "cache",
+      completedSteps: completedStepsRef.value,
+      totalSteps,
+    });
     let res: Response;
     try {
       res = await postReload("/reload-games", signal);
@@ -418,8 +482,17 @@ export async function reloadAllMetadataItems(
       throw err;
     }
     completedStepsRef.value += 1;
-    reportProgress(onProgress, "cache", completedStepsRef.value, totalSteps);
-    emitCheckpoint(onCheckpoint, "cache", completedStepsRef.value, totalSteps);
+    const cacheSnapshot = buildProgressSnapshot({
+      phase: "cache",
+      completedSteps: completedStepsRef.value,
+      totalSteps,
+    });
+    reportProgress(onProgress, {
+      phase: "cache",
+      completedSteps: completedStepsRef.value,
+      totalSteps,
+    });
+    emitCheckpoint(onCheckpoint, cacheSnapshot, completedStepsRef.value, totalSteps);
     return res.ok ? "completed" : "failed";
   } finally {
     clearBulkMetadataReloadProgressIfRun(runId);

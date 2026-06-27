@@ -102,14 +102,16 @@ function AppContent() {
   });
 
   useEffect(() => {
-    const onBulkReloadCancelled = () => {
+    const onMetadataReloadCancelled = () => {
       setActivityBusy(false);
       setActivityProgress(null);
     };
 
-    window.addEventListener("mhg:bulk-metadata-reload-cancelled", onBulkReloadCancelled);
+    window.addEventListener("mhg:bulk-metadata-reload-cancelled", onMetadataReloadCancelled);
+    window.addEventListener("mhg:single-metadata-reload-cancelled", onMetadataReloadCancelled);
     return () => {
-      window.removeEventListener("mhg:bulk-metadata-reload-cancelled", onBulkReloadCancelled);
+      window.removeEventListener("mhg:bulk-metadata-reload-cancelled", onMetadataReloadCancelled);
+      window.removeEventListener("mhg:single-metadata-reload-cancelled", onMetadataReloadCancelled);
     };
   }, [setActivityBusy, setActivityProgress]);
 
@@ -121,30 +123,31 @@ function AppContent() {
       return;
     }
 
-    beginPersistedBulkJob({
+    const totalSteps = beginPersistedBulkJob({
       catalogSearchEnabled,
-      gameIds: allGames.map((g) => String(g.id)),
+      games: allGames.map((g) => ({ id: String(g.id), title: g.title })),
       developers: allDevelopers.map((d) => ({ id: d.id, title: d.title })),
       publishers: allPublishers.map((p) => ({ id: p.id, title: p.title })),
-      collectionIds: allCollections.map((c) => c.id),
+      collections: allCollections.map((c) => ({ id: c.id, title: c.title })),
     });
     setActivityBusy(true);
-    setActivityProgress({ phase: "developers", percent: 0 });
+    setActivityProgress({ phase: "developers", percent: 0, step: 1, totalSteps });
     try {
       const outcome = await reloadAllMetadataItems({
         catalogSearchEnabled,
-        gameIds: allGames.map((g) => String(g.id)),
+        games: allGames.map((g) => ({ id: String(g.id), title: g.title })),
         developers: allDevelopers.map((d) => ({ id: d.id, title: d.title })),
         publishers: allPublishers.map((p) => ({ id: p.id, title: p.title })),
-        collectionIds: allCollections.map((c) => c.id),
+        collections: allCollections.map((c) => ({ id: c.id, title: c.title })),
         onProgress: (progress) => {
           if (isBulkMetadataReloadCancelRequested()) return;
           setActivityProgress(progress);
           updatePersistedProgress(progress);
         },
-        onCheckpoint: ({ completedSteps, phase, percent }) => {
+        onCheckpoint: (checkpoint) => {
           if (isBulkMetadataReloadCancelRequested()) return;
-          updatePersistedBulkCheckpoint(completedSteps, { phase, percent });
+          const { completedSteps, ...progress } = checkpoint;
+          updatePersistedBulkCheckpoint(completedSteps, progress);
         },
       });
 

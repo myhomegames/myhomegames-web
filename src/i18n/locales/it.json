@@ -363,6 +363,7 @@
     "deleteError": "Impossibile eliminare il gioco",
     "reloadMetadata": "Aggiorna tutti i metadati",
     "reloadSingleMetadata": "Aggiorna metadati",
+    "singleMetadataReloadInProgress": "Aggiornamento in corso",
     "reloadingMetadata": "Aggiornamento metadati...",
     "confirmReload": "Sei sicuro di voler aggiornare tutti i metadati? Questo ricaricherà tutti i giochi, le collezioni e le categorie.",
     "confirmCancelBulkReload": "Vuoi annullare l'aggiornamento metadati in corso?",
@@ -385,6 +386,11 @@
       "publisher": "Aggiornamento publisher",
       "game": "Aggiornamento gioco",
       "collection": "Aggiornamento collezione"
+    },
+    "tooltip": {
+      "withItem": "{{phase}}: {{item}} — {{step}}/{{total}} ({{percent}}%), elemento {{phaseIndex}}/{{phaseTotal}}",
+      "progress": "{{phase}} — {{step}}/{{total}} ({{percent}}%)",
+      "simple": "{{phase}} ({{percent}}%)"
     }
   },
   "collections": {

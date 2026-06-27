@@ -22,6 +22,16 @@ export type ActivityProgressPhase =
 export type ActivityProgress = {
   phase: ActivityProgressPhase;
   percent: number;
+  /** Display name of the entity currently being reloaded. */
+  itemLabel?: string;
+  /** 1-based index of the current step in the overall bulk run. */
+  step?: number;
+  /** Total steps in the bulk run (including cache refresh). */
+  totalSteps?: number;
+  /** 1-based index within the current phase (e.g. 2nd developer of 5). */
+  phaseIndex?: number;
+  /** Number of items in the current phase. */
+  phaseTotal?: number;
 };
 
 interface LoadingContextType {

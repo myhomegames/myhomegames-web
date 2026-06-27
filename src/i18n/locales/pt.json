@@ -318,6 +318,7 @@
     "deleteError": "Falha ao excluir o jogo",
     "reloadMetadata": "Recarregar todos os metadados",
     "reloadSingleMetadata": "Recarregar metadados",
+    "singleMetadataReloadInProgress": "Atualização em andamento",
     "reloadingMetadata": "Recarregando metadados...",
     "confirmReload": "Tem certeza de que deseja recarregar todos os metadados? Isso atualizará todos os jogos, coleções e categorias.",
     "confirmCancelBulkReload": "Deseja cancelar a atualização de metadados em andamento?",
@@ -340,6 +341,11 @@
       "publisher": "Atualizando publisher",
       "game": "Atualizando jogo",
       "collection": "Atualizando coleção"
+    },
+    "tooltip": {
+      "withItem": "{{phase}}: {{item}} — {{step}}/{{total}} ({{percent}}%), item {{phaseIndex}}/{{phaseTotal}}",
+      "progress": "{{phase}} — {{step}}/{{total}} ({{percent}}%)",
+      "simple": "{{phase}} ({{percent}}%)"
     }
   },
   "categories": {

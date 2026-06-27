@@ -318,6 +318,7 @@
     "deleteError": "Échec de la suppression du jeu",
     "reloadMetadata": "Recharger tous les métadonnées",
     "reloadSingleMetadata": "Recharger métadonnées",
+    "singleMetadataReloadInProgress": "Mise à jour en cours",
     "reloadingMetadata": "Rechargement des métadonnées...",
     "confirmReload": "Êtes-vous sûr de vouloir recharger tous les métadonnées ? Cela actualisera tous les jeux, collections et catégories.",
     "confirmCancelBulkReload": "Voulez-vous annuler la mise à jour des métadonnées en cours ?",
@@ -340,6 +341,11 @@
       "publisher": "Mise à jour de l'éditeur",
       "game": "Mise à jour du jeu",
       "collection": "Mise à jour de la collection"
+    },
+    "tooltip": {
+      "withItem": "{{phase}} : {{item}} — {{step}}/{{total}} ({{percent}} %), élément {{phaseIndex}}/{{phaseTotal}}",
+      "progress": "{{phase}} — {{step}}/{{total}} ({{percent}} %)",
+      "simple": "{{phase}} ({{percent}} %)"
     }
   },
   "categories": {

@@ -9,12 +9,21 @@ import {
   reloadGameMetadataItem,
   reloadPublisherMetadataItem,
 } from "../../../utils/metadataReload";
-import { beginPersistedSingleJob, type PersistedSingleMetadataJob } from "../../../utils/activitySession";
+import {
+  beginPersistedSingleJob,
+  beginSingleMetadataReloadRun,
+  buildSingleMetadataReloadProgress,
+  endSingleMetadataReloadRun,
+  type PersistedSingleMetadataJob,
+} from "../../../utils/activitySession";
 import { dispatchDeveloperOrPublisherUpdated } from "../../../utils/companyProfileSync";
 import { collectionInfoFromApi } from "../../../utils/companyProfile";
 import { useSettings } from "../../../contexts/SettingsContext";
 import { useLoading } from "../../../contexts/LoadingContext";
-import { isBulkMetadataReloadInProgress } from "../../../utils/bulkMetadataReloadContext";
+import {
+  isBulkMetadataReloadAbortedError,
+  isBulkMetadataReloadInProgress,
+} from "../../../utils/bulkMetadataReloadContext";
 import type { GameItem, CollectionInfo } from "../../../types";
 
 type UseReloadGameParams = {
@@ -22,6 +31,7 @@ type UseReloadGameParams = {
   collectionId?: string;
   developerId?: string;
   publisherId?: string;
+  itemTitle?: string;
   onGameUpdate?: (game: GameItem) => void;
   onCollectionUpdate?: (collection: CollectionInfo) => void;
   onReload?: () => void;
@@ -84,6 +94,7 @@ export function useReloadGame({
   collectionId,
   developerId,
   publisherId,
+  itemTitle,
   onGameUpdate,
   onCollectionUpdate,
   onReload,
@@ -114,25 +125,30 @@ export function useReloadGame({
     const catalogSearchEnabled = isCatalogSearchEnabled(twitchApiEnabled);
     const phase = reloadPhase();
 
+    const itemId = String(gameId ?? collectionId ?? developerId ?? publisherId ?? "");
+
     if (phase) {
       beginPersistedSingleJob({
         kind: "single-metadata",
         target: phase,
-        id: String(gameId ?? collectionId ?? developerId ?? publisherId),
+        id: itemId,
+        title: itemTitle,
         catalogSearchEnabled,
       });
     }
 
     setActivityBusy(true);
     if (phase) {
-      setActivityProgress({ phase, percent: 0 });
+      setActivityProgress(buildSingleMetadataReloadProgress(phase, 0, itemTitle, itemId));
     }
+
+    beginSingleMetadataReloadRun();
 
     try {
       let response: Response;
 
       if (phase) {
-        setActivityProgress({ phase, percent: 25 });
+        setActivityProgress(buildSingleMetadataReloadProgress(phase, 25, itemTitle, itemId));
       }
 
       if (gameId) {
@@ -151,7 +167,7 @@ export function useReloadGame({
       }
 
       if (phase) {
-        setActivityProgress({ phase, percent: 100 });
+        setActivityProgress(buildSingleMetadataReloadProgress(phase, 100, itemTitle, itemId));
       }
 
       if (response.ok) {
@@ -205,10 +221,17 @@ export function useReloadGame({
         setActivityBusy(false);
       }
     } catch (error) {
+      if (isBulkMetadataReloadAbortedError(error)) {
+        setIsReloading(false);
+        setActivityBusy(false);
+        return;
+      }
       console.error("Error reloading metadata:", error);
       setReloadError(t("common.reloadError", "Failed to reload metadata"));
       setIsReloading(false);
       setActivityBusy(false);
+    } finally {
+      endSingleMetadataReloadRun();
     }
   };
 

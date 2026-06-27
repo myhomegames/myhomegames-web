@@ -6,9 +6,14 @@ import {
   readPersistedActivity,
   updatePersistedBulkCheckpoint,
   updatePersistedProgress,
+  beginSingleMetadataReloadRun,
+  buildSingleMetadataReloadProgress,
+  endSingleMetadataReloadRun,
 } from "../utils/activitySession";
+import type { PersistedBulkMetadataJob } from "../utils/activitySession";
 import {
   clearBulkMetadataReloadCancel,
+  isBulkMetadataReloadAbortedError,
   isBulkMetadataReloadCancelRequested,
   releaseBulkMetadataReloadLock,
   tryAcquireBulkMetadataReloadLock,
@@ -75,21 +80,33 @@ export function useResumeActivityJob({
               return;
             }
 
+            const legacyJob = job as PersistedBulkMetadataJob & {
+              gameIds?: string[];
+              collectionIds?: string[];
+            };
+            const games =
+              legacyJob.games ??
+              (legacyJob.gameIds ?? []).map((id) => ({ id: String(id) }));
+            const collections =
+              legacyJob.collections ??
+              (legacyJob.collectionIds ?? []).map((id) => ({ id: String(id) }));
+
             const outcome = await reloadAllMetadataItems({
               catalogSearchEnabled: job.catalogSearchEnabled,
-              gameIds: job.gameIds,
+              games,
               developers: job.developers,
               publishers: job.publishers,
-              collectionIds: job.collectionIds,
+              collections,
               startAtCompletedSteps: job.completedSteps,
               onProgress: (progress) => {
                 if (isBulkMetadataReloadCancelRequested()) return;
                 setActivityProgress(progress);
                 updatePersistedProgress(progress);
               },
-              onCheckpoint: ({ completedSteps, phase, percent }) => {
+              onCheckpoint: (checkpoint) => {
                 if (isBulkMetadataReloadCancelRequested()) return;
-                updatePersistedBulkCheckpoint(completedSteps, { phase, percent });
+                const { completedSteps, ...progress } = checkpoint;
+                updatePersistedBulkCheckpoint(completedSteps, progress);
               },
             });
 
@@ -109,24 +126,36 @@ export function useResumeActivityJob({
         }
 
         const phase = job.target;
-        setActivityProgress({ phase, percent: 25 });
-        updatePersistedProgress({ phase, percent: 25 });
+        const singleProgress = buildSingleMetadataReloadProgress(phase, 25, job.title, job.id);
+        setActivityProgress(singleProgress);
+        updatePersistedProgress(singleProgress);
 
-        if (job.target === "game") {
-          await reloadGameMetadataItem(job.id, job.catalogSearchEnabled);
-          await refreshLibraryGames();
-        } else if (job.target === "collection") {
-          await reloadCollectionMetadataItem(job.id);
-          await refreshCollections();
-        } else if (job.target === "developer") {
-          await reloadDeveloperMetadataItem(job.id, undefined, job.catalogSearchEnabled);
-          await refreshDevelopers();
-        } else if (job.target === "publisher") {
-          await reloadPublisherMetadataItem(job.id, undefined, job.catalogSearchEnabled);
-          await refreshPublishers();
+        beginSingleMetadataReloadRun();
+        try {
+          if (job.target === "game") {
+            await reloadGameMetadataItem(job.id, job.catalogSearchEnabled);
+            await refreshLibraryGames();
+          } else if (job.target === "collection") {
+            await reloadCollectionMetadataItem(job.id);
+            await refreshCollections();
+          } else if (job.target === "developer") {
+            await reloadDeveloperMetadataItem(job.id, job.title, job.catalogSearchEnabled);
+            await refreshDevelopers();
+          } else if (job.target === "publisher") {
+            await reloadPublisherMetadataItem(job.id, job.title, job.catalogSearchEnabled);
+            await refreshPublishers();
+          }
+
+          const completedProgress = buildSingleMetadataReloadProgress(phase, 100, job.title, job.id);
+          setActivityProgress(completedProgress);
+          updatePersistedProgress(completedProgress);
+        } catch (error) {
+          if (!isBulkMetadataReloadAbortedError(error)) {
+            console.error("Failed to resume activity job after reload:", error);
+          }
+        } finally {
+          endSingleMetadataReloadRun();
         }
-
-        setActivityProgress({ phase, percent: 100 });
       } catch (error) {
         console.error("Failed to resume activity job after reload:", error);
       } finally {

@@ -318,6 +318,7 @@
     "deleteError": "Fehler beim Löschen des Spiels",
     "reloadMetadata": "Alle Metadaten neu laden",
     "reloadSingleMetadata": "Metadaten neu laden",
+    "singleMetadataReloadInProgress": "Aktualisierung läuft",
     "reloadingMetadata": "Metadaten werden neu geladen...",
     "confirmReload": "Möchten Sie wirklich alle Metadaten neu laden? Dies aktualisiert alle Spiele, Sammlungen und Kategorien.",
     "confirmCancelBulkReload": "Möchten Sie die laufende Metadatenaktualisierung abbrechen?",
@@ -340,6 +341,11 @@
       "publisher": "Publisher wird aktualisiert",
       "game": "Spiel wird aktualisiert",
       "collection": "Sammlung wird aktualisiert"
+    },
+    "tooltip": {
+      "withItem": "{{phase}}: {{item}} — {{step}}/{{total}} ({{percent}}%), Element {{phaseIndex}}/{{phaseTotal}}",
+      "progress": "{{phase}} — {{step}}/{{total}} ({{percent}}%)",
+      "simple": "{{phase}} ({{percent}}%)"
     }
   },
   "categories": {

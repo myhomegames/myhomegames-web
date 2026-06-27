@@ -3,7 +3,7 @@ import { buildApiUrl, buildApiHeaders } from "./api";
 import { buildCatalogApiUrl } from "./catalogApi";
 import type { CatalogCompanyInfo } from "../types";
 import { parseCompanyMergePayloadFromApi } from "./companyProfile";
-import { throwIfBulkMetadataReloadAborted } from "./bulkMetadataReloadContext";
+import { throwIfMetadataReloadAborted } from "./bulkMetadataReloadContext";
 
 type CompanyRole = "developers" | "publishers";
 
@@ -28,7 +28,7 @@ export async function refreshRemoteCompanyProfileViaApi(
   const syncParent = options.syncParent !== false;
   const signal = options.signal;
 
-  throwIfBulkMetadataReloadAborted();
+  throwIfMetadataReloadAborted();
 
   const params: Record<string, string> = {};
   if (title?.trim()) params.name = title.trim();
@@ -40,7 +40,7 @@ export async function refreshRemoteCompanyProfileViaApi(
   if (!catalogRes.ok) return;
 
   const catalogData = (await catalogRes.json()) as CatalogCompanyInfo | null;
-  throwIfBulkMetadataReloadAborted();
+  throwIfMetadataReloadAborted();
 
   const profile = parseCompanyMergePayloadFromApi(catalogData ?? undefined);
   const parentCompany = catalogData?.parentCompany;
@@ -84,7 +84,7 @@ export async function refreshRemoteCompanyProfileViaApi(
 
   const relatedIds = new Set<string>();
   const syncRelated = async (ref: { id?: number; name?: string | null } | undefined) => {
-    throwIfBulkMetadataReloadAborted();
+    throwIfMetadataReloadAborted();
     if (ref?.id == null) return;
     const relatedId = String(ref.id);
     if (relatedId === itemId || relatedIds.has(relatedId)) return;

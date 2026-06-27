@@ -318,6 +318,7 @@
     "deleteError": "删除失败",
     "reloadMetadata": "重新加载所有元数据",
     "reloadSingleMetadata": "重新加载元数据",
+    "singleMetadataReloadInProgress": "正在更新",
     "reloadingMetadata": "正在重新加载元数据...",
     "confirmReload": "您确定要重新加载所有元数据吗？这将刷新所有、收藏和类别。",
     "confirmCancelBulkReload": "是否要取消正在进行的元数据更新？",
@@ -340,6 +341,11 @@
       "publisher": "正在更新发行商",
       "game": "正在更新游戏",
       "collection": "正在更新合集"
+    },
+    "tooltip": {
+      "withItem": "{{phase}}：{{item}} — {{step}}/{{total}}（{{percent}}%），第 {{phaseIndex}}/{{phaseTotal}} 项",
+      "progress": "{{phase}} — {{step}}/{{total}}（{{percent}}%）",
+      "simple": "{{phase}}（{{percent}}%）"
     }
   },
   "categories": {

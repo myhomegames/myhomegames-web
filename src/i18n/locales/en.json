@@ -363,6 +363,7 @@
     "deleteError": "Failed to delete game",
     "reloadMetadata": "Reload all metadata",
     "reloadSingleMetadata": "Reload metadata",
+    "singleMetadataReloadInProgress": "Update in progress",
     "reloadingMetadata": "Reloading metadata...",
     "confirmReload": "Are you sure you want to reload all metadata? This will refresh all games, collections, and categories.",
     "confirmCancelBulkReload": "Do you want to cancel the metadata update in progress?",
@@ -385,6 +386,11 @@
       "publisher": "Updating publisher",
       "game": "Updating game",
       "collection": "Updating collection"
+    },
+    "tooltip": {
+      "withItem": "{{phase}}: {{item}} — {{step}}/{{total}} ({{percent}}%), item {{phaseIndex}}/{{phaseTotal}}",
+      "progress": "{{phase}} — {{step}}/{{total}} ({{percent}}%)",
+      "simple": "{{phase}} ({{percent}}%)"
     }
   },
   "categories": {

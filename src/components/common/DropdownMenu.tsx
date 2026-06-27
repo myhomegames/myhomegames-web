@@ -6,6 +6,11 @@ import Tooltip from "./Tooltip";
 import { useSkin } from "../../contexts/SkinContext";
 import { useLoading } from "../../contexts/LoadingContext";
 import { isBulkMetadataReloadInProgress, cancelBulkMetadataReload } from "../../utils/bulkMetadataReloadContext";
+import {
+  cancelSingleMetadataReload,
+  isPersistedSingleMetadataReloadFor,
+  resolveSingleMetadataReloadTarget,
+} from "../../utils/activitySession";
 import { bindSheetBackdropClose } from "../../utils/sheetPopupBackdrop";
 import type { CollectionItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
@@ -80,6 +85,13 @@ export default function DropdownMenu({
   const { activeSkinWeb } = useSkin();
   const { isActivityBusy } = useLoading();
   const metadataReloadBlocked = isActivityBusy && isBulkMetadataReloadInProgress();
+  const singleMetadataReloadTarget = resolveSingleMetadataReloadTarget({
+    gameId,
+    collectionId,
+    developerId,
+    publisherId,
+  });
+  const isSingleItemReloadMenu = singleMetadataReloadTarget != null;
   const canReloadMetadata =
     !!onReload ||
     !!(gameId && onGameUpdate) ||
@@ -133,11 +145,19 @@ export default function DropdownMenu({
     collectionId,
     developerId,
     publisherId,
+    itemTitle: gameTitle ?? collectionTitle,
     onGameUpdate,
     onCollectionUpdate,
     onReload,
     onModalClose,
   });
+
+  const isThisSingleReloadInProgress =
+    isSingleItemReloadMenu &&
+    !metadataReloadBlocked &&
+    (reloadGame.isReloading ||
+      (isActivityBusy && isPersistedSingleMetadataReloadFor(singleMetadataReloadTarget)));
+  const metadataReloadInProgressLabel = metadataReloadBlocked || isThisSingleReloadInProgress;
 
   // Always call the hook (React rules of hooks); hook no-ops when gameId or onGameUpdate missing
   const unlinkExecutable = useUnlinkExecutable({
@@ -450,7 +470,7 @@ export default function DropdownMenu({
       return;
     }
 
-    if (metadataReloadBlocked) {
+    if (metadataReloadInProgressLabel) {
       setTimeout(() => {
         if (onModalOpen) {
           onModalOpen();
@@ -489,7 +509,11 @@ export default function DropdownMenu({
   };
 
   const handleConfirmCancelBulkReload = () => {
-    cancelBulkMetadataReload();
+    if (metadataReloadBlocked) {
+      cancelBulkMetadataReload();
+    } else if (isThisSingleReloadInProgress) {
+      cancelSingleMetadataReload();
+    }
     setShowCancelBulkReloadModal(false);
     if (onModalClose) {
       onModalClose();
@@ -866,18 +890,13 @@ export default function DropdownMenu({
               <button
                 onClick={handleReload}
                 className="dropdown-menu-item"
-                disabled={reloadGame.isReloading && !metadataReloadBlocked}
               >
                 <span>
-                  {metadataReloadBlocked
+                  {metadataReloadInProgressLabel
                     ? t("common.reloadingMetadata", "Updating metadata...")
-                    : gameId ||
-                  collectionId ||
-                  developerId ||
-                  publisherId
-                    ? t("common.reloadSingleMetadata", "Reload metadata")
-                    : t("common.reloadMetadata", "Reload all metadata")
-                  }
+                    : isSingleItemReloadMenu
+                      ? t("common.reloadSingleMetadata", "Reload metadata")
+                      : t("common.reloadMetadata", "Reload all metadata")}
                 </span>
               </button>
             )}
