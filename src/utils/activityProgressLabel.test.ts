@@ -7,6 +7,8 @@ const t = (key: string, options?: Record<string, unknown>) => {
     "metadataReload.phase.developers": "Aggiornamento developer",
     "metadataReload.phase.developer": "Aggiornamento developer",
     "metadataReload.tooltip.withItem":
+      "{{phase}}: {{item}} — {{step}}/{{total}} ({{percent}}%)",
+    "metadataReload.tooltip.withItemInPhase":
       "{{phase}}: {{item}} — {{step}}/{{total}} ({{percent}}%), elemento {{phaseIndex}}/{{phaseTotal}}",
     "metadataReload.tooltip.progress": "{{phase}} — {{step}}/{{total}} ({{percent}}%)",
     "metadataReload.tooltip.simple": "{{phase}} ({{percent}}%)",
@@ -48,7 +50,7 @@ describe("formatActivityProgressLabel", () => {
         phaseIndex: 1,
         phaseTotal: 1,
       }),
-    ).toBe("Aggiornamento developer: Atari SA — 1/1 (25%), elemento 1/1");
+    ).toBe("Aggiornamento developer: Atari SA — 1/1 (25%)");
   });
 
   it("falls back to progress-only label without item name", () => {

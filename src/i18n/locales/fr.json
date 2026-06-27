@@ -343,7 +343,8 @@
       "collection": "Mise à jour de la collection"
     },
     "tooltip": {
-      "withItem": "{{phase}} : {{item}} — {{step}}/{{total}} ({{percent}} %), élément {{phaseIndex}}/{{phaseTotal}}",
+      "withItem": "{{phase}} : {{item}} — {{step}}/{{total}} ({{percent}} %)",
+      "withItemInPhase": "{{phase}} : {{item}} — {{step}}/{{total}} ({{percent}} %), élément {{phaseIndex}}/{{phaseTotal}}",
       "progress": "{{phase}} — {{step}}/{{total}} ({{percent}} %)",
       "simple": "{{phase}} ({{percent}} %)"
     }

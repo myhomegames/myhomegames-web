@@ -13,16 +13,24 @@ export function formatActivityProgressLabel(
 
   const { itemLabel, step, totalSteps, phaseIndex, phaseTotal, percent } = progress;
 
-  if (itemLabel?.trim() && step != null && totalSteps != null && phaseIndex != null && phaseTotal != null) {
-    return t("metadataReload.tooltip.withItem", {
+  if (itemLabel?.trim() && step != null && totalSteps != null) {
+    const params = {
       phase: phaseLabel,
       item: itemLabel.trim(),
       step,
       total: totalSteps,
-      phaseIndex,
-      phaseTotal,
       percent,
-    });
+    };
+
+    if (phaseIndex != null && phaseTotal != null && phaseTotal > 1) {
+      return t("metadataReload.tooltip.withItemInPhase", {
+        ...params,
+        phaseIndex,
+        phaseTotal,
+      });
+    }
+
+    return t("metadataReload.tooltip.withItem", params);
   }
 
   if (step != null && totalSteps != null) {

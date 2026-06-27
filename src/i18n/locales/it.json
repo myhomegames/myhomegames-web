@@ -388,7 +388,8 @@
       "collection": "Aggiornamento collezione"
     },
     "tooltip": {
-      "withItem": "{{phase}}: {{item}} — {{step}}/{{total}} ({{percent}}%), elemento {{phaseIndex}}/{{phaseTotal}}",
+      "withItem": "{{phase}}: {{item}} — {{step}}/{{total}} ({{percent}}%)",
+      "withItemInPhase": "{{phase}}: {{item}} — {{step}}/{{total}} ({{percent}}%), elemento {{phaseIndex}}/{{phaseTotal}}",
       "progress": "{{phase}} — {{step}}/{{total}} ({{percent}}%)",
       "simple": "{{phase}} ({{percent}}%)"
     }

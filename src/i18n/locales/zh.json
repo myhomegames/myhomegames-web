@@ -343,7 +343,8 @@
       "collection": "正在更新合集"
     },
     "tooltip": {
-      "withItem": "{{phase}}：{{item}} — {{step}}/{{total}}（{{percent}}%），第 {{phaseIndex}}/{{phaseTotal}} 项",
+      "withItem": "{{phase}}：{{item}} — {{step}}/{{total}}（{{percent}}%）",
+      "withItemInPhase": "{{phase}}：{{item}} — {{step}}/{{total}}（{{percent}}%），第 {{phaseIndex}}/{{phaseTotal}} 项",
       "progress": "{{phase}} — {{step}}/{{total}}（{{percent}}%）",
       "simple": "{{phase}}（{{percent}}%）"
     }
