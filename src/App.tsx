@@ -42,6 +42,18 @@ import { useLibraryGames } from "./contexts/LibraryGamesContext";
 import { useSkin } from "./contexts/SkinContext";
 import { TitleFilterProvider } from "./contexts/TitleFilterContext";
 import { useGlobalCoverScaleAroundBar } from "./hooks/useCoverScaleAroundBar";
+import { useResumeActivityJob } from "./hooks/useResumeActivityJob";
+import {
+  beginPersistedBulkJob,
+  updatePersistedBulkCheckpoint,
+  updatePersistedProgress,
+} from "./utils/activitySession";
+import {
+  clearBulkMetadataReloadCancel,
+  isBulkMetadataReloadCancelRequested,
+  releaseBulkMetadataReloadLock,
+  tryAcquireBulkMetadataReloadLock,
+} from "./utils/bulkMetadataReloadContext";
 
 // Wrapper function for buildApiUrl that uses API_BASE
 function buildApiUrlWithBase(
@@ -62,7 +74,7 @@ function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const { i18n } = useTranslation();
-  const { setActivityBusy } = useLoading();
+  const { setActivityBusy, setActivityProgress, isActivityBusy } = useLoading();
   const { isLoading: authLoading } = useAuth();
   const { catalogSearchEnabled } = useSettings();
 
@@ -78,18 +90,64 @@ function AppContent() {
   const { refreshDevelopers } = useDevelopers();
   const { refreshPublishers } = usePublishers();
 
+  useResumeActivityJob({
+    authLoading,
+    setActivityBusy,
+    setActivityProgress,
+    refreshLibraryGames,
+    refreshCollections,
+    refreshDevelopers,
+    refreshPublishers,
+  });
+
+  useEffect(() => {
+    const onBulkReloadCancelled = () => {
+      setActivityBusy(false);
+      setActivityProgress(null);
+    };
+
+    window.addEventListener("mhg:bulk-metadata-reload-cancelled", onBulkReloadCancelled);
+    return () => {
+      window.removeEventListener("mhg:bulk-metadata-reload-cancelled", onBulkReloadCancelled);
+    };
+  }, [setActivityBusy, setActivityProgress]);
+
   async function handleReloadAllMetadata() {
+    if (isActivityBusy) {
+      return;
+    }
+    if (!tryAcquireBulkMetadataReloadLock()) {
+      return;
+    }
+
+    beginPersistedBulkJob({
+      catalogSearchEnabled,
+      gameIds: allGames.map((g) => String(g.id)),
+      developers: allDevelopers.map((d) => ({ id: d.id, title: d.title })),
+      publishers: allPublishers.map((p) => ({ id: p.id, title: p.title })),
+      collectionIds: allCollections.map((c) => c.id),
+    });
     setActivityBusy(true);
+    setActivityProgress({ phase: "developers", percent: 0 });
     try {
-      const ok = await reloadAllMetadataItems({
+      const outcome = await reloadAllMetadataItems({
         catalogSearchEnabled,
         gameIds: allGames.map((g) => String(g.id)),
         developers: allDevelopers.map((d) => ({ id: d.id, title: d.title })),
         publishers: allPublishers.map((p) => ({ id: p.id, title: p.title })),
         collectionIds: allCollections.map((c) => c.id),
+        onProgress: (progress) => {
+          if (isBulkMetadataReloadCancelRequested()) return;
+          setActivityProgress(progress);
+          updatePersistedProgress(progress);
+        },
+        onCheckpoint: ({ completedSteps, phase, percent }) => {
+          if (isBulkMetadataReloadCancelRequested()) return;
+          updatePersistedBulkCheckpoint(completedSteps, { phase, percent });
+        },
       });
 
-      if (ok) {
+      if (outcome === "completed") {
         await Promise.all([
           refreshLibraryGames(),
           refreshCollections(),
@@ -97,13 +155,16 @@ function AppContent() {
           refreshPublishers(),
         ]);
         window.dispatchEvent(new CustomEvent("metadataReloaded"));
-      } else {
+      } else if (outcome === "failed") {
         console.error("Failed to reload metadata");
       }
     } catch (error) {
       console.error("Error reloading metadata:", error);
     } finally {
       setActivityBusy(false);
+      setActivityProgress(null);
+      releaseBulkMetadataReloadLock();
+      clearBulkMetadataReloadCancel();
     }
   }
 

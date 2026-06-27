@@ -9,10 +9,12 @@ import {
   reloadGameMetadataItem,
   reloadPublisherMetadataItem,
 } from "../../../utils/metadataReload";
+import { beginPersistedSingleJob, type PersistedSingleMetadataJob } from "../../../utils/activitySession";
 import { dispatchDeveloperOrPublisherUpdated } from "../../../utils/companyProfileSync";
 import { collectionInfoFromApi } from "../../../utils/companyProfile";
 import { useSettings } from "../../../contexts/SettingsContext";
 import { useLoading } from "../../../contexts/LoadingContext";
+import { isBulkMetadataReloadInProgress } from "../../../utils/bulkMetadataReloadContext";
 import type { GameItem, CollectionInfo } from "../../../types";
 
 type UseReloadGameParams = {
@@ -89,20 +91,49 @@ export function useReloadGame({
 }: UseReloadGameParams): UseReloadGameReturn {
   const { t } = useTranslation();
   const { twitchApiEnabled } = useSettings();
-  const { setActivityBusy } = useLoading();
+  const { setActivityBusy, setActivityProgress } = useLoading();
   const [isReloading, setIsReloading] = useState(false);
   const [reloadError, setReloadError] = useState<string | null>(null);
   const [showReloadConfirmModal, setShowReloadConfirmModal] = useState(false);
 
+  const reloadPhase = (): PersistedSingleMetadataJob["target"] | null => {
+    if (gameId) return "game";
+    if (collectionId) return "collection";
+    if (developerId) return "developer";
+    if (publisherId) return "publisher";
+    return null;
+  };
+
   const executeReload = async () => {
+    if (isBulkMetadataReloadInProgress()) {
+      return;
+    }
+
     setIsReloading(true);
     setReloadError(null);
+    const catalogSearchEnabled = isCatalogSearchEnabled(twitchApiEnabled);
+    const phase = reloadPhase();
+
+    if (phase) {
+      beginPersistedSingleJob({
+        kind: "single-metadata",
+        target: phase,
+        id: String(gameId ?? collectionId ?? developerId ?? publisherId),
+        catalogSearchEnabled,
+      });
+    }
+
     setActivityBusy(true);
+    if (phase) {
+      setActivityProgress({ phase, percent: 0 });
+    }
 
     try {
-      const catalogSearchEnabled = isCatalogSearchEnabled(twitchApiEnabled);
-
       let response: Response;
+
+      if (phase) {
+        setActivityProgress({ phase, percent: 25 });
+      }
 
       if (gameId) {
         response = await reloadGameMetadataItem(gameId, catalogSearchEnabled);
@@ -117,6 +148,10 @@ export function useReloadGame({
           method: "POST",
           headers: buildApiHeaders(),
         });
+      }
+
+      if (phase) {
+        setActivityProgress({ phase, percent: 100 });
       }
 
       if (response.ok) {
@@ -178,6 +213,9 @@ export function useReloadGame({
   };
 
   const handleReloadClick = () => {
+    if (isBulkMetadataReloadInProgress()) {
+      return;
+    }
     setShowReloadConfirmModal(true);
   };
 
@@ -189,6 +227,9 @@ export function useReloadGame({
       Boolean(onReload) && !gameId && !collectionId && !developerId && !publisherId;
 
     if (isGlobalReload) {
+      if (isBulkMetadataReloadInProgress()) {
+        return;
+      }
       void Promise.resolve(onReload!()).catch((error) => {
         console.error("Error reloading metadata:", error);
       });

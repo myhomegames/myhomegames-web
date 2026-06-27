@@ -320,11 +320,27 @@
     "reloadSingleMetadata": "Metadaten neu laden",
     "reloadingMetadata": "Metadaten werden neu geladen...",
     "confirmReload": "Möchten Sie wirklich alle Metadaten neu laden? Dies aktualisiert alle Spiele, Sammlungen und Kategorien.",
+    "confirmCancelBulkReload": "Möchten Sie die laufende Metadatenaktualisierung abbrechen?",
+    "continueMetadataReload": "Fortfahren",
+    "cancelBulkReload": "Aktualisierung abbrechen",
     "reloadError": "Fehler beim Neuladen der Metadaten",
     "create": "Erstellen",
     "creating": "Erstellen...",
     "removing": "Entfernen...",
     "unauthorized": "Nicht autorisiert"
+  },
+  "metadataReload": {
+    "phase": {
+      "developers": "Entwickler werden aktualisiert",
+      "publishers": "Publisher werden aktualisiert",
+      "games": "Spiele werden aktualisiert",
+      "collections": "Sammlungen werden aktualisiert",
+      "cache": "Bibliotheks-Cache wird aktualisiert",
+      "developer": "Entwickler wird aktualisiert",
+      "publisher": "Publisher wird aktualisiert",
+      "game": "Spiel wird aktualisiert",
+      "collection": "Sammlung wird aktualisiert"
+    }
   },
   "categories": {
     "noCategoriesFound": "Keine Kategorien gefunden"

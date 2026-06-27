@@ -20,6 +20,7 @@ import type { ViewMode, GameLibrarySection, GameItem, CollectionItem } from "../
 import SidebarSearchOverlay from "./SidebarSearchOverlay";
 import Logo from "../common/Logo";
 import ActivitySpinner from "./ActivitySpinner";
+import { formatActivityProgressLabel } from "../../utils/activityProgressLabel";
 import UpdateNotification from "./UpdateNotification";
 import { useTopDockSlot } from "../../contexts/TopDockSlotContext";
 import { playFixedFocalStepSound } from "../../utils/fixedFocalStepSound";
@@ -397,7 +398,8 @@ export default function LibrariesBar({
     return [libraryForGamesSidebar, ...rest];
   }, [libraries, hideCollectionsOverviewRow, ownedGamesInGamesSidebar, libraryForGamesSidebar]);
 
-  const { isLoading: globalLoading, isActivityBusy } = useLoading();
+  const { isLoading: globalLoading, isActivityBusy, activityProgress } = useLoading();
+  const activityTooltipText = formatActivityProgressLabel(t, activityProgress);
   const { hasBackground, isBackgroundVisible, setBackgroundVisible } = useBackground();
   // Use global loading if prop is not provided, otherwise use prop
   const isLoading = loading !== undefined ? loading : globalLoading;
@@ -1050,6 +1052,7 @@ export default function LibrariesBar({
             </button>
             <ActivitySpinner
               isLoading={globalLoading || isActivityBusy}
+              tooltipText={isActivityBusy ? activityTooltipText : undefined}
               className="mhg-top-right-tool-dock-activity-spinner"
             />
             <div className="mhg-top-right-tool-dock-update">

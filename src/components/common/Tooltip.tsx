@@ -85,7 +85,7 @@ export default function Tooltip({
 
     // Use capture phase to catch clicks before they bubble
     document.addEventListener("click", handleClick, true);
-    
+
     return () => {
       document.removeEventListener("click", handleClick, true);
     };

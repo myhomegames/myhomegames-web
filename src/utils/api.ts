@@ -3,6 +3,7 @@
  */
 
 import { getApiBase, getApiToken } from "../config";
+import { bulkMetadataReloadRequestHeaders } from "./bulkMetadataReloadContext";
 
 /**
  * Builds an API URL with optional query parameters
@@ -43,6 +44,8 @@ export function buildApiHeaders(additionalHeaders: Record<string, string> = {}):
   if (token) {
     headers["X-Auth-Token"] = token;
   }
+
+  Object.assign(headers, bulkMetadataReloadRequestHeaders());
 
   return headers;
 }

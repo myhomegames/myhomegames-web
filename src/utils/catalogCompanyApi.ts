@@ -10,7 +10,8 @@ type CompanyRef = { id: number; name?: string | null };
 
 /**
  * Fetch company profile via /igdb/* (proxy) and merge into local library storage.
- * When the profile references a parent company, merges the parent IGDB profile too.
+ * When the profile references related companies, merges their IGDB profiles too and
+ * links parent/child hierarchy via merge-company-profile (parentCompany, updatedTo, formerly).
  */
 export async function refreshRemoteCompanyProfileViaApi(
   resourceType: CompanyRole,
@@ -32,7 +33,11 @@ export async function refreshRemoteCompanyProfileViaApi(
   const profile = parseCompanyMergePayloadFromApi(catalogData ?? undefined);
   const parentCompany = catalogData?.parentCompany;
   const hasParentHint = parentCompany?.id != null;
-  if (Object.keys(profile).length === 0 && !hasParentHint) return;
+  const hasRelationHint =
+    hasParentHint ||
+    catalogData?.updatedTo?.id != null ||
+    catalogData?.formerly?.id != null;
+  if (Object.keys(profile).length === 0 && !hasRelationHint) return;
 
   const mergeBody: Record<string, unknown> = { ...profile };
   if (hasParentHint) {
@@ -64,15 +69,23 @@ export async function refreshRemoteCompanyProfileViaApi(
 
   if (!syncParent) return;
 
-  const parent = catalogData?.parentCompany;
-  if (parent?.id != null) {
+  const relatedIds = new Set<string>();
+  const syncRelated = async (ref: { id?: number; name?: string | null } | undefined) => {
+    if (ref?.id == null) return;
+    const relatedId = String(ref.id);
+    if (relatedId === itemId || relatedIds.has(relatedId)) return;
+    relatedIds.add(relatedId);
     await refreshRemoteCompanyProfileViaApi(
       resourceType,
-      String(parent.id),
-      parent.name ?? undefined,
+      relatedId,
+      ref.name ?? undefined,
       { syncParent: true },
     );
-  }
+  };
+
+  await syncRelated(parentCompany);
+  await syncRelated(catalogData?.updatedTo);
+  await syncRelated(catalogData?.formerly);
 }
 
 /** Company profile sync after catalog game import (IGDB reads only via /igdb/*). */

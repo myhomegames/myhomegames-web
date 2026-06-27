@@ -320,11 +320,27 @@
     "reloadSingleMetadata": "重新加载元数据",
     "reloadingMetadata": "正在重新加载元数据...",
     "confirmReload": "您确定要重新加载所有元数据吗？这将刷新所有、收藏和类别。",
+    "confirmCancelBulkReload": "是否要取消正在进行的元数据更新？",
+    "continueMetadataReload": "继续",
+    "cancelBulkReload": "取消更新",
     "reloadError": "重新加载元数据失败",
     "create": "创建",
     "creating": "创建中...",
     "removing": "移除中...",
     "unauthorized": "未授权"
+  },
+  "metadataReload": {
+    "phase": {
+      "developers": "正在更新开发商",
+      "publishers": "正在更新发行商",
+      "games": "正在更新游戏",
+      "collections": "正在更新合集",
+      "cache": "正在刷新库缓存",
+      "developer": "正在更新开发商",
+      "publisher": "正在更新发行商",
+      "game": "正在更新游戏",
+      "collection": "正在更新合集"
+    }
   },
   "categories": {
     "noCategoriesFound": "未找到类别"

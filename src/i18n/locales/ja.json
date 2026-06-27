@@ -320,11 +320,27 @@
     "reloadSingleMetadata": "メタデータを再読み込み",
     "reloadingMetadata": "メタデータを再読み込み中...",
     "confirmReload": "すべてのメタデータを再読み込みしてもよろしいですか？これにより、すべてのゲーム、コレクション、カテゴリが更新されます。",
+    "confirmCancelBulkReload": "進行中のメタデータ更新をキャンセルしますか？",
+    "continueMetadataReload": "続行",
+    "cancelBulkReload": "更新をキャンセル",
     "reloadError": "メタデータの再読み込みに失敗しました",
     "create": "作成",
     "creating": "作成中...",
     "removing": "削除中...",
     "unauthorized": "認証されていません"
+  },
+  "metadataReload": {
+    "phase": {
+      "developers": "開発者を更新中",
+      "publishers": "パブリッシャーを更新中",
+      "games": "ゲームを更新中",
+      "collections": "コレクションを更新中",
+      "cache": "ライブラリキャッシュを更新中",
+      "developer": "開発者を更新中",
+      "publisher": "パブリッシャーを更新中",
+      "game": "ゲームを更新中",
+      "collection": "コレクションを更新中"
+    }
   },
   "categories": {
     "noCategoriesFound": "カテゴリが見つかりません"

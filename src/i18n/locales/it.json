@@ -365,11 +365,27 @@
     "reloadSingleMetadata": "Aggiorna metadati",
     "reloadingMetadata": "Aggiornamento metadati...",
     "confirmReload": "Sei sicuro di voler aggiornare tutti i metadati? Questo ricaricherà tutti i giochi, le collezioni e le categorie.",
+    "confirmCancelBulkReload": "Vuoi annullare l'aggiornamento metadati in corso?",
+    "continueMetadataReload": "Continua",
+    "cancelBulkReload": "Annulla aggiornamento",
     "reloadError": "Impossibile aggiornare i metadati",
     "create": "Crea",
     "creating": "Creazione...",
     "removing": "Rimozione...",
     "unauthorized": "Non autorizzato"
+  },
+  "metadataReload": {
+    "phase": {
+      "developers": "Aggiornamento developer",
+      "publishers": "Aggiornamento publisher",
+      "games": "Aggiornamento giochi",
+      "collections": "Aggiornamento collezioni",
+      "cache": "Aggiornamento cache libreria",
+      "developer": "Aggiornamento developer",
+      "publisher": "Aggiornamento publisher",
+      "game": "Aggiornamento gioco",
+      "collection": "Aggiornamento collezione"
+    }
   },
   "collections": {
     "addTo": "Aggiungi a",

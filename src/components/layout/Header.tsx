@@ -10,6 +10,7 @@ import UpdateNotification from "./UpdateNotification";
 import Tooltip from "../common/Tooltip";
 import { useLoading } from "../../contexts/LoadingContext";
 import ActivitySpinner from "./ActivitySpinner";
+import { formatActivityProgressLabel } from "../../utils/activityProgressLabel";
 import { useSkin } from "../../contexts/SkinContext";
 import { useTitleFilter } from "../../contexts/TitleFilterContext";
 import { useActiveProfile } from "../../hooks/useActiveProfile";
@@ -62,7 +63,8 @@ export default function Header({
 }: HeaderProps) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
-  const { isLoading, isActivityBusy } = useLoading();
+  const { isLoading, isActivityBusy, activityProgress } = useLoading();
+  const activityTooltipText = formatActivityProgressLabel(t, activityProgress);
   const { activeSkinWeb } = useSkin();
   const { setQuery: setTitleFilterQuery } = useTitleFilter();
   const { showProfile } = useActiveProfile();
@@ -183,6 +185,7 @@ export default function Header({
           {!activeSkinWeb.topRightToolDock && (
             <ActivitySpinner
               isLoading={isLoading || isActivityBusy}
+              tooltipText={isActivityBusy ? activityTooltipText : undefined}
               style={isPhoneLayout ? PHONE_HEADER_BUTTON : undefined}
               iconStyle={isPhoneLayout ? PHONE_HEADER_ICON : undefined}
             />

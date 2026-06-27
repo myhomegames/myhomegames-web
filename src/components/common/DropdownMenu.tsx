@@ -4,6 +4,8 @@ import { createPortal } from "react-dom";
 import { useDeleteGame, useReloadGame, useUnlinkExecutable, useRemoveGameFromCollection } from "./actions";
 import Tooltip from "./Tooltip";
 import { useSkin } from "../../contexts/SkinContext";
+import { useLoading } from "../../contexts/LoadingContext";
+import { isBulkMetadataReloadInProgress, cancelBulkMetadataReload } from "../../utils/bulkMetadataReloadContext";
 import { bindSheetBackdropClose } from "../../utils/sheetPopupBackdrop";
 import type { CollectionItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
@@ -76,6 +78,8 @@ export default function DropdownMenu({
 }: DropdownMenuProps) {
   const { t } = useTranslation();
   const { activeSkinWeb } = useSkin();
+  const { isActivityBusy } = useLoading();
+  const metadataReloadBlocked = isActivityBusy && isBulkMetadataReloadInProgress();
   const canReloadMetadata =
     !!onReload ||
     !!(gameId && onGameUpdate) ||
@@ -101,6 +105,7 @@ export default function DropdownMenu({
   );
   const hasBackendAuth = true;
   const [isOpen, setIsOpen] = useState(false);
+  const [showCancelBulkReloadModal, setShowCancelBulkReloadModal] = useState(false);
   const [isCollectionLikeSubmenuOpen, setIsCollectionLikeSubmenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
@@ -444,6 +449,16 @@ export default function DropdownMenu({
     if (!canReloadMetadata) {
       return;
     }
+
+    if (metadataReloadBlocked) {
+      setTimeout(() => {
+        if (onModalOpen) {
+          onModalOpen();
+        }
+        setShowCancelBulkReloadModal(true);
+      }, 0);
+      return;
+    }
     
     // If there's a gameId or collectionId, execute reload directly (single element)
     if (gameId || collectionId || developerId || publisherId) {
@@ -464,6 +479,21 @@ export default function DropdownMenu({
       }
       reloadGame.handleReloadClick();
     }, 0);
+  };
+
+  const handleDismissCancelBulkReload = () => {
+    setShowCancelBulkReloadModal(false);
+    if (onModalClose) {
+      onModalClose();
+    }
+  };
+
+  const handleConfirmCancelBulkReload = () => {
+    cancelBulkMetadataReload();
+    setShowCancelBulkReloadModal(false);
+    if (onModalClose) {
+      onModalClose();
+    }
   };
 
   const handleUnlinkExecutableClick = async (e: React.MouseEvent) => {
@@ -836,10 +866,12 @@ export default function DropdownMenu({
               <button
                 onClick={handleReload}
                 className="dropdown-menu-item"
-                disabled={reloadGame.isReloading}
+                disabled={reloadGame.isReloading && !metadataReloadBlocked}
               >
                 <span>
-                  {gameId ||
+                  {metadataReloadBlocked
+                    ? t("common.reloadingMetadata", "Updating metadata...")
+                    : gameId ||
                   collectionId ||
                   developerId ||
                   publisherId
@@ -927,9 +959,69 @@ export default function DropdownMenu({
               <button
                 className="dropdown-menu-confirm-reload"
                 onClick={reloadGame.handleConfirmReload}
-                disabled={reloadGame.isReloading}
+                disabled={reloadGame.isReloading || metadataReloadBlocked}
               >
-                {reloadGame.isReloading ? t("common.reloading", "Reloading...") : t("common.reloadMetadata", "Reload all metadata")}
+                {reloadGame.isReloading || metadataReloadBlocked
+                  ? t("common.reloadingMetadata", "Updating metadata...")
+                  : t("common.reloadMetadata", "Reload all metadata")}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Cancel bulk metadata reload */}
+      {showCancelBulkReloadModal && createPortal(
+        <div className="dropdown-menu-confirm-overlay" onClick={handleDismissCancelBulkReload}>
+          <div className="dropdown-menu-confirm-container" onClick={(e) => e.stopPropagation()}>
+            <div className="dropdown-menu-confirm-header">
+              <h2>
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                  <path d="M21 3v5h-5" />
+                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                  <path d="M3 21v-5h5" />
+                </svg>
+                {t("common.reloadingMetadata", "Updating metadata...")}
+              </h2>
+              <button
+                className="dropdown-menu-confirm-close"
+                onClick={handleDismissCancelBulkReload}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="dropdown-menu-confirm-content">
+              <p>
+                {t(
+                  "common.confirmCancelBulkReload",
+                  "Do you want to cancel the metadata update in progress?",
+                )}
+              </p>
+            </div>
+            <div className="dropdown-menu-confirm-footer">
+              <button
+                className="dropdown-menu-confirm-cancel"
+                onClick={handleDismissCancelBulkReload}
+              >
+                {t("common.continueMetadataReload", "Continue")}
+              </button>
+              <button
+                className="dropdown-menu-confirm-delete"
+                onClick={handleConfirmCancelBulkReload}
+              >
+                {t("common.cancelBulkReload", "Cancel update")}
               </button>
             </div>
           </div>
