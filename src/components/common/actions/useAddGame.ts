@@ -2,7 +2,11 @@ import { useState } from "react";
 import { buildApiHeaders } from "../../../utils/api";
 import { buildCatalogApiUrl, isCatalogSearchEnabled } from "../../../utils/catalogApi";
 import { syncCompanyProfilesAfterGameImport } from "../../../utils/catalogCompanyApi";
-import { schedulePostGameImportLibraryRefresh, schedulePostCompanyProfileSyncRefresh } from "../../../utils/librarySyncEvents";
+import {
+  dispatchImportedCompaniesAdded,
+  mergeDeveloperPublisherRefsForGame,
+} from "../../../utils/gameCompanyRefs";
+import { schedulePostCompanyProfileSyncRefresh, schedulePostGameImportLibraryRefresh } from "../../../utils/librarySyncEvents";
 import { useSettings } from "../../../contexts/SettingsContext";
 import { useLoading } from "../../../contexts/LoadingContext";
 import type { CatalogGame, GameItem } from "../../../types";
@@ -83,6 +87,11 @@ export function useAddGame({
 
       const json = await res.json();
 
+      const catalogDevelopers = catalogGame.developers as Array<{ id: number; name?: string }> | undefined;
+      const catalogPublishers = catalogGame.publishers as Array<{ id: number; name?: string }> | undefined;
+
+      dispatchImportedCompaniesAdded(catalogDevelopers, catalogPublishers);
+
       const st = json.game?.type;
       const resolvedGameType: number | null =
         typeof st === "number"
@@ -113,8 +122,8 @@ export function useAddGame({
         playerPerspectives: json.game?.playerPerspectives || catalogGame.playerPerspectives || null,
         websites: json.game?.websites || catalogGame.websites || null,
         ageRatings: json.game?.ageRatings || catalogGame.ageRatings || null,
-        developers: json.game?.developers || catalogGame.developers || null,
-        publishers: json.game?.publishers || catalogGame.publishers || null,
+        developers: mergeDeveloperPublisherRefsForGame(json.game?.developers, catalogDevelopers),
+        publishers: mergeDeveloperPublisherRefsForGame(json.game?.publishers, catalogPublishers),
         franchise: json.game?.franchise ?? catalogGame.franchise ?? null,
         collection: json.game?.collection ?? catalogGame.series ?? catalogGame.collection ?? null,
         series: json.game?.series ?? json.game?.collection ?? catalogGame.series ?? catalogGame.collection ?? null,

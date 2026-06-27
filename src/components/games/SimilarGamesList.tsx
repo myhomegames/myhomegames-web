@@ -37,6 +37,7 @@ type SimilarGamesListProps = {
   onPlay?: (game: GameItem) => void;
   onGameUpdate?: (updatedGame: GameItem) => void;
   sectionTitle?: string;
+  activeGameId?: string | null;
 };
 
 export default function SimilarGamesList({
@@ -48,6 +49,7 @@ export default function SimilarGamesList({
   onPlay,
   onGameUpdate,
   sectionTitle,
+  activeGameId,
 }: SimilarGamesListProps) {
   const { t } = useTranslation();
   const location = useLocation();
@@ -156,15 +158,21 @@ export default function SimilarGamesList({
           if (item.type === "library") {
             const game = item.game;
             const coverUrl = game.cover ? buildCoverUrl(API_BASE, game.cover, true) : "";
+            const isCurrentGame =
+              activeGameId != null && String(game.id) === String(activeGameId);
             return (
-              <div key={`lib-${game.id}`} className="games-list-item similar-games-cover-cell">
+              <div
+                key={`lib-${game.id}`}
+                className={`games-list-item similar-games-cover-cell${isCurrentGame ? " games-list-item--detail-current" : ""}`}
+              >
                 <Cover
                   title={game.title}
                   coverUrl={coverUrl}
                   width={coverSize}
                   height={coverHeight}
                   onPlay={onPlay ? (executableName?: string) => (executableName !== undefined ? (onPlay as (g: GameItem, ex?: string) => void)(game, executableName) : onPlay(game)) : undefined}
-                  onClick={() => onLibraryGameClick(game)}
+                  onClick={isCurrentGame ? undefined : () => onLibraryGameClick(game)}
+                  detailNavigationDisabled={isCurrentGame}
                   gameId={game.id}
                   gameTitle={game.title}
                   game={game}

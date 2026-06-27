@@ -42,6 +42,8 @@ type CoverProps = {
   showTitle?: boolean;
   subtitle?: string | number | null;
   detail?: boolean;
+  /** Detail strip: entity already open — no navigation affordance or hover. */
+  detailNavigationDisabled?: boolean;
   play?: boolean;
   showBorder?: boolean;
   /**
@@ -112,6 +114,7 @@ export default function Cover({
   showTitle = false,
   subtitle,
   detail = true,
+  detailNavigationDisabled = false,
   play = true,
   showBorder = true,
   imageFit = "cover",
@@ -294,7 +297,8 @@ export default function Cover({
 
   const shouldShowPlayButton = play && onPlay && !onUpload;
   const shouldShowUploadButton = onUpload !== undefined;
-  const isClickable = detail || play || shouldShowUploadButton;
+  const isClickable =
+    (detail && onClick) || (play && !detail && onPlay) || shouldShowUploadButton;
 
   const coverStyle = {
     width: `${width}px`,
@@ -308,7 +312,7 @@ export default function Cover({
     <>
       <div
         ref={coverRef}
-        className={`games-list-cover relative bg-[#2a2a2a] rounded overflow-hidden transition-all ${imageFit === "fill" ? "games-list-cover--image-fill " : ""}${showBorder ? "cover-hover-effect" : ""} ${play ? "games-list-cover-play" : ""} ${detail ? "games-list-cover-detail" : ""} ${shouldShowUploadButton ? "games-list-cover-upload" : ""} ${isDropdownOpen ? "cover-dropdown-open" : ""} ${isPopupOverlay ? "cover-popup-overlay" : ""}${isClickable ? " games-list-cover--clickable" : ""}`}
+        className={`games-list-cover relative bg-[#2a2a2a] rounded overflow-hidden transition-all ${imageFit === "fill" ? "games-list-cover--image-fill " : ""}${showBorder && !detailNavigationDisabled ? "cover-hover-effect" : ""} ${play ? "games-list-cover-play" : ""} ${detail ? "games-list-cover-detail" : ""} ${detailNavigationDisabled ? " games-list-cover--detail-current" : ""} ${shouldShowUploadButton ? "games-list-cover-upload" : ""} ${isDropdownOpen ? "cover-dropdown-open" : ""} ${isPopupOverlay ? "cover-popup-overlay" : ""}${isClickable ? " games-list-cover--clickable" : ""}`}
         style={coverStyle}
         onClick={shouldShowUploadButton ? handleUploadClick : handleCoverClick}
       >
@@ -517,8 +521,8 @@ export default function Cover({
           {showTitle && titlePosition === "bottom" && (
             <Tooltip text={title} position="bottom">
               <div 
-                className={`truncate games-list-title ${detail ? "games-list-title-clickable" : ""}`}
-                onClick={detail && onClick ? (e) => {
+                className={`truncate games-list-title ${detail && !detailNavigationDisabled ? "games-list-title-clickable" : ""}`}
+                onClick={detail && onClick && !detailNavigationDisabled ? (e) => {
                   e.stopPropagation();
                   onClick();
                 } : undefined}

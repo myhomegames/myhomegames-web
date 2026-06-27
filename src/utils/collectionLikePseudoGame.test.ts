@@ -1,21 +1,36 @@
 import { describe, expect, it } from "vitest";
-import { isTitleOnlyWrapperCollectionLike } from "./collectionLikePseudoGame";
+import {
+  isCollectionLikePseudoActiveDetail,
+  matchesActiveCollectionLikeDetail,
+} from "./collectionLikePseudoGame";
 
-describe("isTitleOnlyWrapperCollectionLike", () => {
-  it("returns true when there is one child and no direct games", () => {
-    expect(isTitleOnlyWrapperCollectionLike({ childs: ["child-1"] }, 0)).toBe(true);
+describe("matchesActiveCollectionLikeDetail", () => {
+  const active = { resourceType: "developers" as const, id: "37" };
+
+  it("matches same resource type and id", () => {
+    expect(matchesActiveCollectionLikeDetail("developers", "37", active)).toBe(true);
+    expect(matchesActiveCollectionLikeDetail("developers", 37, active)).toBe(true);
   });
 
-  it("returns false when there are direct games", () => {
-    expect(isTitleOnlyWrapperCollectionLike({ childs: ["child-1"] }, 3)).toBe(false);
+  it("does not match other ids or resource types", () => {
+    expect(matchesActiveCollectionLikeDetail("developers", "38", active)).toBe(false);
+    expect(matchesActiveCollectionLikeDetail("publishers", "37", active)).toBe(false);
   });
+});
 
-  it("returns false when there are multiple children", () => {
-    expect(isTitleOnlyWrapperCollectionLike({ childs: ["a", "b"] }, 0)).toBe(false);
-  });
-
-  it("returns false when there are no children", () => {
-    expect(isTitleOnlyWrapperCollectionLike({ childs: [] }, 0)).toBe(false);
-    expect(isTitleOnlyWrapperCollectionLike({}, 0)).toBe(false);
+describe("isCollectionLikePseudoActiveDetail", () => {
+  it("detects pseudo ids for the active detail entity", () => {
+    expect(
+      isCollectionLikePseudoActiveDetail("collectionlike:developers:37", {
+        resourceType: "developers",
+        id: "37",
+      }),
+    ).toBe(true);
+    expect(
+      isCollectionLikePseudoActiveDetail("collectionlike:developers:38", {
+        resourceType: "developers",
+        id: "37",
+      }),
+    ).toBe(false);
   });
 });

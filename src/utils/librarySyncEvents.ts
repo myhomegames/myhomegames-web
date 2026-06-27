@@ -67,7 +67,9 @@ export function schedulePostGameImportLibraryRefresh() {
   scheduleDeferredLibraryRefresh({
     refreshRecommended: true,
     refreshTags: true,
-    delaysMs: [150, 600],
+    refreshDevelopers: true,
+    refreshPublishers: true,
+    delaysMs: [150, 600, 1200],
   });
 }
 

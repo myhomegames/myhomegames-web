@@ -531,6 +531,9 @@ function GameDetailContent({
       }
       return;
     }
+    if (String(selectedGame.id) === String(game.id)) {
+      return;
+    }
     navigate(`/game/${selectedGame.id}`);
   };
   const handleRelatedGameUpdate = (updatedGame: GameItem) => {
@@ -870,6 +873,7 @@ function GameDetailContent({
                     onPlayFirstInCollectionLike={playFirstInCollection}
                     onCollectionLikePseudoAddToParent={addChildToParent}
                     onCollectionLikePseudoUpdated={dispatchCollectionLikeUpdated}
+                    activeGameId={String(game.id)}
                   />
                 </div>
               ))}
@@ -912,6 +916,7 @@ function GameDetailContent({
               onPlay={onPlay}
               onGameUpdate={handleRelatedGameUpdate}
               sectionTitle={t("catalogInfo.similarGames", "Similar Games")}
+              activeGameId={String(game.id)}
             />
           </div>
         )}

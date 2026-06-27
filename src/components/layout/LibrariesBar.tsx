@@ -199,6 +199,13 @@ const COMBOBOX_COLLECTION_SHORTCUT_PREFIX = "mhg:collection:";
 /** Two distinct entries (all vs installed) when `ownedGamesFirstInGamesSidebar` moves the library into the Games menu. */
 const COMBOBOX_LIBRARY_FILTER_PREFIX = "mhg:libraryFilter:";
 
+function readCssNumberVar(name: string, fallback: number): number {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  if (!raw) return fallback;
+  const parsed = Number.parseFloat(raw);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 type LibrariesBarProps = {
   libraries: GameLibrarySection[];
   activeLibrary: GameLibrarySection | null;
@@ -552,12 +559,15 @@ export default function LibrariesBar({
         }
         estimatedItems += collectionShortcuts.length;
       }
-      const minButtonsWidth = estimatedItems * 110;
+      const comboboxItemWidth = readCssNumberVar("--mhg-libraries-combobox-item-width", 110);
+      const comboboxAnticipation = readCssNumberVar("--mhg-libraries-combobox-anticipation", 0);
+      const comboboxHysteresis = readCssNumberVar("--mhg-libraries-combobox-hysteresis", 200);
+      const minButtonsWidth = estimatedItems * comboboxItemWidth + comboboxAnticipation;
       const fitsInlineList = availableWidth >= minButtonsWidth;
       setIsNarrow((prev) => {
         if (prev) {
           // Hysteresis: keep combobox until inline tabs clearly fit (avoids left → centered snap).
-          return availableWidth < minButtonsWidth + 200;
+          return availableWidth < minButtonsWidth + comboboxHysteresis;
         }
         return !fitsInlineList;
       });

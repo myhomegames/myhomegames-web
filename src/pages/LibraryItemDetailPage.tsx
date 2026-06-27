@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useLayoutEffect, useCallback } from "react";
 import type { ReactNode } from "react";
-import { useParams, useNavigate, useLocation, useOutletContext, Link } from "react-router-dom";
+import { useParams, useNavigate, useLocation, useOutletContext } from "react-router-dom";
 import type { MainAppOutletContext } from "../layouts/MainAppLayout";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -42,7 +42,7 @@ import {
 import ContextRailIndexPeek from "../components/contextRail/ContextRailIndexPeek";
 import { compareTitles } from "../utils/stringUtils";
 import { titleMatchesFilter } from "../utils/titleFilter";
-import { parseCollectionLikePseudoGameId, isTitleOnlyWrapperCollectionLike } from "../utils/collectionLikePseudoGame";
+import { parseCollectionLikePseudoGameId, matchesActiveCollectionLikeDetail, type ActiveCollectionLikeDetail } from "../utils/collectionLikePseudoGame";
 import {
   loadCollectionLikeSlideSections,
   parseGamesListFromApiJson,
@@ -1397,6 +1397,36 @@ function LibraryItemDetailContent({
     [subCollectionLikes, titleFilterQuery]
   );
 
+  /** Horizontal slider only when the lone sub-item has games or nested rows to scroll. */
+  const useSingleSubCollectionSlideLayout = useMemo(() => {
+    if (subCollectionLikes.length !== 1 || subCollectionLikesFiltered.length !== 1) {
+      return false;
+    }
+    if (subCollectionLikesWithGames.length === 0) {
+      return false;
+    }
+    return subCollectionLikesWithGames.some(
+      (block) => block.games.length > 0 || block.slideItems.length > 0,
+    );
+  }, [
+    subCollectionLikes.length,
+    subCollectionLikesFiltered.length,
+    subCollectionLikesWithGames,
+  ]);
+
+  const activeCollectionLikeDetail = useMemo((): ActiveCollectionLikeDetail => {
+    const routeId =
+      resourceType === "collections"
+        ? collectionId
+        : resourceType === "developers"
+          ? developerId
+          : publisherId;
+    return {
+      resourceType,
+      id: String(routeId ?? item?.id ?? ""),
+    };
+  }, [resourceType, collectionId, developerId, publisherId, item?.id]);
+
   const collectionLikeDetailPath = (id: string) =>
     `/${
       resourceType === "collections"
@@ -1690,29 +1720,12 @@ function LibraryItemDetailContent({
   }
 
   const renderCollectionLikeSlideSectionBlock = useCallback(
-    ({ parent, games, slideItems }: CollectionLikeSlideSection, sectionIdPrefix: string) => {
-      const parentTitleOnly = isTitleOnlyWrapperCollectionLike(parent, games.length);
-      if (parentTitleOnly) {
-        return (
-          <div
-            key={String(parent.id)}
-            className="game-detail-collection-group game-detail-collection-group--title-only"
-          >
-            <h2 className="scrollable-section-title">
-              {onCollectionClick ? (
-                <Link
-                  to={collectionLikeDetailPath(String(parent.id))}
-                  className="scrollable-section-title-link"
-                >
-                  {parent.title}
-                </Link>
-              ) : (
-                parent.title
-              )}
-            </h2>
-          </div>
-        );
-      }
+    ({ parent, slideItems }: CollectionLikeSlideSection, sectionIdPrefix: string) => {
+      const parentMatchesActiveDetail = matchesActiveCollectionLikeDetail(
+        resourceType,
+        String(parent.id),
+        activeCollectionLikeDetail,
+      );
 
       return (
         <div key={String(parent.id)} className="game-detail-collection-group">
@@ -1720,7 +1733,9 @@ function LibraryItemDetailContent({
             sectionId={`${sectionIdPrefix}-${resourceType}-${String(parent.id)}`}
             titleOverride={parent.title}
             titleHref={
-              onCollectionClick ? collectionLikeDetailPath(String(parent.id)) : undefined
+              onCollectionClick && !parentMatchesActiveDetail
+                ? collectionLikeDetailPath(String(parent.id))
+                : undefined
             }
             disableVerticalCoverAlignment
             disableAutoTranslate
@@ -1730,10 +1745,15 @@ function LibraryItemDetailContent({
               if (rawId.startsWith("collectionlike:")) {
                 const parts = rawId.split(":");
                 const linkedId = parts[2];
-                if (linkedId && onCollectionClick) {
+                if (
+                  linkedId &&
+                  onCollectionClick &&
+                  !matchesActiveCollectionLikeDetail(resourceType, linkedId, activeCollectionLikeDetail)
+                ) {
                   onCollectionClick(linkedId);
                   return;
                 }
+                return;
               }
               onGameClick(selected);
             }}
@@ -1751,11 +1771,13 @@ function LibraryItemDetailContent({
             onPlayFirstInCollectionLike={onPlayFirstInCollectionLike}
             onCollectionLikePseudoAddToParent={addChildToParent}
             onCollectionLikePseudoUpdated={dispatchCollectionLikeUpdated}
+            activeCollectionLikeDetail={activeCollectionLikeDetail}
           />
         </div>
       );
     },
     [
+      activeCollectionLikeDetail,
       allCollectionLikes,
       allCollections,
       collectionLikeDetailPath,
@@ -2125,7 +2147,7 @@ function LibraryItemDetailContent({
                               return label.replace(/(\p{L})/u, (_, c) => c.toUpperCase());
                             })()}
                           </h2>
-                          {subCollectionLikes.length === 1 && subCollectionLikesFiltered.length === 1 ? (
+                          {useSingleSubCollectionSlideLayout ? (
                             <div className="game-detail-collections-list library-item-detail-collections-list-mt">
                               {subCollectionLikesWithGames.map((block) =>
                                 renderCollectionLikeSlideSectionBlock(block, "sub"),
@@ -2138,7 +2160,13 @@ function LibraryItemDetailContent({
                                   const colCoverUrl = col.cover
                                     ? buildCoverUrl(API_BASE, col.cover, true, coverTimestampForUrls)
                                     : "";
+                                  const isActiveDetailChild = matchesActiveCollectionLikeDetail(
+                                    resourceType,
+                                    String(col.id),
+                                    activeCollectionLikeDetail,
+                                  );
                                   const handleClick = () => {
+                                    if (isActiveDetailChild) return;
                                     if (onCollectionClick) {
                                       onCollectionClick(String(col.id));
                                     }
@@ -2146,14 +2174,15 @@ function LibraryItemDetailContent({
                                   return (
                                     <div
                                       key={String(col.id)}
-                                      className="group cursor-pointer collections-list-item library-item-detail-subcollection-cell"
+                                      className={`group collections-list-item library-item-detail-subcollection-cell${isActiveDetailChild ? " games-list-item--detail-current" : " cursor-pointer"}`}
                                     >
                                       <Cover
                                         title={col.title}
                                         coverUrl={colCoverUrl}
                                         width={coverSize}
                                         height={coverSize * 1.5}
-                                        onClick={handleClick}
+                                        onClick={isActiveDetailChild ? undefined : handleClick}
+                                        detailNavigationDisabled={isActiveDetailChild}
                                         subtitle={
                                           (subCollectionDisplayCountById[String(col.id)] ?? col.gameCount) != null
                                             ? t("common.elements", { count: subCollectionDisplayCountById[String(col.id)] ?? col.gameCount })

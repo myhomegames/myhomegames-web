@@ -1126,6 +1126,23 @@ function GameDetailPage({
     };
   }, [gameId]);
 
+  // After import, company lists refresh async; refetch so dev/pub names resolve without reload.
+  useEffect(() => {
+    if (!gameId) return;
+
+    const refetchCurrentGame = () => {
+      fetchingGameRef.current = false;
+      void fetchGame(gameId, { silent: true });
+    };
+
+    window.addEventListener("developerUpdated", refetchCurrentGame);
+    window.addEventListener("publisherUpdated", refetchCurrentGame);
+    return () => {
+      window.removeEventListener("developerUpdated", refetchCurrentGame);
+      window.removeEventListener("publisherUpdated", refetchCurrentGame);
+    };
+  }, [gameId]);
+
   useEffect(() => {
     if (gameId && gameId !== lastGameIdRef.current) {
       lastGameIdRef.current = gameId;
@@ -1135,14 +1152,16 @@ function GameDetailPage({
     }
   }, [gameId]);
 
-  async function fetchGame(gameId: string) {
+  async function fetchGame(gameId: string, options?: { silent?: boolean }) {
     // Prevent multiple simultaneous calls for the same game
     if (fetchingGameRef.current) {
       return;
     }
     
     fetchingGameRef.current = true;
-    setLoading(true);
+    if (!options?.silent) {
+      setLoading(true);
+    }
     try {
       // Fetch single game from dedicated endpoint
         const url = buildApiUrlWithBase(`/games/${gameId}`);
@@ -1199,7 +1218,9 @@ function GameDetailPage({
       console.error("Error fetching game:", errorMessage);
       setGame(null);
     } finally {
-      setLoading(false);
+      if (!options?.silent) {
+        setLoading(false);
+      }
       fetchingGameRef.current = false; // Reset flag when done
     }
   }

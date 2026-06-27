@@ -1,17 +1,4 @@
 import type { CollectionLikeResourceType } from "../components/collections/EditCollectionLikeModal";
-import type { CollectionItem } from "../types";
-
-/** Collection-like wrapper: one sub-collection-like child and no direct games → title only, no cover. */
-export function isTitleOnlyWrapperCollectionLike(
-  item: Pick<CollectionItem, "childs">,
-  directGamesCount: number,
-): boolean {
-  if (directGamesCount > 0) return false;
-  const childIds = Array.isArray(item.childs)
-    ? item.childs.map((id) => String(id)).filter((id) => id.length > 0)
-    : [];
-  return childIds.length === 1;
-}
 
 /** Synthetic game id used in sliders: `collectionlike:{collections|developers|publishers}:{id}` */
 export function parseCollectionLikePseudoGameId(id: unknown): {
@@ -29,4 +16,28 @@ export function parseCollectionLikePseudoGameId(id: unknown): {
   const childId = parts[2];
   if (!childId) return null;
   return { resourceType, childId };
+}
+
+export type ActiveCollectionLikeDetail = {
+  resourceType: CollectionLikeResourceType;
+  id: string;
+};
+
+/** True when a collection-like row refers to the detail page already open. */
+export function matchesActiveCollectionLikeDetail(
+  resourceType: CollectionLikeResourceType,
+  targetId: string,
+  active?: ActiveCollectionLikeDetail | null,
+): boolean {
+  if (!active) return false;
+  return active.resourceType === resourceType && String(active.id) === String(targetId);
+}
+
+export function isCollectionLikePseudoActiveDetail(
+  gameId: unknown,
+  active?: ActiveCollectionLikeDetail | null,
+): boolean {
+  const parsed = parseCollectionLikePseudoGameId(gameId);
+  if (!parsed || !active) return false;
+  return matchesActiveCollectionLikeDetail(parsed.resourceType, parsed.childId, active);
 }

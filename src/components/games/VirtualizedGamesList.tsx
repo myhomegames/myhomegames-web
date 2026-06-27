@@ -100,6 +100,8 @@ type VirtualizedGamesListProps = {
   onPlayFirstInCollectionLike?: (resourceType: string, cid: string) => void | Promise<void>;
   onCollectionLikePseudoAddToParent?: (source: CollectionItem, parentId?: string) => void | Promise<void>;
   onCollectionLikePseudoUpdated?: (updated: CollectionInfo) => void;
+  activeCollectionLikeDetail?: import("../../utils/collectionLikePseudoGame").ActiveCollectionLikeDetail | null;
+  activeGameId?: string | null;
 };
 
 const DEFAULT_GAP = 40; // Fallback gap between items in grid
@@ -177,6 +179,8 @@ export default function VirtualizedGamesList({
   onPlayFirstInCollectionLike,
   onCollectionLikePseudoAddToParent,
   onCollectionLikePseudoUpdated,
+  activeCollectionLikeDetail,
+  activeGameId,
 }: VirtualizedGamesListProps) {
   const location = useLocation();
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -706,6 +710,8 @@ export default function VirtualizedGamesList({
           onPlayFirstInCollectionLike={onPlayFirstInCollectionLike}
           onCollectionLikePseudoAddToParent={onCollectionLikePseudoAddToParent}
           onCollectionLikePseudoUpdated={onCollectionLikePseudoUpdated}
+          activeCollectionLikeDetail={activeCollectionLikeDetail}
+          activeGameId={activeGameId}
         />
         </div>
         {isBottomInsetRow && <div style={{ height: effectiveBottomInset, flexShrink: 0 }} />}
