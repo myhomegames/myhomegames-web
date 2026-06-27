@@ -2,8 +2,13 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { API_BASE } from "../../../config";
 import { buildApiUrl, buildApiHeaders } from "../../../utils/api";
-import { buildCatalogApiUrl, isCatalogSearchEnabled } from "../../../utils/catalogApi";
-import { refreshRemoteCompanyProfileViaApi } from "../../../utils/catalogCompanyApi";
+import { isCatalogSearchEnabled } from "../../../utils/catalogApi";
+import {
+  reloadCollectionMetadataItem,
+  reloadDeveloperMetadataItem,
+  reloadGameMetadataItem,
+  reloadPublisherMetadataItem,
+} from "../../../utils/metadataReload";
 import { dispatchDeveloperOrPublisherUpdated } from "../../../utils/companyProfileSync";
 import { collectionInfoFromApi } from "../../../utils/companyProfile";
 import { useSettings } from "../../../contexts/SettingsContext";
@@ -26,7 +31,7 @@ type UseReloadGameReturn = {
   reloadError: string | null;
   showReloadConfirmModal: boolean;
   handleReloadClick: () => void;
-  handleConfirmReload: () => Promise<void>;
+  handleConfirmReload: () => void;
   handleCancelReload: () => void;
 };
 
@@ -72,24 +77,6 @@ function mapReloadedGame(data: Record<string, unknown>): GameItem {
   };
 }
 
-async function refreshCatalogGameMetadataViaApi(gameId: string): Promise<void> {
-  const catalogRes = await fetch(buildCatalogApiUrl(`/igdb/game/${gameId}`), {
-    headers: buildApiHeaders(),
-  });
-  if (!catalogRes.ok) return;
-
-  const catalogData = await catalogRes.json();
-
-  await fetch(buildApiUrl(API_BASE, `/games/${gameId}/merge-catalog-metadata`), {
-    method: "POST",
-    headers: {
-      ...buildApiHeaders(),
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(catalogData),
-  });
-}
-
 export function useReloadGame({
   gameId,
   collectionId,
@@ -115,50 +102,22 @@ export function useReloadGame({
     try {
       const catalogSearchEnabled = isCatalogSearchEnabled(twitchApiEnabled);
 
-      if (catalogSearchEnabled && gameId) {
-        try {
-          await refreshCatalogGameMetadataViaApi(gameId);
-        } catch (err) {
-          console.warn("IGDB game metadata refresh skipped during reload:", err);
-        }
-      } else if (catalogSearchEnabled && (developerId || publisherId)) {
-        const resourceType = developerId ? "developers" : "publishers";
-        const itemId = developerId || publisherId || "";
-        let title = "";
-
-        const detailRes = await fetch(buildApiUrl(API_BASE, `/${resourceType}/${itemId}`), {
-          headers: buildApiHeaders(),
-        });
-        if (detailRes.ok) {
-          const detail = (await detailRes.json()) as { title?: string };
-          title = typeof detail.title === "string" ? detail.title : "";
-        }
-
-        try {
-          await refreshRemoteCompanyProfileViaApi(resourceType, itemId, title);
-        } catch (err) {
-          console.warn("IGDB company refresh skipped during reload:", err);
-        }
-      }
-
-      let url: string;
+      let response: Response;
 
       if (gameId) {
-        url = buildApiUrl(API_BASE, `/games/${gameId}/reload`);
+        response = await reloadGameMetadataItem(gameId, catalogSearchEnabled);
       } else if (collectionId) {
-        url = buildApiUrl(API_BASE, `/collections/${collectionId}/reload`);
+        response = await reloadCollectionMetadataItem(collectionId);
       } else if (developerId) {
-        url = buildApiUrl(API_BASE, `/developers/${developerId}/reload`);
+        response = await reloadDeveloperMetadataItem(developerId, undefined, catalogSearchEnabled);
       } else if (publisherId) {
-        url = buildApiUrl(API_BASE, `/publishers/${publisherId}/reload`);
+        response = await reloadPublisherMetadataItem(publisherId, undefined, catalogSearchEnabled);
       } else {
-        url = buildApiUrl(API_BASE, `/reload-games`);
+        response = await fetch(buildApiUrl(API_BASE, "/reload-games"), {
+          method: "POST",
+          headers: buildApiHeaders(),
+        });
       }
-
-      const response = await fetch(url, {
-        method: "POST",
-        headers: buildApiHeaders(),
-      });
 
       if (response.ok) {
         const data = await response.json();
@@ -222,13 +181,21 @@ export function useReloadGame({
     setShowReloadConfirmModal(true);
   };
 
-  const handleConfirmReload = async () => {
-    if (onReload) {
-      onReload();
-    } else {
-      await executeReload();
-    }
+  const handleConfirmReload = () => {
     setShowReloadConfirmModal(false);
+    setReloadError(null);
+
+    const isGlobalReload =
+      Boolean(onReload) && !gameId && !collectionId && !developerId && !publisherId;
+
+    if (isGlobalReload) {
+      void Promise.resolve(onReload!()).catch((error) => {
+        console.error("Error reloading metadata:", error);
+      });
+      return;
+    }
+
+    void executeReload();
   };
 
   const handleCancelReload = () => {

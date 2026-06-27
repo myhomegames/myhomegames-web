@@ -30,6 +30,7 @@ import RecommendedSectionDetailPage from "./pages/RecommendedSectionDetailPage";
 
 import type { GameItem, CollectionItem } from "./types";
 import { buildApiUrl, buildCoverUrl, buildApiHeaders } from "./utils/api";
+import { reloadAllMetadataItems } from "./utils/metadataReload";
 import { API_BASE, getApiToken } from "./config";
 import { useLoading } from "./contexts/LoadingContext";
 import { useAuth } from "./contexts/AuthContext";
@@ -74,26 +75,27 @@ function AppContent() {
 
   const { refreshCollections } = useCollections();
   const { refreshGames: refreshLibraryGames } = useLibraryGames();
+  const { refreshDevelopers } = useDevelopers();
+  const { refreshPublishers } = usePublishers();
 
-  // Function to reload all metadata without full page reload
   async function handleReloadAllMetadata() {
     setActivityBusy(true);
     try {
-      // Call server to reload metadata
-      const url = buildApiUrlWithBase("/reload-games");
-      const response = await fetch(url, {
-        method: "POST",
-        headers: buildApiHeaders(),
+      const ok = await reloadAllMetadataItems({
+        catalogSearchEnabled,
+        gameIds: allGames.map((g) => String(g.id)),
+        developers: allDevelopers.map((d) => ({ id: d.id, title: d.title })),
+        publishers: allPublishers.map((p) => ({ id: p.id, title: p.title })),
+        collectionIds: allCollections.map((c) => c.id),
       });
 
-      if (response.ok) {
-        // Refresh games and collections via context
+      if (ok) {
         await Promise.all([
           refreshLibraryGames(),
           refreshCollections(),
+          refreshDevelopers(),
+          refreshPublishers(),
         ]);
-
-        // Emit custom event to notify pages to reload their data
         window.dispatchEvent(new CustomEvent("metadataReloaded"));
       } else {
         console.error("Failed to reload metadata");
