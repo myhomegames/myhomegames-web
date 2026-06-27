@@ -304,7 +304,11 @@ export function GameListItem({
         onClick={suppressDetailNavigation ? undefined : () => onGameClick(game)}
         detailNavigationDisabled={suppressDetailNavigation}
         onEdit={
-          isPseudoCollectionLikeCard || !isCatalogOnly ? handleEditClickForCover : undefined
+          suppressDetailNavigation
+            ? undefined
+            : isPseudoCollectionLikeCard || !isCatalogOnly
+              ? handleEditClickForCover
+              : undefined
         }
         gameId={coverGameId}
         gameTitle={game.title}

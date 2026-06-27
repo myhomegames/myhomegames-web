@@ -295,8 +295,9 @@ export default function Cover({
     }
   };
 
-  const shouldShowPlayButton = play && onPlay && !onUpload;
+  const shouldShowPlayButton = !detailNavigationDisabled && play && onPlay && !onUpload;
   const shouldShowUploadButton = onUpload !== undefined;
+  const showCoverActions = !detailNavigationDisabled;
   const isClickable =
     (detail && onClick) || (play && !detail && onPlay) || shouldShowUploadButton;
 
@@ -312,7 +313,7 @@ export default function Cover({
     <>
       <div
         ref={coverRef}
-        className={`games-list-cover relative bg-[#2a2a2a] rounded overflow-hidden transition-all ${imageFit === "fill" ? "games-list-cover--image-fill " : ""}${showBorder && !detailNavigationDisabled ? "cover-hover-effect" : ""} ${play ? "games-list-cover-play" : ""} ${detail ? "games-list-cover-detail" : ""} ${detailNavigationDisabled ? " games-list-cover--detail-current" : ""} ${shouldShowUploadButton ? "games-list-cover-upload" : ""} ${isDropdownOpen ? "cover-dropdown-open" : ""} ${isPopupOverlay ? "cover-popup-overlay" : ""}${isClickable ? " games-list-cover--clickable" : ""}`}
+        className={`games-list-cover relative bg-[#2a2a2a] rounded overflow-hidden transition-all ${imageFit === "fill" ? "games-list-cover--image-fill " : ""}${showBorder && !detailNavigationDisabled ? "cover-hover-effect" : ""} ${play && !detailNavigationDisabled ? "games-list-cover-play" : ""} ${detail ? "games-list-cover-detail" : ""} ${detailNavigationDisabled ? " games-list-cover--detail-current" : ""} ${shouldShowUploadButton ? "games-list-cover-upload" : ""} ${isDropdownOpen ? "cover-dropdown-open" : ""} ${isPopupOverlay ? "cover-popup-overlay" : ""}${isClickable ? " games-list-cover--clickable" : ""}`}
         style={coverStyle}
         onClick={shouldShowUploadButton ? handleUploadClick : handleCoverClick}
       >
@@ -416,7 +417,7 @@ export default function Cover({
             )}
           </button>
         )}
-        {onEdit && (
+        {showCoverActions && onEdit && (
           <button
             type="button"
             onClick={handleEditClick}
@@ -438,7 +439,7 @@ export default function Cover({
             </svg>
           </button>
         )}
-        {onEdit && gameId && game && (
+        {showCoverActions && onEdit && gameId && game && (
           <div className="games-list-dropdown-wrapper games-list-dropdown-wrapper-bottom-right">
             <AddToCollectionDropdown
               game={game}
@@ -446,7 +447,7 @@ export default function Cover({
             />
           </div>
         )}
-        {onEdit && (gameId || collectionId || developerId || publisherId) && (
+        {showCoverActions && onEdit && (gameId || collectionId || developerId || publisherId) && (
           <div className="games-list-dropdown-wrapper games-list-dropdown-wrapper-bottom-right">
             {gameId && game && game.executables && game.executables.length > 1 && onPlay && (
               <AdditionalExecutablesDropdown

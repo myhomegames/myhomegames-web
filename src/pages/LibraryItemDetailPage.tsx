@@ -2188,12 +2188,13 @@ function LibraryItemDetailContent({
                                             ? t("common.elements", { count: subCollectionDisplayCountById[String(col.id)] ?? col.gameCount })
                                             : undefined
                                         }
+                                        play={!isActiveDetailChild && !!onPlayFirstInCollectionLike}
                                         onPlay={
-                                          onPlayFirstInCollectionLike
-                                            ? () => onPlayFirstInCollectionLike(resourceType, String(col.id))
-                                            : undefined
+                                          isActiveDetailChild || !onPlayFirstInCollectionLike
+                                            ? undefined
+                                            : () => onPlayFirstInCollectionLike(resourceType, String(col.id))
                                         }
-                                        onEdit={() => openChildEditModal(col)}
+                                        onEdit={isActiveDetailChild ? undefined : () => openChildEditModal(col)}
                                         onAddToCollection={(parentId) => addChildToParent(col, parentId)}
                                         onRemoveFromParent={() => removeChildFromParent(String(col.id))}
                                         sourceCollectionLike={col}
