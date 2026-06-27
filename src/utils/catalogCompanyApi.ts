@@ -83,6 +83,13 @@ export async function refreshRemoteCompanyProfileViaApi(
   if (hasParentHint) {
     mergeBody.parentCompany = parentCompany;
   }
+  const resolvedTitle =
+    title?.trim() ||
+    (typeof profile.title === "string" ? profile.title.trim() : "") ||
+    (typeof catalogData?.title === "string" ? catalogData.title.trim() : "");
+  if (resolvedTitle && mergeBody.title == null) {
+    mergeBody.title = resolvedTitle;
+  }
 
   const mergeUrl = buildApiUrl(getApiBase(), `/${resourceType}/${itemId}/merge-company-profile`);
   const mergeRes = await fetch(mergeUrl, {
@@ -105,7 +112,27 @@ export async function refreshRemoteCompanyProfileViaApi(
     return;
   }
 
-  if (resourceType === "developers") {
+  const mergePayload = (await mergeRes.json().catch(() => null)) as Record<string, unknown> | null;
+  const mergeStatus = mergePayload?.status;
+  const createdKey = resourceType === "developers" ? "developer" : "publisher";
+  const createdItem = mergePayload?.[createdKey] as
+    | { id?: string | number; title?: string }
+    | undefined;
+
+  if (mergeStatus === "created" && createdItem?.id != null && createdItem.title) {
+    const collectionItem = {
+      id: String(createdItem.id),
+      title: createdItem.title,
+      summary: "",
+      showTitle: true,
+      childs: [] as string[],
+    };
+    if (resourceType === "developers") {
+      window.dispatchEvent(new CustomEvent("developerAdded", { detail: { developer: collectionItem } }));
+    } else {
+      window.dispatchEvent(new CustomEvent("publisherAdded", { detail: { publisher: collectionItem } }));
+    }
+  } else if (resourceType === "developers") {
     window.dispatchEvent(new CustomEvent("developerUpdated", { detail: {} }));
   } else {
     window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: {} }));
