@@ -4,9 +4,13 @@ import { buildCatalogApiUrl } from "./catalogApi";
 import { refreshRemoteCompanyProfileViaApi } from "./catalogCompanyApi";
 import type { ActivityProgressPhase } from "../contexts/LoadingContext";
 import {
-  clearBulkMetadataReloadProgress,
+  clearBulkMetadataReloadProgressIfRun,
+  getBulkMetadataReloadAbortSignal,
+  getBulkMetadataReloadRunId,
+  isBulkMetadataReloadAbortedError,
   isBulkMetadataReloadCancelRequested,
   setBulkMetadataReloadProgress,
+  throwIfBulkMetadataReloadAborted,
 } from "./bulkMetadataReloadContext";
 
 export type MetadataReloadProgress = {
@@ -33,20 +37,39 @@ function reportProgress(
   completed: number,
   total: number,
 ) {
+  throwIfBulkMetadataReloadAborted();
   syncBulkMetadataReloadProgress(phase, completed, total);
   if (!onProgress || total <= 0) return;
   const percent = Math.min(100, Math.round((completed / total) * 100));
   onProgress({ phase, percent });
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException("Aborted", "AbortError"));
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+
+    const onAbort = () => {
+      clearTimeout(timeoutId);
+      reject(new DOMException("Aborted", "AbortError"));
+    };
+
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 }
 
-async function postReload(path: string): Promise<Response> {
+async function postReload(path: string, signal?: AbortSignal): Promise<Response> {
   return fetch(buildApiUrl(API_BASE, path), {
     method: "POST",
     headers: buildApiHeaders(),
+    signal,
   });
 }
 
@@ -54,10 +77,13 @@ async function resolveCompanyTitle(
   resourceType: "developers" | "publishers",
   itemId: string,
   title?: string,
+  signal?: AbortSignal,
 ): Promise<string> {
+  throwIfBulkMetadataReloadAborted();
   if (title?.trim()) return title.trim();
   const detailRes = await fetch(buildApiUrl(API_BASE, `/${resourceType}/${itemId}`), {
     headers: buildApiHeaders(),
+    signal,
   });
   if (!detailRes.ok) return "";
   const detail = (await detailRes.json()) as { title?: string };
@@ -65,13 +91,19 @@ async function resolveCompanyTitle(
 }
 
 /** Fetch IGDB game payload and merge into local library storage. */
-export async function refreshCatalogGameMetadataViaApi(gameId: string): Promise<void> {
+export async function refreshCatalogGameMetadataViaApi(
+  gameId: string,
+  signal?: AbortSignal,
+): Promise<void> {
+  throwIfBulkMetadataReloadAborted();
   const catalogRes = await fetch(buildCatalogApiUrl(`/igdb/game/${gameId}`), {
     headers: buildApiHeaders(),
+    signal,
   });
   if (!catalogRes.ok) return;
 
   const catalogData = await catalogRes.json();
+  throwIfBulkMetadataReloadAborted();
 
   await fetch(buildApiUrl(API_BASE, `/games/${gameId}/merge-catalog-metadata`), {
     method: "POST",
@@ -80,7 +112,12 @@ export async function refreshCatalogGameMetadataViaApi(gameId: string): Promise<
       "Content-Type": "application/json",
     },
     body: JSON.stringify(catalogData),
+    signal,
   });
+}
+
+function bulkReloadSignal(): AbortSignal | undefined {
+  return getBulkMetadataReloadAbortSignal();
 }
 
 /** Same steps as “Aggiorna metadati” on a single game. */
@@ -88,14 +125,18 @@ export async function reloadGameMetadataItem(
   gameId: string,
   catalogSearchEnabled: boolean,
 ): Promise<Response> {
+  const signal = bulkReloadSignal();
+  throwIfBulkMetadataReloadAborted();
   if (catalogSearchEnabled) {
     try {
-      await refreshCatalogGameMetadataViaApi(gameId);
+      await refreshCatalogGameMetadataViaApi(gameId, signal);
     } catch (err) {
+      if (isBulkMetadataReloadAbortedError(err)) throw err;
       console.warn(`IGDB game metadata refresh skipped for ${gameId}:`, err);
     }
   }
-  return postReload(`/games/${gameId}/reload`);
+  throwIfBulkMetadataReloadAborted();
+  return postReload(`/games/${gameId}/reload`, signal);
 }
 
 /** Same steps as “Aggiorna metadati” on a single developer. */
@@ -104,15 +145,21 @@ export async function reloadDeveloperMetadataItem(
   title: string | undefined,
   catalogSearchEnabled: boolean,
 ): Promise<Response> {
+  const signal = bulkReloadSignal();
+  throwIfBulkMetadataReloadAborted();
   if (catalogSearchEnabled) {
     try {
-      const resolvedTitle = await resolveCompanyTitle("developers", developerId, title);
-      await refreshRemoteCompanyProfileViaApi("developers", developerId, resolvedTitle);
+      const resolvedTitle = await resolveCompanyTitle("developers", developerId, title, signal);
+      await refreshRemoteCompanyProfileViaApi("developers", developerId, resolvedTitle, {
+        signal,
+      });
     } catch (err) {
+      if (isBulkMetadataReloadAbortedError(err)) throw err;
       console.warn(`IGDB developer metadata refresh skipped for ${developerId}:`, err);
     }
   }
-  return postReload(`/developers/${developerId}/reload`);
+  throwIfBulkMetadataReloadAborted();
+  return postReload(`/developers/${developerId}/reload`, signal);
 }
 
 /** Same steps as “Aggiorna metadati” on a single publisher. */
@@ -121,19 +168,27 @@ export async function reloadPublisherMetadataItem(
   title: string | undefined,
   catalogSearchEnabled: boolean,
 ): Promise<Response> {
+  const signal = bulkReloadSignal();
+  throwIfBulkMetadataReloadAborted();
   if (catalogSearchEnabled) {
     try {
-      const resolvedTitle = await resolveCompanyTitle("publishers", publisherId, title);
-      await refreshRemoteCompanyProfileViaApi("publishers", publisherId, resolvedTitle);
+      const resolvedTitle = await resolveCompanyTitle("publishers", publisherId, title, signal);
+      await refreshRemoteCompanyProfileViaApi("publishers", publisherId, resolvedTitle, {
+        signal,
+      });
     } catch (err) {
+      if (isBulkMetadataReloadAbortedError(err)) throw err;
       console.warn(`IGDB publisher metadata refresh skipped for ${publisherId}:`, err);
     }
   }
-  return postReload(`/publishers/${publisherId}/reload`);
+  throwIfBulkMetadataReloadAborted();
+  return postReload(`/publishers/${publisherId}/reload`, signal);
 }
 
 export async function reloadCollectionMetadataItem(collectionId: string): Promise<Response> {
-  return postReload(`/collections/${collectionId}/reload`);
+  const signal = bulkReloadSignal();
+  throwIfBulkMetadataReloadAborted();
+  return postReload(`/collections/${collectionId}/reload`, signal);
 }
 
 export type MetadataReloadCheckpoint = {
@@ -199,6 +254,7 @@ async function processMetadataPhase<T>(
   onCheckpoint: ReloadAllMetadataInput["onCheckpoint"],
   fn: (item: T) => Promise<unknown>,
 ): Promise<boolean> {
+  const signal = bulkReloadSignal();
   const skip = Math.max(0, completedStepsRef.value - phaseStartStep);
   const remaining = items.slice(skip);
 
@@ -207,12 +263,26 @@ async function processMetadataPhase<T>(
       return false;
     }
     reportProgress(onProgress, phase, completedStepsRef.value, totalSteps);
-    await fn(remaining[i]);
+    try {
+      await fn(remaining[i]);
+    } catch (err) {
+      if (isBulkMetadataReloadAbortedError(err) || isBulkMetadataReloadCancelRequested()) {
+        return false;
+      }
+      throw err;
+    }
     completedStepsRef.value += 1;
     reportProgress(onProgress, phase, completedStepsRef.value, totalSteps);
     emitCheckpoint(onCheckpoint, phase, completedStepsRef.value, totalSteps);
     if (delayMs > 0 && i < remaining.length - 1) {
-      await sleep(delayMs);
+      try {
+        await sleep(delayMs, signal);
+      } catch (err) {
+        if (isBulkMetadataReloadAbortedError(err) || isBulkMetadataReloadCancelRequested()) {
+          return false;
+        }
+        throw err;
+      }
     }
   }
 
@@ -232,6 +302,9 @@ export async function reloadAllMetadataItems(
     onProgress,
     onCheckpoint,
   } = input;
+
+  const runId = getBulkMetadataReloadRunId();
+  const signal = bulkReloadSignal();
 
   const totalSteps =
     developers.length + publishers.length + gameIds.length + collectionIds.length + 1;
@@ -335,12 +408,20 @@ export async function reloadAllMetadataItems(
     }
 
     reportProgress(onProgress, "cache", completedStepsRef.value, totalSteps);
-    const res = await postReload("/reload-games");
+    let res: Response;
+    try {
+      res = await postReload("/reload-games", signal);
+    } catch (err) {
+      if (isBulkMetadataReloadAbortedError(err) || isBulkMetadataReloadCancelRequested()) {
+        return "cancelled";
+      }
+      throw err;
+    }
     completedStepsRef.value += 1;
     reportProgress(onProgress, "cache", completedStepsRef.value, totalSteps);
     emitCheckpoint(onCheckpoint, "cache", completedStepsRef.value, totalSteps);
     return res.ok ? "completed" : "failed";
   } finally {
-    clearBulkMetadataReloadProgress();
+    clearBulkMetadataReloadProgressIfRun(runId);
   }
 }

@@ -3,10 +3,16 @@ import { buildApiUrl, buildApiHeaders } from "./api";
 import { buildCatalogApiUrl } from "./catalogApi";
 import type { CatalogCompanyInfo } from "../types";
 import { parseCompanyMergePayloadFromApi } from "./companyProfile";
+import { throwIfBulkMetadataReloadAborted } from "./bulkMetadataReloadContext";
 
 type CompanyRole = "developers" | "publishers";
 
 type CompanyRef = { id: number; name?: string | null };
+
+type RefreshRemoteCompanyProfileOptions = {
+  syncParent?: boolean;
+  signal?: AbortSignal;
+};
 
 /**
  * Fetch company profile via /igdb/* (proxy) and merge into local library storage.
@@ -17,19 +23,25 @@ export async function refreshRemoteCompanyProfileViaApi(
   resourceType: CompanyRole,
   itemId: string,
   title?: string,
-  options: { syncParent?: boolean } = {},
+  options: RefreshRemoteCompanyProfileOptions = {},
 ): Promise<void> {
   const syncParent = options.syncParent !== false;
+  const signal = options.signal;
+
+  throwIfBulkMetadataReloadAborted();
 
   const params: Record<string, string> = {};
   if (title?.trim()) params.name = title.trim();
 
   const catalogRes = await fetch(buildCatalogApiUrl(`/igdb/company/${itemId}`, params), {
     headers: buildApiHeaders(),
+    signal,
   });
   if (!catalogRes.ok) return;
 
   const catalogData = (await catalogRes.json()) as CatalogCompanyInfo | null;
+  throwIfBulkMetadataReloadAborted();
+
   const profile = parseCompanyMergePayloadFromApi(catalogData ?? undefined);
   const parentCompany = catalogData?.parentCompany;
   const hasParentHint = parentCompany?.id != null;
@@ -51,6 +63,7 @@ export async function refreshRemoteCompanyProfileViaApi(
       "Content-Type": "application/json",
     },
     body: JSON.stringify(mergeBody),
+    signal,
   });
   if (!mergeRes.ok) {
     console.warn(
@@ -71,6 +84,7 @@ export async function refreshRemoteCompanyProfileViaApi(
 
   const relatedIds = new Set<string>();
   const syncRelated = async (ref: { id?: number; name?: string | null } | undefined) => {
+    throwIfBulkMetadataReloadAborted();
     if (ref?.id == null) return;
     const relatedId = String(ref.id);
     if (relatedId === itemId || relatedIds.has(relatedId)) return;
@@ -79,7 +93,7 @@ export async function refreshRemoteCompanyProfileViaApi(
       resourceType,
       relatedId,
       ref.name ?? undefined,
-      { syncParent: true },
+      { syncParent: true, signal },
     );
   };
 

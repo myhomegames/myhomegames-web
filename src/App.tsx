@@ -50,6 +50,7 @@ import {
 } from "./utils/activitySession";
 import {
   clearBulkMetadataReloadCancel,
+  isBulkMetadataReloadAbortedError,
   isBulkMetadataReloadCancelRequested,
   releaseBulkMetadataReloadLock,
   tryAcquireBulkMetadataReloadLock,
@@ -159,7 +160,9 @@ function AppContent() {
         console.error("Failed to reload metadata");
       }
     } catch (error) {
-      console.error("Error reloading metadata:", error);
+      if (!isBulkMetadataReloadAbortedError(error)) {
+        console.error("Error reloading metadata:", error);
+      }
     } finally {
       setActivityBusy(false);
       setActivityProgress(null);
