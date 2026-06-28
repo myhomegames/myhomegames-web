@@ -423,6 +423,13 @@ export default function LibrariesBar({
   const isFirstLibrariesLayoutRef = useRef(true);
   const prevCollectionShortcutCountRef = useRef(collectionShortcuts.length);
   const prevOwnedGamesInSidebarRef = useRef(ownedGamesInGamesSidebar);
+  /** True once horizontal layout has been committed to the DOM (skip stable-measure gate on resize). */
+  const layoutReadyRef = useRef(activeSkinWeb.libraryPagesVerticalList);
+  /** Consecutive identical width probes before first reveal on sub-desktop widths only. */
+  const layoutMeasureRef = useRef<{
+    containerWidth: number;
+    streak: number;
+  } | null>(null);
   const [sidebarSearchOpen, setSidebarSearchOpen] = useState(false);
   /** Collapsible Games / collections sidebar block (sidebar skin: full-width row + chevron). */
   const [gamesSidebarExpanded, setGamesSidebarExpanded] = useState(true);
@@ -434,6 +441,8 @@ export default function LibrariesBar({
     if (!activeLibrary) {
       setIsNarrow(false);
       setLibrariesBarLayoutReady(true);
+      layoutReadyRef.current = true;
+      layoutMeasureRef.current = null;
       return;
     }
 
@@ -448,6 +457,8 @@ export default function LibrariesBar({
         ownedGamesInSidebarChanged
       ) {
         setLibrariesBarLayoutReady(false);
+        layoutReadyRef.current = false;
+        layoutMeasureRef.current = null;
         prevCollectionShortcutCountRef.current = collectionShortcuts.length;
         prevOwnedGamesInSidebarRef.current = ownedGamesInGamesSidebar;
       }
@@ -462,6 +473,8 @@ export default function LibrariesBar({
       if (activeSkinWeb.libraryPagesVerticalList) {
         setIsNarrow(false);
         setLibrariesBarLayoutReady(true);
+        layoutReadyRef.current = true;
+        layoutMeasureRef.current = null;
         return;
       }
 
@@ -477,6 +490,8 @@ export default function LibrariesBar({
       if (forceList) {
         setIsNarrow(false);
         setLibrariesBarLayoutReady(true);
+        layoutReadyRef.current = true;
+        layoutMeasureRef.current = null;
         return;
       }
 
@@ -489,6 +504,8 @@ export default function LibrariesBar({
       if (windowWidth < 1024) {
         setIsNarrow(true);
         setLibrariesBarLayoutReady(true);
+        layoutReadyRef.current = true;
+        layoutMeasureRef.current = null;
         return;
       }
 
@@ -505,6 +522,7 @@ export default function LibrariesBar({
 
       // Before layout is committed, widths can be 0 or tiny and falsely trigger the combobox.
       if (containerWidth < 120) {
+        layoutMeasureRef.current = null;
         requestAnimationFrame(() => {
           if (!cancelled) checkWidth();
         });
@@ -514,6 +532,7 @@ export default function LibrariesBar({
       // Right-side actions often mount after first paint; keep the bar hidden until measured
       // so we do not briefly show the combobox and then switch to inline tabs.
       if (actionsWidth < 48) {
+        layoutMeasureRef.current = null;
         requestAnimationFrame(() => {
           if (!cancelled) checkWidth();
         });
@@ -566,14 +585,50 @@ export default function LibrariesBar({
       const comboboxHysteresis = readCssNumberVar("--mhg-libraries-combobox-hysteresis", 200);
       const minButtonsWidth = estimatedItems * comboboxItemWidth + comboboxAnticipation;
       const fitsInlineList = availableWidth >= minButtonsWidth;
-      setIsNarrow((prev) => {
-        if (prev) {
-          // Hysteresis: keep combobox until inline tabs clearly fit (avoids left → centered snap).
-          return availableWidth < minButtonsWidth + comboboxHysteresis;
-        }
-        return !fitsInlineList;
-      });
-      setLibrariesBarLayoutReady(true);
+
+      if (layoutReadyRef.current) {
+        setIsNarrow((prev) => {
+          if (prev) {
+            // Hysteresis: keep combobox until inline tabs clearly fit (avoids left → centered snap).
+            return availableWidth < minButtonsWidth + comboboxHysteresis;
+          }
+          return !fitsInlineList;
+        });
+        return;
+      }
+
+      /*
+       * Desktop first paint: always reveal the inline strip. Early measurements often
+       * underestimate container width (flex still settling) and flash combobox → inline.
+       * After reveal, checkWidth runs again and may switch to combobox if space is tight.
+       */
+      if (windowWidth >= 1024) {
+        setIsNarrow(false);
+        setLibrariesBarLayoutReady(true);
+        layoutReadyRef.current = true;
+        layoutMeasureRef.current = null;
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (!cancelled) checkWidth();
+          });
+        });
+        return;
+      }
+
+      const widthBucket = Math.round(containerWidth / 8) * 8;
+      const probe = layoutMeasureRef.current;
+      if (probe && probe.containerWidth === widthBucket) {
+        probe.streak += 1;
+      } else {
+        layoutMeasureRef.current = { containerWidth: widthBucket, streak: 1 };
+      }
+
+      if ((layoutMeasureRef.current?.streak ?? 0) >= 2) {
+        setIsNarrow(!fitsInlineList);
+        setLibrariesBarLayoutReady(true);
+        layoutReadyRef.current = true;
+        layoutMeasureRef.current = null;
+      }
     };
 
     const containerEl = containerRef.current;
@@ -605,7 +660,16 @@ export default function LibrariesBar({
     window.addEventListener("resize", checkWidth);
 
     const safetyLayoutReadyId = window.setTimeout(() => {
+      if (cancelled || layoutReadyRef.current) return;
+      setIsNarrow(window.innerWidth >= 1024 ? false : true);
       setLibrariesBarLayoutReady(true);
+      layoutReadyRef.current = true;
+      layoutMeasureRef.current = null;
+      if (window.innerWidth >= 1024) {
+        requestAnimationFrame(() => {
+          if (!cancelled) checkWidth();
+        });
+      }
     }, 400);
 
     return () => {
