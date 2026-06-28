@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import TagValueFilter from "./TagValueFilter";
+import BaseFilter from "./BaseFilter";
+import type { FilterConfig } from "./BaseFilter";
 import type { FilterValue, GameItem } from "./types";
 
 type DevelopersFilterProps = {
@@ -12,24 +13,36 @@ type DevelopersFilterProps = {
   availableDevelopers?: Array<{ id: string; title: string }>;
 };
 
-export default function DevelopersFilter(props: DevelopersFilterProps) {
-  const { availableDevelopers = [], ...rest } = props;
-  const formatValue = useMemo(() => {
-    if (availableDevelopers.length === 0) return undefined;
-    return (value: string) => {
-      const found = availableDevelopers.find((d) => String(d.id) === String(value));
-      return found ? found.title : value;
-    };
-  }, [availableDevelopers]);
-
-  return (
-    <TagValueFilter
-      {...rest}
-      type="developers"
-      labelKey="gamesListToolbar.filter.developers"
-      searchPlaceholderKey="gamesListToolbar.filter.searchDevelopers"
-      valueExtractor={(game) => game.developers ?? []}
-      formatValue={formatValue}
-    />
+export default function DevelopersFilter({
+  availableDevelopers = [],
+  ...props
+}: DevelopersFilterProps) {
+  const developerFilterConfig: FilterConfig = useMemo(
+    () => ({
+      type: "developers",
+      labelKey: "gamesListToolbar.filter.developers",
+      searchPlaceholderKey: "gamesListToolbar.filter.searchDevelopers",
+      getAvailableValues: (
+        _games: GameItem[],
+        additionalData?: { availableDevelopers?: Array<{ id: string; title: string }> },
+      ): Array<{ value: FilterValue; label: string }> => {
+        const developers = additionalData?.availableDevelopers ?? availableDevelopers;
+        return developers.map((developer) => ({
+          value: developer.id,
+          label: developer.title,
+        }));
+      },
+      formatValue: (value: FilterValue): string => {
+        if (value === null || value === undefined) return "";
+        const developer = availableDevelopers.find((d) => String(d.id) === String(value));
+        return developer ? developer.title : String(value);
+      },
+      isScrollable: true,
+    }),
+    [availableDevelopers],
   );
+
+  const additionalData = useMemo(() => ({ availableDevelopers }), [availableDevelopers]);
+
+  return <BaseFilter {...props} config={developerFilterConfig} additionalData={additionalData} />;
 }

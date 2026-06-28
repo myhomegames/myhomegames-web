@@ -109,7 +109,7 @@ export function useResumeActivityJob({
               },
             });
 
-            if (outcome === "completed") {
+            if (outcome === "completed" || outcome === "partial") {
               await Promise.all([
                 refreshLibraryGames(),
                 refreshCollections(),
@@ -117,6 +117,9 @@ export function useResumeActivityJob({
                 refreshPublishers(),
               ]);
               window.dispatchEvent(new CustomEvent("metadataReloaded"));
+              if (outcome === "partial") {
+                console.warn("Bulk metadata reload completed with skipped items (see console warnings).");
+              }
             }
           } finally {
             releaseBulkMetadataReloadLock();

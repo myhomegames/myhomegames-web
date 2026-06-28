@@ -15,6 +15,8 @@ interface DevelopersContextType {
   developers: CollectionItem[];
   /** Root-level developers only (excludes items linked as children). */
   rootDevelopers: CollectionItem[];
+  /** Map developer id -> library game ids (for filters). */
+  developerGameIds: Map<string, string[]>;
   isLoading: boolean;
   error: string | null;
   refreshDevelopers: () => Promise<void>;
@@ -25,6 +27,7 @@ const DevelopersContext = createContext<DevelopersContextType | undefined>(undef
 
 export function DevelopersProvider({ children }: { children: ReactNode }) {
   const [developers, setDevelopers] = useState<CollectionItem[]>([]);
+  const [developerGameIds, setDeveloperGameIds] = useState<Map<string, string[]>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const developersRef = useRef(developers);
@@ -63,6 +66,18 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
         childs: Array.isArray(v.childs) ? v.childs : [],
       }));
       setDevelopers(items);
+      setDeveloperGameIds((prev) => {
+        const updated = new Map(prev);
+        for (const v of json.developers || []) {
+          if (Array.isArray(v.gameIds)) {
+            updated.set(
+              String(v.id),
+              v.gameIds.map((id: string | number) => String(id)),
+            );
+          }
+        }
+        return updated;
+      });
     } catch (err: any) {
       clearTimeout(timeoutId);
       setError(String(err.message || err));
@@ -174,12 +189,13 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
     () => ({
       developers,
       rootDevelopers,
+      developerGameIds,
       isLoading,
       error,
       refreshDevelopers,
       updateDeveloper,
     }),
-    [developers, rootDevelopers, isLoading, error, refreshDevelopers, updateDeveloper],
+    [developers, rootDevelopers, developerGameIds, isLoading, error, refreshDevelopers, updateDeveloper],
   );
 
   return <DevelopersContext.Provider value={value}>{children}</DevelopersContext.Provider>;

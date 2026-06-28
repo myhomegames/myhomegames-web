@@ -61,7 +61,13 @@ export function throwIfMetadataReloadAborted(): void {
 
 export function isBulkMetadataReloadAbortedError(error: unknown): boolean {
   if (error instanceof BulkMetadataReloadAbortedError) return true;
-  return error instanceof DOMException && error.name === "AbortError";
+  if (!(error instanceof DOMException && error.name === "AbortError")) return false;
+  return (
+    isBulkMetadataReloadCancelRequested() ||
+    getBulkMetadataReloadAbortSignal()?.aborted === true ||
+    isSingleMetadataReloadCancelRequested() ||
+    getSingleMetadataReloadAbortSignal()?.aborted === true
+  );
 }
 
 export function tryAcquireBulkMetadataReloadLock(): boolean {

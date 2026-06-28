@@ -400,8 +400,8 @@ export function useGamesListPage(
     [tagLabels.categories]
   );
   const { collections, collectionGameIds: contextCollectionGameIds } = useCollections();
-  const { developers } = useDevelopers();
-  const { publishers } = usePublishers();
+  const { developers, developerGameIds: contextDeveloperGameIds } = useDevelopers();
+  const { publishers, publisherGameIds: contextPublisherGameIds } = usePublishers();
   const { settingsLoaded } = useSettings();
 
   // Convert collections to availableCollections format
@@ -433,13 +433,19 @@ export function useGamesListPage(
     return () => { cancelled = true; };
   }, [settingsLoaded]);
 
-  const availableDevelopers = useMemo(() =>
-    developers.map((d) => ({ id: String(d.id), title: d.title || "" })),
-    [developers]
+  const availableDevelopers = useMemo(
+    () =>
+      developers
+        .filter((d) => (d.gameCount ?? 0) > 0)
+        .map((d) => ({ id: String(d.id), title: d.title || "" })),
+    [developers],
   );
-  const availablePublishers = useMemo(() =>
-    publishers.map((p) => ({ id: String(p.id), title: p.title || "" })),
-    [publishers]
+  const availablePublishers = useMemo(
+    () =>
+      publishers
+        .filter((p) => (p.gameCount ?? 0) > 0)
+        .map((p) => ({ id: String(p.id), title: p.title || "" })),
+    [publishers],
   );
   
   const [availableGenres, setAvailableGenres] = useState<Array<{ id: string; title: string }>>([]);
@@ -792,10 +798,24 @@ export function useGamesListPage(
             return hasTag(game.gameModes || null, selectedGameModes);
           case "publishers":
             if (selectedPublishers === null) return true;
-            return hasTag(game.publishers ?? null, selectedPublishers);
+            {
+              const gameIds = contextPublisherGameIds.get(String(selectedPublishers));
+              if (gameIds && gameIds.length > 0) {
+                const gameIdStr = String(game.id);
+                return gameIds.some((id) => String(id) === gameIdStr);
+              }
+              return hasTag(game.publishers ?? null, selectedPublishers);
+            }
           case "developers":
             if (selectedDevelopers === null) return true;
-            return hasTag(game.developers ?? null, selectedDevelopers);
+            {
+              const gameIds = contextDeveloperGameIds.get(String(selectedDevelopers));
+              if (gameIds && gameIds.length > 0) {
+                const gameIdStr = String(game.id);
+                return gameIds.some((id) => String(id) === gameIdStr);
+              }
+              return hasTag(game.developers ?? null, selectedDevelopers);
+            }
           case "playerPerspectives":
             if (selectedPlayerPerspectives === null) return true;
             return hasTag(game.playerPerspectives || null, selectedPlayerPerspectives);
@@ -970,6 +990,8 @@ export function useGamesListPage(
     selectedAgeRating,
     selectedGameType,
     contextCollectionGameIds,
+    contextDeveloperGameIds,
+    contextPublisherGameIds,
     sortField,
     sortAscending,
     showMainGamesOnly,

@@ -15,6 +15,8 @@ interface PublishersContextType {
   publishers: CollectionItem[];
   /** Root-level publishers only (excludes items linked as children). */
   rootPublishers: CollectionItem[];
+  /** Map publisher id -> library game ids (for filters). */
+  publisherGameIds: Map<string, string[]>;
   isLoading: boolean;
   error: string | null;
   refreshPublishers: () => Promise<void>;
@@ -25,6 +27,7 @@ const PublishersContext = createContext<PublishersContextType | undefined>(undef
 
 export function PublishersProvider({ children }: { children: ReactNode }) {
   const [publishers, setPublishers] = useState<CollectionItem[]>([]);
+  const [publisherGameIds, setPublisherGameIds] = useState<Map<string, string[]>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const publishersRef = useRef(publishers);
@@ -63,6 +66,18 @@ export function PublishersProvider({ children }: { children: ReactNode }) {
         childs: Array.isArray(v.childs) ? v.childs : [],
       }));
       setPublishers(items);
+      setPublisherGameIds((prev) => {
+        const updated = new Map(prev);
+        for (const v of json.publishers || []) {
+          if (Array.isArray(v.gameIds)) {
+            updated.set(
+              String(v.id),
+              v.gameIds.map((id: string | number) => String(id)),
+            );
+          }
+        }
+        return updated;
+      });
     } catch (err: any) {
       clearTimeout(timeoutId);
       setError(String(err.message || err));
@@ -174,12 +189,13 @@ export function PublishersProvider({ children }: { children: ReactNode }) {
     () => ({
       publishers,
       rootPublishers,
+      publisherGameIds,
       isLoading,
       error,
       refreshPublishers,
       updatePublisher,
     }),
-    [publishers, rootPublishers, isLoading, error, refreshPublishers, updatePublisher],
+    [publishers, rootPublishers, publisherGameIds, isLoading, error, refreshPublishers, updatePublisher],
   );
 
   return <PublishersContext.Provider value={value}>{children}</PublishersContext.Provider>;

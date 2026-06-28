@@ -511,10 +511,12 @@ export default function LibrariesBar({
         return;
       }
 
-      // Right-side actions often mount after first paint; avoid flipping combobox → inline list.
+      // Right-side actions often mount after first paint; keep the bar hidden until measured
+      // so we do not briefly show the combobox and then switch to inline tabs.
       if (actionsWidth < 48) {
-        setIsNarrow(true);
-        setLibrariesBarLayoutReady(true);
+        requestAnimationFrame(() => {
+          if (!cancelled) checkWidth();
+        });
         return;
       }
 

@@ -7,6 +7,7 @@ import {
   isBulkMetadataReloadAbortedError,
   throwIfMetadataReloadAborted,
 } from "./bulkMetadataReloadContext";
+import { fetchWithBulkMetadataRetry } from "./metadataReloadNetwork";
 
 type CompanyRole = "developers" | "publishers";
 
@@ -54,7 +55,7 @@ export async function refreshRemoteCompanyProfileViaApi(
   const params: Record<string, string> = {};
   if (title?.trim()) params.name = title.trim();
 
-  const catalogRes = await fetch(buildCatalogApiUrl(`/igdb/company/${itemId}`, params), {
+  const catalogRes = await fetchWithBulkMetadataRetry(buildCatalogApiUrl(`/igdb/company/${itemId}`, params), {
     headers: buildApiHeaders(),
     signal,
   });
@@ -92,7 +93,7 @@ export async function refreshRemoteCompanyProfileViaApi(
   }
 
   const mergeUrl = buildApiUrl(getApiBase(), `/${resourceType}/${itemId}/merge-company-profile`);
-  const mergeRes = await fetch(mergeUrl, {
+  const mergeRes = await fetchWithBulkMetadataRetry(mergeUrl, {
     method: "POST",
     headers: {
       ...buildApiHeaders(),
