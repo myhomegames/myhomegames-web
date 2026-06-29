@@ -29,9 +29,11 @@ export default function SidebarSearchOverlay({
 
   useEffect(() => {
     if (!open) return;
+    document.body.setAttribute("data-mhg-sidebar-search-open", "");
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
+      document.body.removeAttribute("data-mhg-sidebar-search-open");
       document.body.style.overflow = prev;
     };
   }, [open]);

@@ -1,0 +1,32 @@
+/*
+ * Sidebar search overlay is z-index 22100. Portaled UI from ⋮ actions must stack above it.
+ * Bundled with the web app (not only in skin CSS).
+ */
+body[data-mhg-sidebar-search-open] > .dropdown-menu-popup,
+body:has([data-mhg-sidebar-search-dialog]) > .dropdown-menu-popup {
+  z-index: 22200 !important;
+}
+
+body[data-mhg-sidebar-search-open] > .add-to-collection-dropdown-menu,
+body[data-mhg-sidebar-search-open] > .additional-executables-dropdown-menu,
+body:has([data-mhg-sidebar-search-dialog]) > .add-to-collection-dropdown-menu,
+body:has([data-mhg-sidebar-search-dialog]) > .additional-executables-dropdown-menu {
+  z-index: 22201 !important;
+}
+
+body[data-mhg-sidebar-search-open] > .dropdown-menu-confirm-overlay,
+body:has([data-mhg-sidebar-search-dialog]) > .dropdown-menu-confirm-overlay {
+  z-index: 22202 !important;
+}
+
+/* Modals opened from ⋮ menu item actions (edit, delete confirm, add to…, manage install) */
+body[data-mhg-sidebar-search-open] > .edit-game-modal-overlay,
+body[data-mhg-sidebar-search-open] > .edit-collection-modal-overlay,
+body[data-mhg-sidebar-search-open] > .add-to-collection-modal-overlay,
+body[data-mhg-sidebar-search-open] > .manage-installation-modal-overlay,
+body:has([data-mhg-sidebar-search-dialog]) > .edit-game-modal-overlay,
+body:has([data-mhg-sidebar-search-dialog]) > .edit-collection-modal-overlay,
+body:has([data-mhg-sidebar-search-dialog]) > .add-to-collection-modal-overlay,
+body:has([data-mhg-sidebar-search-dialog]) > .manage-installation-modal-overlay {
+  z-index: 22203 !important;
+}

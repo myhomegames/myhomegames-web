@@ -49,7 +49,7 @@ type DropdownMenuProps = {
   toolTipDelay?: number;
 };
 
-export default function DropdownMenu({
+function DropdownMenu({
   onEdit,
   onDelete,
   onReload,
@@ -103,6 +103,13 @@ export default function DropdownMenu({
       !publisherId &&
       !onEdit &&
       !onDelete);
+  const hasBackendAuth = true;
+  const [isOpen, setIsOpen] = useState(false);
+  const [showCancelBulkReloadModal, setShowCancelBulkReloadModal] = useState(false);
+  const [isCollectionLikeSubmenuOpen, setIsCollectionLikeSubmenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+  const collectionLikeSubmenuRef = useRef<HTMLDivElement>(null);
   /**
    * When Twitch auth is disabled the server accepts mutations without a token,
    * so delete/reload entries should remain available even without `getApiToken()`.
@@ -115,13 +122,6 @@ export default function DropdownMenu({
     activeSkinWeb.disableTitleTooltips,
     closeDropdown,
   );
-  const hasBackendAuth = true;
-  const [isOpen, setIsOpen] = useState(false);
-  const [showCancelBulkReloadModal, setShowCancelBulkReloadModal] = useState(false);
-  const [isCollectionLikeSubmenuOpen, setIsCollectionLikeSubmenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const popupRef = useRef<HTMLDivElement>(null);
-  const collectionLikeSubmenuRef = useRef<HTMLDivElement>(null);
 
   // Use action hooks
   const deleteGame = useDeleteGame({
@@ -195,15 +195,44 @@ export default function DropdownMenu({
   // Check if we're in search (popup or results page) to use portal so menu isn't clipped and clicks work
   const isSearchResultMenu = className.includes("search-result-dropdown-menu");
   const [isInSearchDropdownScroll, setIsInSearchDropdownScroll] = useState(false);
+  const [isInSidebarSearchDialog, setIsInSidebarSearchDialog] = useState(false);
   const isInSearchDropdown = isSearchResultMenu || isInSearchDropdownScroll;
+  const sidebarSearchDialogOpen =
+    typeof document !== "undefined" &&
+    !!document.querySelector("[data-mhg-sidebar-search-dialog]");
 
   useEffect(() => {
     if (isOpen && menuRef.current) {
       setIsInSearchDropdownScroll(!!menuRef.current.closest(".search-dropdown-scroll"));
+      setIsInSidebarSearchDialog(
+        !!menuRef.current.closest("[data-mhg-sidebar-search-dialog]") ||
+          (isSearchResultMenu && sidebarSearchDialogOpen),
+      );
     } else {
       setIsInSearchDropdownScroll(false);
+      setIsInSidebarSearchDialog(false);
     }
-  }, [isOpen]);
+  }, [isOpen, isSearchResultMenu, sidebarSearchDialogOpen]);
+
+  useLayoutEffect(() => {
+    const popup = popupRef.current;
+    if (!isOpen || !popup) return;
+
+    const inSidebarSearch =
+      isInSidebarSearchDialog ||
+      (isSearchResultMenu && sidebarSearchDialogOpen);
+
+    if (inSidebarSearch) {
+      popup.style.setProperty("z-index", "22200", "important");
+      popup.style.removeProperty("top");
+      popup.style.removeProperty("right");
+      popup.style.removeProperty("bottom");
+      popup.style.removeProperty("left");
+      return;
+    }
+
+    popup.style.removeProperty("z-index");
+  }, [isOpen, isInSidebarSearchDialog, isSearchResultMenu, sidebarSearchDialogOpen]);
 
   useLayoutEffect(() => {
     if (!isCollectionLikeSubmenuOpen) return;
@@ -579,7 +608,7 @@ export default function DropdownMenu({
         const popupContent = (
           <div 
             ref={popupRef} 
-            className={`dropdown-menu-popup ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''} ${isInGamesTable ? 'dropdown-menu-popup-in-games-table' : ''} ${useFixedBodyPortalMenu ? 'dropdown-menu-popup-in-libraries-top' : ''}`}
+            className={`dropdown-menu-popup ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''} ${isInSidebarSearchDialog ? 'dropdown-menu-popup-in-sidebar-search' : ''} ${isInGamesTable ? 'dropdown-menu-popup-in-games-table' : ''} ${useFixedBodyPortalMenu ? 'dropdown-menu-popup-in-libraries-top' : ''}`}
             onMouseLeave={handlePopupMouseLeave}
             {...sheetBackdropProps}
             style={(() => {
@@ -597,6 +626,12 @@ export default function DropdownMenu({
               }
               
               if (isInSearchDropdown) {
+                const inSidebarSearch =
+                  isInSidebarSearchDialog ||
+                  (isSearchResultMenu && sidebarSearchDialogOpen);
+                if (inSidebarSearch) {
+                  return undefined;
+                }
                 const rect = menuRef.current.getBoundingClientRect();
                 return {
                   position: 'fixed',
@@ -1108,3 +1143,4 @@ export default function DropdownMenu({
   );
 }
 
+export default DropdownMenu;

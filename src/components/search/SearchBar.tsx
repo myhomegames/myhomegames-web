@@ -242,8 +242,13 @@ export default function SearchBar({ games, collections, developers = [], publish
       
       // Don't close if clicking on a modal (edit or delete)
       if (
+        target.closest('.edit-game-modal-overlay') ||
         target.closest('.edit-game-modal-container') ||
+        target.closest('.edit-collection-modal-overlay') ||
         target.closest('.edit-collection-modal-container') ||
+        target.closest('.add-to-collection-modal-overlay') ||
+        target.closest('.manage-installation-modal-overlay') ||
+        target.closest('.dropdown-menu-confirm-overlay') ||
         target.closest('.dropdown-menu-confirm-container')
       ) {
         return;
