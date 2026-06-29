@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import {
+  isSidebarSearchDialogOpen,
+  SIDEBAR_SEARCH_ACTION_Z_INDEX,
+  wrapSidebarSearchMenuStack,
+} from "../../utils/sidebarSearchMenuStack";
 import { API_BASE, API_TOKEN, getApiToken } from "../../config";
 import { useLoading } from "../../contexts/LoadingContext";
 import Cover from "../games/Cover";
@@ -963,7 +968,8 @@ export default function EditCollectionLikeModal({
   );
 
   return createPortal(
-    <div className={`${mc}-overlay`} onClick={onClose}>
+    wrapSidebarSearchMenuStack(
+      <div className={`${mc}-overlay`} onClick={onClose}>
       <div className={`${mc}-container`} onClick={(e) => e.stopPropagation()}>
         <div className={`${mc}-header`}>
           <h2>
@@ -1018,6 +1024,9 @@ export default function EditCollectionLikeModal({
         )}
       </div>
     </div>,
+      isSidebarSearchDialogOpen(),
+      SIDEBAR_SEARCH_ACTION_Z_INDEX,
+    ),
     document.body
   );
 }

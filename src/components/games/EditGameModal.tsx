@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import {
+  isSidebarSearchDialogOpen,
+  SIDEBAR_SEARCH_ACTION_Z_INDEX,
+  wrapSidebarSearchMenuStack,
+} from "../../utils/sidebarSearchMenuStack";
 import { API_BASE, API_TOKEN, getApiToken } from "../../config";
 import { useLoading } from "../../contexts/LoadingContext";
 import { useTagLists } from "../../contexts/TagListsContext";
@@ -915,7 +920,8 @@ export default function EditGameModal({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="edit-game-modal-overlay" onClick={onClose}>
+    wrapSidebarSearchMenuStack(
+      <div className="edit-game-modal-overlay" onClick={onClose}>
       <div
         className="edit-game-modal-container"
         onClick={(e) => e.stopPropagation()}
@@ -1127,6 +1133,9 @@ export default function EditGameModal({
         </form>
       </div>
     </div>,
+      isSidebarSearchDialogOpen(),
+      SIDEBAR_SEARCH_ACTION_Z_INDEX,
+    ),
     document.body
   );
 }

@@ -2,6 +2,10 @@ import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import SearchBar from "../search/SearchBar";
+import {
+  SidebarSearchInteractionProvider,
+  useSidebarSearchInteraction,
+} from "../../contexts/SidebarSearchInteractionContext";
 import type { GameItem, CollectionItem } from "../../types";
 
 type SidebarSearchOverlayProps = {
@@ -15,8 +19,7 @@ type SidebarSearchOverlayProps = {
   onPlay?: (game: GameItem) => void;
 };
 
-export default function SidebarSearchOverlay({
-  open,
+function SidebarSearchOverlayContent({
   onClose,
   games,
   collections,
@@ -24,51 +27,20 @@ export default function SidebarSearchOverlay({
   publishers,
   onGameSelect,
   onPlay,
-}: SidebarSearchOverlayProps) {
+}: Omit<SidebarSearchOverlayProps, "open">) {
   const { t } = useTranslation();
-
-  useEffect(() => {
-    if (!open) return;
-    document.body.setAttribute("data-mhg-sidebar-search-open", "");
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.removeAttribute("data-mhg-sidebar-search-open");
-      document.body.style.overflow = prev;
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
-  useEffect(() => {
-    if (!open) return;
-    const id = window.requestAnimationFrame(() => {
-      const el = document.querySelector<HTMLElement>(
-        "[data-mhg-sidebar-search-dialog] .mhg-search-input"
-      );
-      el?.focus();
-    });
-    return () => cancelAnimationFrame(id);
-  }, [open]);
-
-  if (!open) return null;
+  const { blocked } = useSidebarSearchInteraction()!;
 
   const handleGameSelect = (game: GameItem) => {
     onClose();
     onGameSelect(game);
   };
 
-  return createPortal(
+  return (
     <div
       className="game-search-modal-overlay mhg-sidebar-search-overlay !z-[22100] !items-start !justify-center px-4 pb-8 pt-20"
       role="presentation"
+      style={blocked ? { pointerEvents: "none" } : undefined}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -80,6 +52,7 @@ export default function SidebarSearchOverlay({
         aria-modal="true"
         aria-label={t("libraries.sidebarSearch")}
         className="game-search-modal mhg-sidebar-search-modal !h-auto !min-h-[360px] !max-h-[min(85vh,720px)] !w-full !max-w-[640px]"
+        style={blocked ? { pointerEvents: "none" } : undefined}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="game-search-modal-header">
@@ -104,7 +77,65 @@ export default function SidebarSearchOverlay({
           />
         </div>
       </div>
-    </div>,
-    document.body
+    </div>
+  );
+}
+
+export default function SidebarSearchOverlay({
+  open,
+  onClose,
+  games,
+  collections,
+  developers,
+  publishers,
+  onGameSelect,
+  onPlay,
+}: SidebarSearchOverlayProps) {
+  useEffect(() => {
+    if (!open) return;
+    document.body.setAttribute("data-mhg-sidebar-search-open", "");
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.removeAttribute("data-mhg-sidebar-search-open");
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  useEffect(() => {
+    if (!open) return;
+    const id = window.requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLElement>(
+        "[data-mhg-sidebar-search-dialog] .mhg-search-input",
+      );
+      el?.focus();
+    });
+    return () => cancelAnimationFrame(id);
+  }, [open]);
+
+  if (!open) return null;
+
+  return createPortal(
+    <SidebarSearchInteractionProvider>
+      <SidebarSearchOverlayContent
+        onClose={onClose}
+        games={games}
+        collections={collections}
+        developers={developers}
+        publishers={publishers}
+        onGameSelect={onGameSelect}
+        onPlay={onPlay}
+      />
+    </SidebarSearchInteractionProvider>,
+    document.body,
   );
 }

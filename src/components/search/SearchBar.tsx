@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import SearchResultsList from "./SearchResultsList";
+import { useSidebarSearchInteraction } from "../../contexts/SidebarSearchInteractionContext";
 import type { GameItem, CollectionItem } from "../../types";
 type SearchBarProps = {
   games: GameItem[];
@@ -45,6 +46,12 @@ export default function SearchBar({ games, collections, developers = [], publish
   const isSelectingGameRef = useRef(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [dropdownLeftOffset, setDropdownLeftOffset] = useState(0);
+  const sidebarSearchInteraction = useSidebarSearchInteraction();
+
+  useLayoutEffect(() => {
+    if (!sidebarSearchInteraction || !isModalOpen) return;
+    return sidebarSearchInteraction.retainInteractionBlock();
+  }, [sidebarSearchInteraction, isModalOpen]);
 
   const dropdownLayoutStyle = useMemo(
     (): CSSProperties => ({ left: dropdownLeftOffset }),
@@ -266,9 +273,11 @@ export default function SearchBar({ games, collections, developers = [], publish
 
       // Portaled ⋮ menus (search results, table, etc.) sit outside this root
       if (
-        target.closest('.dropdown-menu-popup') ||
-        target.closest('.dropdown-menu-confirm-overlay') ||
-        target.closest('.dropdown-menu-collectionlike-submenu')
+        target.closest(".dropdown-menu-popup") ||
+        target.closest(".dropdown-menu-confirm-overlay") ||
+        target.closest(".dropdown-menu-collectionlike-submenu") ||
+        target.closest("[data-mhg-sidebar-search-interaction-shield]") ||
+        target.closest("[data-mhg-sidebar-search-menu-stack]")
       ) {
         return;
       }

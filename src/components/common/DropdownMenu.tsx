@@ -12,6 +12,12 @@ import {
   resolveSingleMetadataReloadTarget,
 } from "../../utils/activitySession";
 import { bindSheetBackdropClose } from "../../utils/sheetPopupBackdrop";
+import { useSidebarSearchInteraction } from "../../contexts/SidebarSearchInteractionContext";
+import {
+  SIDEBAR_SEARCH_CONFIRM_Z_INDEX,
+  SIDEBAR_SEARCH_MENU_Z_INDEX,
+  wrapSidebarSearchMenuStack,
+} from "../../utils/sidebarSearchMenuStack";
 import type { CollectionItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 
@@ -83,6 +89,7 @@ function DropdownMenu({
 }: DropdownMenuProps) {
   const { t } = useTranslation();
   const { activeSkinWeb } = useSkin();
+  const sidebarSearchInteraction = useSidebarSearchInteraction();
   const { isActivityBusy, activityProgress } = useLoading();
   const metadataReloadBlocked = isActivityBusy && isBulkMetadataReloadInProgress();
   const singleMetadataReloadTarget = resolveSingleMetadataReloadTarget({
@@ -117,6 +124,16 @@ function DropdownMenu({
   const closeDropdown = () => {
     setIsOpen(false);
     setIsCollectionLikeSubmenuOpen(false);
+  };
+  /** Keep the ⋮ sheet mounted one frame so sidebar-search blocking can hand off to the next layer. */
+  const beginSidebarSearchStackedAction = (run: () => void) => {
+    if (onModalOpen) {
+      onModalOpen();
+    }
+    run();
+    requestAnimationFrame(() => {
+      closeDropdown();
+    });
   };
   const sheetBackdropProps = bindSheetBackdropClose(
     activeSkinWeb.disableTitleTooltips,
@@ -234,6 +251,24 @@ function DropdownMenu({
     popup.style.removeProperty("z-index");
   }, [isOpen, isInSidebarSearchDialog, isSearchResultMenu, sidebarSearchDialogOpen]);
 
+  const inSidebarSearchResultMenu =
+    sidebarSearchDialogOpen && isSearchResultMenu;
+
+  const inSidebarSearchPortal =
+    isInSearchDropdown &&
+    (isInSidebarSearchDialog || (isSearchResultMenu && sidebarSearchDialogOpen));
+
+  const sidebarSearchMenuLayerOpen =
+    isOpen ||
+    deleteGame.showConfirmModal ||
+    reloadGame.showReloadConfirmModal ||
+    showCancelBulkReloadModal;
+
+  useLayoutEffect(() => {
+    if (!sidebarSearchInteraction || !sidebarSearchMenuLayerOpen) return;
+    return sidebarSearchInteraction.retainInteractionBlock();
+  }, [sidebarSearchInteraction, sidebarSearchMenuLayerOpen]);
+
   useLayoutEffect(() => {
     if (!isCollectionLikeSubmenuOpen) return;
     const submenu = collectionLikeSubmenuRef.current;
@@ -299,6 +334,10 @@ function DropdownMenu({
       
       // Also check by class name
       if (target.closest('.dropdown-menu-popup')) {
+        return;
+      }
+
+      if (target.closest('[data-mhg-sidebar-search-menu-stack]')) {
         return;
       }
       
@@ -391,13 +430,11 @@ function DropdownMenu({
 
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsOpen(false);
-    if (onModalOpen) {
-      onModalOpen();
-    }
-    if (onEdit) {
-      onEdit();
-    }
+    beginSidebarSearchStackedAction(() => {
+      if (onEdit) {
+        onEdit();
+      }
+    });
   };
 
   const handleAddToCollectionMouseEnter = (e: React.MouseEvent) => {
@@ -476,15 +513,14 @@ function DropdownMenu({
 
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsOpen(false);
-    
+
     // If we have props to handle deletion internally (game, collection, developer, or publisher)
     if ((gameId && gameTitle) || (collectionId && collectionTitle) || (developerId && collectionTitle) || (publisherId && collectionTitle)) {
-      if (onModalOpen) {
-        onModalOpen();
-      }
-      deleteGame.handleDeleteClick();
+      beginSidebarSearchStackedAction(() => {
+        deleteGame.handleDeleteClick();
+      });
     } else if (onDelete) {
+      closeDropdown();
       // Fallback to previous behavior
       onDelete();
     }
@@ -493,24 +529,21 @@ function DropdownMenu({
   const handleReload = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    setIsOpen(false);
 
     if (!canReloadMetadata) {
       return;
     }
 
     if (metadataReloadInProgressLabel) {
-      setTimeout(() => {
-        if (onModalOpen) {
-          onModalOpen();
-        }
+      beginSidebarSearchStackedAction(() => {
         setShowCancelBulkReloadModal(true);
-      }, 0);
+      });
       return;
     }
     
     // If there's a gameId or collectionId, execute reload directly (single element)
     if (gameId || collectionId || developerId || publisherId) {
+      closeDropdown();
       if (onReload) {
         // If there's a custom callback, use it
         onReload();
@@ -520,14 +553,9 @@ function DropdownMenu({
       return;
     }
     
-    // Otherwise show confirmation modal for global reload
-    // Use setTimeout to ensure dropdown is closed before opening modal
-    setTimeout(() => {
-      if (onModalOpen) {
-        onModalOpen();
-      }
+    beginSidebarSearchStackedAction(() => {
       reloadGame.handleReloadClick();
-    }, 0);
+    });
   };
 
   const handleDismissCancelBulkReload = () => {
@@ -630,7 +658,7 @@ function DropdownMenu({
                   isInSidebarSearchDialog ||
                   (isSearchResultMenu && sidebarSearchDialogOpen);
                 if (inSidebarSearch) {
-                  return undefined;
+                  return { zIndex: SIDEBAR_SEARCH_MENU_Z_INDEX };
                 }
                 const rect = menuRef.current.getBoundingClientRect();
                 return {
@@ -961,13 +989,17 @@ function DropdownMenu({
         
         // Use portal for search dropdown, cover, or games table (escape overflow and stay on top)
         return (isInSearchDropdown || isInCover || isInGamesTable || useFixedBodyPortalMenu)
-          ? createPortal(popupContent, document.body)
+          ? createPortal(
+              wrapSidebarSearchMenuStack(popupContent, inSidebarSearchPortal),
+              document.body,
+            )
           : popupContent;
       })()}
 
       {/* Reload Confirmation Modal */}
       {reloadGame.showReloadConfirmModal && createPortal(
-        <div className="dropdown-menu-confirm-overlay" onClick={reloadGame.handleCancelReload}>
+        wrapSidebarSearchMenuStack(
+          <div className="dropdown-menu-confirm-overlay" onClick={reloadGame.handleCancelReload}>
           <div className="dropdown-menu-confirm-container" onClick={(e) => e.stopPropagation()}>
             <div className="dropdown-menu-confirm-header">
               <h2>
@@ -1022,12 +1054,16 @@ function DropdownMenu({
             </div>
           </div>
         </div>,
+          inSidebarSearchResultMenu,
+          SIDEBAR_SEARCH_CONFIRM_Z_INDEX,
+        ),
         document.body
       )}
 
       {/* Cancel bulk metadata reload */}
       {showCancelBulkReloadModal && createPortal(
-        <div className="dropdown-menu-confirm-overlay" onClick={handleDismissCancelBulkReload}>
+        wrapSidebarSearchMenuStack(
+          <div className="dropdown-menu-confirm-overlay" onClick={handleDismissCancelBulkReload}>
           <div className="dropdown-menu-confirm-container" onClick={(e) => e.stopPropagation()}>
             <div className="dropdown-menu-confirm-header">
               <h2>
@@ -1080,12 +1116,16 @@ function DropdownMenu({
             </div>
           </div>
         </div>,
-        document.body
+          inSidebarSearchResultMenu,
+          SIDEBAR_SEARCH_CONFIRM_Z_INDEX,
+        ),
+        document.body,
       )}
 
       {/* Delete Confirmation Modal */}
       {deleteGame.showConfirmModal && createPortal(
-        <div className="dropdown-menu-confirm-overlay" onClick={deleteGame.handleCancelDelete}>
+        wrapSidebarSearchMenuStack(
+          <div className="dropdown-menu-confirm-overlay" onClick={deleteGame.handleCancelDelete}>
           <div className="dropdown-menu-confirm-container" onClick={(e) => e.stopPropagation()}>
             <div className="dropdown-menu-confirm-header">
               <h2>
@@ -1137,7 +1177,10 @@ function DropdownMenu({
             </div>
           </div>
         </div>,
-        document.body
+          inSidebarSearchResultMenu,
+          SIDEBAR_SEARCH_CONFIRM_Z_INDEX,
+        ),
+        document.body,
       )}
     </div>
   );
