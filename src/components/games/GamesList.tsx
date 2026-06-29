@@ -1,7 +1,6 @@
 import { useState, useMemo, useRef, useCallback } from "react";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
-import { API_BASE } from "../../config";
 import Cover from "./Cover";
 import EditGameModal from "./EditGameModal";
 import { useEditGame } from "../common/actions";
@@ -141,6 +140,7 @@ export function GameListItem({
 }: GameListItemProps) {
   const { t } = useTranslation();
   const isCatalogOnly = (game as GameItem & { isCatalogOnly?: boolean }).isCatalogOnly;
+  // Cover URLs are resolved with stable session cache inside Cover.
   const coverHeight = portraitCoverHeight(coverSize);
   const gameForCover = useMemo(() => {
     if (!platformIdForPlay) return game;
@@ -148,19 +148,6 @@ export function GameListItem({
     if (!f) return { ...game, executables: [], executableFileNames: [] };
     return { ...game, executables: f.executables, executableFileNames: f.executableFileNames };
   }, [game, platformIdForPlay]);
-
-  // Track previous cover value to detect changes
-  const prevCoverRef = useRef<string | undefined>(game.cover);
-  const coverChanged = prevCoverRef.current !== game.cover;
-  if (coverChanged) {
-    prevCoverRef.current = game.cover;
-  }
-  
-  // Memoize cover URL - only add timestamp when cover actually changes
-  const coverUrl = useMemo(() => {
-    const timestamp = coverChanged ? Date.now() : coverCacheBustTimestamp;
-    return game.cover ? buildCoverUrl(API_BASE, game.cover, !!timestamp, timestamp) : "";
-  }, [game.cover, coverChanged, coverCacheBustTimestamp, buildCoverUrl]);
 
   const handleDragStart = (e: React.DragEvent) => {
     if (!draggable) return;
@@ -279,7 +266,7 @@ export function GameListItem({
       <Cover
         key={`${game.id}-${game.cover}`}
         title={game.title}
-        coverUrl={coverUrl}
+        cover={game.cover}
         width={coverSize}
         height={coverHeight}
         onPlay={

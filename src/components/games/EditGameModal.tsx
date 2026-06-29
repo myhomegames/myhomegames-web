@@ -12,6 +12,7 @@ import { useTagLists } from "../../contexts/TagListsContext";
 import { EditGameInfoTab, EditGameMediaTab, EditGameTagsTab } from "./edit";
 import type { GameItem } from "../../types";
 import { buildApiUrl } from "../../utils/api";
+import { bumpCoverCache } from "../../utils/coverUrlCache";
 import {
   normalizeGameCoverImage,
   normalizeScreenshotImage,
@@ -662,6 +663,7 @@ export default function EditGameModal({
 
         // Add timestamp whenever we changed cover/background (upload or remove) so list UI updates even if API didn't return the new URL
         if ((coverFile || coverRemoved) && finalCover) {
+          bumpCoverCache(finalCover);
           const separator = finalCover.includes('?') ? '&' : '?';
           finalCover = `${finalCover}${separator}t=${Date.now()}`;
         }
@@ -819,6 +821,7 @@ export default function EditGameModal({
         
         // Add timestamp to force browser reload if images were updated
         if ((coverFile || coverRemoved) && finalCover) {
+          bumpCoverCache(finalCover);
           const separator = finalCover.includes('?') ? '&' : '?';
           finalCover = `${finalCover}${separator}t=${Date.now()}`;
         }

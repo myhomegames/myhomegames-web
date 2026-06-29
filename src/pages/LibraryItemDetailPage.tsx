@@ -117,8 +117,6 @@ export default function LibraryItemDetailPage({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [listLoadTimestamp, setListLoadTimestamp] = useState(() => Date.now());
-  const initialCoverTimestampRef = useRef<number>(Date.now());
   const [scrollRestoreTrigger, setScrollRestoreTrigger] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
@@ -579,7 +577,6 @@ export default function LibraryItemDetailPage({
       if (!orderMatches) setCustomOrder(orderFromBackend);
       else setCustomOrder(null);
       setGames(parsed);
-      setListLoadTimestamp(Date.now());
       onGamesLoaded(parsed);
     } catch (err: any) {
       console.error("Error fetching collection games:", err?.message);
@@ -615,7 +612,6 @@ export default function LibraryItemDetailPage({
       const json = await res.json();
       const parsed = parseGamesFromJson(json);
       setGames(parsed);
-      setListLoadTimestamp(Date.now());
       onGamesLoaded(parsed);
     } catch (err) {
       console.error("Error fetching developer games:", err);
@@ -651,7 +647,6 @@ export default function LibraryItemDetailPage({
       const json = await res.json();
       const parsed = parseGamesFromJson(json);
       setGames(parsed);
-      setListLoadTimestamp(Date.now());
       onGamesLoaded(parsed);
     } catch (err) {
       console.error("Error fetching publisher games:", err);
@@ -880,8 +875,6 @@ export default function LibraryItemDetailPage({
     );
   }
 
-  const itemCoverTimestamp = listLoadTimestamp ?? initialCoverTimestampRef.current;
-  const itemCoverUrl = item?.cover ? buildCoverUrl(API_BASE, item.cover, true, itemCoverTimestamp) : "";
   const coverWidth = 240;
   const coverHeight = 360;
   const backdropMedia = useMemo(() => {
@@ -916,7 +909,7 @@ export default function LibraryItemDetailPage({
     >
       <LibraryItemDetailContent
         item={item}
-        itemCoverUrl={itemCoverUrl}
+        itemCover={item?.cover}
         coverWidth={coverWidth}
         coverHeight={coverHeight}
         yearRange={yearRange}
@@ -1027,7 +1020,6 @@ export default function LibraryItemDetailPage({
         showNewGames={showNewGames}
         onShowNewGamesChange={setShowNewGames}
         showNewGamesLabel={canShowNewGamesToggle ? t("tagGames.showNewGames") : undefined}
-        listLoadTimestamp={listLoadTimestamp}
         gridGames={gridGames}
         mainGamesOnly={mainGamesOnly}
         onMainGamesOnlyChange={setMainGamesOnly}
@@ -1047,7 +1039,7 @@ export default function LibraryItemDetailPage({
 
 type LibraryItemDetailContentProps = {
   item: CollectionInfo | null;
-  itemCoverUrl: string;
+  itemCover?: string;
   coverWidth: number;
   coverHeight: number;
   yearRange: string | null;
@@ -1092,7 +1084,6 @@ type LibraryItemDetailContentProps = {
   showNewGames?: boolean;
   onShowNewGamesChange?: (value: boolean) => void;
   showNewGamesLabel?: string;
-  listLoadTimestamp?: number;
   gridGames: GameItem[];
   mainGamesOnly: boolean;
   onMainGamesOnlyChange: (value: boolean) => void;
@@ -1107,7 +1098,7 @@ type LibraryItemDetailContentProps = {
 
 function LibraryItemDetailContent({
   item,
-  itemCoverUrl,
+  itemCover,
   coverWidth,
   coverHeight,
   yearRange,
@@ -1152,7 +1143,6 @@ function LibraryItemDetailContent({
   showNewGames = false,
   onShowNewGamesChange,
   showNewGamesLabel,
-  listLoadTimestamp,
   gridGames,
   mainGamesOnly,
   onMainGamesOnlyChange,
@@ -1199,9 +1189,6 @@ function LibraryItemDetailContent({
       : resourceType === "developers"
         ? "developers"
         : "publishers";
-  const stableCoverTimestampRef = useRef<number>(Date.now());
-  const coverTimestampForUrls = listLoadTimestamp ?? stableCoverTimestampRef.current;
-
   const calculateSummaryMaxLines = (): number => {
     let fieldCount = 1;
     if (yearRange) fieldCount++;
@@ -1847,7 +1834,7 @@ function LibraryItemDetailContent({
                       <div className="library-item-detail-hero-cover">
                         <Cover
                           title={item.title}
-                          coverUrl={itemCoverUrl}
+                          cover={itemCover}
                           width={coverWidth}
                           height={coverHeight}
                           imageFit="fill"
@@ -2102,7 +2089,7 @@ function LibraryItemDetailContent({
                           >
                             <Cover
                               title={item.title}
-                              coverUrl={itemCoverUrl}
+                              cover={itemCover}
                               width={coverSize}
                               height={Math.round(coverSize * 1.5)}
                               imageFit="fill"
@@ -2157,9 +2144,6 @@ function LibraryItemDetailContent({
                             <div className="library-item-detail-collections-list library-item-detail-collections-list-mt">
                               <div className="collections-list-container library-item-detail-subcollections-grid">
                                 {subCollectionLikesFiltered.map((col) => {
-                                  const colCoverUrl = col.cover
-                                    ? buildCoverUrl(API_BASE, col.cover, true, coverTimestampForUrls)
-                                    : "";
                                   const isActiveDetailChild = matchesActiveCollectionLikeDetail(
                                     resourceType,
                                     String(col.id),
@@ -2178,7 +2162,7 @@ function LibraryItemDetailContent({
                                     >
                                       <Cover
                                         title={col.title}
-                                        coverUrl={colCoverUrl}
+                                        cover={col.cover}
                                         width={coverSize}
                                         height={coverSize * 1.5}
                                         onClick={isActiveDetailChild ? undefined : handleClick}
@@ -2274,7 +2258,6 @@ function LibraryItemDetailContent({
                               onGameUpdate={onGameUpdate}
                               onGameDelete={onGameDelete}
                               buildCoverUrl={buildCoverUrl}
-                              coverCacheBustTimestamp={listLoadTimestamp}
                               coverSize={coverSize}
                               itemRefs={itemRefs}
                               draggable={collectionDragEnabled && !contextRailLayout}

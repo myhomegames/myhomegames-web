@@ -11,6 +11,7 @@ import { useLoading } from "../../contexts/LoadingContext";
 import Cover from "../games/Cover";
 import type { CollectionInfo } from "../../types";
 import { buildApiUrl } from "../../utils/api";
+import { bumpCoverCache } from "../../utils/coverUrlCache";
 import { normalizeGameCoverImage, normalizeWideImage } from "../../utils/imageUploadNormalize";
 import EditCompanyProfileFields from "../companies/EditCompanyProfileFields";
 import {
@@ -501,6 +502,7 @@ export default function EditCollectionLikeModal({
           hasBackground
         );
         if (updatedCover && finalCover) {
+          bumpCoverCache(finalCover);
           const sep = finalCover.includes("?") ? "&" : "?";
           finalCover = `${finalCover}${sep}t=${Date.now()}`;
         }
@@ -552,6 +554,7 @@ export default function EditCollectionLikeModal({
             hasBackground
           );
           if ((updatedCover !== null || coverRemoved) && finalCover) {
+            bumpCoverCache(finalCover);
             const sep = finalCover.includes("?") ? "&" : "?";
             finalCover = `${finalCover}${sep}t=${Date.now()}`;
           }

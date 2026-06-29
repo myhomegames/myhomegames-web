@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type React from "react";
 import type { CSSProperties } from "react";
@@ -6,11 +6,20 @@ import DropdownMenu from "../common/DropdownMenu";
 import AddToCollectionDropdown from "./AddToCollectionDropdown";
 import AdditionalExecutablesDropdown from "./AdditionalExecutablesDropdown";
 import Tooltip from "../common/Tooltip";
+import { API_BASE } from "../../config";
+import {
+  normalizeCoverCacheKey,
+  pickCoverSource,
+  resolveStableCoverUrl,
+} from "../../utils/coverUrlCache";
 import type { CollectionItem, GameItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 type CoverProps = {
   title: string;
-  coverUrl: string;
+  /** Server cover path (/covers/…). Preferred — Cover applies stable session cache. */
+  cover?: string;
+  /** Pre-built URL, data: preview, or legacy path string. */
+  coverUrl?: string;
   width: number;
   height: number;
   onPlay?: (executableName?: string) => void;
@@ -83,7 +92,8 @@ type CoverProps = {
 
 export default function Cover({
   title,
-  coverUrl,
+  cover,
+  coverUrl = "",
   width,
   height,
   onPlay,
@@ -139,12 +149,22 @@ export default function Cover({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isPopupOverlay, setIsPopupOverlay] = useState(false);
   const coverRef = useRef<HTMLDivElement>(null);
-  const showPlaceholder = !coverUrl || imageError;
+  const rawCoverInput = pickCoverSource(
+    cover,
+    coverUrl,
+    game?.externalCoverUrl ?? sourceCollectionLike?.externalCoverUrl,
+  );
+  const coverCacheKey = normalizeCoverCacheKey(rawCoverInput);
+  const displayUrl = useMemo(
+    () => (rawCoverInput ? resolveStableCoverUrl(API_BASE, rawCoverInput) : ""),
+    [coverCacheKey],
+  );
+  const showPlaceholder = !displayUrl || imageError;
   
-  // Reset imageError when coverUrl changes
+  // Reset imageError when cover changes
   useEffect(() => {
     setImageError(false);
-  }, [coverUrl]);
+  }, [coverCacheKey]);
   
   // Listen for dropdown menu open/close events
   useEffect(() => {
@@ -325,8 +345,8 @@ export default function Cover({
           </div>
         ) : (
           <img
-            key={coverUrl || 'cover-image'}
-            src={coverUrl}
+            key={coverCacheKey || "cover-image"}
+            src={displayUrl}
             alt={title}
             className={
               imageFit === "fill"
@@ -341,7 +361,7 @@ export default function Cover({
                   }
                 : undefined
             }
-            loading={coverUrl.startsWith('data:') ? undefined : "lazy"}
+            loading={displayUrl.startsWith('data:') ? undefined : "lazy"}
             onError={() => {
               setImageError(true);
             }}

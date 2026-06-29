@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { API_BASE, getApiToken } from "../../config";
-import { buildApiUrl, buildCoverUrl } from "../../utils/api";
+import { buildApiUrl } from "../../utils/api";
 import Cover from "../games/Cover";
 import DropdownMenu from "../common/DropdownMenu";
 import AdditionalExecutablesDropdown from "../games/AdditionalExecutablesDropdown";
@@ -88,11 +88,6 @@ function SearchResultItem({
   const actualCoverSize = coverSize || (variant === "popup" ? POPUP_COVER_SIZE : FIXED_COVER_SIZE);
   const coverHeight = actualCoverSize * 1.5;
   const isPopup = variant === "popup";
-
-  const coverUrl = useMemo(
-    () => buildCoverUrl(API_BASE, item.cover, true),
-    [item.cover],
-  );
 
   const { hasPlayableGame } = useCollectionHasPlayableGame(
     isCollection ? item.id : undefined,
@@ -205,7 +200,7 @@ function SearchResultItem({
           <Cover
             key={`${item.id}-${item.cover}`}
             title={item.title}
-            coverUrl={coverUrl}
+            cover={item.cover}
             width={actualCoverSize}
             height={coverHeight}
             onClick={handleClick}
@@ -249,7 +244,7 @@ function SearchResultItem({
         <Cover
           key={`${item.id}-${item.cover}`}
           title={item.title}
-          coverUrl={coverUrl}
+          cover={item.cover}
           width={actualCoverSize}
           height={coverHeight}
           onClick={handleClick}
