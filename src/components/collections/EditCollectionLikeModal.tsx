@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
   isSidebarSearchDialogOpen,
-  SIDEBAR_SEARCH_ACTION_Z_INDEX,
+  resolveSearchActionStackZIndex,
   wrapSidebarSearchMenuStack,
 } from "../../utils/sidebarSearchMenuStack";
 import { API_BASE, API_TOKEN, getApiToken } from "../../config";
@@ -112,6 +112,7 @@ type EditCollectionLikeModalProps = {
   resourceType: CollectionLikeResourceType;
   item: CollectionInfo;
   onItemUpdate: (updatedItem: CollectionInfo) => void;
+  stackAboveSearchDropdown?: boolean;
 };
 
 export default function EditCollectionLikeModal({
@@ -120,6 +121,7 @@ export default function EditCollectionLikeModal({
   resourceType,
   item,
   onItemUpdate,
+  stackAboveSearchDropdown = false,
 }: EditCollectionLikeModalProps) {
   const { t } = useTranslation();
   const { setLoading } = useLoading();
@@ -967,6 +969,11 @@ export default function EditCollectionLikeModal({
     </>
   );
 
+  if (!isOpen) return null;
+
+  const useSearchActionStack =
+    isSidebarSearchDialogOpen() || stackAboveSearchDropdown;
+
   return createPortal(
     wrapSidebarSearchMenuStack(
       <div className={`${mc}-overlay`} onClick={onClose}>
@@ -1024,8 +1031,8 @@ export default function EditCollectionLikeModal({
         )}
       </div>
     </div>,
-      isSidebarSearchDialogOpen(),
-      SIDEBAR_SEARCH_ACTION_Z_INDEX,
+      useSearchActionStack,
+      resolveSearchActionStackZIndex(),
     ),
     document.body
   );

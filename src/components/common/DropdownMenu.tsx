@@ -14,8 +14,10 @@ import {
 import { bindSheetBackdropClose } from "../../utils/sheetPopupBackdrop";
 import { useSidebarSearchInteraction } from "../../contexts/SidebarSearchInteractionContext";
 import {
+  HEADER_SEARCH_ACTION_Z_INDEX,
   SIDEBAR_SEARCH_CONFIRM_Z_INDEX,
   SIDEBAR_SEARCH_MENU_Z_INDEX,
+  resolveSearchMenuStackZIndex,
   wrapSidebarSearchMenuStack,
 } from "../../utils/sidebarSearchMenuStack";
 import type { CollectionItem } from "../../types";
@@ -89,6 +91,7 @@ function DropdownMenu({
 }: DropdownMenuProps) {
   const { t } = useTranslation();
   const { activeSkinWeb } = useSkin();
+  const isSearchResultMenu = className.includes("search-result-dropdown-menu");
   const sidebarSearchInteraction = useSidebarSearchInteraction();
   const { isActivityBusy, activityProgress } = useLoading();
   const metadataReloadBlocked = isActivityBusy && isBulkMetadataReloadInProgress();
@@ -125,12 +128,16 @@ function DropdownMenu({
     setIsOpen(false);
     setIsCollectionLikeSubmenuOpen(false);
   };
-  /** Keep the ⋮ sheet mounted one frame so sidebar-search blocking can hand off to the next layer. */
   const beginSidebarSearchStackedAction = (run: () => void) => {
     if (onModalOpen) {
       onModalOpen();
     }
     run();
+    const keepSearchStackOpenForAction =
+      className.includes("search-result-dropdown-menu") && !!onModalOpen;
+    if (keepSearchStackOpenForAction) {
+      return;
+    }
     requestAnimationFrame(() => {
       closeDropdown();
     });
@@ -210,7 +217,6 @@ function DropdownMenu({
   const useFixedBodyPortalMenu = useDockPortalMenu || isGameDetailMenu;
   
   // Check if we're in search (popup or results page) to use portal so menu isn't clipped and clicks work
-  const isSearchResultMenu = className.includes("search-result-dropdown-menu");
   const [isInSearchDropdownScroll, setIsInSearchDropdownScroll] = useState(false);
   const [isInSidebarSearchDialog, setIsInSidebarSearchDialog] = useState(false);
   const isInSearchDropdown = isSearchResultMenu || isInSearchDropdownScroll;
@@ -251,8 +257,11 @@ function DropdownMenu({
     popup.style.removeProperty("z-index");
   }, [isOpen, isInSidebarSearchDialog, isSearchResultMenu, sidebarSearchDialogOpen]);
 
-  const inSidebarSearchResultMenu =
-    sidebarSearchDialogOpen && isSearchResultMenu;
+  const inSearchResultsActionStack = isSearchResultMenu && !!onModalOpen;
+
+  const searchConfirmStackZIndex = sidebarSearchDialogOpen
+    ? SIDEBAR_SEARCH_CONFIRM_Z_INDEX
+    : HEADER_SEARCH_ACTION_Z_INDEX;
 
   const inSidebarSearchPortal =
     isInSearchDropdown &&
@@ -339,7 +348,23 @@ function DropdownMenu({
         return;
       }
 
-      if (target.closest('[data-mhg-sidebar-search-menu-stack]')) {
+      if (target.closest('.dropdown-menu-collectionlike-submenu')) {
+        return;
+      }
+
+      const menuStack = target.closest("[data-mhg-sidebar-search-menu-stack]");
+      if (menuStack && popupRef.current && menuStack.contains(popupRef.current)) {
+        if (popupRef.current.contains(target)) {
+          return;
+        }
+        if (target.closest(".add-to-collection-dropdown-menu")) {
+          return;
+        }
+        if (target.closest(".additional-executables-dropdown-menu")) {
+          return;
+        }
+        // Backdrop click on the portaled search ⋮ stack — close menu only.
+        setIsOpen(false);
         return;
       }
       
@@ -673,6 +698,9 @@ function DropdownMenu({
                   top: `${rect.bottom + 4}px`,
                   right: `${window.innerWidth - rect.right}px`,
                   zIndex: 10007,
+                  ...(inSearchResultsActionStack && !sidebarSearchDialogOpen
+                    ? { pointerEvents: "auto" as const }
+                    : {}),
                 };
               }
               
@@ -1005,7 +1033,12 @@ function DropdownMenu({
         // Use portal for search dropdown, cover, or games table (escape overflow and stay on top)
         return (isInSearchDropdown || isInCover || isInGamesTable || useFixedBodyPortalMenu)
           ? createPortal(
-              wrapSidebarSearchMenuStack(popupContent, inSidebarSearchPortal),
+              wrapSidebarSearchMenuStack(
+                popupContent,
+                inSearchResultsActionStack,
+                resolveSearchMenuStackZIndex(sidebarSearchDialogOpen),
+                inSearchResultsActionStack && !sidebarSearchDialogOpen,
+              ),
               document.body,
             )
           : popupContent;
@@ -1069,8 +1102,8 @@ function DropdownMenu({
             </div>
           </div>
         </div>,
-          inSidebarSearchResultMenu,
-          SIDEBAR_SEARCH_CONFIRM_Z_INDEX,
+          inSearchResultsActionStack,
+          searchConfirmStackZIndex,
         ),
         document.body
       )}
@@ -1131,8 +1164,8 @@ function DropdownMenu({
             </div>
           </div>
         </div>,
-          inSidebarSearchResultMenu,
-          SIDEBAR_SEARCH_CONFIRM_Z_INDEX,
+          inSearchResultsActionStack,
+          searchConfirmStackZIndex,
         ),
         document.body,
       )}
@@ -1192,8 +1225,8 @@ function DropdownMenu({
             </div>
           </div>
         </div>,
-          inSidebarSearchResultMenu,
-          SIDEBAR_SEARCH_CONFIRM_Z_INDEX,
+          inSearchResultsActionStack,
+          searchConfirmStackZIndex,
         ),
         document.body,
       )}

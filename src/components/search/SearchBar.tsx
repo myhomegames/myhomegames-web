@@ -4,6 +4,10 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import SearchResultsList from "./SearchResultsList";
 import { useSidebarSearchInteraction } from "../../contexts/SidebarSearchInteractionContext";
+import {
+  clearSearchDropdownModalActionMark,
+  markSearchDropdownModalActionOpen,
+} from "../../utils/sidebarSearchMenuStack";
 import type { GameItem, CollectionItem } from "../../types";
 type SearchBarProps = {
   games: GameItem[];
@@ -47,18 +51,22 @@ export default function SearchBar({ games, collections, developers = [], publish
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [dropdownLeftOffset, setDropdownLeftOffset] = useState(0);
   const sidebarSearchInteraction = useSidebarSearchInteraction();
-  const inSidebarSearchPopup = sidebarSearchInteraction != null;
 
   useLayoutEffect(() => {
     const inSidebarSearch = !!document.querySelector("[data-mhg-sidebar-search-dialog]");
-    if (!inSidebarSearch) return;
     if (isModalOpen) {
-      document.body.setAttribute("data-mhg-sidebar-search-modal-action", "");
+      if (inSidebarSearch) {
+        document.body.setAttribute("data-mhg-sidebar-search-modal-action", "");
+      } else {
+        document.body.setAttribute("data-mhg-search-dropdown-modal-action", "");
+      }
     } else {
       document.body.removeAttribute("data-mhg-sidebar-search-modal-action");
+      document.body.removeAttribute("data-mhg-search-dropdown-modal-action");
     }
     return () => {
       document.body.removeAttribute("data-mhg-sidebar-search-modal-action");
+      document.body.removeAttribute("data-mhg-search-dropdown-modal-action");
     };
   }, [isModalOpen]);
 
@@ -255,6 +263,26 @@ export default function SearchBar({ games, collections, developers = [], publish
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as HTMLElement;
+
+      if (
+        document.body.hasAttribute("data-mhg-search-dropdown-modal-action") ||
+        document.body.hasAttribute("data-mhg-sidebar-search-modal-action")
+      ) {
+        return;
+      }
+
+      const menuStack = target.closest("[data-mhg-sidebar-search-menu-stack]");
+      if (
+        menuStack &&
+        !menuStack.hasAttribute("data-mhg-sidebar-search-menu-stack-permeable") &&
+        !target.closest(".dropdown-menu-popup") &&
+        !target.closest(".add-to-collection-dropdown-menu") &&
+        !target.closest(".additional-executables-dropdown-menu") &&
+        !target.closest(".dropdown-menu-collectionlike-submenu")
+      ) {
+        // ⋮ dim backdrop (sidebar search): DropdownMenu closes the sheet; keep search popup open.
+        return;
+      }
 
       // Sidebar search dialog: header/close sit outside the SearchBar root; treat whole dialog as in-bounds
       if (target.closest("[data-mhg-sidebar-search-dialog]")) {
@@ -575,7 +603,7 @@ export default function SearchBar({ games, collections, developers = [], publish
 
       {((isOpen && !isOnSearchResultsPage && searchQuery.trim().length >= 2 && (filteredGames.length > 0 || filteredCollections.length > 0 || filteredDevelopers.length > 0 || filteredPublishers.length > 0)) || isModalOpen) && (
         <div
-          className={`mhg-dropdown search-dropdown${isModalOpen && !inSidebarSearchPopup ? " search-dropdown--modal-hidden" : ""}`}
+          className="mhg-dropdown search-dropdown"
           style={dropdownLayoutStyle}
         >
           <div className="search-dropdown-scroll">
@@ -638,14 +666,12 @@ export default function SearchBar({ games, collections, developers = [], publish
                 );
               }}
               onModalOpen={() => {
+                markSearchDropdownModalActionOpen();
                 setIsModalOpen(true);
-                if (!inSidebarSearchPopup) {
-                  setIsOpen(false);
-                  setIsFocused(false);
-                }
               }}
               onModalClose={() => {
                 setIsModalOpen(false);
+                clearSearchDropdownModalActionMark();
               }}
             />
           </div>
