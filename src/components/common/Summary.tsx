@@ -1,29 +1,51 @@
 import { useState, useRef, useEffect } from "react";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
+import { useAutoTranslate } from "../../hooks/useAutoTranslate";
+
 type SummaryProps = {
   summary: string;
   truncateOnly?: boolean;
   maxLines?: number;
   fontSize?: string;
+  /** i18n key checked before machine translation (e.g. game.123.summary). */
+  translationKey?: string;
+  /** Translate to the language from Settings (default: on for detail, off when truncateOnly). */
+  autoTranslate?: boolean;
 };
 
-export default function Summary({ summary, truncateOnly = false, maxLines = 4, fontSize }: SummaryProps) {
-  const { t } = useTranslation();
+export default function Summary({
+  summary,
+  truncateOnly = false,
+  maxLines = 4,
+  fontSize,
+  translationKey,
+  autoTranslate,
+}: SummaryProps) {
+  const { t, i18n } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
   const [showExpandButton, setShowExpandButton] = useState(false);
   const textRef = useRef<HTMLDivElement>(null);
+  const shouldTranslate = autoTranslate ?? !truncateOnly;
+  const displaySummary = useAutoTranslate(summary, translationKey ?? "summary.auto", {
+    disabled: !shouldTranslate || !summary,
+    format: "prose",
+  });
 
   useEffect(() => {
+    setIsExpanded(false);
+  }, [summary, displaySummary, i18n.language]);
+
+  useEffect(() => {
+    setShowExpandButton(false);
     if (textRef.current && !truncateOnly) {
-      // Check if text exceeds maxLines
       const lineHeight = parseFloat(getComputedStyle(textRef.current).lineHeight);
       const maxHeight = lineHeight * maxLines;
       if (textRef.current.scrollHeight > maxHeight) {
         setShowExpandButton(true);
       }
     }
-  }, [summary, truncateOnly, maxLines]);
+  }, [displaySummary, truncateOnly, maxLines]);
 
   if (!summary) {
     return null;
@@ -41,7 +63,7 @@ export default function Summary({ summary, truncateOnly = false, maxLines = 4, f
         className={`text-white summary-text${isExpanded ? " summary-text--expanded" : ""}`}
         style={textStyle}
       >
-        {summary}
+        {displaySummary}
       </div>
       {showExpandButton && !truncateOnly && (
         <button type="button" className="summary-toggle" onClick={() => setIsExpanded(!isExpanded)}>

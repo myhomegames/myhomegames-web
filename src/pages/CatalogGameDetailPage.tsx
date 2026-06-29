@@ -418,7 +418,11 @@ function CatalogGameDetailContent({
               </div>
               {game.summary && (
                 <div className="game-detail-summary">
-                  <Summary summary={game.summary} maxLines={summaryMaxLines} />
+                  <Summary
+                    summary={game.summary}
+                    maxLines={summaryMaxLines}
+                    translationKey={`catalogGame.${game.id}.summary`}
+                  />
                 </div>
               )}
             </div>

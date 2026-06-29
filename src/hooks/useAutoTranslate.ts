@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { API_BASE } from '../config';
+import { buildApiHeaders, buildApiUrl } from '../utils/api';
 
 // Cache for resolved translations (key: `${text}-${targetLang}`)
 const translationCache = new Map<string, string>();
@@ -9,24 +11,52 @@ const translationQueue: Array<{
   text: string;
   targetLang: string;
   cacheKey: string;
+  format: AutoTranslateFormat;
   resolve: (value: string) => void;
-  reject: (error: Error) => void;
 }> = [];
 
 let isProcessingQueue = false;
 const QUEUE_DELAY = 500; // 500ms between requests to avoid rate limiting
 
-// Language code map for translation backends
 const LANGUAGE_MAP: Record<string, string> = {
-  'it': 'it',
-  'fr': 'fr',
-  'es': 'es',
-  'de': 'de',
-  'pt': 'pt',
-  'ja': 'ja',
-  'zh': 'zh',
-  'en': 'en',
+  it: 'it',
+  fr: 'fr',
+  es: 'es',
+  de: 'de',
+  pt: 'pt',
+  ja: 'ja',
+  zh: 'zh',
+  en: 'en',
 };
+
+function normalizeUiLanguage(language: string | undefined): string {
+  if (!language) return 'en';
+  return language.trim().split('-')[0].toLowerCase();
+}
+
+function mapTargetLanguage(language: string): string {
+  const base = normalizeUiLanguage(language);
+  return LANGUAGE_MAP[base] || base;
+}
+
+type AutoTranslateFormat = 'title' | 'prose';
+
+type AutoTranslateOptions = {
+  disabled?: boolean;
+  /** `title`: sentence-case for short labels. `prose`: keep translator capitalization (summaries). */
+  format?: AutoTranslateFormat;
+};
+
+function finalizeTranslatedText(text: string, format: AutoTranslateFormat): string {
+  if (format === 'prose') {
+    return text.trim();
+  }
+  return formatTranslation(text);
+}
+
+function translationCacheKey(text: string, uiLanguage: string, format: AutoTranslateFormat): string {
+  return `${text}-${uiLanguage}-${format}`;
+}
 
 /**
  * Auto-translate when no locale string is available.
@@ -34,10 +64,6 @@ const LANGUAGE_MAP: Record<string, string> = {
  * @param translationKey - i18n key to check first
  * @returns Translated or original text
  */
-type AutoTranslateOptions = {
-  disabled?: boolean;
-};
-
 export function useAutoTranslate(
   text: string,
   translationKey: string,
@@ -45,70 +71,44 @@ export function useAutoTranslate(
 ): string {
   const { t, i18n } = useTranslation();
   const [translatedText, setTranslatedText] = useState<string>(text);
-  const isTranslatingRef = useRef(false);
+  const requestGenerationRef = useRef(0);
+  const format: AutoTranslateFormat = options.format ?? 'title';
 
   useEffect(() => {
+    const generation = ++requestGenerationRef.current;
+
     if (options.disabled) {
       setTranslatedText(text);
       return;
     }
 
-    // Prefer an existing entry from locale files
-    // If the key is missing, t() may return the key itself
     const existingTranslation = t(translationKey, { defaultValue: '$$$$MISSING$$$$' });
-    
-    // Use locale value when present (not the missing marker and not equal to the raw key)
-    if (existingTranslation !== '$$$$MISSING$$$$' && existingTranslation !== translationKey && existingTranslation !== text) {
+    if (
+      existingTranslation !== '$$$$MISSING$$$$' &&
+      existingTranslation !== translationKey &&
+      existingTranslation !== text
+    ) {
       setTranslatedText(existingTranslation);
       return;
     }
 
-    // English UI: no machine translation
-    if (i18n.language === 'en') {
-      setTranslatedText(formatTranslation(text));
+    const uiLanguage = normalizeUiLanguage(i18n.resolvedLanguage || i18n.language);
+    if (uiLanguage === 'en') {
+      setTranslatedText(finalizeTranslatedText(text, format));
       return;
     }
 
-    // Reuse cached translation for this text + language
-    const cacheKey = `${text}-${i18n.language}`;
+    const cacheKey = translationCacheKey(text, uiLanguage, format);
     if (translationCache.has(cacheKey)) {
       setTranslatedText(translationCache.get(cacheKey)!);
       return;
     }
 
-    // Skip if a translation request is already in flight
-    if (isTranslatingRef.current) {
-      return;
-    }
-
-    // Translate via Google Translate API; queue enforces rate limiting
-    isTranslatingRef.current = true;
-    
-    const translateText = async (): Promise<string> => {
-      return new Promise((resolve, reject) => {
-        translationQueue.push({
-          text,
-          targetLang: i18n.language,
-          cacheKey,
-          resolve,
-          reject,
-        });
-        
-        processTranslationQueue();
-      });
-    };
-
-    translateText()
-      .then((translated) => {
-        setTranslatedText(translated);
-        isTranslatingRef.current = false;
-      })
-      .catch((error) => {
-        console.error(`Error translating "${text}":`, error);
-        setTranslatedText(text);
-        isTranslatingRef.current = false;
-      });
-  }, [text, translationKey, t, i18n.language, options.disabled]);
+    void translateQueuedText(text, uiLanguage, cacheKey, format).then((translated) => {
+      if (requestGenerationRef.current !== generation) return;
+      setTranslatedText(translated);
+    });
+  }, [text, translationKey, t, i18n.language, i18n.resolvedLanguage, options.disabled, format]);
 
   return translatedText;
 }
@@ -151,6 +151,7 @@ export function useAutoTranslateBatch(
       return;
     }
 
+    const uiLanguage = normalizeUiLanguage(i18n.resolvedLanguage || i18n.language);
     const next: Record<string, string> = {};
     const toTranslate: AutoTranslateBatchItem[] = [];
 
@@ -160,11 +161,11 @@ export function useAutoTranslateBatch(
         next[item.id] = existing;
         continue;
       }
-      if (i18n.language === 'en') {
+      if (uiLanguage === 'en') {
         next[item.id] = formatTranslation(item.text);
         continue;
       }
-      const cacheKey = `${item.text}-${i18n.language}`;
+      const cacheKey = translationCacheKey(item.text, uiLanguage, 'title');
       if (translationCache.has(cacheKey)) {
         next[item.id] = translationCache.get(cacheKey)!;
         continue;
@@ -177,21 +178,20 @@ export function useAutoTranslateBatch(
       return;
     }
 
-    const targetLang = LANGUAGE_MAP[i18n.language] || i18n.language;
+    const targetLang = mapTargetLanguage(uiLanguage);
     if (!targetLang || targetLang === 'en') {
       toTranslate.forEach((item) => { next[item.id] = formatTranslation(item.text); });
       setResults(next);
       return;
     }
 
-    const batchKey = `${i18n.language}:${items.map((i) => i.id).sort().join(',')}`;
+    const batchKey = `${uiLanguage}:${items.map((i) => i.id).sort().join(',')}`;
     if (batchKeyRef.current === batchKey) {
       setResults(next);
       return;
     }
     batchKeyRef.current = batchKey;
 
-    // Show titles already resolved from i18n/cache immediately
     setResults(next);
 
     tryGoogleTranslateBatch(
@@ -202,7 +202,7 @@ export function useAutoTranslateBatch(
       toTranslate.forEach((item, index) => {
         const raw = translatedList[index];
         const formatted = raw ? formatTranslation(raw) : formatTranslation(item.text);
-        const cacheKey = `${item.text}-${i18n.language}`;
+        const cacheKey = translationCacheKey(item.text, uiLanguage, 'title');
         translationCache.set(cacheKey, formatted);
         updates[item.id] = formatted;
       });
@@ -212,20 +212,16 @@ export function useAutoTranslateBatch(
       toTranslate.forEach((item) => { fallback[item.id] = formatTranslation(item.text); });
       setResults((prev) => ({ ...prev, ...fallback }));
     });
-  }, [items, t, i18n.language, options.disabled]);
+  }, [items, t, i18n.language, i18n.resolvedLanguage, options.disabled]);
 
   return results;
 }
 
-/**
- * Format translation in sentence case: lowercase except the first letter.
- */
 function formatTranslation(text: string): string {
   if (!text || typeof text !== 'string') {
     return text;
   }
 
-  // Replace hyphens with spaces
   const normalized = text.replace(/-/g, ' ').trim();
   if (!normalized) return normalized;
 
@@ -235,58 +231,75 @@ function formatTranslation(text: string): string {
 
 const BATCH_SEP = '\n';
 
-/**
- * Call Google Translate (unofficial public endpoint).
- */
-async function tryGoogleTranslate(text: string, targetLang: string): Promise<string | null> {
+function parseGoogleTranslateResponse(data: unknown): string | null {
+  if (!Array.isArray(data) || !data[0] || !Array.isArray(data[0])) return null;
+  const translatedParts = data[0]
+    .map((part: unknown[]) => part && part[0])
+    .filter(Boolean);
+  return translatedParts.length > 0 ? translatedParts.join('') : null;
+}
+
+async function tryServerTranslate(text: string, targetLang: string): Promise<string | null> {
+  if (!API_BASE) return null;
   try {
-    // Public Google Translate endpoint (unofficial but commonly used)
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
-    
+    const url = buildApiUrl(API_BASE, '/translate');
     const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      },
+      method: 'POST',
+      headers: buildApiHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ text, targetLang, sourceLang: 'en' }),
     });
-
-    if (!response.ok) {
-      return null;
-    }
-
+    if (!response.ok) return null;
     const data = await response.json();
-    
-    // Response is a nested array; extract translated segments
-    // Shape: [[["translation", "original", null, null, 0]], null, "en"]
-    if (Array.isArray(data) && data[0] && Array.isArray(data[0])) {
-      const translatedParts = data[0]
-        .map((part: any[]) => part && part[0])
-        .filter(Boolean);
-      
-      if (translatedParts.length > 0) {
-        return translatedParts.join('');
-      }
-    }
-    
-    return null;
-  } catch (error: any) {
+    return typeof data?.translated === 'string' && data.translated.trim() ? data.translated : null;
+  } catch {
     return null;
   }
 }
 
-/**
- * Translate multiple strings in one HTTP call (join with separator, then split).
- */
+async function tryGoogleTranslate(text: string, targetLang: string): Promise<string | null> {
+  try {
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encodeURIComponent(text)}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    return parseGoogleTranslateResponse(data);
+  } catch {
+    return null;
+  }
+}
+
+async function translateText(text: string, targetLang: string): Promise<string | null> {
+  const mapped = mapTargetLanguage(targetLang);
+  if (!mapped || mapped === 'en') return text;
+  const fromServer = await tryServerTranslate(text, mapped);
+  if (fromServer) return fromServer;
+  return tryGoogleTranslate(text, mapped);
+}
+
+function translateQueuedText(
+  text: string,
+  targetLang: string,
+  cacheKey: string,
+  format: AutoTranslateFormat,
+): Promise<string> {
+  return new Promise((resolve) => {
+    translationQueue.push({ text, targetLang, cacheKey, format, resolve });
+    void processTranslationQueue();
+  });
+}
+
 async function tryGoogleTranslateBatch(texts: string[], targetLang: string): Promise<(string | null)[]> {
   if (texts.length === 0) return [];
   if (texts.length === 1) {
-    const t = await tryGoogleTranslate(texts[0], targetLang);
-    return [t];
+    const single = await translateText(texts[0], targetLang);
+    return [single];
   }
   try {
     const combined = texts.join(BATCH_SEP);
-    const translated = await tryGoogleTranslate(combined, targetLang);
+    const translated = await translateText(combined, targetLang);
     if (!translated) return texts.map(() => null);
     const parts = translated.split(BATCH_SEP).map((s) => s.trim());
     if (parts.length !== texts.length) return texts.map(() => null);
@@ -296,71 +309,57 @@ async function tryGoogleTranslateBatch(texts: string[], targetLang: string): Pro
   }
 }
 
-/** Process the translation queue sequentially to respect rate limiting */
 async function processTranslationQueue() {
-  if (isProcessingQueue || translationQueue.length === 0) {
-    return;
-  }
-
+  if (isProcessingQueue) return;
   isProcessingQueue = true;
 
-  while (translationQueue.length > 0) {
-    const item = translationQueue.shift();
-    if (!item) break;
+  try {
+    while (translationQueue.length > 0) {
+      const item = translationQueue.shift();
+      if (!item) break;
 
-    try {
-      // Delay before the next queued request
       if (translationQueue.length > 0) {
-        await new Promise(resolve => setTimeout(resolve, QUEUE_DELAY));
+        await new Promise((resolve) => setTimeout(resolve, QUEUE_DELAY));
       }
 
-      // Google Translate (public endpoint)
-      const targetLang = LANGUAGE_MAP[item.targetLang] || item.targetLang;
-      
-      // Unsupported language: return original text
+      const targetLang = mapTargetLanguage(item.targetLang);
       if (!targetLang || targetLang === 'en') {
         item.resolve(item.text);
-        return;
+        continue;
       }
 
       let retries = 3;
-      let lastError: Error | null = null;
+      let resolved = false;
 
-      while (retries > 0) {
+      while (retries > 0 && !resolved) {
         try {
-          const translated = await tryGoogleTranslate(item.text, targetLang);
-          
+          const translated = await translateText(item.text, targetLang);
           if (translated) {
-            // Sentence-case the translation
-            const formatted = formatTranslation(translated);
-            
-            // Store in cache
+            const formatted = finalizeTranslatedText(translated, item.format);
             translationCache.set(item.cacheKey, formatted);
             item.resolve(formatted);
-            break;
+            resolved = true;
           } else {
-            // On empty response, fall back to source text
-            item.resolve(item.text);
-            break;
+            item.resolve(finalizeTranslatedText(item.text, item.format));
+            resolved = true;
           }
-        } catch (error: any) {
-          lastError = error;
+        } catch {
           retries--;
           if (retries > 0) {
-            const backoffDelay = Math.pow(2, 3 - retries) * 1000; // exponential backoff
-            await new Promise(resolve => setTimeout(resolve, backoffDelay));
+            const backoffDelay = Math.pow(2, 3 - retries) * 1000;
+            await new Promise((resolve) => setTimeout(resolve, backoffDelay));
           }
         }
       }
 
-      if (retries === 0 && lastError) {
-        item.resolve(item.text); // fall back to source on persistent failure
+      if (!resolved) {
+        item.resolve(finalizeTranslatedText(item.text, item.format));
       }
-    } catch (error: any) {
-      console.error(`[useAutoTranslate] Error processing translation queue:`, error);
-      item.resolve(item.text); // fall back to source on error
+    }
+  } finally {
+    isProcessingQueue = false;
+    if (translationQueue.length > 0) {
+      void processTranslationQueue();
     }
   }
-
-  isProcessingQueue = false;
 }

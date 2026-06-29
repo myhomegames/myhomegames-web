@@ -1997,7 +1997,11 @@ function LibraryItemDetailContent({
                         </div>
                         {item?.summary && (
                           <div className="library-item-detail-summary">
-                            <Summary summary={item.summary} maxLines={summaryMaxLines} />
+                            <Summary
+                              summary={item.summary}
+                              maxLines={summaryMaxLines}
+                              translationKey={`${resourceType}.${item.id}.summary`}
+                            />
                           </div>
                         )}
                       </div>
