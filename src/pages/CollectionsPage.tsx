@@ -1,6 +1,7 @@
-import { useState, useRef, useMemo, useLayoutEffect, useEffect, useCallback } from "react";
+import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
+import { usePageRevealReady } from "../hooks/usePageRevealReady";
 import { useLoading } from "../contexts/LoadingContext";
 import { useCollections } from "../contexts/CollectionsContext";
 import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
@@ -40,7 +41,10 @@ export default function CollectionsPage({
   const { activeSkinWeb } = useSkin();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isReady, setIsReady] = useState(false);
+  const isReady = usePageRevealReady(
+    collectionsLoading && collections.length === 0,
+    collections.length > 0,
+  );
   const [sortAscending] = useState(true);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
@@ -149,20 +153,6 @@ export default function CollectionsPage({
       index === self.findIndex((c) => String(c.id) === String(collection.id))
     );
   }, [collections]);
-
-  // Hide content until fully rendered
-  useLayoutEffect(() => {
-    if (!collectionsLoading) {
-      // Wait for next frame to ensure DOM is ready
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setIsReady(true);
-        });
-      });
-    } else if (collectionsLoading && sortedCollections.length === 0) {
-      setIsReady(false);
-    }
-  }, [collectionsLoading, sortedCollections.length]);
 
   useEffect(() => {
     if (!fixedFocalCollections) return;

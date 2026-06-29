@@ -10,6 +10,11 @@ import {
   type CompanyProfilePatch,
 } from "../utils/companyProfileSync";
 import { filterRootCollectionLikes } from "../utils/stringUtils";
+import {
+  readDevelopersSessionCache,
+  recordToGameIdsMap,
+  writeDevelopersSessionCache,
+} from "../utils/sessionPageCache";
 
 interface DevelopersContextType {
   developers: CollectionItem[];
@@ -26,12 +31,20 @@ interface DevelopersContextType {
 const DevelopersContext = createContext<DevelopersContextType | undefined>(undefined);
 
 export function DevelopersProvider({ children }: { children: ReactNode }) {
-  const [developers, setDevelopers] = useState<CollectionItem[]>([]);
-  const [developerGameIds, setDeveloperGameIds] = useState<Map<string, string[]>>(new Map());
-  const [isLoading, setIsLoading] = useState(true);
+  const cachedDevelopers = readDevelopersSessionCache();
+  const [developers, setDevelopers] = useState<CollectionItem[]>(
+    () => cachedDevelopers?.items ?? [],
+  );
+  const [developerGameIds, setDeveloperGameIds] = useState<Map<string, string[]>>(
+    () => recordToGameIdsMap(cachedDevelopers?.gameIds ?? {}),
+  );
+  const [isLoading, setIsLoading] = useState(
+    () => (cachedDevelopers?.items.length ?? 0) === 0,
+  );
   const [error, setError] = useState<string | null>(null);
   const developersRef = useRef(developers);
   developersRef.current = developers;
+  const cacheWriteEnabledRef = useRef((cachedDevelopers?.items.length ?? 0) > 0);
   const { isLoading: authLoading } = useAuth();
   const { settingsLoaded } = useSettings();
 
@@ -76,6 +89,8 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
             );
           }
         }
+        cacheWriteEnabledRef.current = true;
+        writeDevelopersSessionCache(items, updated);
         return updated;
       });
     } catch (err: any) {
@@ -94,6 +109,11 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
     const t = setTimeout(fetchDevelopers, 800);
     return () => clearTimeout(t);
   }, [authLoading, settingsLoaded, fetchDevelopers]);
+
+  useEffect(() => {
+    if (!cacheWriteEnabledRef.current) return;
+    writeDevelopersSessionCache(developers, developerGameIds);
+  }, [developers, developerGameIds]);
 
   useEffect(() => {
     const handleUpdate = (e: Event) => {

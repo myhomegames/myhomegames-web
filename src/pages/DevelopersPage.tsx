@@ -1,6 +1,7 @@
-import { useState, useRef, useMemo, useLayoutEffect, useEffect, useCallback } from "react";
+import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
+import { usePageRevealReady } from "../hooks/usePageRevealReady";
 import { useLoading } from "../contexts/LoadingContext";
 import { useDevelopers } from "../contexts/DevelopersContext";
 import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
@@ -37,7 +38,10 @@ export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProp
   const { activeSkinWeb } = useSkin();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isReady, setIsReady] = useState(false);
+  const isReady = usePageRevealReady(
+    developersLoading && developers.length === 0,
+    developers.length > 0,
+  );
   const [sortAscending] = useState(true);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
@@ -130,15 +134,6 @@ export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProp
     );
     handleDeveloperActivate(developer, index >= 0 ? index : 0);
   }
-
-  useLayoutEffect(() => {
-    if (developersLoading && sortedDevelopers.length === 0) setIsReady(false);
-    else {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => setIsReady(true));
-      });
-    }
-  }, [developersLoading, sortedDevelopers.length]);
 
   useEffect(() => {
     if (!fixedFocalCollections) return;

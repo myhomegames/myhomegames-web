@@ -62,3 +62,29 @@ export function buildLibrarySections(keys: string[]): GameLibrarySection[] {
     type: LIBRARY_TYPES[key] || "games",
   }));
 }
+
+/** Last saved `visibleLibraries` from settings (sync read for first paint). */
+export function readStoredVisibleLibraries(): string[] | null {
+  try {
+    const stored = localStorage.getItem("visibleLibraries");
+    if (!stored) return null;
+    const parsed = JSON.parse(stored) as unknown;
+    if (!Array.isArray(parsed)) return null;
+    return parsed.filter((key): key is string => typeof key === "string");
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Library bar sections for the first React paint.
+ * Uses saved visibility when present; otherwise stays empty until /settings loads
+ * so the bar does not briefly show every tab before the configured subset applies.
+ */
+export function getInitialLibrarySections(): GameLibrarySection[] {
+  const stored = readStoredVisibleLibraries();
+  if (!stored) {
+    return [];
+  }
+  return buildLibrarySections(normalizeVisibleLibraries(stored));
+}

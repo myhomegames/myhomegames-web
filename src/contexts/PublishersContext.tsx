@@ -10,6 +10,11 @@ import {
   type CompanyProfilePatch,
 } from "../utils/companyProfileSync";
 import { filterRootCollectionLikes } from "../utils/stringUtils";
+import {
+  readPublishersSessionCache,
+  recordToGameIdsMap,
+  writePublishersSessionCache,
+} from "../utils/sessionPageCache";
 
 interface PublishersContextType {
   publishers: CollectionItem[];
@@ -26,12 +31,20 @@ interface PublishersContextType {
 const PublishersContext = createContext<PublishersContextType | undefined>(undefined);
 
 export function PublishersProvider({ children }: { children: ReactNode }) {
-  const [publishers, setPublishers] = useState<CollectionItem[]>([]);
-  const [publisherGameIds, setPublisherGameIds] = useState<Map<string, string[]>>(new Map());
-  const [isLoading, setIsLoading] = useState(true);
+  const cachedPublishers = readPublishersSessionCache();
+  const [publishers, setPublishers] = useState<CollectionItem[]>(
+    () => cachedPublishers?.items ?? [],
+  );
+  const [publisherGameIds, setPublisherGameIds] = useState<Map<string, string[]>>(
+    () => recordToGameIdsMap(cachedPublishers?.gameIds ?? {}),
+  );
+  const [isLoading, setIsLoading] = useState(
+    () => (cachedPublishers?.items.length ?? 0) === 0,
+  );
   const [error, setError] = useState<string | null>(null);
   const publishersRef = useRef(publishers);
   publishersRef.current = publishers;
+  const cacheWriteEnabledRef = useRef((cachedPublishers?.items.length ?? 0) > 0);
   const { isLoading: authLoading } = useAuth();
   const { settingsLoaded } = useSettings();
 
@@ -76,6 +89,8 @@ export function PublishersProvider({ children }: { children: ReactNode }) {
             );
           }
         }
+        cacheWriteEnabledRef.current = true;
+        writePublishersSessionCache(items, updated);
         return updated;
       });
     } catch (err: any) {
@@ -94,6 +109,11 @@ export function PublishersProvider({ children }: { children: ReactNode }) {
     const t = setTimeout(fetchPublishers, 1200);
     return () => clearTimeout(t);
   }, [authLoading, settingsLoaded, fetchPublishers]);
+
+  useEffect(() => {
+    if (!cacheWriteEnabledRef.current) return;
+    writePublishersSessionCache(publishers, publisherGameIds);
+  }, [publishers, publisherGameIds]);
 
   useEffect(() => {
     const handleUpdate = (e: Event) => {

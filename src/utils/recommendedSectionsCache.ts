@@ -1,26 +1,36 @@
 import type { GameItem } from "../types";
+import {
+  readRecommendedSectionsSessionCache,
+  writeRecommendedSectionsSessionCache,
+} from "./sessionPageCache";
 
 export type RecommendedSectionCache = {
   id: string;
   games: GameItem[];
 };
 
-let sectionsCache: RecommendedSectionCache[] | null = null;
+let sectionsCache: RecommendedSectionCache[] | null =
+  readRecommendedSectionsSessionCache();
 /** Set when leaving recommended for a game detail; consumed once on return. */
 let preserveOnReturnFromGame = false;
 /** Set when leaving the strip index for a section (or back to index); consumed once on index mount. */
 let preserveOnReturnToIndex = false;
 
 export function getRecommendedSectionsCache(): RecommendedSectionCache[] | null {
+  if (!sectionsCache) {
+    sectionsCache = readRecommendedSectionsSessionCache();
+  }
   return sectionsCache;
 }
 
 export function setRecommendedSectionsCache(sections: RecommendedSectionCache[]): void {
   sectionsCache = sections;
+  writeRecommendedSectionsSessionCache(sections);
 }
 
 export function clearRecommendedSectionsCache(): void {
   sectionsCache = null;
+  writeRecommendedSectionsSessionCache([]);
   preserveOnReturnFromGame = false;
   preserveOnReturnToIndex = false;
 }

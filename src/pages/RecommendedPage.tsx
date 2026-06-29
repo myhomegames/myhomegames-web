@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
+import { usePageRevealReady } from "../hooks/usePageRevealReady";
 import { useAutoTranslateBatch } from "../hooks/useAutoTranslate";
 import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
 import { useLoading } from "../contexts/LoadingContext";
@@ -49,9 +50,15 @@ export default function RecommendedPage({
   const { setLoading } = useLoading();
   const { activeSkinWeb } = useSkin();
   const verticalStripsLayout = activeSkinWeb.verticalCoverAlignment;
-  const [sections, setSections] = useState<RecommendedSection[]>([]);
-  const [isReady, setIsReady] = useState(false);
+  const initialCachedSections = getRecommendedSectionsCache();
+  const [sections, setSections] = useState<RecommendedSection[]>(
+    () => initialCachedSections ?? [],
+  );
   const [isFetching, setIsFetching] = useState(false);
+  const isReady = usePageRevealReady(
+    isFetching && sections.length === 0,
+    sections.length > 0,
+  );
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const stripsScrollRef = useRef<HTMLDivElement>(null);
   const fetchingRef = useRef<boolean>(false);
@@ -139,7 +146,6 @@ export default function RecommendedPage({
 
     const handleRecommendedUpdated = () => {
       clearRecommendedSectionsCache();
-      setIsReady(false);
       fetchRecommendedSections();
     };
 
@@ -161,7 +167,6 @@ export default function RecommendedPage({
     onGamesLoadedRef.current(cached.flatMap((s) => s.games));
     setIsFetching(false);
     setLoadingRef.current(false);
-    setIsReady(true);
     return true;
   }, []);
 
@@ -173,6 +178,10 @@ export default function RecommendedPage({
     ) {
       return;
     }
+    if (hydrateFromCache()) {
+      void fetchRecommendedSections({ background: true });
+      return;
+    }
     fetchRecommendedSections();
   }, [settingsLoaded, navigate, hydrateFromCache]);
 
@@ -180,7 +189,6 @@ export default function RecommendedPage({
   useEffect(() => {
     const handleMetadataReloaded = () => {
       clearRecommendedSectionsCache();
-      setIsReady(false);
       fetchRecommendedSections();
     };
     window.addEventListener("metadataReloaded", handleMetadataReloaded);
@@ -188,21 +196,6 @@ export default function RecommendedPage({
       window.removeEventListener("metadataReloaded", handleMetadataReloaded);
     };
   }, []);
-
-  // Hide content until fully rendered
-  useLayoutEffect(() => {
-    if (!isFetching) {
-      // Wait for next frame to ensure DOM is ready
-      // isReady should be true even if there are no sections
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setIsReady(true);
-        });
-      });
-    } else if (isFetching) {
-      setIsReady(false);
-    }
-  }, [isFetching, sections.length]);
 
   // Sync rendering state with global loading context
   useEffect(() => {
@@ -255,15 +248,18 @@ export default function RecommendedPage({
     return () => el.removeEventListener("scroll", pin);
   }, [verticalStripsLayout, isReady, stripRows.length]);
 
-  async function fetchRecommendedSections() {
+  async function fetchRecommendedSections(options?: { background?: boolean }) {
     if (fetchingRef.current) {
       return;
     }
     if (!settingsLoaded) return;
+    const background = options?.background === true;
     fetchingRef.current = true;
     const generation = ++fetchGenerationRef.current;
-    setIsFetching(true);
-    setLoadingRef.current(true);
+    if (!background) {
+      setIsFetching(true);
+      setLoadingRef.current(true);
+    }
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90000);
     try {

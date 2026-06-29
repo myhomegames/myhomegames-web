@@ -6,6 +6,11 @@ import { compareTitles } from "../utils/stringUtils";
 import { schedulePostGameDeleteLibraryRefresh } from "../utils/librarySyncEvents";
 import { useAuth } from "./AuthContext";
 import { useSettings } from "./SettingsContext";
+import {
+  readCollectionsSessionCache,
+  recordToGameIdsMap,
+  writeCollectionsSessionCache,
+} from "../utils/sessionPageCache";
 
 interface CollectionsContextType {
   collections: CollectionItem[];
@@ -24,14 +29,22 @@ interface CollectionsContextType {
 const CollectionsContext = createContext<CollectionsContextType | undefined>(undefined);
 
 export function CollectionsProvider({ children }: { children: ReactNode }) {
-  const [collections, setCollections] = useState<CollectionItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const cachedCollections = readCollectionsSessionCache();
+  const [collections, setCollections] = useState<CollectionItem[]>(
+    () => cachedCollections?.collections ?? [],
+  );
+  const [isLoading, setIsLoading] = useState(
+    () => (cachedCollections?.collections.length ?? 0) === 0,
+  );
   const [error, setError] = useState<string | null>(null);
-  const [collectionGameIds, setCollectionGameIds] = useState<Map<string, string[]>>(new Map());
+  const [collectionGameIds, setCollectionGameIds] = useState<Map<string, string[]>>(
+    () => recordToGameIdsMap(cachedCollections?.collectionGameIds ?? {}),
+  );
   const collectionGameIdsRef = useRef(collectionGameIds);
   collectionGameIdsRef.current = collectionGameIds;
   const collectionsRef = useRef(collections);
   collectionsRef.current = collections;
+  const cacheWriteEnabledRef = useRef((cachedCollections?.collections.length ?? 0) > 0);
   const { isLoading: authLoading } = useAuth();
   const { settingsLoaded } = useSettings();
 
@@ -82,6 +95,8 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
             );
           }
         }
+        cacheWriteEnabledRef.current = true;
+        writeCollectionsSessionCache(parsed, updated);
         return updated;
       });
     } catch (err: any) {
@@ -103,6 +118,11 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
     const t = setTimeout(fetchCollections, 400);
     return () => clearTimeout(t);
   }, [authLoading, settingsLoaded, fetchCollections]);
+
+  useEffect(() => {
+    if (!cacheWriteEnabledRef.current) return;
+    writeCollectionsSessionCache(collections, collectionGameIds);
+  }, [collections, collectionGameIds]);
 
   useEffect(() => {
     collectionGameIdsRef.current = collectionGameIds;

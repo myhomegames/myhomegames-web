@@ -6,6 +6,10 @@ import { buildApiUrl, buildApiHeaders } from "../utils/api";
 import { compareTitles } from "../utils/stringUtils";
 import { useAuth } from "./AuthContext";
 import { useSettings } from "./SettingsContext";
+import {
+  readLibraryGamesSessionCache,
+  writeLibraryGamesSessionCache,
+} from "../utils/sessionPageCache";
 
 interface LibraryGamesContextType {
   games: GameItem[];
@@ -20,11 +24,13 @@ interface LibraryGamesContextType {
 const LibraryGamesContext = createContext<LibraryGamesContextType | undefined>(undefined);
 
 export function LibraryGamesProvider({ children }: { children: ReactNode }) {
-  const [games, setGames] = useState<GameItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const cachedGames = readLibraryGamesSessionCache();
+  const [games, setGames] = useState<GameItem[]>(() => cachedGames ?? []);
+  const [isLoading, setIsLoading] = useState(() => (cachedGames?.length ?? 0) === 0);
   const [error, setError] = useState<string | null>(null);
   const gamesRef = useRef(games);
   gamesRef.current = games;
+  const cacheWriteEnabledRef = useRef((cachedGames?.length ?? 0) > 0);
   const { isLoading: authLoading } = useAuth();
   const { settingsLoaded } = useSettings();
 
@@ -86,6 +92,8 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
         type: v.type ?? null,
       }));
       setGames(parsed);
+      cacheWriteEnabledRef.current = true;
+      writeLibraryGamesSessionCache(parsed);
     } catch (err: any) {
       const errorMessage = String(err.message || err);
       console.error("Error fetching library games:", errorMessage);
@@ -104,6 +112,11 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
     }
     fetchGames();
   }, [authLoading, settingsLoaded, fetchGames]);
+
+  useEffect(() => {
+    if (!cacheWriteEnabledRef.current) return;
+    writeLibraryGamesSessionCache(games);
+  }, [games]);
 
   // Listen for game update events
   useEffect(() => {

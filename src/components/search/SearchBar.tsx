@@ -258,6 +258,15 @@ export default function SearchBar({ games, collections, developers = [], publish
       if (target.closest('.add-to-collection-dropdown-menu')) {
         return;
       }
+
+      // Portaled ⋮ menus (search results, table, etc.) sit outside this root
+      if (
+        target.closest('.dropdown-menu-popup') ||
+        target.closest('.dropdown-menu-confirm-overlay') ||
+        target.closest('.dropdown-menu-collectionlike-submenu')
+      ) {
+        return;
+      }
       
       if (
         searchRef.current &&

@@ -193,15 +193,15 @@ export default function DropdownMenu({
   const useFixedBodyPortalMenu = useDockPortalMenu || isGameDetailMenu;
   
   // Check if we're in search (popup or results page) to use portal so menu isn't clipped and clicks work
-  const [isInSearchDropdown, setIsInSearchDropdown] = useState(false);
-  
+  const isSearchResultMenu = className.includes("search-result-dropdown-menu");
+  const [isInSearchDropdownScroll, setIsInSearchDropdownScroll] = useState(false);
+  const isInSearchDropdown = isSearchResultMenu || isInSearchDropdownScroll;
+
   useEffect(() => {
     if (isOpen && menuRef.current) {
-      const inSearchScroll = !!menuRef.current.closest('.search-dropdown-scroll');
-      const inSearchResultsList = menuRef.current.classList.contains('search-result-dropdown-menu');
-      setIsInSearchDropdown(inSearchScroll || inSearchResultsList);
+      setIsInSearchDropdownScroll(!!menuRef.current.closest(".search-dropdown-scroll"));
     } else {
-      setIsInSearchDropdown(false);
+      setIsInSearchDropdownScroll(false);
     }
   }, [isOpen]);
 

@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef, useMemo, useLayoutEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useScrollRestoration } from "./useScrollRestoration";
+import { usePageRevealReady } from "./usePageRevealReady";
 import { useTagLists } from "../contexts/TagListsContext";
 import { useCollections } from "../contexts/CollectionsContext";
 import { useDevelopers } from "../contexts/DevelopersContext";
@@ -253,7 +254,10 @@ export function useGamesListPage(
   const { games: libraryGames, isLoading: libraryGamesLoading, updateGame: contextUpdateGame, removeGame: contextRemoveGame } = useLibraryGames();
   const games = libraryGames;
 
-  const [isReady, setIsReady] = useState(false);
+  const isReady = usePageRevealReady(
+    libraryGamesLoading && libraryGames.length === 0,
+    libraryGames.length > 0,
+  );
   const [filterField, setFilterField] = useState<FilterField>(() => {
     if (localStoragePrefix) {
       const saved = localStorage.getItem(`${localStoragePrefix}FilterField`);
@@ -997,21 +1001,6 @@ export function useGamesListPage(
     showMainGamesOnly,
     titleFilterQuery,
   ]);
-
-  // Hide content until fully rendered
-  useLayoutEffect(() => {
-    // Use libraryGamesLoading for more accurate state - don't wait for global isLoading
-    // Don't wait for games.length > 0 - isReady should be true even if there are no games
-    if (!libraryGamesLoading) {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setIsReady(true);
-        });
-      });
-    } else if (libraryGamesLoading) {
-      setIsReady(false);
-    }
-  }, [libraryGamesLoading, filteredAndSortedGames.length]);
 
   // Set genre filter when categoryId changes (for CategoryPage)
   useEffect(() => {
