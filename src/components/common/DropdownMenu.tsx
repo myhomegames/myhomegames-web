@@ -295,17 +295,19 @@ function DropdownMenu({
       window.dispatchEvent(new CustomEvent('closeAdditionalExecutablesDropdown', {
         detail: { gameId: gameId }
       }));
-      // Dispatch event to notify cover that dropdown is closed
-      window.dispatchEvent(new CustomEvent('dropdownMenuClosed', {
-        detail: { gameId: gameId }
-      }));
+      if (!isSearchResultMenu) {
+        window.dispatchEvent(new CustomEvent('dropdownMenuClosed', {
+          detail: { gameId: gameId }
+        }));
+      }
     } else if (!isOpen && collectionId) {
-      // Dispatch event to notify cover that dropdown is closed
-      window.dispatchEvent(new CustomEvent('dropdownMenuClosed', {
-        detail: { collectionId: collectionId }
-      }));
+      if (!isSearchResultMenu) {
+        window.dispatchEvent(new CustomEvent('dropdownMenuClosed', {
+          detail: { collectionId: collectionId }
+        }));
+      }
     }
-  }, [isOpen, gameId, collectionId]);
+  }, [isOpen, gameId, collectionId, isSearchResultMenu]);
 
   useEffect(() => {
     function handleCloseAllMenus() {
@@ -403,6 +405,11 @@ function DropdownMenu({
     e.stopPropagation();
     const newIsOpen = !isOpen;
     setIsOpen(newIsOpen);
+
+    // Search-result rows are not grid covers; skip cover dropdown overlay events.
+    if (isSearchResultMenu) {
+      return;
+    }
     
     // Dispatch custom event to notify cover about dropdown state
     if (gameId) {

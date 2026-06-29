@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import SearchBar from "../search/SearchBar";
 import {
   SidebarSearchInteractionProvider,
-  useSidebarSearchInteraction,
 } from "../../contexts/SidebarSearchInteractionContext";
 import type { GameItem, CollectionItem } from "../../types";
 
@@ -29,7 +28,6 @@ function SidebarSearchOverlayContent({
   onPlay,
 }: Omit<SidebarSearchOverlayProps, "open">) {
   const { t } = useTranslation();
-  const { blocked } = useSidebarSearchInteraction()!;
 
   const handleGameSelect = (game: GameItem) => {
     onClose();
@@ -40,7 +38,6 @@ function SidebarSearchOverlayContent({
     <div
       className="game-search-modal-overlay mhg-sidebar-search-overlay !z-[22100] !items-start !justify-center px-4 pb-8 pt-20"
       role="presentation"
-      style={blocked ? { pointerEvents: "none" } : undefined}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -52,7 +49,6 @@ function SidebarSearchOverlayContent({
         aria-modal="true"
         aria-label={t("libraries.sidebarSearch")}
         className="game-search-modal mhg-sidebar-search-modal !h-auto !min-h-[360px] !max-h-[min(85vh,720px)] !w-full !max-w-[640px]"
-        style={blocked ? { pointerEvents: "none" } : undefined}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="game-search-modal-header">

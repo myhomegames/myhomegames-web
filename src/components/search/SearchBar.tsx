@@ -49,6 +49,19 @@ export default function SearchBar({ games, collections, developers = [], publish
   const sidebarSearchInteraction = useSidebarSearchInteraction();
 
   useLayoutEffect(() => {
+    const inSidebarSearch = !!document.querySelector("[data-mhg-sidebar-search-dialog]");
+    if (!inSidebarSearch) return;
+    if (isModalOpen) {
+      document.body.setAttribute("data-mhg-sidebar-search-modal-action", "");
+    } else {
+      document.body.removeAttribute("data-mhg-sidebar-search-modal-action");
+    }
+    return () => {
+      document.body.removeAttribute("data-mhg-sidebar-search-modal-action");
+    };
+  }, [isModalOpen]);
+
+  useLayoutEffect(() => {
     if (!sidebarSearchInteraction || !isModalOpen) return;
     return sidebarSearchInteraction.retainInteractionBlock();
   }, [sidebarSearchInteraction, isModalOpen]);
