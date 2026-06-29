@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { API_BASE, getApiToken } from "../../config";
 import { buildApiUrl, buildCoverUrl } from "../../utils/api";
@@ -88,6 +88,11 @@ function SearchResultItem({
   const actualCoverSize = coverSize || (variant === "popup" ? POPUP_COVER_SIZE : FIXED_COVER_SIZE);
   const coverHeight = actualCoverSize * 1.5;
   const isPopup = variant === "popup";
+
+  const coverUrl = useMemo(
+    () => buildCoverUrl(API_BASE, item.cover, true),
+    [item.cover],
+  );
 
   const { hasPlayableGame } = useCollectionHasPlayableGame(
     isCollection ? item.id : undefined,
@@ -200,7 +205,7 @@ function SearchResultItem({
           <Cover
             key={`${item.id}-${item.cover}`}
             title={item.title}
-            coverUrl={buildCoverUrl(API_BASE, item.cover, true)}
+            coverUrl={coverUrl}
             width={actualCoverSize}
             height={coverHeight}
             onClick={handleClick}
@@ -244,7 +249,7 @@ function SearchResultItem({
         <Cover
           key={`${item.id}-${item.cover}`}
           title={item.title}
-          coverUrl={buildCoverUrl(API_BASE, item.cover, true)}
+          coverUrl={coverUrl}
           width={actualCoverSize}
           height={coverHeight}
           onClick={handleClick}
