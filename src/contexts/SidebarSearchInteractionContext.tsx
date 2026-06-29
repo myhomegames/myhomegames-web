@@ -7,7 +7,11 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { SIDEBAR_SEARCH_SHIELD_Z_INDEX } from "../utils/sidebarSearchMenuStack";
+import {
+  SIDEBAR_SEARCH_SHIELD_Z_INDEX,
+  getSidebarSearchStackMounted,
+  subscribeSidebarSearchStackMounted,
+} from "../utils/sidebarSearchMenuStack";
 
 type SidebarSearchInteractionContextValue = {
   retainInteractionBlock: () => () => void;
@@ -45,34 +49,30 @@ function SidebarSearchInteractionShield() {
     subscribeInteractionBlocked,
     getInteractionBlockedSnapshot,
   );
+  const stackMounted = useSyncExternalStore(
+    subscribeSidebarSearchStackMounted,
+    getSidebarSearchStackMounted,
+  );
 
   useLayoutEffect(() => {
-    const dropdown = document.querySelector<HTMLElement>(
-      "[data-mhg-sidebar-search-dialog] .search-dropdown",
-    );
     if (blocked) {
       document.body.setAttribute("data-mhg-sidebar-search-stack-active", "");
-      dropdown?.classList.add("search-dropdown--modal-hidden");
       return;
     }
     document.body.removeAttribute("data-mhg-sidebar-search-stack-active");
-    if (!document.body.hasAttribute("data-mhg-sidebar-search-modal-action")) {
-      dropdown?.classList.remove("search-dropdown--modal-hidden");
-    }
   }, [blocked]);
 
-  if (!blocked) return null;
+  // Stack sheets ship their own full-screen dim band; shield only fills handoff gaps.
+  if (!blocked || stackMounted) return null;
 
   return createPortal(
     <div
+      className="edit-game-modal-overlay"
       data-mhg-sidebar-search-interaction-shield
       aria-hidden
       style={{
-        position: "fixed",
-        inset: 0,
         zIndex: SIDEBAR_SEARCH_SHIELD_Z_INDEX,
         pointerEvents: "auto",
-        backgroundColor: "rgba(0, 0, 0, 0.55)",
       }}
     />,
     document.body,

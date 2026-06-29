@@ -47,6 +47,7 @@ export default function SearchBar({ games, collections, developers = [], publish
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [dropdownLeftOffset, setDropdownLeftOffset] = useState(0);
   const sidebarSearchInteraction = useSidebarSearchInteraction();
+  const inSidebarSearchPopup = sidebarSearchInteraction != null;
 
   useLayoutEffect(() => {
     const inSidebarSearch = !!document.querySelector("[data-mhg-sidebar-search-dialog]");
@@ -574,7 +575,7 @@ export default function SearchBar({ games, collections, developers = [], publish
 
       {((isOpen && !isOnSearchResultsPage && searchQuery.trim().length >= 2 && (filteredGames.length > 0 || filteredCollections.length > 0 || filteredDevelopers.length > 0 || filteredPublishers.length > 0)) || isModalOpen) && (
         <div
-          className={`mhg-dropdown search-dropdown${isModalOpen ? " search-dropdown--modal-hidden" : ""}`}
+          className={`mhg-dropdown search-dropdown${isModalOpen && !inSidebarSearchPopup ? " search-dropdown--modal-hidden" : ""}`}
           style={dropdownLayoutStyle}
         >
           <div className="search-dropdown-scroll">
@@ -638,8 +639,10 @@ export default function SearchBar({ games, collections, developers = [], publish
               }}
               onModalOpen={() => {
                 setIsModalOpen(true);
-                setIsOpen(false);
-                setIsFocused(false);
+                if (!inSidebarSearchPopup) {
+                  setIsOpen(false);
+                  setIsFocused(false);
+                }
               }}
               onModalClose={() => {
                 setIsModalOpen(false);

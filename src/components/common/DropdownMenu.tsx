@@ -640,12 +640,12 @@ function DropdownMenu({
         buttonContent
       )}
       {isOpen && (() => {
-        const popupContent = (
+        const popupPanel = (
           <div 
             ref={popupRef} 
             className={`dropdown-menu-popup ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''} ${isInSidebarSearchDialog ? 'dropdown-menu-popup-in-sidebar-search' : ''} ${isInGamesTable ? 'dropdown-menu-popup-in-games-table' : ''} ${useFixedBodyPortalMenu ? 'dropdown-menu-popup-in-libraries-top' : ''}`}
             onMouseLeave={handlePopupMouseLeave}
-            {...sheetBackdropProps}
+            {...(inSidebarSearchPortal ? {} : sheetBackdropProps)}
             style={(() => {
               if (!menuRef.current) return undefined;
               
@@ -992,6 +992,14 @@ function DropdownMenu({
               </button>
             )}
           </div>
+        );
+
+        const popupContent = inSidebarSearchPortal ? (
+          <div className="edit-game-modal-overlay" {...sheetBackdropProps}>
+            {popupPanel}
+          </div>
+        ) : (
+          popupPanel
         );
         
         // Use portal for search dropdown, cover, or games table (escape overflow and stay on top)
