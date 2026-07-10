@@ -144,6 +144,16 @@
     "accountType": "Type de compte",
     "developmentAccount": "Compte de développement"
   },
+  "serverUnavailable": {
+    "title": "Serveur MyHomeGames inaccessible",
+    "message": "L'application web ne peut pas joindre le serveur. Installez-le et démarrez-le, ou vérifiez qu'il est en cours d'exécution, puis réessayez.",
+    "apiBase": "URL de l'API",
+    "downloadHint": "Téléchargez le serveur pour votre plateforme :",
+    "downloadForPlatform": "Télécharger pour {{platform}}",
+    "download": "Télécharger",
+    "retry": "Réessayer la connexion",
+    "openSettings": "Ouvrir les paramètres"
+  },
   "search": {
     "noResults": "Aucun résultat trouvé pour le terme \"{{query}}\"",
     "viewAllResults": "Voir tous les résultats ({{count}})",

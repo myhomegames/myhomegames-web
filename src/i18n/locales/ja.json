@@ -144,6 +144,16 @@
     "accountType": "アカウントタイプ",
     "developmentAccount": "開発アカウント"
   },
+  "serverUnavailable": {
+    "title": "MyHomeGames サーバーに接続できません",
+    "message": "Web アプリからサーバーに接続できません。インストールして起動するか、実行中であることを確認してから再試行してください。",
+    "apiBase": "API URL",
+    "downloadHint": "お使いのプラットフォーム向けサーバーをダウンロード:",
+    "downloadForPlatform": "{{platform}} 向けダウンロード",
+    "download": "ダウンロード",
+    "retry": "再接続",
+    "openSettings": "設定を開く"
+  },
   "search": {
     "noResults": "用語 \"{{query}}\" の結果が見つかりません",
     "viewAllResults": "すべての結果を表示 ({{count}})",

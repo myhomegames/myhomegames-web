@@ -144,6 +144,16 @@
     "accountType": "Kontotyp",
     "developmentAccount": "Entwicklungs-Konto"
   },
+  "serverUnavailable": {
+    "title": "MyHomeGames-Server nicht erreichbar",
+    "message": "Die Web-App kann den Server nicht erreichen. Installieren und starten Sie ihn, oder prüfen Sie, ob er läuft, und versuchen Sie es erneut.",
+    "apiBase": "API-URL",
+    "downloadHint": "Laden Sie den Server für Ihre Plattform herunter:",
+    "downloadForPlatform": "Download für {{platform}}",
+    "download": "Download",
+    "retry": "Verbindung erneut versuchen",
+    "openSettings": "Einstellungen öffnen"
+  },
   "search": {
     "noResults": "Keine Ergebnisse für den Begriff \"{{query}}\" gefunden",
     "viewAllResults": "Alle Ergebnisse anzeigen ({{count}})",

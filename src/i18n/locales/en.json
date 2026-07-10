@@ -185,6 +185,16 @@
     "connecting": "Connecting…",
     "publicApiNotReady": "The public API is not reachable yet. Wait a moment and reload the page, or disconnect and connect again."
   },
+  "serverUnavailable": {
+    "title": "MyHomeGames server is not reachable",
+    "message": "The web app cannot connect to the server. Install and start it, or verify it is running, then retry.",
+    "apiBase": "API URL",
+    "downloadHint": "Download the server for your platform:",
+    "downloadForPlatform": "Download for {{platform}}",
+    "download": "Download",
+    "retry": "Retry connection",
+    "openSettings": "Open settings"
+  },
   "search": {
     "noResults": "No results found for the term \"{{query}}\"",
     "viewAllResults": "View all results ({{count}})",

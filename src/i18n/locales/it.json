@@ -185,6 +185,16 @@
     "connecting": "Connessione…",
     "publicApiNotReady": "L'API pubblica non è ancora raggiungibile. Attendi qualche secondo e ricarica la pagina, oppure disconnetti e riconnetti il tunnel."
   },
+  "serverUnavailable": {
+    "title": "Server MyHomeGames non raggiungibile",
+    "message": "La web app non riesce a contattare il server. Installalo e avvialo, oppure verifica che sia in esecuzione, poi riprova.",
+    "apiBase": "URL API",
+    "downloadHint": "Scarica il server per la tua piattaforma:",
+    "downloadForPlatform": "Scarica per {{platform}}",
+    "download": "Scarica",
+    "retry": "Riprova connessione",
+    "openSettings": "Apri impostazioni"
+  },
   "search": {
     "noResults": "Nessun risultato trovato per il termine \"{{query}}\"",
     "viewAllResults": "Visualizza tutti i risultati ({{count}})",

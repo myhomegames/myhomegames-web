@@ -144,6 +144,16 @@
     "accountType": "账户类型",
     "developmentAccount": "开发账户"
   },
+  "serverUnavailable": {
+    "title": "无法连接 MyHomeGames 服务器",
+    "message": "Web 应用无法连接到服务器。请安装并启动服务器，或确认其正在运行后重试。",
+    "apiBase": "API 地址",
+    "downloadHint": "下载适用于您平台的服务器：",
+    "downloadForPlatform": "下载 {{platform}} 版本",
+    "download": "下载",
+    "retry": "重试连接",
+    "openSettings": "打开设置"
+  },
   "search": {
     "noResults": "未找到术语 \"{{query}}\" 的结果",
     "viewAllResults": "查看所有结果 ({{count}})",
