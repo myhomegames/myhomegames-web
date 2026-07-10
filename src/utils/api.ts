@@ -132,6 +132,44 @@ export function buildBackgroundUrl(apiBase: string, background?: string, addTime
   return u.toString();
 }
 
+function extractYouTubeVideoId(url: URL): string | null {
+  const host = url.hostname.toLowerCase();
+  if (host === "youtu.be") {
+    const id = url.pathname.slice(1).split("/")[0];
+    return id || null;
+  }
+  if (
+    host === "www.youtube.com" ||
+    host === "youtube.com" ||
+    host === "m.youtube.com" ||
+    host === "www.youtube-nocookie.com"
+  ) {
+    if (url.pathname === "/watch") {
+      return url.searchParams.get("v");
+    }
+    const pathMatch = url.pathname.match(/^\/(?:embed|shorts|live)\/([^/?]+)/);
+    if (pathMatch) return pathMatch[1];
+  }
+  return null;
+}
+
+/**
+ * Normalizes a video URL for storage. YouTube watch, shorts, and youtu.be links
+ * are converted to https://www.youtube.com/embed/{id}. Other URLs are returned trimmed.
+ */
+export function normalizeVideoUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  try {
+    const parsed = new URL(trimmed);
+    const videoId = extractYouTubeVideoId(parsed);
+    if (!videoId) return trimmed;
+    return `https://www.youtube.com/embed/${videoId}`;
+  } catch {
+    return trimmed;
+  }
+}
+
 /**
  * Returns the embed URL to use for iframes. For YouTube, uses the privacy-enhanced
  * youtube-nocookie.com domain to reduce tracking and console noise from Google Ads/CORS.
@@ -140,13 +178,14 @@ export function buildBackgroundUrl(apiBase: string, background?: string, addTime
 export function getEmbedVideoUrl(url: string): string {
   if (!url || !url.trim()) return "";
   try {
-    const u = new URL(url.trim());
+    const normalized = normalizeVideoUrl(url);
+    const u = new URL(normalized);
     const host = u.hostname.toLowerCase();
     if (host === "www.youtube.com" || host === "youtube.com") {
       u.hostname = "www.youtube-nocookie.com";
       return u.toString();
     }
-    return url.trim();
+    return normalized;
   } catch {
     return url.trim();
   }

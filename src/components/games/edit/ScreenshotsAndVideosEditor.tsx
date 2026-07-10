@@ -2,7 +2,7 @@ import type { TFunction } from "i18next";
 import type { ChangeEvent, RefObject } from "react";
 import { useState, useEffect, useMemo } from "react";
 import { API_BASE } from "../../../config";
-import { buildApiUrl, getEmbedVideoUrl } from "../../../utils/api";
+import { buildApiUrl, getEmbedVideoUrl, normalizeVideoUrl } from "../../../utils/api";
 import MediaGallery from "../MediaGallery";
 type ScreenshotsAndVideosEditorProps = {
   t: TFunction;
@@ -61,14 +61,14 @@ export default function ScreenshotsAndVideosEditor({
 
   const handleVideoUrlChange = (index: number, url: string) => {
     const next = [...videos];
-    next[index] = url.trim();
+    next[index] = normalizeVideoUrl(url);
     onVideosChange(next.filter(Boolean));
   };
   const handleVideoRemove = (index: number) => {
     onVideosChange(videos.filter((_, i) => i !== index));
   };
   const handleVideoAdd = () => {
-    const url = newVideoUrl.trim();
+    const url = normalizeVideoUrl(newVideoUrl);
     if (!url) return;
     onVideosChange([...videos, url]);
     setNewVideoUrl("");
@@ -133,6 +133,7 @@ export default function ScreenshotsAndVideosEditor({
             className="edit-game-modal-media-item-input"
             value={newVideoUrl}
             onChange={(e) => setNewVideoUrl(e.target.value)}
+            onBlur={(e) => setNewVideoUrl(normalizeVideoUrl(e.target.value))}
             onKeyDown={(e) => e.key === "Enter" && handleVideoAdd()}
             placeholder={t("gameDetail.addVideoUrl", "URL nuovo video (embed)...")}
             disabled={saving}

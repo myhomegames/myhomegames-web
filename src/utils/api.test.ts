@@ -1,5 +1,55 @@
 import { describe, it, expect } from "vitest";
-import { getEmbedVideoUrl, buildApiUrl, buildCoverUrl } from "./api";
+import { getEmbedVideoUrl, normalizeVideoUrl, buildApiUrl, buildCoverUrl } from "./api";
+
+describe("normalizeVideoUrl", () => {
+  it("converts youtube watch URL to embed", () => {
+    expect(
+      normalizeVideoUrl("https://www.youtube.com/watch?v=abc123")
+    ).toBe("https://www.youtube.com/embed/abc123");
+    expect(
+      normalizeVideoUrl("https://youtube.com/watch?v=xyz789")
+    ).toBe("https://www.youtube.com/embed/xyz789");
+  });
+
+  it("converts youtu.be and shorts URLs to embed", () => {
+    expect(normalizeVideoUrl("https://youtu.be/abc123")).toBe(
+      "https://www.youtube.com/embed/abc123"
+    );
+    expect(normalizeVideoUrl("https://www.youtube.com/shorts/abc123")).toBe(
+      "https://www.youtube.com/embed/abc123"
+    );
+  });
+
+  it("keeps existing embed URLs canonical", () => {
+    expect(
+      normalizeVideoUrl("https://www.youtube.com/embed/abc123?rel=0")
+    ).toBe("https://www.youtube.com/embed/abc123");
+    expect(
+      normalizeVideoUrl("https://www.youtube-nocookie.com/embed/abc123")
+    ).toBe("https://www.youtube.com/embed/abc123");
+  });
+
+  it("returns other URLs unchanged", () => {
+    const vimeo = "https://player.vimeo.com/video/123";
+    expect(normalizeVideoUrl(vimeo)).toBe(vimeo);
+  });
+
+  it("returns empty string for empty or whitespace input", () => {
+    expect(normalizeVideoUrl("")).toBe("");
+    expect(normalizeVideoUrl("   ")).toBe("");
+  });
+
+  it("trims input", () => {
+    expect(
+      normalizeVideoUrl("  https://www.youtube.com/watch?v=id  ")
+    ).toBe("https://www.youtube.com/embed/id");
+  });
+
+  it("handles invalid URL by returning trimmed input", () => {
+    const invalid = "not-a-url";
+    expect(normalizeVideoUrl(invalid)).toBe(invalid);
+  });
+});
 
 describe("getEmbedVideoUrl", () => {
   it("converts youtube.com embed to youtube-nocookie.com", () => {
@@ -8,7 +58,13 @@ describe("getEmbedVideoUrl", () => {
     ).toBe("https://www.youtube-nocookie.com/embed/abc123");
     expect(
       getEmbedVideoUrl("https://youtube.com/embed/xyz?rel=0")
-    ).toBe("https://www.youtube-nocookie.com/embed/xyz?rel=0");
+    ).toBe("https://www.youtube-nocookie.com/embed/xyz");
+  });
+
+  it("converts youtube watch URL to youtube-nocookie embed", () => {
+    expect(
+      getEmbedVideoUrl("https://www.youtube.com/watch?v=abc123")
+    ).toBe("https://www.youtube-nocookie.com/embed/abc123");
   });
 
   it("returns other URLs unchanged", () => {
