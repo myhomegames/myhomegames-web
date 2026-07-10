@@ -2201,7 +2201,6 @@ function LibraryItemDetailContent({
                                         }
                                         showTitle={(col as any).showTitle !== false}
                                         detail={true}
-                                        play={!!onPlayFirstInCollectionLike}
                                         showBorder={true}
                                       />
                                     </div>
