@@ -179,6 +179,7 @@ export function PublishersProvider({ children }: { children: ReactNode }) {
     window.addEventListener("publisherAdded", handleAdded as EventListener);
     window.addEventListener("publisherDeleted", handleDeleted as EventListener);
     window.addEventListener("metadataReloaded", fetchPublishers);
+    window.addEventListener("mhg-language-changed", fetchPublishers);
     window.addEventListener("gameAdded", handleGameAdded);
     window.addEventListener("gameDeleted", handleGameAdded);
     return () => {
@@ -188,6 +189,7 @@ export function PublishersProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("publisherAdded", handleAdded as EventListener);
       window.removeEventListener("publisherDeleted", handleDeleted as EventListener);
       window.removeEventListener("metadataReloaded", fetchPublishers);
+      window.removeEventListener("mhg-language-changed", fetchPublishers);
       window.removeEventListener("gameAdded", handleGameAdded);
       window.removeEventListener("gameDeleted", handleGameAdded);
     };

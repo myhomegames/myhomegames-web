@@ -421,7 +421,6 @@ function CatalogGameDetailContent({
                   <Summary
                     summary={game.summary}
                     maxLines={summaryMaxLines}
-                    translationKey={`catalogGame.${game.id}.summary`}
                   />
                 </div>
               )}

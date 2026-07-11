@@ -49,7 +49,7 @@ import {
   type CollectionLikeSlideSection,
 } from "../utils/collectionLikeSectionGames";
 import { isMainGameType } from "../utils/gameType";
-import { buildApiUrl, buildCoverUrl } from "../utils/api";
+import { buildApiUrl, buildCoverUrl, buildApiHeaders } from "../utils/api";
 import { API_BASE, getApiToken } from "../config";
 import type { GameItem, CollectionInfo, CollectionItem } from "../types";
 import type { CollectionLikeResourceType } from "../components/collections/EditCollectionLikeModal";
@@ -505,6 +505,23 @@ export default function LibraryItemDetailPage({
 
   useGameEvents({ setGames, enabledEvents: ["gameUpdated", "gameDeleted"] });
 
+  useEffect(() => {
+    const handleLanguageChanged = () => {
+      if (resourceType === "collections" && collectionId) {
+        void fetchCollectionInfo(collectionId);
+        void fetchCollectionGames(collectionId);
+      } else if (resourceType === "developers" && developerId) {
+        void fetchDeveloperInfo(developerId);
+        void fetchDeveloperGames(developerId);
+      } else if (resourceType === "publishers" && publisherId) {
+        void fetchPublisherInfo(publisherId);
+        void fetchPublisherGames(publisherId);
+      }
+    };
+    window.addEventListener("mhg-language-changed", handleLanguageChanged);
+    return () => window.removeEventListener("mhg-language-changed", handleLanguageChanged);
+  }, [resourceType, collectionId, developerId, publisherId]);
+
   useLayoutEffect(() => {
     if (!isLoading && item) {
       requestAnimationFrame(() => requestAnimationFrame(() => setIsReady(true)));
@@ -517,7 +534,7 @@ export default function LibraryItemDetailPage({
     try {
       const singleUrl = buildApiUrl(API_BASE, `/collections/${cid}`);
       const singleRes = await fetch(singleUrl, {
-        headers: { Accept: "application/json", "X-Auth-Token": getApiToken() },
+        headers: buildApiHeaders({ Accept: "application/json" }),
       });
       if (singleRes.ok) {
         const found = await singleRes.json();
@@ -556,7 +573,7 @@ export default function LibraryItemDetailPage({
     try {
       const url = buildApiUrl(API_BASE, `/collections/${cid}/games`);
       const res = await fetch(url, {
-        headers: { Accept: "application/json", "X-Auth-Token": getApiToken() },
+        headers: buildApiHeaders({ Accept: "application/json" }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
@@ -590,7 +607,7 @@ export default function LibraryItemDetailPage({
     try {
       const url = buildApiUrl(API_BASE, `/developers/${devId}`);
       const res = await fetch(url, {
-        headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
+        headers: buildApiHeaders({ Accept: "application/json" }),
       });
       if (!res.ok) return;
       const data = await res.json();
@@ -606,7 +623,7 @@ export default function LibraryItemDetailPage({
     try {
       const url = buildApiUrl(API_BASE, `/developers/${devId}/games`);
       const res = await fetch(url, {
-        headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
+        headers: buildApiHeaders({ Accept: "application/json" }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
@@ -625,7 +642,7 @@ export default function LibraryItemDetailPage({
     try {
       const url = buildApiUrl(API_BASE, `/publishers/${pubId}`);
       const res = await fetch(url, {
-        headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
+        headers: buildApiHeaders({ Accept: "application/json" }),
       });
       if (!res.ok) return;
       const data = await res.json();
@@ -641,7 +658,7 @@ export default function LibraryItemDetailPage({
     try {
       const url = buildApiUrl(API_BASE, `/publishers/${pubId}/games`);
       const res = await fetch(url, {
-        headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
+        headers: buildApiHeaders({ Accept: "application/json" }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
@@ -1005,7 +1022,7 @@ export default function LibraryItemDetailPage({
           try {
             const url = buildApiUrl(API_BASE, `/${base}/${cid}/games`);
             const res = await fetch(url, {
-              headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
+              headers: buildApiHeaders({ Accept: "application/json" }),
             });
             if (!res.ok) return;
             const json = await res.json();
@@ -1485,7 +1502,7 @@ function LibraryItemDetailContent({
         try {
           const url = buildApiUrl(API_BASE, `/${resourceType}/${encodeURIComponent(id)}`);
           const res = await fetch(url, {
-            headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
+            headers: buildApiHeaders({ Accept: "application/json" }),
           });
           if (!res.ok) continue;
           const data = await res.json();
@@ -1725,7 +1742,6 @@ function LibraryItemDetailContent({
                 : undefined
             }
             disableVerticalCoverAlignment
-            disableAutoTranslate
             games={slideItems}
             onGameClick={(selected) => {
               const rawId = String(selected.id ?? "");
@@ -2000,7 +2016,6 @@ function LibraryItemDetailContent({
                             <Summary
                               summary={item.summary}
                               maxLines={summaryMaxLines}
-                              translationKey={`${resourceType}.${item.id}.summary`}
                             />
                           </div>
                         )}

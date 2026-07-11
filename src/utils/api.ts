@@ -45,6 +45,15 @@ export function buildApiHeaders(additionalHeaders: Record<string, string> = {}):
     headers["X-Auth-Token"] = token;
   }
 
+  try {
+    const language = localStorage.getItem("language");
+    if (language && language.trim()) {
+      headers["Accept-Language"] = language.trim();
+    }
+  } catch {
+    // Ignore storage access errors
+  }
+
   Object.assign(headers, bulkMetadataReloadRequestHeaders());
 
   return headers;

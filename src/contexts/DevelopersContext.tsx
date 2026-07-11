@@ -179,6 +179,7 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
     window.addEventListener("developerAdded", handleAdded as EventListener);
     window.addEventListener("developerDeleted", handleDeleted as EventListener);
     window.addEventListener("metadataReloaded", fetchDevelopers);
+    window.addEventListener("mhg-language-changed", fetchDevelopers);
     window.addEventListener("gameAdded", handleGameAdded);
     window.addEventListener("gameDeleted", handleGameAdded);
     return () => {
@@ -188,6 +189,7 @@ export function DevelopersProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("developerAdded", handleAdded as EventListener);
       window.removeEventListener("developerDeleted", handleDeleted as EventListener);
       window.removeEventListener("metadataReloaded", fetchDevelopers);
+      window.removeEventListener("mhg-language-changed", fetchDevelopers);
       window.removeEventListener("gameAdded", handleGameAdded);
       window.removeEventListener("gameDeleted", handleGameAdded);
     };

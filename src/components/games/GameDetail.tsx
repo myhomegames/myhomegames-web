@@ -828,7 +828,6 @@ function GameDetailContent({
                   <Summary
                     summary={game.summary}
                     maxLines={summaryMaxLines}
-                    translationKey={`game.${game.id}.summary`}
                   />
                 </div>
               )}
@@ -860,7 +859,6 @@ function GameDetailContent({
                     titleOverride={collection.title}
                     titleHref={`/collections/${collection.id}`}
                     disableVerticalCoverAlignment
-                    disableAutoTranslate
                     games={slideItems}
                     onGameClick={handleRelatedGameClick}
                     onPlay={onPlay}

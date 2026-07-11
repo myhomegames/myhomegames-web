@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { usePageRevealReady } from "../hooks/usePageRevealReady";
-import { useAutoTranslateBatch } from "../hooks/useAutoTranslate";
 import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
 import { useLoading } from "../contexts/LoadingContext";
 import { useSettings } from "../contexts/SettingsContext";
@@ -26,6 +25,7 @@ import { titleMatchesFilter } from "../utils/titleFilter";
 
 type RecommendedSection = {
   id: string;
+  title?: string;
   games: GameItem[];
 };
 
@@ -152,11 +152,13 @@ export default function RecommendedPage({
     window.addEventListener("gameUpdated", handleGameUpdated as EventListener);
     window.addEventListener("gameDeleted", handleGameDeleted as EventListener);
     window.addEventListener("recommendedUpdated", handleRecommendedUpdated);
+    window.addEventListener("mhg-language-changed", handleRecommendedUpdated);
     
     return () => {
       window.removeEventListener("gameUpdated", handleGameUpdated as EventListener);
       window.removeEventListener("gameDeleted", handleGameDeleted as EventListener);
       window.removeEventListener("recommendedUpdated", handleRecommendedUpdated);
+      window.removeEventListener("mhg-language-changed", handleRecommendedUpdated);
     };
   }, []);
 
@@ -202,24 +204,13 @@ export default function RecommendedPage({
     setLoading(isFetching || !isReady);
   }, [isFetching, isReady, setLoading]);
 
-  const batchItems = useMemo(
-    () =>
-      sections.map((section) => ({
-        id: section.id,
-        text: section.id,
-        translationKey: `recommended.${section.id}`,
-      })),
-    [sections]
-  );
-  const sectionTitles = useAutoTranslateBatch(batchItems);
-
   const stripRows = useMemo(
     () =>
       sectionsForDisplay.map((section) => ({
         id: section.id,
-        title: sectionTitles[section.id] ?? section.id,
+        title: section.title ?? section.id,
       })),
-    [sectionsForDisplay, sectionTitles],
+    [sectionsForDisplay],
   );
 
   const handleStripClick = useCallback(
@@ -275,6 +266,7 @@ export default function RecommendedPage({
 
       const parsedSections = sectionsData.map((section) => ({
         id: section.id,
+        title: section.title ?? section.id,
         games: (section.games || []).map((v: any) => ({
           id: v.id,
           title: v.title,
@@ -387,8 +379,7 @@ export default function RecommendedPage({
                   <ScrollableGamesSection
                     key={section.id}
                     sectionId={section.id}
-                    titleOverride={sectionTitles[section.id]}
-                    disableAutoTranslate
+                    titleOverride={section.title ?? section.id}
                     games={section.games}
                     onGameClick={handleGameClick}
                     onPlay={onPlay}

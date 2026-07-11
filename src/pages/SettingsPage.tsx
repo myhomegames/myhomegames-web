@@ -188,6 +188,7 @@ export default function SettingsPage() {
     localStorage.setItem("language", nextLanguage);
     localStorage.setItem("visibleLibraries", JSON.stringify(nextVisibleLibraries));
     i18n.changeLanguage(nextLanguage);
+    window.dispatchEvent(new CustomEvent("mhg-language-changed", { detail: { language: nextLanguage } }));
     void persistGeneralSettings(nextLanguage, nextVisibleLibraries);
   }
 

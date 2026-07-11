@@ -164,15 +164,23 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
       fetchGames();
     };
 
+    const handleLanguageChanged = () => {
+      cacheWriteEnabledRef.current = false;
+      writeLibraryGamesSessionCache([]);
+      fetchGames();
+    };
+
     window.addEventListener("gameUpdated", handleGameUpdated as EventListener);
     window.addEventListener("gameDeleted", handleGameDeleted as EventListener);
     window.addEventListener("gameAdded", handleGameAdded as EventListener);
     window.addEventListener("metadataReloaded", handleMetadataReloaded);
+    window.addEventListener("mhg-language-changed", handleLanguageChanged);
     return () => {
       window.removeEventListener("gameUpdated", handleGameUpdated as EventListener);
       window.removeEventListener("gameDeleted", handleGameDeleted as EventListener);
       window.removeEventListener("gameAdded", handleGameAdded as EventListener);
       window.removeEventListener("metadataReloaded", handleMetadataReloaded);
+      window.removeEventListener("mhg-language-changed", handleLanguageChanged);
     };
   }, [fetchGames]);
 

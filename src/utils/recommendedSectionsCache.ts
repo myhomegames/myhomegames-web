@@ -6,6 +6,7 @@ import {
 
 export type RecommendedSectionCache = {
   id: string;
+  title?: string;
   games: GameItem[];
 };
 

@@ -239,11 +239,13 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
     window.addEventListener("collectionDeleted", handleCollectionDeleted as EventListener);
     window.addEventListener("metadataReloaded", handleMetadataReloaded);
     window.addEventListener("gameDeleted", handleGameDeleted as EventListener);
+    window.addEventListener("mhg-language-changed", handleMetadataReloaded);
     return () => {
       window.removeEventListener("collectionUpdated", handleCollectionUpdated as EventListener);
       window.removeEventListener("collectionDeleted", handleCollectionDeleted as EventListener);
       window.removeEventListener("metadataReloaded", handleMetadataReloaded);
       window.removeEventListener("gameDeleted", handleGameDeleted as EventListener);
+      window.removeEventListener("mhg-language-changed", handleMetadataReloaded);
     };
   }, [fetchCollections]);
 

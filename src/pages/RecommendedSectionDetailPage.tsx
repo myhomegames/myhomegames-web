@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useLayoutEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useLocation, useOutletContext } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useAutoTranslate } from "../hooks/useAutoTranslate";
 import { useSettings } from "../contexts/SettingsContext";
 import { useLoading } from "../contexts/LoadingContext";
 import { useSkin } from "../contexts/SkinContext";
@@ -53,6 +52,7 @@ export default function RecommendedSectionDetailPage({
     activeSkinWeb.verticalCoverAlignment;
 
   const [games, setGames] = useState<GameItem[]>([]);
+  const [sectionTitle, setSectionTitle] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -97,9 +97,10 @@ export default function RecommendedSectionDetailPage({
           });
           if (!res.ok) return;
           const json = await res.json();
-          const sections = (json.sections || []) as Array<{ id: string; games?: GameItem[] }>;
+          const sections = (json.sections || []) as Array<{ id: string; title?: string; games?: GameItem[] }>;
           const section = sections.find((s) => String(s.id) === String(sectionId));
           if (!section) return;
+          setSectionTitle(section.title ?? sectionId);
           setGames(section.games ?? []);
           onGamesLoaded(section.games ?? []);
         } catch {
@@ -110,15 +111,15 @@ export default function RecommendedSectionDetailPage({
 
     window.addEventListener("gameDeleted", handleGameDeleted);
     window.addEventListener("recommendedUpdated", handleRecommendedUpdated);
+    window.addEventListener("mhg-language-changed", handleRecommendedUpdated);
     return () => {
       window.removeEventListener("gameDeleted", handleGameDeleted);
       window.removeEventListener("recommendedUpdated", handleRecommendedUpdated);
+      window.removeEventListener("mhg-language-changed", handleRecommendedUpdated);
     };
   }, [sectionId, settingsLoaded, onGamesLoaded]);
 
-  const sectionTitle = useAutoTranslate(sectionId ?? "", `recommended.${sectionId ?? ""}`, {
-    disabled: !sectionId,
-  });
+  const displaySectionTitle = sectionTitle ?? sectionId ?? "";
 
   const handleGameClick = useCallback(
     (game: GameItem) => {
@@ -154,6 +155,7 @@ export default function RecommendedSectionDetailPage({
         (s) => String(s.id) === String(sectionId),
       );
       if (section) {
+        setSectionTitle(section.title ?? sectionId);
         setGames(section.games);
         onGamesLoaded(section.games);
         setIsFetching(false);
@@ -166,6 +168,7 @@ export default function RecommendedSectionDetailPage({
       const snapshot = getRecommendedSectionsCache();
       const section = snapshot?.find((s) => String(s.id) === String(sectionId));
       if (section) {
+        setSectionTitle(section.title ?? sectionId);
         setGames(section.games);
         onGamesLoaded(section.games);
         setIsFetching(false);
@@ -187,7 +190,7 @@ export default function RecommendedSectionDetailPage({
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
-        const sections = (json.sections || []) as Array<{ id: string; games?: GameItem[] }>;
+        const sections = (json.sections || []) as Array<{ id: string; title?: string; games?: GameItem[] }>;
         const section = sections.find((s) => String(s.id) === String(sectionId));
         if (cancelled) return;
         if (!section) {
@@ -195,8 +198,9 @@ export default function RecommendedSectionDetailPage({
           return;
         }
         setRecommendedSectionsCache(
-          sections.map((s) => ({ id: s.id, games: s.games ?? [] })),
+          sections.map((s) => ({ id: s.id, title: s.title ?? s.id, games: s.games ?? [] })),
         );
+        setSectionTitle(section.title ?? sectionId);
         setGames(section.games ?? []);
         onGamesLoaded(section.games ?? []);
       } catch {
@@ -306,7 +310,7 @@ export default function RecommendedSectionDetailPage({
                   <div className="recommended-section-detail-section-full recommended-section-context-layout">
                     <aside
                       className="recommended-section-context-rail"
-                      aria-label={sectionTitle || sectionId}
+                      aria-label={displaySectionTitle}
                     >
                       <button
                         type="button"
@@ -321,7 +325,7 @@ export default function RecommendedSectionDetailPage({
                       </button>
                       <div className="recommended-section-context-rail-title-block">
                         <h1 className="recommended-section-context-rail-title scrollable-section-title">
-                          {sectionTitle || sectionId}
+                          {displaySectionTitle}
                         </h1>
                       </div>
                     </aside>

@@ -1140,9 +1140,11 @@ function GameDetailPage({
 
     window.addEventListener("developerUpdated", refetchCurrentGame);
     window.addEventListener("publisherUpdated", refetchCurrentGame);
+    window.addEventListener("mhg-language-changed", refetchCurrentGame);
     return () => {
       window.removeEventListener("developerUpdated", refetchCurrentGame);
       window.removeEventListener("publisherUpdated", refetchCurrentGame);
+      window.removeEventListener("mhg-language-changed", refetchCurrentGame);
     };
   }, [gameId]);
 
