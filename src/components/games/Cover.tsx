@@ -333,7 +333,7 @@ export default function Cover({
     <>
       <div
         ref={coverRef}
-        className={`games-list-cover relative bg-[#2a2a2a] rounded overflow-hidden transition-all ${imageFit === "fill" ? "games-list-cover--image-fill " : ""}${showBorder && !detailNavigationDisabled ? "cover-hover-effect" : ""} ${play && !detailNavigationDisabled ? "games-list-cover-play" : ""} ${detail ? "games-list-cover-detail" : ""} ${detailNavigationDisabled ? " games-list-cover--detail-current" : ""} ${shouldShowUploadButton ? "games-list-cover-upload" : ""} ${isDropdownOpen ? "cover-dropdown-open" : ""} ${isPopupOverlay ? "cover-popup-overlay" : ""}${isClickable ? " games-list-cover--clickable" : ""}`}
+        className={`games-list-cover relative bg-[#2a2a2a] rounded overflow-hidden transition-all ${imageFit === "fill" ? "games-list-cover--image-fill " : ""}${showBorder || detailNavigationDisabled ? "cover-hover-effect" : ""} ${play && !detailNavigationDisabled ? "games-list-cover-play" : ""} ${detail ? "games-list-cover-detail" : ""} ${detailNavigationDisabled ? " games-list-cover--detail-current" : ""} ${shouldShowUploadButton ? "games-list-cover-upload" : ""} ${isDropdownOpen ? "cover-dropdown-open" : ""} ${isPopupOverlay ? "cover-popup-overlay" : ""}${isClickable ? " games-list-cover--clickable" : ""}`}
         style={coverStyle}
         onClick={shouldShowUploadButton ? handleUploadClick : handleCoverClick}
       >
