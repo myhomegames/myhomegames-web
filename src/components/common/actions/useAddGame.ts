@@ -49,6 +49,7 @@ export function useAddGame({
           gameId: catalogGame.id,
           name: catalogGame.name,
           summary: catalogGame.summary,
+          summaryEn: catalogGame.summaryEn,
           cover: catalogGame.cover,
           background: catalogGame.background,
           releaseDate: catalogGame.releaseDateFull?.timestamp || catalogGame.releaseDate,

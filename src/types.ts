@@ -112,6 +112,8 @@ export type CatalogGame = {
   id: number;
   name: string;
   summary: string;
+  /** Canonical English summary from IGDB (when search/detail is localized). */
+  summaryEn?: string;
   cover: string | null;
   background?: string | null;
   releaseDate: number | null;
