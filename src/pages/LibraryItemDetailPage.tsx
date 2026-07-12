@@ -65,6 +65,18 @@ function parseGamesFromJson(json: { games?: unknown[] }) {
   return parseGamesListFromApiJson(json);
 }
 
+/** GET /developers|publishers/:id returned 404 (company may exist only under the other role). */
+const unavailableCollectionLikeIds = new Map<string, Set<string>>();
+
+function getUnavailableCollectionLikeIds(resourceType: string): Set<string> {
+  let ids = unavailableCollectionLikeIds.get(resourceType);
+  if (!ids) {
+    ids = new Set();
+    unavailableCollectionLikeIds.set(resourceType, ids);
+  }
+  return ids;
+}
+
 export default function LibraryItemDetailPage({
   onGameClick,
   onCatalogGameClick,
@@ -1470,43 +1482,34 @@ function LibraryItemDetailContent({
         return;
       }
 
-      const byId = new Map<string, CollectionItem>(
-        allCollectionLikes.map((entry) => [String(entry.id), entry])
+      const knownRoleIds = new Set(allCollectionLikes.map((entry) => String(entry.id)));
+      const unavailableIds = getUnavailableCollectionLikeIds(resourceType);
+      const hydratedById = new Map<string, CollectionItem>();
+
+      // Company childs are role-agnostic; only fetch ids that belong to this role (GET /developers|publishers/:id).
+      const directChildIds = Array.isArray(item.childs)
+        ? item.childs
+            .map((id) => String(id))
+            .filter((id) => id && id !== String(item.id))
+        : [];
+
+      const idsToFetch = directChildIds.filter(
+        (id) => !knownRoleIds.has(id) && !unavailableIds.has(id),
       );
-      const queue: string[] = [];
-      const queued = new Set<string>();
 
-      const pushMissing = (ids: Array<string | number> | undefined | null) => {
-        if (!Array.isArray(ids)) return;
-        for (const rawId of ids) {
-          const id = String(rawId);
-          if (!id || byId.has(id) || queued.has(id)) continue;
-          queued.add(id);
-          queue.push(id);
-        }
-      };
-
-      for (const entry of byId.values()) pushMissing(entry.childs);
-
-      const targetId = String(item.id);
-      let foundParent = Array.from(byId.values()).some((entry) => {
-        const childs = Array.isArray(entry.childs) ? entry.childs.map((id) => String(id)) : [];
-        return childs.includes(targetId);
-      });
-
-      const maxFetches = 10000;
-      let fetchCount = 0;
-      while (queue.length > 0 && fetchCount < maxFetches && !foundParent) {
-        const id = queue.shift() as string;
-        fetchCount += 1;
+      for (const id of idsToFetch) {
+        if (cancelled) break;
         try {
           const url = buildApiUrl(API_BASE, `/${resourceType}/${encodeURIComponent(id)}`);
           const res = await fetch(url, {
             headers: buildApiHeaders({ Accept: "application/json" }),
           });
-          if (!res.ok) continue;
+          if (!res.ok) {
+            unavailableIds.add(id);
+            continue;
+          }
           const data = await res.json();
-          const parsed: CollectionItem = {
+          hydratedById.set(String(data.id), {
             id: String(data.id),
             title: data.title,
             summary: data.summary,
@@ -1515,24 +1518,14 @@ function LibraryItemDetailContent({
             gameCount: data.gameCount,
             showTitle: data.showTitle !== false,
             childs: Array.isArray(data.childs) ? data.childs : [],
-          };
-          byId.set(String(parsed.id), parsed);
-          if (!foundParent) {
-            const parsedChilds = Array.isArray(parsed.childs) ? parsed.childs.map((child) => String(child)) : [];
-            foundParent = parsedChilds.includes(targetId);
-          }
-          pushMissing(parsed.childs);
+          });
         } catch {
-          // Ignore missing/inaccessible nodes and continue traversal
+          // Ignore network errors for optional hydration
         }
       }
 
       if (!cancelled) {
-        setHydratedCollectionLikes(
-          Array.from(byId.values()).filter(
-            (entry) => !allCollectionLikes.some((base) => String(base.id) === String(entry.id))
-          )
-        );
+        setHydratedCollectionLikes(Array.from(hydratedById.values()));
       }
     };
 
