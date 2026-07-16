@@ -4,8 +4,8 @@ import GamesList from "../games/GamesList";
 import ScrollableGamesSectionNav from "./ScrollableGamesSectionNav";
 import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
+import type { ActiveCollectionLikeDetail } from "../../utils/collectionLikePseudoGame";
 import { buildCoverUrl } from "../../utils/api";
-import { useAutoTranslate } from "../../hooks/useAutoTranslate";
 import { useSkin } from "../../contexts/SkinContext";
 // sessionStorage helpers
 function getScrollPosition(key: string): number {
@@ -35,7 +35,6 @@ type ScrollableGamesSectionProps = {
   allCollections?: CollectionItem[];
   titleOverride?: string;
   titleHref?: string;
-  disableAutoTranslate?: boolean;
   showTitle?: boolean;
   /** Synthetic `collectionlike:…` rows in sliders: use collection-like Cover actions */
   allCollectionLikes?: CollectionItem[];
@@ -48,6 +47,8 @@ type ScrollableGamesSectionProps = {
   onCollectionLikePseudoUpdated?: (updated: CollectionInfo) => void;
   /** Game detail collection sliders: keep classic horizontal covers (not vertical alignment). */
   disableVerticalCoverAlignment?: boolean;
+  activeCollectionLikeDetail?: ActiveCollectionLikeDetail | null;
+  activeGameId?: string | null;
 };
 
 export default function ScrollableGamesSection({
@@ -60,7 +61,6 @@ export default function ScrollableGamesSection({
   allCollections = [],
   titleOverride,
   titleHref,
-  disableAutoTranslate = false,
   showTitle = true,
   allCollectionLikes,
   collectionLikeResourceType,
@@ -71,6 +71,8 @@ export default function ScrollableGamesSection({
   onCollectionLikePseudoAddToParent,
   onCollectionLikePseudoUpdated,
   disableVerticalCoverAlignment = false,
+  activeCollectionLikeDetail,
+  activeGameId,
 }: ScrollableGamesSectionProps) {
   const { activeSkinWeb } = useSkin();
   const location = useLocation();
@@ -82,12 +84,7 @@ export default function ScrollableGamesSection({
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [isRestoring, setIsRestoring] = useState(true);
 
-  const titleKey = `recommended.${sectionId}`;
-  // Auto-translate when the string is missing from locale files
-  const autoTitle = useAutoTranslate(sectionId, titleKey, {
-    disabled: disableAutoTranslate,
-  });
-  const title = titleOverride || (disableAutoTranslate ? sectionId : autoTitle);
+  const title = titleOverride ?? sectionId;
 
   const updateScrollButtons = () => {
     const container = scrollRef.current;
@@ -307,6 +304,8 @@ export default function ScrollableGamesSection({
           onPlayFirstInCollectionLike={onPlayFirstInCollectionLike}
           onCollectionLikePseudoAddToParent={onCollectionLikePseudoAddToParent}
           onCollectionLikePseudoUpdated={onCollectionLikePseudoUpdated}
+          activeCollectionLikeDetail={activeCollectionLikeDetail}
+          activeGameId={activeGameId}
         />
       </div>
     </div>

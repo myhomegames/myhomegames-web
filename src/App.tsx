@@ -25,12 +25,12 @@ import AddGamePage from "./pages/AddGamePage";
 import SearchResultsPage from "./pages/SearchResultsPage";
 import LibraryItemDetailPage from "./pages/LibraryItemDetailPage";
 import TagGamesRoutePage from "./pages/TagGamesRoutePage";
-import LoginPage from "./pages/LoginPage";
-import IGDBGameDetailPage from "./pages/IGDBGameDetailPage";
+import CatalogGameDetailPage from "./pages/CatalogGameDetailPage";
 import RecommendedSectionDetailPage from "./pages/RecommendedSectionDetailPage";
 
 import type { GameItem, CollectionItem } from "./types";
 import { buildApiUrl, buildCoverUrl, buildApiHeaders } from "./utils/api";
+import { reloadAllMetadataItems } from "./utils/metadataReload";
 import { API_BASE, getApiToken } from "./config";
 import { useLoading } from "./contexts/LoadingContext";
 import { useAuth } from "./contexts/AuthContext";
@@ -42,6 +42,19 @@ import { useLibraryGames } from "./contexts/LibraryGamesContext";
 import { useSkin } from "./contexts/SkinContext";
 import { TitleFilterProvider } from "./contexts/TitleFilterContext";
 import { useGlobalCoverScaleAroundBar } from "./hooks/useCoverScaleAroundBar";
+import { useResumeActivityJob } from "./hooks/useResumeActivityJob";
+import {
+  beginPersistedBulkJob,
+  updatePersistedBulkCheckpoint,
+  updatePersistedProgress,
+} from "./utils/activitySession";
+import {
+  clearBulkMetadataReloadCancel,
+  isBulkMetadataReloadAbortedError,
+  isBulkMetadataReloadCancelRequested,
+  releaseBulkMetadataReloadLock,
+  tryAcquireBulkMetadataReloadLock,
+} from "./utils/bulkMetadataReloadContext";
 
 // Wrapper function for buildApiUrl that uses API_BASE
 function buildApiUrlWithBase(
@@ -62,9 +75,9 @@ function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const { i18n } = useTranslation();
-  const { setLoading } = useLoading();
+  const { setActivityBusy, setActivityProgress, isActivityBusy } = useLoading();
   const { isLoading: authLoading } = useAuth();
-  const { setTwitchLoginEnabled, igdbEnabled, twitchLoginEnabled } = useSettings();
+  const { catalogSearchEnabled } = useSettings();
 
   const handleCloseLaunchModal = () => {
     setLaunchError(null);
@@ -75,42 +88,96 @@ function AppContent() {
 
   const { refreshCollections } = useCollections();
   const { refreshGames: refreshLibraryGames } = useLibraryGames();
+  const { refreshDevelopers } = useDevelopers();
+  const { refreshPublishers } = usePublishers();
 
-  // Function to reload all metadata without full page reload
+  useResumeActivityJob({
+    authLoading,
+    setActivityBusy,
+    setActivityProgress,
+    refreshLibraryGames,
+    refreshCollections,
+    refreshDevelopers,
+    refreshPublishers,
+  });
+
+  useEffect(() => {
+    const onMetadataReloadCancelled = () => {
+      setActivityBusy(false);
+      setActivityProgress(null);
+    };
+
+    window.addEventListener("mhg:bulk-metadata-reload-cancelled", onMetadataReloadCancelled);
+    window.addEventListener("mhg:single-metadata-reload-cancelled", onMetadataReloadCancelled);
+    return () => {
+      window.removeEventListener("mhg:bulk-metadata-reload-cancelled", onMetadataReloadCancelled);
+      window.removeEventListener("mhg:single-metadata-reload-cancelled", onMetadataReloadCancelled);
+    };
+  }, [setActivityBusy, setActivityProgress]);
+
   async function handleReloadAllMetadata() {
-    const apiToken = getApiToken();
-    if (twitchLoginEnabled && !apiToken) return;
+    if (isActivityBusy) {
+      return;
+    }
+    if (!tryAcquireBulkMetadataReloadLock()) {
+      return;
+    }
 
-    setLoading(true);
+    const totalSteps = beginPersistedBulkJob({
+      catalogSearchEnabled,
+      games: allGames.map((g) => ({ id: String(g.id), title: g.title })),
+      developers: allDevelopers.map((d) => ({ id: d.id, title: d.title })),
+      publishers: allPublishers.map((p) => ({ id: p.id, title: p.title })),
+      collections: allCollections.map((c) => ({ id: c.id, title: c.title })),
+    });
+    setActivityBusy(true);
+    setActivityProgress({ phase: "developers", percent: 0, step: 1, totalSteps });
     try {
-      // Call server to reload metadata
-      const url = buildApiUrlWithBase("/reload-games");
-      const response = await fetch(url, {
-        method: "POST",
-        headers: buildApiHeaders(),
+      const outcome = await reloadAllMetadataItems({
+        catalogSearchEnabled,
+        games: allGames.map((g) => ({ id: String(g.id), title: g.title })),
+        developers: allDevelopers.map((d) => ({ id: d.id, title: d.title })),
+        publishers: allPublishers.map((p) => ({ id: p.id, title: p.title })),
+        collections: allCollections.map((c) => ({ id: c.id, title: c.title })),
+        onProgress: (progress) => {
+          if (isBulkMetadataReloadCancelRequested()) return;
+          setActivityProgress(progress);
+          updatePersistedProgress(progress);
+        },
+        onCheckpoint: (checkpoint) => {
+          if (isBulkMetadataReloadCancelRequested()) return;
+          const { completedSteps, ...progress } = checkpoint;
+          updatePersistedBulkCheckpoint(completedSteps, progress);
+        },
       });
 
-      if (response.ok) {
-        // Refresh games and collections via context
+      if (outcome === "completed" || outcome === "partial") {
         await Promise.all([
           refreshLibraryGames(),
           refreshCollections(),
+          refreshDevelopers(),
+          refreshPublishers(),
         ]);
-
-        // Emit custom event to notify pages to reload their data
         window.dispatchEvent(new CustomEvent("metadataReloaded"));
-      } else {
+        if (outcome === "partial") {
+          console.warn("Bulk metadata reload completed with skipped items (see console warnings).");
+        }
+      } else if (outcome === "failed") {
         console.error("Failed to reload metadata");
       }
     } catch (error) {
-      console.error("Error reloading metadata:", error);
+      if (!isBulkMetadataReloadAbortedError(error)) {
+        console.error("Error reloading metadata:", error);
+      }
     } finally {
-      setLoading(false);
+      setActivityBusy(false);
+      setActivityProgress(null);
+      releaseBulkMetadataReloadLock();
+      clearBulkMetadataReloadCancel();
     }
   }
 
   // Load settings from server on app startup (after auth is ready)
-  // GET /settings is public so we can load twitchLoginEnabled even without token
   useEffect(() => {
     if (authLoading) {
       return;
@@ -132,7 +199,6 @@ function AppContent() {
           if (i18n.language !== loadedLanguage) {
             i18n.changeLanguage(loadedLanguage);
           }
-          setTwitchLoginEnabled(!!data.twitchLoginEnabled);
           localStorage.setItem("language", loadedLanguage);
           if (Array.isArray(data.visibleLibraries)) {
             localStorage.setItem(
@@ -259,8 +325,6 @@ function AppContent() {
           : {})}
       >
         <Routes>
-          {/* Login page - public, no header */}
-          <Route path="/login" element={<LoginPage />} />
           {!persistentLibraryShell ? (
             <>
           {/* Protected routes - require authentication (unless VITE_API_TOKEN is set) */}
@@ -331,7 +395,7 @@ function AppContent() {
                 />
                 <LibraryItemDetailPage
                   onGameClick={handleGameClick}
-                  onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                  onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                   onGamesLoaded={() => {}}
                   onPlay={openLauncher}
                   allCollections={allCollections}
@@ -411,7 +475,7 @@ function AppContent() {
                   onPlay={openLauncher}
                   allCollections={allCollections}
                   tagKey="series"
-                  onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                  onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                 />
               </ProtectedRoute>
             }
@@ -437,7 +501,7 @@ function AppContent() {
                   onPlay={openLauncher}
                   allCollections={allCollections}
                   tagKey="franchise"
-                  onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                  onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                 />
               </ProtectedRoute>
             }
@@ -465,7 +529,7 @@ function AppContent() {
                   onPlay={openLauncher}
                   allCollections={allCollections}
                   tagKey="platforms"
-                  onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                  onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                 />
               </ProtectedRoute>
             }
@@ -493,7 +557,7 @@ function AppContent() {
                   onPlay={openLauncher}
                   allCollections={allCollections}
                   tagKey="themes"
-                  onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                  onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                 />
               </ProtectedRoute>
             }
@@ -515,7 +579,7 @@ function AppContent() {
                 />
                 <LibraryItemDetailPage
                   onGameClick={handleGameClick}
-                  onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                  onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                   onGamesLoaded={() => {}}
                   onPlay={openLauncher}
                   allCollections={allCollections}
@@ -540,7 +604,7 @@ function AppContent() {
                 />
                 <LibraryItemDetailPage
                   onGameClick={handleGameClick}
-                  onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                  onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                   onGamesLoaded={() => {}}
                   onPlay={openLauncher}
                   allCollections={allCollections}
@@ -571,7 +635,7 @@ function AppContent() {
                   onPlay={openLauncher}
                   allCollections={allCollections}
                   tagKey="gameEngines"
-                  onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                  onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                 />
               </ProtectedRoute>
             }
@@ -599,7 +663,7 @@ function AppContent() {
                   onPlay={openLauncher}
                   allCollections={allCollections}
                   tagKey="gameModes"
-                  onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                  onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                 />
               </ProtectedRoute>
             }
@@ -627,13 +691,13 @@ function AppContent() {
                   onPlay={openLauncher}
                   allCollections={allCollections}
                   tagKey="playerPerspectives"
-                  onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                  onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                 />
               </ProtectedRoute>
             }
           />
           <Route
-            path="/igdb-game/:igdbId"
+            path="/catalog-game/:gameId"
             element={
               <ProtectedRoute>
                 <Header
@@ -647,7 +711,7 @@ function AppContent() {
                   onSettingsClick={() => navigate("/settings")}
                   onAddGameClick={() => setAddGameOpen(true)}
                 />
-                <IGDBGameDetailPage />
+                <CatalogGameDetailPage />
               </ProtectedRoute>
             }
           />
@@ -697,7 +761,7 @@ function AppContent() {
                   element={
                     <LibraryItemDetailPage
                       onGameClick={handleGameClick}
-                      onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                      onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                       onGamesLoaded={() => {}}
                       onPlay={openLauncher}
                       allCollections={allCollections}
@@ -727,7 +791,7 @@ function AppContent() {
                       onPlay={openLauncher}
                       allCollections={allCollections}
                       tagKey="series"
-                      onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                      onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                     />
                   }
                 />
@@ -740,7 +804,7 @@ function AppContent() {
                       onPlay={openLauncher}
                       allCollections={allCollections}
                       tagKey="franchise"
-                      onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                      onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                     />
                   }
                 />
@@ -755,7 +819,7 @@ function AppContent() {
                       onPlay={openLauncher}
                       allCollections={allCollections}
                       tagKey="platforms"
-                      onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                      onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                     />
                   }
                 />
@@ -770,7 +834,7 @@ function AppContent() {
                       onPlay={openLauncher}
                       allCollections={allCollections}
                       tagKey="themes"
-                      onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                      onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                     />
                   }
                 />
@@ -779,7 +843,7 @@ function AppContent() {
                   element={
                     <LibraryItemDetailPage
                       onGameClick={handleGameClick}
-                      onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                      onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                       onGamesLoaded={() => {}}
                       onPlay={openLauncher}
                       allCollections={allCollections}
@@ -791,7 +855,7 @@ function AppContent() {
                   element={
                     <LibraryItemDetailPage
                       onGameClick={handleGameClick}
-                      onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                      onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                       onGamesLoaded={() => {}}
                       onPlay={openLauncher}
                       allCollections={allCollections}
@@ -809,7 +873,7 @@ function AppContent() {
                       onPlay={openLauncher}
                       allCollections={allCollections}
                       tagKey="gameEngines"
-                      onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                      onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                     />
                   }
                 />
@@ -824,7 +888,7 @@ function AppContent() {
                       onPlay={openLauncher}
                       allCollections={allCollections}
                       tagKey="gameModes"
-                      onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                      onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                     />
                   }
                 />
@@ -839,11 +903,11 @@ function AppContent() {
                       onPlay={openLauncher}
                       allCollections={allCollections}
                       tagKey="playerPerspectives"
-                      onIgdbGameClick={igdbEnabled ? (id) => navigate(`/igdb-game/${id}`) : undefined}
+                      onCatalogGameClick={catalogSearchEnabled ? (id) => navigate(`/catalog-game/${id}`) : undefined}
                     />
                   }
                 />
-                <Route path="igdb-game/:igdbId" element={<IGDBGameDetailPage />} />
+                <Route path="catalog-game/:gameId" element={<CatalogGameDetailPage />} />
               </Route>
             </>
           )}
@@ -1065,6 +1129,25 @@ function GameDetailPage({
     };
   }, [gameId]);
 
+  // After import, company lists refresh async; refetch so dev/pub names resolve without reload.
+  useEffect(() => {
+    if (!gameId) return;
+
+    const refetchCurrentGame = () => {
+      fetchingGameRef.current = false;
+      void fetchGame(gameId, { silent: true });
+    };
+
+    window.addEventListener("developerUpdated", refetchCurrentGame);
+    window.addEventListener("publisherUpdated", refetchCurrentGame);
+    window.addEventListener("mhg-language-changed", refetchCurrentGame);
+    return () => {
+      window.removeEventListener("developerUpdated", refetchCurrentGame);
+      window.removeEventListener("publisherUpdated", refetchCurrentGame);
+      window.removeEventListener("mhg-language-changed", refetchCurrentGame);
+    };
+  }, [gameId]);
+
   useEffect(() => {
     if (gameId && gameId !== lastGameIdRef.current) {
       lastGameIdRef.current = gameId;
@@ -1074,14 +1157,16 @@ function GameDetailPage({
     }
   }, [gameId]);
 
-  async function fetchGame(gameId: string) {
+  async function fetchGame(gameId: string, options?: { silent?: boolean }) {
     // Prevent multiple simultaneous calls for the same game
     if (fetchingGameRef.current) {
       return;
     }
     
     fetchingGameRef.current = true;
-    setLoading(true);
+    if (!options?.silent) {
+      setLoading(true);
+    }
     try {
       // Fetch single game from dedicated endpoint
         const url = buildApiUrlWithBase(`/games/${gameId}`);
@@ -1138,7 +1223,9 @@ function GameDetailPage({
       console.error("Error fetching game:", errorMessage);
       setGame(null);
     } finally {
-      setLoading(false);
+      if (!options?.silent) {
+        setLoading(false);
+      }
       fetchingGameRef.current = false; // Reset flag when done
     }
   }

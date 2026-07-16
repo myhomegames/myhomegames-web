@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import FilterSubmenu from "./FilterSubmenu";
+import { useSkin } from "../../contexts/SkinContext";
+import { bindSheetBackdropClose } from "../../utils/sheetPopupBackdrop";
 import type { FilterField, FilterType, GameItem } from "./types";
 type FilterPopupProps = {
   isOpen: boolean;
@@ -94,6 +96,7 @@ export default function FilterPopup({
   availablePublishers = [],
 }: FilterPopupProps) {
   const { t } = useTranslation();
+  const { activeSkinWeb } = useSkin();
   const [openSubmenu, setOpenSubmenu] = useState<FilterType | null>(null);
   const filterRef = useRef<HTMLDivElement>(null);
   const lastOpenSubmenuRef = useRef<FilterType | null>(null);
@@ -995,7 +998,11 @@ export default function FilterPopup({
 
   // Show main filter menu
   return (
-    <div className="filter-popup" ref={filterRef}>
+    <div
+      className="filter-popup"
+      ref={filterRef}
+      {...bindSheetBackdropClose(activeSkinWeb.disableTitleTooltips, onClose)}
+    >
       <button
         className={`filter-popup-item ${
           currentFilter === "all" ? "selected" : ""

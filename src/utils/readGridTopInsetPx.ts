@@ -63,7 +63,7 @@ function findLibrariesStripEl(doc: Document): HTMLElement | null {
   return strip instanceof HTMLElement ? strip : bar;
 }
 
-/** GOG-style shell: libraries strip is a full-height left column, not a top icon band. */
+/** Persistent library shell: libraries strip is a full-height left column, not a top icon band. */
 function isPersistentSidebarLibrariesStrip(
   strip: HTMLElement,
   doc: Document = document,
@@ -197,6 +197,14 @@ export function readRecommendedStripFocalTopPx(listEl?: HTMLElement | null): num
 
   const list = listEl?.isConnected ? listEl : null;
   const doc = list?.ownerDocument ?? document;
+
+  const persistentShell = doc.querySelector(
+    ".app-main-container[data-mhg-persistent-library-shell='true']",
+  );
+  if (persistentShell && list) {
+    return readFixedFocalTopPx(listEl);
+  }
+
   const rowHeightPx = readRecommendedSectionRowHeightPx();
 
   const activeIcon = doc.querySelector(".mhg-libraries-bar .mhg-library-active");

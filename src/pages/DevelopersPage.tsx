@@ -1,13 +1,14 @@
-import { useState, useRef, useMemo, useLayoutEffect, useEffect, useCallback } from "react";
+import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
+import { usePageRevealReady } from "../hooks/usePageRevealReady";
 import { useLoading } from "../contexts/LoadingContext";
 import { useDevelopers } from "../contexts/DevelopersContext";
 import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
 import { useSkin } from "../contexts/SkinContext";
 import CollectionsList from "../components/lists/CollectionsList";
 import AlphabetNavigator from "../components/ui/AlphabetNavigator";
-import { compareTitles, filterRootCollectionLikes } from "../utils/stringUtils";
+import { compareTitles } from "../utils/stringUtils";
 import { titleMatchesFilter } from "../utils/titleFilter";
 import type { CollectionItem } from "../types";
 import { buildCoverUrl } from "../utils/api";
@@ -32,12 +33,15 @@ type DevelopersPageProps = {
 
 export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProps) {
   const { setLoading } = useLoading();
-  const { developers, isLoading: developersLoading, updateDeveloper } = useDevelopers();
+  const { developers, rootDevelopers, isLoading: developersLoading, updateDeveloper } = useDevelopers();
   const titleFilterQuery = useTitleFilterQuery();
   const { activeSkinWeb } = useSkin();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isReady, setIsReady] = useState(false);
+  const isReady = usePageRevealReady(
+    developersLoading && developers.length === 0,
+    developers.length > 0,
+  );
   const [sortAscending] = useState(true);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
@@ -63,15 +67,14 @@ export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProp
   useScrollRestoration(scrollContainerRef, "developers", !fixedFocalCollections);
 
   const sortedDevelopers = useMemo(() => {
-    const unique = developers.filter((d, i, self) =>
+    const unique = rootDevelopers.filter((d, i, self) =>
       i === self.findIndex((x) => String(x.id) === String(d.id))
     );
-    const rootOnly = filterRootCollectionLikes(unique);
-    const sorted = [...rootOnly].sort((a, b) =>
+    const sorted = [...unique].sort((a, b) =>
       sortAscending ? compareTitles(a.title || "", b.title || "") : -compareTitles(a.title || "", b.title || "")
     );
     return sorted.filter((d) => titleMatchesFilter(d.title, titleFilterQuery));
-  }, [developers, sortAscending, titleFilterQuery]);
+  }, [rootDevelopers, sortAscending, titleFilterQuery]);
 
   const allDevelopersForCount = useMemo(() => {
     return developers.filter((d, i, self) =>
@@ -131,15 +134,6 @@ export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProp
     );
     handleDeveloperActivate(developer, index >= 0 ? index : 0);
   }
-
-  useLayoutEffect(() => {
-    if (developersLoading) setIsReady(false);
-    else {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => setIsReady(true));
-      });
-    }
-  }, [developersLoading, sortedDevelopers.length]);
 
   useEffect(() => {
     if (!fixedFocalCollections) return;

@@ -4,7 +4,6 @@ const STORAGE_ACTIVE_SKIN = "mhg_active_skin_id";
 /** Legacy key from browser-only skins; cleared on read. */
 const LEGACY_CUSTOM_SKINS = "mhg_custom_skins_v1";
 const LEGACY_EMPTY_SKIN_ID = "builtin-empty";
-const LEGACY_BUILTIN_PLEX = "builtin-plex";
 
 export function getActiveSkinId(): string {
   const v = localStorage.getItem(STORAGE_ACTIVE_SKIN);
@@ -15,7 +14,7 @@ export function getActiveSkinId(): string {
     localStorage.removeItem(LEGACY_CUSTOM_SKINS);
     return "";
   }
-  if (trimmed === LEGACY_EMPTY_SKIN_ID || trimmed === LEGACY_BUILTIN_PLEX) {
+  if (trimmed === LEGACY_EMPTY_SKIN_ID) {
     localStorage.setItem(STORAGE_ACTIVE_SKIN, "");
     return "";
   }

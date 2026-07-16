@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { API_BASE, getApiToken } from "../../config";
-import { buildApiUrl, buildCoverUrl } from "../../utils/api";
+import { buildApiUrl } from "../../utils/api";
 import Cover from "../games/Cover";
 import DropdownMenu from "../common/DropdownMenu";
 import AdditionalExecutablesDropdown from "../games/AdditionalExecutablesDropdown";
@@ -11,8 +11,9 @@ import { useEditGame } from "../common/actions";
 import { useNavigate } from "react-router-dom";
 import { useCollectionHasPlayableGame } from "../common/hooks/useCollectionHasPlayableGame";
 import type { GameItem, CollectionItem, CollectionInfo } from "../../types";
+import { dispatchDeveloperOrPublisherUpdated } from "../../utils/companyProfileSync";
 import { formatGameDate } from "../../utils/date";
-import { displayGameType } from "../../utils/igdbGameType";
+import { displayGameType } from "../../utils/gameType";
 import Tooltip from "../common/Tooltip";
 type SearchResultType = "game" | "collection" | "developer" | "publisher";
 
@@ -199,7 +200,7 @@ function SearchResultItem({
           <Cover
             key={`${item.id}-${item.cover}`}
             title={item.title}
-            coverUrl={buildCoverUrl(API_BASE, item.cover, true)}
+            cover={item.cover}
             width={actualCoverSize}
             height={coverHeight}
             onClick={handleClick}
@@ -243,7 +244,7 @@ function SearchResultItem({
         <Cover
           key={`${item.id}-${item.cover}`}
           title={item.title}
-          coverUrl={buildCoverUrl(API_BASE, item.cover, true)}
+          cover={item.cover}
           width={actualCoverSize}
           height={coverHeight}
           onClick={handleClick}
@@ -409,20 +410,21 @@ export default function SearchResultsList({
   };
 
   const handleCollectionLikeUpdate = (updated: CollectionInfo) => {
-    const updatedItem: CollectionItem = {
-      id: updated.id,
-      title: updated.title,
-      summary: updated.summary,
-      cover: updated.cover,
-      background: updated.background,
-    };
     if (selectedCollectionLike?.resourceType === "collections") {
+      const updatedItem: CollectionItem = {
+        id: updated.id,
+        title: updated.title,
+        summary: updated.summary,
+        cover: updated.cover,
+        background: updated.background,
+      };
       window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collection: updatedItem } }));
       if (onCollectionUpdate) onCollectionUpdate(updatedItem);
-    } else if (selectedCollectionLike?.resourceType === "developers") {
-      window.dispatchEvent(new CustomEvent("developerUpdated", { detail: { developer: updatedItem } }));
-    } else if (selectedCollectionLike?.resourceType === "publishers") {
-      window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: { publisher: updatedItem } }));
+    } else if (
+      selectedCollectionLike?.resourceType === "developers" ||
+      selectedCollectionLike?.resourceType === "publishers"
+    ) {
+      dispatchDeveloperOrPublisherUpdated(selectedCollectionLike.resourceType, updated);
     }
     setIsEditCollectionLikeModalOpen(false);
     setSelectedCollectionLike(null);
@@ -467,6 +469,7 @@ export default function SearchResultsList({
           game={editGame.selectedGame}
           onGameDraftUpdate={(updatedGame: GameItem) => editGame.updateSelectedGame(updatedGame)}
           onGameUpdate={handleGameUpdate}
+          stackAboveSearchDropdown={!!onModalOpen}
         />
       )}
       {selectedCollectionLike && (
@@ -480,6 +483,7 @@ export default function SearchResultsList({
           resourceType={selectedCollectionLike.resourceType}
           item={selectedCollectionLike.item}
           onItemUpdate={handleCollectionLikeUpdate}
+          stackAboveSearchDropdown={!!onModalOpen}
         />
       )}
     </>

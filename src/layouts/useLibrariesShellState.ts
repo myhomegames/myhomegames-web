@@ -4,7 +4,7 @@ import { useLoading } from "../contexts/LoadingContext";
 import type { GameLibrarySection, ViewMode } from "../types";
 import { API_BASE } from "../config";
 import { buildApiHeaders } from "../utils/api";
-import { buildLibrarySections, normalizeVisibleLibraries } from "../utils/librarySections";
+import { buildLibrarySections, getInitialLibrarySections, normalizeVisibleLibraries, readStoredVisibleLibraries } from "../utils/librarySections";
 import { clearRecommendedPreserveOnReturnToIndex } from "../utils/recommendedSectionsCache";
 
 type Options = {
@@ -18,7 +18,7 @@ export function useLibrariesShellState(options: Options) {
   const { isLoading } = useLoading();
 
   const [libraries, setLibraries] = useState<GameLibrarySection[]>(() =>
-    buildLibrarySections(normalizeVisibleLibraries([]))
+    getInitialLibrarySections()
   );
   const [activeLibrary, setActiveLibrary] = useState<GameLibrarySection | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -106,17 +106,7 @@ export function useLibrariesShellState(options: Options) {
         }
 
         if (!visibleLibraries) {
-          const stored = localStorage.getItem("visibleLibraries");
-          if (stored) {
-            try {
-              const parsed = JSON.parse(stored);
-              if (Array.isArray(parsed)) {
-                visibleLibraries = parsed;
-              }
-            } catch {
-              visibleLibraries = null;
-            }
-          }
+          visibleLibraries = readStoredVisibleLibraries();
         }
 
         const normalized = normalizeVisibleLibraries(visibleLibraries || []);

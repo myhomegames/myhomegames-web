@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useTranslation } from "react-i18next";
 type InlineTagListProps<TItem> = {
   items: TItem[];
@@ -72,7 +72,7 @@ export default function InlineTagList<TItem>({
         );
 
         return (
-          <span key={getItemKey(item, index)}>
+          <Fragment key={getItemKey(item, index)}>
             {content}
             {index < displayedItems.length - 1 && (
               useInfoStyles ? (
@@ -88,7 +88,7 @@ export default function InlineTagList<TItem>({
                 <span className="inline-tag-list-sep">,{" "}</span>
               )
             )}
-          </span>
+          </Fragment>
         );
       })}
       {shouldShowMore && (

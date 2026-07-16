@@ -6,6 +6,7 @@ type TooltipProps = {
   position?: "top" | "bottom" | "left" | "right";
   delay?: number;
   children: React.ReactNode;
+  wrapperStyle?: React.CSSProperties;
 };
 
 export default function Tooltip({
@@ -13,6 +14,7 @@ export default function Tooltip({
   position = "bottom",
   delay = 1000,
   children,
+  wrapperStyle,
 }: TooltipProps) {
   const { skinWeb } = useSettings();
   const [isVisible, setIsVisible] = useState(false);
@@ -83,7 +85,7 @@ export default function Tooltip({
 
     // Use capture phase to catch clicks before they bubble
     document.addEventListener("click", handleClick, true);
-    
+
     return () => {
       document.removeEventListener("click", handleClick, true);
     };
@@ -122,7 +124,11 @@ export default function Tooltip({
   }, [isVisible, text, position]);
 
   if (skinWeb.disableTitleTooltips) {
-    return <div className="tooltip-wrapper">{children}</div>;
+    return (
+      <div className="tooltip-wrapper" style={wrapperStyle}>
+        {children}
+      </div>
+    );
   }
 
   return (
@@ -130,6 +136,7 @@ export default function Tooltip({
       <div
         ref={wrapperRef}
         className="tooltip-wrapper"
+        style={wrapperStyle}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >

@@ -166,6 +166,21 @@ export default function SettingsSkinSection() {
                     >
                       {s.name}
                     </span>
+                    <span
+                      className="settings-skin-installed-version"
+                      style={{
+                        fontSize: "11px",
+                        color: "#93c5fd",
+                        fontWeight: 600,
+                        display: "block",
+                        marginTop: "2px",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {t("settings.version")} {s.version ?? "—"}
+                    </span>
                   </button>
                   {canRemoveSkins && (
                     <button
@@ -222,7 +237,7 @@ export default function SettingsSkinSection() {
                 <label key={key} className="settings-library-option">
                   <input
                     type="checkbox"
-                    checked={skinWeb[key]}
+                    checked={skinWeb[key] === true}
                     onChange={(e) => {
                       const partial: Partial<SkinWebManifest> = { [key]: e.target.checked };
                       void updateSkinWebFlags(partial);

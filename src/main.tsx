@@ -1,12 +1,12 @@
 import { createRoot } from "react-dom/client";
 import "virtual:tailwind-entry.css";
-import "./styles/context-rail-activation-lock.css";
 import "./i18n/config";
 import "./utils/unauthorizedInterceptor";
 import App from "./App.tsx";
 import { AuthProvider } from "./contexts/AuthContext";
 import { TunnelProvider } from "./contexts/TunnelContext";
 import { SettingsProvider } from "./contexts/SettingsContext";
+import { ServerConnectivityProvider } from "./contexts/ServerConnectivityContext";
 import { LoadingProvider } from "./contexts/LoadingContext";
 import { CollectionsProvider } from "./contexts/CollectionsContext";
 import { DevelopersProvider } from "./contexts/DevelopersContext";
@@ -30,6 +30,7 @@ if (isServerSkinId(activeSkinId)) {
 createRoot(document.getElementById("root")!).render(
   <TunnelProvider>
     <SettingsProvider>
+      <ServerConnectivityProvider>
       <AuthProvider>
       <SkinProvider>
         <LoadingProvider>
@@ -47,6 +48,7 @@ createRoot(document.getElementById("root")!).render(
         </LoadingProvider>
       </SkinProvider>
       </AuthProvider>
+      </ServerConnectivityProvider>
     </SettingsProvider>
   </TunnelProvider>
 );

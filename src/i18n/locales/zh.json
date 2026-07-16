@@ -14,6 +14,8 @@
     "gameModes": "游戏模式",
     "playerPerspectives": "视角",
     "sidebarSearch": "搜索",
+    "toggleSidebar": "显示媒体库菜单",
+    "closeSidebar": "关闭媒体库菜单",
     "ownedGames": "拥有的游戏",
     "installedGames": "已安装",
     "gamesSidebar": "游戏",
@@ -65,14 +67,15 @@
     "chinese": "中文",
     "japanese": "日语",
     "twitch": {
-      "title": "Twitch OAuth",
-      "description": "配置您的Twitch OAuth应用程序凭据。您可以从Twitch开发者控制台获取这些信息。",
+      "title": "IGDB / Twitch",
+      "description": "启用通过 IGDB 的目录搜索。应用程序凭据由 API 主机提供，不会存储在应用中。",
+      "descriptionLocal": "来自 Twitch 开发者控制台的凭据。用于 IGDB 目录搜索。",
       "clientId": "客户端ID",
       "clientSecret": "客户端密钥",
       "clientIdPlaceholder": "输入您的Twitch客户端ID",
       "clientSecretPlaceholder": "输入您的Twitch客户端密钥",
-      "clientIdHelp": "您的Twitch应用程序客户端ID",
-      "clientSecretHelp": "您的Twitch应用程序客户端密钥（请妥善保管）"
+      "clientIdHelp": "应用程序的公开标识符。访问 IGDB API 所必需。",
+      "clientSecretHelp": "IGDB API 调用（Twitch client_credentials）所必需。在 Twitch 开发者控制台的 Manage → New Secret 中生成。"
     },
     "skinOptions": {
       "title": "选项",
@@ -124,13 +127,14 @@
     "downloadMacArm": "macOS (Apple Silicon)",
     "downloadMacIntel": "macOS (Intel)",
     "downloadLinux": "Linux",
+    "serverCompatibilityMismatch": "Server update required",
+    "serverCompatibilityTooltip": "Server incompatible with this web app",
+    "serverCompatibilityDetail": "This web app requires server version {{required}} or newer. The connected server is {{version}}. Update the server to a matching release.",
     "titleFilterPlaceholder": "搜索…",
     "titleFilterAria": "搜索当前列表"
   },
   "profile": {
     "viewProfile": "查看个人资料",
-    "changeUser": "切换用户",
-    "logout": "退出",
     "title": "个人资料",
     "subtitle": "您的账户信息",
     "notLoggedIn": "您未登录",
@@ -140,14 +144,15 @@
     "accountType": "账户类型",
     "developmentAccount": "开发账户"
   },
-  "login": {
-    "title": "欢迎使用 MyHomeGames",
-    "subtitle": "请登录以继续",
-    "button": "使用 Twitch 登录",
-    "orGoToSettings": "或前往设置",
-    "credentialsNeeded": "登录需要Twitch OAuth凭据。请先在设置中配置。",
-    "configureFirst": "您可以从Twitch开发者控制台获取您的Twitch客户端ID和客户端密钥。",
-    "goToSettings": "前往设置"
+  "serverUnavailable": {
+    "title": "无法连接 MyHomeGames 服务器",
+    "message": "Web 应用无法连接到服务器。请安装并启动服务器，或确认其正在运行后重试。",
+    "apiBase": "API 地址",
+    "downloadHint": "下载适用于您平台的服务器：",
+    "downloadForPlatform": "下载 {{platform}} 版本",
+    "download": "下载",
+    "retry": "重试连接",
+    "openSettings": "打开设置"
   },
   "search": {
     "noResults": "未找到术语 \"{{query}}\" 的结果",
@@ -295,12 +300,6 @@
     "moveUp": "上移",
     "moveDown": "下移"
   },
-  "igdbGameDetail": {
-    "notFound": "未找到",
-    "add": "添加",
-    "adding": "添加中...",
-    "errorAdding": "添加到库时出错"
-  },
   "common": {
     "loading": "加载中...",
     "error": "错误",
@@ -329,13 +328,36 @@
     "deleteError": "删除失败",
     "reloadMetadata": "重新加载所有元数据",
     "reloadSingleMetadata": "重新加载元数据",
+    "singleMetadataReloadInProgress": "正在更新",
     "reloadingMetadata": "正在重新加载元数据...",
     "confirmReload": "您确定要重新加载所有元数据吗？这将刷新所有、收藏和类别。",
+    "confirmCancelBulkReload": "是否要取消正在进行的元数据更新？",
+    "continueMetadataReload": "继续",
+    "cancelBulkReload": "取消更新",
     "reloadError": "重新加载元数据失败",
     "create": "创建",
     "creating": "创建中...",
     "removing": "移除中...",
     "unauthorized": "未授权"
+  },
+  "metadataReload": {
+    "phase": {
+      "developers": "正在更新开发商",
+      "publishers": "正在更新发行商",
+      "games": "正在更新游戏",
+      "collections": "正在更新合集",
+      "cache": "正在刷新库缓存",
+      "developer": "正在更新开发商",
+      "publisher": "正在更新发行商",
+      "game": "正在更新游戏",
+      "collection": "正在更新合集"
+    },
+    "tooltip": {
+      "withItem": "{{phase}}：{{item}} — {{step}}/{{total}}（{{percent}}%）",
+      "withItemInPhase": "{{phase}}：{{item}} — {{step}}/{{total}}（{{percent}}%），第 {{phaseIndex}}/{{phaseTotal}} 项",
+      "progress": "{{phase}} — {{step}}/{{total}}（{{percent}}%）",
+      "simple": "{{phase}}（{{percent}}%）"
+    }
   },
   "categories": {
     "noCategoriesFound": "未找到类别"
@@ -497,7 +519,7 @@
     "editCategory": "编辑类别",
     "coverFormat": "推荐比例：16:9（例如 1280x720px）"
   },
-  "igdbInfo": {
+  "catalogInfo": {
     "gameId": "ID",
     "gameType": "类型",
     "themes": "主题",
@@ -561,6 +583,7 @@
     },
     "developers": "开发商",
     "publishers": "发行商",
+    "acquiredBy": "被收购于",
     "noDevelopersFound": "未找到开发者",
     "noPublishersFound": "未找到发行商",
     "subDevelopers": "开发商",
@@ -583,9 +606,46 @@
     "genres": "类型",
     "ratings": "评分",
     "criticRating": "评论家评分",
-    "userRating": "用户评分"
+    "userRating": "用户评分",
+    "companyStatus": "状态",
+    "updatedTo": "更新为",
+    "country": "国家",
+    "started": "成立",
+    "knownAs": "亦称",
+    "legalName": "法定名称",
+    "companySize": "公司规模",
+    "formerly": "曾用名",
+    "parentCompany": "母公司",
+    "changedOn": "变更于",
+    "companyMetadata": "公司元数据",
+    "countryCodePlaceholder": "ISO 3166-1 数字代码（例如 380）",
+    "datePlaceholder": "YYYY、YYYY-MM 或 YYYY-MM-DD",
+    "companyIdPlaceholder": "IGDB ID",
+    "companyNamePlaceholder": "公司名称",
+    "searchCompanyToAdd": "搜索要添加的公司",
+    "searchCompanyPlaceholder": "按名称搜索...",
+    "noCompaniesFound": "未找到公司",
+    "addFormerly": "添加公司",
+    "addParentCompany": "添加公司",
+    "addUpdatedTo": "添加公司"
   },
-  "igdbGameTypes": {
+  "companyStatuses": {
+    "active": "活跃",
+    "defunct": "已倒闭",
+    "merge": "合并",
+    "renamed": "已更名"
+  },
+  "companySizes": {
+    "1": "0-1 名员工",
+    "2": "2-10 名员工",
+    "3": "11-50 名员工",
+    "4": "51-200 名员工",
+    "5": "201-500 名员工",
+    "6": "501-1000 名员工",
+    "7": "1001-5000 名员工",
+    "8": "5000 名以上员工"
+  },
+  "gameTypes": {
     "0": "主游戏",
     "1": "DLC",
     "2": "资料片",
@@ -601,5 +661,11 @@
     "12": "Fork",
     "13": "合集",
     "14": "更新"
+  },
+  "catalogGameDetail": {
+    "notFound": "未找到",
+    "add": "添加",
+    "adding": "添加中...",
+    "errorAdding": "添加到库时出错"
   }
 }

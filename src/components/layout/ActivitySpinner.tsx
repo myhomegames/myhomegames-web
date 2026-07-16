@@ -1,24 +1,40 @@
 import { useTranslation } from "react-i18next";
 
+import type { CSSProperties } from "react";
+
+import Tooltip from "../common/Tooltip";
+
 type ActivitySpinnerProps = {
   isLoading: boolean;
+  /** Shown in a tooltip on hover (1s delay) while the spinner is visible. */
+  tooltipText?: string;
   /** Extra classes on the wrapper (e.g. dock-specific alignment). */
   className?: string;
+  style?: CSSProperties;
+  iconStyle?: CSSProperties;
 };
 
 /** Global activity indicator (same markup as the header spinner). */
-export default function ActivitySpinner({ isLoading, className }: ActivitySpinnerProps) {
+export default function ActivitySpinner({
+  isLoading,
+  tooltipText,
+  className,
+  style,
+  iconStyle,
+}: ActivitySpinnerProps) {
   const { t } = useTranslation();
-  return (
+
+  const spinner = (
     <div
       className={["mhg-activity-spinner", className].filter(Boolean).join(" ")}
       aria-label={isLoading ? t("header.loading", "Loading") : undefined}
       aria-hidden={!isLoading}
-      style={{ visibility: isLoading ? "visible" : "hidden" }}
+      style={{ visibility: isLoading ? "visible" : "hidden", ...style }}
     >
       <svg
         width="20"
         height="20"
+        style={iconStyle}
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -32,5 +48,15 @@ export default function ActivitySpinner({ isLoading, className }: ActivitySpinne
         />
       </svg>
     </div>
+  );
+
+  if (!isLoading || !tooltipText) {
+    return spinner;
+  }
+
+  return (
+    <Tooltip text={tooltipText} position="bottom" delay={1000}>
+      {spinner}
+    </Tooltip>
   );
 }

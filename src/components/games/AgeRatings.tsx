@@ -134,7 +134,7 @@ export function formatAgeRating(category: number | undefined | null, rating: num
   }
   
   // Try to get translation, fallback to formatted string
-  const translationKey = `igdbInfo.ageRating.${categoryName}.${ratingName}`;
+  const translationKey = `catalogInfo.ageRating.${categoryName}.${ratingName}`;
   const translation = t(translationKey);
   
   // If translation exists and is different from the key, use it

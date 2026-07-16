@@ -1,12 +1,33 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import {
+  isSidebarSearchDialogOpen,
+  resolveSearchActionStackZIndex,
+  wrapSidebarSearchMenuStack,
+} from "../../utils/sidebarSearchMenuStack";
 import { API_BASE, API_TOKEN, getApiToken } from "../../config";
 import { useLoading } from "../../contexts/LoadingContext";
 import Cover from "../games/Cover";
 import type { CollectionInfo } from "../../types";
 import { buildApiUrl } from "../../utils/api";
+import { bumpCoverCache } from "../../utils/coverUrlCache";
 import { normalizeGameCoverImage, normalizeWideImage } from "../../utils/imageUploadNormalize";
+import EditCompanyProfileFields from "../companies/EditCompanyProfileFields";
+import {
+  companyProfileFormStatesEqual,
+  companyProfileToFormState,
+  formStateToCompanyProfile,
+  type CompanyProfileFormState,
+} from "../../utils/editCompanyProfile";
+import {
+  applyCompanyProfileFieldsToPayload,
+  collectionInfoFromApi,
+  fetchCollectionLikeDetail,
+  mergeCompanyProfileOntoCollectionInfo,
+  pickCompanyProfileFields,
+} from "../../utils/companyProfile";
+import { dispatchDeveloperOrPublisherUpdated } from "../../utils/companyProfileSync";
 function normExt(s: string | null | undefined) {
   return (s ?? "").trim();
 }
@@ -75,14 +96,14 @@ const RESOURCE_CONFIG: Record<
     responseKey: "developer",
     coverPrefix: "developer-covers",
     backgroundPrefix: "developer-backgrounds",
-    titleKey: "igdbInfo.editDeveloper",
+    titleKey: "catalogInfo.editDeveloper",
   },
   publishers: {
     routeBase: "publishers",
     responseKey: "publisher",
     coverPrefix: "publisher-covers",
     backgroundPrefix: "publisher-backgrounds",
-    titleKey: "igdbInfo.editPublisher",
+    titleKey: "catalogInfo.editPublisher",
   },
 };
 
@@ -92,6 +113,7 @@ type EditCollectionLikeModalProps = {
   resourceType: CollectionLikeResourceType;
   item: CollectionInfo;
   onItemUpdate: (updatedItem: CollectionInfo) => void;
+  stackAboveSearchDropdown?: boolean;
 };
 
 export default function EditCollectionLikeModal({
@@ -100,12 +122,14 @@ export default function EditCollectionLikeModal({
   resourceType,
   item,
   onItemUpdate,
+  stackAboveSearchDropdown = false,
 }: EditCollectionLikeModalProps) {
   const { t } = useTranslation();
   const { setLoading } = useLoading();
   const config = RESOURCE_CONFIG[resourceType];
   const hasBackground = true;
   const hasShowTitle = true;
+  const isCompanyResource = resourceType === "developers" || resourceType === "publishers";
 
   const [title, setTitle] = useState(item.title);
   const [summary, setSummary] = useState(item.summary || "");
@@ -126,27 +150,70 @@ export default function EditCollectionLikeModal({
   const [showTitleInPreview, setShowTitleInPreview] = useState(false);
   const [localExternalCover, setLocalExternalCover] = useState("");
   const [localExternalBackground, setLocalExternalBackground] = useState("");
+  const [companyProfileForm, setCompanyProfileForm] = useState<CompanyProfileFormState>(() =>
+    companyProfileToFormState(pickCompanyProfileFields(item))
+  );
+  const [initialCompanyProfileForm, setInitialCompanyProfileForm] = useState<CompanyProfileFormState>(() =>
+    companyProfileToFormState(pickCompanyProfileFields(item))
+  );
+  const [resolvedItem, setResolvedItem] = useState<CollectionInfo | null>(null);
+  const [resolvingItem, setResolvingItem] = useState(false);
+
+  const activeItem = isCompanyResource ? (resolvedItem ?? item) : item;
+
+  useEffect(() => {
+    if (!isOpen || !item) {
+      setResolvedItem(null);
+      setResolvingItem(false);
+      return;
+    }
+    if (!isCompanyResource) {
+      setResolvedItem(null);
+      setResolvingItem(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setResolvedItem(null);
+    setResolvingItem(true);
+
+    fetchCollectionLikeDetail(config.routeBase, item.id, controller.signal)
+      .then((detail) => {
+        if (controller.signal.aborted) return;
+        setResolvedItem(detail ?? item);
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        setResolvedItem(item);
+      })
+      .finally(() => {
+        if (controller.signal.aborted) return;
+        setResolvingItem(false);
+      });
+
+    return () => controller.abort();
+  }, [isOpen, item, isCompanyResource, config.routeBase]);
 
   // Never show fallback/IGDB covers in edit - same as when no cover present
   const coverUrlWithTimestamp = useMemo(() => {
-    if (!item?.cover || item.cover.trim() === "") return "";
-    const baseUrl = item.cover.split("?")[0].split("&")[0];
+    if (!activeItem?.cover || activeItem.cover.trim() === "") return "";
+    const baseUrl = activeItem.cover.split("?")[0].split("&")[0];
     if (baseUrl.startsWith("http")) return "";
     const url = buildApiUrl(API_BASE, baseUrl);
     const separator = url.includes("?") ? "&" : "?";
     return `${url}${separator}t=${imageTimestamp}`;
-  }, [item?.cover, imageTimestamp]);
+  }, [activeItem?.cover, imageTimestamp]);
 
   const backgroundUrlWithTimestamp = useMemo(() => {
-    if (!item?.background || item.background.trim() === "") return "";
-    const baseUrl = item.background.split("?")[0].split("&")[0];
+    if (!activeItem?.background || activeItem.background.trim() === "") return "";
+    const baseUrl = activeItem.background.split("?")[0].split("&")[0];
     if (baseUrl.startsWith("http")) {
       return `${baseUrl}?t=${imageTimestamp}`;
     }
     const url = buildApiUrl(API_BASE, baseUrl);
     const separator = url.includes("?") ? "&" : "?";
     return `${url}${separator}t=${imageTimestamp}`;
-  }, [item?.background, imageTimestamp]);
+  }, [activeItem?.background, imageTimestamp]);
 
   /** Cover preview in modal: local file + upload preview only (never external URLs). */
   const coverLocalPreviewUrl = useMemo(() => {
@@ -156,12 +223,15 @@ export default function EditCollectionLikeModal({
   }, [coverRemoved, coverPreview, coverUrlWithTimestamp]);
 
   useEffect(() => {
-    if (isOpen && item) {
-      setTitle(item.title || "");
-      setSummary(item.summary || "");
-      setShowTitleInPreview((item as any).showTitle !== false);
-      setLocalExternalCover(initialExternalCoverUrl(item));
-      setLocalExternalBackground(initialExternalBackgroundUrl(item));
+    if (isOpen && activeItem && (!isCompanyResource || !resolvingItem)) {
+      setTitle(activeItem.title || "");
+      setSummary(activeItem.summary || "");
+      setShowTitleInPreview((activeItem as any).showTitle !== false);
+      setLocalExternalCover(initialExternalCoverUrl(activeItem));
+      setLocalExternalBackground(initialExternalBackgroundUrl(activeItem));
+      const nextCompanyProfileForm = companyProfileToFormState(pickCompanyProfileFields(activeItem));
+      setCompanyProfileForm(nextCompanyProfileForm);
+      setInitialCompanyProfileForm(nextCompanyProfileForm);
       setError(null);
       setActiveTab("INFO");
       setCoverPreview(null);
@@ -177,24 +247,24 @@ export default function EditCollectionLikeModal({
       setCoverFile(null);
       setBackgroundFile(null);
     }
-  }, [isOpen, item]);
+  }, [isOpen, activeItem, isCompanyResource, resolvingItem]);
 
   useEffect(() => {
-    if (item) {
+    if (activeItem) {
       const hasCoverOrExternal =
-        !!(item.cover && item.cover.trim()) || !!item.externalCoverUrl?.trim();
+        !!(activeItem.cover && activeItem.cover.trim()) || !!activeItem.externalCoverUrl?.trim();
       if (!hasCoverOrExternal && !coverRemoved && !coverFile) {
         setCoverRemoved(true);
         setCoverPreview(null);
         setImageTimestamp(Date.now());
       }
-      if (hasBackground && !item.background && !backgroundRemoved && !backgroundFile) {
+      if (hasBackground && !activeItem.background && !backgroundRemoved && !backgroundFile) {
         setBackgroundRemoved(true);
         setBackgroundPreview(null);
         setImageTimestamp(Date.now());
       }
     }
-  }, [item?.cover, item?.background, hasBackground]);
+  }, [activeItem?.cover, activeItem?.background, activeItem?.externalCoverUrl, hasBackground]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -217,18 +287,22 @@ export default function EditCollectionLikeModal({
 
   const hasChanges = () => {
     return (
-      title.trim() !== item.title.trim() ||
-      summary.trim() !== (item.summary || "").trim() ||
-      (hasShowTitle && showTitleInPreview !== ((item as any).showTitle !== false)) ||
-      normExt(localExternalCover) !== normExt(initialExternalCoverUrl(item)) ||
+      title.trim() !== activeItem.title.trim() ||
+      summary.trim() !== (activeItem.summary || "").trim() ||
+      (hasShowTitle && showTitleInPreview !== ((activeItem as any).showTitle !== false)) ||
+      normExt(localExternalCover) !== normExt(initialExternalCoverUrl(activeItem)) ||
       (hasBackground &&
-        normExt(localExternalBackground) !== normExt(initialExternalBackgroundUrl(item))) ||
+        normExt(localExternalBackground) !== normExt(initialExternalBackgroundUrl(activeItem))) ||
+      (isCompanyResource && !companyProfileFormStatesEqual(companyProfileForm, initialCompanyProfileForm)) ||
       coverFile !== null ||
       (hasBackground && backgroundFile !== null) ||
       coverRemoved ||
       (hasBackground && backgroundRemoved)
     );
   };
+
+  const mergeCompanyProfileOnItem = (updatedItem: CollectionInfo, data: CollectionInfo | undefined) =>
+    data ? mergeCompanyProfileOntoCollectionInfo(updatedItem, pickCompanyProfileFields(data)) : updatedItem;
 
   const handleCoverFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -302,7 +376,7 @@ export default function EditCollectionLikeModal({
     try {
       let updatedCover: string | null = null;
       let updatedBackground: string | null = null;
-      const basePath = `/${config.routeBase}/${item.id}`;
+      const basePath = `/${config.routeBase}/${activeItem.id}`;
 
       if (coverRemoved) {
         const url = buildApiUrl(API_BASE, `${basePath}/delete-cover`);
@@ -383,21 +457,27 @@ export default function EditCollectionLikeModal({
       }
 
       const updates: Record<string, unknown> = {};
-      if (title.trim() !== item.title.trim()) updates.title = title.trim();
-      if (summary.trim() !== (item.summary || "").trim()) updates.summary = summary.trim();
-      if (hasShowTitle && showTitleInPreview !== ((item as any).showTitle !== false)) {
+      if (title.trim() !== activeItem.title.trim()) updates.title = title.trim();
+      if (summary.trim() !== (activeItem.summary || "").trim()) updates.summary = summary.trim();
+      if (hasShowTitle && showTitleInPreview !== ((activeItem as any).showTitle !== false)) {
         updates.showTitle = showTitleInPreview;
       }
-      if (normExt(localExternalCover) !== normExt(initialExternalCoverUrl(item))) {
+      if (normExt(localExternalCover) !== normExt(initialExternalCoverUrl(activeItem))) {
         updates.externalCoverUrl = localExternalCover.trim() ? localExternalCover.trim() : null;
       }
       if (
         hasBackground &&
-        normExt(localExternalBackground) !== normExt(initialExternalBackgroundUrl(item))
+        normExt(localExternalBackground) !== normExt(initialExternalBackgroundUrl(activeItem))
       ) {
         updates.externalBackgroundUrl = localExternalBackground.trim()
           ? localExternalBackground.trim()
           : null;
+      }
+      if (isCompanyResource && !companyProfileFormStatesEqual(companyProfileForm, initialCompanyProfileForm)) {
+        Object.assign(
+          updates,
+          applyCompanyProfileFieldsToPayload({}, formStateToCompanyProfile(companyProfileForm)),
+        );
       }
 
       if (Object.keys(updates).length > 0) {
@@ -414,14 +494,15 @@ export default function EditCollectionLikeModal({
         const result = await res.json();
         const data = result[config.responseKey];
         // Use server response for final media state (do not use ?? so null cover clears old external URL)
-        let finalCover = coverAfterSave(updatedCover, data, item.cover);
+        let finalCover = coverAfterSave(updatedCover, data, activeItem.cover);
         let finalBackground = backgroundAfterSave(
           updatedBackground,
           data,
-          item.background,
+          activeItem.background,
           hasBackground
         );
         if (updatedCover && finalCover) {
+          bumpCoverCache(finalCover);
           const sep = finalCover.includes("?") ? "&" : "?";
           finalCover = `${finalCover}${sep}t=${Date.now()}`;
         }
@@ -430,21 +511,29 @@ export default function EditCollectionLikeModal({
           finalBackground = `${finalBackground}${sep}t=${Date.now()}`;
         }
         const updatedItem: CollectionInfo = {
-          id: data?.id ?? item.id,
-          title: data?.title ?? item.title,
-          summary: data?.summary ?? item.summary ?? "",
-          cover: finalCover,
-          background: finalBackground,
-          externalCoverUrl:
-            data?.externalCoverUrl !== undefined
-              ? data.externalCoverUrl
-              : (item.externalCoverUrl ?? null),
-          externalBackgroundUrl:
-            data?.externalBackgroundUrl !== undefined
-              ? data.externalBackgroundUrl
-              : (item.externalBackgroundUrl ?? null),
-          showTitle: hasShowTitle ? (data?.showTitle ?? (item as any).showTitle) : undefined,
-          ...(typeof (data as any)?.gameCount === "number" ? { gameCount: (data as any).gameCount } : {}),
+          ...mergeCompanyProfileOnItem(
+            {
+              ...collectionInfoFromApi((data ?? {}) as Record<string, unknown>),
+              id: String(data?.id ?? activeItem.id),
+              title: data?.title ?? activeItem.title,
+              summary: data?.summary ?? activeItem.summary ?? "",
+              cover: finalCover,
+              background: finalBackground,
+              externalCoverUrl:
+                data?.externalCoverUrl !== undefined
+                  ? data.externalCoverUrl
+                  : (activeItem.externalCoverUrl ?? null),
+              externalBackgroundUrl:
+                data?.externalBackgroundUrl !== undefined
+                  ? data.externalBackgroundUrl
+                  : (activeItem.externalBackgroundUrl ?? null),
+              showTitle: hasShowTitle ? (data?.showTitle ?? (activeItem as any).showTitle) : undefined,
+              ...(typeof (data as any)?.gameCount === "number"
+                ? { gameCount: (data as any).gameCount }
+                : {}),
+            },
+            data,
+          ),
         };
         dispatchUpdate(updatedItem);
         onItemUpdate(updatedItem);
@@ -457,14 +546,15 @@ export default function EditCollectionLikeModal({
         if (res.ok) {
           const result = await res.json();
           const data = result[config.responseKey] ?? result;
-          let finalCover = coverAfterSave(updatedCover, data, item.cover);
+          let finalCover = coverAfterSave(updatedCover, data, activeItem.cover);
           let finalBackground = backgroundAfterSave(
             updatedBackground,
             data,
-            item.background,
+            activeItem.background,
             hasBackground
           );
           if ((updatedCover !== null || coverRemoved) && finalCover) {
+            bumpCoverCache(finalCover);
             const sep = finalCover.includes("?") ? "&" : "?";
             finalCover = `${finalCover}${sep}t=${Date.now()}`;
           }
@@ -472,23 +562,29 @@ export default function EditCollectionLikeModal({
             const sep = finalBackground.includes("?") ? "&" : "?";
             finalBackground = `${finalBackground}${sep}t=${Date.now()}`;
           }
-          const updatedItem: CollectionInfo = {
-            id: data?.id ?? item.id,
-            title: data?.title ?? item.title,
-            summary: data?.summary ?? item.summary ?? "",
-            cover: finalCover,
-            background: finalBackground,
-            externalCoverUrl:
-              data?.externalCoverUrl !== undefined
-                ? data.externalCoverUrl
-                : (item.externalCoverUrl ?? null),
-            externalBackgroundUrl:
-              data?.externalBackgroundUrl !== undefined
-                ? data.externalBackgroundUrl
-                : (item.externalBackgroundUrl ?? null),
-            showTitle: hasShowTitle ? (data?.showTitle ?? (item as any).showTitle) : undefined,
-            ...(typeof (data as any)?.gameCount === "number" ? { gameCount: (data as any).gameCount } : {}),
-          };
+          const updatedItem: CollectionInfo = mergeCompanyProfileOnItem(
+            {
+              ...collectionInfoFromApi((data ?? {}) as Record<string, unknown>),
+              id: String(data?.id ?? activeItem.id),
+              title: data?.title ?? activeItem.title,
+              summary: data?.summary ?? activeItem.summary ?? "",
+              cover: finalCover,
+              background: finalBackground,
+              externalCoverUrl:
+                data?.externalCoverUrl !== undefined
+                  ? data.externalCoverUrl
+                  : (activeItem.externalCoverUrl ?? null),
+              externalBackgroundUrl:
+                data?.externalBackgroundUrl !== undefined
+                  ? data.externalBackgroundUrl
+                  : (activeItem.externalBackgroundUrl ?? null),
+              showTitle: hasShowTitle ? (data?.showTitle ?? (activeItem as any).showTitle) : undefined,
+              ...(typeof (data as any)?.gameCount === "number"
+                ? { gameCount: (data as any).gameCount }
+                : {}),
+            },
+            data,
+          );
           dispatchUpdate(updatedItem);
           onItemUpdate(updatedItem);
         }
@@ -508,66 +604,80 @@ export default function EditCollectionLikeModal({
   function dispatchUpdate(updatedItem: CollectionInfo) {
     if (resourceType === "collections") {
       window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collection: updatedItem } }));
-    } else if (resourceType === "developers") {
-      window.dispatchEvent(new CustomEvent("developerUpdated", { detail: { developer: updatedItem } }));
-    } else if (resourceType === "publishers") {
-      window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: { publisher: updatedItem } }));
+    } else if (resourceType === "developers" || resourceType === "publishers") {
+      dispatchDeveloperOrPublisherUpdated(resourceType, updatedItem);
     }
   }
 
   if (!isOpen) return null;
 
+  const mc = isCompanyResource ? "edit-game-modal" : "edit-collection-modal";
 
-  return createPortal(
-    <div className="edit-collection-modal-overlay" onClick={onClose}>
-      <div className="edit-collection-modal-container" onClick={(e) => e.stopPropagation()}>
-        <div className="edit-collection-modal-header">
-          <h2>
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-            </svg>
-            {t(config.titleKey, resourceType === "collections" ? "Edit Collection" : resourceType === "developers" ? "Edit Developer" : "Edit Publisher")}
-          </h2>
-          <button className="edit-collection-modal-close" onClick={onClose} aria-label="Close">
-            ×
+  const modalInner = (
+    <>
+      <div className={`${mc}-content`}>
+        {error && <div className={`${mc}-error`}>{error}</div>}
+
+        {resolvingItem ? (
+          <div className={`${mc}-loading`}>{t("common.loading", "Loading...")}</div>
+        ) : (
+          <>
+        <div className={`${mc}-tabs`}>
+          <button
+            type="button"
+            className={`${mc}-tab ${activeTab === "INFO" ? "active" : ""}`}
+            onClick={() => setActiveTab("INFO")}
+            disabled={saving}
+          >
+            {t("gameDetail.info", "INFO")}
+          </button>
+          <button
+            type="button"
+            className={`${mc}-tab ${activeTab === "MEDIA" ? "active" : ""}`}
+            onClick={() => setActiveTab("MEDIA")}
+            disabled={saving}
+          >
+            {t("gameDetail.media", "MEDIA")}
           </button>
         </div>
 
-        <div className="edit-collection-modal-content">
-          {error && <div className="edit-collection-modal-error">{error}</div>}
-
-          <div className="edit-collection-modal-tabs">
-            <button
-              className={`edit-collection-modal-tab ${activeTab === "INFO" ? "active" : ""}`}
-              onClick={() => setActiveTab("INFO")}
-              disabled={saving}
-            >
-              {t("gameDetail.info", "INFO")}
-            </button>
-            <button
-              className={`edit-collection-modal-tab ${activeTab === "MEDIA" ? "active" : ""}`}
-              onClick={() => setActiveTab("MEDIA")}
-              disabled={saving}
-            >
-              {t("gameDetail.media", "MEDIA")}
-            </button>
-          </div>
-
-          {activeTab === "INFO" && (
+        {activeTab === "INFO" && (
+          isCompanyResource ? (
+            <>
+              <div className="edit-game-modal-field">
+                <label htmlFor="edit-collection-like-title">{t("catalogInfo.name", "Name")}</label>
+                <input
+                  id="edit-collection-like-title"
+                  name="title"
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  disabled={saving}
+                />
+              </div>
+              <div className="edit-game-modal-field">
+                <label htmlFor="edit-collection-like-summary">{t("collectionDetail.summary", "Summary")}</label>
+                <textarea
+                  id="edit-collection-like-summary"
+                  name="summary"
+                  value={summary}
+                  onChange={(e) => setSummary(e.target.value)}
+                  disabled={saving}
+                  rows={5}
+                />
+              </div>
+              <EditCompanyProfileFields
+                value={companyProfileForm}
+                onChange={setCompanyProfileForm}
+                disabled={saving}
+                currentCompanyId={activeItem.id}
+              />
+            </>
+          ) : (
             <div className="edit-collection-modal-info">
               <div className="edit-collection-modal-field">
                 <label htmlFor="edit-collection-like-title">
-                  {resourceType === "collections" ? t("collectionDetail.title", "Title") : t("igdbInfo.name", "Name")}
+                  {t("collectionDetail.title", "Title")}
                 </label>
                 <input
                   id="edit-collection-like-title"
@@ -588,32 +698,67 @@ export default function EditCollectionLikeModal({
                 />
               </div>
             </div>
-          )}
+          )
+        )}
 
-          {activeTab === "MEDIA" && (
-            <div className="edit-collection-modal-media">
-              {hasShowTitle && (
-                <div className="edit-collection-modal-media-options">
-                  <label className="edit-collection-modal-media-checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={showTitleInPreview}
-                      onChange={(e) => setShowTitleInPreview(e.target.checked)}
-                      aria-label={t("gameDetail.showTitle", "Show title on cover")}
-                    />
-                    <span>{t("gameDetail.showTitle", "Show title on cover")}</span>
-                  </label>
-                </div>
-              )}
-              <div className="edit-game-modal-media-block">
-                <div className="edit-collection-modal-media-row">
-                  <div className="edit-collection-modal-media-info">
-                    <div className="edit-collection-modal-label">{t("gameDetail.cover", "Cover")}</div>
-                    <div className="edit-collection-modal-media-description">
-                      {t("gameDetail.coverFormat", "Recommended format: WebP, ratio 2:3 (e.g., 400x600px)")}
-                    </div>
+        {activeTab === "MEDIA" && (
+          <div className={isCompanyResource ? "edit-game-modal-media" : "edit-collection-modal-media"}>
+            {hasShowTitle && (
+              <div
+                className={
+                  isCompanyResource
+                    ? "edit-game-modal-media-options"
+                    : "edit-collection-modal-media-options"
+                }
+              >
+                <label
+                  className={
+                    isCompanyResource
+                      ? "edit-game-modal-media-checkbox-label"
+                      : "edit-collection-modal-media-checkbox-label"
+                  }
+                >
+                  <input
+                    type="checkbox"
+                    checked={showTitleInPreview}
+                    onChange={(e) => setShowTitleInPreview(e.target.checked)}
+                    aria-label={t("gameDetail.showTitle", "Show title on cover")}
+                  />
+                  <span>{t("gameDetail.showTitle", "Show title on cover")}</span>
+                </label>
+              </div>
+            )}
+            <div className="edit-game-modal-media-block">
+              <div
+                className={
+                  isCompanyResource ? "edit-game-modal-media-row" : "edit-collection-modal-media-row"
+                }
+              >
+                <div
+                  className={
+                    isCompanyResource ? "edit-game-modal-media-info" : "edit-collection-modal-media-info"
+                  }
+                >
+                  <div className={isCompanyResource ? "edit-game-modal-label" : "edit-collection-modal-label"}>
+                    {t("gameDetail.cover", "Cover")}
                   </div>
-                  <div className="edit-collection-modal-media-image-container">
+                  <div
+                    className={
+                      isCompanyResource
+                        ? "edit-game-modal-media-description"
+                        : "edit-collection-modal-media-description"
+                    }
+                  >
+                    {t("gameDetail.coverFormat", "Recommended format: WebP, ratio 2:3 (e.g., 400x600px)")}
+                  </div>
+                </div>
+                <div
+                  className={
+                    isCompanyResource
+                      ? "edit-game-modal-media-image-container"
+                      : "edit-collection-modal-media-image-container"
+                  }
+                >
                     {(() => {
                       const currentCoverUrl = coverRemoved ? "" : coverLocalPreviewUrl;
                       const hasCover = !!currentCoverUrl?.trim();
@@ -621,7 +766,7 @@ export default function EditCollectionLikeModal({
                         <>
                           <Cover
                             key={`cover-${coverRemoved ? "removed" : coverPreview ? "preview" : coverLocalPreviewUrl}`}
-                            title={item.title}
+                            title={activeItem.title}
                             coverUrl={currentCoverUrl}
                             width={150}
                             height={200}
@@ -634,7 +779,7 @@ export default function EditCollectionLikeModal({
                             uploading={uploadingCover}
                             showRemoveButton={!!hasCover && !coverRemoved}
                             removeMediaType="cover"
-                            removeResourceId={item.id}
+                            removeResourceId={activeItem.id}
                             removeResourceType={resourceType}
                             onCollectionUpdate={onItemUpdate}
                             onRemoveSuccess={handleCoverRemoveSuccess}
@@ -653,12 +798,25 @@ export default function EditCollectionLikeModal({
                     })()}
                   </div>
                 </div>
-                <div className="edit-collection-modal-media-row edit-game-modal-external-url-row">
-                  <div className="edit-collection-modal-media-info">
-                    <label htmlFor="edit-collection-like-external-cover-url" className="edit-collection-modal-label">
-                      {t("gameDetail.externalCoverUrl", "External cover URL")}
-                    </label>
-                  </div>
+              <div
+                className={
+                  isCompanyResource
+                    ? "edit-game-modal-media-row edit-game-modal-external-url-row"
+                    : "edit-collection-modal-media-row edit-game-modal-external-url-row"
+                }
+              >
+                <div
+                  className={
+                    isCompanyResource ? "edit-game-modal-media-info" : "edit-collection-modal-media-info"
+                  }
+                >
+                  <label
+                    htmlFor="edit-collection-like-external-cover-url"
+                    className={isCompanyResource ? "edit-game-modal-label" : "edit-collection-modal-label"}
+                  >
+                    {t("gameDetail.externalCoverUrl", "External cover URL")}
+                  </label>
+                </div>
                   <div className="edit-game-modal-external-url-input-column">
                     <input
                       id="edit-collection-like-external-cover-url"
@@ -674,19 +832,45 @@ export default function EditCollectionLikeModal({
                       {t("gameDetail.externalUrlHint", "A local uploaded file takes priority over this URL.")}
                     </p>
                   </div>
-                </div>
               </div>
+            </div>
 
               {hasBackground && (
                 <div className="edit-game-modal-media-block">
-                  <div className="edit-collection-modal-media-row edit-collection-modal-media-row--background">
-                    <div className="edit-collection-modal-media-info">
-                      <div className="edit-collection-modal-label">{t("gameDetail.background", "Background")}</div>
-                      <div className="edit-collection-modal-media-description">
+                  <div
+                    className={
+                      isCompanyResource
+                        ? "edit-game-modal-media-row edit-game-modal-media-row--background"
+                        : "edit-collection-modal-media-row edit-collection-modal-media-row--background"
+                    }
+                  >
+                    <div
+                      className={
+                        isCompanyResource ? "edit-game-modal-media-info" : "edit-collection-modal-media-info"
+                      }
+                    >
+                      <div
+                        className={isCompanyResource ? "edit-game-modal-label" : "edit-collection-modal-label"}
+                      >
+                        {t("gameDetail.background", "Background")}
+                      </div>
+                      <div
+                        className={
+                          isCompanyResource
+                            ? "edit-game-modal-media-description"
+                            : "edit-collection-modal-media-description"
+                        }
+                      >
                         {t("gameDetail.backgroundFormat", "Recommended format: WebP, ratio 16:9 (e.g., 1920x1080px)")}
                       </div>
                     </div>
-                    <div className="edit-collection-modal-media-image-container">
+                    <div
+                      className={
+                        isCompanyResource
+                          ? "edit-game-modal-media-image-container"
+                          : "edit-collection-modal-media-image-container"
+                      }
+                    >
                       {(() => {
                         const currentBgUrl = backgroundRemoved ? "" : (backgroundPreview || backgroundUrlWithTimestamp);
                         const hasBg = !!currentBgUrl?.trim();
@@ -694,7 +878,7 @@ export default function EditCollectionLikeModal({
                           <>
                             <Cover
                               key={`bg-${backgroundRemoved ? "removed" : backgroundPreview ? "preview" : backgroundUrlWithTimestamp}`}
-                              title={item.title}
+                              title={activeItem.title}
                               coverUrl={currentBgUrl}
                               width={300}
                               height={169}
@@ -707,7 +891,7 @@ export default function EditCollectionLikeModal({
                               uploading={uploadingBackground}
                               showRemoveButton={!!hasBg && !backgroundRemoved}
                               removeMediaType="background"
-                              removeResourceId={item.id}
+                              removeResourceId={activeItem.id}
                               removeResourceType={resourceType}
                               onCollectionUpdate={onItemUpdate}
                               onRemoveSuccess={handleBackgroundRemoveSuccess}
@@ -726,9 +910,22 @@ export default function EditCollectionLikeModal({
                       })()}
                     </div>
                   </div>
-                  <div className="edit-collection-modal-media-row edit-game-modal-external-url-row">
-                    <div className="edit-collection-modal-media-info">
-                      <label htmlFor="edit-collection-like-external-background-url" className="edit-collection-modal-label">
+                  <div
+                    className={
+                      isCompanyResource
+                        ? "edit-game-modal-media-row edit-game-modal-external-url-row"
+                        : "edit-collection-modal-media-row edit-game-modal-external-url-row"
+                    }
+                  >
+                    <div
+                      className={
+                        isCompanyResource ? "edit-game-modal-media-info" : "edit-collection-modal-media-info"
+                      }
+                    >
+                      <label
+                        htmlFor="edit-collection-like-external-background-url"
+                        className={isCompanyResource ? "edit-game-modal-label" : "edit-collection-modal-label"}
+                      >
                         {t("gameDetail.externalBackgroundUrl", "External background URL")}
                       </label>
                     </div>
@@ -755,18 +952,91 @@ export default function EditCollectionLikeModal({
               )}
             </div>
           )}
+          </>
+        )}
+      </div>
+
+      <div className={`${mc}-footer`}>
+        <button type="button" className={`${mc}-cancel`} onClick={onClose} disabled={saving}>
+          {t("common.cancel", "Cancel")}
+        </button>
+        <button
+          type="button"
+          className={`${mc}-save`}
+          onClick={handleSave}
+          disabled={saving || resolvingItem || !hasChanges()}
+        >
+          {saving ? t("common.saving", "Saving...") : t("common.save", "Save")}
+        </button>
+      </div>
+    </>
+  );
+
+  if (!isOpen) return null;
+
+  const useSearchActionStack =
+    isSidebarSearchDialogOpen() || stackAboveSearchDropdown;
+
+  return createPortal(
+    wrapSidebarSearchMenuStack(
+      <div className={`${mc}-overlay`} onClick={onClose}>
+      <div className={`${mc}-container`} onClick={(e) => e.stopPropagation()}>
+        <div className={`${mc}-header`}>
+          <h2>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+            {t(
+              config.titleKey,
+              resourceType === "collections"
+                ? "Edit Collection"
+                : resourceType === "developers"
+                  ? "Edit Developer"
+                  : "Edit Publisher"
+            )}
+          </h2>
+          <button type="button" className={`${mc}-close`} onClick={onClose} aria-label="Close">
+            {isCompanyResource ? (
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            ) : (
+              "×"
+            )}
+          </button>
         </div>
 
-        <div className="edit-collection-modal-footer">
-          <button className="edit-collection-modal-cancel" onClick={onClose} disabled={saving}>
-            {t("common.cancel", "Cancel")}
-          </button>
-          <button className="edit-collection-modal-save" onClick={handleSave} disabled={saving || !hasChanges()}>
-            {saving ? t("common.saving", "Saving...") : t("common.save", "Save")}
-          </button>
-        </div>
+        {isCompanyResource ? (
+          <form className="edit-game-modal-form" onSubmit={(e) => e.preventDefault()}>
+            {modalInner}
+          </form>
+        ) : (
+          modalInner
+        )}
       </div>
     </div>,
+      useSearchActionStack,
+      resolveSearchActionStackZIndex(),
+    ),
     document.body
   );
 }

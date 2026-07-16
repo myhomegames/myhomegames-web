@@ -4,6 +4,7 @@ import Header from "../components/layout/Header";
 import LibrariesBar from "../components/layout/LibrariesBar";
 import { useSkin } from "../contexts/SkinContext";
 import { TopDockSlotProvider } from "../contexts/TopDockSlotContext";
+import { LibrarySidebarLayoutProvider } from "../contexts/LibrarySidebarLayoutContext";
 import type { CollectionItem, GameItem, GameLibrarySection, ViewMode } from "../types";
 import { useLibrariesShellState } from "./useLibrariesShellState";
 
@@ -104,6 +105,11 @@ export default function MainAppLayout({
     [pathname]
   );
 
+  const isGameDetailRoute = useMemo(
+    () => /^\/game\/[^/]+/.test(pathname) || /^\/catalog-game\/[^/]+/.test(pathname),
+    [pathname]
+  );
+
   const outletContext = useMemo<MainAppOutletContext>(
     () => ({
       onGameClick,
@@ -135,7 +141,8 @@ export default function MainAppLayout({
   );
 
   return (
-    <TopDockSlotProvider>
+    <LibrarySidebarLayoutProvider>
+      <TopDockSlotProvider>
       <Header
         onPlay={onPlay}
         allGames={allGames}
@@ -146,6 +153,7 @@ export default function MainAppLayout({
         onHomeClick={() => navigate("/")}
         onSettingsClick={onSettingsClick}
         onAddGameClick={onAddGameClick}
+        onReloadMetadata={onReloadMetadata}
       />
       <LibrariesBar
         registerTopDockSlot
@@ -157,10 +165,11 @@ export default function MainAppLayout({
         coverSize={coverSize}
         onCoverSizeChange={handleCoverSizeChange}
         viewMode={viewMode}
-        onViewModeChange={handleViewModeChange}
+        onViewModeChange={isGameDetailRoute ? undefined : handleViewModeChange}
         onReloadMetadata={onReloadMetadata}
         onAddGameClick={onAddGameClick}
         showMainGamesToggle={
+          !isGameDetailRoute &&
           (activeLibrary?.key === "library" || isCollectionLikeDetailRoute) &&
           (viewMode === "grid" || viewMode === "detail")
         }
@@ -195,5 +204,6 @@ export default function MainAppLayout({
       />
       <Outlet context={outletContext} />
     </TopDockSlotProvider>
+    </LibrarySidebarLayoutProvider>
   );
 }

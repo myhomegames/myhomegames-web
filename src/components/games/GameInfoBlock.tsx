@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import type { IGDBGame, GameItem } from "../../types";
+import type { CatalogGame, GameItem } from "../../types";
 import { getTagId } from "../../utils/tagId";
 import { useDevelopers } from "../../contexts/DevelopersContext";
 import { usePublishers } from "../../contexts/PublishersContext";
@@ -9,7 +9,7 @@ import { useTagLists } from "../../contexts/TagListsContext";
 import WebsitesList from "./WebsitesList";
 import InlineTagList from "../common/InlineTagList";
 type GameInfoBlockProps = {
-  game: IGDBGame | GameItem;
+  game: CatalogGame | GameItem;
 };
 
 /** Normalize API field (number[] or legacy object[]) to string[] of ids. */
@@ -210,7 +210,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
       {game.themes && game.themes.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
-            {t("igdbInfo.themes", "Themes")}
+            {t("catalogInfo.themes", "Themes")}
           </div>
           {renderTagListByIds(
             themeLinkInfo.linkIds,
@@ -233,7 +233,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
       {game.platforms && game.platforms.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
-            {t("igdbInfo.platforms", "Platforms")}
+            {t("catalogInfo.platforms", "Platforms")}
           </div>
           {renderTagListByIds(
             platformLinkInfo.linkIds,
@@ -257,7 +257,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
       {game.gameModes && game.gameModes.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
-            {t("igdbInfo.gameModes", "Game Modes")}
+            {t("catalogInfo.gameModes", "Game Modes")}
           </div>
           {renderTagListByIds(
             gameModeLinkInfo.linkIds,
@@ -280,7 +280,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
       {game.playerPerspectives && game.playerPerspectives.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
-            {t("igdbInfo.playerPerspectives", "Player Perspectives")}
+            {t("catalogInfo.playerPerspectives", "Player Perspectives")}
           </div>
           {renderTagListByIds(
             playerPerspectiveLinkInfo.linkIds,
@@ -303,7 +303,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
       {game.websites && game.websites.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
-            {t("igdbInfo.websites", "Websites")}
+            {t("catalogInfo.websites", "Websites")}
           </div>
           <WebsitesList websites={game.websites} />
         </div>
@@ -313,7 +313,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
       {game.developers && game.developers.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
-            {t("igdbInfo.developers", "Developers")}
+            {t("catalogInfo.developers", "Developers")}
           </div>
           <InlineTagList
             items={toIdStrings(game.developers)}
@@ -333,7 +333,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
       {game.publishers && game.publishers.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
-            {t("igdbInfo.publishers", "Publishers")}
+            {t("catalogInfo.publishers", "Publishers")}
           </div>
           <InlineTagList
             items={toIdStrings(game.publishers)}
@@ -353,7 +353,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
       {franchiseIds.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
-            {t("igdbInfo.franchise", "Franchise")}
+            {t("catalogInfo.franchise", "Franchise")}
           </div>
           {renderTagListByIds(
             franchiseIds,
@@ -369,7 +369,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
       {seriesIds.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
-            {t("igdbInfo.series", "Series")}
+            {t("catalogInfo.series", "Series")}
           </div>
           {renderTagListByIds(
             seriesIds,
@@ -385,7 +385,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
       {game.gameEngines && game.gameEngines.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
-            {t("igdbInfo.gameEngines", "Game Engines")}
+            {t("catalogInfo.gameEngines", "Game Engines")}
           </div>
           {renderTagListByIds(
             gameEngineLinkInfo.linkIds,
@@ -408,7 +408,7 @@ export default function GameInfoBlock({ game }: GameInfoBlockProps) {
       {game.alternativeNames && game.alternativeNames.length > 0 && (
         <div className="game-info-field">
           <div className="text-white game-info-label">
-            {t("igdbInfo.alternativeNames", "Alternative Names")}
+            {t("catalogInfo.alternativeNames", "Alternative Names")}
           </div>
           <InlineTagList
             items={game.alternativeNames}

@@ -3,8 +3,8 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import Tooltip from "../common/Tooltip";
 import ProfilePanelContent from "../profile/ProfilePanelContent";
-import { useAuth } from "../../contexts/AuthContext";
 import { useSkin } from "../../contexts/SkinContext";
+import { bindSheetBackdropClose } from "../../utils/sheetPopupBackdrop";
 import { useTunnel } from "../../contexts/TunnelContext";
 import { useActiveProfile } from "../../hooks/useActiveProfile";
 
@@ -12,11 +12,11 @@ type ProfileDropdownPanel = "menu" | "profile";
 
 type ProfileDropdownProps = {
   onViewProfile?: () => void;
-  onChangeUser?: () => void;
-  onLogout?: () => void;
-  /** PS3 libraries strip: same look as other `mhg-library-button` entries, opens sheet on click. */
+  /** Libraries strip: same look as other `mhg-library-button` entries, opens sheet on click. */
   triggerVariant?: "header" | "library";
   libraryActive?: boolean;
+  /** Compact header icon row on phone-width viewports. */
+  compactHeader?: boolean;
 };
 
 function ProfileAvatarPlaceholder({ size = 80 }: { size?: number }) {
@@ -42,21 +42,14 @@ function ProfileAvatarPlaceholder({ size = 80 }: { size?: number }) {
 
 export default function ProfileDropdown({
   onViewProfile,
-  onChangeUser,
-  onLogout,
   triggerVariant = "header",
   libraryActive = false,
+  compactHeader = false,
 }: ProfileDropdownProps) {
   const { t } = useTranslation();
-  const { login, logout } = useAuth();
   const { activeSkinWeb } = useSkin();
   const { disconnect } = useTunnel();
-  const {
-    displayName,
-    displayImage,
-    hasTwitchProfile,
-    hasCloudflareProfile,
-  } = useActiveProfile();
+  const { displayName, displayImage, hasCloudflareProfile } = useActiveProfile();
   const navigate = useNavigate();
 
   const keepProfileInDropdown = activeSkinWeb.libraryBarHeaderActions;
@@ -86,14 +79,8 @@ export default function ProfileDropdown({
       setIsOpen(false);
     }
 
-    const timeoutId = setTimeout(() => {
-      document.addEventListener("mousedown", handleClickOutside, true);
-    }, 100);
-
-    return () => {
-      clearTimeout(timeoutId);
-      document.removeEventListener("mousedown", handleClickOutside, true);
-    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
   const handleToggle = (e: React.MouseEvent) => {
@@ -115,26 +102,6 @@ export default function ProfileDropdown({
 
     setIsOpen(false);
     navigate("/profile");
-  };
-
-  const handleChangeUser = () => {
-    setIsOpen(false);
-    if (onChangeUser) {
-      onChangeUser();
-    } else {
-      logout();
-      setTimeout(() => {
-        login(true);
-      }, 100);
-    }
-  };
-
-  const handleLogout = () => {
-    setIsOpen(false);
-    logout();
-    if (onLogout) {
-      onLogout();
-    }
   };
 
   const handleDisconnectTunnel = async () => {
@@ -162,12 +129,17 @@ export default function ProfileDropdown({
       onClick={handleToggle}
       aria-label={t("header.profile")}
       aria-expanded={isOpen}
+      style={
+        compactHeader && !libraryTrigger
+          ? { width: 32, height: 32, gap: 0, padding: 0 }
+          : undefined
+      }
     >
       {!libraryTrigger && (
         <>
           <svg
-            width="20"
-            height="20"
+            width={compactHeader ? 17 : 20}
+            height={compactHeader ? 17 : 20}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -187,6 +159,7 @@ export default function ProfileDropdown({
             stroke="currentColor"
             viewBox="0 0 24 24"
             strokeWidth={2}
+            style={compactHeader ? { display: "none" } : undefined}
           >
             <path
               strokeLinecap="round"
@@ -219,6 +192,7 @@ export default function ProfileDropdown({
           ref={popupRef}
           className="profile-dropdown-popup"
           data-mhg-profile-dropdown-panel={panel}
+          {...bindSheetBackdropClose(activeSkinWeb.disableTitleTooltips, () => setIsOpen(false))}
         >
           {panel === "menu" ? (
             <>
@@ -237,58 +211,21 @@ export default function ProfileDropdown({
               <button type="button" className="profile-dropdown-item" onClick={handleViewProfile}>
                 {t("profile.viewProfile", "View Profile")}
               </button>
-              {hasTwitchProfile && (
-                <>
-                  <div className="profile-dropdown-separator" />
-                  <button type="button" className="profile-dropdown-item" onClick={handleChangeUser}>
-                    {t("profile.changeUser", "Change User")}
-                  </button>
-                  <button
-                    type="button"
-                    className="profile-dropdown-item profile-dropdown-item-danger"
-                    onClick={handleLogout}
-                  >
-                    {t("profile.logout", "Logout")}
-                  </button>
-                </>
-              )}
               {hasCloudflareProfile && (
                 <>
                   <div className="profile-dropdown-separator" />
                   <button
                     type="button"
                     className="profile-dropdown-item profile-dropdown-item-danger"
-                    onClick={() => void handleDisconnectTunnel()}
+                    onClick={handleDisconnectTunnel}
                   >
-                    {t("profile.disconnectTunnel", "Disconnect tunnel")}
+                    {t("settings.cloudflare.disconnect", "Disconnect tunnel")}
                   </button>
                 </>
               )}
             </>
           ) : (
-            <>
-              <div className="filter-popup-header profile-dropdown-panel-header">
-                <button
-                  type="button"
-                  className="filter-popup-back"
-                  onClick={() => setPanel("menu")}
-                  aria-label={t("common.back", "Back")}
-                >
-                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 19l-7-7 7-7"
-                    />
-                  </svg>
-                </button>
-                <span className="filter-popup-header-title">{t("profile.title", "Profile")}</span>
-              </div>
-              <div className="profile-dropdown-panel-scroll">
-                <ProfilePanelContent variant="dropdown" />
-              </div>
-            </>
+            <ProfilePanelContent variant="dropdown" />
           )}
         </div>
       )}

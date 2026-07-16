@@ -1,7 +1,6 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
-import { API_BASE } from "../../config";
 import Cover from "./Cover";
 import EditGameModal from "./EditGameModal";
 import { useEditGame } from "../common/actions";
@@ -9,7 +8,11 @@ import VirtualizedGamesList from "./VirtualizedGamesList";
 import FixedFocalGamesList from "./FixedFocalGamesList";
 import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
-import { parseCollectionLikePseudoGameId } from "../../utils/collectionLikePseudoGame";
+import {
+  parseCollectionLikePseudoGameId,
+  isCollectionLikePseudoActiveDetail,
+  type ActiveCollectionLikeDetail,
+} from "../../utils/collectionLikePseudoGame";
 import { gameHasExecutableForPlatform, getExecutablesForPlatform } from "../../utils/gameExecutables";
 import { portraitCoverHeight } from "../../utils/coverPortrait";
 const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are more than this many items
@@ -51,6 +54,10 @@ type GamesListProps = {
   onPlayFirstInCollectionLike?: (resourceType: string, cid: string) => void | Promise<void>;
   onCollectionLikePseudoAddToParent?: (source: CollectionItem, parentId?: string) => void | Promise<void>;
   onCollectionLikePseudoUpdated?: (updated: CollectionInfo) => void;
+  /** Strip rows matching this entity are not navigable (already the open detail). */
+  activeCollectionLikeDetail?: ActiveCollectionLikeDetail | null;
+  /** Strip rows for this game id are not navigable (game detail page). */
+  activeGameId?: string | null;
 };
 
 
@@ -89,6 +96,8 @@ type GameListItemProps = {
   onPlayFirstInCollectionLike?: (resourceType: string, cid: string) => void | Promise<void>;
   onCollectionLikePseudoAddToParent?: (source: CollectionItem, parentId?: string) => void | Promise<void>;
   onCollectionLikePseudoUpdated?: (updated: CollectionInfo) => void;
+  activeCollectionLikeDetail?: ActiveCollectionLikeDetail | null;
+  activeGameId?: string | null;
 };
 
 export function GameListItem({
@@ -126,9 +135,12 @@ export function GameListItem({
   onPlayFirstInCollectionLike,
   onCollectionLikePseudoAddToParent,
   onCollectionLikePseudoUpdated,
+  activeCollectionLikeDetail,
+  activeGameId,
 }: GameListItemProps) {
   const { t } = useTranslation();
-  const isIgdbOnly = (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly;
+  const isCatalogOnly = (game as GameItem & { isCatalogOnly?: boolean }).isCatalogOnly;
+  // Cover URLs are resolved with stable session cache inside Cover.
   const coverHeight = portraitCoverHeight(coverSize);
   const gameForCover = useMemo(() => {
     if (!platformIdForPlay) return game;
@@ -136,19 +148,6 @@ export function GameListItem({
     if (!f) return { ...game, executables: [], executableFileNames: [] };
     return { ...game, executables: f.executables, executableFileNames: f.executableFileNames };
   }, [game, platformIdForPlay]);
-
-  // Track previous cover value to detect changes
-  const prevCoverRef = useRef<string | undefined>(game.cover);
-  const coverChanged = prevCoverRef.current !== game.cover;
-  if (coverChanged) {
-    prevCoverRef.current = game.cover;
-  }
-  
-  // Memoize cover URL - only add timestamp when cover actually changes
-  const coverUrl = useMemo(() => {
-    const timestamp = coverChanged ? Date.now() : coverCacheBustTimestamp;
-    return game.cover ? buildCoverUrl(API_BASE, game.cover, !!timestamp, timestamp) : "";
-  }, [game.cover, coverChanged, coverCacheBustTimestamp, buildCoverUrl]);
 
   const handleDragStart = (e: React.DragEvent) => {
     if (!draggable) return;
@@ -175,6 +174,13 @@ export function GameListItem({
   const isPseudoCollectionLikeCard = Boolean(
     pseudo && collectionLikeResourceType && pseudo.resourceType === collectionLikeResourceType
   );
+
+  const suppressDetailNavigation =
+    isCollectionLikePseudoActiveDetail(game.id, activeCollectionLikeDetail) ||
+    (!isPseudoCollectionLikeCard &&
+      !isCatalogOnly &&
+      activeGameId != null &&
+      String(game.id) === String(activeGameId));
 
   const sourceCollectionLikeForPseudo: CollectionItem | undefined =
     isPseudoCollectionLikeCard && pseudo
@@ -239,7 +245,7 @@ export function GameListItem({
           itemRefs.current.set(game.id, el);
         }
       }}
-      className={`group cursor-pointer games-list-item games-list-item--cover-sized ${draggable ? "games-list-item-draggable" : ""} ${isDragOver ? "games-list-item-drag-over" : ""}`}
+      className={`group games-list-item games-list-item--cover-sized ${suppressDetailNavigation ? "games-list-item--detail-current" : "cursor-pointer"} ${draggable ? "games-list-item-draggable" : ""} ${isDragOver ? "games-list-item-drag-over" : ""}`}
       draggable={draggable}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
@@ -260,7 +266,7 @@ export function GameListItem({
       <Cover
         key={`${game.id}-${game.cover}`}
         title={game.title}
-        coverUrl={coverUrl}
+        cover={game.cover}
         width={coverSize}
         height={coverHeight}
         onPlay={
@@ -268,7 +274,7 @@ export function GameListItem({
             ? () => {
                 void onPlayFirstInCollectionLike(pseudo.resourceType, pseudo.childId);
               }
-            : !isIgdbOnly && onPlay
+            : !isCatalogOnly && onPlay
               ? (executableName?: string) => {
                   if (executableName !== undefined) {
                     (onPlay as (g: typeof game, ex?: string) => void)(game, executableName);
@@ -282,17 +288,22 @@ export function GameListItem({
                 }
               : undefined
         }
-        onClick={() => onGameClick(game)}
+        onClick={suppressDetailNavigation ? undefined : () => onGameClick(game)}
+        detailNavigationDisabled={suppressDetailNavigation}
         onEdit={
-          isPseudoCollectionLikeCard || !isIgdbOnly ? handleEditClickForCover : undefined
+          suppressDetailNavigation
+            ? undefined
+            : isPseudoCollectionLikeCard || !isCatalogOnly
+              ? handleEditClickForCover
+              : undefined
         }
         gameId={coverGameId}
         gameTitle={game.title}
-        game={isPseudoCollectionLikeCard || isIgdbOnly ? undefined : gameForCover}
-        fullGameForActions={isPseudoCollectionLikeCard || isIgdbOnly ? undefined : game}
+        game={isPseudoCollectionLikeCard || isCatalogOnly ? undefined : gameForCover}
+        fullGameForActions={isPseudoCollectionLikeCard || isCatalogOnly ? undefined : game}
         platformIdForPlay={platformIdForPlay}
         onGameDelete={
-          !isPseudoCollectionLikeCard && !isIgdbOnly && onGameDelete
+          !isPseudoCollectionLikeCard && !isCatalogOnly && onGameDelete
             ? (gameId: string) => {
                 const deletedGame = game.id === gameId ? game : null;
                 if (deletedGame) {
@@ -302,7 +313,7 @@ export function GameListItem({
             : undefined
         }
         onGameUpdate={
-          !isPseudoCollectionLikeCard && !isIgdbOnly && onGameUpdate
+          !isPseudoCollectionLikeCard && !isCatalogOnly && onGameUpdate
             ? (updatedGame) => {
                 if (updatedGame.id === game.id) {
                   onGameUpdate(updatedGame);
@@ -313,19 +324,19 @@ export function GameListItem({
         collectionId={coverCollectionId}
         collectionTitle={isPseudoCollectionLikeCard ? game.title : undefined}
         onRemoveFromCollection={
-          !isPseudoCollectionLikeCard && !isIgdbOnly && onRemoveFromCollection
+          !isPseudoCollectionLikeCard && !isCatalogOnly && onRemoveFromCollection
             ? () => onRemoveFromCollection(String(game.id))
             : undefined
         }
         developerId={coverDeveloperId}
         publisherId={coverPublisherId}
         onRemoveFromDeveloper={
-          !isPseudoCollectionLikeCard && !isIgdbOnly && onRemoveFromDeveloper
+          !isPseudoCollectionLikeCard && !isCatalogOnly && onRemoveFromDeveloper
             ? () => onRemoveFromDeveloper(String(game.id))
             : undefined
         }
         onRemoveFromPublisher={
-          !isPseudoCollectionLikeCard && !isIgdbOnly && onRemoveFromPublisher
+          !isPseudoCollectionLikeCard && !isCatalogOnly && onRemoveFromPublisher
             ? () => onRemoveFromPublisher(String(game.id))
             : undefined
         }
@@ -339,15 +350,17 @@ export function GameListItem({
         subtitle={game.subtitle ?? game.year}
         detail={true}
         play={
-          isPseudoCollectionLikeCard
-            ? !!(onPlay && onPlayFirstInCollectionLike)
-            : platformIdForPlay
-              ? gameHasExecutableForPlatform(game, platformIdForPlay)
-              : !!(game.executables && game.executables.length > 0)
+          suppressDetailNavigation
+            ? false
+            : isPseudoCollectionLikeCard
+              ? !!(onPlay && onPlayFirstInCollectionLike)
+              : platformIdForPlay
+                ? gameHasExecutableForPlatform(game, platformIdForPlay)
+                : !!(game.executables && game.executables.length > 0)
         }
         showBorder={viewMode !== "detail"}
         allCollections={allCollections}
-        overlayContent={isIgdbOnly ? <span className="game-detail-similar-cover-badge">{t("addGame.new", "New")}</span> : undefined}
+        overlayContent={isCatalogOnly ? <span className="game-detail-similar-cover-badge">{t("addGame.new", "New")}</span> : undefined}
       />
     </div>
   );
@@ -388,6 +401,8 @@ export default function GamesList({
   onPlayFirstInCollectionLike,
   onCollectionLikePseudoAddToParent,
   onCollectionLikePseudoUpdated,
+  activeCollectionLikeDetail,
+  activeGameId,
 }: GamesListProps) {
   const { t } = useTranslation();
   const editGame = useEditGame();
@@ -417,6 +432,21 @@ export default function GamesList({
     }
     editGame.closeEditModal();
   };
+
+  const handleGameClick = useCallback(
+    (game: GameItem) => {
+      if (isCollectionLikePseudoActiveDetail(game.id, activeCollectionLikeDetail)) return;
+      if (
+        activeGameId != null &&
+        !parseCollectionLikePseudoGameId(game.id) &&
+        String(game.id) === String(activeGameId)
+      ) {
+        return;
+      }
+      onGameClick(game);
+    },
+    [onGameClick, activeCollectionLikeDetail, activeGameId],
+  );
 
   // Use virtual scrolling for large lists
   const useVirtualization =
@@ -454,7 +484,7 @@ export default function GamesList({
             coverCacheBustTimestamp={coverCacheBustTimestamp}
             containerRef={scrollContainerRef || containerRef}
             itemRefs={itemRefs}
-            onGameClick={onGameClick}
+            onGameClick={handleGameClick}
             onPlay={onPlay}
             onEditClick={editGame.openEditModal}
             onGameDelete={onGameDelete}
@@ -476,6 +506,8 @@ export default function GamesList({
             onPlayFirstInCollectionLike={onPlayFirstInCollectionLike}
             onCollectionLikePseudoAddToParent={onCollectionLikePseudoAddToParent}
             onCollectionLikePseudoUpdated={onCollectionLikePseudoUpdated}
+            activeCollectionLikeDetail={activeCollectionLikeDetail}
+            activeGameId={activeGameId}
             fullColumnSlot={forceSingleColumnVirtualized}
             onSelectionChange={onFocalSelectionChange}
           />
@@ -487,7 +519,7 @@ export default function GamesList({
             coverCacheBustTimestamp={coverCacheBustTimestamp}
             containerRef={scrollContainerRef || containerRef}
             itemRefs={itemRefs}
-            onGameClick={onGameClick}
+            onGameClick={handleGameClick}
             onPlay={onPlay}
             onEditClick={editGame.openEditModal}
             onGameDelete={onGameDelete}
@@ -509,13 +541,15 @@ export default function GamesList({
             onPlayFirstInCollectionLike={onPlayFirstInCollectionLike}
             onCollectionLikePseudoAddToParent={onCollectionLikePseudoAddToParent}
             onCollectionLikePseudoUpdated={onCollectionLikePseudoUpdated}
+            activeCollectionLikeDetail={activeCollectionLikeDetail}
+            activeGameId={activeGameId}
           />
         ) : (
           games.map((game, index) => (
             <GameListItem
               key={game.id}
               game={game}
-              onGameClick={onGameClick}
+              onGameClick={handleGameClick}
               onPlay={onPlay}
               onEditClick={editGame.openEditModal}
               onGameDelete={onGameDelete}
@@ -548,6 +582,8 @@ export default function GamesList({
               onPlayFirstInCollectionLike={onPlayFirstInCollectionLike}
               onCollectionLikePseudoAddToParent={onCollectionLikePseudoAddToParent}
               onCollectionLikePseudoUpdated={onCollectionLikePseudoUpdated}
+              activeCollectionLikeDetail={activeCollectionLikeDetail}
+              activeGameId={activeGameId}
             />
           ))
         )}

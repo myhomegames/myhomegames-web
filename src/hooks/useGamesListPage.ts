@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef, useMemo, useLayoutEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useScrollRestoration } from "./useScrollRestoration";
+import { usePageRevealReady } from "./usePageRevealReady";
 import { useTagLists } from "../contexts/TagListsContext";
 import { useCollections } from "../contexts/CollectionsContext";
 import { useDevelopers } from "../contexts/DevelopersContext";
@@ -8,8 +9,8 @@ import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import type { ViewMode, GameItem, SortField } from "../types";
 import type { FilterField, FilterValue } from "../components/filters/types";
 import { compareTitles } from "../utils/stringUtils";
-import { isMainGameType, toGameTypeId } from "../utils/igdbGameType";
-import { API_BASE, getApiToken } from "../config";
+import { isMainGameType, toGameTypeId } from "../utils/gameType";
+import { API_BASE } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 import { useSettings } from "../contexts/SettingsContext";
 import { useSkin } from "../contexts/SkinContext";
@@ -253,7 +254,10 @@ export function useGamesListPage(
   const { games: libraryGames, isLoading: libraryGamesLoading, updateGame: contextUpdateGame, removeGame: contextRemoveGame } = useLibraryGames();
   const games = libraryGames;
 
-  const [isReady, setIsReady] = useState(false);
+  const isReady = usePageRevealReady(
+    libraryGamesLoading && libraryGames.length === 0,
+    libraryGames.length > 0,
+  );
   const [filterField, setFilterField] = useState<FilterField>(() => {
     if (localStoragePrefix) {
       const saved = localStorage.getItem(`${localStoragePrefix}FilterField`);
@@ -400,9 +404,9 @@ export function useGamesListPage(
     [tagLabels.categories]
   );
   const { collections, collectionGameIds: contextCollectionGameIds } = useCollections();
-  const { developers } = useDevelopers();
-  const { publishers } = usePublishers();
-  const { twitchLoginEnabled, settingsLoaded } = useSettings();
+  const { developers, developerGameIds: contextDeveloperGameIds } = useDevelopers();
+  const { publishers, publisherGameIds: contextPublisherGameIds } = usePublishers();
+  const { settingsLoaded } = useSettings();
 
   // Convert collections to availableCollections format
   const availableCollections = useMemo(() =>
@@ -415,7 +419,6 @@ export function useGamesListPage(
   useEffect(() => {
     let cancelled = false;
     if (!settingsLoaded) return;
-    if (twitchLoginEnabled && !getApiToken()) return;
     const toItems = (list: Array<{ id: number | string; title?: string; name?: string }>, _key: string) =>
       (list || []).map((x) => ({ id: String(x.id), title: String((x as any).title ?? (x as any).name ?? x.id) }));
     Promise.all([
@@ -432,15 +435,21 @@ export function useGamesListPage(
       }
     });
     return () => { cancelled = true; };
-  }, [twitchLoginEnabled, settingsLoaded]);
+  }, [settingsLoaded]);
 
-  const availableDevelopers = useMemo(() =>
-    developers.map((d) => ({ id: String(d.id), title: d.title || "" })),
-    [developers]
+  const availableDevelopers = useMemo(
+    () =>
+      developers
+        .filter((d) => (d.gameCount ?? 0) > 0)
+        .map((d) => ({ id: String(d.id), title: d.title || "" })),
+    [developers],
   );
-  const availablePublishers = useMemo(() =>
-    publishers.map((p) => ({ id: String(p.id), title: p.title || "" })),
-    [publishers]
+  const availablePublishers = useMemo(
+    () =>
+      publishers
+        .filter((p) => (p.gameCount ?? 0) > 0)
+        .map((p) => ({ id: String(p.id), title: p.title || "" })),
+    [publishers],
   );
   
   const [availableGenres, setAvailableGenres] = useState<Array<{ id: string; title: string }>>([]);
@@ -793,10 +802,24 @@ export function useGamesListPage(
             return hasTag(game.gameModes || null, selectedGameModes);
           case "publishers":
             if (selectedPublishers === null) return true;
-            return hasTag(game.publishers ?? null, selectedPublishers);
+            {
+              const gameIds = contextPublisherGameIds.get(String(selectedPublishers));
+              if (gameIds && gameIds.length > 0) {
+                const gameIdStr = String(game.id);
+                return gameIds.some((id) => String(id) === gameIdStr);
+              }
+              return hasTag(game.publishers ?? null, selectedPublishers);
+            }
           case "developers":
             if (selectedDevelopers === null) return true;
-            return hasTag(game.developers ?? null, selectedDevelopers);
+            {
+              const gameIds = contextDeveloperGameIds.get(String(selectedDevelopers));
+              if (gameIds && gameIds.length > 0) {
+                const gameIdStr = String(game.id);
+                return gameIds.some((id) => String(id) === gameIdStr);
+              }
+              return hasTag(game.developers ?? null, selectedDevelopers);
+            }
           case "playerPerspectives":
             if (selectedPlayerPerspectives === null) return true;
             return hasTag(game.playerPerspectives || null, selectedPlayerPerspectives);
@@ -971,26 +994,13 @@ export function useGamesListPage(
     selectedAgeRating,
     selectedGameType,
     contextCollectionGameIds,
+    contextDeveloperGameIds,
+    contextPublisherGameIds,
     sortField,
     sortAscending,
     showMainGamesOnly,
     titleFilterQuery,
   ]);
-
-  // Hide content until fully rendered
-  useLayoutEffect(() => {
-    // Use libraryGamesLoading for more accurate state - don't wait for global isLoading
-    // Don't wait for games.length > 0 - isReady should be true even if there are no games
-    if (!libraryGamesLoading) {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setIsReady(true);
-        });
-      });
-    } else if (libraryGamesLoading) {
-      setIsReady(false);
-    }
-  }, [libraryGamesLoading, filteredAndSortedGames.length]);
 
   // Set genre filter when categoryId changes (for CategoryPage)
   useEffect(() => {

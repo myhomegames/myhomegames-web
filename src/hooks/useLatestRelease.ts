@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { GITHUB_REPO, API_BASE } from "../config";
-import { buildApiUrl } from "../utils/api";
+import { GITHUB_REPO } from "../config";
+import { useServerVersion } from "./useServerVersion";
 
 const CACHE_KEY = "mhg_latest_release";
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -109,29 +109,17 @@ export function useLatestRelease(): LatestReleaseState {
     assets: GitHubAsset[];
     body?: string | null;
   } | null>(null);
-  const [serverVersion, setServerVersion] = useState<string | null>(null);
+  const {
+    version: serverVersion,
+    loading: serverVersionLoading,
+    refetch: refetchServerVersion,
+  } = useServerVersion();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchServerVersion = useCallback(async () => {
-    try {
-      const url = buildApiUrl(API_BASE, "/version");
-      const res = await fetch(url, { headers: { Accept: "application/json" } });
-      if (res.ok) {
-        const json = await res.json();
-        if (json && typeof json.version === "string") {
-          setServerVersion(json.version);
-          return json.version;
-        }
-      }
-    } catch (_) {}
-    setServerVersion(null);
-    return null;
-  }, []);
-
   const fetchRelease = useCallback(async () => {
     setLoading(true);
-    await fetchServerVersion();
+    await refetchServerVersion();
 
     if (!GITHUB_REPO || GITHUB_REPO.trim() === "") {
       setLoading(false);
@@ -185,7 +173,7 @@ export function useLatestRelease(): LatestReleaseState {
     } finally {
       setLoading(false);
     }
-  }, [fetchServerVersion]);
+  }, [refetchServerVersion]);
 
   useEffect(() => {
     fetchRelease();
@@ -208,16 +196,16 @@ export function useLatestRelease(): LatestReleaseState {
   useEffect(() => {
     if (!updateAvailable) return;
     const id = window.setInterval(() => {
-      void fetchServerVersion();
+      void refetchServerVersion();
     }, 30_000);
     return () => window.clearInterval(id);
-  }, [updateAvailable, fetchServerVersion]);
+  }, [updateAvailable, refetchServerVersion]);
 
   useEffect(() => {
     if (!updateAvailable) return;
     const refresh = () => {
       if (document.visibilityState !== "visible") return;
-      void fetchServerVersion();
+      void refetchServerVersion();
     };
     document.addEventListener("visibilitychange", refresh);
     window.addEventListener("focus", refresh);
@@ -225,7 +213,7 @@ export function useLatestRelease(): LatestReleaseState {
       document.removeEventListener("visibilitychange", refresh);
       window.removeEventListener("focus", refresh);
     };
-  }, [updateAvailable, fetchServerVersion]);
+  }, [updateAvailable, refetchServerVersion]);
 
   const os = detectOs();
   const primary = data?.assets ? findAssetForOs(data.assets, os) : null;
@@ -239,7 +227,7 @@ export function useLatestRelease(): LatestReleaseState {
     downloadUrl: primary?.url ?? null,
     downloadName: primary?.name ?? null,
     allDownloads,
-    loading,
+    loading: loading || serverVersionLoading,
     error,
     refetch: fetchRelease,
   };

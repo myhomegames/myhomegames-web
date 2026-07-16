@@ -1,12 +1,12 @@
 import i18n from "../i18n/config";
 
 /** All documented IGDB `game_type` ids (0–14). */
-export const IGDB_GAME_TYPE_IDS: readonly number[] = [
+export const GAME_TYPE_IDS: readonly number[] = [
   0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
 ];
 
 /** English defaults when a locale key is missing (unknown id or incomplete resources). */
-const IGDB_GAME_TYPE_FALLBACK_EN: Record<number, string> = {
+const GAME_TYPE_FALLBACK_EN: Record<number, string> = {
   0: "Main Game",
   1: "DLC",
   2: "Expansion",
@@ -24,9 +24,9 @@ const IGDB_GAME_TYPE_FALLBACK_EN: Record<number, string> = {
   14: "Update",
 };
 
-export function getIgdbGameTypeLabel(id: number): string {
-  const fallback = IGDB_GAME_TYPE_FALLBACK_EN[id] ?? `Game type ${id}`;
-  return String(i18n.t(`igdbGameTypes.${id}`, { defaultValue: fallback }));
+export function getGameTypeLabel(id: number): string {
+  const fallback = GAME_TYPE_FALLBACK_EN[id] ?? `Game type ${id}`;
+  return String(i18n.t(`gameTypes.${id}`, { defaultValue: fallback }));
 }
 
 /** API sends numeric id only; accepts legacy { id } for older cached payloads. */
@@ -46,7 +46,7 @@ export function displayGameType(type: number | null | undefined): string {
   if (type == null || typeof type !== "number" || Number.isNaN(type)) return "";
   // Main Game is the implicit default, so we never render it as an explicit badge/label.
   if (type === 0) return "";
-  return getIgdbGameTypeLabel(type);
+  return getGameTypeLabel(type);
 }
 
 /**

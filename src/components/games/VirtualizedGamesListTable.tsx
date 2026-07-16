@@ -26,7 +26,7 @@ type VirtualizedGamesListTableProps = {
   containerRef: React.RefObject<HTMLDivElement | null>;
   itemRefs?: React.RefObject<Map<string, HTMLElement>>;
   onGameClick: (game: GameItem) => void;
-  onIgdbGameClick?: (igdbId: number) => void;
+  onCatalogGameClick?: (gameId: number) => void;
   onPlay?: (game: GameItem) => void;
   onGameUpdate?: (updatedGame: GameItem) => void;
   onGameDelete?: (deletedGame: GameItem) => void;
@@ -57,7 +57,7 @@ export default function VirtualizedGamesListTable({
   containerRef,
   itemRefs,
   onGameClick,
-  onIgdbGameClick,
+  onCatalogGameClick,
   onPlay,
   onGameUpdate,
   onGameDelete,
@@ -191,7 +191,7 @@ export default function VirtualizedGamesListTable({
           index={index}
           itemRefs={itemRefs}
           onGameClick={onGameClick}
-          onIgdbGameClick={onIgdbGameClick}
+          onCatalogGameClick={onCatalogGameClick}
           onPlay={onPlay}
           onGameUpdate={onGameUpdate}
           onGameDelete={onGameDelete}

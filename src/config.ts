@@ -106,25 +106,22 @@ export function hasPublicApiBase(): boolean {
 /** GitHub repo "owner/repo" for checking releases (optional). e.g. MyHomeGames/MyHomeGames */
 export const GITHUB_REPO = (import.meta.env.VITE_GITHUB_REPO as string) || "";
 
+/** GitHub repo for official skin releases (optional). */
+export const SKINS_GITHUB_REPO =
+  (import.meta.env.VITE_SKINS_GITHUB_REPO as string | undefined)?.trim() ||
+  "myhomegames/myhomegames-skins";
+
 /** When true, localhost tunnel control may be unreachable (remote browser) — use Cloudflare Access + public API URL. */
 export function isCloudflareTunnelBuildEnabled(): boolean {
   return import.meta.env.VITE_CLOUDFLARE_TUNNEL_ENABLED === "true";
 }
 
-// Get API token - prefer dev token if available, otherwise use Twitch token
+/** Optional API token for development (`VITE_API_TOKEN`). */
 export function getApiToken(): string {
-  // If VITE_API_TOKEN is set, prefer it (for development mode)
   const devToken = import.meta.env.VITE_API_TOKEN;
   if (devToken && devToken !== "") {
     return devToken;
   }
-
-  // Fallback to Twitch token in localStorage
-  const twitchToken = localStorage.getItem("twitch_token");
-  if (twitchToken) {
-    return twitchToken;
-  }
-
   return "";
 }
 

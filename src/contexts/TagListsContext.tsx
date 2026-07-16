@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import type { ReactNode } from "react";
-import { API_BASE, getApiToken } from "../config";
+import { API_BASE } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 import { useAuth } from "./AuthContext";
 import { useSettings } from "./SettingsContext";
@@ -49,13 +49,12 @@ const ENDPOINTS: [keyof TagLabelsMap, string, string][] = [
 export function TagListsProvider({ children }: { children: ReactNode }) {
   const [tagLabels, setTagLabels] = useState<TagLabelsMap>(emptyMaps);
   const [tagLabelsReady, setTagLabelsReady] = useState(false);
-  const { isLoading: authLoading, token: authToken } = useAuth();
-  const { twitchLoginEnabled, settingsLoaded } = useSettings();
+  const { isLoading: authLoading } = useAuth();
+  const { settingsLoaded } = useSettings();
 
   const refreshTagLists = useCallback(async () => {
     if (authLoading) return;
     if (!settingsLoaded) return;
-    if (twitchLoginEnabled && !getApiToken() && !authToken) return;
 
     const headers = buildApiHeaders({ Accept: "application/json" });
     const results = await Promise.all(
@@ -81,7 +80,7 @@ export function TagListsProvider({ children }: { children: ReactNode }) {
       for (const { key, map } of results) next[key] = map;
       return next;
     });
-  }, [authLoading, authToken, twitchLoginEnabled, settingsLoaded]);
+  }, [authLoading, settingsLoaded]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -89,19 +88,23 @@ export function TagListsProvider({ children }: { children: ReactNode }) {
       setTagLabelsReady(true);
       return;
     }
-    if (twitchLoginEnabled && !getApiToken() && !authToken) {
-      setTagLabelsReady(true);
-      return;
-    }
     setTagLabelsReady(false);
     refreshTagLists().finally(() => setTagLabelsReady(true));
-  }, [authLoading, authToken, twitchLoginEnabled, settingsLoaded, refreshTagLists]);
+  }, [authLoading, settingsLoaded, refreshTagLists]);
 
   // When a new game is added (possibly with new tags), refresh tag lists so new tags show titles instead of ids
   useEffect(() => {
     const handleGameAdded = () => refreshTagLists();
+    const handleGameDeleted = () => refreshTagLists();
+    const handleRecommendedUpdated = () => refreshTagLists();
     window.addEventListener("gameAdded", handleGameAdded);
-    return () => window.removeEventListener("gameAdded", handleGameAdded);
+    window.addEventListener("gameDeleted", handleGameDeleted);
+    window.addEventListener("recommendedUpdated", handleRecommendedUpdated);
+    return () => {
+      window.removeEventListener("gameAdded", handleGameAdded);
+      window.removeEventListener("gameDeleted", handleGameDeleted);
+      window.removeEventListener("recommendedUpdated", handleRecommendedUpdated);
+    };
   }, [refreshTagLists]);
 
   // When a tag list is updated (e.g. from EditTagModal for any tag type), refresh so labels stay in sync

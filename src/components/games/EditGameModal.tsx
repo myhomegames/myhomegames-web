@@ -1,12 +1,18 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import {
+  isSidebarSearchDialogOpen,
+  resolveSearchActionStackZIndex,
+  wrapSidebarSearchMenuStack,
+} from "../../utils/sidebarSearchMenuStack";
 import { API_BASE, API_TOKEN, getApiToken } from "../../config";
 import { useLoading } from "../../contexts/LoadingContext";
 import { useTagLists } from "../../contexts/TagListsContext";
 import { EditGameInfoTab, EditGameMediaTab, EditGameTagsTab } from "./edit";
 import type { GameItem } from "../../types";
 import { buildApiUrl } from "../../utils/api";
+import { bumpCoverCache } from "../../utils/coverUrlCache";
 import {
   normalizeGameCoverImage,
   normalizeScreenshotImage,
@@ -41,6 +47,8 @@ type EditGameModalProps = {
   game: GameItem;
   onGameUpdate: (updatedGame: GameItem) => void;
   onGameDraftUpdate?: (updatedGame: GameItem) => void;
+  /** Stack above a portaled search-result ⋮ menu (header or sidebar search popup). */
+  stackAboveSearchDropdown?: boolean;
 };
 
 export default function EditGameModal({
@@ -49,6 +57,7 @@ export default function EditGameModal({
   game,
   onGameUpdate,
   onGameDraftUpdate: _onGameDraftUpdate,
+  stackAboveSearchDropdown = false,
 }: EditGameModalProps) {
   const { t } = useTranslation();
   const { setLoading } = useLoading();
@@ -654,6 +663,7 @@ export default function EditGameModal({
 
         // Add timestamp whenever we changed cover/background (upload or remove) so list UI updates even if API didn't return the new URL
         if ((coverFile || coverRemoved) && finalCover) {
+          bumpCoverCache(finalCover);
           const separator = finalCover.includes('?') ? '&' : '?';
           finalCover = `${finalCover}${separator}t=${Date.now()}`;
         }
@@ -811,6 +821,7 @@ export default function EditGameModal({
         
         // Add timestamp to force browser reload if images were updated
         if ((coverFile || coverRemoved) && finalCover) {
+          bumpCoverCache(finalCover);
           const separator = finalCover.includes('?') ? '&' : '?';
           finalCover = `${finalCover}${separator}t=${Date.now()}`;
         }
@@ -914,8 +925,12 @@ export default function EditGameModal({
 
   if (!isOpen) return null;
 
+  const useSearchActionStack =
+    isSidebarSearchDialogOpen() || stackAboveSearchDropdown;
+
   return createPortal(
-    <div className="edit-game-modal-overlay" onClick={onClose}>
+    wrapSidebarSearchMenuStack(
+      <div className="edit-game-modal-overlay" onClick={onClose}>
       <div
         className="edit-game-modal-container"
         onClick={(e) => e.stopPropagation()}
@@ -1127,6 +1142,9 @@ export default function EditGameModal({
         </form>
       </div>
     </div>,
+      useSearchActionStack,
+      resolveSearchActionStackZIndex(),
+    ),
     document.body
   );
 }

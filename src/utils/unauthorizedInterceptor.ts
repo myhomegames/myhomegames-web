@@ -44,15 +44,6 @@ function isSettingsRequest(url: string): boolean {
   }
 }
 
-function isLoginPage(): boolean {
-  try {
-    const p = window.location.pathname;
-    return p === "/login" || p.endsWith("/login");
-  } catch {
-    return false;
-  }
-}
-
 function isNetworkOrCertError(message: string): boolean {
   const m = message?.toLowerCase() ?? "";
   return (
@@ -107,7 +98,7 @@ window.fetch = async function (
   const isOurApi = isOurApiRequest(url);
   try {
     const response = await originalFetch.call(this, input, init);
-    if (response.status === 401 && isOurApi && !isSettingsRequest(url) && !isLoginPage()) {
+    if (response.status === 401 && isOurApi && !isSettingsRequest(url)) {
       unauthorizedHandler?.();
     }
     return response;

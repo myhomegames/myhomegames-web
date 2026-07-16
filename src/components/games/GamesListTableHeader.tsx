@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useLayoutEffect, useMemo } from "react";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
+import { useSkin } from "../../contexts/SkinContext";
+import { bindSheetBackdropClose } from "../../utils/sheetPopupBackdrop";
 import type { SortField } from "../../types";
 type ColumnVisibility = {
   title: boolean;
@@ -28,6 +30,7 @@ export default function GamesListTableHeader({
   onSort,
 }: GamesListTableHeaderProps) {
   const { t, i18n } = useTranslation();
+  const { activeSkinWeb } = useSkin();
   const [showColumnMenu, setShowColumnMenu] = useState(false);
   const [columnMenuStyle, setColumnMenuStyle] = useState<CSSProperties | undefined>();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -193,7 +196,13 @@ export default function GamesListTableHeader({
                   </svg>
                 </button>
                 {showColumnMenu && (
-                  <div className="games-table-column-menu-popup" style={columnMenuStyle}>
+                  <div
+                    className="games-table-column-menu-popup"
+                    style={columnMenuStyle}
+                    {...bindSheetBackdropClose(activeSkinWeb.disableTitleTooltips, () =>
+                      setShowColumnMenu(false),
+                    )}
+                  >
                     {columnDefinitions.map((col) => (
                       <button
                         key={col.key}

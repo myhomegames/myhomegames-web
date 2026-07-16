@@ -1,14 +1,14 @@
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import {
-  buildIgdbApiUrl,
-  clearLegacyIgdbCredentialStorage,
-  isIgdbApiEnabled,
-  resolveIgdbApiBase,
-} from "./igdbApi";
+  buildCatalogApiUrl,
+  clearLegacyCatalogCredentialStorage,
+  isCatalogSearchEnabled,
+  resolveCatalogApiBase,
+} from "./catalogApi";
 
 const STORAGE_KEY = "mhg_tunnel_api_base";
 
-describe("igdbApi", () => {
+describe("catalogApi", () => {
   beforeEach(() => {
     localStorage.clear();
   });
@@ -17,33 +17,33 @@ describe("igdbApi", () => {
     localStorage.clear();
   });
 
-  it("clearLegacyIgdbCredentialStorage removes legacy keys", () => {
+  it("clearLegacyCatalogCredentialStorage removes legacy keys", () => {
     localStorage.setItem("twitch_client_secret", "stale-secret");
     localStorage.setItem("twitch_client_id", "id");
-    clearLegacyIgdbCredentialStorage();
+    clearLegacyCatalogCredentialStorage();
     expect(localStorage.getItem("twitch_client_secret")).toBeNull();
     expect(localStorage.getItem("twitch_client_id")).toBeNull();
   });
 
-  it("isIgdbApiEnabled follows twitchApiEnabled only", () => {
-    expect(isIgdbApiEnabled(true)).toBe(true);
-    expect(isIgdbApiEnabled(false)).toBe(false);
+  it("isCatalogSearchEnabled follows twitchApiEnabled only", () => {
+    expect(isCatalogSearchEnabled(true)).toBe(true);
+    expect(isCatalogSearchEnabled(false)).toBe(false);
   });
 
-  it("resolveIgdbApiBase prefers stored user tunnel hostname over localhost", () => {
+  it("resolveCatalogApiBase prefers stored user tunnel hostname over localhost", () => {
     localStorage.setItem(
       STORAGE_KEY,
       "https://myhomegames-myhomegames-server.vige.it",
     );
-    expect(resolveIgdbApiBase()).toBe("https://myhomegames-myhomegames-server.vige.it");
+    expect(resolveCatalogApiBase()).toBe("https://myhomegames-myhomegames-server.vige.it");
   });
 
-  it("buildIgdbApiUrl targets the user tunnel host", () => {
+  it("buildCatalogApiUrl targets the user tunnel host", () => {
     localStorage.setItem(
       STORAGE_KEY,
       "https://myhomegames-myhomegames-server.vige.it",
     );
-    expect(buildIgdbApiUrl("/igdb/games-by-keyword")).toBe(
+    expect(buildCatalogApiUrl("/igdb/games-by-keyword")).toBe(
       "https://myhomegames-myhomegames-server.vige.it/igdb/games-by-keyword",
     );
   });

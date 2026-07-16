@@ -1,27 +1,27 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { buildApiHeaders } from "../utils/api";
-import { buildIgdbApiUrl } from "../utils/igdbApi";
+import { buildCatalogApiUrl } from "../utils/catalogApi";
 
-export type IgdbGameForTag = {
+export type CatalogGameForTag = {
   id: number;
   name: string;
   cover: string | null;
   releaseDate: number | null;
 };
 
-export function useIgdbGamesForSeriesFranchise(
+export function useCatalogGamesForSeriesFranchise(
   tagKey: "series" | "franchise" | null,
   tagId: string | null,
   libraryGameIds: number[],
   /** When true, fetch ALL IGDB games (no exclude) for merging with library games in one list */
   fetchAll = false
 ): {
-  igdbGames: IgdbGameForTag[];
+  catalogGames: CatalogGameForTag[];
   loading: boolean;
   error: string | null;
   refetch: () => void;
 } {
-  const [igdbGames, setIgdbGames] = useState<IgdbGameForTag[]>([]);
+  const [catalogGames, setCatalogGames] = useState<CatalogGameForTag[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,7 +30,7 @@ export function useIgdbGamesForSeriesFranchise(
     if (tagKey && (tagKey === "series" || tagKey === "franchise") && tagId) {
       const id = parseInt(tagId || "", 10);
       if (Number.isNaN(id) || id < 1) {
-        setIgdbGames([]);
+        setCatalogGames([]);
         return;
       }
 
@@ -41,7 +41,7 @@ export function useIgdbGamesForSeriesFranchise(
           tagKey === "franchise"
             ? `/igdb/games-by-franchise/${id}`
             : `/igdb/games-by-collection/${id}`;
-        const url = buildIgdbApiUrl(endpoint);
+        const url = buildCatalogApiUrl(endpoint);
         const excludeIds = fetchAll ? [] : libraryGameIds;
         const res = await fetch(url, {
           method: "POST",
@@ -59,15 +59,15 @@ export function useIgdbGamesForSeriesFranchise(
           cover: g.cover || null,
           releaseDate: g.releaseDate ?? null,
         }));
-        setIgdbGames(games);
+        setCatalogGames(games);
       } catch (err: any) {
         setError(err?.message || "Failed to fetch");
-        setIgdbGames([]);
+        setCatalogGames([]);
       } finally {
         setLoading(false);
       }
     } else {
-      setIgdbGames([]);
+      setCatalogGames([]);
     }
   }, [tagKey, tagId, libraryGameIdsKey, fetchAll]);
 
@@ -75,7 +75,7 @@ export function useIgdbGamesForSeriesFranchise(
   useEffect(() => {
     if (!(tagKey && (tagKey === "series" || tagKey === "franchise") && tagId)) {
       lastFetchedRef.current = null;
-      setIgdbGames([]);
+      setCatalogGames([]);
       setError(null);
       return;
     }
@@ -89,5 +89,5 @@ export function useIgdbGamesForSeriesFranchise(
     fetchGames();
   }, [tagKey, tagId, fetchGames]);
 
-  return { igdbGames, loading, error, refetch: fetchGames };
+  return { catalogGames, loading, error, refetch: fetchGames };
 }

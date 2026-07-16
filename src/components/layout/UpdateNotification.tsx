@@ -1,9 +1,12 @@
 import { useState, useRef, useEffect } from "react";
+import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import Tooltip from "../common/Tooltip";
 import { useSkin } from "../../contexts/SkinContext";
 import { useLatestRelease, type OsKind } from "../../hooks/useLatestRelease";
+import { useServerVersion } from "../../hooks/useServerVersion";
+import { isServerVersionCompatible, WEB_REQUIRES_MIN_SERVER_VERSION } from "../../utils/apiCompatibility";
 const OS_LABEL_KEY: Record<OsKind, string> = {
   win: "header.downloadWindows",
   "mac-arm64": "header.downloadMacArm",
@@ -11,11 +14,24 @@ const OS_LABEL_KEY: Record<OsKind, string> = {
   linux: "header.downloadLinux",
 };
 
-export default function UpdateNotification() {
+export default function UpdateNotification({
+  buttonStyle,
+  iconStyle,
+}: {
+  buttonStyle?: CSSProperties;
+  iconStyle?: CSSProperties;
+} = {}) {
   const { t } = useTranslation();
-  const { activeSkinWeb } = useSkin();
+  const { activeSkinWeb, skinUpdates } = useSkin();
+  const { version: serverVersion, loading: serverVersionLoading } = useServerVersion();
   const { updateAvailable, latestVersion, downloadUrl, downloadName, allDownloads, changelog } = useLatestRelease();
-  /** PS3 renders the update panel as a fixed right sheet; portal avoids dock `transform` clipping. */
+  const { availableUpdates, updating: skinUpdating, updatingSkinId, applyUpdate } = skinUpdates;
+  const environmentCompatible = isServerVersionCompatible(serverVersion);
+  const hasServerUpdate = Boolean(updateAvailable && latestVersion);
+  const hasSkinUpdates =
+    environmentCompatible && (availableUpdates.length > 0 || skinUpdating);
+  const serverUpdateRequired = !environmentCompatible && hasServerUpdate;
+  /** Full-viewport sheet: portal avoids dock `transform` clipping. */
   const portaledPopup = activeSkinWeb.disableTitleTooltips;
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -64,73 +80,136 @@ export default function UpdateNotification() {
     setIsOpen(false);
   };
 
+  const handleSkinUpdate = (installedId: string) => {
+    void applyUpdate(installedId);
+  };
+
   const primaryUrl = downloadUrl ?? null;
   const otherDownloads = primaryUrl
     ? allDownloads.filter((d) => d.url !== primaryUrl)
     : allDownloads;
 
-  if (!updateAvailable || !latestVersion) return null;
+  if (serverVersionLoading || (!hasServerUpdate && !hasSkinUpdates)) {
+    return null;
+  }
+
+  const updatingOffer = skinUpdating
+    ? availableUpdates.find((u) => u.installedId === updatingSkinId)
+    : null;
+
+  const tooltipText =
+    skinUpdating && updatingOffer
+      ? t("header.updatingSkin", "Updating {{name}}…", { name: updatingOffer.name })
+      : serverUpdateRequired
+        ? t("header.serverCompatibilityMismatch", "Server update required")
+        : t("header.updateAvailable", "New update available");
 
   const popup = (
     <div
       ref={popupRef}
       className="update-notification-popup"
       onMouseDown={(event) => {
-        /* PS3 full-viewport overlay: close when clicking the dim band (not the right sheet). */
+        /* Full-viewport overlay: close when clicking the dim band (not the sheet). */
         if (portaledPopup && event.target === event.currentTarget) {
           setIsOpen(false);
         }
       }}
     >
-      <div className="update-notification-header">
-        {t("header.newVersionAvailable", "New version {{version}} available", { version: latestVersion })}
-      </div>
-      {changelog && (
-        <div className="update-notification-changelog">
-          <div className="update-notification-changelog-title">
-            {t("header.changelog", "Changelog")}
+      {hasServerUpdate && (
+        <>
+          <div className="update-notification-header">
+            {serverUpdateRequired
+              ? t("header.serverCompatibilityDetail", {
+                  required: WEB_REQUIRES_MIN_SERVER_VERSION,
+                  version: serverVersion ?? "—",
+                  defaultValue:
+                    "This web app requires server version {{required}} or newer. The connected server is {{version}}. Update the server to a matching release.",
+                })
+              : t("header.newVersionAvailable", "New version {{version}} available", {
+                  version: latestVersion,
+                })}
           </div>
-          <div className="update-notification-changelog-body">{changelog}</div>
+          {changelog && (
+            <div className="update-notification-changelog">
+              <div className="update-notification-changelog-title">
+                {t("header.changelog", "Changelog")}
+              </div>
+              <div className="update-notification-changelog-body">{changelog}</div>
+            </div>
+          )}
+          <div className="update-notification-downloads">
+            {primaryUrl && downloadName && (
+              <button
+                type="button"
+                className="update-notification-download-primary"
+                onClick={() => handleDownload(primaryUrl)}
+              >
+                {t("header.downloadServer", "Download server")} ({downloadName})
+              </button>
+            )}
+            {otherDownloads.map(({ os, url, name }) => (
+              <button
+                key={url + name}
+                type="button"
+                className="update-notification-download-item"
+                onClick={() => handleDownload(url)}
+              >
+                {t(OS_LABEL_KEY[os], name)} — {name}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+      {hasSkinUpdates && (
+        <div className={hasServerUpdate ? "update-notification-skin-updates" : undefined}>
+          {availableUpdates.map((offer) => {
+            const isUpdatingThis = skinUpdating && updatingSkinId === offer.installedId;
+            return (
+              <div key={offer.installedId} className="update-notification-skin-update">
+                <div className="update-notification-header">
+                  {isUpdatingThis
+                    ? t("header.updatingSkin", "Updating {{name}}…", { name: offer.name })
+                    : t("header.skinNewVersionAvailable", "{{name}}: new version {{version}} available", {
+                        name: offer.name,
+                        version: offer.latestVersion,
+                      })}
+                </div>
+                {!isUpdatingThis && (
+                  <div className="update-notification-downloads">
+                    <button
+                      type="button"
+                      className="update-notification-download-primary"
+                      disabled={skinUpdating}
+                      onClick={() => handleSkinUpdate(offer.installedId)}
+                    >
+                      {t("header.updateSkin", "Update skin")} ({offer.name})
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
-      <div className="update-notification-downloads">
-        {primaryUrl && downloadName && (
-          <button
-            type="button"
-            className="update-notification-download-primary"
-            onClick={() => handleDownload(primaryUrl)}
-          >
-            {t("header.downloadServer", "Download server")} ({downloadName})
-          </button>
-        )}
-        {otherDownloads.map(({ os, url, name }) => (
-          <button
-            key={url + name}
-            type="button"
-            className="update-notification-download-item"
-            onClick={() => handleDownload(url)}
-          >
-            {t(OS_LABEL_KEY[os], name)} — {name}
-          </button>
-        ))}
-      </div>
     </div>
   );
 
   return (
     <div ref={menuRef} className="update-notification-wrapper">
-      <Tooltip text={t("header.updateAvailable", "New update available")} position="top" delay={200}>
+      <Tooltip text={tooltipText} position="top" delay={200}>
         <button
           ref={buttonRef}
           type="button"
           className="update-notification-button mhg-header-button"
           onClick={handleToggle}
-          aria-label={t("header.updateAvailable", "New update available")}
+          aria-label={tooltipText}
           aria-expanded={isOpen}
+          style={buttonStyle}
         >
           <svg
             width="20"
             height="20"
+            style={iconStyle}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"

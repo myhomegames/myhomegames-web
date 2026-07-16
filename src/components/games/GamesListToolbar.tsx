@@ -5,8 +5,15 @@ import SortPopup from "../toolbar/SortPopup";
 import type { FilterField, GameItem } from "../filters/types";
 import type { SortField } from "../../types";
 import { formatAgeRating } from "./AgeRatings";
-import { getIgdbGameTypeLabel } from "../../utils/igdbGameType";
+import { getGameTypeLabel } from "../../utils/gameType";
 import { useTagLists } from "../../contexts/TagListsContext";
+import {
+  clearListToolbarLayoutState,
+  clearListToolbarScrollTopInset,
+  notifyListToolbarChromeSync,
+  syncListToolbarLayoutState,
+  syncListToolbarScrollTopInset,
+} from "../../utils/syncInlineListToolbarChrome";
 type TagItem = { id: number; title: string } | string;
 
 function buildTagLabelMap(
@@ -191,6 +198,7 @@ export default function GamesListToolbar({
   const [isSortOpen, setIsSortOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
   const sortRef = useRef<HTMLDivElement>(null);
+  const toolbarRootRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     if (!dockToolbarPopups) return;
@@ -326,7 +334,7 @@ export default function GamesListToolbar({
     }
     if (currentFilter === "gameType" && selectedGameType !== null) {
       const n = parseInt(selectedGameType, 10);
-      if (!Number.isNaN(n)) return getIgdbGameTypeLabel(n);
+      if (!Number.isNaN(n)) return getGameTypeLabel(n);
       return String(selectedGameType);
     }
     const filterOptions = [
@@ -365,8 +373,45 @@ export default function GamesListToolbar({
   ];
   const currentSortLabel = sortOptions.find((opt) => opt.value === currentSort)?.label || "";
 
+  /** Inline fixed toolbar (not docked): sync scroll inset when chip height changes. */
+  const inlineToolbarWrap = !dockToolbarPopups;
+
+  useLayoutEffect(() => {
+    if (!inlineToolbarWrap) return;
+    const el = toolbarRootRef.current;
+    if (!el) return;
+
+    const sync = () => {
+      syncListToolbarLayoutState(el);
+      if (syncListToolbarScrollTopInset(undefined, el)) {
+        notifyListToolbarChromeSync();
+      }
+    };
+
+    sync();
+    const raf = requestAnimationFrame(() => {
+      sync();
+      requestAnimationFrame(sync);
+    });
+    const ro = new ResizeObserver(() => sync());
+    ro.observe(el);
+    const librariesActions = document.querySelector(".mhg-libraries-actions");
+    if (librariesActions instanceof HTMLElement) {
+      ro.observe(librariesActions);
+    }
+    window.addEventListener("resize", sync);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      window.removeEventListener("resize", sync);
+      clearListToolbarLayoutState(el);
+      clearListToolbarScrollTopInset();
+      notifyListToolbarChromeSync();
+    };
+  }, [inlineToolbarWrap, currentFilterLabel, currentSortLabel, gamesCount]);
+
   return (
-    <div className="games-list-toolbar">
+    <div className="games-list-toolbar" ref={toolbarRootRef}>
       <div className="games-list-toolbar-left">
         <div className="games-list-toolbar-item" ref={filterRef}>
           <button

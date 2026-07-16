@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { buildApiHeaders } from "../utils/api";
-import { buildIgdbApiUrl } from "../utils/igdbApi";
+import { buildCatalogApiUrl } from "../utils/catalogApi";
 
 export type SimilarGameDetails = { name: string; cover?: string; releaseDate?: number | null };
 
@@ -25,7 +25,7 @@ export function useSimilarGamesDetails(
     let cancelled = false;
     setIsLoading(true);
 
-    const url = buildIgdbApiUrl("/igdb/game-names-by-ids", { ids: idsKey });
+    const url = buildCatalogApiUrl("/igdb/game-names-by-ids", { ids: idsKey });
     fetch(url, {
       method: "GET",
       headers: buildApiHeaders(),

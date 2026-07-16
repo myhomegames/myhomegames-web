@@ -25,10 +25,13 @@ import {
 } from "../skins/skinApi";
 import { getCachedSkinWebOrDefault, setCachedSkinWeb } from "../skins/skinWebCache";
 import { normalizeSkinWebManifest, type SkinWebManifest } from "../skins/skinWebManifest";
+import { useSkinAutoUpdateLogic, type SkinUpdatesState } from "../hooks/useSkinAutoUpdate";
+import { useServerVersion } from "../hooks/useServerVersion";
 
 type SkinOption = {
   id: string;
   name: string;
+  version?: string;
   snapshotUrl?: string;
   snapshotVersion: number;
 };
@@ -42,6 +45,7 @@ type SkinContextValue = {
   uploadSkin: (file: File, displayName?: string) => Promise<void>;
   deleteSkin: (id: string) => Promise<void>;
   refreshInstalledSkins: () => Promise<ServerSkinInfo[]>;
+  skinUpdates: SkinUpdatesState;
 };
 
 const SkinContext = createContext<SkinContextValue | null>(null);
@@ -49,6 +53,7 @@ const SkinContext = createContext<SkinContextValue | null>(null);
 export function SkinProvider({ children }: { children: ReactNode }) {
   const { token, isLoading } = useAuth();
   const { settingsLoaded, skinWeb: settingsSkinWeb, refreshSettings } = useSettings();
+  const { version: serverVersion } = useServerVersion();
   const [activeSkinId, setActive] = useState(() => getActiveSkinId());
   const [serverSkins, setServerSkins] = useState<ServerSkinInfo[]>([]);
   const [snapshotVersion, setSnapshotVersion] = useState(() => Date.now());
@@ -160,6 +165,7 @@ export function SkinProvider({ children }: { children: ReactNode }) {
       serverSkins.map((s) => ({
         id: s.id,
         name: s.name,
+        version: s.version,
         snapshotUrl: s.snapshotUrl,
         snapshotVersion,
       })),
@@ -244,6 +250,16 @@ export function SkinProvider({ children }: { children: ReactNode }) {
     [refreshInstalledSkins, serverSkins, selectSkin]
   );
 
+  const skinUpdates = useSkinAutoUpdateLogic({
+    settingsLoaded,
+    serverVersion,
+    appVersion: __APP_VERSION__,
+    skins: serverSkins,
+    activeSkinId,
+    refreshInstalledSkins,
+    selectSkin,
+  });
+
   const value = useMemo(
     () => ({
       activeSkinId,
@@ -253,8 +269,18 @@ export function SkinProvider({ children }: { children: ReactNode }) {
       uploadSkin,
       deleteSkin,
       refreshInstalledSkins,
+      skinUpdates,
     }),
-    [activeSkinId, activeSkinWeb, skins, selectSkin, uploadSkin, deleteSkin, refreshInstalledSkins]
+    [
+      activeSkinId,
+      activeSkinWeb,
+      skins,
+      selectSkin,
+      uploadSkin,
+      deleteSkin,
+      refreshInstalledSkins,
+      skinUpdates,
+    ]
   );
 
   return <SkinContext.Provider value={value}>{children}</SkinContext.Provider>;

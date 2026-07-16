@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
+
 type SummaryProps = {
   summary: string;
   truncateOnly?: boolean;
@@ -8,15 +9,24 @@ type SummaryProps = {
   fontSize?: string;
 };
 
-export default function Summary({ summary, truncateOnly = false, maxLines = 4, fontSize }: SummaryProps) {
-  const { t } = useTranslation();
+export default function Summary({
+  summary,
+  truncateOnly = false,
+  maxLines = 4,
+  fontSize,
+}: SummaryProps) {
+  const { t, i18n } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
   const [showExpandButton, setShowExpandButton] = useState(false);
   const textRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setIsExpanded(false);
+  }, [summary, i18n.language]);
+
+  useEffect(() => {
+    setShowExpandButton(false);
     if (textRef.current && !truncateOnly) {
-      // Check if text exceeds maxLines
       const lineHeight = parseFloat(getComputedStyle(textRef.current).lineHeight);
       const maxHeight = lineHeight * maxLines;
       if (textRef.current.scrollHeight > maxHeight) {
@@ -67,4 +77,3 @@ export default function Summary({ summary, truncateOnly = false, maxLines = 4, f
     </div>
   );
 }
-

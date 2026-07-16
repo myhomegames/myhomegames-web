@@ -1,8 +1,7 @@
-import { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
-import { useAutoTranslateBatch } from "../hooks/useAutoTranslate";
-import { useAuth } from "../contexts/AuthContext";
+import { usePageRevealReady } from "../hooks/usePageRevealReady";
 import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
 import { useLoading } from "../contexts/LoadingContext";
 import { useSettings } from "../contexts/SettingsContext";
@@ -11,7 +10,7 @@ import ScrollableGamesSection from "../components/common/ScrollableGamesSection"
 import FixedFocalRecommendedSectionsList from "../components/lists/FixedFocalRecommendedSectionsList";
 import type { GameItem, CollectionItem } from "../types";
 import { buildApiHeaders, buildAppApiUrl } from "../utils/api";
-import { buildIgdbApiUrl } from "../utils/igdbApi";
+import { buildCatalogApiUrl } from "../utils/catalogApi";
 import {
   clearRecommendedSectionsCache,
   consumeRecommendedReturnFromGame,
@@ -26,6 +25,7 @@ import { titleMatchesFilter } from "../utils/titleFilter";
 
 type RecommendedSection = {
   id: string;
+  title?: string;
   games: GameItem[];
 };
 
@@ -46,14 +46,19 @@ export default function RecommendedPage({
 }: RecommendedPageProps) {
   const navigate = useNavigate();
   const titleFilterQuery = useTitleFilterQuery();
-  const { token } = useAuth();
-  const { twitchLoginEnabled, igdbEnabled, settingsLoaded } = useSettings();
+  const { catalogSearchEnabled, settingsLoaded } = useSettings();
   const { setLoading } = useLoading();
   const { activeSkinWeb } = useSkin();
   const verticalStripsLayout = activeSkinWeb.verticalCoverAlignment;
-  const [sections, setSections] = useState<RecommendedSection[]>([]);
-  const [isReady, setIsReady] = useState(false);
+  const initialCachedSections = getRecommendedSectionsCache();
+  const [sections, setSections] = useState<RecommendedSection[]>(
+    () => initialCachedSections ?? [],
+  );
   const [isFetching, setIsFetching] = useState(false);
+  const isReady = usePageRevealReady(
+    isFetching && sections.length === 0,
+    sections.length > 0,
+  );
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const stripsScrollRef = useRef<HTMLDivElement>(null);
   const fetchingRef = useRef<boolean>(false);
@@ -67,13 +72,13 @@ export default function RecommendedPage({
     (game: GameItem) => {
       setRecommendedSectionsCache(sections);
       markRecommendedReturnFromGame();
-      if (igdbEnabled && (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly) {
-        navigate(`/igdb-game/${game.id}`);
+      if (catalogSearchEnabled && (game as GameItem & { isCatalogOnly?: boolean }).isCatalogOnly) {
+        navigate(`/catalog-game/${game.id}`);
       } else {
         onGameClick(game);
       }
     },
-    [igdbEnabled, navigate, onGameClick, sections]
+    [catalogSearchEnabled, navigate, onGameClick, sections]
   );
   
   useScrollRestoration(scrollContainerRef, undefined, !verticalStripsLayout);
@@ -122,10 +127,38 @@ export default function RecommendedPage({
       }
     };
 
+    const handleGameDeleted = (event: Event) => {
+      const customEvent = event as CustomEvent<{ gameId?: string | number }>;
+      const deletedGameId = customEvent.detail?.gameId;
+      if (deletedGameId == null) return;
+      const gameIdStr = String(deletedGameId);
+      setSections((prevSections) => {
+        const next = prevSections
+          .map((section) => ({
+            ...section,
+            games: section.games.filter((game) => String(game.id) !== gameIdStr),
+          }))
+          .filter((section) => section.games.length > 0);
+        setRecommendedSectionsCache(next);
+        return next;
+      });
+    };
+
+    const handleRecommendedUpdated = () => {
+      clearRecommendedSectionsCache();
+      fetchRecommendedSections();
+    };
+
     window.addEventListener("gameUpdated", handleGameUpdated as EventListener);
+    window.addEventListener("gameDeleted", handleGameDeleted as EventListener);
+    window.addEventListener("recommendedUpdated", handleRecommendedUpdated);
+    window.addEventListener("mhg-language-changed", handleRecommendedUpdated);
     
     return () => {
       window.removeEventListener("gameUpdated", handleGameUpdated as EventListener);
+      window.removeEventListener("gameDeleted", handleGameDeleted as EventListener);
+      window.removeEventListener("recommendedUpdated", handleRecommendedUpdated);
+      window.removeEventListener("mhg-language-changed", handleRecommendedUpdated);
     };
   }, []);
 
@@ -136,34 +169,28 @@ export default function RecommendedPage({
     onGamesLoadedRef.current(cached.flatMap((s) => s.games));
     setIsFetching(false);
     setLoadingRef.current(false);
-    setIsReady(true);
     return true;
   }, []);
 
   useEffect(() => {
     if (!settingsLoaded) return;
-    if (twitchLoginEnabled && !token) {
-      clearRecommendedSectionsCache();
-      setSections([]);
-      onGamesLoadedRef.current([]);
-      setLoadingRef.current(false);
-      navigate("/login", { replace: true });
-      return;
-    }
     if (
       (consumeRecommendedReturnFromGame() || consumeRecommendedReturnToIndex()) &&
       hydrateFromCache()
     ) {
       return;
     }
+    if (hydrateFromCache()) {
+      void fetchRecommendedSections({ background: true });
+      return;
+    }
     fetchRecommendedSections();
-  }, [twitchLoginEnabled, token, settingsLoaded, navigate, hydrateFromCache]);
+  }, [settingsLoaded, navigate, hydrateFromCache]);
 
   // Listen for metadata reload event
   useEffect(() => {
     const handleMetadataReloaded = () => {
       clearRecommendedSectionsCache();
-      setIsReady(false);
       fetchRecommendedSections();
     };
     window.addEventListener("metadataReloaded", handleMetadataReloaded);
@@ -172,44 +199,18 @@ export default function RecommendedPage({
     };
   }, []);
 
-  // Hide content until fully rendered
-  useLayoutEffect(() => {
-    if (!isFetching) {
-      // Wait for next frame to ensure DOM is ready
-      // isReady should be true even if there are no sections
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setIsReady(true);
-        });
-      });
-    } else if (isFetching) {
-      setIsReady(false);
-    }
-  }, [isFetching, sections.length]);
-
   // Sync rendering state with global loading context
   useEffect(() => {
     setLoading(isFetching || !isReady);
   }, [isFetching, isReady, setLoading]);
 
-  const batchItems = useMemo(
-    () =>
-      sections.map((section) => ({
-        id: section.id,
-        text: section.id,
-        translationKey: `recommended.${section.id}`,
-      })),
-    [sections]
-  );
-  const sectionTitles = useAutoTranslateBatch(batchItems);
-
   const stripRows = useMemo(
     () =>
       sectionsForDisplay.map((section) => ({
         id: section.id,
-        title: sectionTitles[section.id] ?? section.id,
+        title: section.title ?? section.id,
       })),
-    [sectionsForDisplay, sectionTitles],
+    [sectionsForDisplay],
   );
 
   const handleStripClick = useCallback(
@@ -238,23 +239,18 @@ export default function RecommendedPage({
     return () => el.removeEventListener("scroll", pin);
   }, [verticalStripsLayout, isReady, stripRows.length]);
 
-  async function fetchRecommendedSections() {
+  async function fetchRecommendedSections(options?: { background?: boolean }) {
     if (fetchingRef.current) {
       return;
     }
     if (!settingsLoaded) return;
-    if (twitchLoginEnabled && !token) {
-      setSections([]);
-      onGamesLoadedRef.current([]);
-      setIsFetching(false);
-      setLoadingRef.current(false);
-      navigate("/login", { replace: true });
-      return;
-    }
+    const background = options?.background === true;
     fetchingRef.current = true;
     const generation = ++fetchGenerationRef.current;
-    setIsFetching(true);
-    setLoadingRef.current(true);
+    if (!background) {
+      setIsFetching(true);
+      setLoadingRef.current(true);
+    }
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90000);
     try {
@@ -270,6 +266,7 @@ export default function RecommendedPage({
 
       const parsedSections = sectionsData.map((section) => ({
         id: section.id,
+        title: section.title ?? section.id,
         games: (section.games || []).map((v: any) => ({
           id: v.id,
           title: v.title,
@@ -292,42 +289,42 @@ export default function RecommendedPage({
       setIsFetching(false);
       setLoadingRef.current(false);
 
-      if (igdbEnabled) {
+      if (catalogSearchEnabled) {
           // Fetch IGDB data in background; update each section as its response arrives
           parsedSections.forEach((section) => {
             const excludeIds = section.games
               .map((g: GameItem) => Number(g.id))
               .filter((id: number) => !Number.isNaN(id));
-            const igdbUrl = buildIgdbApiUrl("/igdb/games-by-keyword");
-            fetch(igdbUrl, {
+            const catalogUrl = buildCatalogApiUrl("/igdb/games-by-keyword");
+            fetch(catalogUrl, {
               method: "POST",
               headers: buildApiHeaders({
                 "Content-Type": "application/json",
               }),
               body: JSON.stringify({ keyword: section.id, excludeIds }),
             })
-              .then((igdbRes) => {
+              .then((catalogRes) => {
                 if (generation !== fetchGenerationRef.current) return null;
-                return igdbRes.json().catch(() => ({})).then((igdbData) => ({ igdbRes, igdbData }));
+                return catalogRes.json().catch(() => ({})).then((catalogData) => ({ catalogRes, catalogData }));
               })
               .then((pair) => {
                 if (!pair || generation !== fetchGenerationRef.current) return;
-                const { igdbRes, igdbData } = pair;
-                if (!igdbRes.ok) return;
-                const igdbGamesList = (igdbData.games || []) as Array<{ id: number; name: string; cover?: string | null; releaseDate?: number | null }>;
-                const igdbGames = igdbGamesList.map(
+                const { catalogRes, catalogData } = pair;
+                if (!catalogRes.ok) return;
+                const catalogGamesList = (catalogData.games || []) as Array<{ id: number; name: string; cover?: string | null; releaseDate?: number | null }>;
+                const catalogGames = catalogGamesList.map(
                   (g) =>
                     ({
                       id: String(g.id),
                       title: g.name,
                       cover: g.cover || undefined,
                       year: g.releaseDate ?? undefined,
-                      isIgdbOnly: true,
+                      isCatalogOnly: true,
                     }) as GameItem
                 );
                 setSections((prev) => {
                   const next = prev.map((s) =>
-                    s.id === section.id ? { ...s, games: [...s.games, ...igdbGames] } : s
+                    s.id === section.id ? { ...s, games: [...s.games, ...catalogGames] } : s
                   );
                   setRecommendedSectionsCache(next);
                   onGamesLoadedRef.current(next.flatMap((s) => s.games));
@@ -382,8 +379,7 @@ export default function RecommendedPage({
                   <ScrollableGamesSection
                     key={section.id}
                     sectionId={section.id}
-                    titleOverride={sectionTitles[section.id]}
-                    disableAutoTranslate
+                    titleOverride={section.title ?? section.id}
                     games={section.games}
                     onGameClick={handleGameClick}
                     onPlay={onPlay}

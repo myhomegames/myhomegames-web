@@ -14,6 +14,8 @@
     "gameModes": "Modos de jogo",
     "playerPerspectives": "Perspectivas de jogo",
     "sidebarSearch": "Pesquisa",
+    "toggleSidebar": "Mostrar menu de bibliotecas",
+    "closeSidebar": "Fechar menu de bibliotecas",
     "ownedGames": "Jogos possuídos",
     "installedGames": "Instalados",
     "gamesSidebar": "Jogos",
@@ -65,14 +67,15 @@
     "chinese": "Chinês",
     "japanese": "Japonês",
     "twitch": {
-      "title": "Twitch OAuth",
-      "description": "Configure as credenciais da sua aplicação Twitch OAuth. Você pode obtê-las no Console de Desenvolvedores do Twitch.",
+      "title": "IGDB / Twitch",
+      "description": "Ative a busca de catálogo via IGDB. As credenciais da aplicação são fornecidas pelo host da API, não armazenadas no app.",
+      "descriptionLocal": "Credenciais do Console de Desenvolvedores do Twitch. Usadas para busca de catálogo IGDB.",
       "clientId": "Client ID",
       "clientSecret": "Client Secret",
       "clientIdPlaceholder": "Digite seu Twitch Client ID",
       "clientSecretPlaceholder": "Digite seu Twitch Client Secret",
-      "clientIdHelp": "Seu Client ID da aplicação Twitch",
-      "clientSecretHelp": "Seu Client Secret da aplicação Twitch (mantenha isso seguro)"
+      "clientIdHelp": "Identificador público da aplicação. Obrigatório para acesso à API IGDB.",
+      "clientSecretHelp": "Obrigatório para chamadas à API IGDB (client_credentials Twitch). Gere em Manage → New Secret no Console de Desenvolvedores do Twitch."
     },
     "skinOptions": {
       "title": "Opções",
@@ -124,13 +127,14 @@
     "downloadMacArm": "macOS (Apple Silicon)",
     "downloadMacIntel": "macOS (Intel)",
     "downloadLinux": "Linux",
+    "serverCompatibilityMismatch": "Server update required",
+    "serverCompatibilityTooltip": "Server incompatible with this web app",
+    "serverCompatibilityDetail": "This web app requires server version {{required}} or newer. The connected server is {{version}}. Update the server to a matching release.",
     "titleFilterPlaceholder": "Pesquisar…",
     "titleFilterAria": "Pesquisar na lista atual"
   },
   "profile": {
     "viewProfile": "Ver perfil",
-    "changeUser": "Alterar usuário",
-    "logout": "Sair",
     "title": "Perfil",
     "subtitle": "Informações da sua conta",
     "notLoggedIn": "Você não está autenticado",
@@ -140,14 +144,15 @@
     "accountType": "Tipo de conta",
     "developmentAccount": "Conta de desenvolvimento"
   },
-  "login": {
-    "title": "Bem-vindo ao MyHomeGames",
-    "subtitle": "Por favor, faça login para continuar",
-    "button": "Entrar com Twitch",
-    "orGoToSettings": "Ou ir para Configurações",
-    "credentialsNeeded": "As credenciais Twitch OAuth são necessárias para fazer login. Por favor, configure-as primeiro nas Configurações.",
-    "configureFirst": "Você pode obter seu Twitch Client ID e Client Secret no Console de Desenvolvedores do Twitch.",
-    "goToSettings": "Ir para Configurações"
+  "serverUnavailable": {
+    "title": "Servidor MyHomeGames inacessível",
+    "message": "A aplicação web não consegue ligar ao servidor. Instale-o e inicie-o, ou verifique se está em execução, e tente novamente.",
+    "apiBase": "URL da API",
+    "downloadHint": "Descarregue o servidor para a sua plataforma:",
+    "downloadForPlatform": "Descarregar para {{platform}}",
+    "download": "Descarregar",
+    "retry": "Tentar ligação novamente",
+    "openSettings": "Abrir definições"
   },
   "search": {
     "noResults": "Nenhum resultado encontrado para o termo \"{{query}}\"",
@@ -295,12 +300,6 @@
     "moveUp": "Mover para cima",
     "moveDown": "Mover para baixo"
   },
-  "igdbGameDetail": {
-    "notFound": "Jogo não encontrado",
-    "add": "Adicionar",
-    "adding": "Adicionando...",
-    "errorAdding": "Erro ao adicionar jogo à biblioteca"
-  },
   "common": {
     "loading": "Carregando...",
     "error": "Erro",
@@ -329,13 +328,36 @@
     "deleteError": "Falha ao excluir o jogo",
     "reloadMetadata": "Recarregar todos os metadados",
     "reloadSingleMetadata": "Recarregar metadados",
+    "singleMetadataReloadInProgress": "Atualização em andamento",
     "reloadingMetadata": "Recarregando metadados...",
     "confirmReload": "Tem certeza de que deseja recarregar todos os metadados? Isso atualizará todos os jogos, coleções e categorias.",
+    "confirmCancelBulkReload": "Deseja cancelar a atualização de metadados em andamento?",
+    "continueMetadataReload": "Continuar",
+    "cancelBulkReload": "Cancelar atualização",
     "reloadError": "Falha ao recarregar os metadados",
     "create": "Criar",
     "creating": "Criando...",
     "removing": "Removendo...",
     "unauthorized": "Não autorizado"
+  },
+  "metadataReload": {
+    "phase": {
+      "developers": "Atualizando desenvolvedores",
+      "publishers": "Atualizando publishers",
+      "games": "Atualizando jogos",
+      "collections": "Atualizando coleções",
+      "cache": "Atualizando cache da biblioteca",
+      "developer": "Atualizando desenvolvedor",
+      "publisher": "Atualizando publisher",
+      "game": "Atualizando jogo",
+      "collection": "Atualizando coleção"
+    },
+    "tooltip": {
+      "withItem": "{{phase}}: {{item}} — {{step}}/{{total}} ({{percent}}%)",
+      "withItemInPhase": "{{phase}}: {{item}} — {{step}}/{{total}} ({{percent}}%), item {{phaseIndex}}/{{phaseTotal}}",
+      "progress": "{{phase}} — {{step}}/{{total}} ({{percent}}%)",
+      "simple": "{{phase}} ({{percent}}%)"
+    }
   },
   "categories": {
     "noCategoriesFound": "Nenhuma categoria encontrada"
@@ -362,16 +384,16 @@
   "gamesListToolbar": {
     "filter": {
       "all": "Todo",
-      "installed": "Instalados",
+      "installed": "Instalado",
       "genre": "Gênero",
-      "themes": "Temas",
-      "keywords": "Recomendados",
-      "platforms": "Plataformas",
-      "gameModes": "Modos de jogo",
-      "publishers": "Editoras",
-      "developers": "Desenvolvedores",
-      "playerPerspectives": "Perspectivas",
-      "gameEngines": "Motores de jogo",
+      "themes": "Tema",
+      "keywords": "Recomendado",
+      "platforms": "Plataforma",
+      "gameModes": "Modo de jogo",
+      "publishers": "Editora",
+      "developers": "Desenvolvedor",
+      "playerPerspectives": "Perspectiva",
+      "gameEngines": "Motor de jogo",
       "gameType": "Tipo de jogo",
       "year": "Ano",
       "decade": "Década",
@@ -381,14 +403,14 @@
       "ageRating": "Classificação de conteúdo",
       "searchYear": "Filtro Ano",
       "searchGenre": "Filtro Gênero",
-      "searchThemes": "Filtro Temas",
-      "searchKeywords": "Filtro Recomendados",
-      "searchPlatforms": "Filtro Plataformas",
-      "searchGameModes": "Filtro Modos de jogo",
-      "searchPublishers": "Filtro Editoras",
-      "searchDevelopers": "Filtro Desenvolvedores",
-      "searchPlayerPerspectives": "Filtro Perspectivas",
-      "searchGameEngines": "Filtro Motores de jogo",
+      "searchThemes": "Filtro Tema",
+      "searchKeywords": "Filtro Recomendado",
+      "searchPlatforms": "Filtro Plataforma",
+      "searchGameModes": "Filtro Modo de jogo",
+      "searchPublishers": "Filtro Editora",
+      "searchDevelopers": "Filtro Desenvolvedor",
+      "searchPlayerPerspectives": "Filtro Perspectiva",
+      "searchGameEngines": "Filtro Motor de jogo",
       "searchGameType": "Filtrar tipo de jogo",
       "searchDecade": "Filtro Década",
       "searchCollection": "Filtro Coleção",
@@ -497,7 +519,7 @@
     "editCategory": "Editar Categoria",
     "coverFormat": "Proporção recomendada: 16:9 (ex: 1280x720px)"
   },
-  "igdbInfo": {
+  "catalogInfo": {
     "gameId": "ID",
     "gameType": "Tipo",
     "themes": "Temas",
@@ -561,6 +583,7 @@
     },
     "developers": "Desenvolvedores",
     "publishers": "Editoras",
+    "acquiredBy": "Adquirido por",
     "noDevelopersFound": "Nenhum desenvolvedor encontrado",
     "noPublishersFound": "Nenhuma editora encontrada",
     "subDevelopers": "Desenvolvedores",
@@ -583,9 +606,46 @@
     "genres": "Gêneros",
     "ratings": "Avaliações",
     "criticRating": "Avaliação da crítica",
-    "userRating": "Avaliação dos usuários"
+    "userRating": "Avaliação dos usuários",
+    "companyStatus": "Estado",
+    "updatedTo": "Atualizado para",
+    "country": "País",
+    "started": "Fundada em",
+    "knownAs": "Conhecida como",
+    "legalName": "Nome legal",
+    "companySize": "Tamanho da empresa",
+    "formerly": "Anteriormente",
+    "parentCompany": "Empresa-mãe",
+    "changedOn": "Alterado em",
+    "companyMetadata": "Metadados da empresa",
+    "countryCodePlaceholder": "Código numérico ISO 3166-1 (ex. 380)",
+    "datePlaceholder": "AAAA, AAAA-MM ou AAAA-MM-DD",
+    "companyIdPlaceholder": "ID IGDB",
+    "companyNamePlaceholder": "Nome da empresa",
+    "searchCompanyToAdd": "Pesquisar empresa para adicionar",
+    "searchCompanyPlaceholder": "Pesquisar por nome...",
+    "noCompaniesFound": "Nenhuma empresa encontrada",
+    "addFormerly": "Adicionar empresa",
+    "addParentCompany": "Adicionar empresa",
+    "addUpdatedTo": "Adicionar empresa"
   },
-  "igdbGameTypes": {
+  "companyStatuses": {
+    "active": "Ativa",
+    "defunct": "Encerrada",
+    "merge": "Fusão",
+    "renamed": "Renomeada"
+  },
+  "companySizes": {
+    "1": "0-1 funcionários",
+    "2": "2-10 funcionários",
+    "3": "11-50 funcionários",
+    "4": "51-200 funcionários",
+    "5": "201-500 funcionários",
+    "6": "501-1000 funcionários",
+    "7": "1001-5000 funcionários",
+    "8": "mais de 5000 funcionários"
+  },
+  "gameTypes": {
     "0": "Jogo principal",
     "1": "DLC",
     "2": "Expansão",
@@ -601,5 +661,11 @@
     "12": "Fork",
     "13": "Pacote",
     "14": "Atualização"
+  },
+  "catalogGameDetail": {
+    "notFound": "Jogo não encontrado",
+    "add": "Adicionar",
+    "adding": "Adicionando...",
+    "errorAdding": "Erro ao adicionar jogo à biblioteca"
   }
 }

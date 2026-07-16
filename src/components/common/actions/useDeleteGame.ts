@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { API_BASE, getApiToken } from "../../../config";
+import { API_BASE } from "../../../config";
 import { buildApiUrl, buildApiHeaders } from "../../../utils/api";
 import { useLoading } from "../../../contexts/LoadingContext";
-import { useSettings } from "../../../contexts/SettingsContext";
 
 type UseDeleteGameParams = {
   gameId?: string;
@@ -39,7 +38,6 @@ export function useDeleteGame({
 }: UseDeleteGameParams): UseDeleteGameReturn {
   const { t } = useTranslation();
   const { setLoading } = useLoading();
-  const { twitchLoginEnabled } = useSettings();
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -49,54 +47,14 @@ export function useDeleteGame({
   };
 
   const handleConfirmDelete = async () => {
-    // When Twitch auth is disabled the server does not require a token, so we
-    // only bail out if auth is enabled and we have none.
-    const apiToken = getApiToken();
-    if (twitchLoginEnabled && !apiToken) return;
-
     setIsDeleting(true);
     setDeleteError(null);
     setLoading(true);
 
     try {
       let url: string;
-      let affectedCollectionIds: string[] = [];
 
-      // Determine if we're deleting a game or a collection
       if (gameId) {
-        // Find all collections that contain this game BEFORE deleting it
-        try {
-          const collectionsUrl = buildApiUrl(API_BASE, "/collections");
-          const collectionsResponse = await fetch(collectionsUrl, {
-            headers: buildApiHeaders({ Accept: "application/json" }),
-          });
-          
-          if (collectionsResponse.ok) {
-            const collectionsData = await collectionsResponse.json();
-            const collections = collectionsData.collections || [];
-            
-            // For each collection, check if it contains the game we're about to delete
-            for (const collection of collections) {
-              const gamesUrl = buildApiUrl(API_BASE, `/collections/${collection.id}/games`);
-              const gamesResponse = await fetch(gamesUrl, {
-                headers: buildApiHeaders({ Accept: "application/json" }),
-              });
-              
-              if (gamesResponse.ok) {
-                const gamesData = await gamesResponse.json();
-                const gameIds = (gamesData.games || []).map((g: any) => String(g.id));
-                
-                // If this collection contains the game, save its ID
-                if (gameIds.includes(String(gameId))) {
-                  affectedCollectionIds.push(String(collection.id));
-                }
-              }
-            }
-          }
-        } catch (error) {
-          console.error("Error finding collections for game before deletion:", error);
-        }
-
         url = buildApiUrl(API_BASE, `/games/${gameId}`);
       } else if (developerId) {
         url = buildApiUrl(API_BASE, `/developers/${developerId}`);
@@ -123,17 +81,9 @@ export function useDeleteGame({
         } else if (collectionId && onCollectionDelete) {
           onCollectionDelete(collectionId);
         }
-        
-        // Emit custom event to notify App.tsx and other components
+
         if (gameId) {
           window.dispatchEvent(new CustomEvent("gameDeleted", { detail: { gameId } }));
-          
-          // Emit collectionUpdated for all collections that contained the deleted game
-          affectedCollectionIds.forEach((collectionId) => {
-            window.dispatchEvent(new CustomEvent("collectionUpdated", { 
-              detail: { collectionId } 
-            }));
-          });
         } else if (developerId) {
           window.dispatchEvent(new CustomEvent("developerDeleted", { detail: { developerId } }));
         } else if (publisherId) {
@@ -141,7 +91,7 @@ export function useDeleteGame({
         } else if (collectionId) {
           window.dispatchEvent(new CustomEvent("collectionDeleted", { detail: { collectionId } }));
         }
-        
+
         setShowConfirmModal(false);
         if (onModalClose) {
           onModalClose();
@@ -175,4 +125,3 @@ export function useDeleteGame({
     handleCancelDelete,
   };
 }
-

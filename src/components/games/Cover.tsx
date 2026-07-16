@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type React from "react";
 import type { CSSProperties } from "react";
@@ -6,11 +6,20 @@ import DropdownMenu from "../common/DropdownMenu";
 import AddToCollectionDropdown from "./AddToCollectionDropdown";
 import AdditionalExecutablesDropdown from "./AdditionalExecutablesDropdown";
 import Tooltip from "../common/Tooltip";
+import { API_BASE } from "../../config";
+import {
+  normalizeCoverCacheKey,
+  pickCoverSource,
+  resolveStableCoverUrl,
+} from "../../utils/coverUrlCache";
 import type { CollectionItem, GameItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 type CoverProps = {
   title: string;
-  coverUrl: string;
+  /** Server cover path (/covers/…). Preferred — Cover applies stable session cache. */
+  cover?: string;
+  /** Pre-built URL, data: preview, or legacy path string. */
+  coverUrl?: string;
   width: number;
   height: number;
   onPlay?: (executableName?: string) => void;
@@ -42,6 +51,8 @@ type CoverProps = {
   showTitle?: boolean;
   subtitle?: string | number | null;
   detail?: boolean;
+  /** Detail strip: entity already open — no navigation affordance or hover. */
+  detailNavigationDisabled?: boolean;
   play?: boolean;
   showBorder?: boolean;
   /**
@@ -81,7 +92,8 @@ type CoverProps = {
 
 export default function Cover({
   title,
-  coverUrl,
+  cover,
+  coverUrl = "",
   width,
   height,
   onPlay,
@@ -112,6 +124,7 @@ export default function Cover({
   showTitle = false,
   subtitle,
   detail = true,
+  detailNavigationDisabled = false,
   play = true,
   showBorder = true,
   imageFit = "cover",
@@ -136,12 +149,22 @@ export default function Cover({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isPopupOverlay, setIsPopupOverlay] = useState(false);
   const coverRef = useRef<HTMLDivElement>(null);
-  const showPlaceholder = !coverUrl || imageError;
+  const rawCoverInput = pickCoverSource(
+    cover,
+    coverUrl,
+    game?.externalCoverUrl ?? sourceCollectionLike?.externalCoverUrl,
+  );
+  const coverCacheKey = normalizeCoverCacheKey(rawCoverInput);
+  const displayUrl = useMemo(
+    () => (rawCoverInput ? resolveStableCoverUrl(API_BASE, rawCoverInput) : ""),
+    [coverCacheKey],
+  );
+  const showPlaceholder = !displayUrl || imageError;
   
-  // Reset imageError when coverUrl changes
+  // Reset imageError when cover changes
   useEffect(() => {
     setImageError(false);
-  }, [coverUrl]);
+  }, [coverCacheKey]);
   
   // Listen for dropdown menu open/close events
   useEffect(() => {
@@ -292,9 +315,11 @@ export default function Cover({
     }
   };
 
-  const shouldShowPlayButton = play && onPlay && !onUpload;
+  const shouldShowPlayButton = !detailNavigationDisabled && play && onPlay && !onUpload;
   const shouldShowUploadButton = onUpload !== undefined;
-  const isClickable = detail || play || shouldShowUploadButton;
+  const showCoverActions = !detailNavigationDisabled;
+  const isClickable =
+    (detail && onClick) || (play && !detail && onPlay) || shouldShowUploadButton;
 
   const coverStyle = {
     width: `${width}px`,
@@ -308,7 +333,7 @@ export default function Cover({
     <>
       <div
         ref={coverRef}
-        className={`games-list-cover relative bg-[#2a2a2a] rounded overflow-hidden transition-all ${imageFit === "fill" ? "games-list-cover--image-fill " : ""}${showBorder ? "cover-hover-effect" : ""} ${play ? "games-list-cover-play" : ""} ${detail ? "games-list-cover-detail" : ""} ${shouldShowUploadButton ? "games-list-cover-upload" : ""} ${isDropdownOpen ? "cover-dropdown-open" : ""} ${isPopupOverlay ? "cover-popup-overlay" : ""}${isClickable ? " games-list-cover--clickable" : ""}`}
+        className={`games-list-cover relative bg-[#2a2a2a] rounded overflow-hidden transition-all ${imageFit === "fill" ? "games-list-cover--image-fill " : ""}${showBorder || detailNavigationDisabled ? "cover-hover-effect" : ""} ${play && !detailNavigationDisabled ? "games-list-cover-play" : ""} ${detail ? "games-list-cover-detail" : ""} ${detailNavigationDisabled ? " games-list-cover--detail-current" : ""} ${shouldShowUploadButton ? "games-list-cover-upload" : ""} ${isDropdownOpen ? "cover-dropdown-open" : ""} ${isPopupOverlay ? "cover-popup-overlay" : ""}${isClickable ? " games-list-cover--clickable" : ""}`}
         style={coverStyle}
         onClick={shouldShowUploadButton ? handleUploadClick : handleCoverClick}
       >
@@ -320,8 +345,8 @@ export default function Cover({
           </div>
         ) : (
           <img
-            key={coverUrl || 'cover-image'}
-            src={coverUrl}
+            key={coverCacheKey || "cover-image"}
+            src={displayUrl}
             alt={title}
             className={
               imageFit === "fill"
@@ -336,7 +361,7 @@ export default function Cover({
                   }
                 : undefined
             }
-            loading={coverUrl.startsWith('data:') ? undefined : "lazy"}
+            loading={displayUrl.startsWith('data:') ? undefined : "lazy"}
             onError={() => {
               setImageError(true);
             }}
@@ -412,7 +437,7 @@ export default function Cover({
             )}
           </button>
         )}
-        {onEdit && (
+        {showCoverActions && onEdit && (
           <button
             type="button"
             onClick={handleEditClick}
@@ -434,7 +459,7 @@ export default function Cover({
             </svg>
           </button>
         )}
-        {onEdit && gameId && game && (
+        {showCoverActions && onEdit && gameId && game && (
           <div className="games-list-dropdown-wrapper games-list-dropdown-wrapper-bottom-right">
             <AddToCollectionDropdown
               game={game}
@@ -442,7 +467,7 @@ export default function Cover({
             />
           </div>
         )}
-        {onEdit && (gameId || collectionId || developerId || publisherId) && (
+        {showCoverActions && onEdit && (gameId || collectionId || developerId || publisherId) && (
           <div className="games-list-dropdown-wrapper games-list-dropdown-wrapper-bottom-right">
             {gameId && game && game.executables && game.executables.length > 1 && onPlay && (
               <AdditionalExecutablesDropdown
@@ -517,8 +542,8 @@ export default function Cover({
           {showTitle && titlePosition === "bottom" && (
             <Tooltip text={title} position="bottom">
               <div 
-                className={`truncate games-list-title ${detail ? "games-list-title-clickable" : ""}`}
-                onClick={detail && onClick ? (e) => {
+                className={`truncate games-list-title ${detail && !detailNavigationDisabled ? "games-list-title-clickable" : ""}`}
+                onClick={detail && onClick && !detailNavigationDisabled ? (e) => {
                   e.stopPropagation();
                   onClick();
                 } : undefined}

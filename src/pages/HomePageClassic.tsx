@@ -24,7 +24,9 @@ import { API_BASE } from "../config";
 import { buildApiHeaders } from "../utils/api";
 import {
   buildLibrarySections,
+  getInitialLibrarySections,
   normalizeVisibleLibraries,
+  readStoredVisibleLibraries,
 } from "../utils/librarySections";
 import { clearRecommendedPreserveOnReturnToIndex } from "../utils/recommendedSectionsCache";
 export type { GameItem, TagItem };
@@ -57,7 +59,7 @@ export default function HomePageClassic({
   const { developers: allDevelopersForSearch } = useDevelopers();
   const { publishers: allPublishersForSearch } = usePublishers();
   const [libraries, setLibraries] = useState<GameLibrarySection[]>(() =>
-    buildLibrarySections(normalizeVisibleLibraries([])),
+    getInitialLibrarySections(),
   );
   const [activeLibrary, setActiveLibrary] = useState<GameLibrarySection | null>(
     null,
@@ -162,17 +164,7 @@ export default function HomePageClassic({
       }
 
       if (!visibleLibraries) {
-        const stored = localStorage.getItem("visibleLibraries");
-        if (stored) {
-          try {
-            const parsed = JSON.parse(stored);
-            if (Array.isArray(parsed)) {
-              visibleLibraries = parsed;
-            }
-          } catch {
-            visibleLibraries = null;
-          }
-        }
+        visibleLibraries = readStoredVisibleLibraries();
       }
 
       const normalized = normalizeVisibleLibraries(visibleLibraries || []);

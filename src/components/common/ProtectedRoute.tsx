@@ -1,29 +1,35 @@
-import { Navigate } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useTunnel } from "../../contexts/TunnelContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { useServerConnectivity } from "../../contexts/ServerConnectivityContext";
+import ServerUnavailablePage from "../../pages/ServerUnavailablePage";
 
 type ProtectedRouteProps = {
   children: React.ReactNode;
 };
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, isLoading } = useAuth();
-  const { twitchLoginEnabled, settingsLoaded } = useSettings();
+  const { isLoading } = useAuth();
+  const { settingsLoaded } = useSettings();
   const { statusLoaded } = useTunnel();
+  const {
+    connectivityLoaded,
+    serverReachable,
+    retry,
+  } = useServerConnectivity();
 
-  const DEV_TOKEN = import.meta.env.VITE_API_TOKEN || "";
-  const isDevMode = DEV_TOKEN !== "";
-
-  if (isLoading || !settingsLoaded || !statusLoaded) {
+  if (isLoading || !settingsLoaded || !statusLoaded || !connectivityLoaded) {
     return null;
   }
 
-  // In dev mode, allow access even without user (VITE_API_TOKEN will be used)
-  // When Twitch login is disabled, allow access without auth (user cannot log in anyway)
-  // When Twitch login is enabled, redirect to login if not authenticated
-  if (!isDevMode && !user && twitchLoginEnabled) {
-    return <Navigate to="/login" replace />;
+  if (!serverReachable) {
+    return (
+      <ServerUnavailablePage
+        onRetry={() => {
+          void retry();
+        }}
+      />
+    );
   }
 
   return <>{children}</>;

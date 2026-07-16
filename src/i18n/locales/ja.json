@@ -14,6 +14,8 @@
     "gameModes": "ゲームモード",
     "playerPerspectives": "視点",
     "sidebarSearch": "検索",
+    "toggleSidebar": "ライブラリメニューを表示",
+    "closeSidebar": "ライブラリメニューを閉じる",
     "ownedGames": "所持ゲーム",
     "installedGames": "インストール済み",
     "gamesSidebar": "ゲーム",
@@ -65,14 +67,15 @@
     "chinese": "中国語",
     "japanese": "日本語",
     "twitch": {
-      "title": "Twitch OAuth",
-      "description": "Twitch OAuthアプリケーションの認証情報を設定してください。これらはTwitch Developer Consoleから取得できます。",
+      "title": "IGDB / Twitch",
+      "description": "IGDBによるカタログ検索を有効にします。アプリケーション認証情報はAPIホストが提供し、アプリには保存されません。",
+      "descriptionLocal": "Twitch Developer Consoleの認証情報。IGDBカタログ検索に使用します。",
       "clientId": "クライアントID",
       "clientSecret": "クライアントシークレット",
       "clientIdPlaceholder": "TwitchクライアントIDを入力してください",
       "clientSecretPlaceholder": "Twitchクライアントシークレットを入力してください",
-      "clientIdHelp": "TwitchアプリケーションのクライアントID",
-      "clientSecretHelp": "Twitchアプリケーションのクライアントシークレット（安全に保管してください）"
+      "clientIdHelp": "アプリケーションの公開識別子。IGDB APIアクセスに必要です。",
+      "clientSecretHelp": "IGDB API呼び出し（Twitch client_credentials）に必要です。Twitch Developer ConsoleのManage → New Secretで生成してください。"
     },
     "skinOptions": {
       "title": "オプション",
@@ -124,13 +127,14 @@
     "downloadMacArm": "macOS (Apple Silicon)",
     "downloadMacIntel": "macOS (Intel)",
     "downloadLinux": "Linux",
+    "serverCompatibilityMismatch": "Server update required",
+    "serverCompatibilityTooltip": "Server incompatible with this web app",
+    "serverCompatibilityDetail": "This web app requires server version {{required}} or newer. The connected server is {{version}}. Update the server to a matching release.",
     "titleFilterPlaceholder": "検索…",
     "titleFilterAria": "現在のリストを検索"
   },
   "profile": {
     "viewProfile": "プロフィールを表示",
-    "changeUser": "ユーザーを変更",
-    "logout": "ログアウト",
     "title": "プロフィール",
     "subtitle": "アカウント情報",
     "notLoggedIn": "認証されていません",
@@ -140,14 +144,15 @@
     "accountType": "アカウントタイプ",
     "developmentAccount": "開発アカウント"
   },
-  "login": {
-    "title": "MyHomeGamesへようこそ",
-    "subtitle": "続行するにはログインしてください",
-    "button": "Twitchでログイン",
-    "orGoToSettings": "または設定へ",
-    "credentialsNeeded": "ログインにはTwitch OAuth認証情報が必要です。まず設定で設定してください。",
-    "configureFirst": "Twitch Client IDとClient Secretは、Twitch Developer Consoleから取得できます。",
-    "goToSettings": "設定に移動"
+  "serverUnavailable": {
+    "title": "MyHomeGames サーバーに接続できません",
+    "message": "Web アプリからサーバーに接続できません。インストールして起動するか、実行中であることを確認してから再試行してください。",
+    "apiBase": "API URL",
+    "downloadHint": "お使いのプラットフォーム向けサーバーをダウンロード:",
+    "downloadForPlatform": "{{platform}} 向けダウンロード",
+    "download": "ダウンロード",
+    "retry": "再接続",
+    "openSettings": "設定を開く"
   },
   "search": {
     "noResults": "用語 \"{{query}}\" の結果が見つかりません",
@@ -295,12 +300,6 @@
     "moveUp": "上に移動",
     "moveDown": "下に移動"
   },
-  "igdbGameDetail": {
-    "notFound": "ゲームが見つかりません",
-    "add": "追加",
-    "adding": "追加中...",
-    "errorAdding": "ライブラリにゲームを追加する際にエラーが発生しました"
-  },
   "common": {
     "loading": "読み込み中...",
     "error": "エラー",
@@ -329,13 +328,36 @@
     "deleteError": "ゲームの削除に失敗しました",
     "reloadMetadata": "すべてのメタデータを再読み込み",
     "reloadSingleMetadata": "メタデータを再読み込み",
+    "singleMetadataReloadInProgress": "更新中",
     "reloadingMetadata": "メタデータを再読み込み中...",
     "confirmReload": "すべてのメタデータを再読み込みしてもよろしいですか？これにより、すべてのゲーム、コレクション、カテゴリが更新されます。",
+    "confirmCancelBulkReload": "進行中のメタデータ更新をキャンセルしますか？",
+    "continueMetadataReload": "続行",
+    "cancelBulkReload": "更新をキャンセル",
     "reloadError": "メタデータの再読み込みに失敗しました",
     "create": "作成",
     "creating": "作成中...",
     "removing": "削除中...",
     "unauthorized": "認証されていません"
+  },
+  "metadataReload": {
+    "phase": {
+      "developers": "開発者を更新中",
+      "publishers": "パブリッシャーを更新中",
+      "games": "ゲームを更新中",
+      "collections": "コレクションを更新中",
+      "cache": "ライブラリキャッシュを更新中",
+      "developer": "開発者を更新中",
+      "publisher": "パブリッシャーを更新中",
+      "game": "ゲームを更新中",
+      "collection": "コレクションを更新中"
+    },
+    "tooltip": {
+      "withItem": "{{phase}}: {{item}} — {{step}}/{{total}} ({{percent}}%)",
+      "withItemInPhase": "{{phase}}: {{item}} — {{step}}/{{total}} ({{percent}}%)、{{phaseIndex}}/{{phaseTotal}} 件目",
+      "progress": "{{phase}} — {{step}}/{{total}} ({{percent}}%)",
+      "simple": "{{phase}} ({{percent}}%)"
+    }
   },
   "categories": {
     "noCategoriesFound": "カテゴリが見つかりません"
@@ -497,7 +519,7 @@
     "editCategory": "カテゴリを編集",
     "coverFormat": "推奨比率：16:9（例：1280x720px）"
   },
-  "igdbInfo": {
+  "catalogInfo": {
     "gameId": "ID",
     "gameType": "タイプ",
     "themes": "テーマ",
@@ -561,6 +583,7 @@
     },
     "developers": "開発者",
     "publishers": "パブリッシャー",
+    "acquiredBy": "買収元",
     "noDevelopersFound": "開発者が見つかりません",
     "noPublishersFound": "パブリッシャーが見つかりません",
     "subDevelopers": "開発者",
@@ -583,9 +606,46 @@
     "genres": "ジャンル",
     "ratings": "評価",
     "criticRating": "批評家評価",
-    "userRating": "ユーザー評価"
+    "userRating": "ユーザー評価",
+    "companyStatus": "ステータス",
+    "updatedTo": "更新先",
+    "country": "国",
+    "started": "設立",
+    "knownAs": "別名",
+    "legalName": "正式名称",
+    "companySize": "会社規模",
+    "formerly": "旧称",
+    "parentCompany": "親会社",
+    "changedOn": "変更日",
+    "companyMetadata": "会社メタデータ",
+    "countryCodePlaceholder": "ISO 3166-1 数値コード（例: 380）",
+    "datePlaceholder": "YYYY、YYYY-MM、または YYYY-MM-DD",
+    "companyIdPlaceholder": "IGDB ID",
+    "companyNamePlaceholder": "会社名",
+    "searchCompanyToAdd": "追加する会社を検索",
+    "searchCompanyPlaceholder": "名前で検索...",
+    "noCompaniesFound": "会社が見つかりません",
+    "addFormerly": "会社を追加",
+    "addParentCompany": "会社を追加",
+    "addUpdatedTo": "会社を追加"
   },
-  "igdbGameTypes": {
+  "companyStatuses": {
+    "active": "活動中",
+    "defunct": "解散",
+    "merge": "合併",
+    "renamed": "名称変更"
+  },
+  "companySizes": {
+    "1": "従業員 0-1 名",
+    "2": "従業員 2-10 名",
+    "3": "従業員 11-50 名",
+    "4": "従業員 51-200 名",
+    "5": "従業員 201-500 名",
+    "6": "従業員 501-1000 名",
+    "7": "従業員 1001-5000 名",
+    "8": "従業員 5000 名以上"
+  },
+  "gameTypes": {
     "0": "メインゲーム",
     "1": "DLC",
     "2": "拡張",
@@ -601,5 +661,11 @@
     "12": "Fork",
     "13": "パック",
     "14": "アップデート"
+  },
+  "catalogGameDetail": {
+    "notFound": "ゲームが見つかりません",
+    "add": "追加",
+    "adding": "追加中...",
+    "errorAdding": "ライブラリにゲームを追加する際にエラーが発生しました"
   }
 }

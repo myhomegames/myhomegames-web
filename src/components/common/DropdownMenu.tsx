@@ -1,10 +1,25 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useLayoutEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
-import { getApiToken } from "../../config";
-import { useSettings } from "../../contexts/SettingsContext";
 import { useDeleteGame, useReloadGame, useUnlinkExecutable, useRemoveGameFromCollection } from "./actions";
 import Tooltip from "./Tooltip";
+import { useSkin } from "../../contexts/SkinContext";
+import { useLoading } from "../../contexts/LoadingContext";
+import { isBulkMetadataReloadInProgress, cancelBulkMetadataReload } from "../../utils/bulkMetadataReloadContext";
+import {
+  cancelSingleMetadataReload,
+  isSingleMetadataReloadActiveFor,
+  resolveSingleMetadataReloadTarget,
+} from "../../utils/activitySession";
+import { bindSheetBackdropClose } from "../../utils/sheetPopupBackdrop";
+import { useSidebarSearchInteraction } from "../../contexts/SidebarSearchInteractionContext";
+import {
+  HEADER_SEARCH_ACTION_Z_INDEX,
+  SIDEBAR_SEARCH_CONFIRM_Z_INDEX,
+  SIDEBAR_SEARCH_MENU_Z_INDEX,
+  resolveSearchMenuStackZIndex,
+  wrapSidebarSearchMenuStack,
+} from "../../utils/sidebarSearchMenuStack";
 import type { CollectionItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 
@@ -42,7 +57,7 @@ type DropdownMenuProps = {
   toolTipDelay?: number;
 };
 
-export default function DropdownMenu({
+function DropdownMenu({
   onEdit,
   onDelete,
   onReload,
@@ -75,16 +90,62 @@ export default function DropdownMenu({
   toolTipDelay = 0,
 }: DropdownMenuProps) {
   const { t } = useTranslation();
-  const { twitchLoginEnabled } = useSettings();
+  const { activeSkinWeb } = useSkin();
+  const isSearchResultMenu = className.includes("search-result-dropdown-menu");
+  const sidebarSearchInteraction = useSidebarSearchInteraction();
+  const { isActivityBusy, activityProgress } = useLoading();
+  const metadataReloadBlocked = isActivityBusy && isBulkMetadataReloadInProgress();
+  const singleMetadataReloadTarget = resolveSingleMetadataReloadTarget({
+    gameId,
+    collectionId,
+    developerId,
+    publisherId,
+  });
+  const isSingleItemReloadMenu = singleMetadataReloadTarget != null;
+  const canReloadMetadata =
+    !!onReload ||
+    !!(gameId && onGameUpdate) ||
+    !!(collectionId && onCollectionUpdate) ||
+    !!((developerId || publisherId) && onCollectionUpdate) ||
+    (!gameId &&
+      !collectionId &&
+      !developerId &&
+      !publisherId &&
+      !onEdit &&
+      !onDelete);
+  const hasBackendAuth = true;
+  const [isOpen, setIsOpen] = useState(false);
+  const [showCancelBulkReloadModal, setShowCancelBulkReloadModal] = useState(false);
+  const [isCollectionLikeSubmenuOpen, setIsCollectionLikeSubmenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+  const collectionLikeSubmenuRef = useRef<HTMLDivElement>(null);
   /**
    * When Twitch auth is disabled the server accepts mutations without a token,
    * so delete/reload entries should remain available even without `getApiToken()`.
    */
-  const hasBackendAuth = !twitchLoginEnabled || !!getApiToken();
-  const [isOpen, setIsOpen] = useState(false);
-  const [isCollectionLikeSubmenuOpen, setIsCollectionLikeSubmenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const popupRef = useRef<HTMLDivElement>(null);
+  const closeDropdown = () => {
+    setIsOpen(false);
+    setIsCollectionLikeSubmenuOpen(false);
+  };
+  const beginSidebarSearchStackedAction = (run: () => void) => {
+    if (onModalOpen) {
+      onModalOpen();
+    }
+    run();
+    const keepSearchStackOpenForAction =
+      className.includes("search-result-dropdown-menu") && !!onModalOpen;
+    if (keepSearchStackOpenForAction) {
+      return;
+    }
+    requestAnimationFrame(() => {
+      closeDropdown();
+    });
+  };
+  const sheetBackdropProps = bindSheetBackdropClose(
+    activeSkinWeb.disableTitleTooltips,
+    closeDropdown,
+  );
 
   // Use action hooks
   const deleteGame = useDeleteGame({
@@ -106,11 +167,21 @@ export default function DropdownMenu({
   const reloadGame = useReloadGame({
     gameId,
     collectionId,
+    developerId,
+    publisherId,
+    itemTitle: gameTitle ?? collectionTitle,
     onGameUpdate,
     onCollectionUpdate,
     onReload,
     onModalClose,
   });
+
+  const isThisSingleReloadInProgress =
+    isSingleItemReloadMenu &&
+    !metadataReloadBlocked &&
+    (reloadGame.isReloading ||
+      isSingleMetadataReloadActiveFor(singleMetadataReloadTarget, activityProgress));
+  const metadataReloadInProgressLabel = metadataReloadBlocked || isThisSingleReloadInProgress;
 
   // Always call the hook (React rules of hooks); hook no-ops when gameId or onGameUpdate missing
   const unlinkExecutable = useUnlinkExecutable({
@@ -139,24 +210,89 @@ export default function DropdownMenu({
   /** Persistent shell / top tool dock: escape overflow clipping via body portal + fixed position */
   const isLibrariesTopMenu = className.includes('mhg-libraries-menu-dropdown');
   const isDetailDockMenu = className.includes('library-item-detail-dropdown-menu');
-  /** Game detail ⋮: portal to body so PS3 right sheet (z-index 10100) covers the overlay dock. */
+  /** Game detail ⋮: portal to body so the right sheet covers the overlay dock. */
   const isGameDetailMenu = className.includes('game-detail-dropdown-menu');
   const useDockPortalMenu = isLibrariesTopMenu || isDetailDockMenu;
   /** Body portal + fixed position under trigger (dock, detail sheet, game detail actions). */
   const useFixedBodyPortalMenu = useDockPortalMenu || isGameDetailMenu;
   
   // Check if we're in search (popup or results page) to use portal so menu isn't clipped and clicks work
-  const [isInSearchDropdown, setIsInSearchDropdown] = useState(false);
-  
+  const [isInSearchDropdownScroll, setIsInSearchDropdownScroll] = useState(false);
+  const [isInSidebarSearchDialog, setIsInSidebarSearchDialog] = useState(false);
+  const isInSearchDropdown = isSearchResultMenu || isInSearchDropdownScroll;
+  const sidebarSearchDialogOpen =
+    typeof document !== "undefined" &&
+    !!document.querySelector("[data-mhg-sidebar-search-dialog]");
+
   useEffect(() => {
     if (isOpen && menuRef.current) {
-      const inSearchScroll = !!menuRef.current.closest('.search-dropdown-scroll');
-      const inSearchResultsList = menuRef.current.classList.contains('search-result-dropdown-menu');
-      setIsInSearchDropdown(inSearchScroll || inSearchResultsList);
+      setIsInSearchDropdownScroll(!!menuRef.current.closest(".search-dropdown-scroll"));
+      setIsInSidebarSearchDialog(
+        !!menuRef.current.closest("[data-mhg-sidebar-search-dialog]") ||
+          (isSearchResultMenu && sidebarSearchDialogOpen),
+      );
     } else {
-      setIsInSearchDropdown(false);
+      setIsInSearchDropdownScroll(false);
+      setIsInSidebarSearchDialog(false);
     }
-  }, [isOpen]);
+  }, [isOpen, isSearchResultMenu, sidebarSearchDialogOpen]);
+
+  useLayoutEffect(() => {
+    const popup = popupRef.current;
+    if (!isOpen || !popup) return;
+
+    const inSidebarSearch =
+      isInSidebarSearchDialog ||
+      (isSearchResultMenu && sidebarSearchDialogOpen);
+
+    if (inSidebarSearch) {
+      popup.style.setProperty("z-index", "22200", "important");
+      popup.style.removeProperty("top");
+      popup.style.removeProperty("right");
+      popup.style.removeProperty("bottom");
+      popup.style.removeProperty("left");
+      return;
+    }
+
+    popup.style.removeProperty("z-index");
+  }, [isOpen, isInSidebarSearchDialog, isSearchResultMenu, sidebarSearchDialogOpen]);
+
+  const inSearchResultsActionStack = isSearchResultMenu && !!onModalOpen;
+
+  const searchConfirmStackZIndex = sidebarSearchDialogOpen
+    ? SIDEBAR_SEARCH_CONFIRM_Z_INDEX
+    : HEADER_SEARCH_ACTION_Z_INDEX;
+
+  const inSidebarSearchPortal =
+    isInSearchDropdown &&
+    (isInSidebarSearchDialog || (isSearchResultMenu && sidebarSearchDialogOpen));
+
+  const sidebarSearchMenuLayerOpen =
+    isOpen ||
+    deleteGame.showConfirmModal ||
+    reloadGame.showReloadConfirmModal ||
+    showCancelBulkReloadModal;
+
+  useLayoutEffect(() => {
+    if (!sidebarSearchInteraction || !sidebarSearchMenuLayerOpen) return;
+    return sidebarSearchInteraction.retainInteractionBlock();
+  }, [sidebarSearchInteraction, sidebarSearchMenuLayerOpen]);
+
+  useLayoutEffect(() => {
+    if (!isCollectionLikeSubmenuOpen) return;
+    const submenu = collectionLikeSubmenuRef.current;
+    if (!submenu) return;
+
+    submenu.style.left = "";
+    submenu.style.right = "";
+
+    const padding = 8;
+    const rect = submenu.getBoundingClientRect();
+    if (rect.right > window.innerWidth - padding) {
+      submenu.style.left = "auto";
+      submenu.style.right = "calc(100% - 1px)";
+    }
+  }, [isCollectionLikeSubmenuOpen, isOpen]);
 
   // Close submenu when main dropdown closes
   useEffect(() => {
@@ -168,17 +304,19 @@ export default function DropdownMenu({
       window.dispatchEvent(new CustomEvent('closeAdditionalExecutablesDropdown', {
         detail: { gameId: gameId }
       }));
-      // Dispatch event to notify cover that dropdown is closed
-      window.dispatchEvent(new CustomEvent('dropdownMenuClosed', {
-        detail: { gameId: gameId }
-      }));
+      if (!isSearchResultMenu) {
+        window.dispatchEvent(new CustomEvent('dropdownMenuClosed', {
+          detail: { gameId: gameId }
+        }));
+      }
     } else if (!isOpen && collectionId) {
-      // Dispatch event to notify cover that dropdown is closed
-      window.dispatchEvent(new CustomEvent('dropdownMenuClosed', {
-        detail: { collectionId: collectionId }
-      }));
+      if (!isSearchResultMenu) {
+        window.dispatchEvent(new CustomEvent('dropdownMenuClosed', {
+          detail: { collectionId: collectionId }
+        }));
+      }
     }
-  }, [isOpen, gameId, collectionId]);
+  }, [isOpen, gameId, collectionId, isSearchResultMenu]);
 
   useEffect(() => {
     function handleCloseAllMenus() {
@@ -207,6 +345,26 @@ export default function DropdownMenu({
       
       // Also check by class name
       if (target.closest('.dropdown-menu-popup')) {
+        return;
+      }
+
+      if (target.closest('.dropdown-menu-collectionlike-submenu')) {
+        return;
+      }
+
+      const menuStack = target.closest("[data-mhg-sidebar-search-menu-stack]");
+      if (menuStack && popupRef.current && menuStack.contains(popupRef.current)) {
+        if (popupRef.current.contains(target)) {
+          return;
+        }
+        if (target.closest(".add-to-collection-dropdown-menu")) {
+          return;
+        }
+        if (target.closest(".additional-executables-dropdown-menu")) {
+          return;
+        }
+        // Backdrop click on the portaled search ⋮ stack — close menu only.
+        setIsOpen(false);
         return;
       }
       
@@ -272,6 +430,11 @@ export default function DropdownMenu({
     e.stopPropagation();
     const newIsOpen = !isOpen;
     setIsOpen(newIsOpen);
+
+    // Search-result rows are not grid covers; skip cover dropdown overlay events.
+    if (isSearchResultMenu) {
+      return;
+    }
     
     // Dispatch custom event to notify cover about dropdown state
     if (gameId) {
@@ -299,13 +462,11 @@ export default function DropdownMenu({
 
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsOpen(false);
-    if (onModalOpen) {
-      onModalOpen();
-    }
-    if (onEdit) {
-      onEdit();
-    }
+    beginSidebarSearchStackedAction(() => {
+      if (onEdit) {
+        onEdit();
+      }
+    });
   };
 
   const handleAddToCollectionMouseEnter = (e: React.MouseEvent) => {
@@ -384,15 +545,14 @@ export default function DropdownMenu({
 
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsOpen(false);
-    
+
     // If we have props to handle deletion internally (game, collection, developer, or publisher)
     if ((gameId && gameTitle) || (collectionId && collectionTitle) || (developerId && collectionTitle) || (publisherId && collectionTitle)) {
-      if (onModalOpen) {
-        onModalOpen();
-      }
-      deleteGame.handleDeleteClick();
+      beginSidebarSearchStackedAction(() => {
+        deleteGame.handleDeleteClick();
+      });
     } else if (onDelete) {
+      closeDropdown();
       // Fallback to previous behavior
       onDelete();
     }
@@ -401,10 +561,21 @@ export default function DropdownMenu({
   const handleReload = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    setIsOpen(false);
+
+    if (!canReloadMetadata) {
+      return;
+    }
+
+    if (metadataReloadInProgressLabel) {
+      beginSidebarSearchStackedAction(() => {
+        setShowCancelBulkReloadModal(true);
+      });
+      return;
+    }
     
     // If there's a gameId or collectionId, execute reload directly (single element)
-    if (gameId || collectionId) {
+    if (gameId || collectionId || developerId || publisherId) {
+      closeDropdown();
       if (onReload) {
         // If there's a custom callback, use it
         onReload();
@@ -414,14 +585,28 @@ export default function DropdownMenu({
       return;
     }
     
-    // Otherwise show confirmation modal for global reload
-    // Use setTimeout to ensure dropdown is closed before opening modal
-    setTimeout(() => {
-      if (onModalOpen) {
-        onModalOpen();
-      }
+    beginSidebarSearchStackedAction(() => {
       reloadGame.handleReloadClick();
-    }, 0);
+    });
+  };
+
+  const handleDismissCancelBulkReload = () => {
+    setShowCancelBulkReloadModal(false);
+    if (onModalClose) {
+      onModalClose();
+    }
+  };
+
+  const handleConfirmCancelBulkReload = () => {
+    if (metadataReloadBlocked) {
+      cancelBulkMetadataReload();
+    } else if (isThisSingleReloadInProgress) {
+      cancelSingleMetadataReload();
+    }
+    setShowCancelBulkReloadModal(false);
+    if (onModalClose) {
+      onModalClose();
+    }
   };
 
   const handleUnlinkExecutableClick = async (e: React.MouseEvent) => {
@@ -480,11 +665,12 @@ export default function DropdownMenu({
         buttonContent
       )}
       {isOpen && (() => {
-        const popupContent = (
+        const popupPanel = (
           <div 
             ref={popupRef} 
-            className={`dropdown-menu-popup ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''} ${isInGamesTable ? 'dropdown-menu-popup-in-games-table' : ''} ${useFixedBodyPortalMenu ? 'dropdown-menu-popup-in-libraries-top' : ''}`}
+            className={`dropdown-menu-popup ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''} ${isInSidebarSearchDialog ? 'dropdown-menu-popup-in-sidebar-search' : ''} ${isInGamesTable ? 'dropdown-menu-popup-in-games-table' : ''} ${useFixedBodyPortalMenu ? 'dropdown-menu-popup-in-libraries-top' : ''}`}
             onMouseLeave={handlePopupMouseLeave}
+            {...(inSidebarSearchPortal ? {} : sheetBackdropProps)}
             style={(() => {
               if (!menuRef.current) return undefined;
               
@@ -500,12 +686,21 @@ export default function DropdownMenu({
               }
               
               if (isInSearchDropdown) {
+                const inSidebarSearch =
+                  isInSidebarSearchDialog ||
+                  (isSearchResultMenu && sidebarSearchDialogOpen);
+                if (inSidebarSearch) {
+                  return { zIndex: SIDEBAR_SEARCH_MENU_Z_INDEX };
+                }
                 const rect = menuRef.current.getBoundingClientRect();
                 return {
                   position: 'fixed',
                   top: `${rect.bottom + 4}px`,
                   right: `${window.innerWidth - rect.right}px`,
                   zIndex: 10007,
+                  ...(inSearchResultsActionStack && !sidebarSearchDialogOpen
+                    ? { pointerEvents: "auto" as const }
+                    : {}),
                 };
               }
               
@@ -625,6 +820,7 @@ export default function DropdownMenu({
                     </svg>
                     {isCollectionLikeSubmenuOpen && (
                       <div
+                        ref={collectionLikeSubmenuRef}
                         className="dropdown-menu-collectionlike-submenu"
                         onMouseEnter={() => setIsCollectionLikeSubmenuOpen(true)}
                         onMouseLeave={(e) => {
@@ -647,8 +843,8 @@ export default function DropdownMenu({
                             {collectionLikeResourceType === "collections"
                               ? t("collections.addToCollection", "Add to Collection...")
                               : collectionLikeResourceType === "developers"
-                                ? t("igdbInfo.addToDeveloper", "Add to Developer...")
-                                : t("igdbInfo.addToPublisher", "Add to Publisher...")}
+                                ? t("catalogInfo.addToDeveloper", "Add to Developer...")
+                                : t("catalogInfo.addToPublisher", "Add to Publisher...")}
                           </span>
                         </button>
                         {recentCollectionLikeParents.length > 0 && (
@@ -705,7 +901,7 @@ export default function DropdownMenu({
                 (onRemoveFromParent && !gameId && (collectionId || developerId || publisherId))
               ) &&
               (onEdit ||
-                (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !developerId && !publisherId && !onEdit && !onDelete)) ||
+                canReloadMetadata ||
                 (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) ||
                 (onDelete || (hasBackendAuth && (gameId || collectionId || developerId || publisherId)))) && (
               <div 
@@ -742,7 +938,7 @@ export default function DropdownMenu({
                 }}
                 className="dropdown-menu-item dropdown-menu-item-danger"
               >
-                <span>{t("igdbInfo.removeFromDeveloper", "Remove from developer")}</span>
+                <span>{t("catalogInfo.removeFromDeveloper", "Remove from developer")}</span>
               </button>
             )}
             {onRemoveFromPublisher && gameId && publisherId && (
@@ -754,7 +950,7 @@ export default function DropdownMenu({
                 }}
                 className="dropdown-menu-item dropdown-menu-item-danger"
               >
-                <span>{t("igdbInfo.removeFromPublisher", "Remove from publisher")}</span>
+                <span>{t("catalogInfo.removeFromPublisher", "Remove from publisher")}</span>
               </button>
             )}
             {onRemoveFromParent && !gameId && (collectionId || developerId || publisherId) && (
@@ -770,12 +966,12 @@ export default function DropdownMenu({
                   {collectionId
                     ? t("collections.removeFromCollection", "Remove from collection")
                     : developerId
-                      ? t("igdbInfo.removeFromDeveloper", "Remove from developer")
-                      : t("igdbInfo.removeFromPublisher", "Remove from publisher")}
+                      ? t("catalogInfo.removeFromDeveloper", "Remove from developer")
+                      : t("catalogInfo.removeFromPublisher", "Remove from publisher")}
                 </span>
               </button>
             )}
-            {((onRemoveFromCollection && gameId && collectionId) || (onRemoveFromDeveloper && gameId && developerId) || (onRemoveFromPublisher && gameId && publisherId) || (onRemoveFromParent && !gameId && (collectionId || developerId || publisherId))) && (onEdit || (onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !developerId && !publisherId && !onEdit && !onDelete)) || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (hasBackendAuth && (gameId || collectionId || developerId || publisherId)))) && (
+            {((onRemoveFromCollection && gameId && collectionId) || (onRemoveFromDeveloper && gameId && developerId) || (onRemoveFromPublisher && gameId && publisherId) || (onRemoveFromParent && !gameId && (collectionId || developerId || publisherId))) && (onEdit || canReloadMetadata || (gameId && gameExecutables && gameExecutables.length > 0 && onGameUpdate) || (onDelete || (hasBackendAuth && (gameId || collectionId || developerId || publisherId)))) && (
               <div className="dropdown-menu-divider" />
             )}
             
@@ -788,17 +984,17 @@ export default function DropdownMenu({
                 <span>{t("common.edit", "Edit")}</span>
               </button>
             )}
-            {(onReload || (gameId && onGameUpdate) || (!gameId && !collectionId && !developerId && !publisherId && !onEdit && !onDelete)) && (
+            {canReloadMetadata && (
               <button
                 onClick={handleReload}
                 className="dropdown-menu-item"
-                disabled={reloadGame.isReloading}
               >
                 <span>
-                  {gameId
-                    ? t("common.reloadSingleMetadata", "Reload metadata")
-                    : t("common.reloadMetadata", "Reload all metadata")
-                  }
+                  {metadataReloadInProgressLabel
+                    ? t("common.reloadingMetadata", "Updating metadata...")
+                    : isSingleItemReloadMenu
+                      ? t("common.reloadSingleMetadata", "Reload metadata")
+                      : t("common.reloadMetadata", "Reload all metadata")}
                 </span>
               </button>
             )}
@@ -825,16 +1021,33 @@ export default function DropdownMenu({
             )}
           </div>
         );
+
+        const popupContent = inSidebarSearchPortal ? (
+          <div className="edit-game-modal-overlay" {...sheetBackdropProps}>
+            {popupPanel}
+          </div>
+        ) : (
+          popupPanel
+        );
         
         // Use portal for search dropdown, cover, or games table (escape overflow and stay on top)
         return (isInSearchDropdown || isInCover || isInGamesTable || useFixedBodyPortalMenu)
-          ? createPortal(popupContent, document.body)
+          ? createPortal(
+              wrapSidebarSearchMenuStack(
+                popupContent,
+                inSearchResultsActionStack,
+                resolveSearchMenuStackZIndex(sidebarSearchDialogOpen),
+                inSearchResultsActionStack && !sidebarSearchDialogOpen,
+              ),
+              document.body,
+            )
           : popupContent;
       })()}
 
       {/* Reload Confirmation Modal */}
       {reloadGame.showReloadConfirmModal && createPortal(
-        <div className="dropdown-menu-confirm-overlay" onClick={reloadGame.handleCancelReload}>
+        wrapSidebarSearchMenuStack(
+          <div className="dropdown-menu-confirm-overlay" onClick={reloadGame.handleCancelReload}>
           <div className="dropdown-menu-confirm-container" onClick={(e) => e.stopPropagation()}>
             <div className="dropdown-menu-confirm-header">
               <h2>
@@ -880,19 +1093,87 @@ export default function DropdownMenu({
               <button
                 className="dropdown-menu-confirm-reload"
                 onClick={reloadGame.handleConfirmReload}
-                disabled={reloadGame.isReloading}
+                disabled={reloadGame.isReloading || metadataReloadBlocked}
               >
-                {reloadGame.isReloading ? t("common.reloading", "Reloading...") : t("common.reloadMetadata", "Reload all metadata")}
+                {reloadGame.isReloading || metadataReloadBlocked
+                  ? t("common.reloadingMetadata", "Updating metadata...")
+                  : t("common.reloadMetadata", "Reload all metadata")}
               </button>
             </div>
           </div>
         </div>,
+          inSearchResultsActionStack,
+          searchConfirmStackZIndex,
+        ),
         document.body
+      )}
+
+      {/* Cancel bulk metadata reload */}
+      {showCancelBulkReloadModal && createPortal(
+        wrapSidebarSearchMenuStack(
+          <div className="dropdown-menu-confirm-overlay" onClick={handleDismissCancelBulkReload}>
+          <div className="dropdown-menu-confirm-container" onClick={(e) => e.stopPropagation()}>
+            <div className="dropdown-menu-confirm-header">
+              <h2>
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                  <path d="M21 3v5h-5" />
+                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                  <path d="M3 21v-5h5" />
+                </svg>
+                {t("common.reloadingMetadata", "Updating metadata...")}
+              </h2>
+              <button
+                className="dropdown-menu-confirm-close"
+                onClick={handleDismissCancelBulkReload}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="dropdown-menu-confirm-content">
+              <p>
+                {t(
+                  "common.confirmCancelBulkReload",
+                  "Do you want to cancel the metadata update in progress?",
+                )}
+              </p>
+            </div>
+            <div className="dropdown-menu-confirm-footer">
+              <button
+                className="dropdown-menu-confirm-cancel"
+                onClick={handleDismissCancelBulkReload}
+              >
+                {t("common.continueMetadataReload", "Continue")}
+              </button>
+              <button
+                className="dropdown-menu-confirm-delete"
+                onClick={handleConfirmCancelBulkReload}
+              >
+                {t("common.cancelBulkReload", "Cancel update")}
+              </button>
+            </div>
+          </div>
+        </div>,
+          inSearchResultsActionStack,
+          searchConfirmStackZIndex,
+        ),
+        document.body,
       )}
 
       {/* Delete Confirmation Modal */}
       {deleteGame.showConfirmModal && createPortal(
-        <div className="dropdown-menu-confirm-overlay" onClick={deleteGame.handleCancelDelete}>
+        wrapSidebarSearchMenuStack(
+          <div className="dropdown-menu-confirm-overlay" onClick={deleteGame.handleCancelDelete}>
           <div className="dropdown-menu-confirm-container" onClick={(e) => e.stopPropagation()}>
             <div className="dropdown-menu-confirm-header">
               <h2>
@@ -944,9 +1225,13 @@ export default function DropdownMenu({
             </div>
           </div>
         </div>,
-        document.body
+          inSearchResultsActionStack,
+          searchConfirmStackZIndex,
+        ),
+        document.body,
       )}
     </div>
   );
 }
 
+export default DropdownMenu;

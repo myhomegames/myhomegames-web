@@ -1,8 +1,8 @@
 import { useState, useRef, useMemo } from "react";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
-import { API_BASE, getApiToken } from "../../config";
-import { buildApiUrl } from "../../utils/api";
+import { API_BASE } from "../../config";
+import { buildApiUrl, buildApiHeaders } from "../../utils/api";
 import Cover from "../games/Cover";
 import EditCollectionLikeModal, { type CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 import AddCollectionLikeToCollectionLikeModal from "../collections/AddCollectionLikeToCollectionLikeModal";
@@ -13,7 +13,6 @@ import type { CollectionItem, CollectionInfo, GameItem } from "../../types";
 import { filterRootCollectionLikes } from "../../utils/stringUtils";
 import { portraitCoverHeight } from "../../utils/coverPortrait";
 import { useSkin } from "../../contexts/SkinContext";
-import { useSettings } from "../../contexts/SettingsContext";
 const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are more than this many items
 
 export type GamesPathType = "collections" | "developers" | "publishers";
@@ -107,10 +106,7 @@ export function CollectionListItem({
     try {
       const url = buildApiUrl(API_BASE, `/${gamesPath}/${collection.id}/games`);
       const res = await fetch(url, {
-        headers: {
-          Accept: "application/json",
-          "X-Auth-Token": getApiToken(),
-        },
+        headers: buildApiHeaders({ Accept: "application/json" }),
       });
       if (res.ok) {
         const json = await res.json();
@@ -216,7 +212,6 @@ export default function CollectionsList({
   activationLocked = false,
 }: CollectionsListProps) {
   const { t } = useTranslation();
-  const { twitchLoginEnabled } = useSettings();
   const { activeSkinWeb } = useSkin();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedCollection, setSelectedCollection] = useState<CollectionInfo | null>(null);
@@ -247,9 +242,9 @@ export default function CollectionsList({
   if (!isLoading && collections.length === 0) {
     const emptyMessageKey =
       gamesPath === "developers"
-        ? "igdbInfo.noDevelopersFound"
+        ? "catalogInfo.noDevelopersFound"
         : gamesPath === "publishers"
-          ? "igdbInfo.noPublishersFound"
+          ? "catalogInfo.noPublishersFound"
           : "collections.noCollectionsFound";
     return (
       <div className="collections-list-empty">
@@ -300,8 +295,6 @@ export default function CollectionsList({
       setLinkSourceCollectionLike(source);
       return;
     }
-    const token = getApiToken();
-    if (twitchLoginEnabled && !token) return;
     try {
       const url = buildApiUrl(
         API_BASE,
@@ -309,7 +302,7 @@ export default function CollectionsList({
       );
       const res = await fetch(url, {
         method: "POST",
-        headers: { "X-Auth-Token": token },
+        headers: buildApiHeaders(),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 

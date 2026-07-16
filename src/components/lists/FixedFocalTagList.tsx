@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useLocation } from "react-router-dom";
 import type { TagItem } from "../../types";
 import { useSkin } from "../../contexts/SkinContext";
-import { readGridTopInsetPx, readLibraryBarBandPx } from "../../utils/readGridTopInsetPx";
+import { readFixedFocalTopPx, readLibraryBarBandPx } from "../../utils/readGridTopInsetPx";
 import { notifyFixedFocalIndexChange } from "../../utils/fixedFocalStepSound";
 import { applyWheelDeltaStep, readWheelStepThresholdPx } from "../../utils/stepScrollSnap";
 import {
@@ -97,7 +97,9 @@ export default function FixedFocalTagList({
   const listRef = useRef<HTMLDivElement>(null);
   const storageKey = `${location.pathname}:${routeBase}`;
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-  const [focalTopPx, setFocalTopPx] = useState(() => readGridTopInsetPx(containerRef.current));
+  const [focalTopPx, setFocalTopPx] = useState(() =>
+    readFixedFocalTopPx(listRef.current, containerRef.current),
+  );
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isRestored, setIsRestored] = useState(false);
   const { activeSkinId, activeSkinWeb } = useSkin();
@@ -116,11 +118,15 @@ export default function FixedFocalTagList({
 
   useEffect(() => {
     setFocalTopPx(
-      contextRailPeek ? peekFocalTopPx : readGridTopInsetPx(containerRef.current),
+      contextRailPeek
+        ? peekFocalTopPx
+        : readFixedFocalTopPx(listRef.current, containerRef.current),
     );
     const t = window.setTimeout(() => {
       setFocalTopPx(
-        contextRailPeek ? peekFocalTopPx : readGridTopInsetPx(containerRef.current),
+        contextRailPeek
+          ? peekFocalTopPx
+          : readFixedFocalTopPx(listRef.current, containerRef.current),
       );
     }, 50);
     return () => window.clearTimeout(t);
@@ -147,7 +153,9 @@ export default function FixedFocalTagList({
         height: Math.max(contentHeight, rect.height, viewportHeight) || viewportHeight - 200,
       });
       setFocalTopPx(
-        contextRailPeek ? peekFocalTopPx : readGridTopInsetPx(containerRef.current),
+        contextRailPeek
+          ? peekFocalTopPx
+          : readFixedFocalTopPx(listRef.current, containerRef.current),
       );
     };
 

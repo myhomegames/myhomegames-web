@@ -13,12 +13,14 @@ import { useBackground } from "../common/BackgroundManager";
 import { API_BASE } from "../../config";
 import { useSkin } from "../../contexts/SkinContext";
 import { useActiveProfile } from "../../hooks/useActiveProfile";
+import { useLibrarySidebarLayout } from "../../contexts/LibrarySidebarLayoutContext";
 import ProfileDropdown from "./ProfileDropdown";
 import { useLibraryGames } from "../../contexts/LibraryGamesContext";
 import type { ViewMode, GameLibrarySection, GameItem, CollectionItem } from "../../types";
 import SidebarSearchOverlay from "./SidebarSearchOverlay";
 import Logo from "../common/Logo";
 import ActivitySpinner from "./ActivitySpinner";
+import { formatActivityProgressLabel } from "../../utils/activityProgressLabel";
 import UpdateNotification from "./UpdateNotification";
 import { useTopDockSlot } from "../../contexts/TopDockSlotContext";
 import { playFixedFocalStepSound } from "../../utils/fixedFocalStepSound";
@@ -28,6 +30,12 @@ import {
   contextRailViewTransitionsEnabled,
   isContextRailDetailPathname,
 } from "../../utils/contextRailIndexPeek";
+import {
+  centerActiveLibraryInStrip,
+  librariesStripNeedsHorizontalScroll,
+  syncLibrariesStripScroll,
+  verticalCoverRailScrollLayoutForPath,
+} from "../../utils/librariesStripScroll";
 
 type CollectionShortcut = {
   id: string;
@@ -191,6 +199,13 @@ const COMBOBOX_COLLECTION_SHORTCUT_PREFIX = "mhg:collection:";
 /** Two distinct entries (all vs installed) when `ownedGamesFirstInGamesSidebar` moves the library into the Games menu. */
 const COMBOBOX_LIBRARY_FILTER_PREFIX = "mhg:libraryFilter:";
 
+function readCssNumberVar(name: string, fallback: number): number {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  if (!raw) return fallback;
+  const parsed = Number.parseFloat(raw);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 type LibrariesBarProps = {
   libraries: GameLibrarySection[];
   activeLibrary: GameLibrarySection | null;
@@ -234,7 +249,7 @@ type LibrariesBarProps = {
    * `TopDockSlotContext`. Only the shell-level `LibrariesBar` (the one
    * rendered above `<Outlet />` in `MainAppLayout`) should set this to true;
    * page-level `LibrariesBar` instances (e.g. inside `LibraryItemDetailPage`,
-   * `TagGamesPage`, `HomePageClassic`, `GameDetail`, `IGDBGameDetailPage`)
+   * `TagGamesPage`, `HomePageClassic`, `GameDetail`, `CatalogGameDetailPage`)
    * must leave it false so they don't overwrite the canonical slot in the
    * shared context (and reset it to `null` when they unmount on navigation).
    */
@@ -291,6 +306,7 @@ export default function LibrariesBar({
     : undefined;
   const { activeSkinWeb } = useSkin();
   const { showProfile } = useActiveProfile();
+  const { collapsibleActive, sidebarOpen, closeSidebar } = useLibrarySidebarLayout();
   const contextRailViewTransitions = contextRailViewTransitionsEnabled(activeSkinWeb);
   const contextRailDetailRoute = isContextRailDetailPathname(pathname);
   const libraryActiveViewTransitionStyle = useCallback(
@@ -389,7 +405,8 @@ export default function LibrariesBar({
     return [libraryForGamesSidebar, ...rest];
   }, [libraries, hideCollectionsOverviewRow, ownedGamesInGamesSidebar, libraryForGamesSidebar]);
 
-  const { isLoading: globalLoading } = useLoading();
+  const { isLoading: globalLoading, isActivityBusy, activityProgress } = useLoading();
+  const activityTooltipText = formatActivityProgressLabel(t, activityProgress);
   const { hasBackground, isBackgroundVisible, setBackgroundVisible } = useBackground();
   // Use global loading if prop is not provided, otherwise use prop
   const isLoading = loading !== undefined ? loading : globalLoading;
@@ -406,16 +423,26 @@ export default function LibrariesBar({
   const isFirstLibrariesLayoutRef = useRef(true);
   const prevCollectionShortcutCountRef = useRef(collectionShortcuts.length);
   const prevOwnedGamesInSidebarRef = useRef(ownedGamesInGamesSidebar);
+  /** True once horizontal layout has been committed to the DOM (skip stable-measure gate on resize). */
+  const layoutReadyRef = useRef(activeSkinWeb.libraryPagesVerticalList);
+  /** Consecutive identical width probes before first reveal on sub-desktop widths only. */
+  const layoutMeasureRef = useRef<{
+    containerWidth: number;
+    streak: number;
+  } | null>(null);
   const [sidebarSearchOpen, setSidebarSearchOpen] = useState(false);
   /** Collapsible Games / collections sidebar block (sidebar skin: full-width row + chevron). */
   const [gamesSidebarExpanded, setGamesSidebarExpanded] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
+  const [measuredActionsWidth, setMeasuredActionsWidth] = useState(136);
 
   useLayoutEffect(() => {
     if (!activeLibrary) {
       setIsNarrow(false);
       setLibrariesBarLayoutReady(true);
+      layoutReadyRef.current = true;
+      layoutMeasureRef.current = null;
       return;
     }
 
@@ -430,6 +457,8 @@ export default function LibrariesBar({
         ownedGamesInSidebarChanged
       ) {
         setLibrariesBarLayoutReady(false);
+        layoutReadyRef.current = false;
+        layoutMeasureRef.current = null;
         prevCollectionShortcutCountRef.current = collectionShortcuts.length;
         prevOwnedGamesInSidebarRef.current = ownedGamesInGamesSidebar;
       }
@@ -444,6 +473,8 @@ export default function LibrariesBar({
       if (activeSkinWeb.libraryPagesVerticalList) {
         setIsNarrow(false);
         setLibrariesBarLayoutReady(true);
+        layoutReadyRef.current = true;
+        layoutMeasureRef.current = null;
         return;
       }
 
@@ -459,19 +490,26 @@ export default function LibrariesBar({
       if (forceList) {
         setIsNarrow(false);
         setLibrariesBarLayoutReady(true);
+        layoutReadyRef.current = true;
+        layoutMeasureRef.current = null;
         return;
       }
 
       const windowWidth = window.innerWidth;
+      const actionsEl = actionsRef.current;
+      if (actionsEl && actionsEl.offsetWidth >= 48) {
+        setMeasuredActionsWidth(actionsEl.offsetWidth);
+      }
 
-      if (windowWidth < 800) {
+      if (windowWidth < 1024) {
         setIsNarrow(true);
         setLibrariesBarLayoutReady(true);
+        layoutReadyRef.current = true;
+        layoutMeasureRef.current = null;
         return;
       }
 
       const containerEl = containerRef.current;
-      const actionsEl = actionsRef.current;
       if (!containerEl || !actionsEl) {
         requestAnimationFrame(() => {
           if (!cancelled) checkWidth();
@@ -484,13 +522,27 @@ export default function LibrariesBar({
 
       // Before layout is committed, widths can be 0 or tiny and falsely trigger the combobox.
       if (containerWidth < 120) {
+        layoutMeasureRef.current = null;
         requestAnimationFrame(() => {
           if (!cancelled) checkWidth();
         });
         return;
       }
 
-      const availableWidth = containerWidth - actionsWidth - 180;
+      // Right-side actions often mount after first paint; keep the bar hidden until measured
+      // so we do not briefly show the combobox and then switch to inline tabs.
+      if (actionsWidth < 48) {
+        layoutMeasureRef.current = null;
+        requestAnimationFrame(() => {
+          if (!cancelled) checkWidth();
+        });
+        return;
+      }
+
+      const menuEl = containerEl.querySelector<HTMLElement>(".mhg-libraries-menu-container");
+      const menuReserve = menuEl?.offsetWidth ?? 0;
+      const sideReserve = Math.max(menuReserve, 24) + 48;
+      const availableWidth = containerWidth - actionsWidth - sideReserve;
       /*
        * Estimate minimum width to fit all inline bar items. Besides main page tabs, count the
        * sidebar search trigger when present, and the Games / Collections block (heading plus
@@ -528,12 +580,59 @@ export default function LibrariesBar({
         }
         estimatedItems += collectionShortcuts.length;
       }
-      const minButtonsWidth = estimatedItems * 110;
-      setIsNarrow(availableWidth < minButtonsWidth);
-      setLibrariesBarLayoutReady(true);
+      const comboboxItemWidth = readCssNumberVar("--mhg-libraries-combobox-item-width", 110);
+      const comboboxAnticipation = readCssNumberVar("--mhg-libraries-combobox-anticipation", 0);
+      const comboboxHysteresis = readCssNumberVar("--mhg-libraries-combobox-hysteresis", 200);
+      const minButtonsWidth = estimatedItems * comboboxItemWidth + comboboxAnticipation;
+      const fitsInlineList = availableWidth >= minButtonsWidth;
+
+      if (layoutReadyRef.current) {
+        setIsNarrow((prev) => {
+          if (prev) {
+            // Hysteresis: keep combobox until inline tabs clearly fit (avoids left → centered snap).
+            return availableWidth < minButtonsWidth + comboboxHysteresis;
+          }
+          return !fitsInlineList;
+        });
+        return;
+      }
+
+      /*
+       * Desktop first paint: always reveal the inline strip. Early measurements often
+       * underestimate container width (flex still settling) and flash combobox → inline.
+       * After reveal, checkWidth runs again and may switch to combobox if space is tight.
+       */
+      if (windowWidth >= 1024) {
+        setIsNarrow(false);
+        setLibrariesBarLayoutReady(true);
+        layoutReadyRef.current = true;
+        layoutMeasureRef.current = null;
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (!cancelled) checkWidth();
+          });
+        });
+        return;
+      }
+
+      const widthBucket = Math.round(containerWidth / 8) * 8;
+      const probe = layoutMeasureRef.current;
+      if (probe && probe.containerWidth === widthBucket) {
+        probe.streak += 1;
+      } else {
+        layoutMeasureRef.current = { containerWidth: widthBucket, streak: 1 };
+      }
+
+      if ((layoutMeasureRef.current?.streak ?? 0) >= 2) {
+        setIsNarrow(!fitsInlineList);
+        setLibrariesBarLayoutReady(true);
+        layoutReadyRef.current = true;
+        layoutMeasureRef.current = null;
+      }
     };
 
     const containerEl = containerRef.current;
+    const actionsEl = actionsRef.current;
     const resizeObserver =
       typeof ResizeObserver !== "undefined" && containerEl
         ? new ResizeObserver(() => {
@@ -542,6 +641,9 @@ export default function LibrariesBar({
         : null;
     if (resizeObserver && containerEl) {
       resizeObserver.observe(containerEl);
+    }
+    if (resizeObserver && actionsEl) {
+      resizeObserver.observe(actionsEl);
     }
 
     checkWidth();
@@ -558,7 +660,16 @@ export default function LibrariesBar({
     window.addEventListener("resize", checkWidth);
 
     const safetyLayoutReadyId = window.setTimeout(() => {
+      if (cancelled || layoutReadyRef.current) return;
+      setIsNarrow(window.innerWidth >= 1024 ? false : true);
       setLibrariesBarLayoutReady(true);
+      layoutReadyRef.current = true;
+      layoutMeasureRef.current = null;
+      if (window.innerWidth >= 1024) {
+        requestAnimationFrame(() => {
+          if (!cancelled) checkWidth();
+        });
+      }
     }, 400);
 
     return () => {
@@ -696,8 +807,9 @@ export default function LibrariesBar({
       playBarStepSound();
       if (filterField) applyLibraryFilter(filterField);
       onSelectLibrary(library);
+      if (collapsibleActive) closeSidebar();
     },
-    [applyLibraryFilter, isLibraryPageActive, onSelectLibrary, playBarStepSound],
+    [applyLibraryFilter, collapsibleActive, closeSidebar, isLibraryPageActive, onSelectLibrary, playBarStepSound],
   );
 
   const selectCollectionShortcutEntry = useCallback(
@@ -705,16 +817,18 @@ export default function LibrariesBar({
       if (activeCollectionShortcutId === collectionId) return;
       playBarStepSound();
       onSelectCollectionShortcut?.(collectionId);
+      if (collapsibleActive) closeSidebar();
     },
-    [activeCollectionShortcutId, onSelectCollectionShortcut, playBarStepSound],
+    [activeCollectionShortcutId, collapsibleActive, closeSidebar, onSelectCollectionShortcut, playBarStepSound],
   );
 
   const navigateFromBar = useCallback(
     (path: string, isAlreadyActive: boolean) => {
       if (!isAlreadyActive) playBarStepSound();
       navigate(path);
+      if (collapsibleActive) closeSidebar();
     },
-    [navigate, playBarStepSound],
+    [collapsibleActive, closeSidebar, navigate, playBarStepSound],
   );
 
   const handleLibraryHoverSelect = (
@@ -748,41 +862,43 @@ export default function LibrariesBar({
   /* On /collections/:id, highlight only the collection, not a “page” tab as well */
   const showLibraryActiveHighlight = activeCollectionShortcutId == null;
 
+  const syncActiveLibraryIconPosition = useCallback(() => {
+    const containerEl = containerRef.current;
+    if (!containerEl) return;
+    const activeButton = containerEl.querySelector(".mhg-library-active") as HTMLElement | null;
+    if (!activeButton) return;
+    const rect = activeButton.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const beforeStyle = getComputedStyle(activeButton, "::before");
+    const glyphFontSize = parseFloat(beforeStyle.fontSize);
+    const glyphHalfWidth =
+      Number.isFinite(glyphFontSize) && glyphFontSize > 0 ? glyphFontSize * 0.5 : 26;
+    const graphicLeftX = centerX - glyphHalfWidth;
+    document.documentElement.style.setProperty("--mhg-active-library-icon-center-x", `${centerX}px`);
+    document.documentElement.style.setProperty("--mhg-active-library-icon-center-y", `${centerY}px`);
+    document.documentElement.style.setProperty("--mhg-active-library-icon-left-x", `${rect.left}px`);
+    document.documentElement.style.setProperty(
+      "--mhg-active-library-icon-graphic-left-x",
+      `${graphicLeftX}px`,
+    );
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
-    const updateActiveIconLine = () => {
-      const containerEl = containerRef.current;
-      if (!containerEl) return;
-      const activeButton = containerEl.querySelector(".mhg-library-active") as HTMLElement | null;
-      if (!activeButton) return;
-      const rect = activeButton.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-      const beforeStyle = getComputedStyle(activeButton, "::before");
-      const glyphFontSize = parseFloat(beforeStyle.fontSize);
-      const glyphHalfWidth =
-        Number.isFinite(glyphFontSize) && glyphFontSize > 0 ? glyphFontSize * 0.5 : 26;
-      const graphicLeftX = centerX - glyphHalfWidth;
-      document.documentElement.style.setProperty("--mhg-active-library-icon-center-x", `${centerX}px`);
-      document.documentElement.style.setProperty("--mhg-active-library-icon-center-y", `${centerY}px`);
-      document.documentElement.style.setProperty("--mhg-active-library-icon-left-x", `${rect.left}px`);
-      document.documentElement.style.setProperty(
-        "--mhg-active-library-icon-graphic-left-x",
-        `${graphicLeftX}px`,
-      );
-    };
-    updateActiveIconLine();
-    const onResize = () => updateActiveIconLine();
+    syncActiveLibraryIconPosition();
+    const onResize = () => syncActiveLibraryIconPosition();
     window.addEventListener("resize", onResize);
-    const t = window.setTimeout(updateActiveIconLine, 60);
+    const t = window.setTimeout(syncActiveLibraryIconPosition, 60);
     return () => {
       window.removeEventListener("resize", onResize);
       window.clearTimeout(t);
     };
-  }, [pathname, activeLibrary?.key, activeCollectionShortcutId, libraries.length]);
+  }, [pathname, activeLibrary?.key, activeCollectionShortcutId, libraries.length, syncActiveLibraryIconPosition]);
 
   useEffect(() => {
     if (!activeSkinWeb.verticalCoverAlignment) return;
+    if (collapsibleActive && sidebarOpen) return;
     const strip = containerRef.current;
     if (!strip) return;
     const wheelRoot =
@@ -801,8 +917,11 @@ export default function LibrariesBar({
       if (
         libRow &&
         Math.abs(e.deltaX) > Math.abs(e.deltaY) &&
-        libRow.scrollWidth > libRow.clientWidth + 1
+        librariesStripNeedsHorizontalScroll(libRow)
       ) {
+        requestAnimationFrame(() => {
+          syncLibrariesStripScroll(libRow);
+        });
         return;
       }
 
@@ -848,16 +967,130 @@ export default function LibrariesBar({
 
     wheelRoot.addEventListener("wheel", onWheel, { passive: false, capture: true });
     return () => wheelRoot.removeEventListener("wheel", onWheel, { capture: true });
-  }, [activeSkinWeb.verticalCoverAlignment, activeLibrary?.key]);
+  }, [activeSkinWeb.verticalCoverAlignment, activeLibrary?.key, collapsibleActive, sidebarOpen]);
 
   /** Top-strip layout only; full sidebars ship column layout in skin CSS. */
   const verticalPageTabsLayout =
     activeSkinWeb.libraryPagesVerticalList && !activeSkinWeb.persistentLibraryShell;
+  /** Vertical sidebar list inside the persistent shell — native column scroll, not horizontal strip clamp. */
+  const verticalPersistentSidebar =
+    activeSkinWeb.persistentLibraryShell && activeSkinWeb.libraryPagesVerticalList;
+  const showSidebarLibrariesMenu =
+    !topRightToolDock &&
+    !!API_BASE &&
+    !!onReloadMetadata &&
+    !(verticalPersistentSidebar && collapsibleActive);
+  const librariesMenuDropdown = showSidebarLibrariesMenu ? (
+    <div
+      className={`mhg-libraries-menu-container${
+        verticalPersistentSidebar ? " mhg-libraries-sidebar-header-tools" : ""
+      }`}
+    >
+      <DropdownMenu
+        className="mhg-libraries-menu-dropdown"
+        onReload={onReloadMetadata}
+      />
+    </div>
+  ) : null;
   const showHeaderActionsInLibrariesBar = activeSkinWeb.libraryBarHeaderActions;
   const showAddGameInLibrariesBar = showHeaderActionsInLibrariesBar;
   const isAddGameRoute = pathname === "/add-game";
   const isSettingsRoute = pathname === "/settings";
   const showProfileInLibrariesBar = showHeaderActionsInLibrariesBar && showProfile;
+
+  useEffect(() => {
+    if (!activeSkinWeb.verticalCoverAlignment || isNarrow || verticalPersistentSidebar) return;
+    const row = containerRef.current?.querySelector<HTMLElement>(".mhg-libraries-container");
+    if (!row) return;
+
+    const frame = requestAnimationFrame(() => {
+      centerActiveLibraryInStrip(row, verticalCoverRailScrollLayoutForPath(pathname));
+      syncActiveLibraryIconPosition();
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [
+    activeSkinWeb.verticalCoverAlignment,
+    isNarrow,
+    verticalPersistentSidebar,
+    pathname,
+    activeLibrary?.key,
+    activeCollectionShortcutId,
+    currentLibraryFilterField,
+    isAddGameRoute,
+    isSettingsRoute,
+    libraries.length,
+    collectionShortcuts.length,
+    syncActiveLibraryIconPosition,
+  ]);
+
+  useEffect(() => {
+    if (isNarrow || verticalPersistentSidebar) return;
+    const row = containerRef.current?.querySelector<HTMLElement>(".mhg-libraries-container");
+    if (!row) return;
+
+    const scheduleClamp = () => {
+      requestAnimationFrame(() => {
+        syncLibrariesStripScroll(row);
+      });
+    };
+
+    scheduleClamp();
+    row.addEventListener("scroll", scheduleClamp, { passive: true });
+    window.addEventListener("resize", scheduleClamp);
+
+    const resizeObserver = new ResizeObserver(scheduleClamp);
+    resizeObserver.observe(row);
+    for (const child of row.children) {
+      if (child instanceof HTMLElement) resizeObserver.observe(child);
+    }
+
+    return () => {
+      row.removeEventListener("scroll", scheduleClamp);
+      window.removeEventListener("resize", scheduleClamp);
+      resizeObserver.disconnect();
+    };
+  }, [
+    isNarrow,
+    verticalPersistentSidebar,
+    libraries.length,
+    pathname,
+    collectionShortcuts.length,
+    gamesSidebarExpanded,
+    showCollapsibleGamesSection,
+    inlineOwnedGamesInBar,
+    showHeaderActionsInLibrariesBar,
+    showSidebarSearchPopup,
+    librariesBarLayoutReady,
+  ]);
+
+  const comboboxContainerLayoutStyle = useMemo((): CSSProperties | undefined => {
+    if (!isNarrow) return undefined;
+    const hasLeftMenu = !topRightToolDock && !!API_BASE && (showProfile || !!onReloadMetadata);
+    const left = hasLeftMenu ? 72 : 24;
+    const rightReserve = Math.max(measuredActionsWidth, 48) + 8;
+    return {
+      position: "absolute",
+      left,
+      right: "auto",
+      transform: "none",
+      width: "auto",
+      maxWidth: `calc(100% - ${left + rightReserve}px)`,
+      justifyContent: "flex-start",
+      overflow: "hidden",
+    };
+  }, [isNarrow, topRightToolDock, showProfile, measuredActionsWidth]);
+
+  const collapsibleSidebarStyle = useMemo((): CSSProperties | undefined => {
+    if (!collapsibleActive) return undefined;
+    return {
+      transition: "left 0.22s ease",
+      left: sidebarOpen ? 0 : "calc(-1 * var(--mhg-sidebar-width, 300px))",
+      transform: "none",
+      pointerEvents: sidebarOpen ? "auto" : "none",
+      zIndex: 10005,
+    };
+  }, [collapsibleActive, sidebarOpen]);
 
   return (
     <div
@@ -867,6 +1100,7 @@ export default function LibrariesBar({
       ]
         .filter(Boolean)
         .join(" ")}
+      style={collapsibleSidebarStyle}
       {...{
         ...(activeSkinWeb.libraryPagesVerticalList
           ? { "data-mhg-library-pages-vertical-list": "true" }
@@ -893,7 +1127,8 @@ export default function LibrariesBar({
               <Logo />
             </button>
             <ActivitySpinner
-              isLoading={globalLoading}
+              isLoading={globalLoading || isActivityBusy}
+              tooltipText={isActivityBusy ? activityTooltipText : undefined}
               className="mhg-top-right-tool-dock-activity-spinner"
             />
             <div className="mhg-top-right-tool-dock-update">
@@ -946,7 +1181,7 @@ export default function LibrariesBar({
                 />
               </div>
             )}
-            {API_BASE && showProfile && (
+            {API_BASE && onReloadMetadata && (
               <div className="mhg-top-right-tool-dock-menu">
                 <DropdownMenu
                   className="mhg-libraries-menu-dropdown mhg-top-right-tool-dock-menu-dropdown"
@@ -959,16 +1194,8 @@ export default function LibrariesBar({
       )}
       {betweenDockAndStrip}
       <div className="mhg-libraries-bar-container" ref={containerRef}>
-        {/* Menu dropdown bottom-left (hidden when using fixed top-right dock) */}
-        {!topRightToolDock && API_BASE && showProfile && (
-          <div className="mhg-libraries-menu-container">
-            <DropdownMenu
-              className="mhg-libraries-menu-dropdown"
-              onReload={onReloadMetadata}
-            />
-          </div>
-        )}
-        
+        {(!verticalPersistentSidebar || libraries.length === 0) && librariesMenuDropdown}
+
         {libraries.length > 0 && (
           <>
             {!librariesBarLayoutReady && !activeSkinWeb.libraryPagesVerticalList ? (
@@ -978,8 +1205,11 @@ export default function LibrariesBar({
                 aria-busy="true"
                 style={{ minHeight: 64, visibility: "hidden" }}
               />
-            ) : isNarrow ? (
-              <div className="mhg-libraries-combobox-container">
+            ) : isNarrow && !verticalPersistentSidebar ? (
+              <div
+                className="mhg-libraries-combobox-container"
+                style={comboboxContainerLayoutStyle}
+              >
                 {isLoading && libraries.length === 0 ? null : (
                   <select
                     id="libraries-select"
@@ -1033,6 +1263,7 @@ export default function LibrariesBar({
               </div>
             ) : (
               <div className="mhg-libraries-container">
+                {verticalPersistentSidebar && librariesMenuDropdown}
                 {/* Same order as combobox: library (all / installed) before other page tabs */}
                 {inlineOwnedGamesInBar && libraryForGamesSidebar && (
                   <>

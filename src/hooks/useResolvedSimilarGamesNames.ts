@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { buildApiHeaders } from "../utils/api";
-import { buildIgdbApiUrl } from "../utils/igdbApi";
+import { buildCatalogApiUrl } from "../utils/catalogApi";
 
 type SimilarGameEntry = { id: number; name: string };
 
@@ -15,8 +15,8 @@ function isNumericName(sg: SimilarGameEntry): boolean {
 /**
  * Fetches game names from IGDB for the given ids and returns a map id -> name.
  */
-async function fetchIgdbNamesByIds(ids: number[]): Promise<Record<string, string>> {
-  const url = buildIgdbApiUrl("/igdb/game-names-by-ids", { ids: ids.join(",") });
+async function fetchCatalogNamesByIds(ids: number[]): Promise<Record<string, string>> {
+  const url = buildCatalogApiUrl("/igdb/game-names-by-ids", { ids: ids.join(",") });
   const res = await fetch(url, {
     method: "GET",
     headers: buildApiHeaders(),
@@ -56,7 +56,7 @@ export function useResolvedSimilarGamesNames(
     }
     let cancelled = false;
     setIsLoading(true);
-    fetchIgdbNamesByIds(idsToResolve)
+    fetchCatalogNamesByIds(idsToResolve)
       .then((names) => {
         if (!cancelled) setResolvedNames(names);
       })

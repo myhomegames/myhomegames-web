@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
 import Logo from "../common/Logo";
@@ -9,10 +10,18 @@ import UpdateNotification from "./UpdateNotification";
 import Tooltip from "../common/Tooltip";
 import { useLoading } from "../../contexts/LoadingContext";
 import ActivitySpinner from "./ActivitySpinner";
+import { formatActivityProgressLabel } from "../../utils/activityProgressLabel";
 import { useSkin } from "../../contexts/SkinContext";
 import { useTitleFilter } from "../../contexts/TitleFilterContext";
 import { useActiveProfile } from "../../hooks/useActiveProfile";
+import { usePhoneLayout } from "../../hooks/usePhoneLayout";
+import { useLibrarySidebarLayout } from "../../contexts/LibrarySidebarLayoutContext";
+import DropdownMenu from "../common/DropdownMenu";
+import { API_BASE } from "../../config";
 import type { GameItem, CollectionItem } from "../../types";
+
+const PHONE_HEADER_BUTTON: CSSProperties = { width: 32, height: 32 };
+const PHONE_HEADER_ICON: CSSProperties = { width: 17, height: 17 };
 
 /** Header-only pages: no `LibrariesBar`, so the dock logo is absent — keep the header logo when `topRightToolDock` is on. */
 function pathnameUsesHeaderLogoOnly(pathname: string): boolean {
@@ -35,6 +44,7 @@ type HeaderProps = {
   onAddGameClick: () => void;
   hideSettingsAction?: boolean;
   hideProfileAction?: boolean;
+  onReloadMetadata?: () => Promise<void>;
 };
 
 export default function Header({
@@ -49,23 +59,53 @@ export default function Header({
   onAddGameClick,
   hideSettingsAction = false,
   hideProfileAction = false,
+  onReloadMetadata,
 }: HeaderProps) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
-  const { isLoading } = useLoading();
+  const { isLoading, isActivityBusy, activityProgress } = useLoading();
+  const activityTooltipText = formatActivityProgressLabel(t, activityProgress);
   const { activeSkinWeb } = useSkin();
   const { setQuery: setTitleFilterQuery } = useTitleFilter();
   const { showProfile } = useActiveProfile();
+  const isPhoneLayout = usePhoneLayout();
+  const { collapsibleActive, sidebarOpen, toggleSidebar } = useLibrarySidebarLayout();
 
-  const hideHeaderTitleFilter =
-    pathname === "/settings" || pathname.startsWith("/game/");
+  const phoneHeaderContainerStyle: CSSProperties | undefined = isPhoneLayout
+    ? { gap: 8, padding: "0 8px", minWidth: 0 }
+    : undefined;
+  const phoneSearchContainerStyle: CSSProperties | undefined = isPhoneLayout
+    ? { flex: "1 1 0", minWidth: 0, maxWidth: "none" }
+    : undefined;
+  const phoneHeaderActionsStyle: CSSProperties | undefined = isPhoneLayout
+    ? { gap: 2, flexShrink: 0 }
+    : undefined;
+
+  const isGameDetailRoute =
+    pathname.startsWith("/game/") || pathname.startsWith("/catalog-game/");
+  const hideHeaderTitleFilter = pathname === "/settings" || isGameDetailRoute;
   const hideSettings = hideSettingsAction || activeSkinWeb.libraryBarHeaderActions;
   const hideProfile = hideProfileAction || activeSkinWeb.libraryBarHeaderActions;
   /* Add Game follows the same relocation rule as settings/profile. */
   const hideAddGame = activeSkinWeb.libraryBarHeaderActions;
+  /*
+   * GOG persistent shell: keep the “+” in the header flex row (margin-left anchor) but hide it
+   * on game detail — removing it from the DOM shifts the settings icon.
+   */
+  const layoutOnlyAddGame =
+    activeSkinWeb.persistentLibraryShell && isGameDetailRoute && !hideAddGame;
+  const addGameTooltipWrapperStyle: CSSProperties | undefined = layoutOnlyAddGame
+    ? { visibility: "hidden", pointerEvents: "none" }
+    : undefined;
   const hideHeaderSearch = activeSkinWeb.libraryBarHeaderActions && activeSkinWeb.sidebarSearchPopup;
   const hideHeaderLogo =
     activeSkinWeb.topRightToolDock && !pathnameUsesHeaderLogoOnly(pathname);
+  const showHeaderLibrariesMenu =
+    collapsibleActive &&
+    activeSkinWeb.persistentLibraryShell &&
+    !activeSkinWeb.topRightToolDock &&
+    !!API_BASE &&
+    !!onReloadMetadata;
 
   useEffect(() => {
     if (!activeSkinWeb.headerTitleFilter || hideHeaderTitleFilter) {
@@ -75,20 +115,52 @@ export default function Header({
 
   return (
     <header className="mhg-header">
-      <div className="mhg-header-container">
+      <div
+        className="mhg-header-container"
+        style={phoneHeaderContainerStyle}
+        {...(isPhoneLayout ? { "data-mhg-phone-header": "true" } : {})}
+      >
+        {collapsibleActive && (
+          <button
+            type="button"
+            className="mhg-library-sidebar-toggle mhg-header-button"
+            onClick={toggleSidebar}
+            aria-expanded={sidebarOpen}
+            aria-label={t("libraries.toggleSidebar")}
+            style={{
+              pointerEvents: "auto",
+              position: "relative",
+              zIndex: 10020,
+              ...(isPhoneLayout ? PHONE_HEADER_BUTTON : {}),
+            }}
+          >
+            <svg
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              style={isPhoneLayout ? PHONE_HEADER_ICON : undefined}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        )}
         {/* Logo on the left; with `topRightToolDock` it is duplicated in LibrariesBar on shell routes only. */}
         {!hideHeaderLogo && (
           <button
             onClick={onHomeClick}
             className="mhg-logo-button"
             aria-label={t("header.home")}
+            style={isPhoneLayout ? { height: 40 } : undefined}
           >
-            <Logo />
+            <Logo width={isPhoneLayout ? 64 : 90} height={isPhoneLayout ? 40 : 50} />
           </button>
         )}
 
         {/* Search or per-page title filter (skin `web.headerTitleFilter`); on settings/game detail leave empty, no search */}
-        <div className="mhg-search-container">
+        <div className="mhg-search-container" style={phoneSearchContainerStyle}>
           {hideHeaderSearch
             ? null
             : activeSkinWeb.headerTitleFilter
@@ -103,19 +175,36 @@ export default function Header({
                   publishers={allPublishers}
                   onGameSelect={onGameSelect}
                   onPlay={onPlay}
+                  shrinkToFit={isPhoneLayout}
                 />
               )}
         </div>
 
         {/* Buttons on the right */}
-        <div className="mhg-header-actions">
-          {!activeSkinWeb.topRightToolDock && <ActivitySpinner isLoading={isLoading} />}
+        <div className="mhg-header-actions" style={phoneHeaderActionsStyle}>
+          {!activeSkinWeb.topRightToolDock && (
+            <ActivitySpinner
+              isLoading={isLoading || isActivityBusy}
+              tooltipText={isActivityBusy ? activityTooltipText : undefined}
+              style={isPhoneLayout ? PHONE_HEADER_BUTTON : undefined}
+              iconStyle={isPhoneLayout ? PHONE_HEADER_ICON : undefined}
+            />
+          )}
           {!hideAddGame && (
-            <Tooltip text={t("header.addGame")} position="top" delay={200}>
+            <Tooltip
+              text={t("header.addGame")}
+              position="top"
+              delay={200}
+              wrapperStyle={addGameTooltipWrapperStyle}
+            >
               <button
                 className="mhg-header-button"
+                data-mhg-header-action="add-game"
                 aria-label={t("header.addGame")}
+                aria-hidden={layoutOnlyAddGame ? true : undefined}
+                tabIndex={layoutOnlyAddGame ? -1 : undefined}
                 onClick={onAddGameClick}
+                style={isPhoneLayout ? PHONE_HEADER_BUTTON : undefined}
               >
                 <svg
                   width="20"
@@ -124,6 +213,7 @@ export default function Header({
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                   strokeWidth={2}
+                  style={isPhoneLayout ? PHONE_HEADER_ICON : undefined}
                 >
                   <path
                     strokeLinecap="round"
@@ -140,6 +230,7 @@ export default function Header({
                 className="mhg-header-button"
                 aria-label={t("header.settings")}
                 onClick={onSettingsClick}
+                style={isPhoneLayout ? PHONE_HEADER_BUTTON : undefined}
               >
                 <svg
                   width="20"
@@ -148,6 +239,7 @@ export default function Header({
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                   strokeWidth={1.5}
+                  style={isPhoneLayout ? PHONE_HEADER_ICON : undefined}
                 >
                   <path
                     strokeLinecap="round"
@@ -163,8 +255,23 @@ export default function Header({
               </button>
             </Tooltip>
           )}
-          {!activeSkinWeb.topRightToolDock && <UpdateNotification />}
-          {showProfile && !hideProfile && <ProfileDropdown />}
+          {!activeSkinWeb.topRightToolDock && (
+            <UpdateNotification
+              buttonStyle={isPhoneLayout ? PHONE_HEADER_BUTTON : undefined}
+              iconStyle={isPhoneLayout ? PHONE_HEADER_ICON : undefined}
+            />
+          )}
+          {showProfile && !hideProfile && (
+            <ProfileDropdown compactHeader={isPhoneLayout} />
+          )}
+          {showHeaderLibrariesMenu && (
+            <div className="mhg-header-libraries-menu-container">
+              <DropdownMenu
+                className="mhg-libraries-menu-dropdown"
+                onReload={onReloadMetadata}
+              />
+            </div>
+          )}
         </div>
       </div>
     </header>

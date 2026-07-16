@@ -14,18 +14,21 @@ import { useDevelopers } from "../contexts/DevelopersContext";
 import { usePublishers } from "../contexts/PublishersContext";
 import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
-import { useIgdbGamesForTag, type IgdbTagKey } from "../hooks/useIgdbGamesForTag";
+import { useCatalogGamesForTag, type CatalogTagKey } from "../hooks/useCatalogGamesForTag";
 import GamesList from "../components/games/GamesList";
 import Cover from "../components/games/Cover";
 import LibrariesBar from "../components/layout/LibrariesBar";
 import StarRating from "../components/common/StarRating";
 import Summary from "../components/common/Summary";
 import EditCollectionLikeModal from "../components/collections/EditCollectionLikeModal";
+import CompanyProfileBlock, { CompanyStatusBadge } from "../components/companies/CompanyProfileBlock";
 import AddCollectionLikeToCollectionLikeModal from "../components/collections/AddCollectionLikeToCollectionLikeModal";
 import DropdownMenu from "../components/common/DropdownMenu";
 import Tooltip from "../components/common/Tooltip";
 import BackgroundManager, { useBackground } from "../components/common/BackgroundManager";
 import { resolveFocalBackdropUrl } from "../components/common/FocalSelectionBackgroundShell";
+import { dispatchDeveloperOrPublisherUpdated, mergeCompanyProfileOntoItem, type CompanyProfilePatch, dispatchCollectionLikeChildLinked } from "../utils/companyProfileSync";
+import { collectionInfoFromApi, hasCompanyProfileFields, pickCompanyProfileFields } from "../utils/companyProfile";
 import BackgroundToggle from "../components/ui/BackgroundToggle";
 import NewGamesToggle from "../components/ui/NewGamesToggle";
 import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
@@ -39,57 +42,44 @@ import {
 import ContextRailIndexPeek from "../components/contextRail/ContextRailIndexPeek";
 import { compareTitles } from "../utils/stringUtils";
 import { titleMatchesFilter } from "../utils/titleFilter";
-import { parseCollectionLikePseudoGameId } from "../utils/collectionLikePseudoGame";
-import { isMainGameType } from "../utils/igdbGameType";
-import { buildApiUrl, buildCoverUrl } from "../utils/api";
+import { parseCollectionLikePseudoGameId, matchesActiveCollectionLikeDetail, type ActiveCollectionLikeDetail } from "../utils/collectionLikePseudoGame";
+import {
+  loadCollectionLikeSlideSections,
+  parseGamesListFromApiJson,
+  type CollectionLikeSlideSection,
+} from "../utils/collectionLikeSectionGames";
+import { isMainGameType } from "../utils/gameType";
+import { buildApiUrl, buildCoverUrl, buildApiHeaders } from "../utils/api";
 import { API_BASE, getApiToken } from "../config";
 import type { GameItem, CollectionInfo, CollectionItem } from "../types";
 import type { CollectionLikeResourceType } from "../components/collections/EditCollectionLikeModal";
 type LibraryItemDetailPageProps = {
   onGameClick: (game: GameItem) => void;
-  onIgdbGameClick?: (igdbId: number) => void;
+  onCatalogGameClick?: (gameId: number) => void;
   onGamesLoaded: (games: GameItem[]) => void;
   onPlay?: (game: GameItem) => void;
   allCollections?: CollectionItem[];
 };
 
-function parseGamesFromJson(json: { games?: any[] }) {
-  const items = (json.games || []) as any[];
-  return items.map((v) => ({
-    id: v.id,
-    title: v.title,
-    summary: v.summary,
-    cover: v.cover,
-    background: v.background,
-    day: v.day,
-    month: v.month,
-    year: v.year,
-    stars: v.stars,
-    executables: v.executables || null,
-    themes: v.themes || null,
-    platforms: v.platforms || null,
-    gameModes: v.gameModes || null,
-    playerPerspectives: v.playerPerspectives || null,
-    websites: v.websites || null,
-    ageRatings: v.ageRatings || null,
-    developers: v.developers || null,
-    publishers: v.publishers || null,
-    franchise: v.franchise || null,
-    collection: v.collection || null,
-    series: v.series ?? v.collection ?? null,
-    screenshots: v.screenshots || null,
-    videos: v.videos || null,
-    gameEngines: v.gameEngines || null,
-    keywords: v.keywords || null,
-    alternativeNames: v.alternativeNames || null,
-    similarGames: v.similarGames || null,
-    type: v.type ?? null,
-  }));
+function parseGamesFromJson(json: { games?: unknown[] }) {
+  return parseGamesListFromApiJson(json);
+}
+
+/** GET /developers|publishers/:id returned 404 (company may exist only under the other role). */
+const unavailableCollectionLikeIds = new Map<string, Set<string>>();
+
+function getUnavailableCollectionLikeIds(resourceType: string): Set<string> {
+  let ids = unavailableCollectionLikeIds.get(resourceType);
+  if (!ids) {
+    ids = new Set();
+    unavailableCollectionLikeIds.set(resourceType, ids);
+  }
+  return ids;
 }
 
 export default function LibraryItemDetailPage({
   onGameClick,
-  onIgdbGameClick,
+  onCatalogGameClick,
   onGamesLoaded,
   onPlay,
   allCollections = [],
@@ -109,7 +99,7 @@ export default function LibraryItemDetailPage({
   const { collections: allCollectionsFromContext } = useCollections();
   const { developers: allDevelopers, updateDeveloper } = useDevelopers();
   const { publishers: allPublishers, updatePublisher } = usePublishers();
-  const { igdbEnabled, twitchLoginEnabled } = useSettings();
+  const { catalogSearchEnabled } = useSettings();
   const { activeSkinWeb } = useSkin();
   const fixedFocalContextRail =
     activeSkinWeb.compactCollectionLikeDetail && activeSkinWeb.verticalCoverAlignment;
@@ -139,8 +129,6 @@ export default function LibraryItemDetailPage({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [listLoadTimestamp, setListLoadTimestamp] = useState(() => Date.now());
-  const initialCoverTimestampRef = useRef<number>(Date.now());
   const [scrollRestoreTrigger, setScrollRestoreTrigger] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
@@ -164,6 +152,17 @@ export default function LibraryItemDetailPage({
     setFocalGameBackground(undefined);
   }, [id]);
 
+  useEffect(() => {
+    if (resourceType !== "developers" && resourceType !== "publishers") return;
+    const handleCompanyProfileUpdated = (event: Event) => {
+      const profile = (event as CustomEvent<{ profile: CompanyProfilePatch }>).detail?.profile;
+      if (!profile || !id || String(profile.id) !== String(id)) return;
+      setItem((prev) => (prev ? mergeCompanyProfileOntoItem(prev, profile) : prev));
+    };
+    window.addEventListener("companyProfileUpdated", handleCompanyProfileUpdated);
+    return () => window.removeEventListener("companyProfileUpdated", handleCompanyProfileUpdated);
+  }, [resourceType, id]);
+
   const scrollStorageKey = `${location.pathname}:modalScroll`;
 
   const libraryGameIds = useMemo(
@@ -174,17 +173,17 @@ export default function LibraryItemDetailPage({
     [libraryGames]
   );
 
-  const igdbTagKey: IgdbTagKey | null =
+  const catalogTagKey: CatalogTagKey | null =
     resourceType === "developers" ? "developers" : resourceType === "publishers" ? "publishers" : null;
-  const { igdbGames: igdbTagGames, loading: _igdbTagLoading } = useIgdbGamesForTag(
-    igdbEnabled && igdbTagKey && id ? igdbTagKey : null,
+  const { catalogGames: catalogTagGames, loading: _catalogTagLoading } = useCatalogGamesForTag(
+    catalogSearchEnabled && catalogTagKey && id ? catalogTagKey : null,
     id ?? null,
     libraryGameIds,
     true,
     undefined
   );
 
-  const canShowNewGamesToggle = (resourceType === "developers" || resourceType === "publishers") && !!igdbEnabled;
+  const canShowNewGamesToggle = (resourceType === "developers" || resourceType === "publishers") && !!catalogSearchEnabled;
   const storageKeyForNewGames = resourceType === "developers" ? "developers" : "publishers";
   const [showNewGames, setShowNewGames] = useState<boolean>(() => {
     if (resourceType !== "developers" && resourceType !== "publishers") return false;
@@ -518,17 +517,36 @@ export default function LibraryItemDetailPage({
 
   useGameEvents({ setGames, enabledEvents: ["gameUpdated", "gameDeleted"] });
 
+  useEffect(() => {
+    const handleLanguageChanged = () => {
+      if (resourceType === "collections" && collectionId) {
+        void fetchCollectionInfo(collectionId);
+        void fetchCollectionGames(collectionId);
+      } else if (resourceType === "developers" && developerId) {
+        void fetchDeveloperInfo(developerId);
+        void fetchDeveloperGames(developerId);
+      } else if (resourceType === "publishers" && publisherId) {
+        void fetchPublisherInfo(publisherId);
+        void fetchPublisherGames(publisherId);
+      }
+    };
+    window.addEventListener("mhg-language-changed", handleLanguageChanged);
+    return () => window.removeEventListener("mhg-language-changed", handleLanguageChanged);
+  }, [resourceType, collectionId, developerId, publisherId]);
+
   useLayoutEffect(() => {
     if (!isLoading && item) {
       requestAnimationFrame(() => requestAnimationFrame(() => setIsReady(true)));
-    } else if (isLoading) setIsReady(false);
+    } else if (isLoading && !item) {
+      setIsReady(false);
+    }
   }, [isLoading, item, games.length]);
 
   async function fetchCollectionInfo(cid: string) {
     try {
       const singleUrl = buildApiUrl(API_BASE, `/collections/${cid}`);
       const singleRes = await fetch(singleUrl, {
-        headers: { Accept: "application/json", "X-Auth-Token": getApiToken() },
+        headers: buildApiHeaders({ Accept: "application/json" }),
       });
       if (singleRes.ok) {
         const found = await singleRes.json();
@@ -567,7 +585,7 @@ export default function LibraryItemDetailPage({
     try {
       const url = buildApiUrl(API_BASE, `/collections/${cid}/games`);
       const res = await fetch(url, {
-        headers: { Accept: "application/json", "X-Auth-Token": getApiToken() },
+        headers: buildApiHeaders({ Accept: "application/json" }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
@@ -588,7 +606,6 @@ export default function LibraryItemDetailPage({
       if (!orderMatches) setCustomOrder(orderFromBackend);
       else setCustomOrder(null);
       setGames(parsed);
-      setListLoadTimestamp(Date.now());
       onGamesLoaded(parsed);
     } catch (err: any) {
       console.error("Error fetching collection games:", err?.message);
@@ -602,19 +619,11 @@ export default function LibraryItemDetailPage({
     try {
       const url = buildApiUrl(API_BASE, `/developers/${devId}`);
       const res = await fetch(url, {
-        headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
+        headers: buildApiHeaders({ Accept: "application/json" }),
       });
       if (!res.ok) return;
       const data = await res.json();
-      setItem({
-        id: String(data.id),
-        title: data.title,
-        summary: data.summary,
-        cover: data.cover,
-        background: data.background,
-        showTitle: data.showTitle !== false,
-        childs: data.childs || [],
-      });
+      setItem(collectionInfoFromApi(data));
     } catch (err) {
       console.error("Error fetching developer:", err);
     }
@@ -626,13 +635,12 @@ export default function LibraryItemDetailPage({
     try {
       const url = buildApiUrl(API_BASE, `/developers/${devId}/games`);
       const res = await fetch(url, {
-        headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
+        headers: buildApiHeaders({ Accept: "application/json" }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       const parsed = parseGamesFromJson(json);
       setGames(parsed);
-      setListLoadTimestamp(Date.now());
       onGamesLoaded(parsed);
     } catch (err) {
       console.error("Error fetching developer games:", err);
@@ -646,19 +654,11 @@ export default function LibraryItemDetailPage({
     try {
       const url = buildApiUrl(API_BASE, `/publishers/${pubId}`);
       const res = await fetch(url, {
-        headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
+        headers: buildApiHeaders({ Accept: "application/json" }),
       });
       if (!res.ok) return;
       const data = await res.json();
-      setItem({
-        id: String(data.id),
-        title: data.title,
-        summary: data.summary,
-        cover: data.cover,
-        background: data.background,
-        showTitle: data.showTitle !== false,
-        childs: data.childs || [],
-      });
+      setItem(collectionInfoFromApi(data));
     } catch (err) {
       console.error("Error fetching publisher:", err);
     }
@@ -670,13 +670,12 @@ export default function LibraryItemDetailPage({
     try {
       const url = buildApiUrl(API_BASE, `/publishers/${pubId}/games`);
       const res = await fetch(url, {
-        headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
+        headers: buildApiHeaders({ Accept: "application/json" }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       const parsed = parseGamesFromJson(json);
       setGames(parsed);
-      setListLoadTimestamp(Date.now());
       onGamesLoaded(parsed);
     } catch (err) {
       console.error("Error fetching publisher games:", err);
@@ -689,7 +688,6 @@ export default function LibraryItemDetailPage({
   const handleConfirmDelete = async () => {
     if (!id || !item) return;
     const apiToken = getApiToken();
-    if (twitchLoginEnabled && !apiToken) return;
     const base = resourceType; // "collections" | "developers" | "publishers"
     setIsDeleting(true);
     setDeleteError(null);
@@ -714,7 +712,6 @@ export default function LibraryItemDetailPage({
   const handleRemoveFromDeveloper = async (gameId: string) => {
     if (!developerId) return;
     const apiToken = getApiToken();
-    if (twitchLoginEnabled && !apiToken) return;
     try {
       const gameUrl = buildApiUrl(API_BASE, `/games/${gameId}`);
       const gameRes = await fetch(gameUrl, {
@@ -745,7 +742,6 @@ export default function LibraryItemDetailPage({
   const handleRemoveFromPublisher = async (gameId: string) => {
     if (!publisherId) return;
     const apiToken = getApiToken();
-    if (twitchLoginEnabled && !apiToken) return;
     try {
       const gameUrl = buildApiUrl(API_BASE, `/games/${gameId}`);
       const gameRes = await fetch(gameUrl, {
@@ -778,7 +774,7 @@ export default function LibraryItemDetailPage({
     const libraryById = new Map(games.map((g) => [String(g.id), g]));
     const seenIds = new Set<string>();
     const result: GameItem[] = [];
-    for (const ig of igdbTagGames) {
+    for (const ig of catalogTagGames) {
       const sid = String(ig.id);
       seenIds.add(sid);
       const lib = libraryById.get(sid);
@@ -789,7 +785,7 @@ export default function LibraryItemDetailPage({
           title: ig.name,
           cover: ig.cover || undefined,
           year: ig.releaseDate ?? undefined,
-          isIgdbOnly: true,
+          isCatalogOnly: true,
         });
     }
     for (const g of games) {
@@ -804,7 +800,7 @@ export default function LibraryItemDetailPage({
       return compareTitles(a.title || "", b.title || "");
     });
     return result;
-  }, [canShowNewGamesToggle, id, igdbTagGames, games]);
+  }, [canShowNewGamesToggle, id, catalogTagGames, games]);
 
   const gamesToShow = canShowNewGamesToggle && showNewGames ? mergedGames : games;
 
@@ -895,8 +891,8 @@ export default function LibraryItemDetailPage({
     resourceType === "collections"
       ? "Collection not found"
       : resourceType === "developers"
-        ? t("tags.noItemsFound", { type: t("igdbInfo.developers", "Developers") })
-        : t("tags.noItemsFound", { type: t("igdbInfo.publishers", "Publishers") });
+        ? t("tags.noItemsFound", { type: t("catalogInfo.developers", "Developers") })
+        : t("tags.noItemsFound", { type: t("catalogInfo.publishers", "Publishers") });
 
   if (!id) {
     return (
@@ -908,8 +904,6 @@ export default function LibraryItemDetailPage({
     );
   }
 
-  const itemCoverTimestamp = listLoadTimestamp ?? initialCoverTimestampRef.current;
-  const itemCoverUrl = item?.cover ? buildCoverUrl(API_BASE, item.cover, true, itemCoverTimestamp) : "";
   const coverWidth = 240;
   const coverHeight = 360;
   const backdropMedia = useMemo(() => {
@@ -944,7 +938,7 @@ export default function LibraryItemDetailPage({
     >
       <LibraryItemDetailContent
         item={item}
-        itemCoverUrl={itemCoverUrl}
+        itemCover={item?.cover}
         coverWidth={coverWidth}
         coverHeight={coverHeight}
         yearRange={yearRange}
@@ -952,7 +946,7 @@ export default function LibraryItemDetailPage({
         onPlay={onPlay}
         sortedGames={sortedGames}
         onGameClick={onGameClick}
-        onIgdbGameClick={onIgdbGameClick}
+        onCatalogGameClick={onCatalogGameClick}
         onGameUpdate={handleGameUpdate}
         onGameDelete={handleGameDelete}
         buildCoverUrl={(apiBase, cover, addTimestamp, customTimestamp) => buildCoverUrl(apiBase, cover, addTimestamp ?? false, customTimestamp)}
@@ -1040,7 +1034,7 @@ export default function LibraryItemDetailPage({
           try {
             const url = buildApiUrl(API_BASE, `/${base}/${cid}/games`);
             const res = await fetch(url, {
-              headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
+              headers: buildApiHeaders({ Accept: "application/json" }),
             });
             if (!res.ok) return;
             const json = await res.json();
@@ -1055,7 +1049,6 @@ export default function LibraryItemDetailPage({
         showNewGames={showNewGames}
         onShowNewGamesChange={setShowNewGames}
         showNewGamesLabel={canShowNewGamesToggle ? t("tagGames.showNewGames") : undefined}
-        listLoadTimestamp={listLoadTimestamp}
         gridGames={gridGames}
         mainGamesOnly={mainGamesOnly}
         onMainGamesOnlyChange={setMainGamesOnly}
@@ -1075,7 +1068,7 @@ export default function LibraryItemDetailPage({
 
 type LibraryItemDetailContentProps = {
   item: CollectionInfo | null;
-  itemCoverUrl: string;
+  itemCover?: string;
   coverWidth: number;
   coverHeight: number;
   yearRange: string | null;
@@ -1083,7 +1076,7 @@ type LibraryItemDetailContentProps = {
   onPlay?: (game: GameItem) => void;
   sortedGames: GameItem[];
   onGameClick: (game: GameItem) => void;
-  onIgdbGameClick?: (igdbId: number) => void;
+  onCatalogGameClick?: (gameId: number) => void;
   onGameUpdate?: (updatedGame: GameItem) => void;
   onGameDelete?: (deletedGame: GameItem) => void;
   buildCoverUrl: (apiBase: string, cover?: string, addTimestamp?: boolean, customTimestamp?: number) => string;
@@ -1120,7 +1113,6 @@ type LibraryItemDetailContentProps = {
   showNewGames?: boolean;
   onShowNewGamesChange?: (value: boolean) => void;
   showNewGamesLabel?: string;
-  listLoadTimestamp?: number;
   gridGames: GameItem[];
   mainGamesOnly: boolean;
   onMainGamesOnlyChange: (value: boolean) => void;
@@ -1135,7 +1127,7 @@ type LibraryItemDetailContentProps = {
 
 function LibraryItemDetailContent({
   item,
-  itemCoverUrl,
+  itemCover,
   coverWidth,
   coverHeight,
   yearRange,
@@ -1143,7 +1135,7 @@ function LibraryItemDetailContent({
   onPlay,
   sortedGames,
   onGameClick,
-  onIgdbGameClick,
+  onCatalogGameClick,
   onGameUpdate,
   onGameDelete,
   buildCoverUrl,
@@ -1180,7 +1172,6 @@ function LibraryItemDetailContent({
   showNewGames = false,
   onShowNewGamesChange,
   showNewGamesLabel,
-  listLoadTimestamp,
   gridGames,
   mainGamesOnly,
   onMainGamesOnlyChange,
@@ -1192,7 +1183,6 @@ function LibraryItemDetailContent({
 }: LibraryItemDetailContentProps) {
   const navigate = useNavigate();
   const routerLocation = useLocation();
-  const { twitchLoginEnabled } = useSettings();
   const { hasBackground, isBackgroundVisible, setBackgroundVisible } = useBackground();
   const { isLoading } = useLoading();
   const { activeSkinWeb } = useSkin();
@@ -1228,9 +1218,6 @@ function LibraryItemDetailContent({
       : resourceType === "developers"
         ? "developers"
         : "publishers";
-  const stableCoverTimestampRef = useRef<number>(Date.now());
-  const coverTimestampForUrls = listLoadTimestamp ?? stableCoverTimestampRef.current;
-
   const calculateSummaryMaxLines = (): number => {
     let fieldCount = 1;
     if (yearRange) fieldCount++;
@@ -1382,9 +1369,11 @@ function LibraryItemDetailContent({
   const [linkSourceCollectionLike, setLinkSourceCollectionLike] = useState<CollectionItem | null>(null);
   const [hydratedCollectionLikes, setHydratedCollectionLikes] = useState<CollectionItem[]>([]);
   const [parentCollectionLikesWithGames, setParentCollectionLikesWithGames] = useState<
-    Array<{ parent: CollectionItem; games: GameItem[]; slideItems: GameItem[] }>
+    CollectionLikeSlideSection[]
   >([]);
-  const [singleSubCollectionGames, setSingleSubCollectionGames] = useState<GameItem[]>([]);
+  const [subCollectionLikesWithGames, setSubCollectionLikesWithGames] = useState<
+    CollectionLikeSlideSection[]
+  >([]);
 
   const completeCollectionLikes = useMemo(() => {
     const byId = new Map<string, CollectionItem>();
@@ -1423,78 +1412,51 @@ function LibraryItemDetailContent({
     () => subCollectionLikes.filter((c) => titleMatchesFilter(c.title, titleFilterQuery)),
     [subCollectionLikes, titleFilterQuery]
   );
-  const singleSubTitleFilterActive = titleFilterQuery.trim().length > 0;
-  const singleSubCollectionId =
-    subCollectionLikes.length === 1 ? String(subCollectionLikes[0].id) : null;
-  const singleSubCollectionDragEnabled =
-    resourceType === "collections" && !mainGamesOnly && !singleSubTitleFilterActive && !!singleSubCollectionId;
 
-  const handleSingleSubCollectionGameUpdate = (updatedGame: GameItem) => {
-    setSingleSubCollectionGames((prev) =>
-      prev.map((g) => (String(g.id) === String(updatedGame.id) ? updatedGame : g))
-    );
-    window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
-  };
-
-  const handleSingleSubCollectionGameDelete = (deletedGame: GameItem) => {
-    setSingleSubCollectionGames((prev) =>
-      prev.filter((g) => String(g.id) !== String(deletedGame.id))
-    );
-  };
-
-  const handleSingleSubCollectionRemoveFromCollection = (gameId: string) => {
-    setSingleSubCollectionGames((prev) => prev.filter((g) => String(g.id) !== String(gameId)));
-  };
-
-  const handleSingleSubCollectionDragEnd = async (
-    sourceIndex: number,
-    destinationIndex: number
-  ) => {
-    if (sourceIndex === destinationIndex || !singleSubCollectionId) return;
-    const newGames = [...singleSubCollectionGames];
-    const [removed] = newGames.splice(sourceIndex, 1);
-    newGames.splice(destinationIndex, 0, removed);
-    setSingleSubCollectionGames(newGames);
-    try {
-      const url = buildApiUrl(
-        API_BASE,
-        `/collections/${encodeURIComponent(singleSubCollectionId)}/games/order`
-      );
-      const res = await fetch(url, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", "X-Auth-Token": getApiToken() },
-        body: JSON.stringify({ gameIds: newGames.map((g) => g.id) }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    } catch {
-      try {
-        const url = buildApiUrl(
-          API_BASE,
-          `/collections/${encodeURIComponent(singleSubCollectionId)}/games`
-        );
-        const res = await fetch(url, {
-          headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
-        });
-        if (res.ok) {
-          const json = await res.json();
-          setSingleSubCollectionGames(parseGamesFromJson(json));
-        }
-      } catch {
-        // ignore
-      }
+  /** Horizontal slider only when the lone sub-item has games or nested rows to scroll. */
+  const useSingleSubCollectionSlideLayout = useMemo(() => {
+    if (subCollectionLikes.length !== 1 || subCollectionLikesFiltered.length !== 1) {
+      return false;
     }
-  };
+    if (subCollectionLikesWithGames.length === 0) {
+      return false;
+    }
+    return subCollectionLikesWithGames.some(
+      (block) => block.games.length > 0 || block.slideItems.length > 0,
+    );
+  }, [
+    subCollectionLikes.length,
+    subCollectionLikesFiltered.length,
+    subCollectionLikesWithGames,
+  ]);
+
+  const activeCollectionLikeDetail = useMemo((): ActiveCollectionLikeDetail => {
+    const routeId =
+      resourceType === "collections"
+        ? collectionId
+        : resourceType === "developers"
+          ? developerId
+          : publisherId;
+    return {
+      resourceType,
+      id: String(routeId ?? item?.id ?? ""),
+    };
+  }, [resourceType, collectionId, developerId, publisherId, item?.id]);
+
+  const collectionLikeDetailPath = (id: string) =>
+    `/${
+      resourceType === "collections"
+        ? "collections"
+        : resourceType === "developers"
+          ? "developers"
+          : "publishers"
+    }/${encodeURIComponent(id)}`;
 
   const parentCollectionLikesWithGamesForDisplay = useMemo(
     // Title filter must affect only the current collection-like scope (its children and games),
     // not parent collection-like blocks rendered for context.
     () => parentCollectionLikesWithGames,
     [parentCollectionLikesWithGames]
-  );
-
-  const singleSubCollectionGamesFiltered = useMemo(
-    () => singleSubCollectionGames.filter((g) => titleMatchesFilter(g.title, titleFilterQuery)),
-    [singleSubCollectionGames, titleFilterQuery]
   );
 
   // Display count for each sub-collection card: games assigned directly + first-level sub-collections only (aligned with CollectionsList).
@@ -1520,43 +1482,34 @@ function LibraryItemDetailContent({
         return;
       }
 
-      const byId = new Map<string, CollectionItem>(
-        allCollectionLikes.map((entry) => [String(entry.id), entry])
+      const knownRoleIds = new Set(allCollectionLikes.map((entry) => String(entry.id)));
+      const unavailableIds = getUnavailableCollectionLikeIds(resourceType);
+      const hydratedById = new Map<string, CollectionItem>();
+
+      // Company childs are role-agnostic; only fetch ids that belong to this role (GET /developers|publishers/:id).
+      const directChildIds = Array.isArray(item.childs)
+        ? item.childs
+            .map((id) => String(id))
+            .filter((id) => id && id !== String(item.id))
+        : [];
+
+      const idsToFetch = directChildIds.filter(
+        (id) => !knownRoleIds.has(id) && !unavailableIds.has(id),
       );
-      const queue: string[] = [];
-      const queued = new Set<string>();
 
-      const pushMissing = (ids: Array<string | number> | undefined | null) => {
-        if (!Array.isArray(ids)) return;
-        for (const rawId of ids) {
-          const id = String(rawId);
-          if (!id || byId.has(id) || queued.has(id)) continue;
-          queued.add(id);
-          queue.push(id);
-        }
-      };
-
-      for (const entry of byId.values()) pushMissing(entry.childs);
-
-      const targetId = String(item.id);
-      let foundParent = Array.from(byId.values()).some((entry) => {
-        const childs = Array.isArray(entry.childs) ? entry.childs.map((id) => String(id)) : [];
-        return childs.includes(targetId);
-      });
-
-      const maxFetches = 10000;
-      let fetchCount = 0;
-      while (queue.length > 0 && fetchCount < maxFetches && !foundParent) {
-        const id = queue.shift() as string;
-        fetchCount += 1;
+      for (const id of idsToFetch) {
+        if (cancelled) break;
         try {
           const url = buildApiUrl(API_BASE, `/${resourceType}/${encodeURIComponent(id)}`);
           const res = await fetch(url, {
-            headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
+            headers: buildApiHeaders({ Accept: "application/json" }),
           });
-          if (!res.ok) continue;
+          if (!res.ok) {
+            unavailableIds.add(id);
+            continue;
+          }
           const data = await res.json();
-          const parsed: CollectionItem = {
+          hydratedById.set(String(data.id), {
             id: String(data.id),
             title: data.title,
             summary: data.summary,
@@ -1565,24 +1518,14 @@ function LibraryItemDetailContent({
             gameCount: data.gameCount,
             showTitle: data.showTitle !== false,
             childs: Array.isArray(data.childs) ? data.childs : [],
-          };
-          byId.set(String(parsed.id), parsed);
-          if (!foundParent) {
-            const parsedChilds = Array.isArray(parsed.childs) ? parsed.childs.map((child) => String(child)) : [];
-            foundParent = parsedChilds.includes(targetId);
-          }
-          pushMissing(parsed.childs);
+          });
         } catch {
-          // Ignore missing/inaccessible nodes and continue traversal
+          // Ignore network errors for optional hydration
         }
       }
 
       if (!cancelled) {
-        setHydratedCollectionLikes(
-          Array.from(byId.values()).filter(
-            (entry) => !allCollectionLikes.some((base) => String(base.id) === String(entry.id))
-          )
-        );
+        setHydratedCollectionLikes(Array.from(hydratedById.values()));
       }
     };
 
@@ -1600,113 +1543,11 @@ function LibraryItemDetailContent({
         return;
       }
       const token = getApiToken() || "";
-      const childRangeCache = new Map<string, string>();
-
-      const toYearRange = (games: GameItem[]): string => {
-        const years = games
-          .map((g) => g.year)
-          .filter((y): y is number => typeof y === "number" && y > 0);
-        if (years.length === 0) return "";
-        const min = Math.min(...years);
-        const max = Math.max(...years);
-        return min === max ? String(min) : `${min} - ${max}`;
-      };
-
-      const loadChildCollectionLikeItems = async (parent: CollectionItem): Promise<GameItem[]> => {
-        const parentChildIds = Array.isArray(parent.childs) ? parent.childs.map((id) => String(id)) : [];
-        const childCollectionLikes = parentChildIds
-          .map((childId) => completeCollectionLikes.find((c) => String(c.id) === childId))
-          .filter((c): c is CollectionItem => Boolean(c))
-          .sort((a, b) => compareTitles(a.title || "", b.title || ""));
-
-        const childItems = await Promise.all(
-          childCollectionLikes.map(async (child) => {
-            const childId = String(child.id);
-            let range =
-              (child as any).yearRange ??
-              (child as any).dateRange ??
-              (child as any).releaseRange ??
-              "";
-            if (typeof range !== "string") range = "";
-            range = range.trim();
-
-            if (!range) {
-              const cached = childRangeCache.get(childId);
-              if (cached !== undefined) {
-                range = cached;
-              } else {
-                try {
-                  const childUrl = buildApiUrl(
-                    API_BASE,
-                    `/${resourceType}/${encodeURIComponent(childId)}/games`
-                  );
-                  const childRes = await fetch(childUrl, {
-                    headers: { Accept: "application/json", "X-Auth-Token": token },
-                  });
-                  if (childRes.ok) {
-                    const childJson = await childRes.json();
-                    range = toYearRange(parseGamesFromJson(childJson));
-                  }
-                } catch {
-                  // ignore child range fetch errors
-                }
-                childRangeCache.set(childId, range);
-              }
-            }
-
-            return {
-              id: `collectionlike:${resourceType}:${childId}`,
-              title: child.title,
-              subtitle: range || null,
-              summary: child.summary || "",
-              cover: child.cover,
-              year: null,
-              month: null,
-              day: null,
-              executables: null,
-              stars: null,
-            } as GameItem;
-          })
-        );
-
-        return childItems;
-      };
-
-      const loaded = await Promise.all(
-        parentCollectionLikes.map(async (parent) => {
-          try {
-            const url = buildApiUrl(
-              API_BASE,
-              `/${resourceType}/${encodeURIComponent(String(parent.id))}/games`
-            );
-            const res = await fetch(url, {
-              headers: { Accept: "application/json", "X-Auth-Token": token },
-            });
-            const childCollectionLikeItems = await loadChildCollectionLikeItems(parent);
-
-            if (!res.ok) {
-              return {
-                parent,
-                games: [] as GameItem[],
-                slideItems: childCollectionLikeItems,
-              };
-            }
-            const json = await res.json();
-            const games = parseGamesFromJson(json);
-            return {
-              parent,
-              games,
-              slideItems: [...childCollectionLikeItems, ...games],
-            };
-          } catch {
-            const childCollectionLikeItems = await loadChildCollectionLikeItems(parent);
-            return {
-              parent,
-              games: [] as GameItem[],
-              slideItems: childCollectionLikeItems,
-            };
-          }
-        })
+      const loaded = await loadCollectionLikeSlideSections(
+        parentCollectionLikes,
+        resourceType,
+        completeCollectionLikes,
+        token,
       );
       if (!cancelled) {
         setParentCollectionLikesWithGames(loaded);
@@ -1720,41 +1561,33 @@ function LibraryItemDetailContent({
 
   useEffect(() => {
     let cancelled = false;
-    const loadSingleSubCollectionGames = async () => {
+    const loadSubCollectionLikeGames = async () => {
       if (subCollectionLikes.length !== 1) {
-        setSingleSubCollectionGames([]);
+        setSubCollectionLikesWithGames([]);
         return;
       }
-      const onlyChild = subCollectionLikes[0];
-      try {
-        const url = buildApiUrl(API_BASE, `/${resourceType}/${encodeURIComponent(String(onlyChild.id))}/games`);
-        const res = await fetch(url, {
-          headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
-        });
-        if (!res.ok) {
-          if (!cancelled) setSingleSubCollectionGames([]);
-          return;
-        }
-        const json = await res.json();
-        const parsed = parseGamesFromJson(json);
-        if (!cancelled) setSingleSubCollectionGames(parsed);
-      } catch {
-        if (!cancelled) setSingleSubCollectionGames([]);
+      const token = getApiToken() || "";
+      const loaded = await loadCollectionLikeSlideSections(
+        [subCollectionLikes[0]],
+        resourceType,
+        completeCollectionLikes,
+        token,
+      );
+      if (!cancelled) {
+        setSubCollectionLikesWithGames(loaded);
       }
     };
-    loadSingleSubCollectionGames();
+    loadSubCollectionLikeGames();
     return () => {
       cancelled = true;
     };
-  }, [subCollectionLikes, resourceType]);
+  }, [subCollectionLikes, resourceType, completeCollectionLikes]);
 
   const dispatchCollectionLikeUpdated = (updatedItem: CollectionInfo) => {
     if (resourceType === "collections") {
       window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collection: updatedItem } }));
-    } else if (resourceType === "developers") {
-      window.dispatchEvent(new CustomEvent("developerUpdated", { detail: { developer: updatedItem } }));
-    } else if (resourceType === "publishers") {
-      window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: { publisher: updatedItem } }));
+    } else if (resourceType === "developers" || resourceType === "publishers") {
+      dispatchDeveloperOrPublisherUpdated(resourceType, updatedItem);
     }
   };
 
@@ -1774,7 +1607,6 @@ function LibraryItemDetailContent({
   const removeChildFromParent = async (childId: string) => {
     if (!item?.id) return;
     const token = getApiToken();
-    if (twitchLoginEnabled && !token) return;
     try {
       const url = buildApiUrl(
         API_BASE,
@@ -1806,7 +1638,6 @@ function LibraryItemDetailContent({
 
   const removeChildFromSliderParent = async (parentId: string, childId: string) => {
     const token = getApiToken();
-    if (twitchLoginEnabled && !token) return;
     try {
       const url = buildApiUrl(
         API_BASE,
@@ -1854,7 +1685,6 @@ function LibraryItemDetailContent({
       return;
     }
     const token = getApiToken();
-    if (twitchLoginEnabled && !token) return;
     try {
       const url = buildApiUrl(
         API_BASE,
@@ -1873,15 +1703,91 @@ function LibraryItemDetailContent({
 
       if (resourceType === "collections") {
         window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collectionId: String(parentId) } }));
-      } else if (resourceType === "developers") {
-        window.dispatchEvent(new CustomEvent("developerUpdated", { detail: {} }));
       } else {
-        window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: {} }));
+        dispatchCollectionLikeChildLinked(resourceType, parentId, source.id);
+        if (resourceType === "developers") {
+          window.dispatchEvent(new CustomEvent("developerUpdated", { detail: {} }));
+        } else {
+          window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: {} }));
+        }
       }
     } catch (err) {
       console.error("Error adding child to parent:", err);
     }
   }
+
+  const renderCollectionLikeSlideSectionBlock = useCallback(
+    ({ parent, slideItems }: CollectionLikeSlideSection, sectionIdPrefix: string) => {
+      const parentMatchesActiveDetail = matchesActiveCollectionLikeDetail(
+        resourceType,
+        String(parent.id),
+        activeCollectionLikeDetail,
+      );
+
+      return (
+        <div key={String(parent.id)} className="game-detail-collection-group">
+          <ScrollableGamesSection
+            sectionId={`${sectionIdPrefix}-${resourceType}-${String(parent.id)}`}
+            titleOverride={parent.title}
+            titleHref={
+              onCollectionClick && !parentMatchesActiveDetail
+                ? collectionLikeDetailPath(String(parent.id))
+                : undefined
+            }
+            disableVerticalCoverAlignment
+            games={slideItems}
+            onGameClick={(selected) => {
+              const rawId = String(selected.id ?? "");
+              if (rawId.startsWith("collectionlike:")) {
+                const parts = rawId.split(":");
+                const linkedId = parts[2];
+                if (
+                  linkedId &&
+                  onCollectionClick &&
+                  !matchesActiveCollectionLikeDetail(resourceType, linkedId, activeCollectionLikeDetail)
+                ) {
+                  onCollectionClick(linkedId);
+                  return;
+                }
+                return;
+              }
+              onGameClick(selected);
+            }}
+            onPlay={onPlay}
+            onGameUpdate={onGameUpdate}
+            coverSize={140}
+            allCollections={allCollections}
+            allCollectionLikes={allCollectionLikes}
+            collectionLikeResourceType={resourceType}
+            sliderParentCollectionLikeId={String(parent.id)}
+            onRemoveChildFromSliderParent={(childId) =>
+              removeChildFromSliderParent(String(parent.id), childId)
+            }
+            onCollectionLikePseudoEdit={handleCollectionLikePseudoEdit}
+            onPlayFirstInCollectionLike={onPlayFirstInCollectionLike}
+            onCollectionLikePseudoAddToParent={addChildToParent}
+            onCollectionLikePseudoUpdated={dispatchCollectionLikeUpdated}
+            activeCollectionLikeDetail={activeCollectionLikeDetail}
+          />
+        </div>
+      );
+    },
+    [
+      activeCollectionLikeDetail,
+      allCollectionLikes,
+      allCollections,
+      collectionLikeDetailPath,
+      dispatchCollectionLikeUpdated,
+      onCollectionClick,
+      onGameClick,
+      onGameUpdate,
+      onPlay,
+      onPlayFirstInCollectionLike,
+      addChildToParent,
+      removeChildFromSliderParent,
+      resourceType,
+    ],
+  );
 
   return (
     <>
@@ -1937,7 +1843,7 @@ function LibraryItemDetailContent({
                       <div className="library-item-detail-hero-cover">
                         <Cover
                           title={item.title}
-                          coverUrl={itemCoverUrl}
+                          cover={itemCover}
                           width={coverWidth}
                           height={coverHeight}
                           imageFit="fill"
@@ -1956,82 +1862,99 @@ function LibraryItemDetailContent({
                         />
                       </div>
                       <div className="library-item-detail-meta">
-                        <div className="library-item-detail-meta-header">
-                          <h1 className="library-item-detail-title text-white">
-                            {item.title}
-                          </h1>
-                          {yearRange && (
-                            <div className="library-item-detail-year-range text-white">
-                              {yearRange}
+                        <div className="library-item-detail-meta-header library-item-detail-meta-primary">
+                          <div className="library-item-detail-title-column">
+                            <div className="library-item-detail-title-main">
+                              <div className="library-item-detail-title-heading">
+                                <h1 className="library-item-detail-title text-white">
+                                  {item.title}
+                                </h1>
+                                {(resourceType === "developers" || resourceType === "publishers") &&
+                                  hasCompanyProfileFields(item) && (
+                                    <CompanyStatusBadge status={pickCompanyProfileFields(item).status} />
+                                  )}
+                              </div>
+                              {(resourceType === "developers" || resourceType === "publishers") &&
+                                hasCompanyProfileFields(item) && (
+                                  <CompanyProfileBlock
+                                    info={pickCompanyProfileFields(item)}
+                                    resourceType={resourceType}
+                                  />
+                                )}
+                                {yearRange && (
+                                  <div className="library-item-detail-year-range text-white">
+                                    {yearRange}
+                                  </div>
+                                )}
+                                {averageRating !== null && <StarRating rating={averageRating} />}
+                              </div>
+                              <div className="library-item-detail-actions">
+                                {onPlay && sortedGames.some((g) => g.executables?.length) && (
+                                  <button
+                                    type="button"
+                                    className="library-item-detail-play-btn"
+                                    onClick={() => {
+                                      const g = sortedGames.find((x) => x.executables?.length);
+                                      if (g) onPlay(g);
+                                    }}
+                                  >
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                                      <path d="M8 5v14l11-7z" />
+                                    </svg>
+                                    {t("common.play")}
+                                  </button>
+                                )}
+                                <Tooltip text={t("common.edit")} delay={200}>
+                                  <button onClick={onEditModalOpen} className="library-item-detail-edit-button">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                    </svg>
+                                  </button>
+                                </Tooltip>
+                                {item && (isCollection || showDeleteInMenu) && (
+                                  <DropdownMenu
+                                    collectionId={isCollection ? item.id : undefined}
+                                    collectionTitle={item.title}
+                                    developerId={resourceType === "developers" ? item.id : undefined}
+                                    publisherId={resourceType === "publishers" ? item.id : undefined}
+                                    onCollectionDelete={(deletedId: string) => {
+                                      if (item.id === deletedId) onAfterDeleteSelfNavigate();
+                                    }}
+                                    onCollectionUpdate={onItemUpdate}
+                                    onAddToCollection={(parentId) =>
+                                      addChildToParent(
+                                        {
+                                          id: item.id,
+                                          title: item.title,
+                                          summary: item.summary,
+                                          cover: item.cover,
+                                          background: item.background,
+                                          showTitle: item.showTitle,
+                                          childs: item.childs || [],
+                                        },
+                                        parentId
+                                      )
+                                    }
+                                    sourceCollectionLike={{
+                                      id: item.id,
+                                      title: item.title,
+                                      summary: item.summary,
+                                      cover: item.cover,
+                                      background: item.background,
+                                      showTitle: item.showTitle,
+                                      childs: item.childs || [],
+                                    }}
+                                    allCollectionLikes={allCollectionLikes}
+                                    collectionLikeResourceType={resourceType}
+                                    onDelete={showDeleteInMenu ? onDeleteClick : undefined}
+                                    horizontal={true}
+                                    className="library-item-detail-dropdown-menu"
+                                    toolTipDelay={200}
+                                  />
+                                )}
+                              </div>
                             </div>
-                          )}
-                          {averageRating !== null && <StarRating rating={averageRating} />}
-                          <div className="library-item-detail-actions">
-                            {onPlay && sortedGames.some((g) => g.executables?.length) && (
-                              <button
-                                type="button"
-                                className="library-item-detail-play-btn"
-                                onClick={() => {
-                                  const g = sortedGames.find((x) => x.executables?.length);
-                                  if (g) onPlay(g);
-                                }}
-                              >
-                                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
-                                  <path d="M8 5v14l11-7z" />
-                                </svg>
-                                {t("common.play")}
-                              </button>
-                            )}
-                            <Tooltip text={t("common.edit")} delay={200}>
-                              <button onClick={onEditModalOpen} className="library-item-detail-edit-button">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                </svg>
-                              </button>
-                            </Tooltip>
-                            {item && (isCollection || showDeleteInMenu) && (
-                              <DropdownMenu
-                                collectionId={isCollection ? item.id : undefined}
-                                collectionTitle={item.title}
-                                developerId={resourceType === "developers" ? item.id : undefined}
-                                publisherId={resourceType === "publishers" ? item.id : undefined}
-                                onCollectionDelete={(deletedId: string) => {
-                                  if (item.id === deletedId) onAfterDeleteSelfNavigate();
-                                }}
-                                onCollectionUpdate={onItemUpdate}
-                                onAddToCollection={(parentId) =>
-                                  addChildToParent(
-                                    {
-                                    id: item.id,
-                                    title: item.title,
-                                    summary: item.summary,
-                                    cover: item.cover,
-                                    background: item.background,
-                                    showTitle: item.showTitle,
-                                    childs: item.childs || [],
-                                    },
-                                    parentId
-                                  )
-                                }
-                                sourceCollectionLike={{
-                                  id: item.id,
-                                  title: item.title,
-                                  summary: item.summary,
-                                  cover: item.cover,
-                                  background: item.background,
-                                  showTitle: item.showTitle,
-                                  childs: item.childs || [],
-                                }}
-                                allCollectionLikes={allCollectionLikes}
-                                collectionLikeResourceType={resourceType}
-                                onDelete={showDeleteInMenu ? onDeleteClick : undefined}
-                                horizontal={true}
-                                className="library-item-detail-dropdown-menu"
-                                toolTipDelay={200}
-                              />
-                            )}
-                          </div>
                           {item && (
                             <EditCollectionLikeModal
                               isOpen={isEditModalOpen}
@@ -2080,8 +2003,15 @@ function LibraryItemDetailContent({
                               </div>
                             </div>
                           )}
-                          {item?.summary && <Summary summary={item.summary} maxLines={summaryMaxLines} />}
                         </div>
+                        {item?.summary && (
+                          <div className="library-item-detail-summary">
+                            <Summary
+                              summary={item.summary}
+                              maxLines={summaryMaxLines}
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -2134,7 +2064,7 @@ function LibraryItemDetailContent({
                     </div>
                   )}
 
-                  {!isLoading && (
+                  {(!isLoading || item) && (
                     <div
                       className={`library-item-detail-section-full${contextRailLayout ? " library-item-detail-context-layout" : ""}`}
                     >
@@ -2171,7 +2101,7 @@ function LibraryItemDetailContent({
                           >
                             <Cover
                               title={item.title}
-                              coverUrl={itemCoverUrl}
+                              cover={itemCover}
                               width={coverSize}
                               height={Math.round(coverSize * 1.5)}
                               imageFit="fill"
@@ -2211,65 +2141,28 @@ function LibraryItemDetailContent({
                                 resourceType === "collections"
                                   ? t("collections.subcollections", { count: subCollectionLikesFiltered.length })
                                   : resourceType === "developers"
-                                    ? t("igdbInfo.subDevelopers", { count: subCollectionLikesFiltered.length })
-                                    : t("igdbInfo.subPublishers", { count: subCollectionLikesFiltered.length });
+                                    ? t("catalogInfo.subDevelopers", { count: subCollectionLikesFiltered.length })
+                                    : t("catalogInfo.subPublishers", { count: subCollectionLikesFiltered.length });
                               return label.replace(/(\p{L})/u, (_, c) => c.toUpperCase());
                             })()}
-                            {subCollectionLikes.length === 1 && subCollectionLikesFiltered.length === 1 && (
-                              <>
-                                {": "}
-                                <button
-                                  type="button"
-                                  className="library-item-detail-subcollection-title-link"
-                                  onClick={() => onCollectionClick?.(String(subCollectionLikesFiltered[0].id))}
-                                >
-                                  {subCollectionLikesFiltered[0].title}
-                                </button>
-                              </>
-                            )}
                           </h2>
-                          {subCollectionLikes.length === 1 && subCollectionLikesFiltered.length === 1 ? (
-                            <div className="library-item-detail-games-list library-item-detail-mt-games-list">
-                              <GamesList
-                                scrollContainerRef={scrollContainerRef}
-                                forceSingleColumnVirtualized={contextRailLayout}
-                                fixedFocalSelection={contextRailLayout}
-                                onFocalSelectionChange={onFocalGameSelectionChange}
-                                games={singleSubCollectionGamesFiltered}
-                                onGameClick={(game) => {
-                                  const g = game as GameItem & { isIgdbOnly?: boolean };
-                                  if (g.isIgdbOnly && onIgdbGameClick) {
-                                    onIgdbGameClick(Number(game.id));
-                                  } else {
-                                    onGameClick(game);
-                                  }
-                                }}
-                                onPlay={onPlay}
-                                onGameUpdate={handleSingleSubCollectionGameUpdate}
-                                onGameDelete={handleSingleSubCollectionGameDelete}
-                                buildCoverUrl={buildCoverUrl}
-                                coverCacheBustTimestamp={listLoadTimestamp}
-                                coverSize={coverSize}
-                                itemRefs={itemRefs}
-                                draggable={singleSubCollectionDragEnabled}
-                                onDragEnd={
-                                  singleSubCollectionDragEnabled
-                                    ? handleSingleSubCollectionDragEnd
-                                    : undefined
-                                }
-                                allCollections={isCollection ? allCollections : undefined}
-                                collectionId={singleSubCollectionId ?? undefined}
-                                onRemoveFromCollection={handleSingleSubCollectionRemoveFromCollection}
-                              />
+                          {useSingleSubCollectionSlideLayout ? (
+                            <div className="game-detail-collections-list library-item-detail-collections-list-mt">
+                              {subCollectionLikesWithGames.map((block) =>
+                                renderCollectionLikeSlideSectionBlock(block, "sub"),
+                              )}
                             </div>
                           ) : (
                             <div className="library-item-detail-collections-list library-item-detail-collections-list-mt">
                               <div className="collections-list-container library-item-detail-subcollections-grid">
                                 {subCollectionLikesFiltered.map((col) => {
-                                  const colCoverUrl = col.cover
-                                    ? buildCoverUrl(API_BASE, col.cover, true, coverTimestampForUrls)
-                                    : "";
+                                  const isActiveDetailChild = matchesActiveCollectionLikeDetail(
+                                    resourceType,
+                                    String(col.id),
+                                    activeCollectionLikeDetail,
+                                  );
                                   const handleClick = () => {
+                                    if (isActiveDetailChild) return;
                                     if (onCollectionClick) {
                                       onCollectionClick(String(col.id));
                                     }
@@ -2277,25 +2170,27 @@ function LibraryItemDetailContent({
                                   return (
                                     <div
                                       key={String(col.id)}
-                                      className="group cursor-pointer collections-list-item library-item-detail-subcollection-cell"
+                                      className={`group collections-list-item library-item-detail-subcollection-cell${isActiveDetailChild ? " games-list-item--detail-current" : " cursor-pointer"}`}
                                     >
                                       <Cover
                                         title={col.title}
-                                        coverUrl={colCoverUrl}
+                                        cover={col.cover}
                                         width={coverSize}
                                         height={coverSize * 1.5}
-                                        onClick={handleClick}
+                                        onClick={isActiveDetailChild ? undefined : handleClick}
+                                        detailNavigationDisabled={isActiveDetailChild}
                                         subtitle={
                                           (subCollectionDisplayCountById[String(col.id)] ?? col.gameCount) != null
                                             ? t("common.elements", { count: subCollectionDisplayCountById[String(col.id)] ?? col.gameCount })
                                             : undefined
                                         }
+                                        play={!isActiveDetailChild && !!onPlayFirstInCollectionLike}
                                         onPlay={
-                                          onPlayFirstInCollectionLike
-                                            ? () => onPlayFirstInCollectionLike(resourceType, String(col.id))
-                                            : undefined
+                                          isActiveDetailChild || !onPlayFirstInCollectionLike
+                                            ? undefined
+                                            : () => onPlayFirstInCollectionLike(resourceType, String(col.id))
                                         }
-                                        onEdit={() => openChildEditModal(col)}
+                                        onEdit={isActiveDetailChild ? undefined : () => openChildEditModal(col)}
                                         onAddToCollection={(parentId) => addChildToParent(col, parentId)}
                                         onRemoveFromParent={() => removeChildFromParent(String(col.id))}
                                         sourceCollectionLike={col}
@@ -2314,7 +2209,6 @@ function LibraryItemDetailContent({
                                         }
                                         showTitle={(col as any).showTitle !== false}
                                         detail={true}
-                                        play={!!onPlayFirstInCollectionLike}
                                         showBorder={true}
                                       />
                                     </div>
@@ -2358,14 +2252,15 @@ function LibraryItemDetailContent({
                           <div className="library-item-detail-games-list">
                             <GamesList
                               scrollContainerRef={scrollContainerRef}
+                              enableVirtualization={contextRailLayout}
                               forceSingleColumnVirtualized={contextRailLayout}
                               fixedFocalSelection={contextRailLayout}
                               onFocalSelectionChange={onFocalGameSelectionChange}
                               games={gridGames}
                               onGameClick={(game) => {
-                                const g = game as GameItem & { isIgdbOnly?: boolean };
-                                if (g.isIgdbOnly && onIgdbGameClick) {
-                                  onIgdbGameClick(Number(game.id));
+                                const g = game as GameItem & { isCatalogOnly?: boolean };
+                                if (g.isCatalogOnly && onCatalogGameClick) {
+                                  onCatalogGameClick(Number(game.id));
                                 } else {
                                   onGameClick(game);
                                 }
@@ -2374,7 +2269,6 @@ function LibraryItemDetailContent({
                               onGameUpdate={onGameUpdate}
                               onGameDelete={onGameDelete}
                               buildCoverUrl={buildCoverUrl}
-                              coverCacheBustTimestamp={listLoadTimestamp}
                               coverSize={coverSize}
                               itemRefs={itemRefs}
                               draggable={collectionDragEnabled && !contextRailLayout}
@@ -2399,59 +2293,12 @@ function LibraryItemDetailContent({
                           <h3 className="game-detail-section-title">
                             {resourceType === "collections"
                               ? t("libraries.collections", "Collections")
-                              : resourceType === "developers"
-                                ? t("igdbInfo.developers", "Developers")
-                                : t("igdbInfo.publishers", "Publishers")}
+                              : t("catalogInfo.acquiredBy", "Acquired by")}
                           </h3>
                           <div className="game-detail-collections-list">
-                            {parentCollectionLikesWithGamesForDisplay.map(({ parent, slideItems }) => (
-                              <div key={String(parent.id)} className="game-detail-collection-group">
-                                <ScrollableGamesSection
-                                  sectionId={`parent-${resourceType}-${String(parent.id)}`}
-                                  titleOverride={parent.title}
-                                  titleHref={
-                                    onCollectionClick
-                                      ? `/${
-                                          resourceType === "collections"
-                                            ? "collections"
-                                            : resourceType === "developers"
-                                              ? "developers"
-                                              : "publishers"
-                                        }/${encodeURIComponent(String(parent.id))}`
-                                      : undefined
-                                  }
-                                  disableVerticalCoverAlignment
-                                  disableAutoTranslate
-                                  games={slideItems}
-                                  onGameClick={(selected) => {
-                                    const rawId = String(selected.id ?? "");
-                                    if (rawId.startsWith("collectionlike:")) {
-                                      const parts = rawId.split(":");
-                                      const linkedId = parts[2];
-                                      if (linkedId && onCollectionClick) {
-                                        onCollectionClick(linkedId);
-                                        return;
-                                      }
-                                    }
-                                    onGameClick(selected);
-                                  }}
-                                  onPlay={onPlay}
-                                  onGameUpdate={onGameUpdate}
-                                  coverSize={140}
-                                  allCollections={allCollections}
-                                  allCollectionLikes={allCollectionLikes}
-                                  collectionLikeResourceType={resourceType}
-                                  sliderParentCollectionLikeId={String(parent.id)}
-                                  onRemoveChildFromSliderParent={(childId) =>
-                                    removeChildFromSliderParent(String(parent.id), childId)
-                                  }
-                                  onCollectionLikePseudoEdit={handleCollectionLikePseudoEdit}
-                                  onPlayFirstInCollectionLike={onPlayFirstInCollectionLike}
-                                  onCollectionLikePseudoAddToParent={addChildToParent}
-                                  onCollectionLikePseudoUpdated={dispatchCollectionLikeUpdated}
-                                />
-                              </div>
-                            ))}
+                            {parentCollectionLikesWithGamesForDisplay.map((block) =>
+                              renderCollectionLikeSlideSectionBlock(block, "parent"),
+                            )}
                           </div>
                         </div>
                       )}

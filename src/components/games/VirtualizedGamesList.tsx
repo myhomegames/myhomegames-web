@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useMemo } from "react";
+import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import { Grid } from "react-window";
 import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
@@ -18,6 +18,7 @@ import {
   readGridTopInsetPx,
   virtualizedGridRowHeightPx,
 } from "../../utils/readGridTopInsetPx";
+import { MHG_LIST_TOOLBAR_CHROME_SYNC_EVENT } from "../../utils/syncInlineListToolbarChrome";
 import {
   applyVirtualizedStepSnap,
   applyWheelDeltaStep,
@@ -99,6 +100,8 @@ type VirtualizedGamesListProps = {
   onPlayFirstInCollectionLike?: (resourceType: string, cid: string) => void | Promise<void>;
   onCollectionLikePseudoAddToParent?: (source: CollectionItem, parentId?: string) => void | Promise<void>;
   onCollectionLikePseudoUpdated?: (updated: CollectionInfo) => void;
+  activeCollectionLikeDetail?: import("../../utils/collectionLikePseudoGame").ActiveCollectionLikeDetail | null;
+  activeGameId?: string | null;
 };
 
 const DEFAULT_GAP = 40; // Fallback gap between items in grid
@@ -176,6 +179,8 @@ export default function VirtualizedGamesList({
   onPlayFirstInCollectionLike,
   onCollectionLikePseudoAddToParent,
   onCollectionLikePseudoUpdated,
+  activeCollectionLikeDetail,
+  activeGameId,
 }: VirtualizedGamesListProps) {
   const location = useLocation();
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -292,19 +297,34 @@ export default function VirtualizedGamesList({
   }, [containerRef, games.length]);
 
   const { activeSkinId } = useSkin();
-  // Re-read grid spacing when the active skin changes (bundle.css is swapped).
-  // A small delay lets the new stylesheet apply before we measure CSS vars.
-  useEffect(() => {
+  const syncGridInsets = useCallback(() => {
     setSpacing(readGridSpacing());
     setTopInset(readGridTopInsetPx(containerRef.current));
     setBottomInset(readGridBottomInsetPx(containerRef.current));
-    const t = window.setTimeout(() => {
-      setSpacing(readGridSpacing());
-      setTopInset(readGridTopInsetPx(containerRef.current));
-      setBottomInset(readGridBottomInsetPx(containerRef.current));
-    }, 50);
+  }, [containerRef]);
+  // Re-read grid spacing when the active skin changes (bundle.css is swapped).
+  // A small delay lets the new stylesheet apply before we measure CSS vars.
+  useEffect(() => {
+    syncGridInsets();
+    const t = window.setTimeout(syncGridInsets, 50);
     return () => window.clearTimeout(t);
-  }, [activeSkinId, containerRef]);
+  }, [activeSkinId, syncGridInsets]);
+
+  // Stacked page chrome may update `--mhg-scroll-top-inset` when the inline list toolbar resizes.
+  useEffect(() => {
+    let raf = 0;
+    const onViewportChange = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(syncGridInsets);
+    };
+    window.addEventListener("resize", onViewportChange);
+    window.addEventListener(MHG_LIST_TOOLBAR_CHROME_SYNC_EVENT, onViewportChange);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onViewportChange);
+      window.removeEventListener(MHG_LIST_TOOLBAR_CHROME_SYNC_EVENT, onViewportChange);
+    };
+  }, [syncGridInsets]);
 
   // Publish a `--mhg-cell-scale` CSS variable on each cover pad based on its
   // position relative to the libraries bar. Skins that want the "covers behind
@@ -690,6 +710,8 @@ export default function VirtualizedGamesList({
           onPlayFirstInCollectionLike={onPlayFirstInCollectionLike}
           onCollectionLikePseudoAddToParent={onCollectionLikePseudoAddToParent}
           onCollectionLikePseudoUpdated={onCollectionLikePseudoUpdated}
+          activeCollectionLikeDetail={activeCollectionLikeDetail}
+          activeGameId={activeGameId}
         />
         </div>
         {isBottomInsetRow && <div style={{ height: effectiveBottomInset, flexShrink: 0 }} />}

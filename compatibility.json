@@ -1,0 +1,6 @@
+{
+  "role": "web",
+  "requires": {
+    "minServerVersion": "1.1.2"
+  }
+}

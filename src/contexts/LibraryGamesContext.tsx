@@ -1,11 +1,15 @@
-import { createContext, useContext, useState, useCallback, useMemo, useEffect } from "react";
+import { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import type { GameItem } from "../types";
-import { API_BASE, getApiToken } from "../config";
+import { API_BASE } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 import { compareTitles } from "../utils/stringUtils";
 import { useAuth } from "./AuthContext";
 import { useSettings } from "./SettingsContext";
+import {
+  readLibraryGamesSessionCache,
+  writeLibraryGamesSessionCache,
+} from "../utils/sessionPageCache";
 
 interface LibraryGamesContextType {
   games: GameItem[];
@@ -20,11 +24,15 @@ interface LibraryGamesContextType {
 const LibraryGamesContext = createContext<LibraryGamesContextType | undefined>(undefined);
 
 export function LibraryGamesProvider({ children }: { children: ReactNode }) {
-  const [games, setGames] = useState<GameItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const cachedGames = readLibraryGamesSessionCache();
+  const [games, setGames] = useState<GameItem[]>(() => cachedGames ?? []);
+  const [isLoading, setIsLoading] = useState(() => (cachedGames?.length ?? 0) === 0);
   const [error, setError] = useState<string | null>(null);
-  const { isLoading: authLoading, token: authToken } = useAuth();
-  const { twitchLoginEnabled, settingsLoaded } = useSettings();
+  const gamesRef = useRef(games);
+  gamesRef.current = games;
+  const cacheWriteEnabledRef = useRef((cachedGames?.length ?? 0) > 0);
+  const { isLoading: authLoading } = useAuth();
+  const { settingsLoaded } = useSettings();
 
   const fetchGames = useCallback(async () => {
     if (authLoading) {
@@ -33,13 +41,11 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
     if (!settingsLoaded) {
       return;
     }
-    // When Twitch login is enabled, require token; when disabled, token is optional
-    const apiToken = getApiToken() || authToken;
-    if (twitchLoginEnabled && !apiToken) {
-      return;
-    }
 
-    setIsLoading(true);
+    const showLoading = gamesRef.current.length === 0;
+    if (showLoading) {
+      setIsLoading(true);
+    }
     setError(null);
     try {
       const url = buildApiUrl(API_BASE, "/libraries/library/games", {
@@ -86,14 +92,18 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
         type: v.type ?? null,
       }));
       setGames(parsed);
+      cacheWriteEnabledRef.current = true;
+      writeLibraryGamesSessionCache(parsed);
     } catch (err: any) {
       const errorMessage = String(err.message || err);
       console.error("Error fetching library games:", errorMessage);
       setError(errorMessage);
     } finally {
-      setIsLoading(false);
+      if (showLoading) {
+        setIsLoading(false);
+      }
     }
-  }, [authLoading, authToken, twitchLoginEnabled, settingsLoaded]);
+  }, [authLoading, settingsLoaded]);
 
   // Load games on mount and when auth is ready
   useEffect(() => {
@@ -102,6 +112,11 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
     }
     fetchGames();
   }, [authLoading, settingsLoaded, fetchGames]);
+
+  useEffect(() => {
+    if (!cacheWriteEnabledRef.current) return;
+    writeLibraryGamesSessionCache(games);
+  }, [games]);
 
   // Listen for game update events
   useEffect(() => {
@@ -149,15 +164,23 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
       fetchGames();
     };
 
+    const handleLanguageChanged = () => {
+      cacheWriteEnabledRef.current = false;
+      writeLibraryGamesSessionCache([]);
+      fetchGames();
+    };
+
     window.addEventListener("gameUpdated", handleGameUpdated as EventListener);
     window.addEventListener("gameDeleted", handleGameDeleted as EventListener);
     window.addEventListener("gameAdded", handleGameAdded as EventListener);
     window.addEventListener("metadataReloaded", handleMetadataReloaded);
+    window.addEventListener("mhg-language-changed", handleLanguageChanged);
     return () => {
       window.removeEventListener("gameUpdated", handleGameUpdated as EventListener);
       window.removeEventListener("gameDeleted", handleGameDeleted as EventListener);
       window.removeEventListener("gameAdded", handleGameAdded as EventListener);
       window.removeEventListener("metadataReloaded", handleMetadataReloaded);
+      window.removeEventListener("mhg-language-changed", handleLanguageChanged);
     };
   }, [fetchGames]);
 

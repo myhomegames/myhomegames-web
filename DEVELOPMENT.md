@@ -71,7 +71,7 @@ mv localhost+1.pem cert.pem
 mv localhost+1-key.pem key.pem
 ```
 
-**Important**: HTTPS in development is optional. Use HTTPS only when testing features that require it (like Twitch OAuth callbacks in some scenarios).
+**Important**: HTTPS in development is optional. Use HTTPS when testing self-signed certificate acceptance or mixed-content scenarios with the local API.
 
 ## Development Configuration
 
@@ -82,9 +82,9 @@ For development, the web application uses:
 - `VITE_API_BASE` - Local Node URL for `/tunnel/*` control (connect, status, logout)
   - Development: `http://127.0.0.1:4000`
   - App API calls use the public tunnel URL after cloudflared connects (not this URL)
-- `VITE_API_TOKEN` - Authentication token for development (optional)
+- `VITE_API_TOKEN` - Optional dev token for `/auth/me` (development only)
   - Development: `changeme`
-  - Skips Twitch login UI only; does not bypass the tunnel
+  - Does not bypass the Cloudflare tunnel
 - `VITE_HTTPS_ENABLED` (default: `false`) - Enable HTTPS for Vite dev server (`true`/`false`)
   - When enabled, Vite serves the app over HTTPS using certificates from the `certs/` directory
   - Recommended when using Cloudflare tunnel (SPA on `https://localhost:5173`, API on tunnel subdomain)
@@ -94,11 +94,15 @@ For development, the web application uses:
   - If a release with a version greater than the current app version exists, a yellow notification icon appears in the header
   - Clicking the icon opens a dropdown to download the server package for your operating system (Windows, macOS, Linux)
 
+- `VITE_TUNNEL_MANAGER_URL` (optional) - Tunnel manager base URL (e.g. `https://myhomegames-server.vige.it`) for Cloudflare Access login and run-token fetch. Required when using the in-app tunnel connect flow.
+
+**Cloudflare Tunnel**: the web app only talks to the local server for `/tunnel/*`. The server downloads and updates the `cloudflared` CLI under `METADATA_PATH/bin/` — see **myhomegames-server** [DEVELOPMENT.md](https://github.com/myhomegames/myhomegames-server/blob/main/DEVELOPMENT.md#cloudflare-tunnel-public-https-without-local-certificates) for npm vs binary versions and update behaviour.
+
 **Note**: `VITE_API_BASE` is required. The application will not start without it.
 
 ## Development Authentication
 
-In development mode, you can use the `VITE_API_TOKEN` environment variable for quick testing without setting up Twitch OAuth.
+In development mode, you can set `VITE_API_TOKEN` to simulate a dev user on `GET /auth/me`.
 
 The `.env` file on the `0.X.X-SNAPSHOT` branch already contains:
 ```bash
@@ -106,7 +110,7 @@ VITE_API_TOKEN=changeme
 VITE_API_BASE=http://127.0.0.1:4000
 ```
 
-**Note**: Do not set `VITE_API_TOKEN` in production - the application will use Twitch OAuth for authentication.
+**Note**: Do not set `VITE_API_TOKEN` in production.
 
 ## Building for Production
 
@@ -140,9 +144,8 @@ This will serve the production build locally at `https://localhost:5173/app/` (s
 - Ensure Node.js version is v18 or higher
 
 ### Authentication issues
-- Verify `VITE_API_TOKEN` matches the server's `API_TOKEN` (if using development token)
-- Check that Twitch OAuth is properly configured (for production)
-- Review browser console for authentication errors
+- Verify `VITE_API_TOKEN` matches the server's `API_TOKEN` (development only, for `/auth/me`)
+- Review browser console for API errors
 
 ### HTTPS issues
 - **Certificate errors**: Verify that `certs/key.pem` and `certs/cert.pem` exist and are readable

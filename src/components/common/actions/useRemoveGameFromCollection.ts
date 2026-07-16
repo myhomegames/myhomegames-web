@@ -1,10 +1,7 @@
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { getApiToken } from "../../../config";
 import { buildApiHeaders, buildAppApiUrl } from "../../../utils/api";
 import { useLoading } from "../../../contexts/LoadingContext";
 import { useCollections } from "../../../contexts/CollectionsContext";
-import { useSettings } from "../../../contexts/SettingsContext";
 
 type UseRemoveGameFromCollectionParams = {
   onSuccess?: () => void;
@@ -20,19 +17,11 @@ export function useRemoveGameFromCollection({
   onSuccess,
   onError,
 }: UseRemoveGameFromCollectionParams = {}): UseRemoveGameFromCollectionReturn {
-  const { t } = useTranslation();
   const { setLoading } = useLoading();
-  const { twitchLoginEnabled } = useSettings();
   const { removeGameFromCollectionCache } = useCollections();
   const [isRemoving, setIsRemoving] = useState(false);
 
   const removeGameFromCollection = async (gameId: string, collectionId: string) => {
-    const apiToken = getApiToken();
-    if (twitchLoginEnabled && !apiToken) {
-      onError?.(t("common.unauthorized", "Unauthorized"));
-      return;
-    }
-
     setIsRemoving(true);
     setLoading(true);
 

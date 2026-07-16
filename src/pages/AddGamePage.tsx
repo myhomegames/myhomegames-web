@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { formatIGDBGameDate } from "../utils/date";
-import { displayGameType } from "../utils/igdbGameType";
-import { buildIgdbApiUrl } from "../utils/igdbApi";
+import { formatCatalogGameDate } from "../utils/date";
+import { displayGameType } from "../utils/gameType";
+import { buildCatalogApiUrl } from "../utils/catalogApi";
 import { buildApiHeaders } from "../utils/api";
-import type { IGDBGame } from "../types";
+import type { CatalogGame } from "../types";
 import Cover from "../components/games/Cover";
 type AddGamePageProps = {
-  onGameSelected: (game: IGDBGame) => void;
+  onGameSelected: (game: CatalogGame) => void;
 };
 
 export default function AddGamePage({
@@ -16,7 +16,7 @@ export default function AddGamePage({
 }: AddGamePageProps) {
   const { t, i18n } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
-  const [results, setResults] = useState<IGDBGame[]>([]);
+  const [results, setResults] = useState<CatalogGame[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -50,7 +50,7 @@ export default function AddGamePage({
     setIsSearching(true);
     searchTimeoutRef.current = setTimeout(async () => {
       try {
-        const url = new URL(buildIgdbApiUrl("/igdb/search"));
+        const url = new URL(buildCatalogApiUrl("/igdb/search"));
 
         const res = await fetch(url.toString(), {
           method: "POST",
@@ -83,7 +83,7 @@ export default function AddGamePage({
     };
   }, [searchQuery]);
 
-  function handleGameSelect(game: IGDBGame) {
+  function handleGameSelect(game: CatalogGame) {
     onGameSelected(game);
     navigate("/");
   }
@@ -160,9 +160,9 @@ export default function AddGamePage({
                             </span>
                           ) : null}
                         </div>
-                        {formatIGDBGameDate(game, t, i18n) && (
+                        {formatCatalogGameDate(game, t, i18n) && (
                           <div className="text-gray-400 text-sm mb-2">
-                            {formatIGDBGameDate(game, t, i18n)}
+                            {formatCatalogGameDate(game, t, i18n)}
                           </div>
                         )}
                         {game.summary && (

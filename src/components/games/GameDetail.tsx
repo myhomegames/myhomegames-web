@@ -22,13 +22,14 @@ import LibrariesBar from "../layout/LibrariesBar";
 import { useEditGame } from "../common/actions";
 import type { GameItem, CollectionItem, CollectionInfo } from "../../types";
 import { formatGameDate } from "../../utils/date";
-import { displayGameType, toGameTypeId } from "../../utils/igdbGameType";
+import { displayGameType, toGameTypeId } from "../../utils/gameType";
 import { buildApiHeaders, buildApiUrl, buildAppApiUrl, buildBackgroundUrl } from "../../utils/api";
 import { API_BASE, getApiToken } from "../../config";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useSkin } from "../../contexts/SkinContext";
 import { useTagLists } from "../../contexts/TagListsContext";
 import { useLibraryGames } from "../../contexts/LibraryGamesContext";
+import { useCollections } from "../../contexts/CollectionsContext";
 import type { MainAppOutletContext } from "../../layouts/MainAppLayout";
 import { useSimilarGamesDetails } from "../../hooks/useSimilarGamesDetails";
 import SimilarGamesList, { type SimilarGameDisplayItem } from "./SimilarGamesList";
@@ -229,7 +230,7 @@ function GameDetailContent({
 }) {
   const navigate = useNavigate();
   const outletContext = useOutletContext<MainAppOutletContext | null>();
-  const { igdbEnabled, twitchLoginEnabled } = useSettings();
+  const { catalogSearchEnabled } = useSettings();
   const { activeSkinWeb } = useSkin();
   const { tagLabels, tagLabelsReady } = useTagLists();
   const categoriesList = useMemo(
@@ -238,6 +239,7 @@ function GameDetailContent({
   );
   const { hasBackground, isBackgroundVisible, setBackgroundVisible } = useBackground();
   const { games: libraryGames, updateGame } = useLibraryGames();
+  const { collectionGameIds, isLoading: collectionsLoading } = useCollections();
   const [collectionsWithSlideItems, setCollectionsWithSlideItems] = useState<
     Array<{ collection: CollectionItem; slideItems: GameItem[] }>
   >([]);
@@ -246,7 +248,12 @@ function GameDetailContent({
   const [isEditCollectionLikeModalOpen, setIsEditCollectionLikeModalOpen] = useState(false);
   const [linkSourceCollectionLike, setLinkSourceCollectionLike] = useState<CollectionItem | null>(null);
   const topBarBackgroundAction: ReactNode = useMemo(() => {
-    if (!activeSkinWeb.persistentLibraryShell || !hasBackground) return null;
+    if (
+      !hasBackground ||
+      (!activeSkinWeb.persistentLibraryShell && !activeSkinWeb.topRightToolDock)
+    ) {
+      return null;
+    }
     return (
       <Tooltip text={isBackgroundVisible ? t("common.hideBackground") : t("common.showBackground")} delay={200}>
         <div className="library-item-detail-compact-top-action">
@@ -254,12 +261,20 @@ function GameDetailContent({
         </div>
       </Tooltip>
     );
-  }, [activeSkinWeb.persistentLibraryShell, hasBackground, isBackgroundVisible, setBackgroundVisible, t]);
+  }, [
+    activeSkinWeb.persistentLibraryShell,
+    activeSkinWeb.topRightToolDock,
+    hasBackground,
+    isBackgroundVisible,
+    setBackgroundVisible,
+    t,
+  ]);
 
   useEffect(() => {
+    if (!activeSkinWeb.persistentLibraryShell) return undefined;
     outletContext?.setTopBarBeforeMainGamesActions(topBarBackgroundAction);
     return () => outletContext?.setTopBarBeforeMainGamesActions(null);
-  }, [outletContext, topBarBackgroundAction]);
+  }, [outletContext, topBarBackgroundAction, activeSkinWeb.persistentLibraryShell]);
   
   // Helper function to format rating value (0-10 float)
   const formatRating = (value: number | null | undefined): string | null => {
@@ -302,51 +317,69 @@ function GameDetailContent({
     };
   }, []);
 
+  const libraryMap = useMemo(() => {
+    const map = new Map<string, GameItem>();
+    for (const item of libraryGames) {
+      map.set(String(item.id), item);
+    }
+    return map;
+  }, [libraryGames]);
+
   useEffect(() => {
     let isActive = true;
     const loadCollectionsForGame = async () => {
-      if (!allCollections.length) {
+      if (collectionsLoading || !allCollections.length) {
+        if (isActive && !collectionsLoading) {
+          setCollectionsWithSlideItems([]);
+        }
+        return;
+      }
+
+      const gameId = String(game.id);
+      const matchingCollections = allCollections.filter((collection) =>
+        collectionGameIds.get(String(collection.id))?.includes(gameId),
+      );
+
+      if (!matchingCollections.length) {
         if (isActive) {
           setCollectionsWithSlideItems([]);
         }
         return;
       }
 
-      const token = getApiToken() || "";
+      const childLookup = { collectionGameIds, libraryById: libraryMap };
       const results = await Promise.all(
-        allCollections.map(async (collection): Promise<{ collection: CollectionItem; slideItems: GameItem[] } | null> => {
-          try {
-            const gamesUrl = buildAppApiUrl(
-              `/collections/${encodeURIComponent(String(collection.id))}/games`,
-            );
-            const gamesRes = await fetch(gamesUrl, {
-              headers: buildApiHeaders({ Accept: "application/json" }),
-              cache: "no-store",
-            });
-            if (!gamesRes.ok) {
+        matchingCollections.map(
+          async (collection): Promise<{ collection: CollectionItem; slideItems: GameItem[] } | null> => {
+            try {
+              const gamesUrl = buildAppApiUrl(
+                `/collections/${encodeURIComponent(String(collection.id))}/games`,
+              );
+              const gamesRes = await fetch(gamesUrl, {
+                headers: buildApiHeaders({ Accept: "application/json" }),
+                cache: "no-store",
+              });
+              if (!gamesRes.ok) {
+                return null;
+              }
+
+              const bodyText = await gamesRes.text();
+              if (!bodyText.trim()) {
+                return null;
+              }
+
+              const collectionGames = parseGamesFromJson(JSON.parse(bodyText));
+              const childSlideItems = buildChildCollectionLikeSlideItems(
+                collection,
+                allCollections,
+                childLookup,
+              );
+              return { collection, slideItems: [...childSlideItems, ...collectionGames] };
+            } catch {
               return null;
             }
-
-            const bodyText = await gamesRes.text();
-            if (!bodyText.trim()) {
-              return null;
-            }
-
-            const collectionGames = parseGamesFromJson(JSON.parse(bodyText));
-            if (!collectionGames.some((g) => String(g.id) === String(game.id))) {
-              return null;
-            }
-
-            const childSlideItems = await buildChildCollectionLikeSlideItems(
-              collection,
-              allCollections,
-              token,
-            );
-            return { collection, slideItems: [...childSlideItems, ...collectionGames] };
-          } catch {
-            return null;
-          }
-        }),
+          },
+        ),
       );
 
       if (isActive) {
@@ -360,15 +393,7 @@ function GameDetailContent({
     return () => {
       isActive = false;
     };
-  }, [allCollections, collectionsRevision, game.id]);
-
-  const libraryMap = useMemo(() => {
-    const map = new Map<string, GameItem>();
-    for (const item of libraryGames) {
-      map.set(String(item.id), item);
-    }
-    return map;
-  }, [libraryGames]);
+  }, [allCollections, collectionsRevision, game.id, collectionGameIds, collectionsLoading, libraryMap]);
 
   const similarGamesNotInLibraryIds = useMemo(() => {
     if (!game.similarGames || game.similarGames.length === 0) return [];
@@ -388,7 +413,7 @@ function GameDetailContent({
       }
       const details = detailsById[String(sg.id)];
       return {
-        type: "igdb",
+        type: "catalog",
         id: sg.id,
         name: details?.name ?? sg.name ?? String(sg.id),
         cover: details?.cover,
@@ -397,11 +422,11 @@ function GameDetailContent({
     });
   }, [game.similarGames, libraryMap, detailsById]);
 
-  // When login is disabled, hide IGDB-only games (those with "New" badge)
+  // Hide IGDB-only games (those with "New" badge) when IGDB is disabled
   const similarGamesToShow = useMemo((): SimilarGameDisplayItem[] => {
-    if (igdbEnabled) return allSimilarGamesOrdered;
+    if (catalogSearchEnabled) return allSimilarGamesOrdered;
     return allSimilarGamesOrdered.filter((item) => item.type === "library");
-  }, [igdbEnabled, allSimilarGamesOrdered]);
+  }, [catalogSearchEnabled, allSimilarGamesOrdered]);
 
   const dispatchCollectionLikeUpdated = (updatedItem: CollectionInfo) => {
     window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collection: updatedItem } }));
@@ -439,8 +464,6 @@ function GameDetailContent({
   };
 
   const removeChildFromSliderParent = async (parentId: string, childId: string) => {
-    const token = getApiToken();
-    if (twitchLoginEnabled && !token) return;
     try {
       const url = buildApiUrl(
         API_BASE,
@@ -448,7 +471,7 @@ function GameDetailContent({
       );
       const res = await fetch(url, {
         method: "DELETE",
-        headers: { "X-Auth-Token": token },
+        headers: buildApiHeaders(),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       window.dispatchEvent(new CustomEvent("collectionUpdated", { detail: { collectionId: String(parentId) } }));
@@ -462,8 +485,6 @@ function GameDetailContent({
       setLinkSourceCollectionLike(source);
       return;
     }
-    const token = getApiToken();
-    if (twitchLoginEnabled && !token) return;
     try {
       const url = buildApiUrl(
         API_BASE,
@@ -471,7 +492,7 @@ function GameDetailContent({
       );
       const res = await fetch(url, {
         method: "POST",
-        headers: { "X-Auth-Token": token },
+        headers: buildApiHeaders(),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const recentKey = "recentCollectionLikeParents_collections";
@@ -508,6 +529,9 @@ function GameDetailContent({
       if (linkedId) {
         navigate(`/collections/${encodeURIComponent(linkedId)}`);
       }
+      return;
+    }
+    if (String(selectedGame.id) === String(game.id)) {
       return;
     }
     navigate(`/game/${selectedGame.id}`);
@@ -548,7 +572,14 @@ function GameDetailContent({
           error={null}
           coverSize={coverSize}
           onCoverSizeChange={handleCoverSizeChange}
-          hideBackgroundToggle={activeSkinWeb.persistentLibraryShell}
+          hideBackgroundToggle={
+            activeSkinWeb.persistentLibraryShell || activeSkinWeb.topRightToolDock
+          }
+          rightActionsBeforeMainGames={
+            activeSkinWeb.topRightToolDock && !activeSkinWeb.persistentLibraryShell
+              ? topBarBackgroundAction
+              : undefined
+          }
           viewMode="grid"
           onViewModeChange={() => {}}
         />
@@ -580,6 +611,7 @@ function GameDetailContent({
           {/* Game Info Panel */}
           <div className="game-detail-info-panel">
             <div className="game-detail-info-content">
+              <div className="game-detail-info-primary">
               <div className="game-detail-title-row">
                 <h1 className="text-white game-detail-title">
                   {game.title}
@@ -790,7 +822,15 @@ function GameDetailContent({
                   onGameUpdate(updatedGame);
                 }}
               />
-              {game.summary && <Summary summary={game.summary} maxLines={summaryMaxLines} />}
+              </div>
+              {game.summary && (
+                <div className="game-detail-summary">
+                  <Summary
+                    summary={game.summary}
+                    maxLines={summaryMaxLines}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -819,7 +859,6 @@ function GameDetailContent({
                     titleOverride={collection.title}
                     titleHref={`/collections/${collection.id}`}
                     disableVerticalCoverAlignment
-                    disableAutoTranslate
                     games={slideItems}
                     onGameClick={handleRelatedGameClick}
                     onPlay={onPlay}
@@ -836,6 +875,7 @@ function GameDetailContent({
                     onPlayFirstInCollectionLike={playFirstInCollection}
                     onCollectionLikePseudoAddToParent={addChildToParent}
                     onCollectionLikePseudoUpdated={dispatchCollectionLikeUpdated}
+                    activeGameId={String(game.id)}
                   />
                 </div>
               ))}
@@ -874,10 +914,11 @@ function GameDetailContent({
               coverSize={coverSize}
               allCollections={allCollections}
               onLibraryGameClick={handleRelatedGameClick}
-              onIgdbGameClick={(id) => navigate(`/igdb-game/${id}`)}
+              onCatalogGameClick={(id) => navigate(`/catalog-game/${id}`)}
               onPlay={onPlay}
               onGameUpdate={handleRelatedGameUpdate}
-              sectionTitle={t("igdbInfo.similarGames", "Similar Games")}
+              sectionTitle={t("catalogInfo.similarGames", "Similar Games")}
+              activeGameId={String(game.id)}
             />
           </div>
         )}

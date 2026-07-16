@@ -12,14 +12,14 @@ import { useEditGame } from "../common/actions";
 import VirtualizedGamesListDetail from "./VirtualizedGamesListDetail";
 import type { GameItem, CollectionItem } from "../../types";
 import { formatGameDate } from "../../utils/date";
-import { displayGameType, toGameTypeId } from "../../utils/igdbGameType";
+import { displayGameType, toGameTypeId } from "../../utils/gameType";
 import { gameHasExecutableForPlatform, getExecutablesForPlatform } from "../../utils/gameExecutables";
 const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are more than this many items
 
 type GamesListDetailProps = {
   games: GameItem[];
   onGameClick: (game: GameItem) => void;
-  onIgdbGameClick?: (igdbId: number) => void;
+  onCatalogGameClick?: (gameId: number) => void;
   onPlay?: (game: GameItem) => void;
   onGameUpdate?: (updatedGame: GameItem) => void;
   onGameDelete?: (deletedGame: GameItem) => void;
@@ -38,7 +38,7 @@ const FIXED_COVER_SIZE = 100; // Fixed size corresponding to minimum slider posi
 type GameDetailItemProps = {
   game: GameItem;
   onGameClick: (game: GameItem) => void;
-  onIgdbGameClick?: (igdbId: number) => void;
+  onCatalogGameClick?: (gameId: number) => void;
   onPlay?: (game: GameItem) => void;
   onEditClick: (game: GameItem) => void;
   onGameDelete?: (deletedGame: GameItem) => void;
@@ -54,7 +54,7 @@ type GameDetailItemProps = {
 export function GameDetailItem({
   game,
   onGameClick,
-  onIgdbGameClick,
+  onCatalogGameClick,
   onPlay,
   onEditClick,
   onGameDelete,
@@ -67,7 +67,7 @@ export function GameDetailItem({
   hideGameType = false,
 }: GameDetailItemProps) {
   const { t, i18n } = useTranslation();
-  const isIgdbOnly = (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly;
+  const isCatalogOnly = (game as GameItem & { isCatalogOnly?: boolean }).isCatalogOnly;
   const gameForCover = useMemo(() => {
     if (!platformIdForPlay) return game;
     const f = getExecutablesForPlatform(game, platformIdForPlay);
@@ -75,8 +75,8 @@ export function GameDetailItem({
     return { ...game, executables: f.executables, executableFileNames: f.executableFileNames };
   }, [game, platformIdForPlay]);
   const handleRowClick = () => {
-    if (isIgdbOnly && onIgdbGameClick) {
-      onIgdbGameClick(Number(game.id));
+    if (isCatalogOnly && onCatalogGameClick) {
+      onCatalogGameClick(Number(game.id));
     } else {
       onGameClick(game);
     }
@@ -142,7 +142,7 @@ export function GameDetailItem({
         coverUrl={coverUrl}
         width={FIXED_COVER_SIZE}
         height={coverHeight}
-        onPlay={!isIgdbOnly && onPlay ? (executableName?: string) => {
+        onPlay={!isCatalogOnly && onPlay ? (executableName?: string) => {
           if (executableName !== undefined) {
             (onPlay as (g: typeof game, ex?: string) => void)(game, executableName);
           } else {
@@ -156,7 +156,7 @@ export function GameDetailItem({
         detail={false}
         play={platformIdForPlay ? gameHasExecutableForPlatform(game, platformIdForPlay) : !!(game.executables && game.executables.length > 0)}
         showBorder={false}
-        overlayContent={isIgdbOnly ? <span className="game-detail-similar-cover-badge">{t("addGame.new", "New")}</span> : undefined}
+        overlayContent={isCatalogOnly ? <span className="game-detail-similar-cover-badge">{t("addGame.new", "New")}</span> : undefined}
       />
       <div className="games-list-detail-content">
         <div className="games-list-detail-title-row mb-2">
@@ -182,7 +182,7 @@ export function GameDetailItem({
         )}
       </div>
       <div className="games-list-detail-actions">
-        {!isIgdbOnly && (
+        {!isCatalogOnly && (
         <button
           type="button"
           onClick={handleEditClick}
@@ -204,13 +204,13 @@ export function GameDetailItem({
           </svg>
         </button>
         )}
-        {!isIgdbOnly && (
+        {!isCatalogOnly && (
         <AddToCollectionDropdown
           game={game}
           allCollections={allCollections}
         />
         )}
-        {!isIgdbOnly && gameForCover.executables && gameForCover.executables.length > 1 && onPlay && (
+        {!isCatalogOnly && gameForCover.executables && gameForCover.executables.length > 1 && onPlay && (
           <AdditionalExecutablesDropdown
             gameId={game.id}
             gameExecutables={gameForCover.executables}
@@ -221,7 +221,7 @@ export function GameDetailItem({
             }}
           />
         )}
-        {!isIgdbOnly && (
+        {!isCatalogOnly && (
         <DropdownMenu
           gameId={game.id}
           gameTitle={game.title}
@@ -250,7 +250,7 @@ export function GameDetailItem({
 export default function GamesListDetail({
   games,
   onGameClick,
-  onIgdbGameClick,
+  onCatalogGameClick,
   onPlay,
   onGameUpdate,
   onGameDelete,
@@ -301,7 +301,7 @@ export default function GamesListDetail({
             containerRef={scrollContainerRef || containerRef}
             itemRefs={itemRefs}
             onGameClick={onGameClick}
-            onIgdbGameClick={onIgdbGameClick}
+            onCatalogGameClick={onCatalogGameClick}
             onPlay={onPlay}
             onEditClick={handleEditClick}
             onGameDelete={onGameDelete}
@@ -317,7 +317,7 @@ export default function GamesListDetail({
               key={game.id}
               game={game}
               onGameClick={onGameClick}
-              onIgdbGameClick={onIgdbGameClick}
+              onCatalogGameClick={onCatalogGameClick}
               onPlay={onPlay}
               onEditClick={handleEditClick}
               onGameDelete={onGameDelete}

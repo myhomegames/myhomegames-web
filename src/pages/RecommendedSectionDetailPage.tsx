@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef, useLayoutEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useLocation, useOutletContext } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useAutoTranslate } from "../hooks/useAutoTranslate";
-import { useAuth } from "../contexts/AuthContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { useLoading } from "../contexts/LoadingContext";
 import { useSkin } from "../contexts/SkinContext";
@@ -43,8 +41,7 @@ export default function RecommendedSectionDetailPage({
   const outletContext = useOutletContext<MainAppOutletContext | null>();
   const { sectionId: rawSectionId } = useParams<{ sectionId: string }>();
   const sectionId = rawSectionId ? decodeURIComponent(rawSectionId) : null;
-  const { token } = useAuth();
-  const { twitchLoginEnabled, igdbEnabled, settingsLoaded } = useSettings();
+  const { catalogSearchEnabled, settingsLoaded } = useSettings();
   const { setLoading } = useLoading();
   const { activeSkinWeb } = useSkin();
   const persistentShell = activeSkinWeb.persistentLibraryShell;
@@ -55,6 +52,7 @@ export default function RecommendedSectionDetailPage({
     activeSkinWeb.verticalCoverAlignment;
 
   const [games, setGames] = useState<GameItem[]>([]);
+  const [sectionTitle, setSectionTitle] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -82,9 +80,46 @@ export default function RecommendedSectionDetailPage({
     return () => window.removeEventListener("mhg-cover-size-changed", handler as EventListener);
   }, [persistentShell]);
 
-  const sectionTitle = useAutoTranslate(sectionId ?? "", `recommended.${sectionId ?? ""}`, {
-    disabled: !sectionId,
-  });
+  useEffect(() => {
+    const handleGameDeleted = (event: Event) => {
+      const deletedGameId = (event as CustomEvent<{ gameId?: string | number }>).detail?.gameId;
+      if (deletedGameId == null) return;
+      const gameIdStr = String(deletedGameId);
+      setGames((prev) => prev.filter((g) => String(g.id) !== gameIdStr));
+    };
+
+    const handleRecommendedUpdated = () => {
+      if (!sectionId || !settingsLoaded) return;
+      void (async () => {
+        try {
+          const res = await fetch(buildApiUrl(API_BASE, "/recommended"), {
+            headers: buildApiHeaders({ Accept: "application/json" }),
+          });
+          if (!res.ok) return;
+          const json = await res.json();
+          const sections = (json.sections || []) as Array<{ id: string; title?: string; games?: GameItem[] }>;
+          const section = sections.find((s) => String(s.id) === String(sectionId));
+          if (!section) return;
+          setSectionTitle(section.title ?? sectionId);
+          setGames(section.games ?? []);
+          onGamesLoaded(section.games ?? []);
+        } catch {
+          /* ignore */
+        }
+      })();
+    };
+
+    window.addEventListener("gameDeleted", handleGameDeleted);
+    window.addEventListener("recommendedUpdated", handleRecommendedUpdated);
+    window.addEventListener("mhg-language-changed", handleRecommendedUpdated);
+    return () => {
+      window.removeEventListener("gameDeleted", handleGameDeleted);
+      window.removeEventListener("recommendedUpdated", handleRecommendedUpdated);
+      window.removeEventListener("mhg-language-changed", handleRecommendedUpdated);
+    };
+  }, [sectionId, settingsLoaded, onGamesLoaded]);
+
+  const displaySectionTitle = sectionTitle ?? sectionId ?? "";
 
   const handleGameClick = useCallback(
     (game: GameItem) => {
@@ -101,21 +136,17 @@ export default function RecommendedSectionDetailPage({
         }
         markRecommendedReturnFromGame();
       }
-      if (igdbEnabled && (game as GameItem & { isIgdbOnly?: boolean }).isIgdbOnly) {
-        navigate(`/igdb-game/${game.id}`);
+      if (catalogSearchEnabled && (game as GameItem & { isCatalogOnly?: boolean }).isCatalogOnly) {
+        navigate(`/catalog-game/${game.id}`);
       } else {
         onGameClick(game);
       }
     },
-    [igdbEnabled, navigate, onGameClick, sectionId, games],
+    [catalogSearchEnabled, navigate, onGameClick, sectionId, games],
   );
 
   useEffect(() => {
     if (!settingsLoaded || !sectionId) return;
-    if (twitchLoginEnabled && !token) {
-      navigate("/login", { replace: true });
-      return;
-    }
 
     const navState = location.state as RecommendedSectionsNavState | null;
     if (navState?.skipRecommendedFetch && navState.recommendedSectionsSnapshot.length > 0) {
@@ -124,6 +155,7 @@ export default function RecommendedSectionDetailPage({
         (s) => String(s.id) === String(sectionId),
       );
       if (section) {
+        setSectionTitle(section.title ?? sectionId);
         setGames(section.games);
         onGamesLoaded(section.games);
         setIsFetching(false);
@@ -136,6 +168,7 @@ export default function RecommendedSectionDetailPage({
       const snapshot = getRecommendedSectionsCache();
       const section = snapshot?.find((s) => String(s.id) === String(sectionId));
       if (section) {
+        setSectionTitle(section.title ?? sectionId);
         setGames(section.games);
         onGamesLoaded(section.games);
         setIsFetching(false);
@@ -157,7 +190,7 @@ export default function RecommendedSectionDetailPage({
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
-        const sections = (json.sections || []) as Array<{ id: string; games?: GameItem[] }>;
+        const sections = (json.sections || []) as Array<{ id: string; title?: string; games?: GameItem[] }>;
         const section = sections.find((s) => String(s.id) === String(sectionId));
         if (cancelled) return;
         if (!section) {
@@ -165,8 +198,9 @@ export default function RecommendedSectionDetailPage({
           return;
         }
         setRecommendedSectionsCache(
-          sections.map((s) => ({ id: s.id, games: s.games ?? [] })),
+          sections.map((s) => ({ id: s.id, title: s.title ?? s.id, games: s.games ?? [] })),
         );
+        setSectionTitle(section.title ?? sectionId);
         setGames(section.games ?? []);
         onGamesLoaded(section.games ?? []);
       } catch {
@@ -186,8 +220,6 @@ export default function RecommendedSectionDetailPage({
   }, [
     sectionId,
     settingsLoaded,
-    twitchLoginEnabled,
-    token,
     navigate,
     setLoading,
     onGamesLoaded,
@@ -278,7 +310,7 @@ export default function RecommendedSectionDetailPage({
                   <div className="recommended-section-detail-section-full recommended-section-context-layout">
                     <aside
                       className="recommended-section-context-rail"
-                      aria-label={sectionTitle || sectionId}
+                      aria-label={displaySectionTitle}
                     >
                       <button
                         type="button"
@@ -293,7 +325,7 @@ export default function RecommendedSectionDetailPage({
                       </button>
                       <div className="recommended-section-context-rail-title-block">
                         <h1 className="recommended-section-context-rail-title scrollable-section-title">
-                          {sectionTitle || sectionId}
+                          {displaySectionTitle}
                         </h1>
                       </div>
                     </aside>

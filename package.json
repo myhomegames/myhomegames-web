@@ -1,7 +1,7 @@
 {
   "name": "myhomegames-web",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.1.2",
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "compat:validate": "node scripts/compat-validate.mjs"
   },
   "dependencies": {
     "@types/react-tabs": "^5.0.5",

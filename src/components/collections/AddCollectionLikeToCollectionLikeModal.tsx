@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { API_BASE, getApiToken } from "../../config";
-import { buildApiUrl } from "../../utils/api";
+import { API_BASE } from "../../config";
+import { buildApiUrl, buildApiHeaders } from "../../utils/api";
+import { dispatchCollectionLikeChildLinked } from "../../utils/companyProfileSync";
 import type { CollectionItem } from "../../types";
 import type { CollectionLikeResourceType } from "./EditCollectionLikeModal";
 import {
@@ -10,8 +11,6 @@ import {
   useCreateDeveloper,
   useCreatePublisher,
 } from "../common/actions";
-import { useSettings } from "../../contexts/SettingsContext";
-
 const RESOURCE_CONFIG: Record<
   CollectionLikeResourceType,
   {
@@ -28,16 +27,16 @@ const RESOURCE_CONFIG: Record<
     newTitlePlaceholderKey: "collections.newCollectionTitle",
   },
   developers: {
-    titleKey: "igdbInfo.addToDeveloper",
-    searchKey: "igdbInfo.searchDevelopers",
-    emptyKey: "igdbInfo.noDevelopersFound",
-    newTitlePlaceholderKey: "igdbInfo.newDeveloperName",
+    titleKey: "catalogInfo.addToDeveloper",
+    searchKey: "catalogInfo.searchDevelopers",
+    emptyKey: "catalogInfo.noDevelopersFound",
+    newTitlePlaceholderKey: "catalogInfo.newDeveloperName",
   },
   publishers: {
-    titleKey: "igdbInfo.addToPublisher",
-    searchKey: "igdbInfo.searchPublishers",
-    emptyKey: "igdbInfo.noPublishersFound",
-    newTitlePlaceholderKey: "igdbInfo.newPublisherName",
+    titleKey: "catalogInfo.addToPublisher",
+    searchKey: "catalogInfo.searchPublishers",
+    emptyKey: "catalogInfo.noPublishersFound",
+    newTitlePlaceholderKey: "catalogInfo.newPublisherName",
   },
 };
 
@@ -59,7 +58,6 @@ export default function AddCollectionLikeToCollectionLikeModal({
   onLinked,
 }: AddCollectionLikeToCollectionLikeModalProps) {
   const { t } = useTranslation();
-  const { twitchLoginEnabled } = useSettings();
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLinking, setIsLinking] = useState(false);
@@ -115,8 +113,6 @@ export default function AddCollectionLikeToCollectionLikeModal({
   }, [searchQuery, availableParents]);
 
   const linkToParent = async (parent: CollectionItem) => {
-    const token = getApiToken();
-    if (twitchLoginEnabled && !token) return;
     setIsLinking(true);
     setError(null);
     try {
@@ -126,9 +122,7 @@ export default function AddCollectionLikeToCollectionLikeModal({
       );
       const res = await fetch(url, {
         method: "POST",
-        headers: {
-          "X-Auth-Token": token,
-        },
+        headers: buildApiHeaders(),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
@@ -141,10 +135,13 @@ export default function AddCollectionLikeToCollectionLikeModal({
         window.dispatchEvent(
           new CustomEvent("collectionUpdated", { detail: { collectionId: String(parent.id) } })
         );
-      } else if (resourceType === "developers") {
-        window.dispatchEvent(new CustomEvent("developerUpdated", { detail: {} }));
       } else {
-        window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: {} }));
+        dispatchCollectionLikeChildLinked(resourceType, parent.id, sourceItem.id);
+        if (resourceType === "developers") {
+          window.dispatchEvent(new CustomEvent("developerUpdated", { detail: {} }));
+        } else {
+          window.dispatchEvent(new CustomEvent("publisherUpdated", { detail: {} }));
+        }
       }
 
       onLinked?.();

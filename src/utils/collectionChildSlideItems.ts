@@ -1,6 +1,4 @@
 import type { CollectionItem, GameItem } from "../types";
-import { API_BASE } from "../config";
-import { buildApiUrl } from "./api";
 import { compareTitles } from "./stringUtils";
 
 export function parseGamesFromJson(json: { games?: any[] }): GameItem[] {
@@ -45,14 +43,44 @@ function toYearRange(games: GameItem[]): string {
   return min === max ? String(min) : `${min} - ${max}`;
 }
 
+export type ChildSlideItemsLookup = {
+  collectionGameIds?: Map<string, string[]>;
+  libraryById?: Map<string, GameItem>;
+};
+
+function yearRangeForChildCollection(
+  child: CollectionItem,
+  lookup?: ChildSlideItemsLookup,
+): string {
+  let range =
+    (child as { yearRange?: string }).yearRange ??
+    (child as { dateRange?: string }).dateRange ??
+    (child as { releaseRange?: string }).releaseRange ??
+    "";
+  if (typeof range !== "string") range = "";
+  range = range.trim();
+  if (range) return range;
+
+  const childId = String(child.id);
+  const gameIds = lookup?.collectionGameIds?.get(childId);
+  if (!gameIds?.length || !lookup?.libraryById) return "";
+
+  const games: GameItem[] = [];
+  for (const gameId of gameIds) {
+    const game = lookup.libraryById.get(gameId);
+    if (game) games.push(game);
+  }
+  return toYearRange(games);
+}
+
 /**
  * Pseudo slide rows for first-level sub-collections of a collection (same id shape as LibraryItemDetail parent slider).
  */
-export async function buildChildCollectionLikeSlideItems(
+export function buildChildCollectionLikeSlideItems(
   collection: CollectionItem,
   allCollections: CollectionItem[],
-  apiToken: string
-): Promise<GameItem[]> {
+  lookup?: ChildSlideItemsLookup,
+): GameItem[] {
   const byId = new Map(allCollections.map((c) => [String(c.id), c]));
   const parentChildIds = Array.isArray(collection.childs) ? collection.childs.map((id) => String(id)) : [];
   const childCollectionLikes = parentChildIds
@@ -60,54 +88,19 @@ export async function buildChildCollectionLikeSlideItems(
     .filter((c): c is CollectionItem => Boolean(c))
     .sort((a, b) => compareTitles(a.title || "", b.title || ""));
 
-  if (childCollectionLikes.length === 0) return [];
-
-  const childRangeCache = new Map<string, string>();
-
-  return Promise.all(
-    childCollectionLikes.map(async (child) => {
-      const childId = String(child.id);
-      let range =
-        (child as { yearRange?: string }).yearRange ??
-        (child as { dateRange?: string }).dateRange ??
-        (child as { releaseRange?: string }).releaseRange ??
-        "";
-      if (typeof range !== "string") range = "";
-      range = range.trim();
-
-      if (!range) {
-        const cached = childRangeCache.get(childId);
-        if (cached !== undefined) {
-          range = cached;
-        } else {
-          try {
-            const childUrl = buildApiUrl(API_BASE, `/collections/${encodeURIComponent(childId)}/games`);
-            const childRes = await fetch(childUrl, {
-              headers: { Accept: "application/json", "X-Auth-Token": apiToken },
-            });
-            if (childRes.ok) {
-              const childJson = await childRes.json();
-              range = toYearRange(parseGamesFromJson(childJson));
-            }
-          } catch {
-            // ignore
-          }
-          childRangeCache.set(childId, range);
-        }
-      }
-
-      return {
-        id: `collectionlike:collections:${childId}`,
-        title: child.title,
-        subtitle: range || null,
-        summary: child.summary || "",
-        cover: child.cover,
-        year: null,
-        month: null,
-        day: null,
-        executables: null,
-        stars: null,
-      } as GameItem;
-    })
-  );
+  return childCollectionLikes.map((child) => {
+    const range = yearRangeForChildCollection(child, lookup);
+    return {
+      id: `collectionlike:collections:${String(child.id)}`,
+      title: child.title,
+      subtitle: range || null,
+      summary: child.summary || "",
+      cover: child.cover,
+      year: null,
+      month: null,
+      day: null,
+      executables: null,
+      stars: null,
+    } as GameItem;
+  });
 }

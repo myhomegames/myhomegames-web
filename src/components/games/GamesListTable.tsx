@@ -24,7 +24,7 @@ type ColumnVisibility = {
 type GamesListTableProps = {
   games: GameItem[];
   onGameClick: (game: GameItem) => void;
-  onIgdbGameClick?: (igdbId: number) => void;
+  onCatalogGameClick?: (gameId: number) => void;
   onPlay?: (game: GameItem) => void;
   onGameUpdate?: (updatedGame: GameItem) => void;
   onGameDelete?: (deletedGame: GameItem) => void;
@@ -40,7 +40,7 @@ type GamesListTableProps = {
 export default function GamesListTable({
   games,
   onGameClick,
-  onIgdbGameClick,
+  onCatalogGameClick,
   onPlay,
   onGameUpdate,
   onGameDelete,
@@ -157,7 +157,7 @@ export default function GamesListTable({
             containerRef={theContainerRef}
             itemRefs={itemRefs}
             onGameClick={onGameClick}
-            onIgdbGameClick={onIgdbGameClick}
+            onCatalogGameClick={onCatalogGameClick}
             onPlay={onPlay}
             onGameUpdate={onGameUpdate}
             onGameDelete={onGameDelete}
@@ -204,7 +204,7 @@ export default function GamesListTable({
                   index={index}
                   itemRefs={itemRefs}
                   onGameClick={onGameClick}
-                  onIgdbGameClick={onIgdbGameClick}
+                  onCatalogGameClick={onCatalogGameClick}
                   onPlay={onPlay}
                   onGameUpdate={onGameUpdate}
                   onGameDelete={onGameDelete}

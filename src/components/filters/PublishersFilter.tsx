@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import TagValueFilter from "./TagValueFilter";
+import BaseFilter from "./BaseFilter";
+import type { FilterConfig } from "./BaseFilter";
 import type { FilterValue, GameItem } from "./types";
 
 type PublishersFilterProps = {
@@ -12,24 +13,36 @@ type PublishersFilterProps = {
   availablePublishers?: Array<{ id: string; title: string }>;
 };
 
-export default function PublishersFilter(props: PublishersFilterProps) {
-  const { availablePublishers = [], ...rest } = props;
-  const formatValue = useMemo(() => {
-    if (availablePublishers.length === 0) return undefined;
-    return (value: string) => {
-      const found = availablePublishers.find((p) => String(p.id) === String(value));
-      return found ? found.title : value;
-    };
-  }, [availablePublishers]);
-
-  return (
-    <TagValueFilter
-      {...rest}
-      type="publishers"
-      labelKey="gamesListToolbar.filter.publishers"
-      searchPlaceholderKey="gamesListToolbar.filter.searchPublishers"
-      valueExtractor={(game) => game.publishers ?? []}
-      formatValue={formatValue}
-    />
+export default function PublishersFilter({
+  availablePublishers = [],
+  ...props
+}: PublishersFilterProps) {
+  const publisherFilterConfig: FilterConfig = useMemo(
+    () => ({
+      type: "publishers",
+      labelKey: "gamesListToolbar.filter.publishers",
+      searchPlaceholderKey: "gamesListToolbar.filter.searchPublishers",
+      getAvailableValues: (
+        _games: GameItem[],
+        additionalData?: { availablePublishers?: Array<{ id: string; title: string }> },
+      ): Array<{ value: FilterValue; label: string }> => {
+        const publishers = additionalData?.availablePublishers ?? availablePublishers;
+        return publishers.map((publisher) => ({
+          value: publisher.id,
+          label: publisher.title,
+        }));
+      },
+      formatValue: (value: FilterValue): string => {
+        if (value === null || value === undefined) return "";
+        const publisher = availablePublishers.find((p) => String(p.id) === String(value));
+        return publisher ? publisher.title : String(value);
+      },
+      isScrollable: true,
+    }),
+    [availablePublishers],
   );
+
+  const additionalData = useMemo(() => ({ availablePublishers }), [availablePublishers]);
+
+  return <BaseFilter {...props} config={publisherFilterConfig} additionalData={additionalData} />;
 }

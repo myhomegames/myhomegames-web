@@ -1,11 +1,16 @@
 import { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import type { CollectionItem } from "../types";
-import { getApiToken } from "../config";
 import { buildApiHeaders, buildAppApiUrl } from "../utils/api";
 import { compareTitles } from "../utils/stringUtils";
+import { schedulePostGameDeleteLibraryRefresh } from "../utils/librarySyncEvents";
 import { useAuth } from "./AuthContext";
 import { useSettings } from "./SettingsContext";
+import {
+  readCollectionsSessionCache,
+  recordToGameIdsMap,
+  writeCollectionsSessionCache,
+} from "../utils/sessionPageCache";
 
 interface CollectionsContextType {
   collections: CollectionItem[];
@@ -24,13 +29,24 @@ interface CollectionsContextType {
 const CollectionsContext = createContext<CollectionsContextType | undefined>(undefined);
 
 export function CollectionsProvider({ children }: { children: ReactNode }) {
-  const [collections, setCollections] = useState<CollectionItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const cachedCollections = readCollectionsSessionCache();
+  const [collections, setCollections] = useState<CollectionItem[]>(
+    () => cachedCollections?.collections ?? [],
+  );
+  const [isLoading, setIsLoading] = useState(
+    () => (cachedCollections?.collections.length ?? 0) === 0,
+  );
   const [error, setError] = useState<string | null>(null);
-  const [collectionGameIds, setCollectionGameIds] = useState<Map<string, string[]>>(new Map());
+  const [collectionGameIds, setCollectionGameIds] = useState<Map<string, string[]>>(
+    () => recordToGameIdsMap(cachedCollections?.collectionGameIds ?? {}),
+  );
   const collectionGameIdsRef = useRef(collectionGameIds);
-  const { isLoading: authLoading, token: authToken } = useAuth();
-  const { twitchLoginEnabled, settingsLoaded } = useSettings();
+  collectionGameIdsRef.current = collectionGameIds;
+  const collectionsRef = useRef(collections);
+  collectionsRef.current = collections;
+  const cacheWriteEnabledRef = useRef((cachedCollections?.collections.length ?? 0) > 0);
+  const { isLoading: authLoading } = useAuth();
+  const { settingsLoaded } = useSettings();
 
   const fetchCollections = useCallback(async () => {
     if (authLoading) {
@@ -39,11 +55,11 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
     if (!settingsLoaded) {
       return;
     }
-    if (twitchLoginEnabled && !getApiToken() && !authToken) {
-      return;
-    }
 
-    setIsLoading(true);
+    const showLoading = collectionsRef.current.length === 0;
+    if (showLoading) {
+      setIsLoading(true);
+    }
     setError(null);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90000);
@@ -69,30 +85,44 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
       }));
       parsed.sort((a, b) => compareTitles(a.title || "", b.title || ""));
       setCollections(parsed);
-      
-      // Don't pre-fetch game IDs for all collections - load them on demand via getCollectionGameIds
-      // This avoids unnecessary API calls when user is on library page or other pages that don't need this data
+      setCollectionGameIds((prev) => {
+        const updated = new Map(prev);
+        for (const v of items) {
+          if (Array.isArray(v.gameIds)) {
+            updated.set(
+              String(v.id),
+              v.gameIds.map((id: string | number) => String(id)),
+            );
+          }
+        }
+        cacheWriteEnabledRef.current = true;
+        writeCollectionsSessionCache(parsed, updated);
+        return updated;
+      });
     } catch (err: any) {
       clearTimeout(timeoutId);
       const errorMessage = String(err.message || err);
       console.error("Error fetching collections:", errorMessage);
       setError(errorMessage);
     } finally {
-      setIsLoading(false);
+      if (showLoading) {
+        setIsLoading(false);
+      }
     }
-  }, [authLoading, authToken, twitchLoginEnabled, settingsLoaded]);
+  }, [authLoading, settingsLoaded]);
 
   // Load collections on mount and when auth is ready (stagger to avoid all fetches at once)
   useEffect(() => {
     if (authLoading) return;
     if (!settingsLoaded) return;
-    if (twitchLoginEnabled && !getApiToken() && !authToken) {
-      setIsLoading(false);
-      return;
-    }
     const t = setTimeout(fetchCollections, 400);
     return () => clearTimeout(t);
-  }, [authLoading, authToken, twitchLoginEnabled, settingsLoaded, fetchCollections]);
+  }, [authLoading, settingsLoaded, fetchCollections]);
+
+  useEffect(() => {
+    if (!cacheWriteEnabledRef.current) return;
+    writeCollectionsSessionCache(collections, collectionGameIds);
+  }, [collections, collectionGameIds]);
 
   useEffect(() => {
     collectionGameIdsRef.current = collectionGameIds;
@@ -171,13 +201,51 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
       fetchCollections();
     };
 
+    const handleGameDeleted = (event: Event) => {
+      const customEvent = event as CustomEvent<{ gameId?: string | number }>;
+      const deletedGameId = customEvent.detail?.gameId;
+      if (deletedGameId == null) return;
+
+      const gameIdStr = String(deletedGameId);
+      const affectedCollectionIds: string[] = [];
+
+      setCollectionGameIds((prev) => {
+        const updated = new Map(prev);
+        for (const [collectionId, gameIds] of prev) {
+          if (!gameIds.includes(gameIdStr)) continue;
+          affectedCollectionIds.push(collectionId);
+          updated.set(
+            collectionId,
+            gameIds.filter((id) => id !== gameIdStr),
+          );
+        }
+        return updated;
+      });
+
+      if (affectedCollectionIds.length > 0) {
+        setCollections((prev) =>
+          prev.map((col) => {
+            if (!affectedCollectionIds.includes(String(col.id))) return col;
+            const nextCount = Math.max(0, (col.gameCount ?? 1) - 1);
+            return { ...col, gameCount: nextCount };
+          }),
+        );
+      }
+
+      schedulePostGameDeleteLibraryRefresh(affectedCollectionIds);
+    };
+
     window.addEventListener("collectionUpdated", handleCollectionUpdated as EventListener);
     window.addEventListener("collectionDeleted", handleCollectionDeleted as EventListener);
     window.addEventListener("metadataReloaded", handleMetadataReloaded);
+    window.addEventListener("gameDeleted", handleGameDeleted as EventListener);
+    window.addEventListener("mhg-language-changed", handleMetadataReloaded);
     return () => {
       window.removeEventListener("collectionUpdated", handleCollectionUpdated as EventListener);
       window.removeEventListener("collectionDeleted", handleCollectionDeleted as EventListener);
       window.removeEventListener("metadataReloaded", handleMetadataReloaded);
+      window.removeEventListener("gameDeleted", handleGameDeleted as EventListener);
+      window.removeEventListener("mhg-language-changed", handleMetadataReloaded);
     };
   }, [fetchCollections]);
 

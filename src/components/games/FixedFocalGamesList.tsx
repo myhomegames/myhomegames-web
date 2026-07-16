@@ -107,6 +107,8 @@ export type FixedFocalGamesListProps = {
   onPlayFirstInCollectionLike?: (resourceType: string, cid: string) => void | Promise<void>;
   onCollectionLikePseudoAddToParent?: (source: CollectionItem, parentId?: string) => void | Promise<void>;
   onCollectionLikePseudoUpdated?: (updated: CollectionInfo) => void;
+  activeCollectionLikeDetail?: import("../../utils/collectionLikePseudoGame").ActiveCollectionLikeDetail | null;
+  activeGameId?: string | null;
   /** Narrow context-rail column: slot spans full width so titles fit beside the cover. */
   fullColumnSlot?: boolean;
   /** Fires when the focal index changes (wheel / step — not on cover click). */
@@ -145,6 +147,8 @@ export default function FixedFocalGamesList({
   onPlayFirstInCollectionLike,
   onCollectionLikePseudoAddToParent,
   onCollectionLikePseudoUpdated,
+  activeCollectionLikeDetail,
+  activeGameId,
   fullColumnSlot = false,
   onSelectionChange,
 }: FixedFocalGamesListProps) {
@@ -449,6 +453,8 @@ export default function FixedFocalGamesList({
               onPlayFirstInCollectionLike={onPlayFirstInCollectionLike}
               onCollectionLikePseudoAddToParent={onCollectionLikePseudoAddToParent}
               onCollectionLikePseudoUpdated={onCollectionLikePseudoUpdated}
+              activeCollectionLikeDetail={activeCollectionLikeDetail}
+              activeGameId={activeGameId}
             />
           </div>
         );

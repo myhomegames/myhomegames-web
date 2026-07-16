@@ -1,8 +1,13 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
+import type { CSSProperties } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import SearchResultsList from "./SearchResultsList";
-import { filterRootCollectionLikes } from "../../utils/stringUtils";
+import { useSidebarSearchInteraction } from "../../contexts/SidebarSearchInteractionContext";
+import {
+  clearSearchDropdownModalActionMark,
+  markSearchDropdownModalActionOpen,
+} from "../../utils/sidebarSearchMenuStack";
 import type { GameItem, CollectionItem } from "../../types";
 type SearchBarProps = {
   games: GameItem[];
@@ -11,12 +16,14 @@ type SearchBarProps = {
   publishers?: CollectionItem[];
   onGameSelect: (game: GameItem) => void;
   onPlay?: (game: GameItem) => void;
+  /** Let the bar shrink inside a narrow header flex row (phone layout). */
+  shrinkToFit?: boolean;
 };
 
 const RECENT_SEARCHES_KEY = "recentSearches";
 const MAX_RECENT_SEARCHES = 10;
 
-export default function SearchBar({ games, collections, developers = [], publishers = [], onGameSelect, onPlay }: SearchBarProps) {
+export default function SearchBar({ games, collections, developers = [], publishers = [], onGameSelect, onPlay, shrinkToFit = false }: SearchBarProps) {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -42,6 +49,110 @@ export default function SearchBar({ games, collections, developers = [], publish
   const blurTimeoutRef = useRef<number | null>(null);
   const isSelectingGameRef = useRef(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [dropdownLeftOffset, setDropdownLeftOffset] = useState(0);
+  const sidebarSearchInteraction = useSidebarSearchInteraction();
+
+  useLayoutEffect(() => {
+    const inSidebarSearch = !!document.querySelector("[data-mhg-sidebar-search-dialog]");
+    if (isModalOpen) {
+      if (inSidebarSearch) {
+        document.body.setAttribute("data-mhg-sidebar-search-modal-action", "");
+      } else {
+        document.body.setAttribute("data-mhg-search-dropdown-modal-action", "");
+      }
+    } else {
+      document.body.removeAttribute("data-mhg-sidebar-search-modal-action");
+      document.body.removeAttribute("data-mhg-search-dropdown-modal-action");
+    }
+    return () => {
+      document.body.removeAttribute("data-mhg-sidebar-search-modal-action");
+      document.body.removeAttribute("data-mhg-search-dropdown-modal-action");
+    };
+  }, [isModalOpen]);
+
+  useLayoutEffect(() => {
+    if (!sidebarSearchInteraction || !isModalOpen) return;
+    return sidebarSearchInteraction.retainInteractionBlock();
+  }, [sidebarSearchInteraction, isModalOpen]);
+
+  const dropdownLayoutStyle = useMemo(
+    (): CSSProperties => ({ left: dropdownLeftOffset }),
+    [dropdownLeftOffset],
+  );
+
+  useLayoutEffect(() => {
+    if (!isOpen || isOnSearchResultsPage) {
+      setDropdownLeftOffset(0);
+      return;
+    }
+
+    const root = searchRef.current;
+    if (!root) return;
+
+    let cancelled = false;
+
+    const measure = () => {
+      if (cancelled) return;
+
+      const dropdown = root.querySelector<HTMLElement>(":scope > .mhg-dropdown");
+      if (!dropdown) {
+        setDropdownLeftOffset(0);
+        return;
+      }
+
+      const anchorRect = root.getBoundingClientRect();
+      const dropdownWidth = dropdown.getBoundingClientRect().width;
+      if (dropdownWidth <= 0) return;
+
+      const padding = 16;
+      let offset = 0;
+
+      const rightEdge = anchorRect.left + dropdownWidth;
+      const maxRight = window.innerWidth - padding;
+      if (rightEdge > maxRight) {
+        offset = maxRight - rightEdge;
+      }
+
+      const leftEdge = anchorRect.left + offset;
+      if (leftEdge < padding) {
+        offset += padding - leftEdge;
+      }
+
+      setDropdownLeftOffset(offset);
+    };
+
+    measure();
+    const rafId = requestAnimationFrame(measure);
+
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    const dropdown = root.querySelector<HTMLElement>(":scope > .mhg-dropdown");
+    if (resizeObserver) {
+      resizeObserver.observe(root);
+      if (dropdown) resizeObserver.observe(dropdown);
+    }
+
+    window.addEventListener("resize", measure);
+    window.addEventListener("scroll", measure, true);
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(rafId);
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("scroll", measure, true);
+    };
+  }, [
+    isOpen,
+    isOnSearchResultsPage,
+    searchQuery,
+    isFocused,
+    filteredGames.length,
+    filteredCollections.length,
+    filteredDevelopers.length,
+    filteredPublishers.length,
+    recentSearches.length,
+  ]);
 
   const saveRecentSearch = useCallback((query: string) => {
     if (query.trim() !== "") {
@@ -153,6 +264,26 @@ export default function SearchBar({ games, collections, developers = [], publish
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as HTMLElement;
 
+      if (
+        document.body.hasAttribute("data-mhg-search-dropdown-modal-action") ||
+        document.body.hasAttribute("data-mhg-sidebar-search-modal-action")
+      ) {
+        return;
+      }
+
+      const menuStack = target.closest("[data-mhg-sidebar-search-menu-stack]");
+      if (
+        menuStack &&
+        !menuStack.hasAttribute("data-mhg-sidebar-search-menu-stack-permeable") &&
+        !target.closest(".dropdown-menu-popup") &&
+        !target.closest(".add-to-collection-dropdown-menu") &&
+        !target.closest(".additional-executables-dropdown-menu") &&
+        !target.closest(".dropdown-menu-collectionlike-submenu")
+      ) {
+        // ⋮ dim backdrop (sidebar search): DropdownMenu closes the sheet; keep search popup open.
+        return;
+      }
+
       // Sidebar search dialog: header/close sit outside the SearchBar root; treat whole dialog as in-bounds
       if (target.closest("[data-mhg-sidebar-search-dialog]")) {
         return;
@@ -160,8 +291,13 @@ export default function SearchBar({ games, collections, developers = [], publish
       
       // Don't close if clicking on a modal (edit or delete)
       if (
+        target.closest('.edit-game-modal-overlay') ||
         target.closest('.edit-game-modal-container') ||
+        target.closest('.edit-collection-modal-overlay') ||
         target.closest('.edit-collection-modal-container') ||
+        target.closest('.add-to-collection-modal-overlay') ||
+        target.closest('.manage-installation-modal-overlay') ||
+        target.closest('.dropdown-menu-confirm-overlay') ||
         target.closest('.dropdown-menu-confirm-container')
       ) {
         return;
@@ -174,6 +310,17 @@ export default function SearchBar({ games, collections, developers = [], publish
       
       // Don't close if clicking on the add-to-collection dropdown menu
       if (target.closest('.add-to-collection-dropdown-menu')) {
+        return;
+      }
+
+      // Portaled ⋮ menus (search results, table, etc.) sit outside this root
+      if (
+        target.closest(".dropdown-menu-popup") ||
+        target.closest(".dropdown-menu-confirm-overlay") ||
+        target.closest(".dropdown-menu-collectionlike-submenu") ||
+        target.closest("[data-mhg-sidebar-search-interaction-shield]") ||
+        target.closest("[data-mhg-sidebar-search-menu-stack]")
+      ) {
         return;
       }
       
@@ -307,16 +454,13 @@ export default function SearchBar({ games, collections, developers = [], publish
       const filtered = games.filter((game) =>
         game.title.toLowerCase().includes(queryLower)
       );
-      const rootCollections = filterRootCollectionLikes(collections);
-      const rootDevelopers = filterRootCollectionLikes(developers);
-      const rootPublishers = filterRootCollectionLikes(publishers);
-      const filteredCols = rootCollections.filter((collection: CollectionItem) =>
+      const filteredCols = collections.filter((collection: CollectionItem) =>
         collection.title.toLowerCase().includes(queryLower)
       );
-      const filteredDevs = rootDevelopers.filter((d: CollectionItem) =>
+      const filteredDevs = developers.filter((d: CollectionItem) =>
         (d.title || "").toLowerCase().includes(queryLower)
       );
-      const filteredPubs = rootPublishers.filter((p: CollectionItem) =>
+      const filteredPubs = publishers.filter((p: CollectionItem) =>
         (p.title || "").toLowerCase().includes(queryLower)
       );
       saveRecentSearch(query);
@@ -367,9 +511,18 @@ export default function SearchBar({ games, collections, developers = [], publish
     }, 150);
   };
 
+  const shrinkStyle = shrinkToFit ? { minWidth: 0, width: "100%" } : undefined;
+
   return (
-    <div ref={searchRef} className="relative search-bar-container">
-      <div className={`mhg-search-container-wrapper search-bar-wrapper ${isFocused ? "search-focused" : ""}`}>
+    <div
+      ref={searchRef}
+      className="relative search-bar-container"
+      style={shrinkStyle}
+    >
+      <div
+        className={`mhg-search-container-wrapper search-bar-wrapper ${isFocused ? "search-focused" : ""}`}
+        style={shrinkStyle}
+      >
         <div className="mhg-search-icon-wrapper">
           <svg
             className={isFocused ? "search-icon-focused" : "text-gray-400"}
@@ -450,7 +603,8 @@ export default function SearchBar({ games, collections, developers = [], publish
 
       {((isOpen && !isOnSearchResultsPage && searchQuery.trim().length >= 2 && (filteredGames.length > 0 || filteredCollections.length > 0 || filteredDevelopers.length > 0 || filteredPublishers.length > 0)) || isModalOpen) && (
         <div
-          className={`mhg-dropdown search-dropdown${isModalOpen ? " search-dropdown--modal-hidden" : ""}`}
+          className="mhg-dropdown search-dropdown"
+          style={dropdownLayoutStyle}
         >
           <div className="search-dropdown-scroll">
             <SearchResultsList
@@ -512,12 +666,12 @@ export default function SearchBar({ games, collections, developers = [], publish
                 );
               }}
               onModalOpen={() => {
+                markSearchDropdownModalActionOpen();
                 setIsModalOpen(true);
-                setIsOpen(false);
-                setIsFocused(false);
               }}
               onModalClose={() => {
                 setIsModalOpen(false);
+                clearSearchDropdownModalActionMark();
               }}
             />
           </div>
@@ -548,19 +702,19 @@ export default function SearchBar({ games, collections, developers = [], publish
       )}
 
       {isOpen && !isOnSearchResultsPage && searchQuery.trim().length >= 2 && filteredGames.length === 0 && filteredCollections.length === 0 && filteredDevelopers.length === 0 && filteredPublishers.length === 0 && (
-        <div className="mhg-dropdown search-no-results">
+        <div className="mhg-dropdown search-no-results" style={dropdownLayoutStyle}>
           {t("search.noResults", { query: searchQuery })}
         </div>
       )}
 
       {isOpen && !isOnSearchResultsPage && searchQuery.trim().length > 0 && searchQuery.trim().length < 2 && (
-        <div className="mhg-dropdown search-no-results">
+        <div className="mhg-dropdown search-no-results" style={dropdownLayoutStyle}>
           {t("search.minimumCharacters", "Please enter at least 2 characters to search")}
         </div>
       )}
 
       {isOpen && isFocused && searchQuery.trim() === "" && recentSearches.length > 0 && (
-        <div className="mhg-dropdown search-dropdown">
+        <div className="mhg-dropdown search-dropdown" style={dropdownLayoutStyle}>
           <div className="search-dropdown-header">
             {t("search.recentSearches")}
           </div>

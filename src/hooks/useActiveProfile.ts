@@ -1,13 +1,11 @@
 import { useMemo } from "react";
 import { getApiBase } from "../config";
 import { useAuth } from "../contexts/AuthContext";
-import { useSettings } from "../contexts/SettingsContext";
 import { useTunnel } from "../contexts/TunnelContext";
 import { parseCloudflareTunnelProfile } from "../utils/tunnelProfile";
 
 export function useActiveProfile() {
-  const { twitchLoginEnabled } = useSettings();
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const { featureEnabled, status } = useTunnel();
 
   const cloudflareProfile = useMemo(() => {
@@ -16,16 +14,14 @@ export function useActiveProfile() {
     return parseCloudflareTunnelProfile(publicUrl);
   }, [featureEnabled, status?.connected, status?.publicUrl]);
 
-  const hasTwitchProfile = twitchLoginEnabled && !!(user || token);
   const hasCloudflareProfile = cloudflareProfile !== null;
-  const showProfile = hasTwitchProfile || hasCloudflareProfile;
+  const showProfile = hasCloudflareProfile || !!user;
 
   const displayName = user?.userName || cloudflareProfile?.userName || "User";
   const displayImage = user?.userImage ?? null;
 
   return {
     showProfile,
-    hasTwitchProfile,
     hasCloudflareProfile,
     cloudflareProfile,
     displayName,
