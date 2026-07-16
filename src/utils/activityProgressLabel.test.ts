@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
+import type { TFunction } from "i18next";
 
 import { formatActivityProgressLabel } from "./activityProgressLabel";
 
-const t = (key: string, options?: Record<string, unknown>) => {
+const t = ((key: string, options?: Record<string, unknown>) => {
   const map: Record<string, string> = {
     "metadataReload.phase.developers": "Aggiornamento developer",
     "metadataReload.phase.developer": "Aggiornamento developer",
@@ -22,7 +23,7 @@ const t = (key: string, options?: Record<string, unknown>) => {
     }
   }
   return value;
-};
+}) as TFunction;
 
 describe("formatActivityProgressLabel", () => {
   it("includes item name and step counters during bulk reload", () => {

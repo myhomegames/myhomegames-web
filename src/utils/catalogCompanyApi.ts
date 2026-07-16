@@ -144,7 +144,7 @@ export async function refreshRemoteCompanyProfileViaApi(
   }
 
   const syncRelated = async (
-    relation: "parentCompany" | "updatedTo" | "formerly",
+    _relation: "parentCompany" | "updatedTo" | "formerly",
     ref: { id?: number; name?: string | null } | undefined,
   ) => {
     throwIfMetadataReloadAborted();

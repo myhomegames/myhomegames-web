@@ -26,7 +26,7 @@ export type ActiveCollectionLikeDetail = {
 /** True when a collection-like row refers to the detail page already open. */
 export function matchesActiveCollectionLikeDetail(
   resourceType: CollectionLikeResourceType,
-  targetId: string,
+  targetId: string | number,
   active?: ActiveCollectionLikeDetail | null,
 ): boolean {
   if (!active) return false;

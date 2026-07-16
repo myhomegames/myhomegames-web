@@ -18,7 +18,7 @@ export function isTransientMetadataFetchError(error: unknown): boolean {
   return false;
 }
 
-function delay(ms: number, signal?: AbortSignal): Promise<void> {
+function delay(ms: number, signal?: AbortSignal | null): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
       reject(new DOMException("Aborted", "AbortError"));
