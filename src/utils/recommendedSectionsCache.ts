@@ -44,6 +44,11 @@ export function markRecommendedReturnFromGame(): void {
   preserveOnReturnFromGame = true;
 }
 
+/** True while returning from a recommended game (does not clear the flag). */
+export function peekRecommendedReturnFromGame(): boolean {
+  return preserveOnReturnFromGame;
+}
+
 /** True once after back from a recommended game; clears the flag. */
 export function consumeRecommendedReturnFromGame(): boolean {
   if (!preserveOnReturnFromGame) return false;
@@ -54,6 +59,11 @@ export function consumeRecommendedReturnFromGame(): boolean {
 /** Set when opening a section from the strip or navigating back to the strip index. */
 export function markRecommendedReturnToIndex(): void {
   preserveOnReturnToIndex = true;
+}
+
+/** True while returning to the strip index (does not clear the flag). */
+export function peekRecommendedReturnToIndex(): boolean {
+  return preserveOnReturnToIndex;
 }
 
 /** True once after back from a section detail to the strip index; clears the flag. */
