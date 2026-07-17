@@ -18,6 +18,8 @@ import {
   getRecommendedSectionsCache,
   markRecommendedReturnFromGame,
   markRecommendedReturnToIndex,
+  peekRecommendedReturnFromGame,
+  peekRecommendedReturnToIndex,
   setRecommendedSectionsCache,
   type RecommendedSectionsNavState,
 } from "../utils/recommendedSectionsCache";
@@ -50,11 +52,19 @@ export default function RecommendedPage({
   const { setLoading } = useLoading();
   const { activeSkinWeb } = useSkin();
   const verticalStripsLayout = activeSkinWeb.verticalCoverAlignment;
-  const initialCachedSections = getRecommendedSectionsCache();
+  // Only reuse cache when returning from a game/section; a fresh visit must fetch
+  // a new random set without painting the previous strips first.
+  const preserveCachedSections =
+    peekRecommendedReturnFromGame() || peekRecommendedReturnToIndex();
+  const initialCachedSections = preserveCachedSections
+    ? getRecommendedSectionsCache()
+    : null;
   const [sections, setSections] = useState<RecommendedSection[]>(
     () => initialCachedSections ?? [],
   );
-  const [isFetching, setIsFetching] = useState(false);
+  const [isFetching, setIsFetching] = useState(
+    () => !initialCachedSections || initialCachedSections.length === 0,
+  );
   const isReady = usePageRevealReady(
     isFetching && sections.length === 0,
     sections.length > 0,
@@ -180,10 +190,7 @@ export default function RecommendedPage({
     ) {
       return;
     }
-    if (hydrateFromCache()) {
-      void fetchRecommendedSections({ background: true });
-      return;
-    }
+    // Fresh visit: fetch a new random set — do not paint stale cache then refresh.
     fetchRecommendedSections();
   }, [settingsLoaded, navigate, hydrateFromCache]);
 

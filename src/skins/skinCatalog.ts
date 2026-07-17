@@ -50,8 +50,11 @@ export function normalizeSkinName(name: string): string {
 function catalogFromReleaseAssets(assets: GitHubAsset[]): CatalogSkin[] {
   const skins: CatalogSkin[] = [];
   for (const zipAsset of assets) {
-    if (!zipAsset.name.startsWith("zips/")) continue;
-    const fileName = zipAsset.name.replace(/^zips\//, "");
+    // GitHub flattens uploaded paths: "plex-1.0.0.mhg-skin.zip" (optional legacy "zips/" prefix).
+    if (!zipAsset.name.endsWith(SKIN_ZIP_SUFFIX)) continue;
+    const fileName = zipAsset.name.includes("/")
+      ? zipAsset.name.slice(zipAsset.name.lastIndexOf("/") + 1)
+      : zipAsset.name;
     const parsed = parseSkinZipFileName(fileName);
     if (!parsed?.version) continue;
     skins.push({
