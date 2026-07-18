@@ -27,6 +27,8 @@ import LibraryItemDetailPage from "./pages/LibraryItemDetailPage";
 import TagGamesRoutePage from "./pages/TagGamesRoutePage";
 import CatalogGameDetailPage from "./pages/CatalogGameDetailPage";
 import RecommendedSectionDetailPage from "./pages/RecommendedSectionDetailPage";
+import StreamPlayPage from "./pages/StreamPlayPage";
+import { shouldUseRemoteStreaming } from "./utils/playMode";
 
 import type { GameItem, CollectionItem } from "./types";
 import { buildApiUrl, buildCoverUrl, buildApiHeaders } from "./utils/api";
@@ -77,7 +79,7 @@ function AppContent() {
   const { i18n } = useTranslation();
   const { setActivityBusy, setActivityProgress, isActivityBusy } = useLoading();
   const { isLoading: authLoading } = useAuth();
-  const { catalogSearchEnabled } = useSettings();
+  const { catalogSearchEnabled, remoteStreamingEnabled } = useSettings();
 
   const handleCloseLaunchModal = () => {
     setLaunchError(null);
@@ -262,6 +264,20 @@ function AppContent() {
           setLaunchError(err.message || "Failed to load collection games");
           return;
         }
+      }
+
+      const useRemoteStreaming = await shouldUseRemoteStreaming(remoteStreamingEnabled);
+      if (useRemoteStreaming) {
+        const params = new URLSearchParams();
+        if (executableName) {
+          params.set("executable", executableName);
+        }
+        const query = params.toString();
+        navigate(`/play/${encodeURIComponent(String(gameId))}${query ? `?${query}` : ""}`, {
+          state: { from: location.pathname + location.search },
+        });
+        setIsLaunching(false);
+        return;
       }
       
       const launchParams: Record<string, string | number | boolean> = {
@@ -912,6 +928,14 @@ function AppContent() {
             </>
           )}
 
+          <Route
+            path="/play/:gameId"
+            element={
+              <ProtectedRoute>
+                <StreamPlayPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/settings"
             element={
