@@ -207,7 +207,7 @@
   "streamPlay": {
     "title": "Gioco remoto",
     "launching": "Avvio del gioco sul PC di casa…",
-    "readyHint": "Gioco avviato. Connettiti con Moonlight Web qui sotto (streama il desktop per vederlo).",
+    "readyHint": "Gioco avviato. Streaming del desktop di casa via Moonlight Web…",
     "setupHint": "Richiede Sunshine sul PC di casa e Moonlight Web raggiungibile via HTTPS.",
     "launchFailed": "Impossibile avviare il gioco sul PC di casa",
     "noMoonlightUrl": "URL Moonlight Web non configurato sul server.",

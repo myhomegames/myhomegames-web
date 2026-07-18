@@ -13,10 +13,13 @@ vi.mock("../config", () => ({
 describe("playMode", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
+    vi.stubEnv("VITE_FORCE_REMOTE_STREAMING", "");
+    localStorage.removeItem("mhg_force_remote_streaming");
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 
   it("detects reachable local server", async () => {
@@ -37,5 +40,11 @@ describe("playMode", () => {
   it("skips remote streaming when disabled", async () => {
     vi.mocked(fetch).mockRejectedValueOnce(new Error("offline"));
     await expect(shouldUseRemoteStreaming(false)).resolves.toBe(false);
+  });
+
+  it("forces remote streaming when VITE_FORCE_REMOTE_STREAMING is set", async () => {
+    vi.stubEnv("VITE_FORCE_REMOTE_STREAMING", "true");
+    vi.mocked(fetch).mockResolvedValueOnce({ ok: true } as Response);
+    await expect(shouldUseRemoteStreaming(true)).resolves.toBe(true);
   });
 });

@@ -105,7 +105,7 @@ export default function StreamPlayPage() {
               : launchState === "ready"
                 ? t(
                     "streamPlay.readyHint",
-                    "Game started. Connect with Moonlight Web below (stream the desktop to see it).",
+                    "Game started. Streaming the home desktop via Moonlight Web…",
                   )
                 : t(
                     "streamPlay.setupHint",
