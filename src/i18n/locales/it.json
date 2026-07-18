@@ -102,10 +102,10 @@
     },
     "streaming": {
       "title": "Gioco remoto (Sunshine)",
-      "description": "Quando usi MyHomeGames da un altro dispositivo, Play apre Moonlight Web invece del lancio locale. Sunshine viene scaricato e avviato automaticamente con il server. Esponi Moonlight Web (HTTPS) da internet.",
+      "description": "Quando usi MyHomeGames da un altro dispositivo, Play apre Moonlight Web. Sunshine e Moonlight Web partono con il server; Docker viene installato automaticamente se manca (Colima su macOS). Il host Sunshine viene aggiunto e accoppiato automaticamente (login sunshine / admin).",
       "enabled": "Abilita streaming remoto",
       "moonlightWebUrl": "URL Moonlight Web",
-      "moonlightWebUrlHelp": "URL HTTPS pubblico della tua istanza moonlight-web-stream. I browser sul PC di casa usano sempre il lancio diretto.",
+      "moonlightWebUrlHelp": "Compilato automaticamente (http://127.0.0.1:8080) se Moonlight Web è gestito dal server. Per browser fuori LAN usa un URL HTTPS pubblico.",
       "save": "Salva gioco remoto",
       "saved": "Impostazioni gioco remoto salvate."
     },

@@ -33,7 +33,7 @@ export default function SettingsPage() {
   const [initialTwitchClientId, setInitialTwitchClientId] = useState<string | null>(null);
   const [initialTwitchClientSecret, setInitialTwitchClientSecret] = useState<string | null>(null);
   const [cloudflareTunnelEnabled, setCloudflareTunnelEnabled] = useState(true);
-  const [remoteStreamingEnabled, setRemoteStreamingEnabled] = useState(false);
+  const [remoteStreamingEnabled, setRemoteStreamingEnabled] = useState(true);
   const [moonlightWebUrl, setMoonlightWebUrl] = useState("");
 
   const [savingTwitch, setSavingTwitch] = useState(false);
@@ -108,7 +108,7 @@ export default function SettingsPage() {
           setTwitchApiEnabled(apiEnabled);
           setInitialTwitchApiEnabled(apiEnabled);
           setCloudflareTunnelEnabled(!!data.cloudflareTunnelEnabled);
-          setRemoteStreamingEnabled(!!data.remoteStreamingEnabled);
+          setRemoteStreamingEnabled(data.remoteStreamingEnabled !== false);
           setMoonlightWebUrl(
             typeof data.moonlightWebUrl === "string" ? data.moonlightWebUrl : "",
           );

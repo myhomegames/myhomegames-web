@@ -67,7 +67,7 @@ export default function SettingsStreamingSection({
       <p className="settings-help-text mb-4">
         {t(
           "settings.streaming.description",
-          "When you use MyHomeGames from another device, Play opens Moonlight Web instead of launching locally. Sunshine is downloaded and started automatically with the server. Run Moonlight Web (HTTPS) reachable from the internet.",
+          "Remote Play opens Moonlight Web when you are away from the home PC. Sunshine and Moonlight Web start with the server; Docker is installed automatically if missing (Colima on macOS).",
         )}
       </p>
 
@@ -95,7 +95,7 @@ export default function SettingsStreamingSection({
         <p className="settings-help-text mt-1">
           {t(
             "settings.streaming.moonlightWebUrlHelp",
-            "Public HTTPS URL of your moonlight-web-stream instance. Local browsers on the home PC always use direct launch.",
+            "Filled automatically (http://127.0.0.1:8080) when Moonlight Web is managed by the server. Override with a public HTTPS URL for remote browsers outside your LAN.",
           )}
         </p>
       </div>

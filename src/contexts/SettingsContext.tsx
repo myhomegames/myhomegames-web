@@ -46,7 +46,7 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const { featureEnabled, statusLoaded, tunnelReady } = useTunnel();
   const [twitchApiEnabled, setTwitchApiEnabled] = useState(false);
-  const [remoteStreamingEnabled, setRemoteStreamingEnabled] = useState(false);
+  const [remoteStreamingEnabled, setRemoteStreamingEnabled] = useState(true);
   const [skinWeb, setSkinWeb] = useState<SkinWebManifest>(DEFAULT_SKIN_WEB_MANIFEST);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const latestSkinWebUpdateRef = useRef(0);
@@ -72,7 +72,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           const data = await res.json();
           const serverApiEnabled = !!data.twitchApiEnabled;
           setTwitchApiEnabled(serverApiEnabled);
-          setRemoteStreamingEnabled(!!data.remoteStreamingEnabled);
+          setRemoteStreamingEnabled(data.remoteStreamingEnabled !== false);
           applySkinWeb(data.skinWeb);
           clearLegacyCatalogCredentialStorage();
           return;

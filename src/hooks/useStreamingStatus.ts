@@ -10,7 +10,7 @@ export type StreamingStatus = {
 };
 
 const DEFAULT_STATUS: StreamingStatus = {
-  remoteStreamingEnabled: false,
+  remoteStreamingEnabled: true,
   moonlightWebUrl: "",
   sunshineReachable: false,
   ready: false,
