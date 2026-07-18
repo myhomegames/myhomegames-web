@@ -10,7 +10,6 @@ import { useTunnel } from "../contexts/TunnelContext";
 import { LIBRARY_ORDER, normalizeVisibleLibraries } from "../utils/librarySections";
 import SettingsSkinSection from "../components/settings/SettingsSkinSection";
 import SettingsCloudflareSection from "../components/settings/SettingsCloudflareSection";
-import SettingsStreamingSection from "../components/settings/SettingsStreamingSection";
 import { useServerVersion } from "../hooks/useServerVersion";
 import {
   WEB_REQUIRES_MIN_SERVER_VERSION,
@@ -33,8 +32,6 @@ export default function SettingsPage() {
   const [initialTwitchClientId, setInitialTwitchClientId] = useState<string | null>(null);
   const [initialTwitchClientSecret, setInitialTwitchClientSecret] = useState<string | null>(null);
   const [cloudflareTunnelEnabled, setCloudflareTunnelEnabled] = useState(true);
-  const [remoteStreamingEnabled, setRemoteStreamingEnabled] = useState(false);
-  const [moonlightWebUrl, setMoonlightWebUrl] = useState("");
 
   const [savingTwitch, setSavingTwitch] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -108,10 +105,6 @@ export default function SettingsPage() {
           setTwitchApiEnabled(apiEnabled);
           setInitialTwitchApiEnabled(apiEnabled);
           setCloudflareTunnelEnabled(!!data.cloudflareTunnelEnabled);
-          setRemoteStreamingEnabled(!!data.remoteStreamingEnabled);
-          setMoonlightWebUrl(
-            typeof data.moonlightWebUrl === "string" ? data.moonlightWebUrl : "",
-          );
           const loadedClientId = typeof data.twitchClientId === "string" ? data.twitchClientId : "";
           const loadedClientSecret =
             typeof data.twitchClientSecret === "string" ? data.twitchClientSecret : "";
@@ -409,11 +402,6 @@ export default function SettingsPage() {
         <SettingsSkinSection />
 
         <SettingsCloudflareSection />
-
-        <SettingsStreamingSection
-          initialEnabled={remoteStreamingEnabled}
-          initialMoonlightWebUrl={moonlightWebUrl}
-        />
 
         {/* IGDB / Twitch API credentials */}
         <div className="bg-[#1a1a1a] settings-card settings-card--spaced-top">
