@@ -1,31 +1,84 @@
 import { useEffect, useMemo, useRef, useState, type SyntheticEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { getApiBase } from "../config";
+import { getApiBase, getApiToken } from "../config";
 import { buildApiHeaders } from "../utils/api";
 
 type LaunchState = "idle" | "launching" | "ready" | "error";
 
 const MOONLIGHT_POPUP_NAME = "mhg-moonlight-stream";
 
-function stopStreamingSession(hostId: number | null) {
+function buildStopStreamingUrl(opts: {
+  hostId: number | null;
+  gameId: string | undefined;
+  executableName?: string;
+}): string {
+  const url = new URL("/streaming/stop", getApiBase());
+  if (opts.hostId != null && Number.isFinite(opts.hostId)) {
+    url.searchParams.set("hostId", String(opts.hostId));
+  }
+  if (opts.gameId) url.searchParams.set("gameId", opts.gameId);
+  if (opts.executableName) url.searchParams.set("executableName", opts.executableName);
+  const token = getApiToken();
+  if (token) url.searchParams.set("token", token);
+  return url.toString();
+}
+
+function stopStreamingSession(opts: {
+  hostId: number | null;
+  gameId: string | undefined;
+  executableName?: string;
+}): Promise<void> {
   const url = new URL("/streaming/stop", getApiBase());
   const headers = buildApiHeaders({
     Accept: "application/json",
     "Content-Type": "application/json",
   });
   const body = JSON.stringify({
-    ...(hostId != null && Number.isFinite(hostId) ? { hostId } : {}),
+    ...(opts.hostId != null && Number.isFinite(opts.hostId) ? { hostId: opts.hostId } : {}),
+    ...(opts.gameId ? { gameId: opts.gameId } : {}),
+    ...(opts.executableName ? { executableName: opts.executableName } : {}),
   });
-  // keepalive so the request can finish while the page unloads / navigates away
-  void fetch(url.toString(), {
+
+  // Prefer a real awaited fetch so the home PC receives stop before we navigate away.
+  // Fall back to keepalive/beacon for unload paths.
+  const sendKeepalive = () => {
+    void fetch(url.toString(), {
+      method: "POST",
+      headers,
+      body,
+      keepalive: true,
+    }).catch(() => {});
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
+        const blob = new Blob([body], { type: "application/json" });
+        navigator.sendBeacon(url.toString(), blob);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  return fetch(url.toString(), {
     method: "POST",
     headers,
     body,
     keepalive: true,
-  }).catch(() => {
-    // best-effort; leaving Play should not block on stop failures
-  });
+  })
+    .then(() => undefined)
+    .catch(() => {
+      sendKeepalive();
+    });
+}
+
+function withMoonlightStopHook(streamUrl: string, stopUrl: string): string {
+  try {
+    const url = new URL(streamUrl);
+    url.searchParams.set("mhgStop", stopUrl);
+    return url.toString();
+  } catch {
+    return streamUrl;
+  }
 }
 
 function isStillStreamUrl(href: string, streamUrl: string): boolean {
@@ -66,17 +119,27 @@ export default function StreamPlayPage() {
   function endSessionAndLeave(navigateBack: boolean) {
     if (endingRef.current) return;
     endingRef.current = true;
-    if (sessionStartedRef.current && !stopSentRef.current) {
-      stopSentRef.current = true;
-      stopStreamingSession(streamHostIdRef.current);
-    }
+    const doStop = () => {
+      if (sessionStartedRef.current && !stopSentRef.current) {
+        stopSentRef.current = true;
+        return stopStreamingSession({
+          hostId: streamHostIdRef.current,
+          gameId,
+          executableName,
+        });
+      }
+      return Promise.resolve();
+    };
     try {
       popupRef.current?.close();
     } catch {
       // ignore
     }
     popupRef.current = null;
-    if (navigateBack) navigate(-1);
+
+    void doStop().finally(() => {
+      if (navigateBack) navigate(-1);
+    });
   }
 
   useEffect(() => {
@@ -140,14 +203,21 @@ export default function StreamPlayPage() {
             : typeof hostIdRaw === "string" && hostIdRaw.trim()
               ? Number(hostIdRaw)
               : null;
-        setStreamHostId(Number.isFinite(hostId as number) ? (hostId as number) : null);
-        setMoonlightWebUrl(streamUrl);
+        const resolvedHostId = Number.isFinite(hostId as number) ? (hostId as number) : null;
+        setStreamHostId(resolvedHostId);
+        const stopUrl = buildStopStreamingUrl({
+          hostId: resolvedHostId,
+          gameId,
+          executableName,
+        });
+        const finalStreamUrl = withMoonlightStopHook(streamUrl, stopUrl);
+        setMoonlightWebUrl(finalStreamUrl);
         setSunshineReachable(!!data.sunshineReachable);
         sessionStartedRef.current = true;
 
         // Prefer a popup: Moonlight "Exit stream" calls window.close(), which works in a
         // script-opened window but is a no-op inside an iframe.
-        const popup = window.open(streamUrl, MOONLIGHT_POPUP_NAME);
+        const popup = window.open(finalStreamUrl, MOONLIGHT_POPUP_NAME);
         if (popup) {
           popupRef.current = popup;
           setEmbedMode("popup");
@@ -171,7 +241,11 @@ export default function StreamPlayPage() {
       cancelled = true;
       if (sessionStartedRef.current && !stopSentRef.current) {
         stopSentRef.current = true;
-        stopStreamingSession(streamHostIdRef.current);
+        void stopStreamingSession({
+          hostId: streamHostIdRef.current,
+          gameId,
+          executableName,
+        });
       }
       try {
         popupRef.current?.close();
@@ -186,7 +260,11 @@ export default function StreamPlayPage() {
     const onPageHide = () => {
       if (sessionStartedRef.current && !stopSentRef.current) {
         stopSentRef.current = true;
-        stopStreamingSession(streamHostIdRef.current);
+        void stopStreamingSession({
+          hostId: streamHostIdRef.current,
+          gameId,
+          executableName,
+        });
       }
       try {
         popupRef.current?.close();
@@ -196,7 +274,7 @@ export default function StreamPlayPage() {
     };
     window.addEventListener("pagehide", onPageHide);
     return () => window.removeEventListener("pagehide", onPageHide);
-  }, []);
+  }, [gameId, executableName]);
 
   // When Moonlight Exit closes the popup (window.close), end the MHG session too.
   useEffect(() => {
