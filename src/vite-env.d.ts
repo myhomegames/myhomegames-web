@@ -9,6 +9,7 @@ interface ImportMetaEnv {
   readonly VITE_CLOUDFLARE_TUNNEL_ENABLED?: string;
   readonly VITE_GITHUB_REPO?: string;
   readonly VITE_HTTPS_ENABLED?: string;
+  readonly VITE_FORCE_REMOTE_STREAMING?: string;
 }
 
 interface ImportMeta {

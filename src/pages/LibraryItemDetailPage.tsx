@@ -133,7 +133,8 @@ export default function LibraryItemDetailPage({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
   const fetchingGamesRef = useRef<boolean>(false);
-  const lastIdRef = useRef<string | undefined>(undefined);
+  /** Tracks `${resourceType}:${id}` so same company id under developer vs publisher still refetches. */
+  const lastRouteKeyRef = useRef<string | undefined>(undefined);
   const scrollPositionToRestoreRef = useRef<number | null>(null);
   /** Snapshot taken when user clicks Edit; only we write it, so nothing can overwrite it before restore */
   const scrollSnapshotForModalRef = useRef<number | null>(null);
@@ -150,7 +151,7 @@ export default function LibraryItemDetailPage({
 
   useEffect(() => {
     setFocalGameBackground(undefined);
-  }, [id]);
+  }, [id, resourceType]);
 
   useEffect(() => {
     if (resourceType !== "developers" && resourceType !== "publishers") return;
@@ -366,12 +367,15 @@ export default function LibraryItemDetailPage({
       window.removeEventListener("mhg-cover-size-changed", handler as EventListener);
   }, []);
 
-  // Load item info when id changes (collections)
+  // Load item info when route changes (collections)
   useEffect(() => {
     if (resourceType !== "collections" || !collectionId) return;
-    if (collectionId !== lastIdRef.current) {
-      lastIdRef.current = collectionId;
+    const routeKey = `collections:${collectionId}`;
+    if (routeKey !== lastRouteKeyRef.current) {
+      lastRouteKeyRef.current = routeKey;
       fetchingGamesRef.current = false;
+      setGames([]);
+      setIsReady(false);
       const foundInContext = allCollectionsFromContext.find((c) => String(c.id) === String(collectionId));
       if (foundInContext) {
         setItem({
@@ -383,6 +387,8 @@ export default function LibraryItemDetailPage({
           showTitle: (foundInContext as any).showTitle !== false,
           childs: (foundInContext as any).childs || [],
         });
+      } else {
+        setItem(null);
       }
       // Always refresh the single item from API so cover/background are never stale.
       fetchCollectionInfo(collectionId);
@@ -435,12 +441,15 @@ export default function LibraryItemDetailPage({
     return () => window.removeEventListener("collectionUpdated", handle);
   }, []);
 
-  // Load item info when id changes (developers) — same pattern as collections
+  // Load item info when route changes (developers) — same pattern as collections
   useEffect(() => {
     if (resourceType !== "developers" || !developerId) return;
-    if (developerId !== lastIdRef.current) {
-      lastIdRef.current = developerId;
+    const routeKey = `developers:${developerId}`;
+    if (routeKey !== lastRouteKeyRef.current) {
+      lastRouteKeyRef.current = routeKey;
       fetchingGamesRef.current = false;
+      setGames([]);
+      setIsReady(false);
       const foundInContext = allDevelopers.find((d) => String(d.id) === String(developerId));
       if (foundInContext) {
         setItem({
@@ -452,6 +461,8 @@ export default function LibraryItemDetailPage({
           showTitle: (foundInContext as any).showTitle !== false,
           childs: (foundInContext as any).childs || [],
         });
+      } else {
+        setItem(null);
       }
       fetchDeveloperInfo(developerId);
       if (!fetchingGamesRef.current) fetchDeveloperGames(developerId);
@@ -475,12 +486,15 @@ export default function LibraryItemDetailPage({
     }
   }, [allDevelopers, developerId, resourceType, item]);
 
-  // Load item info when id changes (publishers) — same pattern as collections
+  // Load item info when route changes (publishers) — same pattern as collections
   useEffect(() => {
     if (resourceType !== "publishers" || !publisherId) return;
-    if (publisherId !== lastIdRef.current) {
-      lastIdRef.current = publisherId;
+    const routeKey = `publishers:${publisherId}`;
+    if (routeKey !== lastRouteKeyRef.current) {
+      lastRouteKeyRef.current = routeKey;
       fetchingGamesRef.current = false;
+      setGames([]);
+      setIsReady(false);
       const foundInContext = allPublishers.find((p) => String(p.id) === String(publisherId));
       if (foundInContext) {
         setItem({
@@ -492,6 +506,8 @@ export default function LibraryItemDetailPage({
           showTitle: (foundInContext as any).showTitle !== false,
           childs: (foundInContext as any).childs || [],
         });
+      } else {
+        setItem(null);
       }
       fetchPublisherInfo(publisherId);
       if (!fetchingGamesRef.current) fetchPublisherGames(publisherId);
