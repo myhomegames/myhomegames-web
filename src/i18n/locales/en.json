@@ -160,6 +160,8 @@
     "downloadMacArm": "macOS (Apple Silicon)",
     "downloadMacIntel": "macOS (Intel)",
     "downloadLinux": "Linux",
+    "downloadLinuxDeb": "Linux (.deb)",
+    "downloadLinuxRpm": "Linux (.rpm)",
     "skinNewVersionAvailable": "{{name}}: new version {{version}} available",
     "updateSkin": "Update skin",
     "updatingSkin": "Updating {{name}}…",

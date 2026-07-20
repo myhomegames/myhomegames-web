@@ -7,12 +7,9 @@ import { useSkin } from "../../contexts/SkinContext";
 import { useLatestRelease, type OsKind } from "../../hooks/useLatestRelease";
 import { useServerVersion } from "../../hooks/useServerVersion";
 import { isServerVersionCompatible, WEB_REQUIRES_MIN_SERVER_VERSION } from "../../utils/apiCompatibility";
-const OS_LABEL_KEY: Record<OsKind, string> = {
-  win: "header.downloadWindows",
-  "mac-arm64": "header.downloadMacArm",
-  "mac-x64": "header.downloadMacIntel",
-  linux: "header.downloadLinux",
-};
+import { SERVER_OS_I18N_KEY } from "../../utils/serverDownload";
+
+const OS_LABEL_KEY: Record<OsKind, string> = SERVER_OS_I18N_KEY;
 
 export default function UpdateNotification({
   buttonStyle,
