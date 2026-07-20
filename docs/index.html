@@ -511,28 +511,31 @@
             </a>
           </div>
           <p
-            id="linux-package-install"
-            hidden
-            style="text-align: center; margin-top: 0.75rem"
+            id="download-extra-links"
+            style="
+              display: flex;
+              flex-wrap: wrap;
+              justify-content: center;
+              align-items: center;
+              gap: 0.35rem 1.25rem;
+              margin-top: 0.75rem;
+              text-align: center;
+            "
           >
             <a
+              id="linux-package-install"
               href="install-linux.html"
+              hidden
               style="color: #667eea; font-weight: 600"
               >Install with Yum/Dnf/Apt</a
             >
-          </p>
-          <p
-            id="mac-package-install"
-            hidden
-            style="text-align: center; margin-top: 0.75rem"
-          >
             <a
+              id="mac-package-install"
               href="install-homebrew.html"
+              hidden
               style="color: #667eea; font-weight: 600"
               >Install with Brew</a
             >
-          </p>
-          <p style="text-align: center; margin-top: 0.75rem">
             <a
               id="download-all-releases"
               href="https://github.com/myhomegames/myhomegames-server/releases"
