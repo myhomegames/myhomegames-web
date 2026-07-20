@@ -736,6 +736,8 @@
         win: "Windows",
         "mac-arm64": "macOS (Apple Silicon)",
         "mac-x64": "macOS (Intel)",
+        "linux-deb": "Linux (.deb)",
+        "linux-rpm": "Linux (.rpm)",
         linux: "Linux",
       };
 
@@ -743,12 +745,35 @@
         win: [/MyHomeGames-[0-9.]+-win-x64\.zip$/i],
         "mac-arm64": [/MyHomeGames-[0-9.]+-mac-arm64\.pkg$/i],
         "mac-x64": [/MyHomeGames-[0-9.]+-mac-x64\.pkg$/i],
-        linux: [
-          /MyHomeGames-[0-9.]+-linux-x64\.tar\.gz$/i,
+        "linux-deb": [
           /myhomegames-server_[0-9.]+_amd64\.deb$/i,
-          /myhomegames-server-[0-9.]+-1\.x86_64\.rpm$/i,
+          /MyHomeGames-[0-9.]+-linux-x64\.tar\.gz$/i,
         ],
+        "linux-rpm": [
+          /myhomegames-server-[0-9.]+-1\.x86_64\.rpm$/i,
+          /MyHomeGames-[0-9.]+-linux-x64\.tar\.gz$/i,
+        ],
+        linux: [/MyHomeGames-[0-9.]+-linux-x64\.tar\.gz$/i],
       };
+
+      function detectLinuxFlavor(ua) {
+        // Browsers often embed the distro name in the UA (Chrome/Firefox on Linux).
+        if (
+          /ubuntu|debian|linux mint|mint\/|pop!_os|elementary|kali|raspbian|zorin|mx linux|chrome.?os/i.test(
+            ua
+          )
+        ) {
+          return "linux-deb";
+        }
+        if (
+          /fedora|centos|red hat|rhel|rocky|alma|suse|opensuse|mageia|mandriva|nobara/i.test(
+            ua
+          )
+        ) {
+          return "linux-rpm";
+        }
+        return "linux";
+      }
 
       function detectOs() {
         const ua = navigator.userAgent.toLowerCase();
@@ -767,6 +792,14 @@
           if (isExplicitArm64) return "mac-arm64";
           if (isExplicitX64) return "mac-x64";
           return "mac-arm64";
+        }
+        if (
+          ua.includes("linux") ||
+          ua.includes("x11") ||
+          platform === "linux" ||
+          platform === "chrome os"
+        ) {
+          return detectLinuxFlavor(ua);
         }
         return "linux";
       }
@@ -788,7 +821,21 @@
         const osLabel = OS_LABELS[os] || "your platform";
         const linuxPkg = document.getElementById("linux-package-install");
         if (linuxPkg) {
-          linuxPkg.hidden = os !== "linux";
+          if (os === "linux-deb") {
+            linuxPkg.hidden = false;
+            linuxPkg.href = "install-linux.html#apt";
+            linuxPkg.textContent = "Install with Apt";
+          } else if (os === "linux-rpm") {
+            linuxPkg.hidden = false;
+            linuxPkg.href = "install-linux.html#yum-dnf";
+            linuxPkg.textContent = "Install with Yum/Dnf";
+          } else if (os === "linux") {
+            linuxPkg.hidden = false;
+            linuxPkg.href = "install-linux.html";
+            linuxPkg.textContent = "Install with Yum/Dnf/Apt";
+          } else {
+            linuxPkg.hidden = true;
+          }
         }
         const macPkg = document.getElementById("mac-package-install");
         if (macPkg) {
