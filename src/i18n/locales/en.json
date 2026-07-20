@@ -100,6 +100,15 @@
       "disconnect": "Disconnect tunnel",
       "confirmDisconnect": "Disconnect Cloudflare Tunnel on this device and remove stored credentials?"
     },
+    "streaming": {
+      "title": "Remote play (Sunshine)",
+      "description": "When you use MyHomeGames from another device, Play opens Moonlight Web. Sunshine and Moonlight Web start with the server; Docker is installed automatically if missing (Colima on macOS). The Sunshine host is added and paired automatically (login sunshine / admin).",
+      "enabled": "Enable remote streaming",
+      "moonlightWebUrl": "Moonlight Web URL",
+      "moonlightWebUrlHelp": "Filled automatically (http://127.0.0.1:8080) when Moonlight Web is managed by the server. Override with a public HTTPS URL for remote browsers outside your LAN.",
+      "save": "Save remote play",
+      "saved": "Remote play settings saved."
+    },
     "skinOptions": {
       "title": "Options",
       "description": "Fine-tune how the active skin renders the interface. When you install or switch to a skin, these options are reset to the values that skin declares in its manifest.",
@@ -194,6 +203,17 @@
     "download": "Download",
     "retry": "Retry connection",
     "openSettings": "Open settings"
+  },
+  "streamPlay": {
+    "title": "Remote play",
+    "launching": "Starting the game on your home PC…",
+    "readyHint": "Game started. Streaming the home desktop via Moonlight Web…",
+    "setupHint": "Requires Sunshine on the home PC and Moonlight Web reachable over HTTPS.",
+    "launchFailed": "Failed to start the game on the home PC",
+    "noMoonlightUrl": "Moonlight Web URL is not configured on the server.",
+    "sunshineUnreachable": "Sunshine does not appear to be running on the home PC. Start Sunshine, then refresh Moonlight Web.",
+    "missingGame": "Missing game id",
+    "iframeTitle": "Moonlight Web stream"
   },
   "search": {
     "noResults": "No results found for the term \"{{query}}\"",
