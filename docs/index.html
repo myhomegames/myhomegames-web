@@ -510,6 +510,28 @@
               Download…
             </a>
           </div>
+          <p
+            id="linux-package-install"
+            hidden
+            style="text-align: center; margin-top: 0.75rem"
+          >
+            <a
+              href="install-linux.html"
+              style="color: #667eea; font-weight: 600"
+              >Install with Yum/Dnf/Apt</a
+            >
+          </p>
+          <p
+            id="mac-package-install"
+            hidden
+            style="text-align: center; margin-top: 0.75rem"
+          >
+            <a
+              href="install-homebrew.html"
+              style="color: #667eea; font-weight: 600"
+              >Install with Brew</a
+            >
+          </p>
           <p style="text-align: center; margin-top: 0.75rem">
             <a
               id="download-all-releases"
@@ -520,7 +542,6 @@
               >View all releases</a
             >
           </p>
-
           <h3>2. Access the Web Application</h3>
           <p>
             Once the server is running, access the web application using the button at the top of this page
@@ -762,6 +783,14 @@
 
         const os = detectOs();
         const osLabel = OS_LABELS[os] || "your platform";
+        const linuxPkg = document.getElementById("linux-package-install");
+        if (linuxPkg) {
+          linuxPkg.hidden = os !== "linux";
+        }
+        const macPkg = document.getElementById("mac-package-install");
+        if (macPkg) {
+          macPkg.hidden = os !== "mac-arm64" && os !== "mac-x64";
+        }
 
         try {
           const res = await fetch(

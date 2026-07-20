@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Install MyHomeGames Server on Linux with APT (Debian/Ubuntu) or YUM/DNF (RHEL/Fedora/Alma/Rocky) via Cloudsmith."
+    />
+    <title>Install with Yum / Dnf / Apt — MyHomeGames</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><rect width="32" height="32" fill="%23FFD700" rx="4"/><text x="16" y="16" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="black" text-anchor="middle" dominant-baseline="middle">MY</text></svg>'
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      header {
+        text-align: center;
+        color: white;
+        padding: 2rem 0 1rem;
+      }
+
+      header h1 {
+        font-size: 2.25rem;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      header p {
+        font-size: 1.15rem;
+        opacity: 0.95;
+        margin-top: 0.5rem;
+      }
+
+      .back-link {
+        display: inline-block;
+        margin-top: 1.25rem;
+        color: white;
+        text-decoration: underline;
+        opacity: 0.95;
+      }
+
+      .content {
+        background: white;
+        border-radius: 12px;
+        padding: 2.5rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        margin-top: 1.5rem;
+      }
+
+      h2 {
+        font-size: 1.75rem;
+        color: #667eea;
+        margin: 2rem 0 1rem;
+        border-bottom: 3px solid #667eea;
+        padding-bottom: 0.4rem;
+      }
+
+      h2:first-child {
+        margin-top: 0;
+      }
+
+      h3 {
+        font-size: 1.25rem;
+        color: #764ba2;
+        margin: 1.5rem 0 0.5rem;
+      }
+
+      p,
+      li {
+        margin-bottom: 0.75rem;
+        font-size: 1.05rem;
+      }
+
+      ul,
+      ol {
+        margin: 0.5rem 0 1rem 1.5rem;
+      }
+
+      code {
+        background: #f4f4f4;
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        font-family: "Courier New", monospace;
+        font-size: 0.92em;
+      }
+
+      pre {
+        background: #1e1e2e;
+        color: #e8e8f0;
+        padding: 1rem 1.25rem;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin: 0.75rem 0 1.25rem;
+        font-size: 0.95rem;
+        line-height: 1.5;
+      }
+
+      pre code {
+        background: transparent;
+        padding: 0;
+        color: inherit;
+        font-size: inherit;
+      }
+
+      .info {
+        background: #d1ecf1;
+        border-left: 4px solid #0dcaf0;
+        padding: 1rem;
+        border-radius: 4px;
+        margin: 1rem 0;
+      }
+
+      footer {
+        text-align: center;
+        color: white;
+        padding: 2rem 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>🐧 Install with Yum / Dnf / Apt</h1>
+        <p>Install MyHomeGames Server from the Cloudsmith package repositories</p>
+        <a class="back-link" href="/">← Back to MyHomeGames home</a>
+      </header>
+
+      <div class="content">
+        <p>
+          On Linux you can install the server with your distribution package
+          manager instead of downloading a
+          <code>.tar.gz</code> / <code>.deb</code> / <code>.rpm</code> from
+          GitHub Releases. Packages are published to
+          <a
+            href="https://cloudsmith.io/~myhomegames/repos/myhomegames-server/"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Cloudsmith</a
+          >
+          on each release (<strong>amd64 / x86_64</strong>).
+        </p>
+        <div class="info" role="note">
+          After install, the server lives under
+          <code>/opt/myhomegames-server</code> and the
+          <code>myhomegames-server</code> command is available in
+          <code>/usr/bin</code>.
+        </div>
+
+        <h2>APT (Debian / Ubuntu)</h2>
+        <p>Add the repository, then install:</p>
+        <pre><code>curl -sLf 'https://dl.cloudsmith.io/public/myhomegames/myhomegames-server/cfg/setup/bash.deb.sh' | sudo bash
+sudo apt-get update
+sudo apt-get install myhomegames-server</code></pre>
+        <p>Upgrade later with:</p>
+        <pre><code>sudo apt-get update
+sudo apt-get install --only-upgrade myhomegames-server</code></pre>
+        <p>Remove with:</p>
+        <pre><code>sudo apt-get remove myhomegames-server</code></pre>
+
+        <h2>YUM / DNF (RHEL / Alma / Rocky / Fedora)</h2>
+        <p>Add the repository, then install:</p>
+        <pre><code>curl -sLf 'https://dl.cloudsmith.io/public/myhomegames/myhomegames-server/cfg/setup/bash.rpm.sh' | sudo bash
+sudo dnf makecache
+sudo dnf install myhomegames-server</code></pre>
+        <p>On systems that still use <code>yum</code>:</p>
+        <pre><code>sudo yum makecache
+sudo yum install myhomegames-server</code></pre>
+        <p>Upgrade later with:</p>
+        <pre><code>sudo dnf upgrade myhomegames-server</code></pre>
+        <p>Remove with:</p>
+        <pre><code>sudo dnf remove myhomegames-server</code></pre>
+
+        <h2>After installation</h2>
+        <ol>
+          <li>Start the server (<code>myhomegames-server</code> or your distro service, if configured).</li>
+          <li>
+            Open the web app from
+            <a href="/">myhomegames.vige.it</a>
+            or your local/tunnel URL.
+          </li>
+        </ol>
+        <p>
+          Prefer a portable archive instead?
+          <a
+            href="https://github.com/myhomegames/myhomegames-server/releases"
+            target="_blank"
+            rel="noopener noreferrer"
+            >View all GitHub releases</a
+          >.
+        </p>
+      </div>
+
+      <footer>
+        <p>MyHomeGames — self-hosted game library</p>
+      </footer>
+    </div>
+  </body>
+</html>

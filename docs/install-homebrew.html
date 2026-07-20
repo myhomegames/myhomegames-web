@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Install MyHomeGames Server on macOS with Homebrew (Intel and Apple Silicon)."
+    />
+    <title>Install with Brew — MyHomeGames</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><rect width="32" height="32" fill="%23FFD700" rx="4"/><text x="16" y="16" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="black" text-anchor="middle" dominant-baseline="middle">MY</text></svg>'
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      header {
+        text-align: center;
+        color: white;
+        padding: 2rem 0 1rem;
+      }
+
+      header h1 {
+        font-size: 2.25rem;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      header p {
+        font-size: 1.15rem;
+        opacity: 0.95;
+        margin-top: 0.5rem;
+      }
+
+      .back-link {
+        display: inline-block;
+        margin-top: 1.25rem;
+        color: white;
+        text-decoration: underline;
+        opacity: 0.95;
+      }
+
+      .content {
+        background: white;
+        border-radius: 12px;
+        padding: 2.5rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        margin-top: 1.5rem;
+      }
+
+      h2 {
+        font-size: 1.75rem;
+        color: #667eea;
+        margin: 2rem 0 1rem;
+        border-bottom: 3px solid #667eea;
+        padding-bottom: 0.4rem;
+      }
+
+      h2:first-child {
+        margin-top: 0;
+      }
+
+      h3 {
+        font-size: 1.25rem;
+        color: #764ba2;
+        margin: 1.5rem 0 0.5rem;
+      }
+
+      p,
+      li {
+        margin-bottom: 0.75rem;
+        font-size: 1.05rem;
+      }
+
+      ul,
+      ol {
+        margin: 0.5rem 0 1rem 1.5rem;
+      }
+
+      code {
+        background: #f4f4f4;
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        font-family: "Courier New", monospace;
+        font-size: 0.92em;
+      }
+
+      pre {
+        background: #1e1e2e;
+        color: #e8e8f0;
+        padding: 1rem 1.25rem;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin: 0.75rem 0 1.25rem;
+        font-size: 0.95rem;
+        line-height: 1.5;
+      }
+
+      pre code {
+        background: transparent;
+        padding: 0;
+        color: inherit;
+        font-size: inherit;
+      }
+
+      .info {
+        background: #d1ecf1;
+        border-left: 4px solid #0dcaf0;
+        padding: 1rem;
+        border-radius: 4px;
+        margin: 1rem 0;
+      }
+
+      footer {
+        text-align: center;
+        color: white;
+        padding: 2rem 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>🍎 Install with Brew</h1>
+        <p>Install MyHomeGames Server on macOS with Homebrew</p>
+        <a class="back-link" href="/">← Back to MyHomeGames home</a>
+      </header>
+
+      <div class="content">
+        <p>
+          On macOS you can install the server with
+          <a href="https://brew.sh/" target="_blank" rel="noopener noreferrer"
+            >Homebrew</a
+          >
+          instead of downloading a
+          <code>.pkg</code> from GitHub Releases. The official tap provides a
+          <strong>Cask</strong> that downloads the matching installer (Intel or
+          Apple Silicon).
+        </p>
+
+        <h2>Install</h2>
+        <pre><code>brew tap myhomegames/tap
+brew trust myhomegames/tap
+brew install --cask myhomegames-server</code></pre>
+        <p>
+          Tap repository:
+          <a
+            href="https://github.com/myhomegames/homebrew-tap"
+            target="_blank"
+            rel="noopener noreferrer"
+            >github.com/myhomegames/homebrew-tap</a
+          >.
+        </p>
+
+        <h3>Untrusted tap (Homebrew 5.x+)</h3>
+        <p>
+          Third-party taps are not trusted by default. If install fails with an
+          “untrusted tap” error, trust the tap once, then install again:
+        </p>
+        <pre><code>brew trust myhomegames/tap
+brew install --cask myhomegames-server</code></pre>
+        <p>Or trust only this cask:</p>
+        <pre><code>brew trust --cask myhomegames/tap/myhomegames-server</code></pre>
+
+        <h3>Apple Silicon</h3>
+        <p>
+          Use native Homebrew under <code>/opt/homebrew</code>, not the Intel
+          install under <code>/usr/local</code>, so the cask gets the
+          <strong>arm64</strong> <code>.pkg</code>. Check with
+          <code>brew config</code>: <code>HOMEBREW_PREFIX</code> should be
+          <code>/opt/homebrew</code> and macOS should show <code>arm64</code>.
+        </p>
+
+        <div class="info" role="note">
+          After installation, open <strong>MyHomeGames</strong> from
+          <code>/Applications</code>. Default config:
+          <code>/Applications/MyHomeGames.app/Contents/Resources/.env</code>
+        </div>
+
+        <h2>Upgrade</h2>
+        <pre><code>brew update
+brew upgrade --cask myhomegames-server</code></pre>
+
+        <h2>Uninstall</h2>
+        <pre><code>brew uninstall --cask myhomegames-server</code></pre>
+
+        <h2>Without Homebrew</h2>
+        <p>
+          Prefer the installer package instead?
+          <a
+            href="https://github.com/myhomegames/myhomegames-server/releases"
+            target="_blank"
+            rel="noopener noreferrer"
+            >View all GitHub releases</a
+          >
+          — use <code>mac-arm64</code> on Apple Silicon and
+          <code>mac-x64</code> on Intel.
+        </p>
+      </div>
+
+      <footer>
+        <p>MyHomeGames — self-hosted game library</p>
+      </footer>
+    </div>
+  </body>
+</html>
