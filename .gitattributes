@@ -4,3 +4,6 @@
 
 # Keep local .gitignore version during merges (prevents overwriting .gitignore when merging from main)
 .gitignore merge=ours
+
+# Keep public/ assets on main (PWA icons); SNAPSHOT ignores/untracks them
+public/** merge=ours
