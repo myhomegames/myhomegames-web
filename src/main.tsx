@@ -1,4 +1,5 @@
 import { createRoot } from "react-dom/client";
+import { registerSW } from "virtual:pwa-register";
 import "virtual:tailwind-entry.css";
 import "./i18n/config";
 import "./utils/unauthorizedInterceptor";
@@ -18,6 +19,8 @@ import { getCachedSkinCss } from "./skins/skinCssCache";
 import { isServerSkinId } from "./skins/skinIds";
 import { getActiveSkinId } from "./skins/skinStorage";
 import { applySkinCss } from "./skins/skinRuntime";
+
+registerSW({ immediate: true });
 
 const activeSkinId = getActiveSkinId();
 if (isServerSkinId(activeSkinId)) {

@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from 'vite'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 import { readFileSync, writeFileSync } from 'fs'
 import path from 'path'
 // Read package.json to get version
@@ -90,6 +91,53 @@ export default defineConfig(({ mode }) => {
       tailwindEntryVirtualPlugin(),
       tailwindcss(),
       react(),
+      VitePWA({
+        registerType: 'autoUpdate',
+        includeAssets: [
+          'icons/icon-192.png',
+          'icons/icon-512.png',
+          'icons/icon-maskable-512.png',
+          'icons/icon.svg',
+        ],
+        manifest: {
+          id: '/app/',
+          name: 'MyHomeGames',
+          short_name: 'MyHomeGames',
+          description: 'Self-hosted personal game library',
+          theme_color: '#E5A00D',
+          background_color: '#1a1a1a',
+          display: 'standalone',
+          orientation: 'any',
+          start_url: '/app/',
+          scope: '/app/',
+          lang: 'en',
+          icons: [
+            {
+              src: 'icons/icon-192.png',
+              sizes: '192x192',
+              type: 'image/png',
+            },
+            {
+              src: 'icons/icon-512.png',
+              sizes: '512x512',
+              type: 'image/png',
+            },
+            {
+              src: 'icons/icon-maskable-512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable',
+            },
+          ],
+        },
+        workbox: {
+          navigateFallback: '/app/index.html',
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2,webmanifest}'],
+        },
+        devOptions: {
+          enabled: false,
+        },
+      }),
       githubPages404Plugin(),
     ],
     define: {
