@@ -7,6 +7,7 @@ import { buildApiHeaders } from "../utils/api";
 type LaunchState = "idle" | "launching" | "ready" | "error";
 
 const MOONLIGHT_POPUP_NAME = "mhg-moonlight-stream";
+const MHG_MOONLIGHT_EXIT_MESSAGE = "mhg-moonlight-exit";
 
 function buildStopStreamingUrl(opts: {
   hostId: number | null;
@@ -22,6 +23,15 @@ function buildStopStreamingUrl(opts: {
   const token = getApiToken();
   if (token) url.searchParams.set("token", token);
   return url.toString();
+}
+
+/** Where Moonlight should send the user if window.close() is ignored (common on mobile). */
+function buildMoonlightReturnUrl(gameId: string | undefined): string {
+  const base = String(import.meta.env.BASE_URL || "/").replace(/\/$/, "");
+  if (gameId) {
+    return `${window.location.origin}${base}/game/${encodeURIComponent(gameId)}`;
+  }
+  return `${window.location.origin}${base || ""}/` || `${window.location.origin}/`;
 }
 
 function stopStreamingSession(opts: {
@@ -71,10 +81,11 @@ function stopStreamingSession(opts: {
     });
 }
 
-function withMoonlightStopHook(streamUrl: string, stopUrl: string): string {
+function withMoonlightStopHook(streamUrl: string, stopUrl: string, returnUrl?: string): string {
   try {
     const url = new URL(streamUrl);
     url.searchParams.set("mhgStop", stopUrl);
+    if (returnUrl) url.searchParams.set("mhgReturn", returnUrl);
     return url.toString();
   } catch {
     return streamUrl;
@@ -210,7 +221,8 @@ export default function StreamPlayPage() {
           gameId,
           executableName,
         });
-        const finalStreamUrl = withMoonlightStopHook(streamUrl, stopUrl);
+        const returnUrl = buildMoonlightReturnUrl(gameId);
+        const finalStreamUrl = withMoonlightStopHook(streamUrl, stopUrl, returnUrl);
         setMoonlightWebUrl(finalStreamUrl);
         setSunshineReachable(!!data.sunshineReachable);
         sessionStartedRef.current = true;
@@ -290,6 +302,26 @@ export default function StreamPlayPage() {
     // endSessionAndLeave is stable enough via refs; avoid re-subscribing every render
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [embedMode, launchState]);
+
+  // Mobile often ignores window.close(); Moonlight posts this so the MHG tab can leave.
+  useEffect(() => {
+    if (launchState !== "ready") return;
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data;
+      if (!data || typeof data !== "object") return;
+      if ((data as { type?: string }).type !== MHG_MOONLIGHT_EXIT_MESSAGE) return;
+      try {
+        popupRef.current?.close();
+      } catch {
+        // ignore
+      }
+      popupRef.current = null;
+      endSessionAndLeave(true);
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [launchState]);
 
   const iframeTitle = useMemo(
     () => t("streamPlay.iframeTitle", "Moonlight Web stream"),
