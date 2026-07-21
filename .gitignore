@@ -36,3 +36,6 @@ certs/*.pem
 .env.local
 .env.*.local
 docs
+
+# Static assets live on main only (PWA icons, etc.)
+public
