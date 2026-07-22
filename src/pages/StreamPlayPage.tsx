@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { getApiBase, getApiToken } from "../config";
 import { buildApiHeaders } from "../utils/api";
+import { isSmartTvBrowser, withMoonlightTvProfile } from "../utils/smartTv";
 
 type LaunchState = "idle" | "launching" | "ready" | "error";
 
@@ -115,10 +116,12 @@ export default function StreamPlayPage() {
   const [moonlightWebUrl, setMoonlightWebUrl] = useState("");
   const [sunshineReachable, setSunshineReachable] = useState(false);
   const [streamHostId, setStreamHostId] = useState<number | null>(null);
-  const [embedMode, setEmbedMode] = useState<"popup" | "iframe" | null>(null);
+  const [embedMode, setEmbedMode] = useState<"popup" | "iframe" | "redirect" | null>(null);
   const streamHostIdRef = useRef<number | null>(null);
   const sessionStartedRef = useRef(false);
   const stopSentRef = useRef(false);
+  /** Top-level navigate to Moonlight (smart TV) — do not stop the session on unmount/pagehide. */
+  const leaveForMoonlightRef = useRef(false);
   const popupRef = useRef<Window | null>(null);
   const iframeLoadCountRef = useRef(0);
   const endingRef = useRef(false);
@@ -222,10 +225,22 @@ export default function StreamPlayPage() {
           executableName,
         });
         const returnUrl = buildMoonlightReturnUrl(gameId);
-        const finalStreamUrl = withMoonlightStopHook(streamUrl, stopUrl, returnUrl);
+        const finalStreamUrl = withMoonlightTvProfile(
+          withMoonlightStopHook(streamUrl, stopUrl, returnUrl),
+        );
         setMoonlightWebUrl(finalStreamUrl);
         setSunshineReachable(!!data.sunshineReachable);
         sessionStartedRef.current = true;
+
+        // Smart TVs: leave MHG for a top-level Moonlight page (iframe WebRTC is poor on Tizen)
+        // and apply mhgProfile=tv for lower bitrate / websocket transport.
+        if (isSmartTvBrowser()) {
+          leaveForMoonlightRef.current = true;
+          setEmbedMode("redirect");
+          setLaunchState("ready");
+          window.location.assign(finalStreamUrl);
+          return;
+        }
 
         // Prefer a popup: Moonlight "Exit stream" calls window.close(), which works in a
         // script-opened window but is a no-op inside an iframe.
@@ -251,6 +266,7 @@ export default function StreamPlayPage() {
     void run();
     return () => {
       cancelled = true;
+      if (leaveForMoonlightRef.current) return;
       if (sessionStartedRef.current && !stopSentRef.current) {
         stopSentRef.current = true;
         void stopStreamingSession({
@@ -270,6 +286,7 @@ export default function StreamPlayPage() {
 
   useEffect(() => {
     const onPageHide = () => {
+      if (leaveForMoonlightRef.current) return;
       if (sessionStartedRef.current && !stopSentRef.current) {
         stopSentRef.current = true;
         void stopStreamingSession({
@@ -360,20 +377,25 @@ export default function StreamPlayPage() {
           <p className="truncate text-sm text-white/70">
             {launchState === "launching"
               ? t("streamPlay.launching", "Starting the game on your home PC…")
-              : launchState === "ready" && embedMode === "popup"
+              : launchState === "ready" && embedMode === "redirect"
                 ? t(
-                    "streamPlay.popupHint",
-                    "Streaming in a Moonlight Web window. Close that window or press Back to end the session.",
+                    "streamPlay.redirectHint",
+                    "Opening Moonlight Web full-screen for this TV…",
                   )
-                : launchState === "ready"
+                : launchState === "ready" && embedMode === "popup"
                   ? t(
-                      "streamPlay.readyHint",
-                      "Game started. Streaming the home desktop via Moonlight Web…",
+                      "streamPlay.popupHint",
+                      "Streaming in a Moonlight Web window. Close that window or press Back to end the session.",
                     )
-                  : t(
-                      "streamPlay.setupHint",
-                      "Requires Sunshine on the home PC and Moonlight Web reachable over HTTPS.",
-                    )}
+                  : launchState === "ready"
+                    ? t(
+                        "streamPlay.readyHint",
+                        "Game started. Streaming the home desktop via Moonlight Web…",
+                      )
+                    : t(
+                        "streamPlay.setupHint",
+                        "Requires Sunshine on the home PC and Moonlight Web reachable over HTTPS.",
+                      )}
           </p>
         </div>
         <button
@@ -404,6 +426,14 @@ export default function StreamPlayPage() {
         {launchState === "launching" && (
           <div className="flex h-full min-h-[50vh] items-center justify-center text-white/70">
             {t("common.loading", "Loading...")}
+          </div>
+        )}
+        {launchState === "ready" && embedMode === "redirect" && (
+          <div className="flex h-full min-h-[50vh] items-center justify-center px-6 text-center text-white/70">
+            {t(
+              "streamPlay.redirecting",
+              "Opening Moonlight Web… If nothing happens, go Back and try again.",
+            )}
           </div>
         )}
         {launchState === "ready" && embedMode === "popup" && (
