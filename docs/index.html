@@ -118,11 +118,22 @@
             )
           ) {
             document.documentElement.classList.add("is-smart-tv");
-          } else if (
+            return;
+          }
+          var uad = navigator.userAgentData;
+          var platform = uad && uad.platform ? String(uad.platform).toLowerCase() : "";
+          var isPhone =
             /android/.test(ua) ||
             /iphone|ipod|ipad/.test(ua) ||
-            (navigator.maxTouchPoints > 1 && /macintosh/.test(ua))
-          ) {
+            (typeof uad?.mobile === "boolean" && uad.mobile === true) ||
+            /android|ios/.test(platform) ||
+            (navigator.maxTouchPoints > 1 && /macintosh/.test(ua)) ||
+            (navigator.maxTouchPoints > 0 &&
+              typeof window.matchMedia === "function" &&
+              window.matchMedia("(pointer: coarse)").matches &&
+              Math.min(screen.width || 0, screen.height || 0) > 0 &&
+              Math.min(screen.width || 0, screen.height || 0) <= 920);
+          if (isPhone) {
             document.documentElement.classList.add("is-mobile-pwa");
           }
         } catch (_) {}
@@ -136,8 +147,8 @@
       }
 
       /* No server package / releases CTA on Tizen, other smart TVs, or phones */
-      html.is-smart-tv #download-server-block,
-      html.is-mobile-pwa #download-server-block {
+      html.is-smart-tv #download-server-section,
+      html.is-mobile-pwa #download-server-section {
         display: none !important;
       }
 
@@ -520,6 +531,7 @@
             To use MyHomeGames, download and run the server, then open the web app.
           </p>
 
+          <div id="download-server-section">
           <h3>1. Download the Server Package</h3>
           <p>
             <strong>The server is essential for MyHomeGames to work.</strong>
@@ -571,6 +583,7 @@
               >View all releases</a
             >
           </p>
+          </div>
           </div>
           <h3>2. Access the Web Application</h3>
           <p>
@@ -807,6 +820,42 @@
         );
       }
 
+      /**
+       * Phones should never get a desktop server package.
+       * Android UA contains "Linux" — without this check they show "Download for Linux".
+       * Also covers "Desktop site" mode via Client Hints / coarse pointer.
+       */
+      function isMobilePwaClient() {
+        if (isAndroidClient() || isIosClient()) return true;
+        try {
+          const uad = navigator.userAgentData;
+          if (uad && uad.mobile === true) return true;
+          const platform = uad?.platform;
+          if (typeof platform === "string" && /android|ios/i.test(platform)) {
+            return true;
+          }
+        } catch (_) {
+          // ignore
+        }
+        try {
+          if (
+            typeof navigator.maxTouchPoints === "number" &&
+            navigator.maxTouchPoints > 0 &&
+            typeof window.matchMedia === "function" &&
+            window.matchMedia("(pointer: coarse)").matches
+          ) {
+            const shortest = Math.min(
+              window.screen?.width || 0,
+              window.screen?.height || 0,
+            );
+            if (shortest > 0 && shortest <= 920) return true;
+          }
+        } catch (_) {
+          // ignore
+        }
+        return false;
+      }
+
       /** Samsung Tizen / other smart TV browsers — no useful server package or PWA install. */
       function isSmartTvClient() {
         const ua = String(navigator.userAgent || "").toLowerCase();
@@ -842,10 +891,10 @@
 
         // Tizen UA contains "linux" — detect smart TVs before Android/Linux packages.
         if (isSmartTvClient()) return "tizen";
-        // Android Chrome UA also contains "linux" — check Android first.
+        // Android Chrome UA also contains "linux" — check phones before desktop packages.
         if (isAndroidClient()) return "android";
-        // iPhone UA contains "Mac OS X" — check iOS before macOS desktop packages.
         if (isIosClient()) return "ios";
+        if (isMobilePwaClient()) return "android";
         if (ua.includes("win") || platform === "windows") return "win";
         if (ua.includes("mac") || platform === "macos") {
           const isExplicitX64 =
@@ -880,6 +929,11 @@
 
       /** Hide Download / releases block (CSS also hides it for smart TV / phones). */
       function hideDownloadServerBlock(btn) {
+        const section = document.getElementById("download-server-section");
+        if (section) {
+          section.hidden = true;
+          section.replaceChildren();
+        }
         const block = document.getElementById("download-server-block");
         if (block) {
           block.hidden = true;
@@ -918,7 +972,7 @@
           hideDownloadServerBlock(btn);
           return;
         }
-        if (os === "android" || os === "ios") {
+        if (os === "android" || os === "ios" || isMobilePwaClient()) {
           hideDownloadServerBlock(btn);
           setupMobilePwaAccessWebApp([
             document.getElementById("webapp-link"),
