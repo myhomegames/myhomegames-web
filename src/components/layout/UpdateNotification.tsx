@@ -7,9 +7,15 @@ import { useSkin } from "../../contexts/SkinContext";
 import { useLatestRelease, type OsKind } from "../../hooks/useLatestRelease";
 import { useServerVersion } from "../../hooks/useServerVersion";
 import { isServerVersionCompatible, WEB_REQUIRES_MIN_SERVER_VERSION } from "../../utils/apiCompatibility";
-import { SERVER_OS_I18N_KEY } from "../../utils/serverDownload";
+import { isPhoneWithoutServerPackage, SERVER_OS_I18N_KEY } from "../../utils/serverDownload";
+import { isSmartTvBrowser } from "../../utils/smartTv";
 
 const OS_LABEL_KEY: Record<OsKind, string> = SERVER_OS_I18N_KEY;
+
+/** Phones / smart TVs cannot install the desktop server package. */
+function suppressServerUpdateNotifications(): boolean {
+  return isPhoneWithoutServerPackage() || isSmartTvBrowser();
+}
 
 export default function UpdateNotification({
   buttonStyle,
@@ -24,7 +30,8 @@ export default function UpdateNotification({
   const { updateAvailable, latestVersion, downloadUrl, downloadName, allDownloads, changelog } = useLatestRelease();
   const { availableUpdates, updating: skinUpdating, updatingSkinId, applyUpdate } = skinUpdates;
   const environmentCompatible = isServerVersionCompatible(serverVersion);
-  const hasServerUpdate = Boolean(updateAvailable && latestVersion);
+  const hasServerUpdate =
+    !suppressServerUpdateNotifications() && Boolean(updateAvailable && latestVersion);
   const hasSkinUpdates =
     environmentCompatible && (availableUpdates.length > 0 || skinUpdating);
   const serverUpdateRequired = !environmentCompatible && hasServerUpdate;
