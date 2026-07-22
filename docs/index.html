@@ -108,7 +108,7 @@
       href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><rect width="32" height="32" fill="%23FFD700" rx="4"/><text x="16" y="16" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="black" text-anchor="middle" dominant-baseline="middle">MY</text></svg>'
     />
     <script>
-      // Hide server Download UI before paint on smart TVs (Tizen UA includes "linux").
+      // Hide server Download UI before paint on smart TVs / Android phones.
       (function () {
         try {
           var ua = String(navigator.userAgent || "").toLowerCase();
@@ -118,6 +118,8 @@
             )
           ) {
             document.documentElement.classList.add("is-smart-tv");
+          } else if (/android/.test(ua)) {
+            document.documentElement.classList.add("is-android");
           }
         } catch (_) {}
       })();
@@ -129,12 +131,10 @@
         box-sizing: border-box;
       }
 
-      /* No server package / releases CTA on Tizen & other smart TVs */
-      html.is-smart-tv #download-server-block {
+      /* No server package / releases CTA on Tizen, other smart TVs, or Android */
+      html.is-smart-tv #download-server-block,
+      html.is-android #download-server-block {
         display: none !important;
-      }
-      html.is-smart-tv #tv-getting-started-note {
-        display: block !important;
       }
 
       body {
@@ -517,16 +517,11 @@
           </p>
 
           <h3>1. Download the Server Package</h3>
-          <p id="tv-getting-started-note" hidden style="color: #555; line-height: 1.45">
-            On this TV, use <strong>Access Web App</strong> above. A
-            <strong>MyHomeGames server</strong> must already be installed and running on
-            your home PC — there is nothing to download on the television.
-          </p>
-          <div id="download-server-block">
           <p>
             <strong>The server is essential for MyHomeGames to work.</strong>
             Download and install the server package before proceeding.
           </p>
+          <div id="download-server-block">
           <div class="button-container">
             <a
               id="download-server-btn"
@@ -571,23 +566,6 @@
               style="color: #667eea; font-weight: 600"
               >View all releases</a
             >
-          </p>
-          <p
-            id="android-server-note"
-            hidden
-            style="
-              margin-top: 0.75rem;
-              text-align: center;
-              color: #555;
-              max-width: 36rem;
-              margin-left: auto;
-              margin-right: auto;
-              line-height: 1.45;
-            "
-          >
-            A <strong>MyHomeGames server</strong> must be installed and running on your
-            home PC for the app to work. Install the server from a computer, then open
-            this app on your phone.
           </p>
           </div>
           <h3>2. Access the Web Application</h3>
@@ -802,7 +780,6 @@
         linux: [/MyHomeGames-[0-9.]+-linux-x64\.tar\.gz$/i],
       };
 
-      const PWA_APP_URL = "/app/";
       const PWA_INSTALL_URL = "/app/?install=1";
 
       function isAndroidClient() {
@@ -881,16 +858,8 @@
         return null;
       }
 
-      function hideDesktopPackageLinks() {
-        const linuxPkg = document.getElementById("linux-package-install");
-        if (linuxPkg) linuxPkg.hidden = true;
-        const macPkg = document.getElementById("mac-package-install");
-        if (macPkg) macPkg.hidden = true;
-      }
-
-      /** Smart TVs: remove Download / releases entirely (also enforced by html.is-smart-tv CSS). */
-      function hideDownloadForSmartTv(btn) {
-        document.documentElement.classList.add("is-smart-tv");
+      /** Hide Download / releases block (CSS also hides it for smart TV / Android). */
+      function hideDownloadServerBlock(btn) {
         const block = document.getElementById("download-server-block");
         if (block) {
           block.hidden = true;
@@ -900,69 +869,22 @@
           btn.removeAttribute("href");
           btn.hidden = true;
         }
-        const stepHeading = Array.from(document.querySelectorAll("h3")).find(
-          (el) => /Download the Server Package/i.test(el.textContent || ""),
-        );
-        if (stepHeading) {
-          stepHeading.textContent = "1. Open the web app on this TV";
-        }
-        const tvNote = document.getElementById("tv-getting-started-note");
-        if (tvNote) tvNote.hidden = false;
       }
 
       /**
-       * On Android/Pixel the "Download" CTA installs/opens the PWA (client),
-       * not a desktop server package.
+       * Android: point "Access Web App" at /app/?install=1.
+       * Install / open is handled automatically by the PWA flow in the app.
        */
-      function setupAndroidPwaButton(btn) {
-        hideDesktopPackageLinks();
+      function setupAndroidAccessWebApp(links) {
+        const ctas = (Array.isArray(links) ? links : [links]).filter(Boolean);
+        if (!ctas.length) return;
 
-        const allReleases = document.getElementById("download-all-releases");
-        if (allReleases) {
-          allReleases.hidden = true;
-        }
-        const extraLinks = document.getElementById("download-extra-links");
-        if (extraLinks) {
-          extraLinks.hidden = true;
-        }
-        const serverNote = document.getElementById("android-server-note");
-        if (serverNote) {
-          serverNote.hidden = false;
-        }
+        document.documentElement.classList.add("is-android");
 
-        btn.textContent = "Install MyHomeGames app";
-        btn.href = PWA_INSTALL_URL;
-        btn.removeAttribute("target");
-        btn.setAttribute("rel", "noopener");
-
-        let deferredPrompt = null;
-        window.addEventListener("beforeinstallprompt", (event) => {
-          event.preventDefault();
-          deferredPrompt = event;
-          btn.textContent = "Install MyHomeGames app";
-        });
-
-        btn.addEventListener("click", async (event) => {
-          if (!deferredPrompt) return;
-          event.preventDefault();
-          try {
-            deferredPrompt.prompt();
-            await deferredPrompt.userChoice;
-          } catch (_) {
-            window.location.assign(PWA_INSTALL_URL);
-          } finally {
-            deferredPrompt = null;
-          }
-        });
-
-        // Already installed → open the app instead of re-prompting.
-        try {
-          if (window.matchMedia("(display-mode: standalone)").matches) {
-            btn.textContent = "Open MyHomeGames app";
-            btn.href = PWA_APP_URL;
-          }
-        } catch (_) {
-          // ignore
+        for (const cta of ctas) {
+          cta.href = PWA_INSTALL_URL;
+          cta.removeAttribute("target");
+          cta.setAttribute("rel", "noopener");
         }
       }
 
@@ -972,11 +894,16 @@
 
         const os = detectOs();
         if (os === "tizen") {
-          hideDownloadForSmartTv(btn);
+          document.documentElement.classList.add("is-smart-tv");
+          hideDownloadServerBlock(btn);
           return;
         }
         if (os === "android") {
-          setupAndroidPwaButton(btn);
+          hideDownloadServerBlock(btn);
+          setupAndroidAccessWebApp([
+            document.getElementById("webapp-link"),
+            document.getElementById("webapp-link-footer"),
+          ]);
           return;
         }
 
@@ -1017,6 +944,8 @@
 
           if (asset) {
             btn.href = asset.browser_download_url;
+            btn.target = "_blank";
+            btn.rel = "noopener noreferrer";
             btn.textContent = `Download for ${osLabel}`;
             return;
           }
@@ -1025,12 +954,16 @@
         }
 
         btn.href = RELEASES_URL;
+        btn.target = "_blank";
+        btn.rel = "noopener noreferrer";
         btn.textContent = "Download";
       }
 
       const webappUrl = "/app/";
-      document.getElementById("webapp-link").href = webappUrl;
-      document.getElementById("webapp-link-footer").href = webappUrl;
+      const webappLink = document.getElementById("webapp-link");
+      const webappLinkFooter = document.getElementById("webapp-link-footer");
+      if (webappLink) webappLink.href = webappUrl;
+      if (webappLinkFooter) webappLinkFooter.href = webappUrl;
       setupDownloadButton();
     </script>
   </body>
