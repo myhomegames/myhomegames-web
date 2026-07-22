@@ -3,10 +3,23 @@ import {
   detectLinuxFlavor,
   detectServerOs,
   findServerAssetForOs,
+  isPhoneWithoutServerPackage,
   listServerDownloadOptions,
   resolveServerDownloadOffer,
   SERVER_RELEASES_URL,
 } from "./serverDownload";
+
+function stubDesktopNavigator(userAgent: string) {
+  vi.stubGlobal("navigator", {
+    userAgent,
+    maxTouchPoints: 0,
+  });
+  vi.stubGlobal("window", {
+    ...window,
+    matchMedia: () => ({ matches: false }),
+    screen: { width: 1920, height: 1080 },
+  });
+}
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -27,6 +40,26 @@ describe("detectLinuxFlavor", () => {
 
   it("falls back to generic linux when distro is unknown", () => {
     expect(detectLinuxFlavor("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36")).toBe("linux");
+  });
+});
+
+describe("isPhoneWithoutServerPackage", () => {
+  it("detects Android even though UA also contains Linux", () => {
+    vi.stubGlobal("navigator", {
+      userAgent:
+        "Mozilla/5.0 (Linux; Android 14; Pixel 9 Pro XL) AppleWebKit/537.36 Chrome/120.0.0.0 Mobile Safari/537.36",
+      maxTouchPoints: 5,
+    });
+    expect(isPhoneWithoutServerPackage()).toBe(true);
+  });
+
+  it("detects iPhone", () => {
+    vi.stubGlobal("navigator", {
+      userAgent:
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
+      maxTouchPoints: 5,
+    });
+    expect(isPhoneWithoutServerPackage()).toBe(true);
   });
 });
 
@@ -101,9 +134,7 @@ describe("listServerDownloadOptions", () => {
 
 describe("resolveServerDownloadOffer", () => {
   it("returns .deb for Ubuntu UA", async () => {
-    vi.stubGlobal("navigator", {
-      userAgent: "Mozilla/5.0 (X11; Ubuntu; Linux x86_64) AppleWebKit/537.36",
-    });
+    stubDesktopNavigator("Mozilla/5.0 (X11; Ubuntu; Linux x86_64) AppleWebKit/537.36");
 
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -133,9 +164,7 @@ describe("resolveServerDownloadOffer", () => {
   });
 
   it("returns platform asset URL from latest GitHub release", async () => {
-    vi.stubGlobal("navigator", {
-      userAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
-    });
+    stubDesktopNavigator("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36");
 
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -159,7 +188,33 @@ describe("resolveServerDownloadOffer", () => {
     expect(offer.fileName).toBe("MyHomeGames-1.2.0-linux-x64.tar.gz");
   });
 
+  it("does not offer a Linux package asset on Android", async () => {
+    vi.stubGlobal("navigator", {
+      userAgent:
+        "Mozilla/5.0 (Linux; Android 14; Pixel 9 Pro XL) AppleWebKit/537.36 Chrome/120.0.0.0 Mobile Safari/537.36",
+      maxTouchPoints: 5,
+    });
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        assets: [
+          {
+            name: "MyHomeGames-1.2.0-linux-x64.tar.gz",
+            browser_download_url: "https://github.com/example/asset.tgz",
+          },
+        ],
+      }),
+    });
+
+    const offer = await resolveServerDownloadOffer(fetchMock as typeof fetch);
+    expect(offer.platformSpecific).toBe(false);
+    expect(offer.url).toBe(SERVER_RELEASES_URL);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("falls back to releases page when GitHub API fails", async () => {
+    stubDesktopNavigator("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36");
     const fetchMock = vi.fn().mockRejectedValue(new Error("network"));
 
     const offer = await resolveServerDownloadOffer(fetchMock as typeof fetch);
@@ -169,6 +224,7 @@ describe("resolveServerDownloadOffer", () => {
   });
 
   it("falls back to releases page when no asset matches OS", async () => {
+    stubDesktopNavigator("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({

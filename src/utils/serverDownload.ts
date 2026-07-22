@@ -68,17 +68,60 @@ export function detectLinuxFlavor(ua: string): "linux-deb" | "linux-rpm" | "linu
   return "linux";
 }
 
+/** True for phones/tablets that should not get a desktop server package. */
+export function isPhoneWithoutServerPackage(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  if (/android/i.test(ua) || /iPhone|iPod|iPad/i.test(ua)) return true;
+
+  const uaData = navigator as Navigator & {
+    userAgentData?: { mobile?: boolean; platform?: string };
+  };
+  const uad = uaData.userAgentData;
+  if (uad?.mobile === true) return true;
+  if (typeof uad?.platform === "string" && /android|ios/i.test(uad.platform)) {
+    return true;
+  }
+
+  // iPadOS 13+ desktop UA
+  if (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1) return true;
+
+  // "Desktop site" on phones: Linux UA without "Android", but coarse touch + phone-sized screen
+  try {
+    if (
+      navigator.maxTouchPoints > 0 &&
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(pointer: coarse)").matches
+    ) {
+      const shortest = Math.min(window.screen?.width || 0, window.screen?.height || 0);
+      if (shortest > 0 && shortest <= 920) return true;
+    }
+  } catch {
+    // ignore
+  }
+
+  return false;
+}
+
 export function detectServerOs(): ServerOsKind {
   if (typeof navigator === "undefined") return "linux";
   const ua = navigator.userAgent.toLowerCase();
   const uaData = navigator as Navigator & {
-    userAgentData?: { platform?: string; architecture?: string };
+    userAgentData?: { platform?: string; architecture?: string; mobile?: boolean };
   };
   const platform = uaData.userAgentData?.platform?.toLowerCase();
   const arch = uaData.userAgentData?.architecture?.toLowerCase();
 
   if (ua.includes("win") || platform === "windows") return "win";
-  if (ua.includes("mac") || platform === "macos") {
+
+  // iPhone UA contains "mac os x" — do not treat phones as macOS desktop packages.
+  if (
+    (ua.includes("mac") || platform === "macos") &&
+    !/iphone|ipod|ipad/i.test(ua) &&
+    platform !== "ios" &&
+    !isPhoneWithoutServerPackage()
+  ) {
     const isExplicitX64 =
       (typeof arch === "string" && /x86|x64|amd64|intel/i.test(arch)) ||
       /x86_64|amd64|wow64/.test(ua);
@@ -89,6 +132,18 @@ export function detectServerOs(): ServerOsKind {
     if (isExplicitX64) return "mac-x64";
     return "mac-arm64";
   }
+
+  // Android UA contains "linux" — never map phones to a Linux server package flavor.
+  if (
+    /android/i.test(ua) ||
+    platform === "android" ||
+    /iphone|ipod|ipad/i.test(ua) ||
+    platform === "ios" ||
+    isPhoneWithoutServerPackage()
+  ) {
+    return "linux";
+  }
+
   if (
     ua.includes("linux") ||
     ua.includes("x11") ||
@@ -144,6 +199,16 @@ export async function resolveServerDownloadOffer(
   fetchImpl: typeof fetch = fetch,
 ): Promise<ServerDownloadOffer> {
   const os = detectServerOs();
+
+  // Phones have no server package — don't advertise a Linux/mac/win asset.
+  if (isPhoneWithoutServerPackage()) {
+    return {
+      url: SERVER_RELEASES_URL,
+      os,
+      fileName: null,
+      platformSpecific: false,
+    };
+  }
 
   try {
     const res = await fetchImpl(
