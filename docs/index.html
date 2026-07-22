@@ -545,6 +545,23 @@
               >View all releases</a
             >
           </p>
+          <p
+            id="android-server-note"
+            hidden
+            style="
+              margin-top: 0.75rem;
+              text-align: center;
+              color: #555;
+              max-width: 36rem;
+              margin-left: auto;
+              margin-right: auto;
+              line-height: 1.45;
+            "
+          >
+            A <strong>MyHomeGames server</strong> must be installed and running on your
+            home PC for the app to work. Install the server from a computer, then open
+            this app on your phone.
+          </p>
           <h3>2. Access the Web Application</h3>
           <p>
             Once the server is running, access the web application using the button at the top of this page
@@ -739,6 +756,7 @@
         "linux-deb": "Linux (.deb)",
         "linux-rpm": "Linux (.rpm)",
         linux: "Linux",
+        android: "Android",
       };
 
       const ASSET_PATTERNS = {
@@ -755,6 +773,16 @@
         ],
         linux: [/MyHomeGames-[0-9.]+-linux-x64\.tar\.gz$/i],
       };
+
+      const PWA_APP_URL = "/app/";
+      const PWA_INSTALL_URL = "/app/?install=1";
+
+      function isAndroidClient() {
+        const ua = navigator.userAgent || "";
+        if (/android/i.test(ua)) return true;
+        const platform = navigator.userAgentData?.platform;
+        return typeof platform === "string" && /android/i.test(platform);
+      }
 
       function detectLinuxFlavor(ua) {
         // Browsers often embed the distro name in the UA (Chrome/Firefox on Linux).
@@ -781,6 +809,8 @@
         const platform = uaData?.platform?.toLowerCase();
         const arch = uaData?.architecture?.toLowerCase();
 
+        // Android Chrome UA also contains "linux" — check Android first.
+        if (isAndroidClient()) return "android";
         if (ua.includes("win") || platform === "windows") return "win";
         if (ua.includes("mac") || platform === "macos") {
           const isExplicitX64 =
@@ -813,11 +843,79 @@
         return null;
       }
 
+      function hideDesktopPackageLinks() {
+        const linuxPkg = document.getElementById("linux-package-install");
+        if (linuxPkg) linuxPkg.hidden = true;
+        const macPkg = document.getElementById("mac-package-install");
+        if (macPkg) macPkg.hidden = true;
+      }
+
+      /**
+       * On Android/Pixel the "Download" CTA installs/opens the PWA (client),
+       * not a desktop server package.
+       */
+      function setupAndroidPwaButton(btn) {
+        hideDesktopPackageLinks();
+
+        const allReleases = document.getElementById("download-all-releases");
+        if (allReleases) {
+          allReleases.hidden = true;
+        }
+        const extraLinks = document.getElementById("download-extra-links");
+        if (extraLinks) {
+          extraLinks.hidden = true;
+        }
+        const serverNote = document.getElementById("android-server-note");
+        if (serverNote) {
+          serverNote.hidden = false;
+        }
+
+        btn.textContent = "Install MyHomeGames app";
+        btn.href = PWA_INSTALL_URL;
+        btn.removeAttribute("target");
+        btn.setAttribute("rel", "noopener");
+
+        let deferredPrompt = null;
+        window.addEventListener("beforeinstallprompt", (event) => {
+          event.preventDefault();
+          deferredPrompt = event;
+          btn.textContent = "Install MyHomeGames app";
+        });
+
+        btn.addEventListener("click", async (event) => {
+          if (!deferredPrompt) return;
+          event.preventDefault();
+          try {
+            deferredPrompt.prompt();
+            await deferredPrompt.userChoice;
+          } catch (_) {
+            window.location.assign(PWA_INSTALL_URL);
+          } finally {
+            deferredPrompt = null;
+          }
+        });
+
+        // Already installed → open the app instead of re-prompting.
+        try {
+          if (window.matchMedia("(display-mode: standalone)").matches) {
+            btn.textContent = "Open MyHomeGames app";
+            btn.href = PWA_APP_URL;
+          }
+        } catch (_) {
+          // ignore
+        }
+      }
+
       async function setupDownloadButton() {
         const btn = document.getElementById("download-server-btn");
         if (!btn) return;
 
         const os = detectOs();
+        if (os === "android") {
+          setupAndroidPwaButton(btn);
+          return;
+        }
+
         const osLabel = OS_LABELS[os] || "your platform";
         const linuxPkg = document.getElementById("linux-package-install");
         if (linuxPkg) {
