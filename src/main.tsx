@@ -19,8 +19,10 @@ import { getCachedSkinCss } from "./skins/skinCssCache";
 import { isServerSkinId } from "./skins/skinIds";
 import { getActiveSkinId } from "./skins/skinStorage";
 import { applySkinCss } from "./skins/skinRuntime";
+import { setupPwaInstallFromQuery } from "./utils/pwaInstall";
 
 registerSW({ immediate: true });
+setupPwaInstallFromQuery();
 
 const activeSkinId = getActiveSkinId();
 if (isServerSkinId(activeSkinId)) {
