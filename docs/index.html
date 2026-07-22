@@ -107,11 +107,34 @@
       type="image/svg+xml"
       href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><rect width="32" height="32" fill="%23FFD700" rx="4"/><text x="16" y="16" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="black" text-anchor="middle" dominant-baseline="middle">MY</text></svg>'
     />
+    <script>
+      // Hide server Download UI before paint on smart TVs (Tizen UA includes "linux").
+      (function () {
+        try {
+          var ua = String(navigator.userAgent || "").toLowerCase();
+          if (
+            /tizen|webos|web0s|smart-tv|smarttv|viera|bravia|hbbtv|vidaa|netcast|samsungbrowser.*\btv\b|\btv\b.*samsungbrowser/.test(
+              ua,
+            )
+          ) {
+            document.documentElement.classList.add("is-smart-tv");
+          }
+        } catch (_) {}
+      })();
+    </script>
     <style>
       * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
+      }
+
+      /* No server package / releases CTA on Tizen & other smart TVs */
+      html.is-smart-tv #download-server-block {
+        display: none !important;
+      }
+      html.is-smart-tv #tv-getting-started-note {
+        display: block !important;
       }
 
       body {
@@ -494,6 +517,12 @@
           </p>
 
           <h3>1. Download the Server Package</h3>
+          <p id="tv-getting-started-note" hidden style="color: #555; line-height: 1.45">
+            On this TV, use <strong>Access Web App</strong> above. A
+            <strong>MyHomeGames server</strong> must already be installed and running on
+            your home PC — there is nothing to download on the television.
+          </p>
+          <div id="download-server-block">
           <p>
             <strong>The server is essential for MyHomeGames to work.</strong>
             Download and install the server package before proceeding.
@@ -501,9 +530,7 @@
           <div class="button-container">
             <a
               id="download-server-btn"
-              href="https://github.com/myhomegames/myhomegames-server/releases"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/app/"
               class="button button-secondary"
               style="font-size: 1.3rem; padding: 1.2rem 2.5rem"
             >
@@ -562,6 +589,7 @@
             home PC for the app to work. Install the server from a computer, then open
             this app on your phone.
           </p>
+          </div>
           <h3>2. Access the Web Application</h3>
           <p>
             Once the server is running, access the web application using the button at the top of this page
@@ -787,7 +815,7 @@
       /** Samsung Tizen / other smart TV browsers — no useful server package or PWA install. */
       function isSmartTvClient() {
         const ua = String(navigator.userAgent || "").toLowerCase();
-        return /tizen|webos|web0s|smart-tv|smarttv|viera|bravia|hbbtv|vidaa|netcast/.test(
+        return /tizen|webos|web0s|smart-tv|smarttv|viera|bravia|hbbtv|vidaa|netcast|samsungbrowser.*\btv\b|\btv\b.*samsungbrowser/.test(
           ua,
         );
       }
@@ -860,18 +888,26 @@
         if (macPkg) macPkg.hidden = true;
       }
 
-      /** Smart TVs: hide Download — no PWA install and no desktop server package. */
+      /** Smart TVs: remove Download / releases entirely (also enforced by html.is-smart-tv CSS). */
       function hideDownloadForSmartTv(btn) {
-        hideDesktopPackageLinks();
-        btn.hidden = true;
-        const container = btn.closest(".button-container");
-        if (container) container.hidden = true;
-        const extraLinks = document.getElementById("download-extra-links");
-        if (extraLinks) extraLinks.hidden = true;
-        const allReleases = document.getElementById("download-all-releases");
-        if (allReleases) allReleases.hidden = true;
-        const serverNote = document.getElementById("android-server-note");
-        if (serverNote) serverNote.hidden = true;
+        document.documentElement.classList.add("is-smart-tv");
+        const block = document.getElementById("download-server-block");
+        if (block) {
+          block.hidden = true;
+          block.replaceChildren();
+        }
+        if (btn) {
+          btn.removeAttribute("href");
+          btn.hidden = true;
+        }
+        const stepHeading = Array.from(document.querySelectorAll("h3")).find(
+          (el) => /Download the Server Package/i.test(el.textContent || ""),
+        );
+        if (stepHeading) {
+          stepHeading.textContent = "1. Open the web app on this TV";
+        }
+        const tvNote = document.getElementById("tv-getting-started-note");
+        if (tvNote) tvNote.hidden = false;
       }
 
       /**
