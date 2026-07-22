@@ -108,7 +108,7 @@
       href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><rect width="32" height="32" fill="%23FFD700" rx="4"/><text x="16" y="16" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="black" text-anchor="middle" dominant-baseline="middle">MY</text></svg>'
     />
     <script>
-      // Hide server Download UI before paint on smart TVs / Android phones.
+      // Hide server Download UI before paint on smart TVs / phones (Android, iPhone).
       (function () {
         try {
           var ua = String(navigator.userAgent || "").toLowerCase();
@@ -118,8 +118,12 @@
             )
           ) {
             document.documentElement.classList.add("is-smart-tv");
-          } else if (/android/.test(ua)) {
-            document.documentElement.classList.add("is-android");
+          } else if (
+            /android/.test(ua) ||
+            /iphone|ipod|ipad/.test(ua) ||
+            (navigator.maxTouchPoints > 1 && /macintosh/.test(ua))
+          ) {
+            document.documentElement.classList.add("is-mobile-pwa");
           }
         } catch (_) {}
       })();
@@ -131,9 +135,9 @@
         box-sizing: border-box;
       }
 
-      /* No server package / releases CTA on Tizen, other smart TVs, or Android */
+      /* No server package / releases CTA on Tizen, other smart TVs, or phones */
       html.is-smart-tv #download-server-block,
-      html.is-android #download-server-block {
+      html.is-mobile-pwa #download-server-block {
         display: none !important;
       }
 
@@ -789,6 +793,20 @@
         return typeof platform === "string" && /android/i.test(platform);
       }
 
+      /** iPhone / iPad (incl. iPadOS that reports as Macintosh + touch). */
+      function isIosClient() {
+        const ua = navigator.userAgent || "";
+        if (/iPhone|iPod|iPad/i.test(ua)) return true;
+        const platform = navigator.userAgentData?.platform;
+        if (typeof platform === "string" && /ios/i.test(platform)) return true;
+        // iPadOS 13+: desktop UA with touch
+        return (
+          /Macintosh/i.test(ua) &&
+          typeof navigator.maxTouchPoints === "number" &&
+          navigator.maxTouchPoints > 1
+        );
+      }
+
       /** Samsung Tizen / other smart TV browsers — no useful server package or PWA install. */
       function isSmartTvClient() {
         const ua = String(navigator.userAgent || "").toLowerCase();
@@ -826,6 +844,8 @@
         if (isSmartTvClient()) return "tizen";
         // Android Chrome UA also contains "linux" — check Android first.
         if (isAndroidClient()) return "android";
+        // iPhone UA contains "Mac OS X" — check iOS before macOS desktop packages.
+        if (isIosClient()) return "ios";
         if (ua.includes("win") || platform === "windows") return "win";
         if (ua.includes("mac") || platform === "macos") {
           const isExplicitX64 =
@@ -858,7 +878,7 @@
         return null;
       }
 
-      /** Hide Download / releases block (CSS also hides it for smart TV / Android). */
+      /** Hide Download / releases block (CSS also hides it for smart TV / phones). */
       function hideDownloadServerBlock(btn) {
         const block = document.getElementById("download-server-block");
         if (block) {
@@ -872,14 +892,14 @@
       }
 
       /**
-       * Android: point "Access Web App" at /app/?install=1.
-       * Install / open is handled automatically by the PWA flow in the app.
+       * Phones (Android / iPhone): point "Access Web App" at /app/?install=1.
+       * Install / open is handled by the PWA flow in the app (or Add to Home Screen on iOS).
        */
-      function setupAndroidAccessWebApp(links) {
+      function setupMobilePwaAccessWebApp(links) {
         const ctas = (Array.isArray(links) ? links : [links]).filter(Boolean);
         if (!ctas.length) return;
 
-        document.documentElement.classList.add("is-android");
+        document.documentElement.classList.add("is-mobile-pwa");
 
         for (const cta of ctas) {
           cta.href = PWA_INSTALL_URL;
@@ -898,9 +918,9 @@
           hideDownloadServerBlock(btn);
           return;
         }
-        if (os === "android") {
+        if (os === "android" || os === "ios") {
           hideDownloadServerBlock(btn);
-          setupAndroidAccessWebApp([
+          setupMobilePwaAccessWebApp([
             document.getElementById("webapp-link"),
             document.getElementById("webapp-link-footer"),
           ]);
