@@ -784,6 +784,14 @@
         return typeof platform === "string" && /android/i.test(platform);
       }
 
+      /** Samsung Tizen / other smart TV browsers — no useful server package or PWA install. */
+      function isSmartTvClient() {
+        const ua = String(navigator.userAgent || "").toLowerCase();
+        return /tizen|webos|web0s|smart-tv|smarttv|viera|bravia|hbbtv|vidaa|netcast/.test(
+          ua,
+        );
+      }
+
       function detectLinuxFlavor(ua) {
         // Browsers often embed the distro name in the UA (Chrome/Firefox on Linux).
         if (
@@ -809,6 +817,8 @@
         const platform = uaData?.platform?.toLowerCase();
         const arch = uaData?.architecture?.toLowerCase();
 
+        // Tizen UA contains "linux" — detect smart TVs before Android/Linux packages.
+        if (isSmartTvClient()) return "tizen";
         // Android Chrome UA also contains "linux" — check Android first.
         if (isAndroidClient()) return "android";
         if (ua.includes("win") || platform === "windows") return "win";
@@ -848,6 +858,20 @@
         if (linuxPkg) linuxPkg.hidden = true;
         const macPkg = document.getElementById("mac-package-install");
         if (macPkg) macPkg.hidden = true;
+      }
+
+      /** Smart TVs: hide Download — no PWA install and no desktop server package. */
+      function hideDownloadForSmartTv(btn) {
+        hideDesktopPackageLinks();
+        btn.hidden = true;
+        const container = btn.closest(".button-container");
+        if (container) container.hidden = true;
+        const extraLinks = document.getElementById("download-extra-links");
+        if (extraLinks) extraLinks.hidden = true;
+        const allReleases = document.getElementById("download-all-releases");
+        if (allReleases) allReleases.hidden = true;
+        const serverNote = document.getElementById("android-server-note");
+        if (serverNote) serverNote.hidden = true;
       }
 
       /**
@@ -911,6 +935,10 @@
         if (!btn) return;
 
         const os = detectOs();
+        if (os === "tizen") {
+          hideDownloadForSmartTv(btn);
+          return;
+        }
         if (os === "android") {
           setupAndroidPwaButton(btn);
           return;
