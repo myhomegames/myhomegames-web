@@ -19,29 +19,47 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
     rel="stylesheet">
   <title>MyHomeGames</title>
-  <script type="module" crossorigin src="/app/assets/index-RvD0CkFI.js"></script>
+  <!-- Capture beforeinstallprompt before the module bundle loads (event often fires early). -->
+  <script>
+    (function () {
+      var state = (window.__MHG_PWA__ = window.__MHG_PWA__ || {
+        deferred: null,
+        listeners: [],
+      });
+      window.addEventListener("beforeinstallprompt", function (event) {
+        event.preventDefault();
+        state.deferred = event;
+        for (var i = 0; i < state.listeners.length; i++) {
+          try {
+            state.listeners[i](event);
+          } catch (_) {}
+        }
+      });
+    })();
+  </script>
+  <script type="module" crossorigin src="/app/assets/index-DdxeETxa.js"></script>
   <link rel="modulepreload" crossorigin href="/app/assets/react-vendor-KJOBGNDP.js">
   <link rel="modulepreload" crossorigin href="/app/assets/i18n-vendor-tD8dpHWW.js">
-  <link rel="modulepreload" crossorigin href="/app/assets/page-ServerUnavailablePage.tsx-tiiMWTuA.js">
-  <link rel="modulepreload" crossorigin href="/app/assets/page-LibraryPage.tsx-Dq_fdXwI.js">
-  <link rel="modulepreload" crossorigin href="/app/assets/page-CollectionsPage.tsx-DOzdgXmm.js">
-  <link rel="modulepreload" crossorigin href="/app/assets/page-RecommendedPage.tsx-DrdlPGXS.js">
-  <link rel="modulepreload" crossorigin href="/app/assets/page-DevelopersPage.tsx-CTpSyuHO.js">
-  <link rel="modulepreload" crossorigin href="/app/assets/page-PublishersPage.tsx-PnYln8Pq.js">
-  <link rel="modulepreload" crossorigin href="/app/assets/page-TagListPage.tsx-IEB_k7GT.js">
-  <link rel="modulepreload" crossorigin href="/app/assets/page-TagListRoutePage.tsx-oDyBqcl8.js">
-  <link rel="modulepreload" crossorigin href="/app/assets/page-HomePageClassic.tsx-DJhF4n7k.js">
-  <link rel="modulepreload" crossorigin href="/app/assets/page-SettingsPage.tsx-BU7UPLL9.js">
-  <link rel="modulepreload" crossorigin href="/app/assets/page-CatalogGameDetailPage.tsx-BVOO0abr.js">
-  <link rel="modulepreload" crossorigin href="/app/assets/page-SearchResultsPage.tsx-vf7GcZOE.js">
-  <link rel="modulepreload" crossorigin href="/app/assets/page-HomePage.tsx-BDZPgNQL.js">
-  <link rel="modulepreload" crossorigin href="/app/assets/page-ProfilePage.tsx-5bEwQlPD.js">
-  <link rel="modulepreload" crossorigin href="/app/assets/page-AddGamePage.tsx-_0TbfnyU.js">
-  <link rel="modulepreload" crossorigin href="/app/assets/page-LibraryItemDetailPage.tsx-BV5IRa5Y.js">
-  <link rel="modulepreload" crossorigin href="/app/assets/page-TagGamesPage.tsx-Akqk_NL8.js">
-  <link rel="modulepreload" crossorigin href="/app/assets/page-TagGamesRoutePage.tsx-BCNa6YP2.js">
-  <link rel="modulepreload" crossorigin href="/app/assets/page-RecommendedSectionDetailPage.tsx-DLNgSwkJ.js">
-  <link rel="modulepreload" crossorigin href="/app/assets/page-StreamPlayPage.tsx-DxH2B8OZ.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-ServerUnavailablePage.tsx-hxO3Wf3p.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-LibraryPage.tsx-CKoMJRMt.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-CollectionsPage.tsx-Ctsps6Zp.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-RecommendedPage.tsx-j6np-UkP.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-DevelopersPage.tsx-CEqjVkbX.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-PublishersPage.tsx-ngQFiH9G.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-TagListPage.tsx-e_ulib4O.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-TagListRoutePage.tsx-M-g2bfz_.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-HomePageClassic.tsx-BlSIc_9n.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-SettingsPage.tsx-znCRwpvl.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-CatalogGameDetailPage.tsx-BIWGuAtI.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-SearchResultsPage.tsx-DncpBzbn.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-HomePage.tsx-DkS-wxjP.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-ProfilePage.tsx-8TcQOKx0.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-AddGamePage.tsx-CpEzRtf7.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-LibraryItemDetailPage.tsx-CiDBGnFK.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-TagGamesPage.tsx-Dz0OttIK.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-TagGamesRoutePage.tsx-BtfZ4NJe.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-RecommendedSectionDetailPage.tsx-C0rcTGap.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-StreamPlayPage.tsx-C-vzusa-.js">
   <link rel="stylesheet" crossorigin href="/app/assets/index-356cND17.css">
 <link rel="manifest" href="/app/manifest.webmanifest"></head>
 
