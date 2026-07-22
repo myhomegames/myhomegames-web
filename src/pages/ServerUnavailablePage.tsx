@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { isLocalApiBase } from "../config";
 import { useServerDownload } from "../hooks/useServerDownload";
-import { SERVER_OS_I18N_KEY } from "../utils/serverDownload";
+import { isPhoneWithoutServerPackage, SERVER_OS_I18N_KEY } from "../utils/serverDownload";
 
 type ServerUnavailablePageProps = {
   onRetry: () => void;
@@ -10,7 +10,7 @@ type ServerUnavailablePageProps = {
 export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePageProps) {
   const { t } = useTranslation();
   const { url, os, loading: downloadsLoading, platformSpecific } = useServerDownload();
-  const showDownload = isLocalApiBase();
+  const showDownload = isLocalApiBase() && !isPhoneWithoutServerPackage();
   const platformLabel = t(SERVER_OS_I18N_KEY[os], os);
 
   const downloadLabel = platformSpecific
