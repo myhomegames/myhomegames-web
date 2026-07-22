@@ -19,6 +19,24 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
     rel="stylesheet">
   <title>MyHomeGames</title>
+  <!-- Capture beforeinstallprompt before the module bundle loads (event often fires early). -->
+  <script>
+    (function () {
+      var state = (window.__MHG_PWA__ = window.__MHG_PWA__ || {
+        deferred: null,
+        listeners: [],
+      });
+      window.addEventListener("beforeinstallprompt", function (event) {
+        event.preventDefault();
+        state.deferred = event;
+        for (var i = 0; i < state.listeners.length; i++) {
+          try {
+            state.listeners[i](event);
+          } catch (_) {}
+        }
+      });
+    })();
+  </script>
 </head>
 
 <body>
