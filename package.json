@@ -11,7 +11,11 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
-    "compat:validate": "node scripts/compat-validate.mjs"
+    "compat:validate": "node scripts/compat-validate.mjs",
+    "twa:update": "cd twa && npx --yes @bubblewrap/cli update",
+    "twa:build": "cd twa && npx --yes @bubblewrap/cli build",
+    "twa:assetlinks": "cd twa && npx --yes @bubblewrap/cli fingerprint generateAssetLinks",
+    "twa:publish-assetlinks": "node scripts/publish-assetlinks.mjs"
   },
   "dependencies": {
     "@types/react-tabs": "^5.0.5",
