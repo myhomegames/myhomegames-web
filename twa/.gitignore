@@ -1,0 +1,17 @@
+# Ignore Bubblewrap / Android Studio generated output and secrets.
+android.keystore
+*.keystore
+*.jks
+app/
+gradle/
+gradlew
+gradlew.bat
+build.gradle
+settings.gradle
+AndroidManifest.xml
+app-release-signed.apk
+app-release-bundle.aab
+assetlinks.json
+.idea/
+local.properties
+*.iml
