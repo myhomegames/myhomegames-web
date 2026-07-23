@@ -108,7 +108,7 @@
       href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><rect width="32" height="32" fill="%23FFD700" rx="4"/><text x="16" y="16" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="black" text-anchor="middle" dominant-baseline="middle">MY</text></svg>'
     />
     <script>
-      // Hide server Download UI before paint on smart TVs / phones (Android, iPhone).
+      // Hide server download button before paint on smart TVs / phones (Android, iPhone).
       (function () {
         try {
           var ua = String(navigator.userAgent || "").toLowerCase();
@@ -146,10 +146,24 @@
         box-sizing: border-box;
       }
 
-      /* No server package / releases CTA on Tizen, other smart TVs, or phones */
-      html.is-smart-tv #download-server-section,
-      html.is-mobile-pwa #download-server-section {
+      /* Hide desktop download button on Tizen, other smart TVs, or phones */
+      html.is-smart-tv #download-server-block,
+      html.is-mobile-pwa #download-server-block {
         display: none !important;
+      }
+
+      #download-server-remote-note {
+        display: none;
+        margin: 0.75rem auto 0;
+        max-width: 36rem;
+        text-align: center;
+        color: #555;
+        line-height: 1.45;
+      }
+
+      html.is-smart-tv #download-server-remote-note,
+      html.is-mobile-pwa #download-server-remote-note {
+        display: block !important;
       }
 
       body {
@@ -536,6 +550,18 @@
           <p>
             <strong>The server is essential for MyHomeGames to work.</strong>
             Download and install the server package before proceeding.
+          </p>
+          <p id="download-server-remote-note">
+            Install the server on a <strong>Windows, macOS, or Linux</strong> computer — not on this phone, tablet, or TV.
+            From a desktop PC, download the package for your platform, then return here to open the web app.
+            <a
+              id="download-all-releases-remote"
+              href="https://github.com/myhomegames/myhomegames-server/releases"
+              target="_blank"
+              rel="noopener noreferrer"
+              style="color: #667eea; font-weight: 600"
+              >View all releases</a
+            >.
           </p>
           <div id="download-server-block">
           <div class="button-container">
@@ -927,18 +953,10 @@
         return null;
       }
 
-      /** Hide Download / releases block (CSS also hides it for smart TV / phones). */
+      /** Hide desktop download button on phones / smart TVs (releases note stays visible via CSS). */
       function hideDownloadServerBlock(btn) {
-        const section = document.getElementById("download-server-section");
-        if (section) {
-          section.hidden = true;
-          section.replaceChildren();
-        }
         const block = document.getElementById("download-server-block");
-        if (block) {
-          block.hidden = true;
-          block.replaceChildren();
-        }
+        if (block) block.hidden = true;
         if (btn) {
           btn.removeAttribute("href");
           btn.hidden = true;
