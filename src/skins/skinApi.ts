@@ -63,6 +63,28 @@ export async function uploadSkinArchive(
   return { id: data.id, name: data.name };
 }
 
+/** Server downloads the GitHub release zip (avoids browser CORS) and installs it. */
+export async function installSkinFromUrl(
+  downloadUrl: string,
+  displayName?: string
+): Promise<{ id: string; name: string }> {
+  const url = new URL("/skins/install-from-url", API_BASE).toString();
+  const res = await fetch(url, {
+    method: "POST",
+    headers: buildApiHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({
+      url: downloadUrl,
+      ...(displayName?.trim() ? { displayName: displayName.trim() } : {}),
+    }),
+  });
+  const data = (await res.json().catch(() => ({}))) as { error?: string; id?: string; name?: string };
+  if (!res.ok) {
+    throw new Error(data.error || "install_from_url_failed");
+  }
+  if (!data.id || !data.name) throw new Error("install_from_url_failed");
+  return { id: data.id, name: data.name };
+}
+
 export async function deleteSkinOnServer(skinId: string): Promise<void> {
   const url = new URL(`/skins/${encodeURIComponent(skinId)}`, API_BASE).toString();
   const res = await fetch(url, {

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isServerVersionCompatible } from "../utils/apiCompatibility";
-import { uploadSkinArchive, type ServerSkinInfo } from "../skins/skinApi";
+import { installSkinFromUrl, type ServerSkinInfo } from "../skins/skinApi";
 import {
   areSkinsReleaseRequirementsMet,
-  downloadSkinArchive,
+  clearSkinsCatalogCache,
   fetchSkinsCatalog,
   findOutdatedInstalledSkins,
 } from "../skins/skinCatalog";
@@ -99,8 +99,7 @@ export function useSkinAutoUpdateLogic({
       setUpdatingSkinId(installedId);
       try {
         const wasActive = activeSkinId === installedId;
-        const file = await downloadSkinArchive(offer.downloadUrl, offer.zip);
-        const { id } = await uploadSkinArchive(file, offer.name);
+        const { id } = await installSkinFromUrl(offer.downloadUrl, offer.name);
         await refreshInstalledSkins();
         if (wasActive) {
           await selectSkin(id);
@@ -108,6 +107,7 @@ export function useSkinAutoUpdateLogic({
         setAvailableUpdates((prev) => prev.filter((u) => u.installedId !== installedId));
       } catch (err) {
         console.error("Skin update failed:", err);
+        clearSkinsCatalogCache();
       } finally {
         updateInFlightRef.current = false;
         setUpdating(false);

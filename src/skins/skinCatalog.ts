@@ -10,6 +10,14 @@ const SKIN_ZIP_SUFFIX = ".mhg-skin.zip";
 const CACHE_KEY = "mhg_skins_catalog";
 const CACHE_TTL_MS = 60 * 60 * 1000;
 
+export function clearSkinsCatalogCache(): void {
+  try {
+    sessionStorage.removeItem(CACHE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 export type CatalogSkin = {
   id: string;
   name: string;
