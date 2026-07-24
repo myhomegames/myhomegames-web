@@ -25,6 +25,7 @@ import UpdateNotification from "./UpdateNotification";
 import { useTopDockSlot } from "../../contexts/TopDockSlotContext";
 import { playFixedFocalStepSound } from "../../utils/fixedFocalStepSound";
 import { applyWheelDeltaStep, readWheelStepThresholdPx } from "../../utils/stepScrollSnap";
+import { readTouchStepThresholdPx } from "../../utils/fixedFocalStepInput";
 import {
   CONTEXT_RAIL_LIBRARY_VIEW_TRANSITION,
   contextRailViewTransitionsEnabled,
@@ -905,7 +906,25 @@ export default function LibrariesBar({
       (strip.closest(".mhg-libraries-bar") as HTMLElement | null) ?? strip;
 
     const wheelAccum = { accumulated: 0 };
+    const touchAccum = { accumulated: 0 };
     const wheelThresholdPx = readWheelStepThresholdPx(strip);
+    const touchThresholdPx = readTouchStepThresholdPx(strip);
+
+    const dispatchFixedFocalStep = (direction: 1 | -1) => {
+      document.dispatchEvent(
+        new CustomEvent("mhg:fixed-focal-step", {
+          detail: { direction },
+        }),
+      );
+    };
+
+    const shouldStepFixedFocal = () => {
+      const fixedFocal = findFixedFocalWheelTarget(activeLibrary?.key);
+      const recommendedStripsActive =
+        activeLibrary?.key === "recommended" &&
+        !!document.querySelector("#root .fixed-focal-recommended-strips-list");
+      return !!(fixedFocal || recommendedStripsActive);
+    };
 
     const onWheel = (e: WheelEvent) => {
       if (!wheelRoot.contains(e.target as Node)) return;
@@ -925,20 +944,9 @@ export default function LibrariesBar({
         return;
       }
 
-      const fixedFocal = findFixedFocalWheelTarget(activeLibrary?.key);
-      const recommendedStripsActive =
-        activeLibrary?.key === "recommended" &&
-        !!document.querySelector("#root .fixed-focal-recommended-strips-list");
-
-      if (fixedFocal || recommendedStripsActive) {
+      if (shouldStepFixedFocal()) {
         e.preventDefault();
-        applyWheelDeltaStep(wheelAccum, e.deltaY, wheelThresholdPx, (direction) => {
-          document.dispatchEvent(
-            new CustomEvent("mhg:fixed-focal-step", {
-              detail: { direction },
-            }),
-          );
-        });
+        applyWheelDeltaStep(wheelAccum, e.deltaY, wheelThresholdPx, dispatchFixedFocalStep);
         return;
       }
 
@@ -965,8 +973,72 @@ export default function LibrariesBar({
       mainScroll.scrollTop += e.deltaY;
     };
 
+    let pointerId: number | null = null;
+    let lastX = 0;
+    let lastY = 0;
+    let axis: "undecided" | "vertical" | "horizontal" = "undecided";
+
+    const resetPointer = () => {
+      pointerId = null;
+      axis = "undecided";
+      touchAccum.accumulated = 0;
+    };
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (pointerId !== null) return;
+      if (e.pointerType === "mouse") return;
+      if (!wheelRoot.contains(e.target as Node)) return;
+      const el = e.target as Element | null;
+      if (el?.closest?.(".dropdown-menu-popup")) return;
+      if (el?.closest?.("input[type=range], textarea, [contenteditable=true]")) return;
+      if (!shouldStepFixedFocal()) return;
+      pointerId = e.pointerId;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      axis = "undecided";
+      touchAccum.accumulated = 0;
+      try {
+        wheelRoot.setPointerCapture?.(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (pointerId === null || e.pointerId !== pointerId) return;
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+      if (axis === "undecided") {
+        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+        axis = Math.abs(dy) >= Math.abs(dx) ? "vertical" : "horizontal";
+        if (axis === "horizontal") {
+          resetPointer();
+          return;
+        }
+      }
+      if (axis !== "vertical") return;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      applyWheelDeltaStep(touchAccum, -dy, touchThresholdPx, dispatchFixedFocalStep);
+    };
+
+    const onPointerUp = (e: PointerEvent) => {
+      if (pointerId === null || e.pointerId !== pointerId) return;
+      resetPointer();
+    };
+
     wheelRoot.addEventListener("wheel", onWheel, { passive: false, capture: true });
-    return () => wheelRoot.removeEventListener("wheel", onWheel, { capture: true });
+    wheelRoot.addEventListener("pointerdown", onPointerDown, { capture: true });
+    wheelRoot.addEventListener("pointermove", onPointerMove, { capture: true });
+    wheelRoot.addEventListener("pointerup", onPointerUp, { capture: true });
+    wheelRoot.addEventListener("pointercancel", onPointerUp, { capture: true });
+    return () => {
+      wheelRoot.removeEventListener("wheel", onWheel, { capture: true });
+      wheelRoot.removeEventListener("pointerdown", onPointerDown, { capture: true });
+      wheelRoot.removeEventListener("pointermove", onPointerMove, { capture: true });
+      wheelRoot.removeEventListener("pointerup", onPointerUp, { capture: true });
+      wheelRoot.removeEventListener("pointercancel", onPointerUp, { capture: true });
+    };
   }, [activeSkinWeb.verticalCoverAlignment, activeLibrary?.key, collapsibleActive, sidebarOpen]);
 
   /** Top-strip layout only; full sidebars ship column layout in skin CSS. */

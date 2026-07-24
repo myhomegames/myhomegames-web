@@ -4,7 +4,7 @@ import type { TagItem } from "../../types";
 import { useSkin } from "../../contexts/SkinContext";
 import { readFixedFocalTopPx, readLibraryBarBandPx } from "../../utils/readGridTopInsetPx";
 import { notifyFixedFocalIndexChange } from "../../utils/fixedFocalStepSound";
-import { applyWheelDeltaStep, readWheelStepThresholdPx } from "../../utils/stepScrollSnap";
+import { attachFixedFocalStepInput } from "../../utils/fixedFocalStepInput";
 import {
   fixedFocalCoverHeight,
   fixedFocalItemTop,
@@ -245,63 +245,33 @@ export default function FixedFocalTagList({
   );
   const stepIndexRef = useRef(stepIndex);
   stepIndexRef.current = stepIndex;
-  const wheelAccumRef = useRef({ accumulated: 0 });
-
   useEffect(() => {
     if (!interactive) return;
     let cancelled = false;
     const attachTimers: number[] = [];
     let cleanupFn: (() => void) | null = null;
 
-    const bindWheel = (): boolean => {
+    const bindStepInput = (): boolean => {
       const scrollHost = containerRef.current;
       const listHost = listRef.current;
       if (!scrollHost) return false;
 
-      wheelAccumRef.current.accumulated = 0;
-      const wheelThresholdPx = readWheelStepThresholdPx(scrollHost);
-
-      const onWheel = (e: WheelEvent) => {
-        if (Math.abs(e.deltaY) < 0.01 && Math.abs(e.deltaX) < 0.01) return;
-        if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-        e.preventDefault();
-        e.stopPropagation();
-        applyWheelDeltaStep(wheelAccumRef.current, e.deltaY, wheelThresholdPx, (direction) => {
-          stepIndexRef.current(direction);
-        });
-      };
-
-      const onStep = (e: Event) => {
-        const direction = (e as CustomEvent<{ direction?: 1 | -1 }>).detail?.direction;
-        if (direction === 1 || direction === -1) {
-          stepIndexRef.current(direction);
-        }
-      };
-
-      const onRestore = (e: Event) => {
-        const scrollTop = (e as CustomEvent<{ scrollTop?: number }>).detail?.scrollTop;
-        if (scrollTop === undefined || rowHeight <= 0) return;
-        const idx = Math.round(scrollTop / rowHeight);
-        setSelectedIndex(Math.max(0, Math.min(items.length - 1, idx)));
-      };
-
-      scrollHost.addEventListener("wheel", onWheel, { passive: false, capture: true });
-      listHost?.addEventListener("wheel", onWheel, { passive: false, capture: true });
-      document.addEventListener("mhg:fixed-focal-step", onStep);
-      document.addEventListener("mhg:fixed-focal-restore", onRestore);
-
-      cleanupFn = () => {
-        scrollHost.removeEventListener("wheel", onWheel, { capture: true });
-        listHost?.removeEventListener("wheel", onWheel, { capture: true });
-        document.removeEventListener("mhg:fixed-focal-step", onStep);
-        document.removeEventListener("mhg:fixed-focal-restore", onRestore);
-      };
+      cleanupFn = attachFixedFocalStepInput({
+        scrollHost,
+        listHost,
+        onStep: (direction) => stepIndexRef.current(direction),
+        onDocumentRestore: (scrollTop) => {
+          if (rowHeight <= 0) return;
+          const idx = Math.round(scrollTop / rowHeight);
+          setSelectedIndex(Math.max(0, Math.min(items.length - 1, idx)));
+        },
+      });
       return true;
     };
 
     const tryAttach = (attempt: number) => {
       if (cancelled) return;
-      if (bindWheel()) return;
+      if (bindStepInput()) return;
       if (attempt < 60) {
         attachTimers.push(window.setTimeout(() => tryAttach(attempt + 1), 50));
       }
