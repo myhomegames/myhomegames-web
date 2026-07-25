@@ -12,7 +12,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "compat:validate": "node scripts/compat-validate.mjs",
-    "tizen:package": "node scripts/package-tizen.mjs"
+    "tizen:package": "node scripts/package-tizen.mjs",
+    "tizen:deploy": "node scripts/deploy-tizen.mjs"
   },
   "dependencies": {
     "@types/react-tabs": "^5.0.5",

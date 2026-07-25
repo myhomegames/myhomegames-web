@@ -259,6 +259,19 @@ Or open **MyHomeGames** from **Home → Apps** on the TV.
 
 ---
 
+## Update after code changes
+
+Once certificates and Developer Mode are set up, redeploy with:
+
+```bash
+npm run tizen:deploy -- --tv=<TV_IP>
+```
+
+Only changes under `tizen/` (shell) need a redeploy. PWA / server fixes that you already
+host at the start URL do not require reinstalling the `.wgt`.
+
+---
+
 ## 7. After launch
 
 You should see the local splash briefly, then the PWA (and any gate in front of it,
@@ -312,13 +325,27 @@ approval. A fully offline SPA package would be a separate product decision.
 
 ## Commands (summary)
 
-```bash
-# Unsigned clean package
-npm run tizen:package
+After the one-time certificate / Developer Mode setup, update the app on the TV with:
 
-# Connect / install (after signing)
-sdb connect <TV_IP>
-sdb push tizen/MyHomeGames.wgt /home/owner/share/tmp/sdk_tools/MyHomeGames.wgt
-sdb shell 0 vd_appinstall VigeMHG001 /home/owner/share/tmp/sdk_tools/MyHomeGames.wgt
-sdb shell 0 was_execute VigeMHG001.MyHomeGames
+```bash
+npm run tizen:deploy -- --tv=<TV_IP>
+# example:
+npm run tizen:deploy -- --tv=192.168.0.165
+```
+
+This runs: unsigned package → sign with profile `MyHomeGamesTV` → `sdb` push/install → launch.
+
+Useful variants:
+
+```bash
+TIZEN_TV_IP=192.168.0.165 npm run tizen:deploy
+npm run tizen:deploy -- --tv=192.168.0.165 --profile=MyHomeGamesTV
+npm run tizen:deploy -- --tv=192.168.0.165 --start-url=https://myhomegames.vige.it/app/
+npm run tizen:deploy -- --tv=192.168.0.165 --no-launch
+```
+
+Unsigned package only (no TV):
+
+```bash
+npm run tizen:package
 ```
