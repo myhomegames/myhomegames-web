@@ -1,0 +1,12 @@
+# Packaged / signed widgets (never commit)
+*.wgt
+
+# Signing output left in the project tree by `tizen package`
+author-signature.xml
+signature1.xml
+.manifest.tmp
+.sign/
+.buildResult/
+
+# Tizen Extension / Studio local build copies
+Debug/

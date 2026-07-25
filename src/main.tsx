@@ -20,9 +20,12 @@ import { isServerSkinId } from "./skins/skinIds";
 import { getActiveSkinId } from "./skins/skinStorage";
 import { applySkinCss } from "./skins/skinRuntime";
 import { setupPwaInstallFromQuery } from "./utils/pwaInstall";
+import { applySmartTvDocumentFlag } from "./utils/smartTv";
+import "./styles/smartTv.css";
 
 registerSW({ immediate: true });
 setupPwaInstallFromQuery();
+applySmartTvDocumentFlag();
 
 const activeSkinId = getActiveSkinId();
 if (isServerSkinId(activeSkinId)) {
