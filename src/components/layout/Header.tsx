@@ -19,6 +19,7 @@ import { useLibrarySidebarLayout } from "../../contexts/LibrarySidebarLayoutCont
 import DropdownMenu from "../common/DropdownMenu";
 import { API_BASE } from "../../config";
 import type { GameItem, CollectionItem } from "../../types";
+import { isSmartTvBrowser } from "../../utils/smartTv";
 
 const PHONE_HEADER_BUTTON: CSSProperties = { width: 32, height: 32 };
 const PHONE_HEADER_ICON: CSSProperties = { width: 17, height: 17 };
@@ -154,6 +155,7 @@ export default function Header({
             className="mhg-logo-button"
             aria-label={t("header.home")}
             style={isPhoneLayout ? { height: 40 } : undefined}
+            tabIndex={isSmartTvBrowser() ? -1 : undefined}
           >
             <Logo width={isPhoneLayout ? 64 : 90} height={isPhoneLayout ? 40 : 50} />
           </button>
