@@ -1,4 +1,5 @@
 import { applyWheelDeltaStep, readWheelStepThresholdPx } from "./stepScrollSnap";
+import { isHorizontalLibraryStripMode, stepLibraryStrip } from "./libraryStripStep";
 
 export type FixedFocalStepDirection = 1 | -1;
 
@@ -17,14 +18,19 @@ export type AttachFixedFocalStepInputOptions = {
   scrollHost: HTMLElement;
   listHost?: HTMLElement | null;
   onStep: (direction: FixedFocalStepDirection) => void;
+  /**
+   * Horizontal wheel/swipe (XMB). Defaults to stepping the LibrariesBar strip when
+   * `verticalCoverAlignment` horizontal mode is active.
+   */
+  onHorizontalStep?: (direction: FixedFocalStepDirection) => void;
   /** Listen for LibrariesBar `mhg:fixed-focal-step` (default true). */
   listenDocumentStep?: boolean;
   onDocumentRestore?: (scrollTop: number) => void;
 };
 
 /**
- * Wheel + vertical pointer swipe → discrete fixed-focal steps.
- * Touch-action:none on PS3 rails blocks native scroll; phones never fire wheel.
+ * Wheel + pointer swipe → discrete fixed-focal steps (vertical).
+ * Horizontal gestures step the library strip when in PS3-style horizontal mode.
  * Smart TV ArrowUp/Down reach the list via `mhg:fixed-focal-step` (see smartTvRemote).
  */
 export function attachFixedFocalStepInput(options: AttachFixedFocalStepInputOptions): () => void {
@@ -32,14 +38,27 @@ export function attachFixedFocalStepInput(options: AttachFixedFocalStepInputOpti
     scrollHost,
     listHost,
     onStep,
+    onHorizontalStep,
     listenDocumentStep = true,
     onDocumentRestore,
   } = options;
 
   const wheelAccum = { accumulated: 0 };
   const touchAccum = { accumulated: 0 };
+  const horizontalWheelAccum = { accumulated: 0 };
+  const horizontalTouchAccum = { accumulated: 0 };
   const wheelThresholdPx = readWheelStepThresholdPx(scrollHost);
   const touchThresholdPx = readTouchStepThresholdPx(scrollHost);
+
+  const handleHorizontalStep = (direction: FixedFocalStepDirection) => {
+    if (onHorizontalStep) {
+      onHorizontalStep(direction);
+      return;
+    }
+    if (isHorizontalLibraryStripMode()) {
+      stepLibraryStrip(direction);
+    }
+  };
 
   let pointerId: number | null = null;
   let lastX = 0;
@@ -48,7 +67,13 @@ export function attachFixedFocalStepInput(options: AttachFixedFocalStepInputOpti
 
   const onWheel = (e: WheelEvent) => {
     if (Math.abs(e.deltaY) < 0.01 && Math.abs(e.deltaX) < 0.01) return;
-    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+      if (!isHorizontalLibraryStripMode() && !onHorizontalStep) return;
+      e.preventDefault();
+      e.stopPropagation();
+      applyWheelDeltaStep(horizontalWheelAccum, e.deltaX, wheelThresholdPx, handleHorizontalStep);
+      return;
+    }
     e.preventDefault();
     e.stopPropagation();
     applyWheelDeltaStep(wheelAccum, e.deltaY, wheelThresholdPx, onStep);
@@ -58,6 +83,7 @@ export function attachFixedFocalStepInput(options: AttachFixedFocalStepInputOpti
     pointerId = null;
     axis = "undecided";
     touchAccum.accumulated = 0;
+    horizontalTouchAccum.accumulated = 0;
   };
 
   const onPointerDown = (e: PointerEvent) => {
@@ -70,6 +96,7 @@ export function attachFixedFocalStepInput(options: AttachFixedFocalStepInputOpti
     lastY = e.clientY;
     axis = "undecided";
     touchAccum.accumulated = 0;
+    horizontalTouchAccum.accumulated = 0;
     try {
       (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
     } catch {
@@ -84,10 +111,18 @@ export function attachFixedFocalStepInput(options: AttachFixedFocalStepInputOpti
     if (axis === "undecided") {
       if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
       axis = Math.abs(dy) >= Math.abs(dx) ? "vertical" : "horizontal";
-      if (axis === "horizontal") {
+      if (axis === "horizontal" && !isHorizontalLibraryStripMode() && !onHorizontalStep) {
         resetPointer();
         return;
       }
+    }
+    if (axis === "horizontal") {
+      e.stopPropagation();
+      lastX = e.clientX;
+      lastY = e.clientY;
+      // Finger left (dx < 0) → next library (right), same as wheel deltaX > 0.
+      applyWheelDeltaStep(horizontalTouchAccum, -dx, touchThresholdPx, handleHorizontalStep);
+      return;
     }
     if (axis !== "vertical") return;
     e.stopPropagation();
