@@ -47,6 +47,17 @@ function isBackOrEscape(code: number, key: string): boolean {
   );
 }
 
+/** Remote Back only (not Escape / Backspace) — used for in-app history. */
+function isTvHardwareBack(code: number, key: string): boolean {
+  return (
+    key === "BrowserBack" ||
+    key === "GoBack" ||
+    key === "XF86Back" ||
+    code === 10009 ||
+    code === 461
+  );
+}
+
 function isVisible(el: HTMLElement): boolean {
   if (el.hidden || el.getAttribute("aria-hidden") === "true") return false;
   const style = window.getComputedStyle(el);
@@ -184,6 +195,46 @@ function closeSidebarSearchIfOpen(): boolean {
   if (!closeBtn) return false;
   closeBtn.click();
   return true;
+}
+
+/** Close a known modal/sheet layer if one is open. */
+function tryDismissUiLayer(): boolean {
+  if (closeSidebarSearchIfOpen()) return true;
+
+  const closeBtn = document.querySelector<HTMLElement>(
+    [
+      ".edit-game-modal-overlay [aria-label='Close']",
+      ".edit-collection-modal-overlay [aria-label='Close']",
+      ".add-game-overlay [aria-label='Close']",
+      ".launch-modal-overlay [aria-label='Close']",
+      "[data-mhg-modal-close]",
+    ].join(","),
+  );
+  if (closeBtn && isVisible(closeBtn)) {
+    closeBtn.click();
+    return true;
+  }
+  return false;
+}
+
+function canGoBackInHistory(): boolean {
+  const idx = (window.history.state as { idx?: number } | null)?.idx;
+  if (typeof idx === "number") return idx > 0;
+  return window.history.length > 1;
+}
+
+function goBackInApp(): void {
+  // Pages (e.g. StreamPlay) can cancel and handle cleanup themselves.
+  const ev = new CustomEvent("mhg:tv-hardware-back", { cancelable: true, bubbles: true });
+  window.dispatchEvent(ev);
+  if (ev.defaultPrevented) return;
+
+  if (tryDismissUiLayer()) return;
+
+  if (canGoBackInHistory()) {
+    window.history.back();
+  }
+  // At SPA root: swallow Back so Tizen does not exit the app.
 }
 
 /**
@@ -359,7 +410,14 @@ export function installSmartTvRemoteKeys(
       key === "Accept" ||
       key === "Select";
 
-    if (!isEnter) return;
+    if (!isEnter) {
+      if (isTvHardwareBack(code, key)) {
+        e.preventDefault();
+        e.stopPropagation();
+        goBackInApp();
+      }
+      return;
+    }
 
     e.preventDefault();
     e.stopPropagation();
