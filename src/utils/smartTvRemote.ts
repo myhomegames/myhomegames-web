@@ -1,8 +1,9 @@
 import { isSmartTvBrowser } from "./smartTv";
 
 /**
- * Map Smart TV remote keys to fixed-focal step / activate events.
- * Spatial nav alone can move focus but covers are click-only; Enter must open the focal item.
+ * Enter / OK → activate the fixed-focal selection when nothing else is focused.
+ * Arrow keys are intentionally NOT captured here: stealing them breaks Tizen spatial
+ * navigation (sidebar / buttons). List stepping is handled in attachFixedFocalStepInput.
  */
 export function installSmartTvRemoteKeys(
   enabled: boolean = isSmartTvBrowser(),
@@ -16,28 +17,12 @@ export function installSmartTvRemoteKeys(
     }
 
     const key = e.key;
-    if (key === "ArrowDown" || key === "Down") {
-      e.preventDefault();
-      document.dispatchEvent(
-        new CustomEvent("mhg:fixed-focal-step", { detail: { direction: 1 } }),
-      );
-      return;
-    }
-    if (key === "ArrowUp" || key === "Up") {
-      e.preventDefault();
-      document.dispatchEvent(
-        new CustomEvent("mhg:fixed-focal-step", { detail: { direction: -1 } }),
-      );
-      return;
-    }
-
     const isActivate =
       key === "Enter" ||
       key === " " ||
       key === "Spacebar" ||
       key === "Accept" ||
       key === "Select" ||
-      // Some Tizen remotes report OK as keyCode 13 / 65376 without a modern key name.
       e.keyCode === 13 ||
       e.keyCode === 65376;
 
@@ -51,9 +36,10 @@ export function installSmartTvRemoteKeys(
         active.tagName === "A" ||
         active.getAttribute("role") === "button" ||
         active.tagName === "INPUT" ||
-        active.tagName === "SELECT")
+        active.tagName === "SELECT" ||
+        active.isContentEditable)
     ) {
-      // Let the focused control handle Enter/Space natively.
+      // Focused control handles Enter/Space natively (spatial nav target).
       return;
     }
 
@@ -61,6 +47,7 @@ export function installSmartTvRemoteKeys(
     document.dispatchEvent(new CustomEvent("mhg:fixed-focal-activate"));
   };
 
-  window.addEventListener("keydown", onKeyDown, true);
-  return () => window.removeEventListener("keydown", onKeyDown, true);
+  // Bubble phase so focused controls get first chance.
+  window.addEventListener("keydown", onKeyDown, false);
+  return () => window.removeEventListener("keydown", onKeyDown, false);
 }
