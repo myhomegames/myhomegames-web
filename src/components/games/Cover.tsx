@@ -321,26 +321,6 @@ export default function Cover({
   const isClickable =
     (detail && onClick) || (play && !detail && onPlay) || shouldShowUploadButton;
 
-  const activateCover = () => {
-    if (shouldShowUploadButton) {
-      if (onUpload && !uploading) onUpload();
-      return;
-    }
-    if (play && !detail && onPlay) {
-      onPlay();
-    } else if (detail && onClick) {
-      onClick();
-    }
-  };
-
-  const handleCoverKeyDown = (e: React.KeyboardEvent) => {
-    if (!isClickable) return;
-    if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
-    e.preventDefault();
-    e.stopPropagation();
-    activateCover();
-  };
-
   const coverStyle = {
     width: `${width}px`,
     aspectRatio,
@@ -355,9 +335,6 @@ export default function Cover({
         ref={coverRef}
         className={`games-list-cover relative bg-[#2a2a2a] rounded overflow-hidden transition-all ${imageFit === "fill" ? "games-list-cover--image-fill " : ""}${showBorder || detailNavigationDisabled ? "cover-hover-effect" : ""} ${play && !detailNavigationDisabled ? "games-list-cover-play" : ""} ${detail ? "games-list-cover-detail" : ""} ${detailNavigationDisabled ? " games-list-cover--detail-current" : ""} ${shouldShowUploadButton ? "games-list-cover-upload" : ""} ${isDropdownOpen ? "cover-dropdown-open" : ""} ${isPopupOverlay ? "cover-popup-overlay" : ""}${isClickable ? " games-list-cover--clickable" : ""}`}
         style={coverStyle}
-        role={isClickable ? "button" : undefined}
-        tabIndex={isClickable ? 0 : undefined}
-        onKeyDown={isClickable ? handleCoverKeyDown : undefined}
         onClick={shouldShowUploadButton ? handleUploadClick : handleCoverClick}
       >
         {showPlaceholder ? (

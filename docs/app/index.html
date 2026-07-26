@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#E5A00D" />
+  <meta name="description" content="Self-hosted personal game library" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="MyHomeGames" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <!-- Allow YouTube embeds to use compute-pressure; block for other origins -->
+  <meta http-equiv="Permissions-Policy" content="compute-pressure=(self &quot;https://www.youtube.com&quot;)" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <title>MyHomeGames</title>
+  <!-- Capture beforeinstallprompt before the module bundle loads (event often fires early). -->
+  <script>
+    (function () {
+      var state = (window.__MHG_PWA__ = window.__MHG_PWA__ || {
+        deferred: null,
+        listeners: [],
+      });
+      window.addEventListener("beforeinstallprompt", function (event) {
+        event.preventDefault();
+        state.deferred = event;
+        for (var i = 0; i < state.listeners.length; i++) {
+          try {
+            state.listeners[i](event);
+          } catch (_) {}
+        }
+      });
+    })();
+  </script>
+  <script type="module" crossorigin src="/app/assets/index-DrWqtUyB.js"></script>
+  <link rel="modulepreload" crossorigin href="/app/assets/react-vendor-KJOBGNDP.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/i18n-vendor-tD8dpHWW.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-ServerUnavailablePage.tsx-CksnmCEf.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-DevicePairingPage.tsx-OBX1YqQi.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-LibraryPage.tsx-CoJ61GLl.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-CollectionsPage.tsx-O8s5xAQU.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-RecommendedPage.tsx-D2pW6y6s.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-DevelopersPage.tsx-JkLf7kSm.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-PublishersPage.tsx-DJ7tomsk.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-TagListPage.tsx-D4qVmzK7.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-TagListRoutePage.tsx-DqwgIRI9.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-HomePageClassic.tsx-BdLX2j6u.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-SettingsPage.tsx-DQq8bEdu.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-CatalogGameDetailPage.tsx-Cppk6VlJ.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-SearchResultsPage.tsx-BNh0mqn-.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-HomePage.tsx-84Et7Vtr.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-ProfilePage.tsx-gjiIBzkM.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-AddGamePage.tsx-GK00VvYU.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-LibraryItemDetailPage.tsx-CjMhRc2q.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-TagGamesPage.tsx-D1a5o-74.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-TagGamesRoutePage.tsx-DVdjGGQJ.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-RecommendedSectionDetailPage.tsx-B1mX85zf.js">
+  <link rel="modulepreload" crossorigin href="/app/assets/page-StreamPlayPage.tsx-CEXc61PN.js">
+  <link rel="stylesheet" crossorigin href="/app/assets/index-iTb1ovR4.css">
+<link rel="manifest" href="/app/manifest.webmanifest"></head>
+
+<body>
+  <div id="root"></div>
+</body>
+
+</html>
