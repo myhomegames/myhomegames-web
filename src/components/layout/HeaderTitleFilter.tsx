@@ -29,6 +29,11 @@ export default function HeaderTitleFilter() {
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            (e.currentTarget as HTMLInputElement).blur();
+          }
+        }}
         placeholder={t("header.titleFilterPlaceholder", "Search…")}
         aria-label={t("header.titleFilterAria", "Search the current list")}
         className="mhg-search-input mhg-title-filter-input search-input-with-padding"
