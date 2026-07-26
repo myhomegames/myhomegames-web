@@ -4,6 +4,12 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { getApiBase, getApiToken } from "../config";
 import { buildApiHeaders } from "../utils/api";
 import { isSmartTvBrowser, withMoonlightTvProfile } from "../utils/smartTv";
+import {
+  clearPendingStreamStop,
+  flushPendingStreamStop,
+  peekPendingStreamStop,
+  stashPendingStreamStop,
+} from "../utils/pendingStreamStop";
 
 type LaunchState = "idle" | "launching" | "ready" | "error";
 
@@ -136,12 +142,15 @@ export default function StreamPlayPage() {
     const doStop = () => {
       if (sessionStartedRef.current && !stopSentRef.current) {
         stopSentRef.current = true;
+        clearPendingStreamStop();
         return stopStreamingSession({
           hostId: streamHostIdRef.current,
           gameId,
           executableName,
         });
       }
+      // TV redirect path: stop may only live in sessionStorage.
+      flushPendingStreamStop();
       return Promise.resolve();
     };
     try {
@@ -172,6 +181,17 @@ export default function StreamPlayPage() {
     if (!gameId) {
       setLaunchState("error");
       setError(t("streamPlay.missingGame", "Missing game id"));
+      return;
+    }
+
+    // TV Back from Moonlight restores this route — stop Sunshine and leave, do not relaunch.
+    const pending = peekPendingStreamStop();
+    if (pending && String(pending.gameId) === String(gameId)) {
+      flushPendingStreamStop();
+      stopSentRef.current = true;
+      sessionStartedRef.current = false;
+      leaveForMoonlightRef.current = false;
+      navigate(-1);
       return;
     }
 
@@ -247,6 +267,12 @@ export default function StreamPlayPage() {
         // Smart TVs: leave MHG for a top-level Moonlight page (iframe WebRTC is poor on Tizen)
         // and apply mhgProfile=tv for lower bitrate / websocket transport.
         if (isSmartTvBrowser()) {
+          stashPendingStreamStop({
+            hostId: resolvedHostId,
+            gameId,
+            executableName,
+            stopUrl,
+          });
           leaveForMoonlightRef.current = true;
           setEmbedMode("redirect");
           setLaunchState("ready");
@@ -294,7 +320,7 @@ export default function StreamPlayPage() {
       }
       popupRef.current = null;
     };
-  }, [gameId, executableName, t]);
+  }, [gameId, executableName, t, navigate]);
 
   useEffect(() => {
     const onPageHide = () => {
