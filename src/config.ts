@@ -53,31 +53,43 @@ export function isUserTunnelApiBase(apiBase: string = getApiBase()): boolean {
   }
 }
 
-export function setTunnelApiBase(url: string): void {
-  const normalized = url.trim().replace(/\/$/, "");
-  const withScheme = /^https?:\/\//i.test(normalized)
-    ? normalized
-    : `https://${normalized}`;
-  API_BASE = withScheme.replace(/\/$/, "");
-  try {
-    localStorage.setItem(TUNNEL_API_BASE_KEY, API_BASE);
-  } catch {
-    // ignore
-  }
+function notifyApiBaseChanged(): void {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("mhg-api-base-changed"));
   }
 }
 
+export function setTunnelApiBase(url: string): void {
+  const normalized = url.trim().replace(/\/$/, "");
+  const withScheme = /^https?:\/\//i.test(normalized)
+    ? normalized
+    : `https://${normalized}`;
+  const next = withScheme.replace(/\/$/, "");
+  const prevStored = readStoredPublicApiBase();
+  const unchanged = next === API_BASE && prevStored === next;
+  API_BASE = next;
+  try {
+    localStorage.setItem(TUNNEL_API_BASE_KEY, API_BASE);
+  } catch {
+    // ignore
+  }
+  // Avoid a boot-time remount flash: /tunnel/status re-applies the same public URL.
+  if (!unchanged) {
+    notifyApiBaseChanged();
+  }
+}
+
 export function clearTunnelApiBase(): void {
+  const hadStored = readStoredPublicApiBase() !== null;
+  const changed = hadStored || API_BASE !== LOCAL_API_BASE;
   API_BASE = LOCAL_API_BASE;
   try {
     localStorage.removeItem(TUNNEL_API_BASE_KEY);
   } catch {
     // ignore
   }
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("mhg-api-base-changed"));
+  if (changed) {
+    notifyApiBaseChanged();
   }
 }
 
