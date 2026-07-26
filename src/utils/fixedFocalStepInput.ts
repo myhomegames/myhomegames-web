@@ -1,4 +1,5 @@
 import { applyWheelDeltaStep, readWheelStepThresholdPx } from "./stepScrollSnap";
+import { isSmartTvBrowser } from "./smartTv";
 
 export type FixedFocalStepDirection = 1 | -1;
 
@@ -25,6 +26,7 @@ export type AttachFixedFocalStepInputOptions = {
 /**
  * Wheel + vertical pointer swipe → discrete fixed-focal steps.
  * Touch-action:none on PS3 rails blocks native scroll; phones never fire wheel.
+ * On Smart TV, ArrowUp/Down step the list only when focus is not on another control.
  */
 export function attachFixedFocalStepInput(options: AttachFixedFocalStepInputOptions): () => void {
   const {
@@ -39,6 +41,7 @@ export function attachFixedFocalStepInput(options: AttachFixedFocalStepInputOpti
   const touchAccum = { accumulated: 0 };
   const wheelThresholdPx = readWheelStepThresholdPx(scrollHost);
   const touchThresholdPx = readTouchStepThresholdPx(scrollHost);
+  const tvKeys = isSmartTvBrowser();
 
   let pointerId: number | null = null;
   let lastX = 0;
@@ -116,6 +119,31 @@ export function attachFixedFocalStepInput(options: AttachFixedFocalStepInputOpti
   const hosts = [scrollHost, listHost].filter((h): h is HTMLElement => !!h);
   const uniqueHosts = [...new Set(hosts)];
 
+  const focusIsOutsideList = (): boolean => {
+    const active = document.activeElement as HTMLElement | null;
+    if (!active || active === document.body || active === document.documentElement) {
+      return false;
+    }
+    if (uniqueHosts.some((h) => h.contains(active))) return false;
+    // Focus is on sidebar / header control — leave spatial nav alone.
+    return true;
+  };
+
+  const onTvKeyDown = (e: KeyboardEvent) => {
+    if (!tvKeys) return;
+    const target = e.target as HTMLElement | null;
+    if (target?.closest?.("input, textarea, select, [contenteditable='true']")) return;
+    if (focusIsOutsideList()) return;
+
+    let direction: FixedFocalStepDirection | null = null;
+    if (e.key === "ArrowDown" || e.key === "Down" || e.keyCode === 40) direction = 1;
+    else if (e.key === "ArrowUp" || e.key === "Up" || e.keyCode === 38) direction = -1;
+    if (!direction) return;
+
+    e.preventDefault();
+    onStep(direction);
+  };
+
   for (const host of uniqueHosts) {
     host.addEventListener("wheel", onWheel, { passive: false, capture: true });
     host.addEventListener("pointerdown", onPointerDown, { capture: true });
@@ -129,6 +157,9 @@ export function attachFixedFocalStepInput(options: AttachFixedFocalStepInputOpti
   }
   if (onDocumentRestore) {
     document.addEventListener("mhg:fixed-focal-restore", onRestoreEvent);
+  }
+  if (tvKeys) {
+    window.addEventListener("keydown", onTvKeyDown, false);
   }
 
   return () => {
@@ -144,6 +175,9 @@ export function attachFixedFocalStepInput(options: AttachFixedFocalStepInputOpti
     }
     if (onDocumentRestore) {
       document.removeEventListener("mhg:fixed-focal-restore", onRestoreEvent);
+    }
+    if (tvKeys) {
+      window.removeEventListener("keydown", onTvKeyDown, false);
     }
   };
 }
