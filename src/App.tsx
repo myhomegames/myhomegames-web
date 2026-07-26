@@ -13,6 +13,7 @@ import Header from "./components/layout/Header";
 import AddGame from "./components/common/AddGame";
 import GameDetail from "./components/games/GameDetail";
 import LaunchModal from "./components/common/LaunchModal";
+import TvExitConfirmDialog from "./components/layout/TvExitConfirmDialog";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import MainAppLayout from "./layouts/MainAppLayout";
 
@@ -1035,6 +1036,7 @@ function AppContent() {
           launchError={launchError}
           onClose={handleCloseLaunchModal}
         />
+        <TvExitConfirmDialog />
       </div>
     </>
   );

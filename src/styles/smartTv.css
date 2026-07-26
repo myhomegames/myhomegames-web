@@ -120,3 +120,21 @@ html[data-mhg-tv="1"] .mhg-device-pairing__retry:focus-visible {
   outline: 4px solid #fff;
   outline-offset: 4px;
 }
+
+/* Exit-app confirm (Back on home). */
+html[data-mhg-tv="1"] .mhg-tv-exit-confirm {
+  z-index: 40000;
+}
+
+html[data-mhg-tv="1"] .mhg-tv-exit-confirm .dropdown-menu-confirm-footer {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+html[data-mhg-tv="1"] .mhg-tv-exit-confirm .dropdown-menu-confirm-cancel,
+html[data-mhg-tv="1"] .mhg-tv-exit-confirm .dropdown-menu-confirm-delete {
+  min-width: 8rem;
+  min-height: 3rem;
+  font-size: 1.1rem;
+}

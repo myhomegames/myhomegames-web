@@ -80,7 +80,10 @@ function isLogoButton(el: HTMLElement): boolean {
  * never immediately re-focus the same search box (common on pages without library buttons).
  */
 function collectFocusables(allowTextFields: boolean): HTMLElement[] {
-  const nodes = document.querySelectorAll<HTMLElement>(
+  // While the exit confirm is open, keep D-pad inside the dialog.
+  const scope: ParentNode =
+    document.querySelector("[data-mhg-tv-exit-confirm]") ?? document;
+  const nodes = scope.querySelectorAll<HTMLElement>(
     [
       "button:not([disabled]):not([tabindex='-1'])",
       "a[href]:not([tabindex='-1'])",
@@ -223,6 +226,16 @@ function canGoBackInHistory(): boolean {
   return window.history.length > 1;
 }
 
+/** Home under BrowserRouter basename `/app/`. */
+function isAppHomePath(): boolean {
+  const path = (window.location.pathname || "/").replace(/\/+$/, "") || "/";
+  return path === "/app" || path === "/" || path === "/app/index.html";
+}
+
+function isExitConfirmOpen(): boolean {
+  return Boolean(document.querySelector("[data-mhg-tv-exit-confirm]"));
+}
+
 function goBackInApp(): void {
   // Pages (e.g. StreamPlay) can cancel and handle cleanup themselves.
   const ev = new CustomEvent("mhg:tv-hardware-back", { cancelable: true, bubbles: true });
@@ -231,10 +244,20 @@ function goBackInApp(): void {
 
   if (tryDismissUiLayer()) return;
 
+  if (isExitConfirmOpen()) {
+    window.dispatchEvent(new CustomEvent("mhg:tv-exit-confirm-cancel"));
+    return;
+  }
+
   if (canGoBackInHistory()) {
     window.history.back();
+    return;
   }
-  // At SPA root: swallow Back so Tizen does not exit the app.
+
+  // Home (SPA root): ask before closing the Tizen application.
+  if (isAppHomePath()) {
+    window.dispatchEvent(new CustomEvent("mhg:tv-request-exit"));
+  }
 }
 
 /**
