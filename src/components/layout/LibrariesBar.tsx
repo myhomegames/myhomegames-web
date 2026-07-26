@@ -1196,6 +1196,7 @@ export default function LibrariesBar({
               className="mhg-top-right-tool-dock-logo mhg-logo-button"
               onClick={() => navigate("/")}
               aria-label={t("header.home")}
+              tabIndex={isSmartTvBrowser() ? -1 : undefined}
             >
               <Logo />
             </button>

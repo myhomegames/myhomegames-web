@@ -17,6 +17,14 @@ html[data-mhg-tv="1"] [tabindex]:focus-visible {
   outline-offset: 3px;
 }
 
+/* Logo is not in the D-pad ring (tabIndex=-1); avoid a stuck yellow box if Tizen focuses it anyway. */
+html[data-mhg-tv="1"] .mhg-logo-button:focus,
+html[data-mhg-tv="1"] .mhg-logo-button:focus-visible,
+html[data-mhg-tv="1"] .mhg-top-right-tool-dock-logo:focus,
+html[data-mhg-tv="1"] .mhg-top-right-tool-dock-logo:focus-visible {
+  outline: none;
+}
+
 /* Device-code pairing (Cloudflare Access stays on the phone). */
 .mhg-device-pairing {
   display: flex;
