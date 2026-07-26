@@ -15,6 +15,18 @@
       </p>
       <button type="button" id="retry" class="retry" hidden>Retry</button>
     </main>
+    <!--
+      Hosted PWA stays in an iframe so this local document keeps window.tizen.
+      Exit from the PWA: postMessage({ type: "mhg-tizen-exit" }).
+    -->
+    <iframe
+      id="pwa"
+      class="pwa-frame"
+      title="MyHomeGames"
+      hidden
+      allow="autoplay; fullscreen; gamepad; microphone; camera; encrypted-media; display-capture; clipboard-read; clipboard-write"
+      allowfullscreen
+    ></iframe>
     <script src="js/config.js"></script>
     <script src="js/main.js"></script>
   </body>
