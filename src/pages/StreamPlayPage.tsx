@@ -157,6 +157,18 @@ export default function StreamPlayPage() {
   }
 
   useEffect(() => {
+    if (!isSmartTvBrowser()) return;
+    const onTvBack = (event: Event) => {
+      event.preventDefault();
+      endSessionAndLeave(true);
+    };
+    window.addEventListener("mhg:tv-hardware-back", onTvBack);
+    return () => window.removeEventListener("mhg:tv-hardware-back", onTvBack);
+    // endSessionAndLeave closes over latest refs/navigate
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate, gameId, executableName]);
+
+  useEffect(() => {
     if (!gameId) {
       setLaunchState("error");
       setError(t("streamPlay.missingGame", "Missing game id"));
