@@ -9,9 +9,22 @@ const KEY_ENTER = 13;
 type Direction = "up" | "down" | "left" | "right";
 type Zone = "chrome" | "content";
 
-function isEditableTarget(target: EventTarget | null): boolean {
+function editableRoot(target: EventTarget | null): HTMLElement | null {
   const el = target as HTMLElement | null;
-  return Boolean(el?.closest?.("input, textarea, select, [contenteditable='true']"));
+  return (el?.closest?.("input, textarea, select, [contenteditable='true']") as HTMLElement | null) ?? null;
+}
+
+function isBackOrEscape(code: number, key: string): boolean {
+  return (
+    key === "Escape" ||
+    key === "Backspace" ||
+    key === "BrowserBack" ||
+    key === "GoBack" ||
+    key === "XF86Back" ||
+    code === 27 ||
+    code === 10009 || // Tizen Return / Back
+    code === 461 // common TV Back
+  );
 }
 
 function isVisible(el: HTMLElement): boolean {
@@ -168,11 +181,37 @@ export function installSmartTvRemoteKeys(
     enterChrome();
   };
 
-  const onKeyDown = (e: KeyboardEvent) => {
-    if (isEditableTarget(e.target)) return;
+  const leaveEditable = (field: HTMLElement) => {
+    try {
+      field.blur();
+    } catch {
+      /* ignore */
+    }
+    zone = "chrome";
+    enterChrome();
+  };
 
+  const onKeyDown = (e: KeyboardEvent) => {
     const code = e.keyCode || e.which || 0;
     const key = e.key;
+    const field = editableRoot(e.target);
+
+    // Search / inputs: leave D-pad alone so the on-screen keyboard keeps working.
+    // Exit only via Back / Escape (Backspace still deletes when the field has text).
+    if (field) {
+      if (isBackOrEscape(code, key)) {
+        if (key === "Backspace" && field instanceof HTMLInputElement && field.value.length > 0) {
+          return;
+        }
+        if (key === "Backspace" && field instanceof HTMLTextAreaElement && field.value.length > 0) {
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        leaveEditable(field);
+      }
+      return;
+    }
 
     let direction: Direction | null = null;
     if (code === KEY_DOWN || key === "ArrowDown" || key === "Down") direction = "down";
