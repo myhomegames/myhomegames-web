@@ -290,6 +290,31 @@ export default function FixedFocalCollectionsList({
   );
   const stepIndexRef = useRef(stepIndex);
   stepIndexRef.current = stepIndex;
+
+  const selectedIndexRef = useRef(selectedIndex);
+  selectedIndexRef.current = selectedIndex;
+  const collectionsRef = useRef(collections);
+  collectionsRef.current = collections;
+  const onCollectionClickRef = useRef(onCollectionClick);
+  onCollectionClickRef.current = onCollectionClick;
+  const onCollectionActivateRef = useRef(onCollectionActivate);
+  onCollectionActivateRef.current = onCollectionActivate;
+
+  useEffect(() => {
+    if (!interactive) return;
+    const onActivate = () => {
+      const collection = collectionsRef.current[selectedIndexRef.current];
+      if (!collection) return;
+      if (onCollectionActivateRef.current) {
+        onCollectionActivateRef.current(collection, selectedIndexRef.current);
+      } else {
+        onCollectionClickRef.current(collection);
+      }
+    };
+    document.addEventListener("mhg:fixed-focal-activate", onActivate);
+    return () => document.removeEventListener("mhg:fixed-focal-activate", onActivate);
+  }, [interactive]);
+
   useEffect(() => {
     if (!interactive) return;
     let cancelled = false;

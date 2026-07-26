@@ -188,6 +188,23 @@ export default function FixedFocalRecommendedSectionsList({
   );
   const stepIndexRef = useRef(stepIndex);
   stepIndexRef.current = stepIndex;
+
+  const selectedIndexRef = useRef(selectedIndex);
+  selectedIndexRef.current = selectedIndex;
+  const sectionsRef = useRef(sections);
+  sectionsRef.current = sections;
+  const onSectionClickRef = useRef(onSectionClick);
+  onSectionClickRef.current = onSectionClick;
+
+  useEffect(() => {
+    const onActivate = () => {
+      const section = sectionsRef.current[selectedIndexRef.current];
+      if (section) onSectionClickRef.current(section);
+    };
+    document.addEventListener("mhg:fixed-focal-activate", onActivate);
+    return () => document.removeEventListener("mhg:fixed-focal-activate", onActivate);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     const attachTimers: number[] = [];

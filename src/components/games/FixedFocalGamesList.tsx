@@ -287,6 +287,23 @@ export default function FixedFocalGamesList({
   );
   const stepIndexRef = useRef(stepIndex);
   stepIndexRef.current = stepIndex;
+
+  const selectedIndexRef = useRef(selectedIndex);
+  selectedIndexRef.current = selectedIndex;
+  const gamesRef = useRef(games);
+  gamesRef.current = games;
+  const onGameClickRef = useRef(onGameClick);
+  onGameClickRef.current = onGameClick;
+
+  useEffect(() => {
+    const onActivate = () => {
+      const game = gamesRef.current[selectedIndexRef.current];
+      if (game) onGameClickRef.current(game);
+    };
+    document.addEventListener("mhg:fixed-focal-activate", onActivate);
+    return () => document.removeEventListener("mhg:fixed-focal-activate", onActivate);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     const attachTimers: number[] = [];

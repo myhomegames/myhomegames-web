@@ -59,16 +59,20 @@ export function SkinProvider({ children }: { children: ReactNode }) {
   const [snapshotVersion, setSnapshotVersion] = useState(() => Date.now());
 
   const refreshInstalledSkins = useCallback(async () => {
-    try {
-      const list = await fetchSkinList();
-      setServerSkins(list);
-      setSnapshotVersion(Date.now());
-      return list;
-    } catch {
-      setServerSkins([]);
-      setSnapshotVersion(Date.now());
-      return [];
-    }
+    const list = await fetchSkinList();
+    setServerSkins(list);
+    setSnapshotVersion(Date.now());
+    return list;
+  }, []);
+
+  const [skinReloadToken, setSkinReloadToken] = useState(0);
+
+  useEffect(() => {
+    const onApiBaseChanged = () => {
+      setSkinReloadToken((n) => n + 1);
+    };
+    window.addEventListener("mhg-api-base-changed", onApiBaseChanged);
+    return () => window.removeEventListener("mhg-api-base-changed", onApiBaseChanged);
   }, []);
 
   useEffect(() => {
@@ -77,7 +81,13 @@ export function SkinProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     void (async () => {
-      const list = await refreshInstalledSkins();
+      let list: ServerSkinInfo[];
+      try {
+        list = await refreshInstalledSkins();
+      } catch {
+        // Network/tunnel glitch: keep current theme; do not treat as "no skins".
+        return;
+      }
       if (cancelled) return;
 
       const serverActiveId = await fetchServerActiveSkinId().catch(() => "");
@@ -92,10 +102,11 @@ export function SkinProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      if (nextActiveId) {
+      // Only clear when the list was fetched successfully and the skin is truly missing.
+      if (nextActiveId && list.length > 0) {
         void saveServerActiveSkinId("");
       }
-      if (isServerSkinId(nextActiveId)) {
+      if (isServerSkinId(nextActiveId) && list.length > 0 && !hasNextSkin) {
         setActiveSkinId("");
         setActive("");
         clearCachedSkinCss();
@@ -106,7 +117,7 @@ export function SkinProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [isLoading, settingsLoaded, token, refreshInstalledSkins]);
+  }, [isLoading, settingsLoaded, token, refreshInstalledSkins, skinReloadToken]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -119,17 +130,14 @@ export function SkinProvider({ children }: { children: ReactNode }) {
       if (css?.trim()) {
         setCachedSkinCss(activeSkinId, css);
         applySkinCss(css);
-      } else if (getActiveSkinId() === activeSkinId && getApiToken()) {
-        clearCachedSkinCss();
-        setActiveSkinId("");
-        setActive("");
-        applySkinCss("");
+        return;
       }
+      // Keep cached CSS on transient tunnel failures (common right after TV pairing).
     })();
     return () => {
       cancelled = true;
     };
-  }, [isLoading, settingsLoaded, token, activeSkinId]);
+  }, [isLoading, settingsLoaded, token, activeSkinId, skinReloadToken]);
 
   /*
    * `settings.skinWeb` is the authoritative source of the flags consumed by the SPA: the
