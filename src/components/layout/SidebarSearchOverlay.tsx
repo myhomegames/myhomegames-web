@@ -101,10 +101,22 @@ export default function SidebarSearchOverlay({
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      const code = e.keyCode || e.which || 0;
+      if (
+        e.key === "Escape" ||
+        e.key === "BrowserBack" ||
+        e.key === "GoBack" ||
+        e.key === "XF86Back" ||
+        code === 27 ||
+        code === 10009 ||
+        code === 461
+      ) {
+        e.preventDefault();
+        onClose();
+      }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, [open, onClose]);
 
   useEffect(() => {

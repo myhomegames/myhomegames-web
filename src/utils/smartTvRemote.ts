@@ -14,6 +14,26 @@ function editableRoot(target: EventTarget | null): HTMLElement | null {
   return (el?.closest?.("input, textarea, select, [contenteditable='true']") as HTMLElement | null) ?? null;
 }
 
+function isTextField(el: HTMLElement): boolean {
+  if (el.isContentEditable) return true;
+  const tag = el.tagName;
+  if (tag === "TEXTAREA" || tag === "SELECT") return true;
+  if (tag !== "INPUT") return false;
+  const type = ((el as HTMLInputElement).type || "text").toLowerCase();
+  return ![
+    "button",
+    "submit",
+    "reset",
+    "checkbox",
+    "radio",
+    "file",
+    "image",
+    "hidden",
+    "range",
+    "color",
+  ].includes(type);
+}
+
 function isBackOrEscape(code: number, key: string): boolean {
   return (
     key === "Escape" ||
@@ -44,8 +64,11 @@ function isLogoButton(el: HTMLElement): boolean {
   );
 }
 
-/** Focus targets for D-pad: real controls, not every cover div. */
-function collectFocusables(): HTMLElement[] {
+/**
+ * @param allowTextFields when false, skip inputs/search — used after leaving a field so we
+ * never immediately re-focus the same search box (common on pages without library buttons).
+ */
+function collectFocusables(allowTextFields: boolean): HTMLElement[] {
   const nodes = document.querySelectorAll<HTMLElement>(
     [
       "button:not([disabled]):not([tabindex='-1'])",
@@ -58,8 +81,8 @@ function collectFocusables(): HTMLElement[] {
   );
   return Array.from(nodes).filter((el) => {
     if (!isVisible(el)) return false;
-    // Logo traps Tizen spatial nav in the top dock — skip it for D-pad traversal.
     if (isLogoButton(el)) return false;
+    if (!allowTextFields && isTextField(el)) return false;
     return true;
   });
 }
@@ -68,16 +91,30 @@ function center(rect: DOMRect): { x: number; y: number } {
   return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
 }
 
-function pickNextFocus(current: HTMLElement | null, direction: Direction): HTMLElement | null {
-  const items = collectFocusables();
+function defaultChromeTarget(): HTMLElement | null {
+  const items = collectFocusables(false);
   if (items.length === 0) return null;
+  return (
+    items.find((el) => el.classList.contains("mhg-library-active")) ??
+    items.find((el) => el.classList.contains("mhg-library-button")) ??
+    items.find((el) => el.classList.contains("mhg-sidebar-search-trigger")) ??
+    items[0] ??
+    null
+  );
+}
+
+function pickNextFocus(
+  current: HTMLElement | null,
+  direction: Direction,
+  allowTextFields: boolean,
+): HTMLElement | null {
+  const items = collectFocusables(allowTextFields);
+  if (items.length === 0) {
+    return allowTextFields ? null : defaultChromeTarget();
+  }
 
   if (!current || !items.includes(current)) {
-    const activeLib =
-      items.find((el) => el.classList.contains("mhg-library-active")) ??
-      items.find((el) => el.classList.contains("mhg-library-button")) ??
-      items[0];
-    return activeLib ?? null;
+    return defaultChromeTarget() ?? items[0] ?? null;
   }
 
   const from = current.getBoundingClientRect();
@@ -140,6 +177,15 @@ function blurToContent(): void {
   }
 }
 
+function closeSidebarSearchIfOpen(): boolean {
+  const closeBtn = document.querySelector<HTMLElement>(
+    "[data-mhg-sidebar-search-dialog] .game-search-modal-close",
+  );
+  if (!closeBtn) return false;
+  closeBtn.click();
+  return true;
+}
+
 /**
  * Explicit D-pad navigation for Smart TVs.
  * Tizen spatial nav often gets stuck on the logo / sparse layouts; we move focus ourselves.
@@ -157,7 +203,9 @@ export function installSmartTvRemoteKeys(
 
   const enterChrome = (prefer: HTMLElement | null = null) => {
     zone = "chrome";
-    const next = prefer && collectFocusables().includes(prefer) ? prefer : pickNextFocus(null, "down");
+    const chromeItems = collectFocusables(false);
+    const next =
+      prefer && chromeItems.includes(prefer) ? prefer : defaultChromeTarget();
     if (next) focusElement(next);
   };
 
@@ -174,21 +222,39 @@ export function installSmartTvRemoteKeys(
       active !== document.body &&
       active !== document.documentElement &&
       !isLogoButton(active) &&
-      collectFocusables().includes(active)
+      !isTextField(active) &&
+      collectFocusables(false).includes(active)
     ) {
       return;
     }
+    // Don't bootstrap onto a search box — that traps the remote on some pages.
+    if (active && isTextField(active)) return;
     enterChrome();
   };
 
-  const leaveEditable = (field: HTMLElement) => {
+  const leaveEditable = (field: HTMLElement, direction: Direction | null) => {
     try {
       field.blur();
     } catch {
       /* ignore */
     }
+
+    if (field.closest("[data-mhg-sidebar-search-dialog]")) {
+      closeSidebarSearchIfOpen();
+      zone = "chrome";
+      window.setTimeout(() => enterChrome(), 0);
+      return;
+    }
+
     zone = "chrome";
-    enterChrome();
+    const next = direction
+      ? pickNextFocus(field, direction, false)
+      : defaultChromeTarget();
+    if (next) {
+      focusElement(next);
+    } else {
+      enterChrome();
+    }
   };
 
   const onKeyDown = (e: KeyboardEvent) => {
@@ -196,8 +262,8 @@ export function installSmartTvRemoteKeys(
     const key = e.key;
     const field = editableRoot(e.target);
 
-    // Search / inputs: leave D-pad alone so the on-screen keyboard keeps working.
-    // Exit only via Back / Escape (Backspace still deletes when the field has text).
+    // Search / inputs: keep Left/Right for caret + on-screen keyboard.
+    // Back leaves; Up/Down also leave so we never stay trapped if Back is eaten by the IME.
     if (field) {
       if (isBackOrEscape(code, key)) {
         if (key === "Backspace" && field instanceof HTMLInputElement && field.value.length > 0) {
@@ -208,7 +274,18 @@ export function installSmartTvRemoteKeys(
         }
         e.preventDefault();
         e.stopPropagation();
-        leaveEditable(field);
+        leaveEditable(field, null);
+        return;
+      }
+
+      let leaveDir: Direction | null = null;
+      if (code === KEY_DOWN || key === "ArrowDown" || key === "Down") leaveDir = "down";
+      else if (code === KEY_UP || key === "ArrowUp" || key === "Up") leaveDir = "up";
+
+      if (leaveDir) {
+        e.preventDefault();
+        e.stopPropagation();
+        leaveEditable(field, leaveDir);
       }
       return;
     }
@@ -238,7 +315,7 @@ export function installSmartTvRemoteKeys(
         return;
       }
 
-      // chrome zone
+      // chrome zone — allow moving onto search/inputs from buttons
       const active = document.activeElement as HTMLElement | null;
       const current =
         active && active !== document.body && active !== document.documentElement && !isLogoButton(active)
@@ -246,7 +323,7 @@ export function installSmartTvRemoteKeys(
           : null;
 
       if (direction === "right") {
-        const next = pickNextFocus(current, "right");
+        const next = pickNextFocus(current, "right", true);
         if (next) {
           focusElement(next);
         } else {
@@ -255,7 +332,7 @@ export function installSmartTvRemoteKeys(
         return;
       }
 
-      const next = pickNextFocus(current, direction);
+      const next = pickNextFocus(current, direction, true);
       if (next) {
         focusElement(next);
         return;
