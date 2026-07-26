@@ -399,12 +399,43 @@ export function installSmartTvRemoteKeys(
         return;
       }
 
-      // chrome zone — allow moving onto search/inputs from buttons
+      // chrome zone — XMB strip: Left/Right must step+select, not only move focus
       const active = document.activeElement as HTMLElement | null;
       const current =
         active && active !== document.body && active !== document.documentElement && !isLogoButton(active)
           ? active
           : null;
+
+      if (
+        (direction === "left" || direction === "right") &&
+        isHorizontalLibraryStripMode()
+      ) {
+        const onStrip =
+          !!current?.closest?.(".mhg-libraries-container") ||
+          !!current?.classList?.contains("mhg-library-button") ||
+          !!current?.classList?.contains("mhg-collection-shortcut-button");
+        // Default chrome focus is often the active library icon — treat L/R as strip steps.
+        if (onStrip || !current) {
+          const stepped = stepLibraryStrip(direction === "right" ? 1 : -1);
+          if (stepped) {
+            window.setTimeout(() => {
+              const nextActive =
+                document.querySelector<HTMLElement>(
+                  ".mhg-libraries-container .mhg-library-active, .mhg-libraries-container .mhg-collection-shortcut-button--selected",
+                ) ?? defaultChromeTarget();
+              if (nextActive) focusElement(nextActive);
+            }, 0);
+            return;
+          }
+          if (direction === "left") {
+            // already at first icon — stay in chrome
+            return;
+          }
+          // at last icon going right → content rail
+          enterContent();
+          return;
+        }
+      }
 
       if (direction === "right") {
         const next = pickNextFocus(current, "right", true);

@@ -1033,6 +1033,7 @@ export default function LibrariesBar({
           resetPointer();
           return;
         }
+        e.preventDefault();
         lastX = e.clientX;
         lastY = e.clientY;
         applyWheelDeltaStep(horizontalTouchAccum, -dx, touchThresholdPx, stepStrip);
@@ -1040,6 +1041,7 @@ export default function LibrariesBar({
       }
       if (axis !== "vertical") return;
       if (!shouldStepFixedFocal()) return;
+      e.preventDefault();
       lastX = e.clientX;
       lastY = e.clientY;
       applyWheelDeltaStep(touchAccum, -dy, touchThresholdPx, dispatchFixedFocalStep);
@@ -1055,13 +1057,27 @@ export default function LibrariesBar({
       if (direction === 1 || direction === -1) stepStrip(direction);
     };
 
+    const libRowForTouch = strip.querySelector<HTMLElement>(".mhg-libraries-container");
+    if (horizontalStripMode && libRowForTouch) {
+      // Keep programmatic centering via scrollLeft; block finger/trackpad pan.
+      libRowForTouch.style.touchAction = "none";
+      libRowForTouch.style.overscrollBehaviorX = "none";
+    }
+
     wheelRoot.addEventListener("wheel", onWheel, { passive: false, capture: true });
     wheelRoot.addEventListener("pointerdown", onPointerDown, { capture: true });
-    wheelRoot.addEventListener("pointermove", onPointerMove, { capture: true });
+    wheelRoot.addEventListener("pointermove", onPointerMove, {
+      capture: true,
+      passive: false,
+    });
     wheelRoot.addEventListener("pointerup", onPointerUp, { capture: true });
     wheelRoot.addEventListener("pointercancel", onPointerUp, { capture: true });
     document.addEventListener("mhg:library-strip-step", onStripStepEvent);
     return () => {
+      if (libRowForTouch) {
+        libRowForTouch.style.removeProperty("touch-action");
+        libRowForTouch.style.removeProperty("overscroll-behavior-x");
+      }
       wheelRoot.removeEventListener("wheel", onWheel, { capture: true });
       wheelRoot.removeEventListener("pointerdown", onPointerDown, { capture: true });
       wheelRoot.removeEventListener("pointermove", onPointerMove, { capture: true });
@@ -1113,12 +1129,17 @@ export default function LibrariesBar({
 
     const frame = requestAnimationFrame(() => {
       centerActiveLibraryInStrip(row, verticalCoverRailScrollLayoutForPath(pathname));
+      // Discrete strip mode: programmatic scrollLeft only — no native finger pan.
+      if (!activeSkinWeb.libraryPagesVerticalList) {
+        row.style.overflowX = "hidden";
+      }
       syncActiveLibraryIconPosition();
     });
 
     return () => cancelAnimationFrame(frame);
   }, [
     activeSkinWeb.verticalCoverAlignment,
+    activeSkinWeb.libraryPagesVerticalList,
     isNarrow,
     verticalPersistentSidebar,
     pathname,
@@ -1137,9 +1158,16 @@ export default function LibrariesBar({
     const row = containerRef.current?.querySelector<HTMLElement>(".mhg-libraries-container");
     if (!row) return;
 
+    const snapStrip =
+      activeSkinWeb.verticalCoverAlignment && !activeSkinWeb.libraryPagesVerticalList;
+
     const scheduleClamp = () => {
       requestAnimationFrame(() => {
         syncLibrariesStripScroll(row);
+        // Re-apply after syncLibrariesStripScroll may restore overflow-x: auto.
+        if (snapStrip) {
+          row.style.overflowX = "hidden";
+        }
       });
     };
 
@@ -1161,6 +1189,8 @@ export default function LibrariesBar({
   }, [
     isNarrow,
     verticalPersistentSidebar,
+    activeSkinWeb.verticalCoverAlignment,
+    activeSkinWeb.libraryPagesVerticalList,
     libraries.length,
     pathname,
     collectionShortcuts.length,

@@ -32,7 +32,6 @@ files:
   - MyHomeGames.wgt
   - README.md
   - author-signature.xml
-  - css/splash.css
   - icon.png
   - index.html
   - js/config.js
