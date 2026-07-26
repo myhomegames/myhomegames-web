@@ -274,14 +274,28 @@ host at the start URL do not require reinstalling the `.wgt`.
 
 ## 7. After launch
 
-You should see the local splash briefly, then the PWA (and any gate in front of it,
-e.g. Cloudflare Access). The TV needs network access to the PWA host and to your
-MyHomeGames server.
+You should see the local splash briefly, then the PWA.
 
-**Remote / D-pad on Cloudflare Access:** the Access login page is hosted by
-Cloudflare, not by this widget. Focus and D-pad behaviour there are limited; that is
-outside this package. After you are past Access, the PWA applies TV-oriented focus
-styles when it detects a Smart TV user agent (`isSmartTvBrowser()`).
+**First-time Cloudflare on Smart TV:** the Tizen app does **not** open the Cloudflare
+Access login page (that UI is not D-pad friendly). Instead the PWA shows a large
+**device code** (PIN) and a QR / URL such as `myhomegames-server.vige.it/link`.
+
+1. On your phone or PC, open that link (or scan the QR).
+2. Sign in with Cloudflare Access and enter the code from the TV.
+3. The TV polls the tunnel manager, receives the tunnel payload, and adopts your
+   public API URL — same end state as a browser “Connect tunnel”, without using the
+   remote on Access.
+
+After the library is linked once, a stored public API URL is reused on later launches
+(until you disconnect). Focus styles for D-pad navigation apply when the PWA detects
+a Smart TV user agent (`isSmartTvBrowser()`).
+
+Phone shortcut from Settings (any already-connected device): **Link a TV** →
+`https://myhomegames-server.vige.it/link`.
+
+**Ops note:** Cloudflare Access needs **Bypass** policies for `/api/device/code`,
+`/api/device/poll`, and `/link` on `myhomegames-server.vige.it` (see
+`myhomegames-proxy` README). Keep `/api/device/approve` and `/api/get-token` behind Access.
 
 ---
 
@@ -296,7 +310,7 @@ styles when it detects a Smart TV user agent (`isSmartTvBrowser()`).
 | `tizen package -s MyHomeGamesTV` but `security-profiles list` only shows another profile | CLI profiles XML ≠ Cursor profiles | `tizen security-profiles add ... -A` as in §3 |
 | `--dist-path` is not a valid option | Older/newer CLI flag names | Use `-d` and `-dp` |
 | `launch failed[400]` | App not installed | Fix install first; then `was_execute` |
-| App opens then blank / login unusable with D-pad | External web gate (e.g. Access) | Expected limitation for third-party login pages; see §7 |
+| App opens then blank / login unusable with D-pad | Old Access redirect on TV | Update PWA; use device-code pairing (§7) — phone completes Access |
 
 Useful checks:
 

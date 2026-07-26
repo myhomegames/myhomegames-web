@@ -98,7 +98,9 @@
       "managerLabel": "Tunnel manager",
       "connect": "Connetti tunnel",
       "disconnect": "Disconnetti tunnel",
-      "confirmDisconnect": "Disconnettere il Cloudflare Tunnel su questo dispositivo e rimuovere le credenziali salvate?"
+      "confirmDisconnect": "Disconnettere il Cloudflare Tunnel su questo dispositivo e rimuovere le credenziali salvate?",
+      "linkTv": "Collega una TV",
+      "linkTvHelp": "Apri questa pagina sul telefono e inserisci il codice mostrato sulla Smart TV (niente Access col telecomando)."
     },
     "streaming": {
       "title": "Gioco remoto (Sunshine)",
@@ -195,6 +197,17 @@
     "connect": "Connetti tunnel",
     "connecting": "Connessione…",
     "publicApiNotReady": "L'API pubblica non è ancora raggiungibile. Attendi qualche secondo e ricarica la pagina, oppure disconnetti e riconnetti il tunnel."
+  },
+  "devicePairing": {
+    "title": "Collega questa TV",
+    "lead": "Dal telefono o dal computer apri il link sotto, accedi con Cloudflare e inserisci questo codice. Non serve il telecomando per il login.",
+    "loading": "Preparazione del codice…",
+    "openLink": "Vai su {{url}} e inserisci il codice",
+    "qrAlt": "QR code per aprire la pagina di collegamento TV sul telefono",
+    "waiting": "In attesa della conferma sul telefono…",
+    "connecting": "Connessione alla libreria…",
+    "expired": "Questo codice è scaduto. Generane uno nuovo per continuare.",
+    "retry": "Nuovo codice"
   },
   "serverUnavailable": {
     "title": "Server MyHomeGames non raggiungibile",
