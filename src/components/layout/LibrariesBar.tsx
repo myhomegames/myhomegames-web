@@ -38,6 +38,7 @@ import {
   syncLibrariesStripScroll,
   verticalCoverRailScrollLayoutForPath,
 } from "../../utils/librariesStripScroll";
+import { stepLibraryStrip } from "../../utils/libraryStripStep";
 
 type CollectionShortcut = {
   id: string;
@@ -911,12 +912,19 @@ export default function LibrariesBar({
     const wheelThresholdPx = readWheelStepThresholdPx(strip);
     const touchThresholdPx = readTouchStepThresholdPx(strip);
 
+    const horizontalWheelAccum = { accumulated: 0 };
+    const horizontalTouchAccum = { accumulated: 0 };
+
     const dispatchFixedFocalStep = (direction: 1 | -1) => {
       document.dispatchEvent(
         new CustomEvent("mhg:fixed-focal-step", {
           detail: { direction },
         }),
       );
+    };
+
+    const stepStrip = (direction: 1 | -1) => {
+      stepLibraryStrip(direction);
     };
 
     const shouldStepFixedFocal = () => {
@@ -927,6 +935,8 @@ export default function LibrariesBar({
       return !!(fixedFocal || recommendedStripsActive);
     };
 
+    const horizontalStripMode = !activeSkinWeb.libraryPagesVerticalList;
+
     const onWheel = (e: WheelEvent) => {
       if (!wheelRoot.contains(e.target as Node)) return;
       const el = e.target as Element | null;
@@ -934,15 +944,18 @@ export default function LibrariesBar({
       if (el?.closest?.("input[type=range], textarea, [contenteditable=true]")) return;
 
       const libRow = strip.querySelector<HTMLElement>(".mhg-libraries-container");
-      if (
-        libRow &&
-        Math.abs(e.deltaX) > Math.abs(e.deltaY) &&
-        librariesStripNeedsHorizontalScroll(libRow)
-      ) {
-        requestAnimationFrame(() => {
-          syncLibrariesStripScroll(libRow);
-        });
-        return;
+      if (libRow && Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        if (horizontalStripMode) {
+          e.preventDefault();
+          applyWheelDeltaStep(horizontalWheelAccum, e.deltaX, wheelThresholdPx, stepStrip);
+          return;
+        }
+        if (librariesStripNeedsHorizontalScroll(libRow)) {
+          requestAnimationFrame(() => {
+            syncLibrariesStripScroll(libRow);
+          });
+          return;
+        }
       }
 
       if (shouldStepFixedFocal()) {
@@ -983,6 +996,7 @@ export default function LibrariesBar({
       pointerId = null;
       axis = "undecided";
       touchAccum.accumulated = 0;
+      horizontalTouchAccum.accumulated = 0;
     };
 
     const onPointerDown = (e: PointerEvent) => {
@@ -992,12 +1006,13 @@ export default function LibrariesBar({
       const el = e.target as Element | null;
       if (el?.closest?.(".dropdown-menu-popup")) return;
       if (el?.closest?.("input[type=range], textarea, [contenteditable=true]")) return;
-      if (!shouldStepFixedFocal()) return;
+      if (!shouldStepFixedFocal() && !horizontalStripMode) return;
       pointerId = e.pointerId;
       lastX = e.clientX;
       lastY = e.clientY;
       axis = "undecided";
       touchAccum.accumulated = 0;
+      horizontalTouchAccum.accumulated = 0;
       try {
         wheelRoot.setPointerCapture?.(e.pointerId);
       } catch {
@@ -1012,12 +1027,19 @@ export default function LibrariesBar({
       if (axis === "undecided") {
         if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
         axis = Math.abs(dy) >= Math.abs(dx) ? "vertical" : "horizontal";
-        if (axis === "horizontal") {
+      }
+      if (axis === "horizontal") {
+        if (!horizontalStripMode) {
           resetPointer();
           return;
         }
+        lastX = e.clientX;
+        lastY = e.clientY;
+        applyWheelDeltaStep(horizontalTouchAccum, -dx, touchThresholdPx, stepStrip);
+        return;
       }
       if (axis !== "vertical") return;
+      if (!shouldStepFixedFocal()) return;
       lastX = e.clientX;
       lastY = e.clientY;
       applyWheelDeltaStep(touchAccum, -dy, touchThresholdPx, dispatchFixedFocalStep);
@@ -1028,19 +1050,32 @@ export default function LibrariesBar({
       resetPointer();
     };
 
+    const onStripStepEvent = (e: Event) => {
+      const direction = (e as CustomEvent<{ direction?: 1 | -1 }>).detail?.direction;
+      if (direction === 1 || direction === -1) stepStrip(direction);
+    };
+
     wheelRoot.addEventListener("wheel", onWheel, { passive: false, capture: true });
     wheelRoot.addEventListener("pointerdown", onPointerDown, { capture: true });
     wheelRoot.addEventListener("pointermove", onPointerMove, { capture: true });
     wheelRoot.addEventListener("pointerup", onPointerUp, { capture: true });
     wheelRoot.addEventListener("pointercancel", onPointerUp, { capture: true });
+    document.addEventListener("mhg:library-strip-step", onStripStepEvent);
     return () => {
       wheelRoot.removeEventListener("wheel", onWheel, { capture: true });
       wheelRoot.removeEventListener("pointerdown", onPointerDown, { capture: true });
       wheelRoot.removeEventListener("pointermove", onPointerMove, { capture: true });
       wheelRoot.removeEventListener("pointerup", onPointerUp, { capture: true });
       wheelRoot.removeEventListener("pointercancel", onPointerUp, { capture: true });
+      document.removeEventListener("mhg:library-strip-step", onStripStepEvent);
     };
-  }, [activeSkinWeb.verticalCoverAlignment, activeLibrary?.key, collapsibleActive, sidebarOpen]);
+  }, [
+    activeSkinWeb.verticalCoverAlignment,
+    activeSkinWeb.libraryPagesVerticalList,
+    activeLibrary?.key,
+    collapsibleActive,
+    sidebarOpen,
+  ]);
 
   /** Top-strip layout only; full sidebars ship column layout in skin CSS. */
   const verticalPageTabsLayout =

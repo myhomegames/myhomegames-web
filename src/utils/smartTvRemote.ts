@@ -1,4 +1,5 @@
 import { isSmartTvBrowser } from "./smartTv";
+import { isHorizontalLibraryStripMode, stepLibraryStrip } from "./libraryStripStep";
 
 const KEY_LEFT = 37;
 const KEY_UP = 38;
@@ -375,8 +376,17 @@ export function installSmartTvRemoteKeys(
       e.stopPropagation();
 
       if (zone === "content") {
-        if (direction === "left") {
-          enterChrome();
+        if (direction === "left" || direction === "right") {
+          if (isHorizontalLibraryStripMode()) {
+            const stepped = stepLibraryStrip(direction === "right" ? 1 : -1);
+            if (!stepped && direction === "left") {
+              enterChrome();
+            }
+            return;
+          }
+          if (direction === "left") {
+            enterChrome();
+          }
           return;
         }
         if (direction === "up" || direction === "down") {
