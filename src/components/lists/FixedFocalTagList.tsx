@@ -245,6 +245,32 @@ export default function FixedFocalTagList({
   );
   const stepIndexRef = useRef(stepIndex);
   stepIndexRef.current = stepIndex;
+
+  const selectedIndexRef = useRef(selectedIndex);
+  selectedIndexRef.current = selectedIndex;
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+  const onItemActivateRef = useRef(onItemActivate);
+  onItemActivateRef.current = onItemActivate;
+
+  useEffect(() => {
+    if (!interactive) return;
+    const onActivate = () => {
+      const item = itemsRef.current[selectedIndexRef.current];
+      if (!item) return;
+      if (onItemActivateRef.current) {
+        onItemActivateRef.current(item, selectedIndexRef.current);
+        return;
+      }
+      // Fall back: click the focal cover (Link / button inside TagListItem).
+      const el = itemRefs?.current?.get(String(item.id ?? selectedIndexRef.current));
+      const clickable = el?.querySelector?.("a,button,[role='button']") as HTMLElement | null;
+      (clickable ?? el)?.click?.();
+    };
+    document.addEventListener("mhg:fixed-focal-activate", onActivate);
+    return () => document.removeEventListener("mhg:fixed-focal-activate", onActivate);
+  }, [interactive, itemRefs]);
+
   useEffect(() => {
     if (!interactive) return;
     let cancelled = false;

@@ -1,4 +1,4 @@
-import { API_BASE, getApiToken } from "../config";
+import { getApiBase, getApiToken } from "../config";
 import { buildApiHeaders } from "../utils/api";
 import { normalizeSkinWebManifest, type SkinWebManifest } from "./skinWebManifest";
 
@@ -15,11 +15,13 @@ type ServerSettingsPayload = {
 };
 
 export async function fetchSkinList(): Promise<ServerSkinInfo[]> {
-  const url = new URL("/skins", API_BASE).toString();
+  const url = new URL("/skins", getApiBase()).toString();
   const res = await fetch(url, {
     headers: buildApiHeaders({ Accept: "application/json" }),
   });
-  if (!res.ok) return [];
+  if (!res.ok) {
+    throw new Error(`skins_list_failed_${res.status}`);
+  }
   const data = (await res.json()) as { skins?: ServerSkinInfo[] };
   if (!Array.isArray(data.skins)) return [];
   return data.skins
@@ -33,13 +35,35 @@ export async function fetchSkinList(): Promise<ServerSkinInfo[]> {
     }));
 }
 
+async function fetchWithRetries(
+  run: () => Promise<string | null>,
+  attempts = 4,
+  delayMs = 800,
+): Promise<string | null> {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const value = await run();
+      if (value?.trim()) return value;
+    } catch {
+      // retry
+    }
+    if (i < attempts - 1) {
+      await new Promise((r) => window.setTimeout(r, delayMs));
+    }
+  }
+  return null;
+}
+
 export async function fetchServerSkinCss(skinId: string): Promise<string | null> {
-  const url = new URL(`/skins/${encodeURIComponent(skinId)}/bundle.css`, API_BASE).toString();
-  const res = await fetch(url, {
-    headers: buildApiHeaders({ Accept: "text/css" }),
+  return fetchWithRetries(async () => {
+    const url = new URL(`/skins/${encodeURIComponent(skinId)}/bundle.css`, getApiBase()).toString();
+    const res = await fetch(url, {
+      headers: buildApiHeaders({ Accept: "text/css" }),
+    });
+    if (!res.ok) return null;
+    const text = await res.text();
+    return text.trim() ? text : null;
   });
-  if (!res.ok) return null;
-  return res.text();
 }
 
 export async function uploadSkinArchive(
@@ -49,7 +73,7 @@ export async function uploadSkinArchive(
   const fd = new FormData();
   fd.append("archive", file);
   if (displayName?.trim()) fd.append("displayName", displayName.trim());
-  const url = new URL("/skins", API_BASE).toString();
+  const url = new URL("/skins", getApiBase()).toString();
   const res = await fetch(url, {
     method: "POST",
     headers: { "X-Auth-Token": getApiToken() || "" },
@@ -68,7 +92,7 @@ export async function installSkinFromUrl(
   downloadUrl: string,
   displayName?: string
 ): Promise<{ id: string; name: string }> {
-  const url = new URL("/skins/install-from-url", API_BASE).toString();
+  const url = new URL("/skins/install-from-url", getApiBase()).toString();
   const res = await fetch(url, {
     method: "POST",
     headers: buildApiHeaders({ "Content-Type": "application/json" }),
@@ -86,7 +110,7 @@ export async function installSkinFromUrl(
 }
 
 export async function deleteSkinOnServer(skinId: string): Promise<void> {
-  const url = new URL(`/skins/${encodeURIComponent(skinId)}`, API_BASE).toString();
+  const url = new URL(`/skins/${encodeURIComponent(skinId)}`, getApiBase()).toString();
   const res = await fetch(url, {
     method: "DELETE",
     headers: { "X-Auth-Token": getApiToken() || "" },
@@ -98,7 +122,7 @@ export async function deleteSkinOnServer(skinId: string): Promise<void> {
 }
 
 export async function fetchServerActiveSkinId(): Promise<string> {
-  const url = new URL("/settings", API_BASE).toString();
+  const url = new URL("/settings", getApiBase()).toString();
   const res = await fetch(url, {
     headers: buildApiHeaders({ Accept: "application/json" }),
   });
@@ -108,7 +132,7 @@ export async function fetchServerActiveSkinId(): Promise<string> {
 }
 
 export async function saveServerActiveSkinId(activeSkinId: string): Promise<void> {
-  const url = new URL("/settings", API_BASE).toString();
+  const url = new URL("/settings", getApiBase()).toString();
   await fetch(url, {
     method: "PUT",
     headers: buildApiHeaders({ "Content-Type": "application/json" }),

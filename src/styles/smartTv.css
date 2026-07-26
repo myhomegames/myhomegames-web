@@ -1,12 +1,17 @@
 /* D-pad / remote: make focused controls obvious on Android TV / smart TV. */
+html[data-mhg-tv="1"] :focus,
 html[data-mhg-tv="1"] :focus-visible {
   outline: 3px solid #e5a00d;
   outline-offset: 3px;
 }
 
+html[data-mhg-tv="1"] a:focus,
 html[data-mhg-tv="1"] a:focus-visible,
+html[data-mhg-tv="1"] button:focus,
 html[data-mhg-tv="1"] button:focus-visible,
+html[data-mhg-tv="1"] [role="button"]:focus,
 html[data-mhg-tv="1"] [role="button"]:focus-visible,
+html[data-mhg-tv="1"] [tabindex]:focus,
 html[data-mhg-tv="1"] [tabindex]:focus-visible {
   outline: 3px solid #e5a00d;
   outline-offset: 3px;

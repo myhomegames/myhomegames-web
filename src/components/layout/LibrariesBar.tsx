@@ -26,6 +26,7 @@ import { useTopDockSlot } from "../../contexts/TopDockSlotContext";
 import { playFixedFocalStepSound } from "../../utils/fixedFocalStepSound";
 import { applyWheelDeltaStep, readWheelStepThresholdPx } from "../../utils/stepScrollSnap";
 import { readTouchStepThresholdPx } from "../../utils/fixedFocalStepInput";
+import { isSmartTvBrowser } from "../../utils/smartTv";
 import {
   CONTEXT_RAIL_LIBRARY_VIEW_TRANSITION,
   contextRailViewTransitionsEnabled,
@@ -770,7 +771,7 @@ export default function LibrariesBar({
     }
   };
 
-  const hoverSelectEnabled = activeSkinWeb.libraryHoverSelect;
+  const hoverSelectEnabled = activeSkinWeb.libraryHoverSelect && !isSmartTvBrowser();
   const stepSoundEnabled = activeSkinWeb.fixedFocalStepSound;
 
   const playBarStepSound = useCallback(() => {
