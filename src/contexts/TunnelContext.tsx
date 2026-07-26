@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { clearTunnelApiBase, isCloudflareTunnelBuildEnabled, readStoredPublicApiBase, syncTunnelApiBaseFromStatus } from "../config";
+import { isSmartTvBrowser } from "../utils/smartTv";
 import {
   clearStashedTunnelPayload,
   clearTunnelReturnHash,
@@ -29,9 +30,13 @@ type TunnelContextValue = {
   statusLoaded: boolean;
   featureEnabled: boolean;
   tunnelReady: boolean;
+  /** Smart TV: waiting for phone PIN approval instead of Cloudflare Access redirect. */
+  needsDevicePairing: boolean;
   publicUrl: string;
   refreshStatus: () => Promise<void>;
   connectFromManager: () => Promise<void>;
+  /** Apply tunnel credentials from device-code poll (TV pairing). */
+  completeDevicePairing: (token: string, url: string) => Promise<void>;
   disconnect: () => Promise<void>;
   isConnecting: boolean;
   warmupPending: boolean;
@@ -84,6 +89,7 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
   const [warmupPending, setWarmupPending] = useState(false);
+  const [needsDevicePairing, setNeedsDevicePairing] = useState(false);
   const tunnelPayloadRef = useRef(readTunnelPayloadFromReturn());
   const returnedFromAuthRef = useRef(readTunnelAuthFromUrl() === "ok");
   const autoConnectInFlightRef = useRef(false);
@@ -122,6 +128,9 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
     (next: TunnelStatus, options?: { warmupAfterConnect?: boolean }) => {
       setStatus(next);
       syncTunnelApiBaseFromStatus(next);
+      if (next.connected) {
+        setNeedsDevicePairing(false);
+      }
       if (options?.warmupAfterConnect && next.connected) {
         schedulePublicApiWarmup();
       }
@@ -204,6 +213,28 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
     redirectToManagerForAuth();
   }, [redirectToManagerForAuth]);
 
+  const completeDevicePairing = useCallback(
+    async (token: string, url: string) => {
+      setIsConnecting(true);
+      setConnectError(null);
+      try {
+        const next = await connectWithPayload(token, url);
+        clearTunnelReturnHash();
+        clearStashedTunnelPayload();
+        const needsWarmup = !tunnelWasConnectedOnLoadRef.current;
+        applyTunnelStatus(next, { warmupAfterConnect: needsWarmup });
+        setNeedsDevicePairing(false);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        setConnectError(message);
+        throw err;
+      } finally {
+        setIsConnecting(false);
+      }
+    },
+    [connectWithPayload, applyTunnelStatus],
+  );
+
   const runAutoConnect = useCallback(async () => {
     if (autoConnectInFlightRef.current) return;
     if (!status?.featureEnabled || status.connected) return;
@@ -226,6 +257,12 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
         returnedFromAuthRef.current = false;
         const creds = await fetchTunnelTokenFromManager();
         next = await connectWithPayload(creds.token, creds.url);
+      } else if (isSmartTvBrowser()) {
+        // Access / IdP pages are not D-pad friendly — pair via phone instead.
+        setNeedsDevicePairing(true);
+        setIsConnecting(false);
+        autoConnectInFlightRef.current = false;
+        return;
       } else {
         redirectToManagerForAuth();
         return;
@@ -235,6 +272,7 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
       clearStashedTunnelPayload();
       const needsWarmup = !tunnelWasConnectedOnLoadRef.current;
       applyTunnelStatus(next, { warmupAfterConnect: needsWarmup });
+      setNeedsDevicePairing(false);
       try {
         sessionStorage.removeItem(TUNNEL_AUTH_SESSION_KEY);
       } catch {
@@ -243,6 +281,9 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setConnectError(message);
+      if (isSmartTvBrowser() && !status.connected) {
+        setNeedsDevicePairing(true);
+      }
     } finally {
       setIsConnecting(false);
       autoConnectInFlightRef.current = false;
@@ -260,6 +301,7 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
   const disconnect = useCallback(async () => {
     clearWarmupTimer();
     setWarmupPending(false);
+    setNeedsDevicePairing(false);
     returnedFromAuthRef.current = false;
     tunnelPayloadRef.current = null;
     clearTunnelReturnHash();
@@ -276,12 +318,18 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
     }
     clearTunnelApiBase();
     tunnelWasConnectedOnLoadRef.current = false;
+    if (isSmartTvBrowser()) {
+      setNeedsDevicePairing(true);
+      applyTunnelStatus(REMOTE_TUNNEL_IDLE);
+      return;
+    }
     window.location.assign(getCloudflareAccessLogoutUrl());
-  }, [clearWarmupTimer]);
+  }, [clearWarmupTimer, applyTunnelStatus]);
 
   const featureEnabled = Boolean(status?.featureEnabled);
   const tunnelReady =
-    !featureEnabled || (Boolean(status?.connected) && !isConnecting && !warmupPending);
+    !featureEnabled ||
+    (Boolean(status?.connected) && !isConnecting && !warmupPending && !needsDevicePairing);
 
   const value = useMemo(
     () => ({
@@ -289,9 +337,11 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
       statusLoaded,
       featureEnabled,
       tunnelReady,
+      needsDevicePairing,
       publicUrl: status?.publicUrl || "",
       refreshStatus,
       connectFromManager,
+      completeDevicePairing,
       disconnect,
       isConnecting,
       warmupPending,
@@ -302,8 +352,10 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
       statusLoaded,
       featureEnabled,
       tunnelReady,
+      needsDevicePairing,
       refreshStatus,
       connectFromManager,
+      completeDevicePairing,
       disconnect,
       isConnecting,
       warmupPending,

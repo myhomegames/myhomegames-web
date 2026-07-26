@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets"
+        xmlns:tizen="http://tizen.org/ns/widgets"
+        id="https://myhomegames.vige.it/tizen"
+        version="1.2.1"
+        viewmodes="maximized">
+  <!-- Package id must be exactly 10 [A-Za-z0-9] characters before the dot. -->
+  <tizen:application id="VigeMHG001.MyHomeGames"
+                     package="VigeMHG001"
+                     required_version="2.3" />
+  <content src="index.html" />
+  <feature name="http://tizen.org/feature/screen.size.normal.1080.1920" />
+  <icon src="icon.png" />
+  <name>MyHomeGames</name>
+  <description>Self-hosted personal game library (PWA wrapper for Samsung Tizen TV)</description>
+  <author href="https://myhomegames.vige.it" email="noreply@vige.it">MyHomeGames</author>
+  <tizen:profile name="tv-samsung" />
+  <tizen:setting screen-orientation="landscape"
+                 context-menu="disable"
+                 background-support="disable"
+                 encryption="disable"
+                 install-location="auto"
+                 hwkey-event="enable" />
+  <!-- Network: PWA host + user self-hosted server (LAN / tunnel). -->
+  <access origin="https://myhomegames.vige.it" subdomains="true" />
+  <access origin="http://127.0.0.1" subdomains="true" />
+  <access origin="http://localhost" subdomains="true" />
+  <access origin="*" subdomains="true" />
+  <tizen:allow-navigation href="https://myhomegames.vige.it" />
+  <tizen:allow-navigation href="*" />
+  <tizen:privilege name="http://tizen.org/privilege/internet" />
+  <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice" />
+  <tizen:privilege name="http://developer.samsung.com/privilege/network.public" />
+  <tizen:privilege name="http://developer.samsung.com/privilege/productinfo" />
+  <tizen:metadata key="http://samsung.com/tv/metadata/use.network" value="true" />
+</widget>

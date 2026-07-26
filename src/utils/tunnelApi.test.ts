@@ -3,8 +3,11 @@ import {
   adoptRemoteTunnelApi,
   connectTunnelWithFallback,
   getAppReturnUrl,
+  getDeviceLinkUrl,
   getTunnelManagerAuthUrl,
   normalizePublicTunnelUrl,
+  pollDevicePairing,
+  requestDevicePairingCode,
 } from "./tunnelApi";
 
 vi.mock("../config", () => ({
@@ -54,6 +57,66 @@ describe("normalizePublicTunnelUrl", () => {
     expect(normalizePublicTunnelUrl("user-myhomegames-server.vige.it/")).toBe(
       "https://user-myhomegames-server.vige.it",
     );
+  });
+});
+
+describe("device pairing", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("getDeviceLinkUrl points at /link and optional code", () => {
+    expect(getDeviceLinkUrl()).toBe("https://myhomegames-server.vige.it/link");
+    expect(getDeviceLinkUrl("ABCD-EFGH")).toBe(
+      "https://myhomegames-server.vige.it/link?code=ABCDEFGH",
+    );
+  });
+
+  it("requestDevicePairingCode parses manager response", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          device_code: "dev123",
+          user_code: "ABCD-EFGH",
+          verification_uri: "https://myhomegames-server.vige.it/link",
+          verification_uri_complete: "https://myhomegames-server.vige.it/link?code=ABCDEFGH",
+          expires_in: 600,
+          interval: 5,
+        }),
+      }),
+    );
+    const session = await requestDevicePairingCode();
+    expect(session.user_code).toBe("ABCD-EFGH");
+    expect(session.device_code).toBe("dev123");
+  });
+
+  it("pollDevicePairing maps pending / ok", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ status: "authorization_pending" }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: "ok",
+          token: "tok",
+          url: "user-myhomegames-server.vige.it",
+        }),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(pollDevicePairing("dev123")).resolves.toEqual({
+      status: "authorization_pending",
+    });
+    await expect(pollDevicePairing("dev123")).resolves.toEqual({
+      status: "ok",
+      token: "tok",
+      url: "user-myhomegames-server.vige.it",
+    });
   });
 });
 

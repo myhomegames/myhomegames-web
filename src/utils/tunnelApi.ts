@@ -253,6 +253,96 @@ export async function fetchTunnelTokenFromManager(): Promise<TunnelTokenResponse
   return { token, url };
 }
 
+export type DevicePairingSession = {
+  device_code: string;
+  user_code: string;
+  verification_uri: string;
+  verification_uri_complete: string;
+  expires_in: number;
+  interval: number;
+};
+
+export type DevicePollResult =
+  | { status: "authorization_pending" }
+  | { status: "expired" }
+  | { status: "ok"; token: string; url: string };
+
+/** Phone UI on the tunnel manager to enter the TV PIN (Access runs there). */
+export function getDeviceLinkUrl(userCode?: string): string {
+  const base = `${getTunnelManagerUrl()}/link`;
+  const code = userCode?.replace(/[^a-zA-Z0-9]/g, "").trim();
+  if (!code) return base;
+  return `${base}?code=${encodeURIComponent(code)}`;
+}
+
+/** Smart TV: create a short-lived device-code session (Access Bypass on the Worker). */
+export async function requestDevicePairingCode(): Promise<DevicePairingSession> {
+  const manager = getTunnelManagerUrl();
+  const res = await fetch(`${manager}/api/device/code`, { method: "POST" });
+  const body = (await res.json().catch(() => ({}))) as Partial<DevicePairingSession> & {
+    error?: string;
+    detail?: string;
+  };
+  if (!res.ok) {
+    const message =
+      typeof body.error === "string"
+        ? body.detail
+          ? `${body.error}: ${body.detail}`
+          : body.error
+        : `device code failed (${res.status})`;
+    throw new Error(message);
+  }
+  const device_code = body.device_code?.trim();
+  const user_code = body.user_code?.trim();
+  const verification_uri = body.verification_uri?.trim();
+  const verification_uri_complete = body.verification_uri_complete?.trim();
+  if (!device_code || !user_code || !verification_uri || !verification_uri_complete) {
+    throw new Error("Invalid device pairing response");
+  }
+  return {
+    device_code,
+    user_code,
+    verification_uri,
+    verification_uri_complete,
+    expires_in: Number(body.expires_in) > 0 ? Number(body.expires_in) : 600,
+    interval: Number(body.interval) > 0 ? Number(body.interval) : 5,
+  };
+}
+
+/** Smart TV: poll until the phone approves the PIN (or the session expires). */
+export async function pollDevicePairing(deviceCode: string): Promise<DevicePollResult> {
+  const manager = getTunnelManagerUrl();
+  const url = new URL(`${manager}/api/device/poll`);
+  url.searchParams.set("device_code", deviceCode);
+  const res = await fetch(url.toString());
+  const body = (await res.json().catch(() => ({}))) as {
+    status?: string;
+    token?: string;
+    url?: string;
+    error?: string;
+  };
+  if (!res.ok) {
+    const message =
+      typeof body.error === "string" ? body.error : `device poll failed (${res.status})`;
+    throw new Error(message);
+  }
+  if (body.status === "authorization_pending") {
+    return { status: "authorization_pending" };
+  }
+  if (body.status === "expired") {
+    return { status: "expired" };
+  }
+  if (body.status === "ok") {
+    const token = body.token?.trim();
+    const publicUrl = body.url?.trim();
+    if (!token || !publicUrl) {
+      throw new Error("Invalid device poll payload");
+    }
+    return { status: "ok", token, url: publicUrl };
+  }
+  return { status: "expired" };
+}
+
 export async function connectTunnel(token: string, url: string): Promise<TunnelStatus> {
   const res = await fetch(`${LOCAL_API_BASE}/tunnel/connect`, {
     method: "POST",

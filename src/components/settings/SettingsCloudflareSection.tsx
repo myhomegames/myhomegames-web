@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useTunnel } from "../../contexts/TunnelContext";
-import { getTunnelManagerUrl } from "../../utils/tunnelApi";
+import { getDeviceLinkUrl, getTunnelManagerUrl } from "../../utils/tunnelApi";
 
 export default function SettingsCloudflareSection() {
   const { t } = useTranslation();
@@ -24,6 +24,7 @@ export default function SettingsCloudflareSection() {
   const connected = Boolean(status?.connected);
   const hasStored = Boolean(status?.hasStoredToken);
   const managerUrl = getTunnelManagerUrl();
+  const linkTvUrl = getDeviceLinkUrl();
 
   const statusKey = isConnecting
     ? "connecting"
@@ -98,6 +99,23 @@ export default function SettingsCloudflareSection() {
               className="break-all hover:underline"
             >
               {managerUrl}
+            </a>
+          </p>
+        </div>
+
+        <div className="settings-field">
+          <div className="settings-label">{t("settings.cloudflare.linkTv")}</div>
+          <p className="settings-help-text settings-help-text--twitch-intro">
+            {t("settings.cloudflare.linkTvHelp")}
+          </p>
+          <p className="settings-help-text">
+            <a
+              href={linkTvUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="break-all hover:underline"
+            >
+              {linkTvUrl}
             </a>
           </p>
         </div>
