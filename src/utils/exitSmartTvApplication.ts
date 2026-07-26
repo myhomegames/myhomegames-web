@@ -5,12 +5,17 @@ export function exitSmartTvApplication(): void {
       window as unknown as {
         tizen?: {
           application?: {
-            getCurrentApplication?: () => { exit: () => void };
+            getCurrentApplication?: () => { exit?: () => void } | undefined;
           };
         };
       }
     ).tizen;
-    tizen?.application?.getCurrentApplication()?.exit();
+    const getApp = tizen?.application?.getCurrentApplication;
+    if (typeof getApp !== "function") return;
+    const app = getApp();
+    if (app && typeof app.exit === "function") {
+      app.exit();
+    }
   } catch {
     /* Emulator / browser without Tizen APIs */
   }
