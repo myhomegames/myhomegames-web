@@ -117,6 +117,7 @@ export function attachFixedFocalStepInput(options: AttachFixedFocalStepInputOpti
       }
     }
     if (axis === "horizontal") {
+      e.preventDefault();
       e.stopPropagation();
       lastX = e.clientX;
       lastY = e.clientY;
@@ -125,6 +126,7 @@ export function attachFixedFocalStepInput(options: AttachFixedFocalStepInputOpti
       return;
     }
     if (axis !== "vertical") return;
+    e.preventDefault();
     e.stopPropagation();
     lastX = e.clientX;
     lastY = e.clientY;
@@ -155,7 +157,8 @@ export function attachFixedFocalStepInput(options: AttachFixedFocalStepInputOpti
   for (const host of uniqueHosts) {
     host.addEventListener("wheel", onWheel, { passive: false, capture: true });
     host.addEventListener("pointerdown", onPointerDown, { capture: true });
-    host.addEventListener("pointermove", onPointerMove, { capture: true });
+    // passive: false so preventDefault can block native pan on phone/TV.
+    host.addEventListener("pointermove", onPointerMove, { capture: true, passive: false });
     host.addEventListener("pointerup", onPointerUp, { capture: true });
     host.addEventListener("pointercancel", onPointerUp, { capture: true });
   }

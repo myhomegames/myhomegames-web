@@ -40,7 +40,6 @@ const required = [
   "config.xml",
   "index.html",
   "icon.png",
-  "css/splash.css",
   "js/config.js",
   "js/main.js",
 ];

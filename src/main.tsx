@@ -23,7 +23,6 @@ import { setupPwaInstallFromQuery } from "./utils/pwaInstall";
 import { applySmartTvDocumentFlag } from "./utils/smartTv";
 import { installSmartTvRemoteKeys } from "./utils/smartTvRemote";
 import { installPendingStreamStopFlush } from "./utils/pendingStreamStop";
-import "./styles/smartTv.css";
 
 registerSW({ immediate: true });
 setupPwaInstallFromQuery();
