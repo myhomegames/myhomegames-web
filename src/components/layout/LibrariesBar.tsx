@@ -1409,6 +1409,7 @@ export default function LibrariesBar({
                     <button
                       type="button"
                       data-mhg-library-key="library"
+                      data-mhg-strip-has-list="true"
                       className={`mhg-library-button flex min-w-0 shrink-0 items-center gap-2 text-left${
                         showLibraryActiveHighlight &&
                         activeLibrary?.key === "library" &&
@@ -1430,6 +1431,7 @@ export default function LibrariesBar({
                     <button
                       type="button"
                       data-mhg-library-key="library-installed"
+                      data-mhg-strip-has-list="true"
                       className={`mhg-library-button flex min-w-0 shrink-0 items-center gap-2 text-left${
                         showLibraryActiveHighlight &&
                         activeLibrary?.key === "library" &&
@@ -1460,6 +1462,7 @@ export default function LibrariesBar({
                       key={s.key}
                       type="button"
                       data-mhg-library-key={s.key}
+                      data-mhg-strip-has-list="true"
                       className={`mhg-library-button flex min-w-0 items-center gap-2 text-left ${
                         showLibraryActiveHighlight && activeLibrary?.key === s.key
                           ? "mhg-library-active"
@@ -1575,6 +1578,7 @@ export default function LibrariesBar({
                             <button
                               type="button"
                               data-mhg-library-key="library"
+                              data-mhg-strip-has-list="true"
                               className={`mhg-library-button flex min-w-0 items-center gap-2 text-left${
                                 showLibraryActiveHighlight &&
                                 activeLibrary?.key === "library" &&
@@ -1606,6 +1610,7 @@ export default function LibrariesBar({
                             <button
                               type="button"
                               data-mhg-library-key="library-installed"
+                              data-mhg-strip-has-list="true"
                               className={`mhg-library-button flex min-w-0 items-center gap-2 text-left${
                                 showLibraryActiveHighlight &&
                                 activeLibrary?.key === "library" &&
@@ -1643,6 +1648,7 @@ export default function LibrariesBar({
                               <button
                                 key={collection.id}
                                 type="button"
+                                data-mhg-strip-has-list="true"
                                 className={`mhg-collection-shortcut-button min-w-0 text-left${
                                   isCollectionSelected
                                     ? " mhg-collection-shortcut-button--selected"

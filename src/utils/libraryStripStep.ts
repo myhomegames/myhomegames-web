@@ -3,6 +3,11 @@
  * Activates the next/previous library (or strip control) so the vertical list remounts.
  */
 
+/** Strip controls that drive a content list (library page, collection shortcut, …). */
+function hasStripList(el: HTMLElement): boolean {
+  return el.hasAttribute("data-mhg-strip-has-list");
+}
+
 export function isHorizontalLibraryStripMode(): boolean {
   if (typeof document === "undefined") return false;
   if (document.documentElement.getAttribute("data-mhg-vertical-cover-alignment") !== "true") {
@@ -34,15 +39,16 @@ function collectStripStepTargets(): HTMLElement[] {
 
   return Array.from(
     row.querySelectorAll<HTMLElement>(".mhg-library-button, .mhg-collection-shortcut-button"),
-  ).filter(isVisibleStripControl);
+  )
+    .filter(isVisibleStripControl)
+    .filter(hasStripList);
 }
 
 function activeStripIndex(targets: HTMLElement[]): number {
   const idx = targets.findIndex(
     (el) =>
       el.classList.contains("mhg-library-active") ||
-      el.classList.contains("mhg-collection-shortcut-button--selected") ||
-      el.classList.contains("mhg-sidebar-search-trigger--open"),
+      el.classList.contains("mhg-collection-shortcut-button--selected"),
   );
   return idx >= 0 ? idx : 0;
 }

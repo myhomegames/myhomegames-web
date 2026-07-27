@@ -15,6 +15,7 @@ function mountStrip(opts?: { verticalList?: boolean; activeIndex?: number }) {
     const btn = document.createElement("button");
     btn.className = "mhg-library-button";
     btn.dataset.key = `lib-${i}`;
+    btn.setAttribute("data-mhg-strip-has-list", "true");
     if (i === (opts?.activeIndex ?? 0)) btn.classList.add("mhg-library-active");
     btn.addEventListener("click", () => clicks.push(btn.dataset.key || ""));
     // jsdom getBoundingClientRect is 0 — stub visible size
@@ -75,5 +76,55 @@ describe("libraryStripStep", () => {
 
     mountStrip({ activeIndex: 2 });
     // second strip from afterEach cleared — remount
+  });
+
+  it("steps only strip controls that drive a list", () => {
+    const bar = document.createElement("div");
+    bar.className = "mhg-libraries-bar";
+    const row = document.createElement("div");
+    row.className = "mhg-libraries-container";
+    const clicks: string[] = [];
+
+    const lib = document.createElement("button");
+    lib.className = "mhg-library-button mhg-library-active";
+    lib.dataset.key = "collections";
+    lib.addEventListener("click", () => clicks.push("collections"));
+    vi.spyOn(lib, "getBoundingClientRect").mockReturnValue({
+      width: 40,
+      height: 40,
+      top: 0,
+      left: 0,
+      bottom: 40,
+      right: 40,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+    row.appendChild(lib);
+
+    for (const key of ["mhg-header-add-game", "mhg-header-settings"]) {
+      const hdr = document.createElement("button");
+      hdr.className = "mhg-library-button";
+      hdr.setAttribute("data-mhg-library-key", key);
+      hdr.addEventListener("click", () => clicks.push(key));
+      vi.spyOn(hdr, "getBoundingClientRect").mockReturnValue({
+        width: 40,
+        height: 40,
+        top: 0,
+        left: 40,
+        bottom: 40,
+        right: 80,
+        x: 40,
+        y: 0,
+        toJSON: () => ({}),
+      });
+      row.appendChild(hdr);
+    }
+
+    bar.appendChild(row);
+    document.body.appendChild(bar);
+
+    expect(stepLibraryStrip(1)).toBe(false);
+    expect(clicks).toEqual([]);
   });
 });
