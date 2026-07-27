@@ -8,7 +8,6 @@ import { buildCatalogApiUrl } from "../../utils/catalogApi";
 import { buildApiHeaders } from "../../utils/api";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useSkin } from "../../contexts/SkinContext";
-import { bindSheetBackdropClose } from "../../utils/sheetPopupBackdrop";
 import { useCreateGame } from "./actions";
 import type { GameItem, CatalogGame } from "../../types";
 import Cover from "../games/Cover";
@@ -28,7 +27,7 @@ export default function AddGame({
   const navigate = useNavigate();
   const { catalogSearchEnabled } = useSettings();
   const { activeSkinWeb } = useSkin();
-  const sheetBackdropCloseEnabled = activeSkinWeb.disableTitleTooltips;
+  const ps3HeaderSheet = activeSkinWeb.libraryBarHeaderActions;
   const [searchQuery, setSearchQuery] = useState("");
   const [createTitle, setCreateTitle] = useState("");
   const [results, setResults] = useState<CatalogGame[]>([]);
@@ -55,17 +54,36 @@ export default function AddGame({
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen || !sheetBackdropCloseEnabled) return;
+    if (!isOpen || !ps3HeaderSheet) return;
 
-    function handleClickOutside(event: MouseEvent) {
-      const target = event.target as HTMLElement;
-      if (containerRef.current?.contains(target)) return;
-      onClose();
+    function isInteractiveTarget(target: HTMLElement): boolean {
+      return Boolean(
+        target.closest(
+          'button, input, textarea, select, a[href], [role="button"], label[for]',
+        ),
+      );
     }
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen, sheetBackdropCloseEnabled, onClose]);
+    function handlePointerDown(event: MouseEvent) {
+      const target = event.target as HTMLElement;
+      if (target.closest('[data-mhg-library-key="mhg-header-add-game"]')) return;
+
+      const panel = containerRef.current;
+      if (!panel) return;
+
+      if (!panel.contains(target)) {
+        onClose();
+        return;
+      }
+
+      if (!isInteractiveTarget(target)) {
+        onClose();
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [isOpen, ps3HeaderSheet, onClose]);
 
   // Check if an IGDB game matches a local game (by ID)
   function findMatchingLocalGame(catalogGame: CatalogGame): GameItem | undefined {
@@ -381,14 +399,12 @@ export default function AddGame({
   return createPortal(
     <div
       className="add-game-overlay"
-      {...bindSheetBackdropClose(sheetBackdropCloseEnabled, onClose)}
-      onClick={sheetBackdropCloseEnabled ? undefined : onClose}
+      onClick={ps3HeaderSheet ? undefined : onClose}
     >
       <div
         ref={containerRef}
         className="add-game-container"
-        {...bindSheetBackdropClose(sheetBackdropCloseEnabled, onClose)}
-        onClick={sheetBackdropCloseEnabled ? undefined : (e) => e.stopPropagation()}
+        onClick={ps3HeaderSheet ? undefined : (e) => e.stopPropagation()}
       >
         <div className="add-game-header">
           <h2 className="add-game-title">{t("addGame.title")}</h2>
