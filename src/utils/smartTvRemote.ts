@@ -421,7 +421,7 @@ export function installSmartTvRemoteKeys(
             window.setTimeout(() => {
               const nextActive =
                 document.querySelector<HTMLElement>(
-                  ".mhg-libraries-container .mhg-library-active, .mhg-libraries-container .mhg-collection-shortcut-button--selected",
+                  ".mhg-libraries-container [data-mhg-strip-focus], .mhg-libraries-container .mhg-library-active, .mhg-libraries-container .mhg-collection-shortcut-button--selected",
                 ) ?? defaultChromeTarget();
               if (nextActive) focusElement(nextActive);
             }, 0);
