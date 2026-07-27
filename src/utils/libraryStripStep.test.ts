@@ -84,6 +84,8 @@ describe("libraryStripStep", () => {
     bar.className = "mhg-libraries-bar";
     const row = document.createElement("div");
     row.className = "mhg-libraries-container";
+    // Force overflow path so centerStripTileInStrip can run (clientWidth stub).
+    Object.defineProperty(row, "clientWidth", { configurable: true, get: () => 40 });
     const clicks: string[] = [];
 
     const lib = document.createElement("button");
@@ -108,7 +110,6 @@ describe("libraryStripStep", () => {
     addGame.className = "mhg-library-button";
     addGame.setAttribute("data-mhg-library-key", "mhg-header-add-game");
     addGame.addEventListener("click", () => clicks.push("mhg-header-add-game"));
-    addGame.scrollIntoView = () => {};
     vi.spyOn(addGame, "getBoundingClientRect").mockReturnValue({
       width: 40,
       height: 40,
@@ -126,7 +127,6 @@ describe("libraryStripStep", () => {
     settings.className = "mhg-library-button";
     settings.setAttribute("data-mhg-library-key", "mhg-header-settings");
     settings.addEventListener("click", () => clicks.push("mhg-header-settings"));
-    settings.scrollIntoView = () => {};
     vi.spyOn(settings, "getBoundingClientRect").mockReturnValue({
       width: 40,
       height: 40,

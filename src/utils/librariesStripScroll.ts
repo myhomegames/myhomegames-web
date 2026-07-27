@@ -49,6 +49,8 @@ export function syncLibrariesStripScroll(container: HTMLElement): void {
 const STRIP_ACTIVE_SELECTOR =
   ".mhg-library-active, .mhg-collection-shortcut-button--selected";
 
+const STRIP_FOCUS_SELECTOR = "[data-mhg-strip-focus]";
+
 /** Layout inputs for keeping the vertical cover + title rail on screen after strip scroll. */
 export type VerticalCoverRailScrollLayout = {
   /** Screen X of the rail left edge when the icon center is at 0 (typically alignHalf − shift). */
@@ -116,21 +118,19 @@ export function targetActiveLibraryIconCenterX(
 }
 
 /**
- * When the horizontal library strip overflows, scroll so the active icon sits where
- * the vertical cover + title rail fits on screen (not merely centered in the strip).
+ * Instantly snap the strip so `tile` sits on the vertical-cover focal X
+ * (same math as centering the active library — discrete, not smooth).
  */
-export function centerActiveLibraryInStrip(
+export function centerStripTileInStrip(
   container: HTMLElement,
+  tile: HTMLElement,
   layout?: VerticalCoverRailScrollLayout,
 ): boolean {
   if (!librariesStripNeedsHorizontalScroll(container)) return false;
 
-  const active = container.querySelector<HTMLElement>(STRIP_ACTIVE_SELECTOR);
-  if (!active) return false;
-
   const stripViewport = container.getBoundingClientRect();
-  const tile = active.getBoundingClientRect();
-  const currentCenterX = tile.left + tile.width / 2;
+  const tileRect = tile.getBoundingClientRect();
+  const currentCenterX = tileRect.left + tileRect.width / 2;
   const viewportWidth =
     typeof window !== "undefined" && window.innerWidth > 0
       ? window.innerWidth
@@ -142,4 +142,20 @@ export function centerActiveLibraryInStrip(
   container.scrollLeft = Math.max(0, Math.min(max, Math.round(targetScroll)));
   clampLibrariesStripScrollLeft(container);
   return true;
+}
+
+/**
+ * When the horizontal library strip overflows, scroll so the focused/active icon sits where
+ * the vertical cover + title rail fits on screen (not merely centered in the strip).
+ * Prefers `data-mhg-strip-focus` (header icons under discrete focus) over the active library.
+ */
+export function centerActiveLibraryInStrip(
+  container: HTMLElement,
+  layout?: VerticalCoverRailScrollLayout,
+): boolean {
+  const focused = container.querySelector<HTMLElement>(STRIP_FOCUS_SELECTOR);
+  const active =
+    focused ?? container.querySelector<HTMLElement>(STRIP_ACTIVE_SELECTOR);
+  if (!active) return false;
+  return centerStripTileInStrip(container, active, layout);
 }

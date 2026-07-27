@@ -3,6 +3,11 @@
  * List-driving controls are auto-selected (click); other strip icons only receive focus/scroll.
  */
 
+import {
+  centerStripTileInStrip,
+  verticalCoverRailScrollLayoutForPath,
+} from "./librariesStripScroll";
+
 const STRIP_FOCUS_ATTR = "data-mhg-strip-focus";
 
 /** Strip controls that drive a content list (library page, collection shortcut, …). */
@@ -53,14 +58,36 @@ function clearStripFocus(except?: HTMLElement | null): void {
     });
 }
 
+function syncStripFocusIconPosition(el: HTMLElement): void {
+  const rect = el.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const beforeStyle = getComputedStyle(el, "::before");
+  const glyphFontSize = parseFloat(beforeStyle.fontSize);
+  const glyphHalfWidth =
+    Number.isFinite(glyphFontSize) && glyphFontSize > 0 ? glyphFontSize * 0.5 : 26;
+  const graphicLeftX = centerX - glyphHalfWidth;
+  document.documentElement.style.setProperty("--mhg-active-library-icon-center-x", `${centerX}px`);
+  document.documentElement.style.setProperty("--mhg-active-library-icon-center-y", `${centerY}px`);
+  document.documentElement.style.setProperty("--mhg-active-library-icon-left-x", `${rect.left}px`);
+  document.documentElement.style.setProperty(
+    "--mhg-active-library-icon-graphic-left-x",
+    `${graphicLeftX}px`,
+  );
+}
+
 function setStripFocus(el: HTMLElement): void {
   clearStripFocus(el);
   el.setAttribute(STRIP_FOCUS_ATTR, "true");
-  try {
-    el.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
-  } catch {
-    /* jsdom / older browsers */
+  const row = el.closest<HTMLElement>(".mhg-libraries-container");
+  if (row) {
+    const pathname =
+      typeof window !== "undefined" ? window.location.pathname : "";
+    centerStripTileInStrip(row, el, verticalCoverRailScrollLayoutForPath(pathname));
+    // Discrete mode keeps overflow-x hidden; re-assert after snap.
+    row.style.overflowX = "hidden";
   }
+  syncStripFocusIconPosition(el);
 }
 
 function activeStripIndex(targets: HTMLElement[]): number {
@@ -97,7 +124,7 @@ export function stepLibraryStrip(direction: 1 | -1): boolean {
     clearStripFocus();
     el.click();
   } else {
-    // Reachable for scroll/focus, but do not auto-activate (Add game, Settings, …).
+    // Reachable with the same discrete snap as libraries, but do not auto-activate.
     setStripFocus(el);
   }
   return true;
