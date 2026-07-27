@@ -49,8 +49,6 @@ export function syncLibrariesStripScroll(container: HTMLElement): void {
 const STRIP_ACTIVE_SELECTOR =
   ".mhg-library-active, .mhg-collection-shortcut-button--selected";
 
-const STRIP_FOCUS_SELECTOR = "[data-mhg-strip-focus]";
-
 /** Layout inputs for keeping the vertical cover + title rail on screen after strip scroll. */
 export type VerticalCoverRailScrollLayout = {
   /** Screen X of the rail left edge when the icon center is at 0 (typically alignHalf − shift). */
@@ -145,17 +143,36 @@ export function centerStripTileInStrip(
 }
 
 /**
- * When the horizontal library strip overflows, scroll so the focused/active icon sits where
+ * Snap the strip so `tile` is centered in the strip viewport only.
+ * Does not use vertical-cover rail math — safe for header icons that must not
+ * move the content list anchor.
+ */
+export function centerStripTileInStripViewport(
+  container: HTMLElement,
+  tile: HTMLElement,
+): boolean {
+  if (!librariesStripNeedsHorizontalScroll(container)) return false;
+
+  const stripViewport = container.getBoundingClientRect();
+  const tileRect = tile.getBoundingClientRect();
+  const currentCenterX = tileRect.left + tileRect.width / 2;
+  const targetCenterX = stripViewport.left + container.clientWidth / 2;
+  const targetScroll = container.scrollLeft + currentCenterX - targetCenterX;
+  const max = maxLibrariesStripScrollLeft(container);
+  container.scrollLeft = Math.max(0, Math.min(max, Math.round(targetScroll)));
+  clampLibrariesStripScrollLeft(container);
+  return true;
+}
+
+/**
+ * When the horizontal library strip overflows, scroll so the active library icon sits where
  * the vertical cover + title rail fits on screen (not merely centered in the strip).
- * Prefers `data-mhg-strip-focus` (header icons under discrete focus) over the active library.
  */
 export function centerActiveLibraryInStrip(
   container: HTMLElement,
   layout?: VerticalCoverRailScrollLayout,
 ): boolean {
-  const focused = container.querySelector<HTMLElement>(STRIP_FOCUS_SELECTOR);
-  const active =
-    focused ?? container.querySelector<HTMLElement>(STRIP_ACTIVE_SELECTOR);
+  const active = container.querySelector<HTMLElement>(STRIP_ACTIVE_SELECTOR);
   if (!active) return false;
   return centerStripTileInStrip(container, active, layout);
 }

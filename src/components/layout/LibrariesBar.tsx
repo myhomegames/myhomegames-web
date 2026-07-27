@@ -868,9 +868,7 @@ export default function LibrariesBar({
   const syncActiveLibraryIconPosition = useCallback(() => {
     const containerEl = containerRef.current;
     if (!containerEl) return;
-    const activeButton =
-      (containerEl.querySelector("[data-mhg-strip-focus]") as HTMLElement | null) ??
-      (containerEl.querySelector(".mhg-library-active") as HTMLElement | null);
+    const activeButton = containerEl.querySelector(".mhg-library-active") as HTMLElement | null;
     if (!activeButton) return;
     const rect = activeButton.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
