@@ -7,6 +7,8 @@ import { displayGameType } from "../../utils/gameType";
 import { buildCatalogApiUrl } from "../../utils/catalogApi";
 import { buildApiHeaders } from "../../utils/api";
 import { useSettings } from "../../contexts/SettingsContext";
+import { useSkin } from "../../contexts/SkinContext";
+import { bindSheetBackdropClose } from "../../utils/sheetPopupBackdrop";
 import { useCreateGame } from "./actions";
 import type { GameItem, CatalogGame } from "../../types";
 import Cover from "../games/Cover";
@@ -25,12 +27,15 @@ export default function AddGame({
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { catalogSearchEnabled } = useSettings();
+  const { activeSkinWeb } = useSkin();
+  const sheetBackdropCloseEnabled = activeSkinWeb.disableTitleTooltips;
   const [searchQuery, setSearchQuery] = useState("");
   const [createTitle, setCreateTitle] = useState("");
   const [results, setResults] = useState<CatalogGame[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const createTitleInputRef = useRef<HTMLInputElement | null>(null);
   const lastSearchQueryRef = useRef<string>("");
@@ -48,6 +53,19 @@ export default function AddGame({
   useEffect(() => {
     isOpenRef.current = isOpen;
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !sheetBackdropCloseEnabled) return;
+
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as HTMLElement;
+      if (containerRef.current?.contains(target)) return;
+      onClose();
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen, sheetBackdropCloseEnabled, onClose]);
 
   // Check if an IGDB game matches a local game (by ID)
   function findMatchingLocalGame(catalogGame: CatalogGame): GameItem | undefined {
@@ -363,11 +381,14 @@ export default function AddGame({
   return createPortal(
     <div
       className="add-game-overlay"
-      onClick={onClose}
+      {...bindSheetBackdropClose(sheetBackdropCloseEnabled, onClose)}
+      onClick={sheetBackdropCloseEnabled ? undefined : onClose}
     >
       <div
+        ref={containerRef}
         className="add-game-container"
-        onClick={(e) => e.stopPropagation()}
+        {...bindSheetBackdropClose(sheetBackdropCloseEnabled, onClose)}
+        onClick={sheetBackdropCloseEnabled ? undefined : (e) => e.stopPropagation()}
       >
         <div className="add-game-header">
           <h2 className="add-game-title">{t("addGame.title")}</h2>
