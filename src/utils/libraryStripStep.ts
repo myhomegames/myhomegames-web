@@ -1,7 +1,9 @@
 /**
  * Discrete horizontal steps across the LibrariesBar icon strip (PS3 / XMB-style).
- * Activates the next/previous library (or strip control) so the vertical list remounts.
+ * List-driving controls are auto-selected (click); other strip icons only receive focus/scroll.
  */
+
+const STRIP_FOCUS_ATTR = "data-mhg-strip-focus";
 
 /** Strip controls that drive a content list (library page, collection shortcut, …). */
 function hasStripList(el: HTMLElement): boolean {
@@ -39,12 +41,31 @@ function collectStripStepTargets(): HTMLElement[] {
 
   return Array.from(
     row.querySelectorAll<HTMLElement>(".mhg-library-button, .mhg-collection-shortcut-button"),
-  )
-    .filter(isVisibleStripControl)
-    .filter(hasStripList);
+  ).filter(isVisibleStripControl);
+}
+
+function clearStripFocus(except?: HTMLElement | null): void {
+  document
+    .querySelectorAll<HTMLElement>(`.mhg-libraries-container [${STRIP_FOCUS_ATTR}]`)
+    .forEach((el) => {
+      if (except && el === except) return;
+      el.removeAttribute(STRIP_FOCUS_ATTR);
+    });
+}
+
+function setStripFocus(el: HTMLElement): void {
+  clearStripFocus(el);
+  el.setAttribute(STRIP_FOCUS_ATTR, "true");
+  try {
+    el.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+  } catch {
+    /* jsdom / older browsers */
+  }
 }
 
 function activeStripIndex(targets: HTMLElement[]): number {
+  const focused = targets.findIndex((el) => el.hasAttribute(STRIP_FOCUS_ATTR));
+  if (focused >= 0) return focused;
   const idx = targets.findIndex(
     (el) =>
       el.classList.contains("mhg-library-active") ||
@@ -55,7 +76,7 @@ function activeStripIndex(targets: HTMLElement[]): number {
 
 /**
  * @param direction 1 = next (right), -1 = previous (left)
- * @returns true if a different strip control was activated
+ * @returns true if the strip focus moved
  */
 export function stepLibraryStrip(direction: 1 | -1): boolean {
   if (typeof document === "undefined") return false;
@@ -71,6 +92,13 @@ export function stepLibraryStrip(direction: 1 | -1): boolean {
 
   const el = targets[next];
   if (!el) return false;
-  el.click();
+
+  if (hasStripList(el)) {
+    clearStripFocus();
+    el.click();
+  } else {
+    // Reachable for scroll/focus, but do not auto-activate (Add game, Settings, …).
+    setStripFocus(el);
+  }
   return true;
 }

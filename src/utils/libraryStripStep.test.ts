@@ -78,7 +78,8 @@ describe("libraryStripStep", () => {
     // second strip from afterEach cleared — remount
   });
 
-  it("steps only strip controls that drive a list", () => {
+  it("scrolls to non-list strip icons without auto-clicking them", () => {
+    document.documentElement.setAttribute("data-mhg-vertical-cover-alignment", "true");
     const bar = document.createElement("div");
     bar.className = "mhg-libraries-bar";
     const row = document.createElement("div");
@@ -88,6 +89,7 @@ describe("libraryStripStep", () => {
     const lib = document.createElement("button");
     lib.className = "mhg-library-button mhg-library-active";
     lib.dataset.key = "collections";
+    lib.setAttribute("data-mhg-strip-has-list", "true");
     lib.addEventListener("click", () => clicks.push("collections"));
     vi.spyOn(lib, "getBoundingClientRect").mockReturnValue({
       width: 40,
@@ -102,29 +104,60 @@ describe("libraryStripStep", () => {
     });
     row.appendChild(lib);
 
-    for (const key of ["mhg-header-add-game", "mhg-header-settings"]) {
-      const hdr = document.createElement("button");
-      hdr.className = "mhg-library-button";
-      hdr.setAttribute("data-mhg-library-key", key);
-      hdr.addEventListener("click", () => clicks.push(key));
-      vi.spyOn(hdr, "getBoundingClientRect").mockReturnValue({
-        width: 40,
-        height: 40,
-        top: 0,
-        left: 40,
-        bottom: 40,
-        right: 80,
-        x: 40,
-        y: 0,
-        toJSON: () => ({}),
-      });
-      row.appendChild(hdr);
-    }
+    const addGame = document.createElement("button");
+    addGame.className = "mhg-library-button";
+    addGame.setAttribute("data-mhg-library-key", "mhg-header-add-game");
+    addGame.addEventListener("click", () => clicks.push("mhg-header-add-game"));
+    addGame.scrollIntoView = () => {};
+    vi.spyOn(addGame, "getBoundingClientRect").mockReturnValue({
+      width: 40,
+      height: 40,
+      top: 0,
+      left: 40,
+      bottom: 40,
+      right: 80,
+      x: 40,
+      y: 0,
+      toJSON: () => ({}),
+    });
+    row.appendChild(addGame);
+
+    const settings = document.createElement("button");
+    settings.className = "mhg-library-button";
+    settings.setAttribute("data-mhg-library-key", "mhg-header-settings");
+    settings.addEventListener("click", () => clicks.push("mhg-header-settings"));
+    settings.scrollIntoView = () => {};
+    vi.spyOn(settings, "getBoundingClientRect").mockReturnValue({
+      width: 40,
+      height: 40,
+      top: 0,
+      left: 80,
+      bottom: 40,
+      right: 120,
+      x: 80,
+      y: 0,
+      toJSON: () => ({}),
+    });
+    row.appendChild(settings);
 
     bar.appendChild(row);
     document.body.appendChild(bar);
 
-    expect(stepLibraryStrip(1)).toBe(false);
+    expect(stepLibraryStrip(1)).toBe(true);
     expect(clicks).toEqual([]);
+    expect(addGame.getAttribute("data-mhg-strip-focus")).toBe("true");
+
+    expect(stepLibraryStrip(1)).toBe(true);
+    expect(clicks).toEqual([]);
+    expect(settings.getAttribute("data-mhg-strip-focus")).toBe("true");
+    expect(addGame.hasAttribute("data-mhg-strip-focus")).toBe(false);
+
+    expect(stepLibraryStrip(-1)).toBe(true);
+    expect(clicks).toEqual([]);
+    expect(addGame.getAttribute("data-mhg-strip-focus")).toBe("true");
+
+    expect(stepLibraryStrip(-1)).toBe(true);
+    expect(clicks).toEqual(["collections"]);
+    expect(addGame.hasAttribute("data-mhg-strip-focus")).toBe(false);
   });
 });
