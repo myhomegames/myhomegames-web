@@ -27,6 +27,7 @@ import { playFixedFocalStepSound } from "../../utils/fixedFocalStepSound";
 import { applyWheelDeltaStep, readWheelStepThresholdPx } from "../../utils/stepScrollSnap";
 import { readTouchStepThresholdPx } from "../../utils/fixedFocalStepInput";
 import { isSmartTvBrowser } from "../../utils/smartTv";
+import { isSmartTvUiLayerOpen } from "../../utils/smartTvRemote";
 import {
   CONTEXT_RAIL_LIBRARY_VIEW_TRANSITION,
   contextRailViewTransitionsEnabled,
@@ -932,6 +933,7 @@ export default function LibrariesBar({
     const horizontalTouchAccum = { accumulated: 0 };
 
     const dispatchFixedFocalStep = (direction: 1 | -1) => {
+      if (isSmartTvUiLayerOpen()) return;
       document.dispatchEvent(
         new CustomEvent("mhg:fixed-focal-step", {
           detail: { direction },

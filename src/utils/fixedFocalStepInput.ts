@@ -1,5 +1,6 @@
 import { applyWheelDeltaStep, readWheelStepThresholdPx } from "./stepScrollSnap";
 import { isHorizontalLibraryStripMode, stepLibraryStrip } from "./libraryStripStep";
+import { isSmartTvUiLayerOpen } from "./smartTvRemote";
 
 export type FixedFocalStepDirection = 1 | -1;
 
@@ -66,6 +67,7 @@ export function attachFixedFocalStepInput(options: AttachFixedFocalStepInputOpti
   let axis: AxisLock = "undecided";
 
   const onWheel = (e: WheelEvent) => {
+    if (isSmartTvUiLayerOpen()) return;
     if (Math.abs(e.deltaY) < 0.01 && Math.abs(e.deltaX) < 0.01) return;
     if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
       if (!isHorizontalLibraryStripMode() && !onHorizontalStep) return;
@@ -87,6 +89,7 @@ export function attachFixedFocalStepInput(options: AttachFixedFocalStepInputOpti
   };
 
   const onPointerDown = (e: PointerEvent) => {
+    if (isSmartTvUiLayerOpen()) return;
     if (pointerId !== null) return;
     if (e.pointerType === "mouse" && e.button !== 0) return;
     // Mouse already has wheel; only drive steps from touch/pen.
@@ -140,6 +143,7 @@ export function attachFixedFocalStepInput(options: AttachFixedFocalStepInputOpti
   };
 
   const onStepEvent = (e: Event) => {
+    if (isSmartTvUiLayerOpen()) return;
     const direction = (e as CustomEvent<{ direction?: FixedFocalStepDirection }>).detail?.direction;
     if (direction === 1 || direction === -1) onStep(direction);
   };
