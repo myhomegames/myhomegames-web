@@ -5,6 +5,7 @@
 
 import { centerStripTileInStripViewport } from "./librariesStripScroll";
 import { playFixedFocalStepSound } from "./fixedFocalStepSound";
+import { SMART_TV_HOVER_ATTR } from "./smartTvFocusHover";
 
 const STRIP_FOCUS_ATTR = "data-mhg-strip-focus";
 
@@ -62,12 +63,16 @@ function clearStripFocus(except?: HTMLElement | null): void {
     .forEach((el) => {
       if (except && el === except) return;
       el.removeAttribute(STRIP_FOCUS_ATTR);
+      if (!el.classList.contains("mhg-cover-scale-selected")) {
+        el.removeAttribute(SMART_TV_HOVER_ATTR);
+      }
     });
 }
 
 function setStripFocus(el: HTMLElement): void {
   clearStripFocus(el);
   el.setAttribute(STRIP_FOCUS_ATTR, "true");
+  el.setAttribute(SMART_TV_HOVER_ATTR, "true");
   const row = el.closest<HTMLElement>(".mhg-libraries-container");
   if (row) {
     // Strip-only snap: do not move the vertical list anchor (CSS icon vars stay on .mhg-library-active).

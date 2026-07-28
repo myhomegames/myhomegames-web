@@ -6,6 +6,9 @@ export const SMART_TV_HOVER_ATTR = "data-mhg-tv-hover";
 const STRIP_FOCUS_ATTR = "data-mhg-strip-focus";
 const SELECTED_CLASS = "mhg-cover-scale-selected";
 
+const HOVER_MIRROR_SELECTOR =
+  ".cover-hover-effect, .games-list-item, .tag-list-item, .collections-list-item, .fixed-focal-games-item, .fixed-focal-tag-item, .fixed-focal-collections-item, .fixed-focal-recommended-strip-item";
+
 function isLogoButton(el: HTMLElement): boolean {
   return (
     el.classList.contains("mhg-logo-button") ||
@@ -22,6 +25,30 @@ function shouldMirrorFocusHover(el: HTMLElement): boolean {
   return true;
 }
 
+function markHoverMirror(el: HTMLElement): void {
+  el.setAttribute(SMART_TV_HOVER_ATTR, "true");
+  el.querySelectorAll<HTMLElement>(HOVER_MIRROR_SELECTOR).forEach((node) => {
+    node.setAttribute(SMART_TV_HOVER_ATTR, "true");
+  });
+  const focal = el.closest<HTMLElement>(
+    ".fixed-focal-games-item, .fixed-focal-tag-item, .fixed-focal-collections-item, .fixed-focal-recommended-strip-item",
+  );
+  if (focal && focal !== el) {
+    markHoverMirror(focal);
+  }
+}
+
+function clearHoverMirror(el: HTMLElement): void {
+  el.removeAttribute(SMART_TV_HOVER_ATTR);
+  el.style.removeProperty("outline");
+  el.style.removeProperty("outline-offset");
+}
+
+function suppressTvFocusRing(el: HTMLElement): void {
+  el.style.setProperty("outline", "none", "important");
+  el.style.setProperty("outline-offset", "0", "important");
+}
+
 /** Keep hover styling on fixed-focal / scale-selected tiles without DOM focus. */
 export function syncSmartTvSelectionHover(
   enabled: boolean = isSmartTvBrowser(),
@@ -32,14 +59,18 @@ export function syncSmartTvSelectionHover(
     document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
   document.querySelectorAll<HTMLElement>(`.${SELECTED_CLASS}`).forEach((el) => {
-    el.setAttribute(SMART_TV_HOVER_ATTR, "true");
+    markHoverMirror(el);
+  });
+
+  document.querySelectorAll<HTMLElement>(`[${STRIP_FOCUS_ATTR}]`).forEach((el) => {
+    markHoverMirror(el);
   });
 
   document.querySelectorAll<HTMLElement>(`[${SMART_TV_HOVER_ATTR}]`).forEach((el) => {
     if (el.classList.contains(SELECTED_CLASS)) return;
-    if (el === focused) return;
     if (el.hasAttribute(STRIP_FOCUS_ATTR)) return;
-    el.removeAttribute(SMART_TV_HOVER_ATTR);
+    if (el === focused) return;
+    clearHoverMirror(el);
   });
 }
 
@@ -63,7 +94,8 @@ export function installSmartTvFocusHoverMirror(
   const onFocusIn = (e: FocusEvent) => {
     const el = e.target;
     if (!(el instanceof HTMLElement) || !shouldMirrorFocusHover(el)) return;
-    el.setAttribute(SMART_TV_HOVER_ATTR, "true");
+    markHoverMirror(el);
+    suppressTvFocusRing(el);
   };
 
   const onFocusOut = (e: FocusEvent) => {
@@ -71,7 +103,7 @@ export function installSmartTvFocusHoverMirror(
     if (!(el instanceof HTMLElement)) return;
     if (el.classList.contains(SELECTED_CLASS)) return;
     if (el.hasAttribute(STRIP_FOCUS_ATTR)) return;
-    el.removeAttribute(SMART_TV_HOVER_ATTR);
+    clearHoverMirror(el);
     scheduleSelectionSync();
   };
 
@@ -80,12 +112,17 @@ export function installSmartTvFocusHoverMirror(
 
   selectionObserver = new MutationObserver((records) => {
     for (const record of records) {
-      if (record.type !== "attributes" || record.attributeName !== "class") continue;
+      if (record.type !== "attributes") continue;
+      if (record.attributeName !== "class" && record.attributeName !== STRIP_FOCUS_ATTR) {
+        continue;
+      }
       const target = record.target;
       if (!(target instanceof HTMLElement)) continue;
       if (
         target.classList.contains(SELECTED_CLASS) ||
-        (typeof record.oldValue === "string" &&
+        target.hasAttribute(STRIP_FOCUS_ATTR) ||
+        (record.attributeName === "class" &&
+          typeof record.oldValue === "string" &&
           record.oldValue.includes(SELECTED_CLASS))
       ) {
         scheduleSelectionSync();
@@ -96,7 +133,7 @@ export function installSmartTvFocusHoverMirror(
   selectionObserver.observe(document.body, {
     subtree: true,
     attributes: true,
-    attributeFilter: ["class"],
+    attributeFilter: ["class", STRIP_FOCUS_ATTR],
     attributeOldValue: true,
   });
 
@@ -109,7 +146,7 @@ export function installSmartTvFocusHoverMirror(
     selectionObserver = null;
     window.clearTimeout(selectionSyncTimer);
     document.querySelectorAll<HTMLElement>(`[${SMART_TV_HOVER_ATTR}]`).forEach((el) => {
-      el.removeAttribute(SMART_TV_HOVER_ATTR);
+      clearHoverMirror(el);
     });
   };
 }

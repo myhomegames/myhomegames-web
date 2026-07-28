@@ -1,3 +1,4 @@
+import { syncSmartTvSelectionHover } from "../utils/smartTvFocusHover";
 import { isServerSkinId } from "./skinIds";
 import { getActiveSkinId } from "./skinStorage";
 
@@ -22,4 +23,5 @@ export function applySkinCss(css: string): void {
   const active = getActiveSkinId();
   document.documentElement.dataset.mhgSkin =
     active && isServerSkinId(active) ? "server" : "none";
+  syncSmartTvSelectionHover();
 }
