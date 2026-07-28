@@ -5,7 +5,9 @@ import type { CollectionItem, GameItem } from "../../types";
 import AddToCollectionLikeModal, { type AddToResourceType } from "./AddToCollectionLikeModal";
 import { useAddGameToCollection } from "../common/actions";
 import { useCollections } from "../../contexts/CollectionsContext";
+import { useSkin } from "../../contexts/SkinContext";
 import { applyPortaledSubmenuPosition } from "../../utils/clampPortaledSubmenuPosition";
+import { bindSheetBackdropClose } from "../../utils/sheetPopupBackdrop";
 type AddToCollectionDropdownProps = {
   game: GameItem;
   allCollections: CollectionItem[];
@@ -18,6 +20,7 @@ export default function AddToCollectionDropdown({
   onCollectionAdded,
 }: AddToCollectionDropdownProps) {
   const { t } = useTranslation();
+  const { activeSkinWeb } = useSkin();
   const [isOpen, setIsOpen] = useState(false);
   const [modalResourceType, setModalResourceType] = useState<AddToResourceType | null>(null);
   const [isPositionReady, setIsPositionReady] = useState(false);
@@ -244,6 +247,7 @@ export default function AddToCollectionDropdown({
     <div
       ref={menuRef}
       className={`add-to-collection-dropdown-menu add-to-collection-dropdown-menu--positioning${isPositionReady ? " is-position-ready" : ""}`}
+      {...bindSheetBackdropClose(activeSkinWeb.disableTitleTooltips, () => setIsOpen(false))}
       onMouseEnter={() => setIsOpen(true)}
       onMouseLeave={(e) => {
         // Don't close if mouse is moving to another menu item or the main dropdown

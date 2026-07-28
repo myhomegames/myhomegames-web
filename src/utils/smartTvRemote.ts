@@ -81,13 +81,75 @@ function isLogoButton(el: HTMLElement): boolean {
 }
 
 /**
+ * Open modal / right-sheet layers (PS3 and others). When present, D-pad must stay inside
+ * and must not step the page strip / fixed-focal rail underneath.
+ * Ordered roughly by stacking priority; getActiveUiLayer picks the topmost visible one.
+ */
+const UI_LAYER_SELECTORS = [
+  "[data-mhg-tv-exit-confirm]",
+  "[data-mhg-sidebar-search-menu-stack]",
+  "[data-mhg-sidebar-search-interaction-shield]",
+  "[data-mhg-sidebar-search-dialog]",
+  ".dropdown-menu-confirm-overlay",
+  ".edit-game-modal-overlay",
+  ".edit-collection-modal-overlay",
+  ".add-to-collection-modal-overlay",
+  ".manage-installation-modal-overlay",
+  ".launch-modal-overlay",
+  ".add-game-overlay",
+  ".game-search-modal-overlay",
+  "body > .update-notification-popup",
+  "body > .add-to-collection-dropdown-menu",
+  "body > .additional-executables-dropdown-menu",
+  ".filter-popup",
+  ".sort-popup",
+  ".dropdown-menu-popup",
+  ".games-list-toolbar-popup",
+  ".view-mode-dropdown--portaled",
+  ".view-mode-dropdown",
+  ".games-table-column-menu-popup",
+  ".profile-dropdown-popup",
+  ".franchise-series-dropdown",
+] as const;
+
+function readZIndex(el: HTMLElement): number {
+  let node: HTMLElement | null = el;
+  while (node && node !== document.documentElement) {
+    const z = parseInt(window.getComputedStyle(node).zIndex, 10);
+    if (Number.isFinite(z)) return z;
+    node = node.parentElement;
+  }
+  return 0;
+}
+
+/** Topmost visible popup/modal layer, or null when the page is unobstructed. */
+function getActiveUiLayer(): HTMLElement | null {
+  const candidates: HTMLElement[] = [];
+  for (const sel of UI_LAYER_SELECTORS) {
+    document.querySelectorAll<HTMLElement>(sel).forEach((el) => {
+      if (isVisible(el)) candidates.push(el);
+    });
+  }
+  if (candidates.length === 0) return null;
+
+  candidates.sort((a, b) => {
+    const zDiff = readZIndex(a) - readZIndex(b);
+    if (zDiff !== 0) return zDiff;
+    const pos = a.compareDocumentPosition(b);
+    if (pos & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+    if (pos & Node.DOCUMENT_POSITION_PRECEDING) return 1;
+    return 0;
+  });
+  return candidates[candidates.length - 1] ?? null;
+}
+
+/**
  * @param allowTextFields when false, skip inputs/search — used after leaving a field so we
  * never immediately re-focus the same search box (common on pages without library buttons).
  */
 function collectFocusables(allowTextFields: boolean): HTMLElement[] {
-  // While the exit confirm is open, keep D-pad inside the dialog.
-  const scope: ParentNode =
-    document.querySelector("[data-mhg-tv-exit-confirm]") ?? document;
+  // Keep D-pad inside the open sheet/modal (same idea as exit confirm).
+  const scope: ParentNode = getActiveUiLayer() ?? document;
   const nodes = scope.querySelectorAll<HTMLElement>(
     [
       "button:not([disabled]):not([tabindex='-1'])",
@@ -96,6 +158,11 @@ function collectFocusables(allowTextFields: boolean): HTMLElement[] {
       "input:not([disabled]):not([type='hidden']):not([tabindex='-1'])",
       "select:not([disabled]):not([tabindex='-1'])",
       "[data-mhg-tv-focus]:not([tabindex='-1'])",
+      // Sheet rows that are clickable <div>s (⋮ menu, Add to… submenu).
+      ".dropdown-menu-item",
+      ".add-to-collection-dropdown-item",
+      ".additional-executables-dropdown-item",
+      ".profile-dropdown-item",
     ].join(","),
   );
   return Array.from(nodes).filter((el) => {
@@ -113,6 +180,10 @@ function center(rect: DOMRect): { x: number; y: number } {
 function defaultChromeTarget(): HTMLElement | null {
   const items = collectFocusables(false);
   if (items.length === 0) return null;
+  // Inside a sheet/modal: first focusable in that layer (not page chrome).
+  if (getActiveUiLayer()) {
+    return items[0] ?? null;
+  }
   return (
     items.find((el) => el.classList.contains("mhg-library-active")) ??
     items.find((el) => el.classList.contains("mhg-library-button")) ??
@@ -182,6 +253,10 @@ function pickNextFocus(
 }
 
 function focusElement(el: HTMLElement): void {
+  // Clickable sheet rows are often <div>s without tabindex — make them programmatically focusable.
+  if (el.tabIndex < 0 && !el.hasAttribute("tabindex")) {
+    el.tabIndex = -1;
+  }
   try {
     el.focus({ preventScroll: true });
   } catch {
@@ -207,6 +282,46 @@ function closeSidebarSearchIfOpen(): boolean {
 
 /** Close a known modal/sheet layer if one is open. */
 function tryDismissUiLayer(): boolean {
+  const layer = getActiveUiLayer();
+  if (layer?.hasAttribute("data-mhg-tv-exit-confirm")) {
+    return false;
+  }
+
+  // Prefer dismissing the topmost layer (e.g. ⋮ sheet above sidebar search).
+  if (layer) {
+    const closeInLayer = layer.querySelector<HTMLElement>(
+      [
+        "[aria-label='Close']",
+        "[data-mhg-modal-close]",
+        ".game-search-modal-close",
+      ].join(","),
+    );
+    if (closeInLayer && isVisible(closeInLayer)) {
+      closeInLayer.click();
+      return true;
+    }
+
+    if (!layer.hasAttribute("data-mhg-sidebar-search-dialog")) {
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Escape",
+          code: "Escape",
+          keyCode: 27,
+          which: 27,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+
+      if (layer.isConnected && isVisible(layer)) {
+        document.dispatchEvent(
+          new MouseEvent("mousedown", { bubbles: true, cancelable: true, view: window }),
+        );
+      }
+      return true;
+    }
+  }
+
   if (closeSidebarSearchIfOpen()) return true;
 
   const closeBtn = document.querySelector<HTMLElement>(
@@ -222,6 +337,7 @@ function tryDismissUiLayer(): boolean {
     closeBtn.click();
     return true;
   }
+
   return false;
 }
 
@@ -289,12 +405,19 @@ export function installSmartTvRemoteKeys(
   };
 
   const enterContent = () => {
+    // Never dive into the page rail while a sheet/modal covers it.
+    if (getActiveUiLayer()) {
+      zone = "chrome";
+      const next = defaultChromeTarget();
+      if (next) focusElement(next);
+      return;
+    }
     zone = "content";
     blurToContent();
   };
 
   const bootstrapTvFocus = () => {
-    if (zone === "content") return;
+    if (zone === "content" && !getActiveUiLayer()) return;
     const active = document.activeElement as HTMLElement | null;
     if (
       active &&
@@ -307,7 +430,7 @@ export function installSmartTvRemoteKeys(
       return;
     }
     // Don't bootstrap onto a search box — that traps the remote on some pages.
-    if (active && isTextField(active)) return;
+    if (active && isTextField(active) && !getActiveUiLayer()) return;
     enterChrome();
   };
 
@@ -378,6 +501,28 @@ export function installSmartTvRemoteKeys(
     if (direction) {
       e.preventDefault();
       e.stopPropagation();
+
+      const uiLayer = getActiveUiLayer();
+      // Sheet/modal open: stay in the layer — no strip step, no fixed-focal behind.
+      if (uiLayer) {
+        zone = "chrome";
+        const active = document.activeElement as HTMLElement | null;
+        const current =
+          active &&
+          active !== document.body &&
+          active !== document.documentElement &&
+          !isLogoButton(active) &&
+          uiLayer.contains(active)
+            ? active
+            : null;
+        const next = pickNextFocus(current, direction, true);
+        if (next) focusElement(next);
+        else if (!current) {
+          const fallback = defaultChromeTarget();
+          if (fallback) focusElement(fallback);
+        }
+        return;
+      }
 
       if (zone === "content") {
         if (direction === "left" || direction === "right") {
@@ -490,31 +635,51 @@ export function installSmartTvRemoteKeys(
     e.preventDefault();
     e.stopPropagation();
 
+    const uiLayer = getActiveUiLayer();
+
     // PS3 strip: Add Game / Settings / Profile / Search only snap-focus (no auto-click).
     // Prefer that target over document.activeElement — Tizen often keeps focus on the
     // last .mhg-library-active list library, so Enter would re-open that instead.
-    if (isHorizontalLibraryStripMode() && activateStripFocusTarget()) {
+    if (!uiLayer && isHorizontalLibraryStripMode() && activateStripFocusTarget()) {
       zone = "chrome";
       return;
     }
 
-    if (zone === "chrome") {
+    if (zone === "chrome" || uiLayer) {
       const active = document.activeElement as HTMLElement | null;
+      const isActivatable =
+        !!active &&
+        (active.tagName === "BUTTON" ||
+          active.tagName === "A" ||
+          active.getAttribute("role") === "button" ||
+          active.classList.contains("dropdown-menu-item") ||
+          active.classList.contains("add-to-collection-dropdown-item") ||
+          active.classList.contains("additional-executables-dropdown-item") ||
+          active.classList.contains("profile-dropdown-item"));
       if (
         active &&
         active !== document.body &&
         typeof active.click === "function" &&
         !isLogoButton(active) &&
-        (active.tagName === "BUTTON" ||
-          active.tagName === "A" ||
-          active.getAttribute("role") === "button")
+        (!uiLayer || uiLayer.contains(active)) &&
+        isActivatable
       ) {
         active.click();
         return;
       }
+      // Layer open but focus still on the page: pull into the sheet.
+      if (uiLayer) {
+        const fallback = defaultChromeTarget();
+        if (fallback) {
+          focusElement(fallback);
+          return;
+        }
+      }
     }
 
-    document.dispatchEvent(new CustomEvent("mhg:fixed-focal-activate"));
+    if (!uiLayer) {
+      document.dispatchEvent(new CustomEvent("mhg:fixed-focal-activate"));
+    }
   };
 
   window.addEventListener("keydown", onKeyDown, true);
