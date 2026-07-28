@@ -4,8 +4,18 @@
  */
 
 import { centerStripTileInStripViewport } from "./librariesStripScroll";
+import { playFixedFocalStepSound } from "./fixedFocalStepSound";
 
 const STRIP_FOCUS_ATTR = "data-mhg-strip-focus";
+
+function stripStepSoundEnabled(): boolean {
+  if (typeof document === "undefined") return false;
+  return document.documentElement.getAttribute("data-mhg-fixed-focal-step-sound") === "true";
+}
+
+function playStripStepSoundIfEnabled(): void {
+  if (stripStepSoundEnabled()) playFixedFocalStepSound();
+}
 
 /** Strip controls that drive a content list (library page, collection shortcut, …). */
 function hasStripList(el: HTMLElement): boolean {
@@ -64,6 +74,43 @@ function setStripFocus(el: HTMLElement): void {
     centerStripTileInStripViewport(row, el);
     row.style.overflowX = "hidden";
   }
+  // Keep DOM focus on the snapped icon so TV Enter activates it (not the previous .mhg-library-active).
+  try {
+    el.focus({ preventScroll: true });
+  } catch {
+    try {
+      el.focus();
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+/** Icon currently snapped in the PS3/XMB strip without auto-opening (Add Game, Settings, …). */
+export function getStripFocusTarget(): HTMLElement | null {
+  if (typeof document === "undefined") return null;
+  return document.querySelector<HTMLElement>(`.mhg-libraries-container [${STRIP_FOCUS_ATTR}]`);
+}
+
+/**
+ * Activate the strip-focused icon (Enter/OK on Smart TV).
+ * @returns true if a strip-focus target was clicked
+ */
+export function activateStripFocusTarget(): boolean {
+  const el = getStripFocusTarget();
+  if (!el || typeof el.click !== "function") return false;
+  clearStripFocus();
+  el.click();
+  try {
+    el.focus({ preventScroll: true });
+  } catch {
+    try {
+      el.focus();
+    } catch {
+      /* ignore */
+    }
+  }
+  return true;
 }
 
 function activeStripIndex(targets: HTMLElement[]): number {
@@ -101,6 +148,7 @@ export function stepLibraryStrip(direction: 1 | -1): boolean {
     el.click();
   } else {
     // Reachable with the same discrete snap as libraries, but do not auto-activate.
+    playStripStepSoundIfEnabled();
     setStripFocus(el);
   }
   return true;

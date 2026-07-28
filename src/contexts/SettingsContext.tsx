@@ -134,7 +134,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     } else {
       document.documentElement.removeAttribute("data-mhg-vertical-cover-alignment");
     }
-  }, [skinWeb.verticalCoverAlignment]);
+    if (skinWeb.fixedFocalStepSound) {
+      document.documentElement.setAttribute("data-mhg-fixed-focal-step-sound", "true");
+    } else {
+      document.documentElement.removeAttribute("data-mhg-fixed-focal-step-sound");
+    }
+  }, [skinWeb.verticalCoverAlignment, skinWeb.fixedFocalStepSound]);
 
   const catalogSearchEnabled = useMemo(() => isCatalogSearchEnabled(twitchApiEnabled), [twitchApiEnabled]);
 
