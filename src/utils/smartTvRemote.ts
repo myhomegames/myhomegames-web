@@ -112,22 +112,34 @@ const UI_LAYER_SELECTORS = [
   ".franchise-series-dropdown",
 ] as const;
 
+function isLayerCandidate(el: HTMLElement): boolean {
+  if (el.hidden || el.getAttribute("aria-hidden") === "true") return false;
+  const style = window.getComputedStyle(el);
+  // Do not require pointer-events here — some hosts sit under a none parent.
+  if (style.display === "none" || style.visibility === "hidden") return false;
+  const rect = el.getBoundingClientRect();
+  return rect.width > 2 && rect.height > 2;
+}
+
 function readZIndex(el: HTMLElement): number {
   let node: HTMLElement | null = el;
   while (node && node !== document.documentElement) {
-    const z = parseInt(window.getComputedStyle(node).zIndex, 10);
-    if (Number.isFinite(z)) return z;
+    const raw = window.getComputedStyle(node).zIndex;
+    if (raw && raw !== "auto") {
+      const z = parseInt(raw, 10);
+      if (Number.isFinite(z)) return z;
+    }
     node = node.parentElement;
   }
   return 0;
 }
 
 /** Topmost visible popup/modal layer, or null when the page is unobstructed. */
-function getActiveUiLayer(): HTMLElement | null {
+export function getActiveUiLayer(): HTMLElement | null {
   const candidates: HTMLElement[] = [];
   for (const sel of UI_LAYER_SELECTORS) {
     document.querySelectorAll<HTMLElement>(sel).forEach((el) => {
-      if (isVisible(el)) candidates.push(el);
+      if (isLayerCandidate(el)) candidates.push(el);
     });
   }
   if (candidates.length === 0) return null;
@@ -141,6 +153,11 @@ function getActiveUiLayer(): HTMLElement | null {
     return 0;
   });
   return candidates[candidates.length - 1] ?? null;
+}
+
+/** True while a sheet/modal should own the remote (blocks rail/strip behind). */
+export function isSmartTvUiLayerOpen(): boolean {
+  return getActiveUiLayer() != null;
 }
 
 /**
@@ -408,16 +425,44 @@ export function installSmartTvRemoteKeys(
     // Never dive into the page rail while a sheet/modal covers it.
     if (getActiveUiLayer()) {
       zone = "chrome";
-      const next = defaultChromeTarget();
-      if (next) focusElement(next);
+      focusIntoActiveUiLayer();
       return;
     }
     zone = "content";
     blurToContent();
   };
 
+  /** Pull remote focus into the open sheet/modal (and keep it there). */
+  const focusIntoActiveUiLayer = (): boolean => {
+    const layer = getActiveUiLayer();
+    if (!layer) return false;
+    zone = "chrome";
+    const active = document.activeElement as HTMLElement | null;
+    if (
+      active &&
+      active !== document.body &&
+      active !== document.documentElement &&
+      layer.contains(active)
+    ) {
+      return true;
+    }
+    const items = collectFocusables(true);
+    const next = items[0] ?? null;
+    if (next) {
+      focusElement(next);
+      return true;
+    }
+    // No row yet — park focus on the layer root so Tizen cannot land on covers behind.
+    if (layer.tabIndex < 0 && !layer.hasAttribute("tabindex")) {
+      layer.tabIndex = -1;
+    }
+    focusElement(layer);
+    return true;
+  };
+
   const bootstrapTvFocus = () => {
-    if (zone === "content" && !getActiveUiLayer()) return;
+    if (focusIntoActiveUiLayer()) return;
+    if (zone === "content") return;
     const active = document.activeElement as HTMLElement | null;
     if (
       active &&
@@ -430,7 +475,7 @@ export function installSmartTvRemoteKeys(
       return;
     }
     // Don't bootstrap onto a search box — that traps the remote on some pages.
-    if (active && isTextField(active) && !getActiveUiLayer()) return;
+    if (active && isTextField(active)) return;
     enterChrome();
   };
 
@@ -515,12 +560,14 @@ export function installSmartTvRemoteKeys(
           uiLayer.contains(active)
             ? active
             : null;
-        const next = pickNextFocus(current, direction, true);
-        if (next) focusElement(next);
-        else if (!current) {
-          const fallback = defaultChromeTarget();
-          if (fallback) focusElement(fallback);
+        if (!current) {
+          focusIntoActiveUiLayer();
         }
+        const focused = document.activeElement as HTMLElement | null;
+        const from =
+          focused && uiLayer.contains(focused) && focused !== uiLayer ? focused : null;
+        const next = pickNextFocus(from, direction, true);
+        if (next) focusElement(next);
         return;
       }
 
@@ -665,15 +712,14 @@ export function installSmartTvRemoteKeys(
         isActivatable
       ) {
         active.click();
+        // Popup may mount on this click — move focus in on the next frame.
+        window.setTimeout(() => focusIntoActiveUiLayer(), 0);
         return;
       }
       // Layer open but focus still on the page: pull into the sheet.
       if (uiLayer) {
-        const fallback = defaultChromeTarget();
-        if (fallback) {
-          focusElement(fallback);
-          return;
-        }
+        focusIntoActiveUiLayer();
+        return;
       }
     }
 
@@ -683,6 +729,35 @@ export function installSmartTvRemoteKeys(
   };
 
   window.addEventListener("keydown", onKeyDown, true);
+
+  // If Tizen spatial nav tries to focus covers behind a sheet, yank focus back in.
+  const onFocusIn = (e: FocusEvent) => {
+    const layer = getActiveUiLayer();
+    if (!layer) return;
+    const target = e.target as Node | null;
+    if (target && layer.contains(target)) return;
+    zone = "chrome";
+    // Defer so we win against the browser's own focus move.
+    window.setTimeout(() => focusIntoActiveUiLayer(), 0);
+  };
+  window.addEventListener("focusin", onFocusIn, true);
+
+  // When a sheet mounts/unmounts, move focus into it immediately.
+  let layerSyncRaf = 0;
+  const scheduleLayerFocusSync = () => {
+    if (layerSyncRaf) return;
+    layerSyncRaf = window.requestAnimationFrame(() => {
+      layerSyncRaf = 0;
+      focusIntoActiveUiLayer();
+    });
+  };
+  const layerObserver = new MutationObserver(scheduleLayerFocusSync);
+  layerObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["class", "style", "hidden", "aria-hidden"],
+  });
 
   const t1 = window.setTimeout(bootstrapTvFocus, 400);
   const t2 = window.setTimeout(bootstrapTvFocus, 1800);
@@ -694,7 +769,10 @@ export function installSmartTvRemoteKeys(
 
   return () => {
     window.removeEventListener("keydown", onKeyDown, true);
+    window.removeEventListener("focusin", onFocusIn, true);
     window.removeEventListener("mhg-api-base-changed", onApi);
+    layerObserver.disconnect();
+    if (layerSyncRaf) window.cancelAnimationFrame(layerSyncRaf);
     window.clearTimeout(t1);
     window.clearTimeout(t2);
   };
