@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import Tooltip from "../common/Tooltip";
@@ -17,6 +17,8 @@ type ProfileDropdownProps = {
   libraryActive?: boolean;
   /** Compact header icon row on phone-width viewports. */
   compactHeader?: boolean;
+  /** PS3 strip: snap-focus + step sound on mouse hover (icons without a list). */
+  onTriggerMouseEnter?: (e: MouseEvent<HTMLButtonElement>) => void;
 };
 
 function ProfileAvatarPlaceholder({ size = 80 }: { size?: number }) {
@@ -45,6 +47,7 @@ export default function ProfileDropdown({
   triggerVariant = "header",
   libraryActive = false,
   compactHeader = false,
+  onTriggerMouseEnter,
 }: ProfileDropdownProps) {
   const { t } = useTranslation();
   const { activeSkinWeb } = useSkin();
@@ -127,6 +130,7 @@ export default function ProfileDropdown({
       }
       data-mhg-library-key={libraryTrigger ? "mhg-header-profile" : undefined}
       onClick={handleToggle}
+      onMouseEnter={libraryTrigger ? onTriggerMouseEnter : undefined}
       aria-label={t("header.profile")}
       aria-expanded={isOpen}
       style={
