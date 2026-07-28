@@ -38,7 +38,11 @@ import {
   syncLibrariesStripScroll,
   verticalCoverRailScrollLayoutForPath,
 } from "../../utils/librariesStripScroll";
-import { stepLibraryStrip } from "../../utils/libraryStripStep";
+import {
+  clearLibraryStripFocus,
+  hoverLibraryStripIcon,
+  stepLibraryStrip,
+} from "../../utils/libraryStripStep";
 
 type CollectionShortcut = {
   id: string;
@@ -838,14 +842,26 @@ export default function LibrariesBar({
     library: GameLibrarySection,
     filterField?: "all" | "installed",
   ) => {
+    clearLibraryStripFocus();
     if (!hoverSelectEnabled) return;
     selectLibraryPage(library, filterField ? { filterField } : undefined);
   };
 
   const handleCollectionShortcutHoverSelect = (collectionId: string) => {
+    clearLibraryStripFocus();
     if (!hoverSelectEnabled) return;
     if (!onSelectCollectionShortcut) return;
     selectCollectionShortcutEntry(collectionId);
+  };
+
+  const handleNonListStripIconMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
+    hoverLibraryStripIcon(e.currentTarget);
+  };
+
+  const handleStripContainerMouseLeave = (e: React.MouseEvent<HTMLDivElement>) => {
+    const related = e.relatedTarget;
+    if (related instanceof Node && e.currentTarget.contains(related)) return;
+    clearLibraryStripFocus();
   };
 
   const topRightToolDock = activeSkinWeb.topRightToolDock;
@@ -1405,7 +1421,7 @@ export default function LibrariesBar({
                 {error && <div className="mhg-libraries-error">{error}</div>}
               </div>
             ) : (
-              <div className="mhg-libraries-container">
+              <div className="mhg-libraries-container" onMouseLeave={handleStripContainerMouseLeave}>
                 {verticalPersistentSidebar && librariesMenuDropdown}
                 {/* Same order as combobox: library (all / installed) before other page tabs */}
                 {inlineOwnedGamesInBar && libraryForGamesSidebar && (
@@ -1499,6 +1515,7 @@ export default function LibrariesBar({
                         navigateFromBar("/add-game", isAddGameRoute);
                       }
                     }}
+                    onMouseEnter={handleNonListStripIconMouseEnter}
                   >
                     <span className="mhg-library-button-label min-w-0 flex-1 truncate">
                       {t("header.addGame")}
@@ -1513,13 +1530,19 @@ export default function LibrariesBar({
                       isSettingsRoute ? "mhg-library-active" : ""
                     }`}
                     onClick={() => navigateFromBar("/settings", isSettingsRoute)}
+                    onMouseEnter={handleNonListStripIconMouseEnter}
                   >
                     <span className="mhg-library-button-label min-w-0 flex-1 truncate">
                       {t("header.settings")}
                     </span>
                   </button>
                 )}
-                {showProfileInLibrariesBar && <ProfileDropdown triggerVariant="library" />}
+                {showProfileInLibrariesBar && (
+                  <ProfileDropdown
+                    triggerVariant="library"
+                    onTriggerMouseEnter={handleNonListStripIconMouseEnter}
+                  />
+                )}
                 {showSidebarSearchPopup && (
                   <button
                     type="button"
@@ -1531,6 +1554,7 @@ export default function LibrariesBar({
                     aria-expanded={sidebarSearchOpen}
                     aria-controls="mhg-sidebar-search-dialog"
                     onClick={() => setSidebarSearchOpen(true)}
+                    onMouseEnter={handleNonListStripIconMouseEnter}
                   >
                     <span className="mhg-library-button-label min-w-0 flex-1 truncate">
                       {t("libraries.sidebarSearch")}

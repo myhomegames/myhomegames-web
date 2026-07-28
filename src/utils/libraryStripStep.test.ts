@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import * as fixedFocalStepSound from "./fixedFocalStepSound";
 import {
   activateStripFocusTarget,
+  clearLibraryStripFocus,
   getStripFocusTarget,
+  hoverLibraryStripIcon,
   isHorizontalLibraryStripMode,
   stepLibraryStrip,
 } from "./libraryStripStep";
@@ -219,5 +222,63 @@ describe("libraryStripStep", () => {
     expect(activateStripFocusTarget()).toBe(true);
     expect(clicks).toEqual(["settings"]);
     expect(getStripFocusTarget()).toBeNull();
+  });
+
+  it("sets strip focus and plays step sound on hover for non-list icons", () => {
+    document.documentElement.setAttribute("data-mhg-vertical-cover-alignment", "true");
+    document.documentElement.setAttribute("data-mhg-fixed-focal-step-sound", "true");
+    const bar = document.createElement("div");
+    bar.className = "mhg-libraries-bar";
+    const row = document.createElement("div");
+    row.className = "mhg-libraries-container";
+    Object.defineProperty(row, "clientWidth", { configurable: true, get: () => 40 });
+
+    const lib = document.createElement("button");
+    lib.className = "mhg-library-button mhg-library-active";
+    lib.setAttribute("data-mhg-strip-has-list", "true");
+    vi.spyOn(lib, "getBoundingClientRect").mockReturnValue({
+      width: 40,
+      height: 40,
+      top: 0,
+      left: 0,
+      bottom: 40,
+      right: 40,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+    row.appendChild(lib);
+
+    const settings = document.createElement("button");
+    settings.className = "mhg-library-button";
+    settings.setAttribute("data-mhg-library-key", "mhg-header-settings");
+    vi.spyOn(settings, "getBoundingClientRect").mockReturnValue({
+      width: 40,
+      height: 40,
+      top: 0,
+      left: 40,
+      bottom: 40,
+      right: 80,
+      x: 40,
+      y: 0,
+      toJSON: () => ({}),
+    });
+    row.appendChild(settings);
+
+    bar.appendChild(row);
+    document.body.appendChild(bar);
+
+    const playSpy = vi.spyOn(fixedFocalStepSound, "playFixedFocalStepSound");
+
+    expect(hoverLibraryStripIcon(settings)).toBe(true);
+    expect(settings.getAttribute("data-mhg-strip-focus")).toBe("true");
+    expect(playSpy).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).not.toBe(settings);
+
+    expect(hoverLibraryStripIcon(settings)).toBe(false);
+    expect(playSpy).toHaveBeenCalledTimes(1);
+
+    clearLibraryStripFocus();
+    expect(settings.hasAttribute("data-mhg-strip-focus")).toBe(false);
   });
 });

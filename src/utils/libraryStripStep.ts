@@ -5,6 +5,7 @@
 
 import { centerStripTileInStripViewport } from "./librariesStripScroll";
 import { playFixedFocalStepSound } from "./fixedFocalStepSound";
+import { isSmartTvBrowser } from "./smartTv";
 import { SMART_TV_HOVER_ATTR } from "./smartTvFocusHover";
 
 const STRIP_FOCUS_ATTR = "data-mhg-strip-focus";
@@ -69,7 +70,7 @@ function clearStripFocus(except?: HTMLElement | null): void {
     });
 }
 
-function setStripFocus(el: HTMLElement): void {
+function setStripFocus(el: HTMLElement, opts?: { domFocus?: boolean }): void {
   clearStripFocus(el);
   el.setAttribute(STRIP_FOCUS_ATTR, "true");
   el.setAttribute(SMART_TV_HOVER_ATTR, "true");
@@ -79,7 +80,9 @@ function setStripFocus(el: HTMLElement): void {
     centerStripTileInStripViewport(row, el);
     row.style.overflowX = "hidden";
   }
-  // Keep DOM focus on the snapped icon so TV Enter activates it (not the previous .mhg-library-active).
+  // TV / keyboard: DOM focus so Enter activates the snapped icon (not .mhg-library-active).
+  // Web mouse hover: skin-only focus — same glow as list tabs, no browser focus ring.
+  if (!opts?.domFocus) return;
   try {
     el.focus({ preventScroll: true });
   } catch {
@@ -89,6 +92,24 @@ function setStripFocus(el: HTMLElement): void {
       /* ignore */
     }
   }
+}
+
+/** Remove strip-focus from all strip icons (e.g. mouse left the icon row). */
+export function clearLibraryStripFocus(): void {
+  clearStripFocus();
+}
+
+/**
+ * Mouse hover on strip icons without a list (header actions): snap focus + step sound.
+ * @returns true if focus moved to this icon
+ */
+export function hoverLibraryStripIcon(el: HTMLElement): boolean {
+  if (!isHorizontalLibraryStripMode()) return false;
+  if (hasStripList(el)) return false;
+  if (el.hasAttribute(STRIP_FOCUS_ATTR)) return false;
+  playStripStepSoundIfEnabled();
+  setStripFocus(el, { domFocus: false });
+  return true;
 }
 
 /** Icon currently snapped in the PS3/XMB strip without auto-opening (Add Game, Settings, …). */
@@ -154,7 +175,7 @@ export function stepLibraryStrip(direction: 1 | -1): boolean {
   } else {
     // Reachable with the same discrete snap as libraries, but do not auto-activate.
     playStripStepSoundIfEnabled();
-    setStripFocus(el);
+    setStripFocus(el, { domFocus: isSmartTvBrowser() });
   }
   return true;
 }
