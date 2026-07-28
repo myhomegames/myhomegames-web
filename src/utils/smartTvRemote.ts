@@ -1,5 +1,9 @@
 import { isSmartTvBrowser } from "./smartTv";
-import { isHorizontalLibraryStripMode, stepLibraryStrip } from "./libraryStripStep";
+import {
+  activateStripFocusTarget,
+  isHorizontalLibraryStripMode,
+  stepLibraryStrip,
+} from "./libraryStripStep";
 
 const KEY_LEFT = 37;
 const KEY_UP = 38;
@@ -485,6 +489,14 @@ export function installSmartTvRemoteKeys(
 
     e.preventDefault();
     e.stopPropagation();
+
+    // PS3 strip: Add Game / Settings / Profile / Search only snap-focus (no auto-click).
+    // Prefer that target over document.activeElement — Tizen often keeps focus on the
+    // last .mhg-library-active list library, so Enter would re-open that instead.
+    if (isHorizontalLibraryStripMode() && activateStripFocusTarget()) {
+      zone = "chrome";
+      return;
+    }
 
     if (zone === "chrome") {
       const active = document.activeElement as HTMLElement | null;
