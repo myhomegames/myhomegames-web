@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useSkin } from "../../contexts/SkinContext";
+
 type AdditionalExecutablesDropdownProps = {
   gameId: string;
   gameExecutables: string[];
@@ -11,6 +13,7 @@ export default function AdditionalExecutablesDropdown({
   gameExecutables,
   onPlayExecutable,
 }: AdditionalExecutablesDropdownProps) {
+  const { activeSkinWeb } = useSkin();
   const [isOpen, setIsOpen] = useState(false);
   const [isPositionReady, setIsPositionReady] = useState(false);
   const [isInSearchPopup, setIsInSearchPopup] = useState(false);
@@ -231,6 +234,13 @@ export default function AdditionalExecutablesDropdown({
             e.stopPropagation();
           }}
           onMouseDown={(e) => {
+            if (
+              activeSkinWeb.disableTitleTooltips &&
+              e.target === e.currentTarget
+            ) {
+              setIsOpen(false);
+              return;
+            }
             // Prevent mousedown from propagating to close the main dropdown
             e.stopPropagation();
           }}
