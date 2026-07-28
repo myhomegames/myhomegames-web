@@ -99,6 +99,29 @@ function withMoonlightStopHook(streamUrl: string, stopUrl: string, returnUrl?: s
   }
 }
 
+function isMoonlightStreamUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.pathname.endsWith("/stream.html") || url.pathname.endsWith("stream.html");
+  } catch {
+    return false;
+  }
+}
+
+function resolveLaunchStreamUrl(data: Record<string, unknown>): string {
+  const fromStream =
+    typeof data.moonlightStream === "object" &&
+    data.moonlightStream &&
+    typeof (data.moonlightStream as { url?: unknown }).url === "string"
+      ? String((data.moonlightStream as { url: string }).url).trim()
+      : "";
+  const fromRoot =
+    typeof data.moonlightWebUrl === "string" ? data.moonlightWebUrl.trim() : "";
+  if (fromStream && isMoonlightStreamUrl(fromStream)) return fromStream;
+  if (fromRoot && isMoonlightStreamUrl(fromRoot)) return fromRoot;
+  return fromStream || fromRoot;
+}
+
 function isStillStreamUrl(href: string, streamUrl: string): boolean {
   try {
     const current = new URL(href);
@@ -230,14 +253,23 @@ export default function StreamPlayPage() {
           );
           return;
         }
-        const streamUrl =
-          typeof data.moonlightWebUrl === "string" ? data.moonlightWebUrl.trim() : "";
+        const streamUrl = resolveLaunchStreamUrl(data as Record<string, unknown>);
         if (!streamUrl) {
           setLaunchState("error");
           setError(
             t(
               "streamPlay.noMoonlightUrl",
               "Moonlight Web URL is not configured on the server.",
+            ),
+          );
+          return;
+        }
+        if (!isMoonlightStreamUrl(streamUrl)) {
+          setLaunchState("error");
+          setError(
+            t(
+              "streamPlay.noDesktopStream",
+              "Could not open the Desktop stream automatically. Restart the home server and try again.",
             ),
           );
           return;
@@ -287,7 +319,19 @@ export default function StreamPlayPage() {
           popupRef.current = popup;
           setEmbedMode("popup");
         } else {
-          setEmbedMode("iframe");
+          // Mobile browsers often block popups; open stream.html top-level so Moonlight
+          // auto-starts Desktop instead of landing on the host/settings index.
+          stashPendingStreamStop({
+            hostId: resolvedHostId,
+            gameId,
+            executableName,
+            stopUrl,
+          });
+          leaveForMoonlightRef.current = true;
+          setEmbedMode("redirect");
+          setLaunchState("ready");
+          window.location.assign(finalStreamUrl);
+          return;
         }
         setLaunchState("ready");
       } catch (err) {
