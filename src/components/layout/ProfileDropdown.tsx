@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type MouseEvent } from "react";
+import { useState, useRef, useEffect, type MouseEvent as ReactMouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import Tooltip from "../common/Tooltip";
@@ -18,7 +18,7 @@ type ProfileDropdownProps = {
   /** Compact header icon row on phone-width viewports. */
   compactHeader?: boolean;
   /** PS3 strip: snap-focus + step sound on mouse hover (icons without a list). */
-  onTriggerMouseEnter?: (e: MouseEvent<HTMLButtonElement>) => void;
+  onTriggerMouseEnter?: (e: ReactMouseEvent<HTMLButtonElement>) => void;
 };
 
 function ProfileAvatarPlaceholder({ size = 80 }: { size?: number }) {
