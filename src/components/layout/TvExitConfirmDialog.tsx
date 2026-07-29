@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { exitSmartTvApplication } from "../../utils/exitSmartTvApplication";
 import { isSmartTvBrowser } from "../../utils/smartTv";
+import { requestSmartTvUiLayerFocus } from "../../utils/smartTvRemote";
 
 /**
  * Confirm before closing the Tizen app when Back is pressed on the home screen.
@@ -26,16 +27,9 @@ export default function TvExitConfirmDialog() {
     };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open) return;
-    const tId = window.setTimeout(() => {
-      try {
-        cancelRef.current?.focus({ preventScroll: true });
-      } catch {
-        cancelRef.current?.focus();
-      }
-    }, 50);
-    return () => window.clearTimeout(tId);
+    requestSmartTvUiLayerFocus();
   }, [open]);
 
   useEffect(() => {
@@ -74,14 +68,16 @@ export default function TvExitConfirmDialog() {
       >
         <div className="dropdown-menu-confirm-header">
           <h2 id="mhg-tv-exit-title">{t("common.exitAppTitle", "Exit MyHomeGames?")}</h2>
-          <button
-            type="button"
-            className="dropdown-menu-confirm-close"
-            onClick={() => setOpen(false)}
-            aria-label={t("common.close", "Close")}
-          >
-            ×
-          </button>
+          {!isSmartTvBrowser() && (
+            <button
+              type="button"
+              className="dropdown-menu-confirm-close"
+              onClick={() => setOpen(false)}
+              aria-label={t("common.close", "Close")}
+            >
+              ×
+            </button>
+          )}
         </div>
         <div className="dropdown-menu-confirm-content">
           <p id="mhg-tv-exit-desc">
@@ -94,6 +90,7 @@ export default function TvExitConfirmDialog() {
             type="button"
             className="dropdown-menu-confirm-cancel"
             data-mhg-tv-focus
+            tabIndex={0}
             onClick={() => setOpen(false)}
           >
             {t("common.cancel", "Cancel")}
@@ -102,6 +99,7 @@ export default function TvExitConfirmDialog() {
             type="button"
             className="dropdown-menu-confirm-delete"
             data-mhg-tv-focus
+            tabIndex={0}
             onClick={() => exitSmartTvApplication()}
           >
             {t("common.exitAppConfirm", "Exit")}
