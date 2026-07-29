@@ -160,6 +160,33 @@ export function isSmartTvUiLayerOpen(): boolean {
   return getActiveUiLayer() != null;
 }
 
+const INERT_MARK = "data-mhg-tv-inert";
+
+/**
+ * Mark every sibling along the path from the active layer up to <body> as `inert`
+ * so Tizen spatial navigation cannot land on covers / chrome behind the popup.
+ * Portaled overlays (exit confirm, Add Game, …) sit on body → `#root` becomes inert.
+ */
+function syncBackgroundInert(layer: HTMLElement | null): void {
+  document.querySelectorAll<HTMLElement>(`[${INERT_MARK}]`).forEach((el) => {
+    el.removeAttribute("inert");
+    el.removeAttribute(INERT_MARK);
+  });
+  if (!layer || !layer.isConnected) return;
+
+  let node: HTMLElement | null = layer;
+  while (node && node !== document.body) {
+    const parent: HTMLElement | null = node.parentElement;
+    if (!parent) break;
+    for (const sibling of Array.from(parent.children)) {
+      if (sibling === node || !(sibling instanceof HTMLElement)) continue;
+      sibling.setAttribute("inert", "");
+      sibling.setAttribute(INERT_MARK, "");
+    }
+    node = parent;
+  }
+}
+
 /**
  * @param allowTextFields when false, skip inputs/search — used after leaving a field so we
  * never immediately re-focus the same search box (common on pages without library buttons).
@@ -435,6 +462,7 @@ export function installSmartTvRemoteKeys(
   /** Pull remote focus into the open sheet/modal (and keep it there). */
   const focusIntoActiveUiLayer = (): boolean => {
     const layer = getActiveUiLayer();
+    syncBackgroundInert(layer);
     if (!layer) return false;
     zone = "chrome";
     const active = document.activeElement as HTMLElement | null;
@@ -550,7 +578,10 @@ export function installSmartTvRemoteKeys(
       const uiLayer = getActiveUiLayer();
       // Sheet/modal open: stay in the layer — no strip step, no fixed-focal behind.
       if (uiLayer) {
+        // Beat Tizen spatial nav that still walks tabindex=0 covers behind the dialog.
+        e.stopImmediatePropagation();
         zone = "chrome";
+        syncBackgroundInert(uiLayer);
         const active = document.activeElement as HTMLElement | null;
         const current =
           active &&
@@ -567,7 +598,14 @@ export function installSmartTvRemoteKeys(
         const from =
           focused && uiLayer.contains(focused) && focused !== uiLayer ? focused : null;
         const next = pickNextFocus(from, direction, true);
-        if (next) focusElement(next);
+        if (next) {
+          focusElement(next);
+        } else if (from) {
+          // No neighbor in this direction — keep focus parked in the dialog.
+          focusElement(from);
+        } else {
+          focusIntoActiveUiLayer();
+        }
         return;
       }
 
@@ -683,6 +721,10 @@ export function installSmartTvRemoteKeys(
     e.stopPropagation();
 
     const uiLayer = getActiveUiLayer();
+    if (uiLayer) {
+      e.stopImmediatePropagation();
+      syncBackgroundInert(uiLayer);
+    }
 
     // PS3 strip: Add Game / Settings / Profile / Search only snap-focus (no auto-click).
     // Prefer that target over document.activeElement — Tizen often keeps focus on the
@@ -733,6 +775,7 @@ export function installSmartTvRemoteKeys(
   // If Tizen spatial nav tries to focus covers behind a sheet, yank focus back in.
   const onFocusIn = (e: FocusEvent) => {
     const layer = getActiveUiLayer();
+    syncBackgroundInert(layer);
     if (!layer) return;
     const target = e.target as Node | null;
     if (target && layer.contains(target)) return;
@@ -748,7 +791,9 @@ export function installSmartTvRemoteKeys(
     if (layerSyncRaf) return;
     layerSyncRaf = window.requestAnimationFrame(() => {
       layerSyncRaf = 0;
-      focusIntoActiveUiLayer();
+      const layer = getActiveUiLayer();
+      syncBackgroundInert(layer);
+      if (layer) focusIntoActiveUiLayer();
     });
   };
   const layerObserver = new MutationObserver(scheduleLayerFocusSync);
@@ -767,6 +812,9 @@ export function installSmartTvRemoteKeys(
   };
   window.addEventListener("mhg-api-base-changed", onApi);
 
+  // Initial sync (no layer → clear any leftover inert marks).
+  syncBackgroundInert(getActiveUiLayer());
+
   return () => {
     window.removeEventListener("keydown", onKeyDown, true);
     window.removeEventListener("focusin", onFocusIn, true);
@@ -775,5 +823,6 @@ export function installSmartTvRemoteKeys(
     if (layerSyncRaf) window.cancelAnimationFrame(layerSyncRaf);
     window.clearTimeout(t1);
     window.clearTimeout(t2);
+    syncBackgroundInert(null);
   };
 }

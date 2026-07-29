@@ -67,7 +67,11 @@ export function attachFixedFocalStepInput(options: AttachFixedFocalStepInputOpti
   let axis: AxisLock = "undecided";
 
   const onWheel = (e: WheelEvent) => {
-    if (isSmartTvUiLayerOpen()) return;
+    if (isSmartTvUiLayerOpen()) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     if (Math.abs(e.deltaY) < 0.01 && Math.abs(e.deltaX) < 0.01) return;
     if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
       if (!isHorizontalLibraryStripMode() && !onHorizontalStep) return;
