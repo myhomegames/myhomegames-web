@@ -11,3 +11,15 @@ html[data-mhg-tv="1"] .mhg-tv-exit-confirm .dropdown-menu-confirm-delete[data-mh
   box-shadow: 0 0 0 3px #e5a00d;
   background-color: rgba(255, 255, 255, 0.12);
 }
+
+/* Add Game: keep Create focusable on TV while visually disabled. */
+html[data-mhg-tv="1"] .add-game-create-btn[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+html[data-mhg-tv="1"] .add-game-create-btn:focus,
+html[data-mhg-tv="1"] .add-game-create-btn[data-mhg-tv-hover] {
+  outline: none;
+  box-shadow: 0 0 0 3px #e5a00d;
+}

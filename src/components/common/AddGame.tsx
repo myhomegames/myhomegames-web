@@ -51,6 +51,7 @@ export default function AddGame({
     },
     onError: () => {},
   });
+  const createActionDisabled = !createTitle.trim() || isCreating;
   
   useEffect(() => {
     isOpenRef.current = isOpen;
@@ -437,7 +438,7 @@ export default function AddGame({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t("addGame.searchPlaceholder")}
                 className="add-game-search-input"
-                autoFocus={!smartTv}
+                autoFocus
                 autoComplete="off"
               />
             </div>
@@ -482,7 +483,8 @@ export default function AddGame({
               />
               <button
                 type="submit"
-                disabled={!createTitle.trim() || isCreating}
+                disabled={smartTv ? isCreating : createActionDisabled}
+                aria-disabled={smartTv && createActionDisabled ? true : undefined}
                 className="add-game-create-btn"
                 data-mhg-tv-focus
               >
