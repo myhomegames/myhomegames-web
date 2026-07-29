@@ -1,0 +1,13 @@
+/* Smart TV: visible focus on exit-confirm actions (web fallback; skins may override). */
+html[data-mhg-tv="1"] .mhg-tv-exit-confirm .dropdown-menu-confirm-cancel,
+html[data-mhg-tv="1"] .mhg-tv-exit-confirm .dropdown-menu-confirm-delete {
+  outline: none;
+}
+
+html[data-mhg-tv="1"] .mhg-tv-exit-confirm .dropdown-menu-confirm-cancel:focus,
+html[data-mhg-tv="1"] .mhg-tv-exit-confirm .dropdown-menu-confirm-delete:focus,
+html[data-mhg-tv="1"] .mhg-tv-exit-confirm .dropdown-menu-confirm-cancel[data-mhg-tv-hover],
+html[data-mhg-tv="1"] .mhg-tv-exit-confirm .dropdown-menu-confirm-delete[data-mhg-tv-hover] {
+  box-shadow: 0 0 0 3px #e5a00d;
+  background-color: rgba(255, 255, 255, 0.12);
+}

@@ -191,10 +191,10 @@ function syncBackgroundInert(layer: HTMLElement | null): void {
  * @param allowTextFields when false, skip inputs/search — used after leaving a field so we
  * never immediately re-focus the same search box (common on pages without library buttons).
  */
-function collectFocusables(allowTextFields: boolean): HTMLElement[] {
+function collectFocusables(allowTextFields: boolean, scope?: ParentNode): HTMLElement[] {
   // Keep D-pad inside the open sheet/modal (same idea as exit confirm).
-  const scope: ParentNode = getActiveUiLayer() ?? document;
-  const nodes = scope.querySelectorAll<HTMLElement>(
+  const root: ParentNode = scope ?? getActiveUiLayer() ?? document;
+  const nodes = root.querySelectorAll<HTMLElement>(
     [
       "button:not([disabled]):not([tabindex='-1'])",
       "a[href]:not([tabindex='-1'])",
@@ -215,6 +215,27 @@ function collectFocusables(allowTextFields: boolean): HTMLElement[] {
     if (!allowTextFields && isTextField(el)) return false;
     return true;
   });
+}
+
+/** First sensible focus target inside a known UI layer (exit confirm → Cancel). */
+function pickPreferredUiLayerFocus(layer: HTMLElement): HTMLElement | null {
+  if (layer.hasAttribute("data-mhg-tv-exit-confirm")) {
+    const cancel = layer.querySelector<HTMLElement>(".dropdown-menu-confirm-cancel");
+    if (cancel && isVisible(cancel)) return cancel;
+  }
+  const items = collectFocusables(true, layer);
+  return items[0] ?? null;
+}
+
+let focusActiveUiLayerImpl: (() => boolean) | null = null;
+
+/** Retry focus steal into the topmost sheet/modal (e.g. after React portals mount). */
+export function requestSmartTvUiLayerFocus(): void {
+  const attempt = () => focusActiveUiLayerImpl?.() ?? false;
+  attempt();
+  for (const delay of [0, 50, 150, 300]) {
+    window.setTimeout(attempt, delay);
+  }
 }
 
 function center(rect: DOMRect): { x: number; y: number } {
@@ -306,6 +327,32 @@ function focusElement(el: HTMLElement): void {
   } catch {
     el.focus();
   }
+}
+
+function isUnderInertAncestor(el: HTMLElement): boolean {
+  let node: HTMLElement | null = el;
+  while (node && node !== document.documentElement) {
+    if (node.inert) return true;
+    node = node.parentElement;
+  }
+  return false;
+}
+
+/** Blur focus trapped inside an `inert` #root when a portaled popup opens on <body>. */
+function releaseInertTrappedFocus(): void {
+  const active = document.activeElement as HTMLElement | null;
+  if (!active || active === document.body || active === document.documentElement) return;
+  if (isUnderInertAncestor(active)) {
+    try {
+      active.blur();
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+function isUiLayerChrome(el: HTMLElement, layer: HTMLElement): boolean {
+  return el === layer;
 }
 
 function blurToContent(): void {
@@ -465,28 +512,31 @@ export function installSmartTvRemoteKeys(
     syncBackgroundInert(layer);
     if (!layer) return false;
     zone = "chrome";
+    releaseInertTrappedFocus();
     const active = document.activeElement as HTMLElement | null;
     if (
       active &&
       active !== document.body &&
       active !== document.documentElement &&
+      !isUiLayerChrome(active, layer) &&
       layer.contains(active)
     ) {
       return true;
     }
-    const items = collectFocusables(true);
-    const next = items[0] ?? null;
+    const next = pickPreferredUiLayerFocus(layer);
     if (next) {
       focusElement(next);
       return true;
     }
-    // No row yet — park focus on the layer root so Tizen cannot land on covers behind.
+    // Last resort — park on layer root until buttons mount.
     if (layer.tabIndex < 0 && !layer.hasAttribute("tabindex")) {
       layer.tabIndex = -1;
     }
     focusElement(layer);
     return true;
   };
+
+  focusActiveUiLayerImpl = focusIntoActiveUiLayer;
 
   const bootstrapTvFocus = () => {
     if (focusIntoActiveUiLayer()) return;
@@ -588,6 +638,7 @@ export function installSmartTvRemoteKeys(
           active !== document.body &&
           active !== document.documentElement &&
           !isLogoButton(active) &&
+          !isUiLayerChrome(active, uiLayer) &&
           uiLayer.contains(active)
             ? active
             : null;
@@ -812,13 +863,21 @@ export function installSmartTvRemoteKeys(
   };
   window.addEventListener("mhg-api-base-changed", onApi);
 
+  const onUiLayerFocusRequest = () => requestSmartTvUiLayerFocus();
+  const onExitRequested = () => requestSmartTvUiLayerFocus();
+  window.addEventListener("mhg:tv-ui-layer-focus-request", onUiLayerFocusRequest);
+  window.addEventListener("mhg:tv-request-exit", onExitRequested);
+
   // Initial sync (no layer → clear any leftover inert marks).
   syncBackgroundInert(getActiveUiLayer());
 
   return () => {
+    focusActiveUiLayerImpl = null;
     window.removeEventListener("keydown", onKeyDown, true);
     window.removeEventListener("focusin", onFocusIn, true);
     window.removeEventListener("mhg-api-base-changed", onApi);
+    window.removeEventListener("mhg:tv-ui-layer-focus-request", onUiLayerFocusRequest);
+    window.removeEventListener("mhg:tv-request-exit", onExitRequested);
     layerObserver.disconnect();
     if (layerSyncRaf) window.cancelAnimationFrame(layerSyncRaf);
     window.clearTimeout(t1);
