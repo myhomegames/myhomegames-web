@@ -40,6 +40,13 @@ export default function TvExitConfirmDialog() {
 
   useEffect(() => {
     if (!open) return;
+    // Announce for any TV remote code that keys off body attributes.
+    document.body.setAttribute("data-mhg-tv-exit-open", "");
+    return () => document.body.removeAttribute("data-mhg-tv-exit-open");
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
     const onTvBack = (event: Event) => {
       event.preventDefault();
       setOpen(false);
