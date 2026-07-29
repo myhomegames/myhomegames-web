@@ -11,6 +11,8 @@ import { useSkin } from "../../contexts/SkinContext";
 import { useCreateGame } from "./actions";
 import type { GameItem, CatalogGame } from "../../types";
 import Cover from "../games/Cover";
+import { isSmartTvBrowser } from "../../utils/smartTv";
+import { requestSmartTvUiLayerFocus } from "../../utils/smartTvRemote";
 
 type AddGameProps = {
   isOpen: boolean;
@@ -28,6 +30,7 @@ export default function AddGame({
   const { catalogSearchEnabled } = useSettings();
   const { activeSkinWeb } = useSkin();
   const ps3HeaderSheet = activeSkinWeb.libraryBarHeaderActions;
+  const smartTv = isSmartTvBrowser();
   const [searchQuery, setSearchQuery] = useState("");
   const [createTitle, setCreateTitle] = useState("");
   const [results, setResults] = useState<CatalogGame[]>([]);
@@ -52,6 +55,11 @@ export default function AddGame({
   useEffect(() => {
     isOpenRef.current = isOpen;
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !smartTv) return;
+    requestSmartTvUiLayerFocus();
+  }, [isOpen, smartTv]);
 
   useEffect(() => {
     if (!isOpen || !ps3HeaderSheet) return;
@@ -342,11 +350,15 @@ export default function AddGame({
         setResults(json.games || []);
         setError(null);
         
-        // Close browser autocomplete popup when results arrive
-        // Do a brief blur/focus cycle to dismiss the autocomplete dropdown
-        if (inputRef.current && json.games && json.games.length > 0) {
+        // Close browser autocomplete popup when results arrive (desktop only).
+        // On TV, refocusing the search box traps D-pad navigation in the input.
+        if (
+          !smartTv &&
+          inputRef.current &&
+          json.games &&
+          json.games.length > 0
+        ) {
           inputRef.current.blur();
-          // Re-focus after a very short delay to allow user to continue typing
           setTimeout(() => {
             if (inputRef.current && isOpenRef.current) {
               inputRef.current.focus();
@@ -362,7 +374,7 @@ export default function AddGame({
       }
     }, 500);
     searchTimeoutRef.current = timeoutId;
-  }, [catalogSearchEnabled, t]);
+  }, [catalogSearchEnabled, t, smartTv]);
 
   useEffect(() => {
     const trimmedQuery = searchQuery.trim();
@@ -425,7 +437,7 @@ export default function AddGame({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t("addGame.searchPlaceholder")}
                 className="add-game-search-input"
-                autoFocus
+                autoFocus={!smartTv}
                 autoComplete="off"
               />
             </div>
@@ -472,6 +484,7 @@ export default function AddGame({
                 type="submit"
                 disabled={!createTitle.trim() || isCreating}
                 className="add-game-create-btn"
+                data-mhg-tv-focus
               >
                 {isCreating ? t("addGame.creating", "Creating...") : t("addGame.create")}
               </button>
