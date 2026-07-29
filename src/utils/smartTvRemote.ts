@@ -196,6 +196,8 @@ function collectFocusables(allowTextFields: boolean, scope?: ParentNode): HTMLEl
   const root: ParentNode = scope ?? getActiveUiLayer() ?? document;
   const nodes = root.querySelectorAll<HTMLElement>(
     [
+      // TV sheets may keep disabled actions focusable so D-pad can leave search inputs.
+      "button[data-mhg-tv-focus]:not([tabindex='-1'])",
       "button:not([disabled]):not([tabindex='-1'])",
       "a[href]:not([tabindex='-1'])",
       "[role='button']:not([tabindex='-1'])",
@@ -222,6 +224,10 @@ function pickPreferredUiLayerFocus(layer: HTMLElement): HTMLElement | null {
   if (layer.hasAttribute("data-mhg-tv-exit-confirm")) {
     const cancel = layer.querySelector<HTMLElement>(".dropdown-menu-confirm-cancel");
     if (cancel && isVisible(cancel)) return cancel;
+  }
+  if (layer.classList.contains("add-game-overlay")) {
+    const createBtn = layer.querySelector<HTMLElement>(".add-game-create-btn");
+    if (createBtn && isVisible(createBtn)) return createBtn;
   }
   const items = collectFocusables(true, layer);
   return items[0] ?? null;
@@ -569,6 +575,18 @@ export function installSmartTvRemoteKeys(
       zone = "chrome";
       window.setTimeout(() => enterChrome(), 0);
       return;
+    }
+
+    const addGameLayer = field.closest(".add-game-overlay") as HTMLElement | null;
+    if (addGameLayer) {
+      zone = "chrome";
+      const next = direction
+        ? pickNextFocus(field, direction, false)
+        : pickPreferredUiLayerFocus(addGameLayer);
+      if (next) {
+        focusElement(next);
+        return;
+      }
     }
 
     zone = "chrome";
