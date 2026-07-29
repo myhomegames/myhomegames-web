@@ -226,8 +226,10 @@ function pickPreferredUiLayerFocus(layer: HTMLElement): HTMLElement | null {
     if (cancel && isVisible(cancel)) return cancel;
   }
   if (layer.classList.contains("add-game-overlay")) {
-    const createBtn = layer.querySelector<HTMLElement>(".add-game-create-btn");
-    if (createBtn && isVisible(createBtn)) return createBtn;
+    const searchInput = layer.querySelector<HTMLElement>("#add-game-search");
+    if (searchInput && isVisible(searchInput)) return searchInput;
+    const createTitle = layer.querySelector<HTMLElement>("#add-game-create-title");
+    if (createTitle && isVisible(createTitle)) return createTitle;
   }
   const items = collectFocusables(true, layer);
   return items[0] ?? null;
@@ -580,13 +582,23 @@ export function installSmartTvRemoteKeys(
     const addGameLayer = field.closest(".add-game-overlay") as HTMLElement | null;
     if (addGameLayer) {
       zone = "chrome";
-      const next = direction
-        ? pickNextFocus(field, direction, false)
-        : pickPreferredUiLayerFocus(addGameLayer);
+      const leaveDirection: Direction = direction ?? "down";
+      let next = pickNextFocus(field, leaveDirection, false);
+      // Below search: land on create title, then create / result rows.
+      if (!next && leaveDirection === "down") {
+        next = pickNextFocus(field, "down", true);
+      }
+      if (!next) {
+        next =
+          addGameLayer.querySelector<HTMLElement>(".add-game-create-btn") ??
+          addGameLayer.querySelector<HTMLElement>(".add-game-result-item");
+      }
       if (next) {
         focusElement(next);
         return;
       }
+      focusElement(field);
+      return;
     }
 
     zone = "chrome";
