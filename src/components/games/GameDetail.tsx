@@ -863,7 +863,7 @@ function GameDetailContent({
                     onGameClick={handleRelatedGameClick}
                     onPlay={onPlay}
                     onGameUpdate={handleRelatedGameUpdate}
-                    coverSize={140}
+                    coverSize={coverSize}
                     allCollections={allCollections}
                     allCollectionLikes={allCollections}
                     collectionLikeResourceType="collections"
