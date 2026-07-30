@@ -124,6 +124,24 @@ function isLayerCandidate(el: HTMLElement): boolean {
   return rect.width > 2 && rect.height > 2;
 }
 
+/** True if this node is itself a known sheet/modal (must never be marked inert). */
+function isKnownUiLayerNode(el: HTMLElement): boolean {
+  return UI_LAYER_SELECTORS.some((sel) => {
+    try {
+      return el.matches(sel);
+    } catch {
+      return false;
+    }
+  });
+}
+
+function isPortaledDropdownSubmenu(el: HTMLElement): boolean {
+  return (
+    el.classList.contains("add-to-collection-dropdown-menu") ||
+    el.classList.contains("additional-executables-dropdown-menu")
+  );
+}
+
 function readZIndex(el: HTMLElement): number {
   let node: HTMLElement | null = el;
   while (node && node !== document.documentElement) {
@@ -148,7 +166,16 @@ export function getActiveUiLayer(): HTMLElement | null {
   if (candidates.length === 0) return null;
 
   candidates.sort((a, b) => {
-    const zDiff = readZIndex(a) - readZIndex(b);
+    // Nested "Add to" / executables flyouts must win over the parent ⋮ / phone sheet
+    // even when a skin leaves their z-index below the overlay (plex / gog vs PS3).
+    const parentMenuOpen = candidates.some(
+      (c) =>
+        c.classList.contains("dropdown-menu-phone-sheet-overlay") ||
+        c.classList.contains("dropdown-menu-popup"),
+    );
+    const boost = (el: HTMLElement) =>
+      parentMenuOpen && isPortaledDropdownSubmenu(el) ? 1_000_000 : 0;
+    const zDiff = readZIndex(a) + boost(a) - (readZIndex(b) + boost(b));
     if (zDiff !== 0) return zDiff;
     const pos = a.compareDocumentPosition(b);
     if (pos & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
@@ -183,6 +210,8 @@ function syncBackgroundInert(layer: HTMLElement | null): void {
     if (!parent) break;
     for (const sibling of Array.from(parent.children)) {
       if (sibling === node || !(sibling instanceof HTMLElement)) continue;
+      // Portaled submenus share <body> with the phone sheet — never inert them.
+      if (isKnownUiLayerNode(sibling)) continue;
       sibling.setAttribute("inert", "");
       sibling.setAttribute(INERT_MARK, "");
     }
@@ -234,14 +263,15 @@ function pickPreferredUiLayerFocus(layer: HTMLElement): HTMLElement | null {
     const createTitle = layer.querySelector<HTMLElement>("#add-game-create-title");
     if (createTitle && isVisible(createTitle)) return createTitle;
   }
-  // Cover / ⋮ action sheet: prefer a real menu row over the overlay chrome.
+  // Cover / ⋮ action sheet / portaled submenu: prefer a real menu row over chrome.
   if (
     layer.classList.contains("dropdown-menu-phone-sheet-overlay") ||
     layer.classList.contains("dropdown-menu-popup") ||
     layer.classList.contains("edit-game-modal-overlay") ||
     layer.classList.contains("filter-popup") ||
     layer.classList.contains("sort-popup") ||
-    layer.classList.contains("profile-dropdown-popup")
+    layer.classList.contains("profile-dropdown-popup") ||
+    isPortaledDropdownSubmenu(layer)
   ) {
     const menuItems = collectMenuListItems(layer);
     if (menuItems[0]) return menuItems[0];
@@ -342,7 +372,16 @@ function pickNextFocus(
 
 /** Vertical list rows inside ⋮ / cover / filter sheets — use DOM order, not geometry. */
 function collectMenuListItems(layer: HTMLElement): HTMLElement[] {
-  const nodes = layer.querySelectorAll<HTMLElement>(
+  // Nested collection-like "Add to" covers the parent sheet when open — stay inside it.
+  const nestedSubmenu = layer.querySelector<HTMLElement>(
+    ".dropdown-menu-collectionlike-submenu",
+  );
+  const scope =
+    nestedSubmenu && isVisible(nestedSubmenu) && !isPortaledDropdownSubmenu(layer)
+      ? nestedSubmenu
+      : layer;
+
+  const nodes = scope.querySelectorAll<HTMLElement>(
     [
       "button.dropdown-menu-item:not([disabled])",
       ".dropdown-menu-item[role='button']",
@@ -358,10 +397,30 @@ function collectMenuListItems(layer: HTMLElement): HTMLElement[] {
   const items: HTMLElement[] = [];
   nodes.forEach((el) => {
     if (seen.has(el) || !isVisible(el)) return;
+    // Skip the submenu trigger row itself when listing nested submenu children.
+    if (scope !== layer && el.classList.contains("dropdown-menu-item-with-submenu")) return;
+    // While a nested submenu is closed, skip items that live inside one.
+    if (
+      scope === layer &&
+      el.closest(".dropdown-menu-collectionlike-submenu") &&
+      el.closest(".dropdown-menu-collectionlike-submenu") !== layer
+    ) {
+      return;
+    }
     seen.add(el);
     items.push(el);
   });
   return items;
+}
+
+function closePortaledDropdownSubmenus(): void {
+  window.dispatchEvent(new CustomEvent("closeAddToCollectionDropdown"));
+  window.dispatchEvent(new CustomEvent("closeAdditionalExecutablesDropdown"));
+}
+
+function openFocusedSubmenuRow(row: HTMLElement): void {
+  row.click();
+  requestSmartTvUiLayerFocus();
 }
 
 function pickNextInMenuList(
@@ -485,9 +544,14 @@ function tryDismissUiLayer(): boolean {
 
     // Cover / ⋮ menus have no close button and ignore synthetic Escape alone.
     if (isDismissibleDropdownLayer(layer)) {
+      // Second-level portaled menus: Back closes only the submenu, not the parent sheet.
+      if (isPortaledDropdownSubmenu(layer)) {
+        closePortaledDropdownSubmenus();
+        window.setTimeout(() => focusIntoActiveUiLayerImpl?.(), 0);
+        return true;
+      }
       window.dispatchEvent(new CustomEvent("mhg:close-dropdown-menus"));
-      window.dispatchEvent(new CustomEvent("closeAddToCollectionDropdown"));
-      window.dispatchEvent(new CustomEvent("closeAdditionalExecutablesDropdown"));
+      closePortaledDropdownSubmenus();
       document.dispatchEvent(
         new KeyboardEvent("keydown", {
           key: "Escape",
@@ -697,7 +761,7 @@ export function installSmartTvRemoteKeys(
         isActivatable
       ) {
         active.click();
-        window.setTimeout(() => focusIntoActiveUiLayer(), 0);
+        requestSmartTvUiLayerFocus();
         return;
       }
       if (uiLayer) {
@@ -883,9 +947,51 @@ export function installSmartTvRemoteKeys(
         const from =
           focused && uiLayer.contains(focused) && focused !== uiLayer ? focused : null;
 
+        // Enter a ⋮ submenu (Add to… / Additional executables / nested collection-like).
+        if (
+          direction === "right" &&
+          from?.classList.contains("dropdown-menu-item-with-submenu")
+        ) {
+          openFocusedSubmenuRow(from);
+          return;
+        }
+
+        // Leave a portaled second-level menu with Left (Back still works via tryDismiss).
+        if (direction === "left" && isPortaledDropdownSubmenu(uiLayer)) {
+          closePortaledDropdownSubmenus();
+          window.setTimeout(() => focusIntoActiveUiLayerImpl?.(), 0);
+          return;
+        }
+
+        // Nested collection-like submenu lives inside the parent popup — Left closes it.
+        if (direction === "left" && from?.closest(".dropdown-menu-collectionlike-submenu")) {
+          const nestedHost = from.closest(".dropdown-menu-item-with-submenu") as HTMLElement | null;
+          if (
+            nestedHost?.querySelector(":scope > .dropdown-menu-collectionlike-submenu")
+          ) {
+            nestedHost.dispatchEvent(
+              new MouseEvent("mouseleave", {
+                bubbles: true,
+                cancelable: true,
+                relatedTarget: document.body,
+              }),
+            );
+            focusElement(nestedHost);
+            return;
+          }
+        }
+
         // ⋮ / cover / filter sheets: step rows in DOM order (geometry fails on full-bleed PS3 sheets).
         const listNext = pickNextInMenuList(uiLayer, from, direction);
         if (listNext) {
+          // Leaving the "Add to" row with Up/Down should dismiss the portaled flyout.
+          if (
+            (direction === "up" || direction === "down") &&
+            from?.classList.contains("dropdown-menu-item-with-submenu") &&
+            !listNext.classList.contains("dropdown-menu-item-with-submenu")
+          ) {
+            closePortaledDropdownSubmenus();
+          }
           focusElement(listNext);
           return;
         }
