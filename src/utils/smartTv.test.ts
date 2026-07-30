@@ -64,6 +64,22 @@ describe("smartTv", () => {
     expect(withMoonlightTvProfile(input, false)).toBe(input);
   });
 
+  it("forces Smart TV mode when ?mhgTv=1 is in the URL", () => {
+    const originalLocation = window.location;
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...originalLocation, search: "?mhgTv=1" },
+    });
+    try {
+      expect(isSmartTvBrowser("Mozilla/5.0 (Macintosh) Chrome/131.0.0.0")).toBe(true);
+    } finally {
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: originalLocation,
+      });
+    }
+  });
+
   it("toggles data-mhg-tv on the document element", () => {
     const el = document.createElement("html");
     applySmartTvDocumentFlag(true, el);

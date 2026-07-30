@@ -136,6 +136,36 @@ npm run preview
 
 This will serve the production build locally at `https://localhost:5173/app/` (same port as dev; HTTPS when `VITE_HTTPS_ENABLED=true`).
 
+## Testing Smart TV behaviour on desktop
+
+On a real TV the app detects Tizen, webOS, Android TV, and similar user agents via `isSmartTvBrowser()` in `src/utils/smartTv.ts`. On a desktop browser you can force the same behaviour with the query flag **`mhgTv=1`**.
+
+### Usage
+
+Append `?mhgTv=1` to any app URL (dev or preview), for example:
+
+```text
+http://localhost:5173/app/?mhgTv=1
+https://localhost:5173/app/?mhgTv=1
+```
+
+The flag is read once at load time. Reload the page after adding or removing it.
+
+### What it enables
+
+When `mhgTv=1` is present:
+
+- `isSmartTvBrowser()` returns `true` even on desktop user agents.
+- `<html>` gets `data-mhg-tv="1"` (via `applySmartTvDocumentFlag()` in `main.tsx`), so **skin CSS** can target TV layout (hidden scrollbars, focus rings, library bar tweaks, etc.).
+- **D-pad / remote** handling is installed (`smartTvRemote.ts`): arrow keys, Enter short vs long-press, Back, fixed-focal lists.
+- **Cover context menu** (play, edit, ⋮ actions) opens on long-press instead of overlay buttons (`useCompactCoverChrome`).
+- **Moonlight** stream URLs get `mhgProfile=tv` when opening remote play.
+- Other TV-only flows (device pairing, exit confirm, tunnel connect) behave as on a physical TV.
+
+### Phone layout
+
+There is **no** equivalent `?mhgPhone=1` flag. Phone layout is driven by viewport width (`max-width: 479px` in `usePhoneLayout`). To test phone UI on desktop, resize the window or use browser DevTools device emulation at ≤ 479px width.
+
 ## Troubleshooting
 
 ### Web application won't start

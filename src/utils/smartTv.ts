@@ -4,6 +4,16 @@ export const MOONLIGHT_TV_PROFILE = "tv";
 const SMART_TV_UA_RE =
   /tizen|webos|web0s|smart-tv|smarttv|viera|bravia|hbbtv|vidaa|netcast|appletv|crkey|aftb|aftt|aftm|afts|aftn|googletv|google tv|android tv|androidtv|chromecast|nvidia shield|shield android tv|mibox|mi box|smart.?tv/;
 
+/** Dev-only: force Smart TV mode from `?mhgTv=1`. See DEVELOPMENT.md § “Testing Smart TV behaviour on desktop”. */
+function smartTvForcedFromUrl(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return new URLSearchParams(window.location.search).get("mhgTv") === "1";
+  } catch {
+    return false;
+  }
+}
+
 /**
  * True for Smart TV / set-top / Android TV browsers (Tizen, webOS, Google TV, etc.).
  * Used to apply a lower Moonlight stream profile, prefer top-level navigation,
@@ -12,6 +22,7 @@ const SMART_TV_UA_RE =
 export function isSmartTvBrowser(
   userAgent: string = typeof navigator !== "undefined" ? navigator.userAgent : "",
 ): boolean {
+  if (smartTvForcedFromUrl()) return true;
   return SMART_TV_UA_RE.test(String(userAgent || "").toLowerCase());
 }
 

@@ -7,6 +7,7 @@ import AddToCollectionDropdown from "./AddToCollectionDropdown";
 import AdditionalExecutablesDropdown from "./AdditionalExecutablesDropdown";
 import Tooltip from "../common/Tooltip";
 import { API_BASE } from "../../config";
+import { useCompactCoverChrome } from "../../hooks/useCompactCoverChrome";
 import {
   normalizeCoverCacheKey,
   pickCoverSource,
@@ -88,6 +89,8 @@ type CoverProps = {
     | "franchise"; // Resource type for removal
   onRemoveSuccess?: () => void; // Callback when removal succeeds
   removeDisabled?: boolean; // Disable remove button
+  /** Smart TV fixed-focal rail: this cover receives remote long-press (OK hold). */
+  longPressTarget?: boolean;
 };
 
 export default function Cover({
@@ -143,12 +146,16 @@ export default function Cover({
   removeResourceType,
   onRemoveSuccess,
   removeDisabled = false,
+  longPressTarget: _longPressTarget = false,
 }: CoverProps) {
   const { t } = useTranslation();
   const [imageError, setImageError] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isPopupOverlay, setIsPopupOverlay] = useState(false);
   const coverRef = useRef<HTMLDivElement>(null);
+  const compactCoverChrome = useCompactCoverChrome();
+  const useCompactOverlay =
+    compactCoverChrome && onUpload === undefined && !showRemoveButton;
   const rawCoverInput = pickCoverSource(
     cover,
     coverUrl,
@@ -315,9 +322,16 @@ export default function Cover({
     }
   };
 
-  const shouldShowPlayButton = !detailNavigationDisabled && play && onPlay && !onUpload;
+  const shouldShowPlayButton =
+    !useCompactOverlay &&
+    !detailNavigationDisabled &&
+    play &&
+    onPlay &&
+    !onUpload;
   const shouldShowUploadButton = onUpload !== undefined;
-  const showCoverActions = !detailNavigationDisabled;
+  const showCoverActions =
+    !detailNavigationDisabled && !useCompactOverlay;
+  const coverChromeOpen = isDropdownOpen;
   const isClickable =
     (detail && onClick) || (play && !detail && onPlay) || shouldShowUploadButton;
 
@@ -353,7 +367,7 @@ export default function Cover({
     <>
       <div
         ref={coverRef}
-        className={`games-list-cover relative bg-[#2a2a2a] rounded overflow-hidden transition-all ${imageFit === "fill" ? "games-list-cover--image-fill " : ""}${showBorder || detailNavigationDisabled ? "cover-hover-effect" : ""} ${play && !detailNavigationDisabled ? "games-list-cover-play" : ""} ${detail ? "games-list-cover-detail" : ""} ${detailNavigationDisabled ? " games-list-cover--detail-current" : ""} ${shouldShowUploadButton ? "games-list-cover-upload" : ""} ${isDropdownOpen ? "cover-dropdown-open" : ""} ${isPopupOverlay ? "cover-popup-overlay" : ""}${isClickable ? " games-list-cover--clickable" : ""}`}
+        className={`games-list-cover relative bg-[#2a2a2a] rounded overflow-hidden transition-all ${imageFit === "fill" ? "games-list-cover--image-fill " : ""}${showBorder || detailNavigationDisabled ? "cover-hover-effect" : ""} ${play && !detailNavigationDisabled ? "games-list-cover-play" : ""} ${detail ? "games-list-cover-detail" : ""} ${detailNavigationDisabled ? " games-list-cover--detail-current" : ""} ${shouldShowUploadButton ? "games-list-cover-upload" : ""} ${coverChromeOpen ? "cover-dropdown-open" : ""} ${isPopupOverlay ? "cover-popup-overlay" : ""}${isClickable ? " games-list-cover--clickable" : ""}${useCompactOverlay ? " games-list-cover--compact-chrome" : ""}`}
         style={coverStyle}
         role={isClickable ? "button" : undefined}
         tabIndex={isClickable ? 0 : undefined}

@@ -98,6 +98,7 @@ type GameListItemProps = {
   onCollectionLikePseudoUpdated?: (updated: CollectionInfo) => void;
   activeCollectionLikeDetail?: ActiveCollectionLikeDetail | null;
   activeGameId?: string | null;
+  longPressTarget?: boolean;
 };
 
 export function GameListItem({
@@ -135,6 +136,7 @@ export function GameListItem({
   onCollectionLikePseudoUpdated,
   activeCollectionLikeDetail,
   activeGameId,
+  longPressTarget = false,
 }: GameListItemProps) {
   const { t } = useTranslation();
   const isCatalogOnly = (game as GameItem & { isCatalogOnly?: boolean }).isCatalogOnly;
@@ -359,6 +361,7 @@ export function GameListItem({
         showBorder={viewMode !== "detail"}
         allCollections={allCollections}
         overlayContent={isCatalogOnly ? <span className="game-detail-similar-cover-badge">{t("addGame.new", "New")}</span> : undefined}
+        longPressTarget={longPressTarget}
       />
     </div>
   );

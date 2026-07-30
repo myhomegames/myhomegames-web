@@ -1,4 +1,5 @@
 import { isSmartTvBrowser } from "./smartTv";
+import { dispatchCoverLongPress, COVER_LONG_PRESS_MS } from "./coverLongPress";
 import {
   activateStripFocusTarget,
   isHorizontalLibraryStripMode,
@@ -495,6 +496,25 @@ export function installSmartTvRemoteKeys(
   if (!enabled || typeof window === "undefined") return () => {};
 
   let zone: Zone = "chrome";
+  let enterPointerDown = false;
+  let enterLongPressFired = false;
+  let enterLongPressTimer: number | null = null;
+
+  const clearEnterLongPressTimer = () => {
+    if (enterLongPressTimer != null) {
+      window.clearTimeout(enterLongPressTimer);
+      enterLongPressTimer = null;
+    }
+  };
+
+  const isEnterKey = (code: number, key: string): boolean =>
+    code === KEY_ENTER ||
+    code === 65376 ||
+    key === "Enter" ||
+    key === " " ||
+    key === "Spacebar" ||
+    key === "Accept" ||
+    key === "Select";
 
   const enterChrome = (prefer: HTMLElement | null = null) => {
     zone = "chrome";
@@ -546,6 +566,51 @@ export function installSmartTvRemoteKeys(
   };
 
   focusActiveUiLayerImpl = focusIntoActiveUiLayer;
+
+  const runEnterShortPress = () => {
+    const uiLayer = getActiveUiLayer();
+    if (uiLayer) {
+      syncBackgroundInert(uiLayer);
+    }
+
+    if (!uiLayer && isHorizontalLibraryStripMode() && activateStripFocusTarget()) {
+      zone = "chrome";
+      return;
+    }
+
+    if (zone === "chrome" || uiLayer) {
+      const active = document.activeElement as HTMLElement | null;
+      const isActivatable =
+        !!active &&
+        (active.tagName === "BUTTON" ||
+          active.tagName === "A" ||
+          active.getAttribute("role") === "button" ||
+          active.classList.contains("dropdown-menu-item") ||
+          active.classList.contains("add-to-collection-dropdown-item") ||
+          active.classList.contains("additional-executables-dropdown-item") ||
+          active.classList.contains("profile-dropdown-item"));
+      if (
+        active &&
+        active !== document.body &&
+        typeof active.click === "function" &&
+        !isLogoButton(active) &&
+        (!uiLayer || uiLayer.contains(active)) &&
+        isActivatable
+      ) {
+        active.click();
+        window.setTimeout(() => focusIntoActiveUiLayer(), 0);
+        return;
+      }
+      if (uiLayer) {
+        focusIntoActiveUiLayer();
+        return;
+      }
+    }
+
+    if (!uiLayer) {
+      document.dispatchEvent(new CustomEvent("mhg:fixed-focal-activate"));
+    }
+  };
 
   const bootstrapTvFocus = () => {
     if (focusIntoActiveUiLayer()) return;
@@ -617,6 +682,29 @@ export function installSmartTvRemoteKeys(
     const code = e.keyCode || e.which || 0;
     const key = e.key;
     const field = editableRoot(e.target);
+
+    const isEnter = isEnterKey(code, key);
+
+    if (isEnter && !field) {
+      if (e.repeat) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      if (!enterPointerDown) {
+        enterPointerDown = true;
+        enterLongPressFired = false;
+        clearEnterLongPressTimer();
+        enterLongPressTimer = window.setTimeout(() => {
+          enterLongPressTimer = null;
+          enterLongPressFired = true;
+          dispatchCoverLongPress();
+        }, COVER_LONG_PRESS_MS);
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
 
     // Search / inputs: keep Left/Right for caret + on-screen keyboard.
     // Back leaves; Up/Down also leave so we never stay trapped if Back is eaten by the IME.
@@ -793,21 +881,29 @@ export function installSmartTvRemoteKeys(
       return;
     }
 
-    const isEnter =
-      code === KEY_ENTER ||
-      code === 65376 ||
-      key === "Enter" ||
-      key === " " ||
-      key === "Spacebar" ||
-      key === "Accept" ||
-      key === "Select";
-
-    if (!isEnter) {
+    if (!isEnterKey(code, key)) {
       if (isTvHardwareBack(code, key)) {
         e.preventDefault();
         e.stopPropagation();
         goBackInApp();
       }
+      return;
+    }
+  };
+
+  const onKeyUp = (e: KeyboardEvent) => {
+    const code = e.keyCode || e.which || 0;
+    const key = e.key;
+    if (!isEnterKey(code, key)) return;
+    if (!enterPointerDown) return;
+
+    enterPointerDown = false;
+    clearEnterLongPressTimer();
+
+    if (enterLongPressFired) {
+      enterLongPressFired = false;
+      e.preventDefault();
+      e.stopPropagation();
       return;
     }
 
@@ -817,54 +913,13 @@ export function installSmartTvRemoteKeys(
     const uiLayer = getActiveUiLayer();
     if (uiLayer) {
       e.stopImmediatePropagation();
-      syncBackgroundInert(uiLayer);
     }
 
-    // PS3 strip: Add Game / Settings / Profile / Search only snap-focus (no auto-click).
-    // Prefer that target over document.activeElement — Tizen often keeps focus on the
-    // last .mhg-library-active list library, so Enter would re-open that instead.
-    if (!uiLayer && isHorizontalLibraryStripMode() && activateStripFocusTarget()) {
-      zone = "chrome";
-      return;
-    }
-
-    if (zone === "chrome" || uiLayer) {
-      const active = document.activeElement as HTMLElement | null;
-      const isActivatable =
-        !!active &&
-        (active.tagName === "BUTTON" ||
-          active.tagName === "A" ||
-          active.getAttribute("role") === "button" ||
-          active.classList.contains("dropdown-menu-item") ||
-          active.classList.contains("add-to-collection-dropdown-item") ||
-          active.classList.contains("additional-executables-dropdown-item") ||
-          active.classList.contains("profile-dropdown-item"));
-      if (
-        active &&
-        active !== document.body &&
-        typeof active.click === "function" &&
-        !isLogoButton(active) &&
-        (!uiLayer || uiLayer.contains(active)) &&
-        isActivatable
-      ) {
-        active.click();
-        // Popup may mount on this click — move focus in on the next frame.
-        window.setTimeout(() => focusIntoActiveUiLayer(), 0);
-        return;
-      }
-      // Layer open but focus still on the page: pull into the sheet.
-      if (uiLayer) {
-        focusIntoActiveUiLayer();
-        return;
-      }
-    }
-
-    if (!uiLayer) {
-      document.dispatchEvent(new CustomEvent("mhg:fixed-focal-activate"));
-    }
+    runEnterShortPress();
   };
 
   window.addEventListener("keydown", onKeyDown, true);
+  window.addEventListener("keyup", onKeyUp, true);
 
   // If Tizen spatial nav tries to focus covers behind a sheet, yank focus back in.
   const onFocusIn = (e: FocusEvent) => {
@@ -917,6 +972,7 @@ export function installSmartTvRemoteKeys(
   return () => {
     focusActiveUiLayerImpl = null;
     window.removeEventListener("keydown", onKeyDown, true);
+    window.removeEventListener("keyup", onKeyUp, true);
     window.removeEventListener("focusin", onFocusIn, true);
     window.removeEventListener("mhg-api-base-changed", onApi);
     window.removeEventListener("mhg:tv-ui-layer-focus-request", onUiLayerFocusRequest);
@@ -925,6 +981,7 @@ export function installSmartTvRemoteKeys(
     if (layerSyncRaf) window.cancelAnimationFrame(layerSyncRaf);
     window.clearTimeout(t1);
     window.clearTimeout(t2);
+    clearEnterLongPressTimer();
     syncBackgroundInert(null);
   };
 }

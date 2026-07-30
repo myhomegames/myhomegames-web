@@ -59,6 +59,7 @@ type CollectionListItemProps = {
   showTitle?: boolean;
   navigationDisabled?: boolean;
   viewTransitionName?: string;
+  longPressTarget?: boolean;
 };
 
 export function CollectionListItem({
@@ -78,6 +79,7 @@ export function CollectionListItem({
   showTitle,
   navigationDisabled = false,
   viewTransitionName,
+  longPressTarget = false,
 }: CollectionListItemProps) {
   const { t } = useTranslation();
   const coverHeight = portraitCoverHeight(coverSize);
@@ -187,6 +189,7 @@ export function CollectionListItem({
         detail={true}
         play={gamesPath === "collections" ? hasPlayableGame === true : !!onPlay}
         showBorder={true}
+        longPressTarget={longPressTarget}
       />
     </div>
   );
