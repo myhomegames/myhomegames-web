@@ -596,7 +596,7 @@ export default function Cover({
               className="games-list-dropdown-menu"
               hideTrigger={useCompactOverlay}
               openRequest={useCompactOverlay ? contextMenuOpenRequest : undefined}
-              phoneSheet={usePhoneCoverMenu}
+              phoneSheet={useCompactOverlay}
               onPlay={
                 useCompactOverlay && play && onPlay && !onUpload
                   ? () => onPlay()
