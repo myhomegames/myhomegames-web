@@ -6,6 +6,13 @@ import {
   stepLibraryStrip,
   stepOverflowingLibraryPagesStrip,
 } from "./libraryStripStep";
+import { ensureElementVisibleInScrollParents, nudgeScrollParentForDirection } from "./ensureVisibleInScrollParent";
+import { playFixedFocalStepSound } from "./fixedFocalStepSound";
+
+/** Tick for OK / Back only — never for D-pad arrow moves. */
+function playTvActionSound(): void {
+  playFixedFocalStepSound();
+}
 
 const KEY_LEFT = 37;
 const KEY_UP = 38;
@@ -100,6 +107,7 @@ const UI_LAYER_SELECTORS = [
   ".launch-modal-overlay",
   ".add-game-overlay",
   ".game-search-modal-overlay",
+  ".dropdown-menu-phone-sheet-overlay",
   "body > .update-notification-popup",
   "body > .add-to-collection-dropdown-menu",
   "body > .additional-executables-dropdown-menu",
@@ -121,6 +129,24 @@ function isLayerCandidate(el: HTMLElement): boolean {
   if (style.display === "none" || style.visibility === "hidden") return false;
   const rect = el.getBoundingClientRect();
   return rect.width > 2 && rect.height > 2;
+}
+
+/** True if this node is itself a known sheet/modal (must never be marked inert). */
+function isKnownUiLayerNode(el: HTMLElement): boolean {
+  return UI_LAYER_SELECTORS.some((sel) => {
+    try {
+      return el.matches(sel);
+    } catch {
+      return false;
+    }
+  });
+}
+
+function isPortaledDropdownSubmenu(el: HTMLElement): boolean {
+  return (
+    el.classList.contains("add-to-collection-dropdown-menu") ||
+    el.classList.contains("additional-executables-dropdown-menu")
+  );
 }
 
 function readZIndex(el: HTMLElement): number {
@@ -147,7 +173,16 @@ export function getActiveUiLayer(): HTMLElement | null {
   if (candidates.length === 0) return null;
 
   candidates.sort((a, b) => {
-    const zDiff = readZIndex(a) - readZIndex(b);
+    // Nested "Add to" / executables flyouts must win over the parent ⋮ / phone sheet
+    // even when a skin leaves their z-index below the overlay (plex / gog vs PS3).
+    const parentMenuOpen = candidates.some(
+      (c) =>
+        c.classList.contains("dropdown-menu-phone-sheet-overlay") ||
+        c.classList.contains("dropdown-menu-popup"),
+    );
+    const boost = (el: HTMLElement) =>
+      parentMenuOpen && isPortaledDropdownSubmenu(el) ? 1_000_000 : 0;
+    const zDiff = readZIndex(a) + boost(a) - (readZIndex(b) + boost(b));
     if (zDiff !== 0) return zDiff;
     const pos = a.compareDocumentPosition(b);
     if (pos & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
@@ -182,6 +217,8 @@ function syncBackgroundInert(layer: HTMLElement | null): void {
     if (!parent) break;
     for (const sibling of Array.from(parent.children)) {
       if (sibling === node || !(sibling instanceof HTMLElement)) continue;
+      // Portaled submenus share <body> with the phone sheet — never inert them.
+      if (isKnownUiLayerNode(sibling)) continue;
       sibling.setAttribute("inert", "");
       sibling.setAttribute(INERT_MARK, "");
     }
@@ -233,16 +270,18 @@ function pickPreferredUiLayerFocus(layer: HTMLElement): HTMLElement | null {
     const createTitle = layer.querySelector<HTMLElement>("#add-game-create-title");
     if (createTitle && isVisible(createTitle)) return createTitle;
   }
-  // Cover / ⋮ action sheet: prefer a real menu row over the overlay chrome.
+  // Cover / ⋮ action sheet / portaled submenu: prefer a real menu row over chrome.
   if (
     layer.classList.contains("dropdown-menu-phone-sheet-overlay") ||
     layer.classList.contains("dropdown-menu-popup") ||
-    layer.classList.contains("edit-game-modal-overlay")
+    layer.classList.contains("edit-game-modal-overlay") ||
+    layer.classList.contains("filter-popup") ||
+    layer.classList.contains("sort-popup") ||
+    layer.classList.contains("profile-dropdown-popup") ||
+    isPortaledDropdownSubmenu(layer)
   ) {
-    const menuItem = layer.querySelector<HTMLElement>(
-      "button.dropdown-menu-item:not([disabled]), .dropdown-menu-item",
-    );
-    if (menuItem && isVisible(menuItem)) return menuItem;
+    const menuItems = collectMenuListItems(layer);
+    if (menuItems[0]) return menuItems[0];
   }
   const items = collectFocusables(true, layer);
   return items[0] ?? null;
@@ -279,18 +318,14 @@ function defaultChromeTarget(): HTMLElement | null {
   );
 }
 
-function pickNextFocus(
+function pickNextInSet(
+  items: HTMLElement[],
   current: HTMLElement | null,
   direction: Direction,
-  allowTextFields: boolean,
 ): HTMLElement | null {
-  const items = collectFocusables(allowTextFields);
-  if (items.length === 0) {
-    return allowTextFields ? null : defaultChromeTarget();
-  }
-
+  if (items.length === 0) return null;
   if (!current || !items.includes(current)) {
-    return defaultChromeTarget() ?? items[0] ?? null;
+    return items[0] ?? null;
   }
 
   const from = current.getBoundingClientRect();
@@ -338,16 +373,227 @@ function pickNextFocus(
   return best;
 }
 
+function pickNextFocus(
+  current: HTMLElement | null,
+  direction: Direction,
+  allowTextFields: boolean,
+): HTMLElement | null {
+  const items = collectFocusables(allowTextFields);
+  if (items.length === 0) {
+    return allowTextFields ? null : defaultChromeTarget();
+  }
+
+  if (!current || !items.includes(current)) {
+    return defaultChromeTarget() ?? items[0] ?? null;
+  }
+
+  return pickNextInSet(items, current, direction);
+}
+
+/** Libraries sidebar / header tabs (GOG vertical list, Plex page tabs). */
+function libraryMenuFocusFrom(el: HTMLElement | null): HTMLElement | null {
+  if (!el) return null;
+  if (
+    el.classList.contains("mhg-library-button") ||
+    el.classList.contains("mhg-collection-shortcut-button")
+  ) {
+    return el;
+  }
+  return el.closest(
+    ".mhg-library-button, .mhg-collection-shortcut-button",
+  ) as HTMLElement | null;
+}
+
+function coverFocusFrom(el: HTMLElement | null): HTMLElement | null {
+  if (!el) return null;
+  if (el.classList.contains("games-list-cover")) return el;
+  return el.closest(".games-list-cover") as HTMLElement | null;
+}
+
+function collectLibraryMenuFocusables(): HTMLElement[] {
+  const root =
+    document.querySelector<HTMLElement>(".mhg-libraries-bar .mhg-libraries-container") ??
+    document.querySelector<HTMLElement>(".mhg-libraries-container");
+  if (!root) return [];
+  return Array.from(
+    root.querySelectorAll<HTMLElement>(
+      ".mhg-library-button, .mhg-collection-shortcut-button",
+    ),
+  ).filter((el) => isVisible(el) && !isLogoButton(el));
+}
+
+function collectCoverFocusables(): HTMLElement[] {
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(
+      ".games-list-cover[role='button'], .games-list-cover[tabindex]",
+    ),
+  ).filter((el) => isVisible(el) && !el.closest("[inert]"));
+}
+
+/** Filter / sort / count row between libraries chrome and the cover grid. */
+function collectToolbarFocusables(): HTMLElement[] {
+  const root = document.querySelector<HTMLElement>(".games-list-toolbar");
+  if (!root || !isVisible(root)) return [];
+  return Array.from(
+    root.querySelectorAll<HTMLElement>(
+      [
+        ".games-list-toolbar-button:not([disabled])",
+        ".games-list-toolbar-count[tabindex]",
+        ".games-list-toolbar-count[data-mhg-tv-focus]",
+      ].join(","),
+    ),
+  ).filter((el) => isVisible(el) && !el.closest("[inert]"));
+}
+
+function toolbarFocusFrom(el: HTMLElement | null): HTMLElement | null {
+  if (!el) return null;
+  if (
+    el.classList.contains("games-list-toolbar-button") ||
+    el.classList.contains("games-list-toolbar-count")
+  ) {
+    return el;
+  }
+  return el.closest(
+    ".games-list-toolbar-button, .games-list-toolbar-count",
+  ) as HTMLElement | null;
+}
+
+/** Side A–Z index (Plex / GOG) when sort is by title. */
+function collectAlphabetFocusables(): HTMLElement[] {
+  const root = document.querySelector<HTMLElement>(".alphabet-navigator");
+  if (!root || !isVisible(root)) return [];
+  return Array.from(
+    root.querySelectorAll<HTMLElement>(".alphabet-button:not([disabled])"),
+  ).filter((el) => isVisible(el) && !el.closest("[inert]"));
+}
+
+function alphabetFocusFrom(el: HTMLElement | null): HTMLElement | null {
+  if (!el) return null;
+  if (el.classList.contains("alphabet-button")) return el;
+  return el.closest(".alphabet-button") as HTMLElement | null;
+}
+
+/** Prefer letter nearest to a cover's vertical center when entering the A–Z strip. */
+function pickAlphabetNear(from: HTMLElement | null): HTMLElement | null {
+  const letters = collectAlphabetFocusables();
+  if (letters.length === 0) return null;
+  if (!from) return letters[0] ?? null;
+  const fromY = center(from.getBoundingClientRect()).y;
+  let best: HTMLElement | null = null;
+  let bestDist = Number.POSITIVE_INFINITY;
+  for (const el of letters) {
+    const dist = Math.abs(center(el.getBoundingClientRect()).y - fromY);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = el;
+    }
+  }
+  return best ?? letters[0] ?? null;
+}
+
+/** Plex / GOG grid navigation (not PS3 fixed-focal strip). */
+function isLibraryMenuCoverGridNavMode(): boolean {
+  if (isHorizontalLibraryStripMode()) return false;
+  return collectLibraryMenuFocusables().length > 0;
+}
+
+/** Vertical list rows inside ⋮ / cover / filter sheets — use DOM order, not geometry. */
+function collectMenuListItems(layer: HTMLElement): HTMLElement[] {
+  // Nested collection-like "Add to" covers the parent sheet when open — stay inside it.
+  const nestedSubmenu = layer.querySelector<HTMLElement>(
+    ".dropdown-menu-collectionlike-submenu",
+  );
+  const scope =
+    nestedSubmenu && isVisible(nestedSubmenu) && !isPortaledDropdownSubmenu(layer)
+      ? nestedSubmenu
+      : layer;
+
+  const nodes = scope.querySelectorAll<HTMLElement>(
+    [
+      "button.dropdown-menu-item:not([disabled])",
+      ".dropdown-menu-item[role='button']",
+      ".dropdown-menu-item",
+      ".add-to-collection-dropdown-item",
+      ".additional-executables-dropdown-item",
+      ".profile-dropdown-item",
+      ".filter-popup-item",
+      ".sort-popup-item",
+    ].join(","),
+  );
+  const seen = new Set<HTMLElement>();
+  const items: HTMLElement[] = [];
+  nodes.forEach((el) => {
+    if (seen.has(el) || !isVisible(el)) return;
+    // Skip the submenu trigger row itself when listing nested submenu children.
+    if (scope !== layer && el.classList.contains("dropdown-menu-item-with-submenu")) return;
+    // While a nested submenu is closed, skip items that live inside one.
+    if (
+      scope === layer &&
+      el.closest(".dropdown-menu-collectionlike-submenu") &&
+      el.closest(".dropdown-menu-collectionlike-submenu") !== layer
+    ) {
+      return;
+    }
+    seen.add(el);
+    items.push(el);
+  });
+  return items;
+}
+
+function closePortaledDropdownSubmenus(): void {
+  window.dispatchEvent(new CustomEvent("closeAddToCollectionDropdown"));
+  window.dispatchEvent(new CustomEvent("closeAdditionalExecutablesDropdown"));
+}
+
+function openFocusedSubmenuRow(row: HTMLElement): void {
+  row.click();
+  requestSmartTvUiLayerFocus();
+}
+
+function pickNextInMenuList(
+  layer: HTMLElement,
+  current: HTMLElement | null,
+  direction: Direction,
+): HTMLElement | null {
+  if (direction !== "up" && direction !== "down") return null;
+  const items = collectMenuListItems(layer);
+  if (items.length === 0) return null;
+  if (!current || !items.includes(current)) {
+    return direction === "down" ? items[0]! : items[items.length - 1]!;
+  }
+  const idx = items.indexOf(current);
+  if (direction === "down") {
+    return items[Math.min(items.length - 1, idx + 1)] ?? null;
+  }
+  return items[Math.max(0, idx - 1)] ?? null;
+}
+
 function focusElement(el: HTMLElement): void {
   // Clickable sheet rows are often <div>s without tabindex — make them programmatically focusable.
-  if (el.tabIndex < 0 && !el.hasAttribute("tabindex")) {
-    el.tabIndex = -1;
+  // Prefer tabindex=0 for menu rows so collectFocusables keeps them (button:not([tabindex='-1'])).
+  if (!el.hasAttribute("tabindex")) {
+    const isMenuRow =
+      el.classList.contains("dropdown-menu-item") ||
+      el.classList.contains("add-to-collection-dropdown-item") ||
+      el.classList.contains("additional-executables-dropdown-item") ||
+      el.classList.contains("profile-dropdown-item") ||
+      el.classList.contains("filter-popup-item") ||
+      el.classList.contains("sort-popup-item");
+    if (isMenuRow || el.tabIndex < 0) {
+      el.tabIndex = isMenuRow ? 0 : -1;
+    }
   }
   try {
     el.focus({ preventScroll: true });
   } catch {
     el.focus();
   }
+  // D-pad uses preventScroll so page jump is controlled; still bring the target into
+  // overflow parents (GOG vertical library list, plex/gog cover grids, sheets).
+  ensureElementVisibleInScrollParents(el);
+  window.requestAnimationFrame(() => {
+    if (el.isConnected) ensureElementVisibleInScrollParents(el);
+  });
 }
 
 function isUnderInertAncestor(el: HTMLElement): boolean {
@@ -431,9 +677,14 @@ function tryDismissUiLayer(): boolean {
 
     // Cover / ⋮ menus have no close button and ignore synthetic Escape alone.
     if (isDismissibleDropdownLayer(layer)) {
+      // Second-level portaled menus: Back closes only the submenu, not the parent sheet.
+      if (isPortaledDropdownSubmenu(layer)) {
+        closePortaledDropdownSubmenus();
+        window.setTimeout(() => focusIntoActiveUiLayerImpl?.(), 0);
+        return true;
+      }
       window.dispatchEvent(new CustomEvent("mhg:close-dropdown-menus"));
-      window.dispatchEvent(new CustomEvent("closeAddToCollectionDropdown"));
-      window.dispatchEvent(new CustomEvent("closeAdditionalExecutablesDropdown"));
+      closePortaledDropdownSubmenus();
       document.dispatchEvent(
         new KeyboardEvent("keydown", {
           key: "Escape",
@@ -504,6 +755,8 @@ function isExitConfirmOpen(): boolean {
 }
 
 function goBackInApp(): void {
+  playTvActionSound();
+
   // Pages (e.g. StreamPlay) can cancel and handle cleanup themselves.
   const ev = new CustomEvent("mhg:tv-hardware-back", { cancelable: true, bubbles: true });
   window.dispatchEvent(ev);
@@ -544,6 +797,117 @@ export function installSmartTvRemoteKeys(
   let enterPointerDown = false;
   let enterLongPressFired = false;
   let enterLongPressTimer: number | null = null;
+  /** Last libraries-menu control focused before jumping to covers (Plex / GOG). */
+  let lastLibraryMenuFocus: HTMLElement | null = null;
+  /** Last cover focused before returning to the libraries menu. */
+  let lastCoverFocus: HTMLElement | null = null;
+  /** Last filter/sort toolbar control between menu and covers. */
+  let lastToolbarFocus: HTMLElement | null = null;
+  /** Last A–Z index letter focused from the cover grid. */
+  let lastAlphabetFocus: HTMLElement | null = null;
+
+  const rememberLibraryMenuFocus = (el: HTMLElement | null) => {
+    const menu = libraryMenuFocusFrom(el);
+    if (menu) lastLibraryMenuFocus = menu;
+  };
+
+  const rememberCoverFocus = (el: HTMLElement | null) => {
+    const cover = coverFocusFrom(el);
+    if (cover) lastCoverFocus = cover;
+  };
+
+  const rememberToolbarFocus = (el: HTMLElement | null) => {
+    const toolbar = toolbarFocusFrom(el);
+    if (toolbar) lastToolbarFocus = toolbar;
+  };
+
+  const rememberAlphabetFocus = (el: HTMLElement | null) => {
+    const letter = alphabetFocusFrom(el);
+    if (letter) lastAlphabetFocus = letter;
+  };
+
+  const resolveLibraryMenuFocus = (): HTMLElement | null => {
+    if (lastLibraryMenuFocus?.isConnected && isVisible(lastLibraryMenuFocus)) {
+      return lastLibraryMenuFocus;
+    }
+    const menus = collectLibraryMenuFocusables();
+    return (
+      menus.find(
+        (el) =>
+          el.classList.contains("mhg-library-active") ||
+          el.classList.contains("mhg-collection-shortcut-button--selected"),
+      ) ??
+      menus[0] ??
+      null
+    );
+  };
+
+  const resolveCoverFocus = (): HTMLElement | null => {
+    if (lastCoverFocus?.isConnected && isVisible(lastCoverFocus)) {
+      return lastCoverFocus;
+    }
+    return collectCoverFocusables()[0] ?? null;
+  };
+
+  const resolveToolbarFocus = (): HTMLElement | null => {
+    if (lastToolbarFocus?.isConnected && isVisible(lastToolbarFocus)) {
+      return lastToolbarFocus;
+    }
+    return collectToolbarFocusables()[0] ?? null;
+  };
+
+  const resolveAlphabetFocus = (near: HTMLElement | null = null): HTMLElement | null => {
+    if (
+      lastAlphabetFocus?.isConnected &&
+      isVisible(lastAlphabetFocus) &&
+      !lastAlphabetFocus.hasAttribute("disabled")
+    ) {
+      return lastAlphabetFocus;
+    }
+    return pickAlphabetNear(near ?? lastCoverFocus);
+  };
+
+  const focusLibraryMenu = () => {
+    const menu = resolveLibraryMenuFocus();
+    if (!menu) return false;
+    zone = "chrome";
+    focusElement(menu);
+    rememberLibraryMenuFocus(menu);
+    return true;
+  };
+
+  const focusCoversZone = () => {
+    const cover = resolveCoverFocus();
+    if (!cover) return false;
+    zone = "chrome";
+    focusElement(cover);
+    rememberCoverFocus(cover);
+    return true;
+  };
+
+  const focusToolbarZone = () => {
+    const toolbar = resolveToolbarFocus();
+    if (!toolbar) return false;
+    zone = "chrome";
+    focusElement(toolbar);
+    rememberToolbarFocus(toolbar);
+    return true;
+  };
+
+  const focusAlphabetZone = (near: HTMLElement | null = null) => {
+    const letter = resolveAlphabetFocus(near);
+    if (!letter) return false;
+    zone = "chrome";
+    focusElement(letter);
+    rememberAlphabetFocus(letter);
+    return true;
+  };
+
+  /** Prefer toolbar (Tutto / sort / count) when leaving the libraries header toward content. */
+  const focusToolbarOrCovers = () => focusToolbarZone() || focusCoversZone();
+
+  /** Prefer toolbar when leaving the cover grid upward; else libraries menu. */
+  const focusToolbarOrMenu = () => focusToolbarZone() || focusLibraryMenu();
 
   const clearEnterLongPressTimer = () => {
     if (enterLongPressTimer != null) {
@@ -619,6 +983,7 @@ export function installSmartTvRemoteKeys(
     }
 
     if (!uiLayer && isHorizontalLibraryStripMode() && activateStripFocusTarget()) {
+      playTvActionSound();
       zone = "chrome";
       return;
     }
@@ -642,8 +1007,9 @@ export function installSmartTvRemoteKeys(
         (!uiLayer || uiLayer.contains(active)) &&
         isActivatable
       ) {
+        playTvActionSound();
         active.click();
-        window.setTimeout(() => focusIntoActiveUiLayer(), 0);
+        requestSmartTvUiLayerFocus();
         return;
       }
       if (uiLayer) {
@@ -653,6 +1019,7 @@ export function installSmartTvRemoteKeys(
     }
 
     if (!uiLayer) {
+      playTvActionSound();
       document.dispatchEvent(new CustomEvent("mhg:fixed-focal-activate"));
     }
   };
@@ -828,6 +1195,56 @@ export function installSmartTvRemoteKeys(
         const focused = document.activeElement as HTMLElement | null;
         const from =
           focused && uiLayer.contains(focused) && focused !== uiLayer ? focused : null;
+
+        // Enter a ⋮ submenu (Add to… / Additional executables / nested collection-like).
+        if (
+          direction === "right" &&
+          from?.classList.contains("dropdown-menu-item-with-submenu")
+        ) {
+          openFocusedSubmenuRow(from);
+          return;
+        }
+
+        // Leave a portaled second-level menu with Left (Back still works via tryDismiss).
+        if (direction === "left" && isPortaledDropdownSubmenu(uiLayer)) {
+          closePortaledDropdownSubmenus();
+          window.setTimeout(() => focusIntoActiveUiLayerImpl?.(), 0);
+          return;
+        }
+
+        // Nested collection-like submenu lives inside the parent popup — Left closes it.
+        if (direction === "left" && from?.closest(".dropdown-menu-collectionlike-submenu")) {
+          const nestedHost = from.closest(".dropdown-menu-item-with-submenu") as HTMLElement | null;
+          if (
+            nestedHost?.querySelector(":scope > .dropdown-menu-collectionlike-submenu")
+          ) {
+            nestedHost.dispatchEvent(
+              new MouseEvent("mouseleave", {
+                bubbles: true,
+                cancelable: true,
+                relatedTarget: document.body,
+              }),
+            );
+            focusElement(nestedHost);
+            return;
+          }
+        }
+
+        // ⋮ / cover / filter sheets: step rows in DOM order (geometry fails on full-bleed PS3 sheets).
+        const listNext = pickNextInMenuList(uiLayer, from, direction);
+        if (listNext) {
+          // Leaving the "Add to" row with Up/Down should dismiss the portaled flyout.
+          if (
+            (direction === "up" || direction === "down") &&
+            from?.classList.contains("dropdown-menu-item-with-submenu") &&
+            !listNext.classList.contains("dropdown-menu-item-with-submenu")
+          ) {
+            closePortaledDropdownSubmenus();
+          }
+          focusElement(listNext);
+          return;
+        }
+
         const next = pickNextFocus(from, direction, true);
         if (next) {
           focusElement(next);
@@ -870,6 +1287,147 @@ export function installSmartTvRemoteKeys(
         active && active !== document.body && active !== document.documentElement && !isLogoButton(active)
           ? active
           : null;
+
+      // Plex / GOG: libraries menu ↔ list toolbar ↔ cover grid ↔ A–Z index.
+      // Toolbar (Tutto / sort / count) sits between header tabs and covers.
+      if (isLibraryMenuCoverGridNavMode()) {
+        const menuEl = libraryMenuFocusFrom(current);
+        const toolbarEl = toolbarFocusFrom(current);
+        const coverEl = coverFocusFrom(current);
+        const alphabetEl = alphabetFocusFrom(current);
+        const verticalMenu = !!document.querySelector(
+          "[data-mhg-library-pages-vertical-list]",
+        );
+
+        if (menuEl) {
+          rememberLibraryMenuFocus(menuEl);
+          const menus = collectLibraryMenuFocusables();
+
+          if (verticalMenu) {
+            // GOG sidebar: Right → toolbar/covers; Up/Down move the menu.
+            if (direction === "right") {
+              if (focusToolbarOrCovers()) return;
+              return;
+            }
+            if (direction === "left" || direction === "up" || direction === "down") {
+              const nextMenu = pickNextInSet(menus, menuEl, direction);
+              if (nextMenu) {
+                rememberLibraryMenuFocus(nextMenu);
+                focusElement(nextMenu);
+                return;
+              }
+              if (direction === "down" && focusToolbarOrCovers()) return;
+              return;
+            }
+          } else {
+            // Plex header: Down → toolbar/covers; Left/Right move tabs.
+            if (direction === "down") {
+              if (focusToolbarOrCovers()) return;
+              return;
+            }
+            if (direction === "left" || direction === "right") {
+              const nextMenu = pickNextInSet(menus, menuEl, direction);
+              if (nextMenu) {
+                rememberLibraryMenuFocus(nextMenu);
+                focusElement(nextMenu);
+                return;
+              }
+              if (direction === "right" && focusToolbarOrCovers()) return;
+              return;
+            }
+            if (direction === "up") return;
+          }
+        }
+
+        if (toolbarEl) {
+          rememberToolbarFocus(toolbarEl);
+          const toolbars = collectToolbarFocusables();
+          if (direction === "left" || direction === "right") {
+            const nextToolbar = pickNextInSet(toolbars, toolbarEl, direction);
+            if (nextToolbar) {
+              rememberToolbarFocus(nextToolbar);
+              focusElement(nextToolbar);
+              return;
+            }
+            return;
+          }
+          if (direction === "up") {
+            if (focusLibraryMenu()) return;
+            return;
+          }
+          if (direction === "down") {
+            if (focusCoversZone()) return;
+            return;
+          }
+        }
+
+        if (alphabetEl) {
+          rememberAlphabetFocus(alphabetEl);
+          const letters = collectAlphabetFocusables();
+          if (direction === "up" || direction === "down") {
+            const nextLetter = pickNextInSet(letters, alphabetEl, direction);
+            if (nextLetter) {
+              rememberAlphabetFocus(nextLetter);
+              focusElement(nextLetter);
+              return;
+            }
+            return;
+          }
+          if (direction === "left") {
+            if (focusCoversZone()) return;
+            return;
+          }
+          if (direction === "right") return;
+        }
+
+        if (coverEl) {
+          rememberCoverFocus(coverEl);
+          const covers = collectCoverFocusables();
+          const nextCover = pickNextInSet(covers, coverEl, direction);
+          if (nextCover) {
+            rememberCoverFocus(nextCover);
+            focusElement(nextCover);
+            return;
+          }
+          // Right edge of the cover grid → A–Z navigator when present.
+          if (direction === "right" && focusAlphabetZone(coverEl)) return;
+          if (direction === "left" || direction === "up") {
+            if (direction === "up" && focusToolbarOrMenu()) return;
+            if (direction === "left" && focusLibraryMenu()) return;
+            if (focusToolbarOrMenu()) return;
+          }
+          if (
+            (direction === "up" ||
+              direction === "down" ||
+              direction === "left" ||
+              direction === "right") &&
+            nudgeScrollParentForDirection(coverEl, direction)
+          ) {
+            window.requestAnimationFrame(() => {
+              const retry = pickNextInSet(
+                collectCoverFocusables(),
+                coverFocusFrom(
+                  document.activeElement instanceof HTMLElement
+                    ? document.activeElement
+                    : coverEl,
+                ),
+                direction,
+              );
+              if (retry) {
+                rememberCoverFocus(retry);
+                focusElement(retry);
+              } else if (direction === "right") {
+                focusAlphabetZone(coverEl);
+              } else if (direction === "left" || direction === "up") {
+                if (direction === "up") focusToolbarOrMenu();
+                else focusLibraryMenu();
+              }
+            });
+            return;
+          }
+          return;
+        }
+      }
 
       if (
         (direction === "left" || direction === "right") &&
@@ -927,6 +1485,23 @@ export function installSmartTvRemoteKeys(
       const next = pickNextFocus(current, direction, true);
       if (next) {
         focusElement(next);
+        return;
+      }
+
+      // Virtualized / clipped lists: no mounted neighbor yet — scroll the host and retry.
+      if (
+        (direction === "up" || direction === "down" || direction === "left" || direction === "right") &&
+        current &&
+        nudgeScrollParentForDirection(current, direction)
+      ) {
+        window.requestAnimationFrame(() => {
+          const retry = pickNextFocus(
+            document.activeElement instanceof HTMLElement ? document.activeElement : current,
+            direction,
+            true,
+          );
+          if (retry) focusElement(retry);
+        });
         return;
       }
 
