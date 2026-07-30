@@ -100,6 +100,7 @@ const UI_LAYER_SELECTORS = [
   ".launch-modal-overlay",
   ".add-game-overlay",
   ".game-search-modal-overlay",
+  ".dropdown-menu-phone-sheet-overlay",
   "body > .update-notification-popup",
   "body > .add-to-collection-dropdown-menu",
   "body > .additional-executables-dropdown-menu",
@@ -237,12 +238,13 @@ function pickPreferredUiLayerFocus(layer: HTMLElement): HTMLElement | null {
   if (
     layer.classList.contains("dropdown-menu-phone-sheet-overlay") ||
     layer.classList.contains("dropdown-menu-popup") ||
-    layer.classList.contains("edit-game-modal-overlay")
+    layer.classList.contains("edit-game-modal-overlay") ||
+    layer.classList.contains("filter-popup") ||
+    layer.classList.contains("sort-popup") ||
+    layer.classList.contains("profile-dropdown-popup")
   ) {
-    const menuItem = layer.querySelector<HTMLElement>(
-      "button.dropdown-menu-item:not([disabled]), .dropdown-menu-item",
-    );
-    if (menuItem && isVisible(menuItem)) return menuItem;
+    const menuItems = collectMenuListItems(layer);
+    if (menuItems[0]) return menuItems[0];
   }
   const items = collectFocusables(true, layer);
   return items[0] ?? null;
@@ -338,10 +340,62 @@ function pickNextFocus(
   return best;
 }
 
+/** Vertical list rows inside ⋮ / cover / filter sheets — use DOM order, not geometry. */
+function collectMenuListItems(layer: HTMLElement): HTMLElement[] {
+  const nodes = layer.querySelectorAll<HTMLElement>(
+    [
+      "button.dropdown-menu-item:not([disabled])",
+      ".dropdown-menu-item[role='button']",
+      ".dropdown-menu-item",
+      ".add-to-collection-dropdown-item",
+      ".additional-executables-dropdown-item",
+      ".profile-dropdown-item",
+      ".filter-popup-item",
+      ".sort-popup-item",
+    ].join(","),
+  );
+  const seen = new Set<HTMLElement>();
+  const items: HTMLElement[] = [];
+  nodes.forEach((el) => {
+    if (seen.has(el) || !isVisible(el)) return;
+    seen.add(el);
+    items.push(el);
+  });
+  return items;
+}
+
+function pickNextInMenuList(
+  layer: HTMLElement,
+  current: HTMLElement | null,
+  direction: Direction,
+): HTMLElement | null {
+  if (direction !== "up" && direction !== "down") return null;
+  const items = collectMenuListItems(layer);
+  if (items.length === 0) return null;
+  if (!current || !items.includes(current)) {
+    return direction === "down" ? items[0]! : items[items.length - 1]!;
+  }
+  const idx = items.indexOf(current);
+  if (direction === "down") {
+    return items[Math.min(items.length - 1, idx + 1)] ?? null;
+  }
+  return items[Math.max(0, idx - 1)] ?? null;
+}
+
 function focusElement(el: HTMLElement): void {
   // Clickable sheet rows are often <div>s without tabindex — make them programmatically focusable.
-  if (el.tabIndex < 0 && !el.hasAttribute("tabindex")) {
-    el.tabIndex = -1;
+  // Prefer tabindex=0 for menu rows so collectFocusables keeps them (button:not([tabindex='-1'])).
+  if (!el.hasAttribute("tabindex")) {
+    const isMenuRow =
+      el.classList.contains("dropdown-menu-item") ||
+      el.classList.contains("add-to-collection-dropdown-item") ||
+      el.classList.contains("additional-executables-dropdown-item") ||
+      el.classList.contains("profile-dropdown-item") ||
+      el.classList.contains("filter-popup-item") ||
+      el.classList.contains("sort-popup-item");
+    if (isMenuRow || el.tabIndex < 0) {
+      el.tabIndex = isMenuRow ? 0 : -1;
+    }
   }
   try {
     el.focus({ preventScroll: true });
@@ -828,6 +882,14 @@ export function installSmartTvRemoteKeys(
         const focused = document.activeElement as HTMLElement | null;
         const from =
           focused && uiLayer.contains(focused) && focused !== uiLayer ? focused : null;
+
+        // ⋮ / cover / filter sheets: step rows in DOM order (geometry fails on full-bleed PS3 sheets).
+        const listNext = pickNextInMenuList(uiLayer, from, direction);
+        if (listNext) {
+          focusElement(listNext);
+          return;
+        }
+
         const next = pickNextFocus(from, direction, true);
         if (next) {
           focusElement(next);

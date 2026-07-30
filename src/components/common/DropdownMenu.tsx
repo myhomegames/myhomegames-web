@@ -351,17 +351,17 @@ function DropdownMenu({
     requestSmartTvUiLayerFocus();
   }, [isOpen]);
 
-  // Smart TV / phone sheet: park remote focus on the first action as soon as the portal mounts.
+  // Smart TV / phone sheet / cover long-press: park remote focus on the first action.
   useLayoutEffect(() => {
-    if (!isOpen || !phoneSheet) return;
+    if (!isOpen || !(phoneSheet || hideTrigger)) return;
     const focusFirst = () => {
       const root = popupRef.current;
       if (!root) return false;
       const first = root.querySelector<HTMLElement>(
-        "button.dropdown-menu-item:not([disabled]), .dropdown-menu-item:not(button)",
+        "button.dropdown-menu-item:not([disabled]), .dropdown-menu-item[role='button'], .dropdown-menu-item",
       );
       if (!first) return false;
-      if (first.tabIndex < 0 && !first.hasAttribute("tabindex")) {
+      if (!first.hasAttribute("tabindex")) {
         first.tabIndex = 0;
       }
       try {
@@ -369,7 +369,7 @@ function DropdownMenu({
       } catch {
         first.focus();
       }
-      return document.activeElement === first;
+      return document.activeElement === first || root.contains(document.activeElement);
     };
     if (focusFirst()) {
       requestSmartTvUiLayerFocus();
@@ -383,11 +383,16 @@ function DropdownMenu({
       focusFirst();
       requestSmartTvUiLayerFocus();
     }, 50);
+    const t2 = window.setTimeout(() => {
+      focusFirst();
+      requestSmartTvUiLayerFocus();
+    }, 150);
     return () => {
       window.clearTimeout(t0);
       window.clearTimeout(t1);
+      window.clearTimeout(t2);
     };
-  }, [isOpen, phoneSheet, openRequest]);
+  }, [isOpen, phoneSheet, hideTrigger, openRequest]);
 
   useEffect(() => {
     function handleCloseAllMenus() {
@@ -774,7 +779,8 @@ function DropdownMenu({
         const popupPanel = (
           <div 
             ref={popupRef} 
-            className={`dropdown-menu-popup ${phoneSheet ? "dropdown-menu-popup--phone-sheet" : ""} ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''} ${isInSidebarSearchDialog ? 'dropdown-menu-popup-in-sidebar-search' : ''} ${isInGamesTable ? 'dropdown-menu-popup-in-games-table' : ''} ${useFixedBodyPortalMenu ? 'dropdown-menu-popup-in-libraries-top' : ''}`}
+            className={`dropdown-menu-popup ${phoneSheet ? "dropdown-menu-popup--phone-sheet" : ""} ${hideTrigger ? "dropdown-menu-popup--cover-context" : ""} ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''} ${isInSidebarSearchDialog ? 'dropdown-menu-popup-in-sidebar-search' : ''} ${isInGamesTable ? 'dropdown-menu-popup-in-games-table' : ''} ${useFixedBodyPortalMenu ? 'dropdown-menu-popup-in-libraries-top' : ''}`}
+            data-mhg-dropdown-menu=""
             onMouseLeave={handlePopupMouseLeave}
             {...(inSidebarSearchPortal || phoneSheet ? {} : sheetBackdropProps)}
             style={(() => {
