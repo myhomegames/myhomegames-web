@@ -61,6 +61,8 @@ type DropdownMenuProps = {
   openRequest?: number;
   /** Optional Play action (shown as first menu item when set). */
   onPlay?: () => void;
+  /** Phone cover: bottom action sheet instead of anchored dropdown popup. */
+  phoneSheet?: boolean;
 };
 
 function DropdownMenu({
@@ -97,6 +99,7 @@ function DropdownMenu({
   hideTrigger = false,
   openRequest = 0,
   onPlay,
+  phoneSheet = false,
 }: DropdownMenuProps) {
   const { t } = useTranslation();
   const { activeSkinWeb } = useSkin();
@@ -703,10 +706,11 @@ function DropdownMenu({
         const popupPanel = (
           <div 
             ref={popupRef} 
-            className={`dropdown-menu-popup ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''} ${isInSidebarSearchDialog ? 'dropdown-menu-popup-in-sidebar-search' : ''} ${isInGamesTable ? 'dropdown-menu-popup-in-games-table' : ''} ${useFixedBodyPortalMenu ? 'dropdown-menu-popup-in-libraries-top' : ''}`}
+            className={`dropdown-menu-popup ${phoneSheet ? "dropdown-menu-popup--phone-sheet" : ""} ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''} ${isInSidebarSearchDialog ? 'dropdown-menu-popup-in-sidebar-search' : ''} ${isInGamesTable ? 'dropdown-menu-popup-in-games-table' : ''} ${useFixedBodyPortalMenu ? 'dropdown-menu-popup-in-libraries-top' : ''}`}
             onMouseLeave={handlePopupMouseLeave}
-            {...(inSidebarSearchPortal ? {} : sheetBackdropProps)}
+            {...(inSidebarSearchPortal || phoneSheet ? {} : sheetBackdropProps)}
             style={(() => {
+              if (phoneSheet) return undefined;
               if (!menuRef.current) return undefined;
               
               // Only apply fixed positioning for cover or search dropdown
@@ -1073,8 +1077,11 @@ function DropdownMenu({
           </div>
         );
 
-        const popupContent = inSidebarSearchPortal ? (
-          <div className="edit-game-modal-overlay" {...sheetBackdropProps}>
+        const popupContent = inSidebarSearchPortal || phoneSheet ? (
+          <div
+            className={`edit-game-modal-overlay${phoneSheet ? " dropdown-menu-phone-sheet-overlay" : ""}`}
+            {...sheetBackdropProps}
+          >
             {popupPanel}
           </div>
         ) : (
