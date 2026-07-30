@@ -12,7 +12,7 @@ type ProtectedRouteProps = {
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isLoading } = useAuth();
   const { settingsLoaded } = useSettings();
-  const { statusLoaded, needsDevicePairing, featureEnabled } = useTunnel();
+  const { statusLoaded, needsDevicePairing, featureEnabled, tunnelReady } = useTunnel();
   const {
     connectivityLoaded,
     serverReachable,
@@ -21,6 +21,12 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (featureEnabled && needsDevicePairing) {
     return <DevicePairingPage />;
+  }
+
+  // After PIN pairing: stay blank while connect/warmup finishes — avoid a false
+  // "server unreachable" flash before Cloudflare edge is ready.
+  if (featureEnabled && !tunnelReady) {
+    return null;
   }
 
   if (isLoading || !settingsLoaded || !statusLoaded || !connectivityLoaded) {
