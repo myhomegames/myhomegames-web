@@ -1121,7 +1121,9 @@ export default function LibrariesBar({
   /** Vertical sidebar list inside the persistent shell — native column scroll, not horizontal strip clamp. */
   const verticalPersistentSidebar =
     activeSkinWeb.persistentLibraryShell && activeSkinWeb.libraryPagesVerticalList;
+  const smartTv = isSmartTvBrowser();
   const showSidebarLibrariesMenu =
+    !smartTv &&
     !topRightToolDock &&
     !!API_BASE &&
     !!onReloadMetadata &&
@@ -1139,7 +1141,7 @@ export default function LibrariesBar({
     </div>
   ) : null;
   const showHeaderActionsInLibrariesBar = activeSkinWeb.libraryBarHeaderActions;
-  const showAddGameInLibrariesBar = showHeaderActionsInLibrariesBar;
+  const showAddGameInLibrariesBar = showHeaderActionsInLibrariesBar && !smartTv;
   const isAddGameRoute = pathname === "/add-game";
   const isSettingsRoute = pathname === "/settings";
   const showProfileInLibrariesBar = showHeaderActionsInLibrariesBar && showProfile;
@@ -1301,7 +1303,7 @@ export default function LibrariesBar({
                 ref={registerTopDockToolbarSlot}
               />
             </div>
-            {onViewModeChange && (
+            {onViewModeChange && !smartTv && (
               <div className="mhg-top-right-tool-dock-view mhg-libraries-actions-view-mode-container">
                 <ViewModeSelector
                   value={viewMode}
@@ -1310,7 +1312,7 @@ export default function LibrariesBar({
                 />
               </div>
             )}
-            {onCoverSizeChange && (
+            {onCoverSizeChange && !smartTv && (
               <div
                 className={`mhg-top-right-tool-dock-slider mhg-libraries-actions-slider-container ${
                   viewMode === "grid" ? "" : "hidden"
@@ -1342,7 +1344,7 @@ export default function LibrariesBar({
                 />
               </div>
             )}
-            {API_BASE && onReloadMetadata && (
+            {!smartTv && API_BASE && onReloadMetadata && (
               <div className="mhg-top-right-tool-dock-menu">
                 <DropdownMenu
                   className="mhg-libraries-menu-dropdown mhg-top-right-tool-dock-menu-dropdown"
@@ -1738,7 +1740,7 @@ export default function LibrariesBar({
               )}
             </div>
           ) : null}
-          {!topRightToolDock && onCoverSizeChange && (
+          {!topRightToolDock && !smartTv && onCoverSizeChange && (
             <div
               className={`mhg-libraries-actions-slider-container ${
                 viewMode === "grid" ? "" : "hidden"
@@ -1747,7 +1749,7 @@ export default function LibrariesBar({
               <CoverSizeSlider value={coverSize} onChange={onCoverSizeChange} />
             </div>
           )}
-          {!topRightToolDock && onViewModeChange && (
+          {!topRightToolDock && !smartTv && onViewModeChange && (
             <div className="mhg-libraries-actions-view-mode-container">
               <ViewModeSelector
                 value={viewMode}
