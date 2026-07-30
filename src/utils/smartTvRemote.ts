@@ -430,6 +430,67 @@ function collectCoverFocusables(): HTMLElement[] {
   ).filter((el) => isVisible(el) && !el.closest("[inert]"));
 }
 
+/** Filter / sort / count row between libraries chrome and the cover grid. */
+function collectToolbarFocusables(): HTMLElement[] {
+  const root = document.querySelector<HTMLElement>(".games-list-toolbar");
+  if (!root || !isVisible(root)) return [];
+  return Array.from(
+    root.querySelectorAll<HTMLElement>(
+      [
+        ".games-list-toolbar-button:not([disabled])",
+        ".games-list-toolbar-count[tabindex]",
+        ".games-list-toolbar-count[data-mhg-tv-focus]",
+      ].join(","),
+    ),
+  ).filter((el) => isVisible(el) && !el.closest("[inert]"));
+}
+
+function toolbarFocusFrom(el: HTMLElement | null): HTMLElement | null {
+  if (!el) return null;
+  if (
+    el.classList.contains("games-list-toolbar-button") ||
+    el.classList.contains("games-list-toolbar-count")
+  ) {
+    return el;
+  }
+  return el.closest(
+    ".games-list-toolbar-button, .games-list-toolbar-count",
+  ) as HTMLElement | null;
+}
+
+/** Side A–Z index (Plex / GOG) when sort is by title. */
+function collectAlphabetFocusables(): HTMLElement[] {
+  const root = document.querySelector<HTMLElement>(".alphabet-navigator");
+  if (!root || !isVisible(root)) return [];
+  return Array.from(
+    root.querySelectorAll<HTMLElement>(".alphabet-button:not([disabled])"),
+  ).filter((el) => isVisible(el) && !el.closest("[inert]"));
+}
+
+function alphabetFocusFrom(el: HTMLElement | null): HTMLElement | null {
+  if (!el) return null;
+  if (el.classList.contains("alphabet-button")) return el;
+  return el.closest(".alphabet-button") as HTMLElement | null;
+}
+
+/** Prefer letter nearest to a cover's vertical center when entering the A–Z strip. */
+function pickAlphabetNear(from: HTMLElement | null): HTMLElement | null {
+  const letters = collectAlphabetFocusables();
+  if (letters.length === 0) return null;
+  if (!from) return letters[0] ?? null;
+  const fromY = center(from.getBoundingClientRect()).y;
+  let best: HTMLElement | null = null;
+  let bestDist = Number.POSITIVE_INFINITY;
+  for (const el of letters) {
+    const dist = Math.abs(center(el.getBoundingClientRect()).y - fromY);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = el;
+    }
+  }
+  return best ?? letters[0] ?? null;
+}
+
 /** Plex / GOG grid navigation (not PS3 fixed-focal strip). */
 function isLibraryMenuCoverGridNavMode(): boolean {
   if (isHorizontalLibraryStripMode()) return false;
@@ -740,6 +801,10 @@ export function installSmartTvRemoteKeys(
   let lastLibraryMenuFocus: HTMLElement | null = null;
   /** Last cover focused before returning to the libraries menu. */
   let lastCoverFocus: HTMLElement | null = null;
+  /** Last filter/sort toolbar control between menu and covers. */
+  let lastToolbarFocus: HTMLElement | null = null;
+  /** Last A–Z index letter focused from the cover grid. */
+  let lastAlphabetFocus: HTMLElement | null = null;
 
   const rememberLibraryMenuFocus = (el: HTMLElement | null) => {
     const menu = libraryMenuFocusFrom(el);
@@ -749,6 +814,16 @@ export function installSmartTvRemoteKeys(
   const rememberCoverFocus = (el: HTMLElement | null) => {
     const cover = coverFocusFrom(el);
     if (cover) lastCoverFocus = cover;
+  };
+
+  const rememberToolbarFocus = (el: HTMLElement | null) => {
+    const toolbar = toolbarFocusFrom(el);
+    if (toolbar) lastToolbarFocus = toolbar;
+  };
+
+  const rememberAlphabetFocus = (el: HTMLElement | null) => {
+    const letter = alphabetFocusFrom(el);
+    if (letter) lastAlphabetFocus = letter;
   };
 
   const resolveLibraryMenuFocus = (): HTMLElement | null => {
@@ -774,6 +849,24 @@ export function installSmartTvRemoteKeys(
     return collectCoverFocusables()[0] ?? null;
   };
 
+  const resolveToolbarFocus = (): HTMLElement | null => {
+    if (lastToolbarFocus?.isConnected && isVisible(lastToolbarFocus)) {
+      return lastToolbarFocus;
+    }
+    return collectToolbarFocusables()[0] ?? null;
+  };
+
+  const resolveAlphabetFocus = (near: HTMLElement | null = null): HTMLElement | null => {
+    if (
+      lastAlphabetFocus?.isConnected &&
+      isVisible(lastAlphabetFocus) &&
+      !lastAlphabetFocus.hasAttribute("disabled")
+    ) {
+      return lastAlphabetFocus;
+    }
+    return pickAlphabetNear(near ?? lastCoverFocus);
+  };
+
   const focusLibraryMenu = () => {
     const menu = resolveLibraryMenuFocus();
     if (!menu) return false;
@@ -791,6 +884,30 @@ export function installSmartTvRemoteKeys(
     rememberCoverFocus(cover);
     return true;
   };
+
+  const focusToolbarZone = () => {
+    const toolbar = resolveToolbarFocus();
+    if (!toolbar) return false;
+    zone = "chrome";
+    focusElement(toolbar);
+    rememberToolbarFocus(toolbar);
+    return true;
+  };
+
+  const focusAlphabetZone = (near: HTMLElement | null = null) => {
+    const letter = resolveAlphabetFocus(near);
+    if (!letter) return false;
+    zone = "chrome";
+    focusElement(letter);
+    rememberAlphabetFocus(letter);
+    return true;
+  };
+
+  /** Prefer toolbar (Tutto / sort / count) when leaving the libraries header toward content. */
+  const focusToolbarOrCovers = () => focusToolbarZone() || focusCoversZone();
+
+  /** Prefer toolbar when leaving the cover grid upward; else libraries menu. */
+  const focusToolbarOrMenu = () => focusToolbarZone() || focusLibraryMenu();
 
   const clearEnterLongPressTimer = () => {
     if (enterLongPressTimer != null) {
@@ -1171,13 +1288,13 @@ export function installSmartTvRemoteKeys(
           ? active
           : null;
 
-      // Plex / GOG: libraries menu ↔ cover grid.
-      // GOG (vertical): Right → covers; Up/Down move in the menu (Down at end → covers).
-      // Plex (horizontal): Down → covers; Left/Right move tabs (Right at end → covers).
-      // Covers: Left/Up at the outer edge → last libraries-menu item.
+      // Plex / GOG: libraries menu ↔ list toolbar ↔ cover grid ↔ A–Z index.
+      // Toolbar (Tutto / sort / count) sits between header tabs and covers.
       if (isLibraryMenuCoverGridNavMode()) {
         const menuEl = libraryMenuFocusFrom(current);
+        const toolbarEl = toolbarFocusFrom(current);
         const coverEl = coverFocusFrom(current);
+        const alphabetEl = alphabetFocusFrom(current);
         const verticalMenu = !!document.querySelector(
           "[data-mhg-library-pages-vertical-list]",
         );
@@ -1187,9 +1304,9 @@ export function installSmartTvRemoteKeys(
           const menus = collectLibraryMenuFocusables();
 
           if (verticalMenu) {
-            // GOG sidebar: Right → covers; Up/Down move the menu (Down past the last row → covers).
+            // GOG sidebar: Right → toolbar/covers; Up/Down move the menu.
             if (direction === "right") {
-              if (focusCoversZone()) return;
+              if (focusToolbarOrCovers()) return;
               return;
             }
             if (direction === "left" || direction === "up" || direction === "down") {
@@ -1199,13 +1316,13 @@ export function installSmartTvRemoteKeys(
                 focusElement(nextMenu);
                 return;
               }
-              if (direction === "down" && focusCoversZone()) return;
+              if (direction === "down" && focusToolbarOrCovers()) return;
               return;
             }
           } else {
-            // Plex header: Down → covers; Left/Right move tabs (Right past the last tab → covers).
+            // Plex header: Down → toolbar/covers; Left/Right move tabs.
             if (direction === "down") {
-              if (focusCoversZone()) return;
+              if (focusToolbarOrCovers()) return;
               return;
             }
             if (direction === "left" || direction === "right") {
@@ -1215,11 +1332,52 @@ export function installSmartTvRemoteKeys(
                 focusElement(nextMenu);
                 return;
               }
-              if (direction === "right" && focusCoversZone()) return;
+              if (direction === "right" && focusToolbarOrCovers()) return;
               return;
             }
             if (direction === "up") return;
           }
+        }
+
+        if (toolbarEl) {
+          rememberToolbarFocus(toolbarEl);
+          const toolbars = collectToolbarFocusables();
+          if (direction === "left" || direction === "right") {
+            const nextToolbar = pickNextInSet(toolbars, toolbarEl, direction);
+            if (nextToolbar) {
+              rememberToolbarFocus(nextToolbar);
+              focusElement(nextToolbar);
+              return;
+            }
+            return;
+          }
+          if (direction === "up") {
+            if (focusLibraryMenu()) return;
+            return;
+          }
+          if (direction === "down") {
+            if (focusCoversZone()) return;
+            return;
+          }
+        }
+
+        if (alphabetEl) {
+          rememberAlphabetFocus(alphabetEl);
+          const letters = collectAlphabetFocusables();
+          if (direction === "up" || direction === "down") {
+            const nextLetter = pickNextInSet(letters, alphabetEl, direction);
+            if (nextLetter) {
+              rememberAlphabetFocus(nextLetter);
+              focusElement(nextLetter);
+              return;
+            }
+            return;
+          }
+          if (direction === "left") {
+            if (focusCoversZone()) return;
+            return;
+          }
+          if (direction === "right") return;
         }
 
         if (coverEl) {
@@ -1231,8 +1389,12 @@ export function installSmartTvRemoteKeys(
             focusElement(nextCover);
             return;
           }
+          // Right edge of the cover grid → A–Z navigator when present.
+          if (direction === "right" && focusAlphabetZone(coverEl)) return;
           if (direction === "left" || direction === "up") {
-            if (focusLibraryMenu()) return;
+            if (direction === "up" && focusToolbarOrMenu()) return;
+            if (direction === "left" && focusLibraryMenu()) return;
+            if (focusToolbarOrMenu()) return;
           }
           if (
             (direction === "up" ||
@@ -1254,8 +1416,11 @@ export function installSmartTvRemoteKeys(
               if (retry) {
                 rememberCoverFocus(retry);
                 focusElement(retry);
+              } else if (direction === "right") {
+                focusAlphabetZone(coverEl);
               } else if (direction === "left" || direction === "up") {
-                focusLibraryMenu();
+                if (direction === "up") focusToolbarOrMenu();
+                else focusLibraryMenu();
               }
             });
             return;

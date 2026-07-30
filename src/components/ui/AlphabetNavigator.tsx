@@ -188,7 +188,7 @@ export default function AlphabetNavigator({
             rowIndex,
             columnIndex,
             align: "start",
-            behavior: "smooth",
+            behavior: "auto",
           });
         } catch {
           // Grid may not have updated rowCount yet (navigation/cover size race)
@@ -206,7 +206,7 @@ export default function AlphabetNavigator({
           list.scrollToRow({
             index: safeIndex,
             align: "start",
-            behavior: "smooth",
+            behavior: "auto",
           });
         } catch {
           // List may not have updated row count yet (navigation race)
@@ -234,7 +234,7 @@ export default function AlphabetNavigator({
 
         container.scrollTo({
           top: scrollTop,
-          behavior: "smooth",
+          behavior: "auto",
         });
         return;
       }
@@ -256,7 +256,7 @@ export default function AlphabetNavigator({
 
     container.scrollTo({
       top: scrollPosition,
-      behavior: "smooth",
+      behavior: "auto",
     });
   };
 
