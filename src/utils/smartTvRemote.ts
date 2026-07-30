@@ -680,7 +680,7 @@ function tryDismissUiLayer(): boolean {
       // Second-level portaled menus: Back closes only the submenu, not the parent sheet.
       if (isPortaledDropdownSubmenu(layer)) {
         closePortaledDropdownSubmenus();
-        window.setTimeout(() => focusIntoActiveUiLayerImpl?.(), 0);
+        window.setTimeout(() => focusActiveUiLayerImpl?.(), 0);
         return true;
       }
       window.dispatchEvent(new CustomEvent("mhg:close-dropdown-menus"));
@@ -1208,7 +1208,7 @@ export function installSmartTvRemoteKeys(
         // Leave a portaled second-level menu with Left (Back still works via tryDismiss).
         if (direction === "left" && isPortaledDropdownSubmenu(uiLayer)) {
           closePortaledDropdownSubmenus();
-          window.setTimeout(() => focusIntoActiveUiLayerImpl?.(), 0);
+          window.setTimeout(() => focusActiveUiLayerImpl?.(), 0);
           return;
         }
 
