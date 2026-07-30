@@ -88,8 +88,10 @@ export default function Header({
   const hideSettings = hideSettingsAction || activeSkinWeb.libraryBarHeaderActions;
   const hideProfile = hideProfileAction || activeSkinWeb.libraryBarHeaderActions;
   const smartTv = isSmartTvBrowser();
-  /* Add Game follows the same relocation rule as settings/profile; hidden on Smart TV. */
-  const hideAddGame = activeSkinWeb.libraryBarHeaderActions || smartTv;
+  /* Add Game / metadata ⋮: same as Smart TV — not shown on phone-width layout. */
+  const hideLibraryChromeTools = smartTv || isPhoneLayout;
+  /* Add Game follows the same relocation rule as settings/profile; hidden on Smart TV / phone. */
+  const hideAddGame = activeSkinWeb.libraryBarHeaderActions || hideLibraryChromeTools;
   /*
    * GOG persistent shell: keep the “+” in the header flex row (margin-left anchor) but hide it
    * on game detail — removing it from the DOM shifts the settings icon.
@@ -103,7 +105,7 @@ export default function Header({
   const hideHeaderLogo =
     activeSkinWeb.topRightToolDock && !pathnameUsesHeaderLogoOnly(pathname);
   const showHeaderLibrariesMenu =
-    !smartTv &&
+    !hideLibraryChromeTools &&
     collapsibleActive &&
     activeSkinWeb.persistentLibraryShell &&
     !activeSkinWeb.topRightToolDock &&

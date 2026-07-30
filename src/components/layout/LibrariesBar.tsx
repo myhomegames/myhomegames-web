@@ -26,6 +26,7 @@ import { useTopDockSlot } from "../../contexts/TopDockSlotContext";
 import { playFixedFocalStepSound } from "../../utils/fixedFocalStepSound";
 import { applyWheelDeltaStep, readWheelStepThresholdPx } from "../../utils/stepScrollSnap";
 import { readTouchStepThresholdPx } from "../../utils/fixedFocalStepInput";
+import { usePhoneLayout } from "../../hooks/usePhoneLayout";
 import { isSmartTvBrowser } from "../../utils/smartTv";
 import { isSmartTvUiLayerOpen } from "../../utils/smartTvRemote";
 import {
@@ -1122,8 +1123,11 @@ export default function LibrariesBar({
   const verticalPersistentSidebar =
     activeSkinWeb.persistentLibraryShell && activeSkinWeb.libraryPagesVerticalList;
   const smartTv = isSmartTvBrowser();
+  const isPhoneLayout = usePhoneLayout();
+  /* Add Game, view mode, cover slider, metadata ⋮ — hidden on Smart TV and phone. */
+  const hideLibraryChromeTools = smartTv || isPhoneLayout;
   const showSidebarLibrariesMenu =
-    !smartTv &&
+    !hideLibraryChromeTools &&
     !topRightToolDock &&
     !!API_BASE &&
     !!onReloadMetadata &&
@@ -1141,7 +1145,8 @@ export default function LibrariesBar({
     </div>
   ) : null;
   const showHeaderActionsInLibrariesBar = activeSkinWeb.libraryBarHeaderActions;
-  const showAddGameInLibrariesBar = showHeaderActionsInLibrariesBar && !smartTv;
+  const showAddGameInLibrariesBar =
+    showHeaderActionsInLibrariesBar && !hideLibraryChromeTools;
   const isAddGameRoute = pathname === "/add-game";
   const isSettingsRoute = pathname === "/settings";
   const showProfileInLibrariesBar = showHeaderActionsInLibrariesBar && showProfile;
@@ -1303,7 +1308,7 @@ export default function LibrariesBar({
                 ref={registerTopDockToolbarSlot}
               />
             </div>
-            {onViewModeChange && !smartTv && (
+            {onViewModeChange && !hideLibraryChromeTools && (
               <div className="mhg-top-right-tool-dock-view mhg-libraries-actions-view-mode-container">
                 <ViewModeSelector
                   value={viewMode}
@@ -1312,7 +1317,7 @@ export default function LibrariesBar({
                 />
               </div>
             )}
-            {onCoverSizeChange && !smartTv && (
+            {onCoverSizeChange && !hideLibraryChromeTools && (
               <div
                 className={`mhg-top-right-tool-dock-slider mhg-libraries-actions-slider-container ${
                   viewMode === "grid" ? "" : "hidden"
@@ -1344,7 +1349,7 @@ export default function LibrariesBar({
                 />
               </div>
             )}
-            {!smartTv && API_BASE && onReloadMetadata && (
+            {!hideLibraryChromeTools && API_BASE && onReloadMetadata && (
               <div className="mhg-top-right-tool-dock-menu">
                 <DropdownMenu
                   className="mhg-libraries-menu-dropdown mhg-top-right-tool-dock-menu-dropdown"
@@ -1740,7 +1745,7 @@ export default function LibrariesBar({
               )}
             </div>
           ) : null}
-          {!topRightToolDock && !smartTv && onCoverSizeChange && (
+          {!topRightToolDock && !hideLibraryChromeTools && onCoverSizeChange && (
             <div
               className={`mhg-libraries-actions-slider-container ${
                 viewMode === "grid" ? "" : "hidden"
@@ -1749,7 +1754,7 @@ export default function LibrariesBar({
               <CoverSizeSlider value={coverSize} onChange={onCoverSizeChange} />
             </div>
           )}
-          {!topRightToolDock && !smartTv && onViewModeChange && (
+          {!topRightToolDock && !hideLibraryChromeTools && onViewModeChange && (
             <div className="mhg-libraries-actions-view-mode-container">
               <ViewModeSelector
                 value={viewMode}
