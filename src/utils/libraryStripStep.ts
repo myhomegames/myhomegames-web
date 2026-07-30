@@ -3,7 +3,7 @@
  * List-driving controls are auto-selected (click); other strip icons only receive focus/scroll.
  */
 
-import { centerStripTileInStripViewport } from "./librariesStripScroll";
+import { centerStripTileInStripViewport, ensureStripTileVisibleInViewport } from "./librariesStripScroll";
 import { playFixedFocalStepSound } from "./fixedFocalStepSound";
 import { isSmartTvBrowser } from "./smartTv";
 import { SMART_TV_HOVER_ATTR } from "./smartTvFocusHover";
@@ -177,5 +177,57 @@ export function stepLibraryStrip(direction: 1 | -1): boolean {
     playStripStepSoundIfEnabled();
     setStripFocus(el, { domFocus: isSmartTvBrowser() });
   }
+  return true;
+}
+
+/**
+ * Linear Left/Right through header page tabs when the strip overflows but is not in
+ * PS3 discrete mode (e.g. Plex). Focuses DOM-order neighbors and scrolls them into view.
+ * @returns true if focus moved within the strip
+ */
+export function stepOverflowingLibraryPagesStrip(direction: 1 | -1): boolean {
+  if (typeof document === "undefined") return false;
+  if (isHorizontalLibraryStripMode()) return false;
+  if (document.querySelector("[data-mhg-library-pages-vertical-list]")) return false;
+
+  const row =
+    document.querySelector<HTMLElement>(".mhg-libraries-bar .mhg-libraries-container") ??
+    document.querySelector<HTMLElement>(".mhg-libraries-container");
+  if (!row) return false;
+
+  const targets = Array.from(
+    row.querySelectorAll<HTMLElement>(".mhg-library-button, .mhg-collection-shortcut-button"),
+  ).filter(isVisibleStripControl);
+  if (targets.length === 0) return false;
+
+  const active = document.activeElement as HTMLElement | null;
+  let current = targets.findIndex((el) => el === active || (!!active && el.contains(active)));
+  if (current < 0) {
+    current = targets.findIndex(
+      (el) =>
+        el.classList.contains("mhg-library-active") ||
+        el.classList.contains("mhg-collection-shortcut-button--selected"),
+    );
+    if (current < 0) current = 0;
+  }
+
+  const next = current + direction;
+  if (next < 0 || next >= targets.length) return false;
+  const el = targets[next];
+  if (!el) return false;
+
+  try {
+    if (el.tabIndex < 0 && !el.hasAttribute("tabindex")) {
+      el.tabIndex = -1;
+    }
+    el.focus({ preventScroll: true });
+  } catch {
+    try {
+      el.focus();
+    } catch {
+      /* ignore */
+    }
+  }
+  ensureStripTileVisibleInViewport(row, el);
   return true;
 }

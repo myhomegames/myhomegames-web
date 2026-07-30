@@ -116,6 +116,32 @@ export function targetActiveLibraryIconCenterX(
 }
 
 /**
+ * Keep `tile` inside the horizontal strip viewport (padding margin).
+ * Used on Smart TV when D-pad focuses overflowed header page tabs (e.g. Plex).
+ */
+export function ensureStripTileVisibleInViewport(
+  container: HTMLElement,
+  tile: HTMLElement,
+  padPx: number = 12,
+): void {
+  if (!librariesStripNeedsHorizontalScroll(container)) return;
+
+  const strip = container.getBoundingClientRect();
+  const tileRect = tile.getBoundingClientRect();
+  let delta = 0;
+  if (tileRect.left < strip.left + padPx) {
+    delta = tileRect.left - strip.left - padPx;
+  } else if (tileRect.right > strip.right - padPx) {
+    delta = tileRect.right - strip.right + padPx;
+  }
+  if (delta === 0) return;
+
+  const max = maxLibrariesStripScrollLeft(container);
+  container.scrollLeft = Math.max(0, Math.min(max, container.scrollLeft + delta));
+  clampLibrariesStripScrollLeft(container);
+}
+
+/**
  * Instantly snap the strip so `tile` sits on the vertical-cover focal X
  * (same math as centering the active library — discrete, not smooth).
  */

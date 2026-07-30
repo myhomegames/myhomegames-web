@@ -3,6 +3,7 @@ import {
   activateStripFocusTarget,
   isHorizontalLibraryStripMode,
   stepLibraryStrip,
+  stepOverflowingLibraryPagesStrip,
 } from "./libraryStripStep";
 
 const KEY_LEFT = 37;
@@ -749,6 +750,18 @@ export function installSmartTvRemoteKeys(
           // at last icon going right → content rail
           enterContent();
           return;
+        }
+      }
+
+      // Plex-style overflowing header tabs: linear DOM order + scroll into view
+      // (geometric pickNextFocus + preventScroll leaves clipped tabs "invisible").
+      if (direction === "left" || direction === "right") {
+        const onPagesStrip = !!current?.closest?.(".mhg-libraries-container");
+        if (onPagesStrip || !current) {
+          const stepped = stepOverflowingLibraryPagesStrip(direction === "right" ? 1 : -1);
+          if (stepped) return;
+          if (onPagesStrip && direction === "left") return;
+          // at last tab going right → fall through to chrome actions / content
         }
       }
 
