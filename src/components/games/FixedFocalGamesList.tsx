@@ -446,6 +446,7 @@ export default function FixedFocalGamesList({
               onCollectionLikePseudoUpdated={onCollectionLikePseudoUpdated}
               activeCollectionLikeDetail={activeCollectionLikeDetail}
               activeGameId={activeGameId}
+              longPressTarget={isSelected}
             />
           </div>
         );

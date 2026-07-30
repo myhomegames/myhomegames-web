@@ -288,7 +288,8 @@ Access login page (that UI is not D-pad friendly). Instead the PWA shows a large
 
 After the library is linked once, a stored public API URL is reused on later launches
 (until you disconnect). Focus styles for D-pad navigation apply when the PWA detects
-a Smart TV user agent (`isSmartTvBrowser()`).
+a Smart TV user agent (`isSmartTvBrowser()`), or on desktop when you open the app with
+`?mhgTv=1` (see [DEVELOPMENT.md](../DEVELOPMENT.md#testing-smart-tv-behaviour-on-desktop)).
 
 Phone shortcut from Settings (any already-connected device): **Link a TV** →
 `https://myhomegames-server.vige.it/link`.

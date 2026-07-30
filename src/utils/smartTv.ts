@@ -4,6 +4,7 @@ export const MOONLIGHT_TV_PROFILE = "tv";
 const SMART_TV_UA_RE =
   /tizen|webos|web0s|smart-tv|smarttv|viera|bravia|hbbtv|vidaa|netcast|appletv|crkey|aftb|aftt|aftm|afts|aftn|googletv|google tv|android tv|androidtv|chromecast|nvidia shield|shield android tv|mibox|mi box|smart.?tv/;
 
+/** Dev-only: force Smart TV mode from `?mhgTv=1`. See DEVELOPMENT.md § “Testing Smart TV behaviour on desktop”. */
 function smartTvForcedFromUrl(): boolean {
   if (typeof window === "undefined") return false;
   try {

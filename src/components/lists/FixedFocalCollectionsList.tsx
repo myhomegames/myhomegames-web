@@ -448,6 +448,7 @@ export default function FixedFocalCollectionsList({
               buildCoverUrl={buildCoverUrl}
               coverSize={coverSize}
               itemRefs={itemRefs}
+              longPressTarget={isSelected}
             />
           </div>
         );
