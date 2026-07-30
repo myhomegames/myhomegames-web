@@ -381,6 +381,22 @@ function closeSidebarSearchIfOpen(): boolean {
   return true;
 }
 
+function isDismissibleDropdownLayer(layer: HTMLElement): boolean {
+  return (
+    layer.classList.contains("dropdown-menu-popup") ||
+    layer.classList.contains("add-to-collection-dropdown-menu") ||
+    layer.classList.contains("additional-executables-dropdown-menu") ||
+    layer.classList.contains("profile-dropdown-popup") ||
+    layer.classList.contains("view-mode-dropdown") ||
+    layer.classList.contains("view-mode-dropdown--portaled") ||
+    layer.classList.contains("games-table-column-menu-popup") ||
+    layer.classList.contains("filter-popup") ||
+    layer.classList.contains("sort-popup") ||
+    layer.classList.contains("games-list-toolbar-popup") ||
+    layer.classList.contains("franchise-series-dropdown")
+  );
+}
+
 /** Close a known modal/sheet layer if one is open. */
 function tryDismissUiLayer(): boolean {
   const layer = getActiveUiLayer();
@@ -399,6 +415,24 @@ function tryDismissUiLayer(): boolean {
     );
     if (closeInLayer && isVisible(closeInLayer)) {
       closeInLayer.click();
+      return true;
+    }
+
+    // Cover / ⋮ menus have no close button and ignore synthetic Escape alone.
+    if (isDismissibleDropdownLayer(layer)) {
+      window.dispatchEvent(new CustomEvent("mhg:close-dropdown-menus"));
+      window.dispatchEvent(new CustomEvent("closeAddToCollectionDropdown"));
+      window.dispatchEvent(new CustomEvent("closeAdditionalExecutablesDropdown"));
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Escape",
+          code: "Escape",
+          keyCode: 27,
+          which: 27,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
       return true;
     }
 
@@ -882,7 +916,12 @@ export function installSmartTvRemoteKeys(
     }
 
     if (!isEnterKey(code, key)) {
-      if (isTvHardwareBack(code, key)) {
+      // Hardware Back on TV, or trusted Escape (desktop ?mhgTv=1 / some remotes).
+      // Ignore synthetic Escape from tryDismissUiLayer to avoid re-entry.
+      if (
+        isTvHardwareBack(code, key) ||
+        ((key === "Escape" || code === 27) && e.isTrusted)
+      ) {
         e.preventDefault();
         e.stopPropagation();
         goBackInApp();

@@ -12,6 +12,7 @@ import {
   resolveSingleMetadataReloadTarget,
 } from "../../utils/activitySession";
 import { bindSheetBackdropClose } from "../../utils/sheetPopupBackdrop";
+import { requestSmartTvUiLayerFocus } from "../../utils/smartTvRemote";
 import { useSidebarSearchInteraction } from "../../contexts/SidebarSearchInteractionContext";
 import {
   HEADER_SEARCH_ACTION_Z_INDEX,
@@ -346,6 +347,11 @@ function DropdownMenu({
   }, [openRequest, gameId, collectionId, isSearchResultMenu]);
 
   useEffect(() => {
+    if (!isOpen) return;
+    requestSmartTvUiLayerFocus();
+  }, [isOpen]);
+
+  useEffect(() => {
     function handleCloseAllMenus() {
       setIsOpen(false);
       setIsCollectionLikeSubmenuOpen(false);
@@ -353,6 +359,30 @@ function DropdownMenu({
     window.addEventListener("mhg:close-dropdown-menus", handleCloseAllMenus);
     return () => window.removeEventListener("mhg:close-dropdown-menus", handleCloseAllMenus);
   }, []);
+
+  // Close the popup on Escape / TV Back (via tryDismissUiLayer → Escape).
+  useEffect(() => {
+    if (!isOpen) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape" && event.keyCode !== 27) return;
+      if (deleteGame.showConfirmModal || reloadGame.showReloadConfirmModal || showCancelBulkReloadModal) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      setIsOpen(false);
+      setIsCollectionLikeSubmenuOpen(false);
+    }
+
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => document.removeEventListener("keydown", handleKeyDown, true);
+  }, [
+    isOpen,
+    deleteGame.showConfirmModal,
+    reloadGame.showReloadConfirmModal,
+    showCancelBulkReloadModal,
+  ]);
 
   useEffect(() => {
     if (!isOpen) return;
