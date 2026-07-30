@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type React from "react";
 import type { CSSProperties } from "react";
@@ -8,6 +8,10 @@ import AdditionalExecutablesDropdown from "./AdditionalExecutablesDropdown";
 import Tooltip from "../common/Tooltip";
 import { API_BASE } from "../../config";
 import { useCompactCoverChrome } from "../../hooks/useCompactCoverChrome";
+import {
+  attachCoverPointerLongPress,
+  COVER_LONG_PRESS_EVENT,
+} from "../../utils/coverLongPress";
 import {
   normalizeCoverCacheKey,
   pickCoverSource,
@@ -146,16 +150,22 @@ export default function Cover({
   removeResourceType,
   onRemoveSuccess,
   removeDisabled = false,
-  longPressTarget: _longPressTarget = false,
+  longPressTarget = false,
 }: CoverProps) {
   const { t } = useTranslation();
   const [imageError, setImageError] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isPopupOverlay, setIsPopupOverlay] = useState(false);
+  const [contextMenuOpenRequest, setContextMenuOpenRequest] = useState(0);
   const coverRef = useRef<HTMLDivElement>(null);
+  const suppressNextClickRef = useRef(false);
   const compactCoverChrome = useCompactCoverChrome();
   const useCompactOverlay =
     compactCoverChrome && onUpload === undefined && !showRemoveButton;
+  const hasCoverContextMenu =
+    !detailNavigationDisabled &&
+    !!onEdit &&
+    !!(gameId || collectionId || developerId || publisherId);
   const rawCoverInput = pickCoverSource(
     cover,
     coverUrl,
@@ -279,6 +289,33 @@ export default function Cover({
     };
   }, [isDropdownOpen]);
   
+  const openCoverContextMenu = useCallback(() => {
+    if (!useCompactOverlay || !hasCoverContextMenu) return;
+    setContextMenuOpenRequest((n) => n + 1);
+    suppressNextClickRef.current = true;
+    window.setTimeout(() => {
+      suppressNextClickRef.current = false;
+    }, 400);
+  }, [useCompactOverlay, hasCoverContextMenu]);
+
+  useEffect(() => {
+    if (!useCompactOverlay) return;
+    const onLongPress = () => {
+      const root = coverRef.current;
+      if (!root) return;
+      if (longPressTarget || root.contains(document.activeElement)) {
+        openCoverContextMenu();
+      }
+    };
+    document.addEventListener(COVER_LONG_PRESS_EVENT, onLongPress);
+    return () => document.removeEventListener(COVER_LONG_PRESS_EVENT, onLongPress);
+  }, [useCompactOverlay, longPressTarget, openCoverContextMenu]);
+
+  useEffect(() => {
+    if (!useCompactOverlay || !coverRef.current) return;
+    return attachCoverPointerLongPress(coverRef.current, openCoverContextMenu);
+  }, [useCompactOverlay, openCoverContextMenu]);
+  
   // Calculate font size and padding for placeholder overlay
   let calculatedFontSize = Math.max(10, Math.min(16, Math.floor(width / 8)));
   // Increase font size for 16/9 aspect ratio with overlay title
@@ -289,6 +326,11 @@ export default function Cover({
   const lineClamp = Math.max(2, Math.floor(height / (calculatedFontSize * 1.5)));
 
   const handleCoverClick = (e: React.MouseEvent) => {
+    if (suppressNextClickRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     if (play && !detail && onPlay) {
       // If play only (no detail), clicking the cover plays
       e.stopPropagation(); // Prevent event from bubbling to parent
@@ -329,8 +371,8 @@ export default function Cover({
     onPlay &&
     !onUpload;
   const shouldShowUploadButton = onUpload !== undefined;
-  const showCoverActions =
-    !detailNavigationDisabled && !useCompactOverlay;
+  const showCoverOverlayButtons =
+    !detailNavigationDisabled && !useCompactOverlay && !!onEdit;
   const coverChromeOpen = isDropdownOpen;
   const isClickable =
     (detail && onClick) || (play && !detail && onPlay) || shouldShowUploadButton;
@@ -474,7 +516,7 @@ export default function Cover({
             )}
           </button>
         )}
-        {showCoverActions && onEdit && (
+        {showCoverOverlayButtons && (
           <button
             type="button"
             onClick={handleEditClick}
@@ -496,16 +538,14 @@ export default function Cover({
             </svg>
           </button>
         )}
-        {showCoverActions && onEdit && gameId && game && (
+        {hasCoverContextMenu && (
           <div className="games-list-dropdown-wrapper games-list-dropdown-wrapper-bottom-right">
-            <AddToCollectionDropdown
-              game={game}
-              allCollections={allCollections}
-            />
-          </div>
-        )}
-        {showCoverActions && onEdit && (gameId || collectionId || developerId || publisherId) && (
-          <div className="games-list-dropdown-wrapper games-list-dropdown-wrapper-bottom-right">
+            {gameId && game && (
+              <AddToCollectionDropdown
+                game={game}
+                allCollections={allCollections}
+              />
+            )}
             {gameId && game && game.executables && game.executables.length > 1 && onPlay && (
               <AdditionalExecutablesDropdown
                 gameId={gameId}
@@ -543,6 +583,14 @@ export default function Cover({
               horizontal={dropdownHorizontal}
               toolTipDelay={dropdownToolTipDelay}
               className="games-list-dropdown-menu"
+              hideTrigger={useCompactOverlay}
+              openRequest={useCompactOverlay ? contextMenuOpenRequest : undefined}
+              onPlay={
+                useCompactOverlay && play && onPlay && !onUpload
+                  ? () => onPlay()
+                  : undefined
+              }
+              onEdit={useCompactOverlay && onEdit ? () => onEdit() : undefined}
             />
           </div>
         )}

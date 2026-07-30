@@ -55,6 +55,12 @@ type DropdownMenuProps = {
   onModalOpen?: () => void;
   onModalClose?: () => void;
   toolTipDelay?: number;
+  /** Cover / phone / TV: open the popup without rendering the ⋮ trigger. */
+  hideTrigger?: boolean;
+  /** Increment to open the menu programmatically (e.g. cover long-press). */
+  openRequest?: number;
+  /** Optional Play action (shown as first menu item when set). */
+  onPlay?: () => void;
 };
 
 function DropdownMenu({
@@ -88,6 +94,9 @@ function DropdownMenu({
   onModalOpen,
   onModalClose,
   toolTipDelay = 0,
+  hideTrigger = false,
+  openRequest = 0,
+  onPlay,
 }: DropdownMenuProps) {
   const { t } = useTranslation();
   const { activeSkinWeb } = useSkin();
@@ -319,6 +328,21 @@ function DropdownMenu({
   }, [isOpen, gameId, collectionId, isSearchResultMenu]);
 
   useEffect(() => {
+    if (!openRequest) return;
+    setIsOpen(true);
+    if (isSearchResultMenu) return;
+    if (gameId) {
+      window.dispatchEvent(
+        new CustomEvent("dropdownMenuOpened", { detail: { gameId } }),
+      );
+    } else if (collectionId) {
+      window.dispatchEvent(
+        new CustomEvent("dropdownMenuOpened", { detail: { collectionId } }),
+      );
+    }
+  }, [openRequest, gameId, collectionId, isSearchResultMenu]);
+
+  useEffect(() => {
     function handleCloseAllMenus() {
       setIsOpen(false);
       setIsCollectionLikeSubmenuOpen(false);
@@ -458,6 +482,12 @@ function DropdownMenu({
         }));
       }
     }
+  };
+
+  const handlePlay = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsOpen(false);
+    onPlay?.();
   };
 
   const handleEdit = (e: React.MouseEvent) => {
@@ -657,7 +687,12 @@ function DropdownMenu({
 
   return (
     <div className={`dropdown-menu-wrapper ${className}`} ref={menuRef}>
-      {toolTipDelay > 0 ? (
+      {hideTrigger ? (
+        <span
+          className="dropdown-menu-button dropdown-menu-button--hidden-anchor"
+          aria-hidden="true"
+        />
+      ) : toolTipDelay > 0 ? (
         <Tooltip text={t("common.more", "More")} delay={toolTipDelay}>
           {buttonContent}
         </Tooltip>
@@ -748,6 +783,22 @@ function DropdownMenu({
               return undefined;
             })()}
           >
+            {onPlay && (
+              <button onClick={handlePlay} className="dropdown-menu-item">
+                <span>{t("common.play", "Play")}</span>
+              </button>
+            )}
+            {onPlay &&
+              ((gameId && gameExecutables && gameExecutables.length > 1) ||
+                onAddToCollection ||
+                onEdit ||
+                canReloadMetadata ||
+                onDelete ||
+                (hasBackendAuth &&
+                  (gameId || collectionId || developerId || publisherId))) && (
+                <div className="dropdown-menu-divider" />
+              )}
+
             {/* Additional Executables (only for games with multiple executables) */}
             {gameId && gameExecutables && gameExecutables.length > 1 && (
               <div
