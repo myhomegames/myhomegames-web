@@ -6,6 +6,13 @@ import {
   stepLibraryStrip,
   stepOverflowingLibraryPagesStrip,
 } from "./libraryStripStep";
+import { ensureElementVisibleInScrollParents, nudgeScrollParentForDirection } from "./ensureVisibleInScrollParent";
+import { playFixedFocalStepSound } from "./fixedFocalStepSound";
+
+/** Tick for OK / Back only — never for D-pad arrow moves. */
+function playTvActionSound(): void {
+  playFixedFocalStepSound();
+}
 
 const KEY_LEFT = 37;
 const KEY_UP = 38;
@@ -461,6 +468,12 @@ function focusElement(el: HTMLElement): void {
   } catch {
     el.focus();
   }
+  // D-pad uses preventScroll so page jump is controlled; still bring the target into
+  // overflow parents (GOG vertical library list, plex/gog cover grids, sheets).
+  ensureElementVisibleInScrollParents(el);
+  window.requestAnimationFrame(() => {
+    if (el.isConnected) ensureElementVisibleInScrollParents(el);
+  });
 }
 
 function isUnderInertAncestor(el: HTMLElement): boolean {
@@ -622,6 +635,8 @@ function isExitConfirmOpen(): boolean {
 }
 
 function goBackInApp(): void {
+  playTvActionSound();
+
   // Pages (e.g. StreamPlay) can cancel and handle cleanup themselves.
   const ev = new CustomEvent("mhg:tv-hardware-back", { cancelable: true, bubbles: true });
   window.dispatchEvent(ev);
@@ -737,6 +752,7 @@ export function installSmartTvRemoteKeys(
     }
 
     if (!uiLayer && isHorizontalLibraryStripMode() && activateStripFocusTarget()) {
+      playTvActionSound();
       zone = "chrome";
       return;
     }
@@ -760,6 +776,7 @@ export function installSmartTvRemoteKeys(
         (!uiLayer || uiLayer.contains(active)) &&
         isActivatable
       ) {
+        playTvActionSound();
         active.click();
         requestSmartTvUiLayerFocus();
         return;
@@ -771,6 +788,7 @@ export function installSmartTvRemoteKeys(
     }
 
     if (!uiLayer) {
+      playTvActionSound();
       document.dispatchEvent(new CustomEvent("mhg:fixed-focal-activate"));
     }
   };
@@ -1095,6 +1113,23 @@ export function installSmartTvRemoteKeys(
       const next = pickNextFocus(current, direction, true);
       if (next) {
         focusElement(next);
+        return;
+      }
+
+      // Virtualized / clipped lists: no mounted neighbor yet — scroll the host and retry.
+      if (
+        (direction === "up" || direction === "down" || direction === "left" || direction === "right") &&
+        current &&
+        nudgeScrollParentForDirection(current, direction)
+      ) {
+        window.requestAnimationFrame(() => {
+          const retry = pickNextFocus(
+            document.activeElement instanceof HTMLElement ? document.activeElement : current,
+            direction,
+            true,
+          );
+          if (retry) focusElement(retry);
+        });
         return;
       }
 
