@@ -158,7 +158,7 @@ When `mhgTv=1` is present:
 - `isSmartTvBrowser()` returns `true` even on desktop user agents.
 - `<html>` gets `data-mhg-tv="1"` (via `applySmartTvDocumentFlag()` in `main.tsx`), so **skin CSS** can target TV layout (hidden scrollbars, focus rings, library bar tweaks, etc.).
 - **D-pad / remote** handling is installed (`smartTvRemote.ts`): arrow keys, Enter short vs long-press, Back, fixed-focal lists.
-- **Cover context menu** (play, edit, ⋮ actions) opens on long-press instead of overlay buttons (`useCompactCoverChrome`).
+- **Cover context menu** on long-press instead of overlay buttons (`useCompactCoverChrome`): on **phone** the native long-press is intercepted and a bottom action sheet opens (Play, Edit, ⋮ actions); on **Smart TV** OK-hold opens the dropdown menu.
 - **Moonlight** stream URLs get `mhgProfile=tv` when opening remote play.
 - Other TV-only flows (device pairing, exit confirm, tunnel connect) behave as on a physical TV.
 

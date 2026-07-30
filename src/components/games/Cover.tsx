@@ -8,10 +8,9 @@ import AdditionalExecutablesDropdown from "./AdditionalExecutablesDropdown";
 import Tooltip from "../common/Tooltip";
 import { API_BASE } from "../../config";
 import { useCompactCoverChrome } from "../../hooks/useCompactCoverChrome";
-import {
-  attachCoverPointerLongPress,
-  COVER_LONG_PRESS_EVENT,
-} from "../../utils/coverLongPress";
+import { usePhoneLayout } from "../../hooks/usePhoneLayout";
+import { isSmartTvBrowser } from "../../utils/smartTv";
+import { COVER_LONG_PRESS_EVENT } from "../../utils/coverLongPress";
 import {
   normalizeCoverCacheKey,
   pickCoverSource,
@@ -160,8 +159,12 @@ export default function Cover({
   const coverRef = useRef<HTMLDivElement>(null);
   const suppressNextClickRef = useRef(false);
   const compactCoverChrome = useCompactCoverChrome();
+  const isPhoneLayout = usePhoneLayout();
+  const isSmartTv = isSmartTvBrowser();
   const useCompactOverlay =
     compactCoverChrome && onUpload === undefined && !showRemoveButton;
+  const usePhoneCoverMenu = isPhoneLayout && useCompactOverlay;
+  const useSmartTvCoverMenu = isSmartTv && useCompactOverlay;
   const hasCoverContextMenu =
     !detailNavigationDisabled &&
     !!onEdit &&
@@ -299,7 +302,7 @@ export default function Cover({
   }, [useCompactOverlay, hasCoverContextMenu]);
 
   useEffect(() => {
-    if (!useCompactOverlay) return;
+    if (!useSmartTvCoverMenu) return;
     const onLongPress = () => {
       const root = coverRef.current;
       if (!root) return;
@@ -309,12 +312,19 @@ export default function Cover({
     };
     document.addEventListener(COVER_LONG_PRESS_EVENT, onLongPress);
     return () => document.removeEventListener(COVER_LONG_PRESS_EVENT, onLongPress);
-  }, [useCompactOverlay, longPressTarget, openCoverContextMenu]);
+  }, [useSmartTvCoverMenu, longPressTarget, openCoverContextMenu]);
 
   useEffect(() => {
-    if (!useCompactOverlay || !coverRef.current) return;
-    return attachCoverPointerLongPress(coverRef.current, openCoverContextMenu);
-  }, [useCompactOverlay, openCoverContextMenu]);
+    if (!usePhoneCoverMenu || !coverRef.current) return;
+    const el = coverRef.current;
+    const onNativeContextMenu = (e: Event) => {
+      if (!hasCoverContextMenu) return;
+      e.preventDefault();
+      openCoverContextMenu();
+    };
+    el.addEventListener("contextmenu", onNativeContextMenu);
+    return () => el.removeEventListener("contextmenu", onNativeContextMenu);
+  }, [usePhoneCoverMenu, hasCoverContextMenu, openCoverContextMenu]);
   
   // Calculate font size and padding for placeholder overlay
   let calculatedFontSize = Math.max(10, Math.min(16, Math.floor(width / 8)));
@@ -441,6 +451,7 @@ export default function Cover({
                 : undefined
             }
             loading={displayUrl.startsWith('data:') ? undefined : "lazy"}
+            draggable={false}
             onError={() => {
               setImageError(true);
             }}
@@ -585,6 +596,7 @@ export default function Cover({
               className="games-list-dropdown-menu"
               hideTrigger={useCompactOverlay}
               openRequest={useCompactOverlay ? contextMenuOpenRequest : undefined}
+              phoneSheet={usePhoneCoverMenu}
               onPlay={
                 useCompactOverlay && play && onPlay && !onUpload
                   ? () => onPlay()
