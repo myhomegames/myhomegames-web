@@ -318,18 +318,14 @@ function defaultChromeTarget(): HTMLElement | null {
   );
 }
 
-function pickNextFocus(
+function pickNextInSet(
+  items: HTMLElement[],
   current: HTMLElement | null,
   direction: Direction,
-  allowTextFields: boolean,
 ): HTMLElement | null {
-  const items = collectFocusables(allowTextFields);
-  if (items.length === 0) {
-    return allowTextFields ? null : defaultChromeTarget();
-  }
-
+  if (items.length === 0) return null;
   if (!current || !items.includes(current)) {
-    return defaultChromeTarget() ?? items[0] ?? null;
+    return items[0] ?? null;
   }
 
   const from = current.getBoundingClientRect();
@@ -375,6 +371,69 @@ function pickNextFocus(
   }
 
   return best;
+}
+
+function pickNextFocus(
+  current: HTMLElement | null,
+  direction: Direction,
+  allowTextFields: boolean,
+): HTMLElement | null {
+  const items = collectFocusables(allowTextFields);
+  if (items.length === 0) {
+    return allowTextFields ? null : defaultChromeTarget();
+  }
+
+  if (!current || !items.includes(current)) {
+    return defaultChromeTarget() ?? items[0] ?? null;
+  }
+
+  return pickNextInSet(items, current, direction);
+}
+
+/** Libraries sidebar / header tabs (GOG vertical list, Plex page tabs). */
+function libraryMenuFocusFrom(el: HTMLElement | null): HTMLElement | null {
+  if (!el) return null;
+  if (
+    el.classList.contains("mhg-library-button") ||
+    el.classList.contains("mhg-collection-shortcut-button")
+  ) {
+    return el;
+  }
+  return el.closest(
+    ".mhg-library-button, .mhg-collection-shortcut-button",
+  ) as HTMLElement | null;
+}
+
+function coverFocusFrom(el: HTMLElement | null): HTMLElement | null {
+  if (!el) return null;
+  if (el.classList.contains("games-list-cover")) return el;
+  return el.closest(".games-list-cover") as HTMLElement | null;
+}
+
+function collectLibraryMenuFocusables(): HTMLElement[] {
+  const root =
+    document.querySelector<HTMLElement>(".mhg-libraries-bar .mhg-libraries-container") ??
+    document.querySelector<HTMLElement>(".mhg-libraries-container");
+  if (!root) return [];
+  return Array.from(
+    root.querySelectorAll<HTMLElement>(
+      ".mhg-library-button, .mhg-collection-shortcut-button",
+    ),
+  ).filter((el) => isVisible(el) && !isLogoButton(el));
+}
+
+function collectCoverFocusables(): HTMLElement[] {
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(
+      ".games-list-cover[role='button'], .games-list-cover[tabindex]",
+    ),
+  ).filter((el) => isVisible(el) && !el.closest("[inert]"));
+}
+
+/** Plex / GOG grid navigation (not PS3 fixed-focal strip). */
+function isLibraryMenuCoverGridNavMode(): boolean {
+  if (isHorizontalLibraryStripMode()) return false;
+  return collectLibraryMenuFocusables().length > 0;
 }
 
 /** Vertical list rows inside ⋮ / cover / filter sheets — use DOM order, not geometry. */
@@ -677,6 +736,61 @@ export function installSmartTvRemoteKeys(
   let enterPointerDown = false;
   let enterLongPressFired = false;
   let enterLongPressTimer: number | null = null;
+  /** Last libraries-menu control focused before jumping to covers (Plex / GOG). */
+  let lastLibraryMenuFocus: HTMLElement | null = null;
+  /** Last cover focused before returning to the libraries menu. */
+  let lastCoverFocus: HTMLElement | null = null;
+
+  const rememberLibraryMenuFocus = (el: HTMLElement | null) => {
+    const menu = libraryMenuFocusFrom(el);
+    if (menu) lastLibraryMenuFocus = menu;
+  };
+
+  const rememberCoverFocus = (el: HTMLElement | null) => {
+    const cover = coverFocusFrom(el);
+    if (cover) lastCoverFocus = cover;
+  };
+
+  const resolveLibraryMenuFocus = (): HTMLElement | null => {
+    if (lastLibraryMenuFocus?.isConnected && isVisible(lastLibraryMenuFocus)) {
+      return lastLibraryMenuFocus;
+    }
+    const menus = collectLibraryMenuFocusables();
+    return (
+      menus.find(
+        (el) =>
+          el.classList.contains("mhg-library-active") ||
+          el.classList.contains("mhg-collection-shortcut-button--selected"),
+      ) ??
+      menus[0] ??
+      null
+    );
+  };
+
+  const resolveCoverFocus = (): HTMLElement | null => {
+    if (lastCoverFocus?.isConnected && isVisible(lastCoverFocus)) {
+      return lastCoverFocus;
+    }
+    return collectCoverFocusables()[0] ?? null;
+  };
+
+  const focusLibraryMenu = () => {
+    const menu = resolveLibraryMenuFocus();
+    if (!menu) return false;
+    zone = "chrome";
+    focusElement(menu);
+    rememberLibraryMenuFocus(menu);
+    return true;
+  };
+
+  const focusCoversZone = () => {
+    const cover = resolveCoverFocus();
+    if (!cover) return false;
+    zone = "chrome";
+    focusElement(cover);
+    rememberCoverFocus(cover);
+    return true;
+  };
 
   const clearEnterLongPressTimer = () => {
     if (enterLongPressTimer != null) {
@@ -1056,6 +1170,99 @@ export function installSmartTvRemoteKeys(
         active && active !== document.body && active !== document.documentElement && !isLogoButton(active)
           ? active
           : null;
+
+      // Plex / GOG: libraries menu ↔ cover grid.
+      // GOG (vertical): Right → covers; Up/Down move in the menu (Down at end → covers).
+      // Plex (horizontal): Down → covers; Left/Right move tabs (Right at end → covers).
+      // Covers: Left/Up at the outer edge → last libraries-menu item.
+      if (isLibraryMenuCoverGridNavMode()) {
+        const menuEl = libraryMenuFocusFrom(current);
+        const coverEl = coverFocusFrom(current);
+        const verticalMenu = !!document.querySelector(
+          "[data-mhg-library-pages-vertical-list]",
+        );
+
+        if (menuEl) {
+          rememberLibraryMenuFocus(menuEl);
+          const menus = collectLibraryMenuFocusables();
+
+          if (verticalMenu) {
+            // GOG sidebar: Right → covers; Up/Down move the menu (Down past the last row → covers).
+            if (direction === "right") {
+              if (focusCoversZone()) return;
+              return;
+            }
+            if (direction === "left" || direction === "up" || direction === "down") {
+              const nextMenu = pickNextInSet(menus, menuEl, direction);
+              if (nextMenu) {
+                rememberLibraryMenuFocus(nextMenu);
+                focusElement(nextMenu);
+                return;
+              }
+              if (direction === "down" && focusCoversZone()) return;
+              return;
+            }
+          } else {
+            // Plex header: Down → covers; Left/Right move tabs (Right past the last tab → covers).
+            if (direction === "down") {
+              if (focusCoversZone()) return;
+              return;
+            }
+            if (direction === "left" || direction === "right") {
+              const nextMenu = pickNextInSet(menus, menuEl, direction);
+              if (nextMenu) {
+                rememberLibraryMenuFocus(nextMenu);
+                focusElement(nextMenu);
+                return;
+              }
+              if (direction === "right" && focusCoversZone()) return;
+              return;
+            }
+            if (direction === "up") return;
+          }
+        }
+
+        if (coverEl) {
+          rememberCoverFocus(coverEl);
+          const covers = collectCoverFocusables();
+          const nextCover = pickNextInSet(covers, coverEl, direction);
+          if (nextCover) {
+            rememberCoverFocus(nextCover);
+            focusElement(nextCover);
+            return;
+          }
+          if (direction === "left" || direction === "up") {
+            if (focusLibraryMenu()) return;
+          }
+          if (
+            (direction === "up" ||
+              direction === "down" ||
+              direction === "left" ||
+              direction === "right") &&
+            nudgeScrollParentForDirection(coverEl, direction)
+          ) {
+            window.requestAnimationFrame(() => {
+              const retry = pickNextInSet(
+                collectCoverFocusables(),
+                coverFocusFrom(
+                  document.activeElement instanceof HTMLElement
+                    ? document.activeElement
+                    : coverEl,
+                ),
+                direction,
+              );
+              if (retry) {
+                rememberCoverFocus(retry);
+                focusElement(retry);
+              } else if (direction === "left" || direction === "up") {
+                focusLibraryMenu();
+              }
+            });
+            return;
+          }
+          return;
+        }
+      }
 
       if (
         (direction === "left" || direction === "right") &&
