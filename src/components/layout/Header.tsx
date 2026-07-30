@@ -87,8 +87,9 @@ export default function Header({
   const hideHeaderTitleFilter = pathname === "/settings" || isGameDetailRoute;
   const hideSettings = hideSettingsAction || activeSkinWeb.libraryBarHeaderActions;
   const hideProfile = hideProfileAction || activeSkinWeb.libraryBarHeaderActions;
-  /* Add Game follows the same relocation rule as settings/profile. */
-  const hideAddGame = activeSkinWeb.libraryBarHeaderActions;
+  const smartTv = isSmartTvBrowser();
+  /* Add Game follows the same relocation rule as settings/profile; hidden on Smart TV. */
+  const hideAddGame = activeSkinWeb.libraryBarHeaderActions || smartTv;
   /*
    * GOG persistent shell: keep the “+” in the header flex row (margin-left anchor) but hide it
    * on game detail — removing it from the DOM shifts the settings icon.
@@ -102,6 +103,7 @@ export default function Header({
   const hideHeaderLogo =
     activeSkinWeb.topRightToolDock && !pathnameUsesHeaderLogoOnly(pathname);
   const showHeaderLibrariesMenu =
+    !smartTv &&
     collapsibleActive &&
     activeSkinWeb.persistentLibraryShell &&
     !activeSkinWeb.topRightToolDock &&
@@ -155,7 +157,7 @@ export default function Header({
             className="mhg-logo-button"
             aria-label={t("header.home")}
             style={isPhoneLayout ? { height: 40 } : undefined}
-            tabIndex={isSmartTvBrowser() ? -1 : undefined}
+            tabIndex={smartTv ? -1 : undefined}
           >
             <Logo width={isPhoneLayout ? 64 : 90} height={isPhoneLayout ? 40 : 50} />
           </button>
