@@ -233,6 +233,17 @@ function pickPreferredUiLayerFocus(layer: HTMLElement): HTMLElement | null {
     const createTitle = layer.querySelector<HTMLElement>("#add-game-create-title");
     if (createTitle && isVisible(createTitle)) return createTitle;
   }
+  // Cover / ⋮ action sheet: prefer a real menu row over the overlay chrome.
+  if (
+    layer.classList.contains("dropdown-menu-phone-sheet-overlay") ||
+    layer.classList.contains("dropdown-menu-popup") ||
+    layer.classList.contains("edit-game-modal-overlay")
+  ) {
+    const menuItem = layer.querySelector<HTMLElement>(
+      "button.dropdown-menu-item:not([disabled]), .dropdown-menu-item",
+    );
+    if (menuItem && isVisible(menuItem)) return menuItem;
+  }
   const items = collectFocusables(true, layer);
   return items[0] ?? null;
 }
@@ -720,6 +731,22 @@ export function installSmartTvRemoteKeys(
     const isEnter = isEnterKey(code, key);
 
     if (isEnter && !field) {
+      // While a sheet/menu owns the remote, OK must activate the focused row —
+      // never start another cover long-press underneath.
+      if (getActiveUiLayer()) {
+        if (e.repeat) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        if (!enterPointerDown) {
+          enterPointerDown = true;
+          enterLongPressFired = false;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       if (e.repeat) {
         e.preventDefault();
         e.stopPropagation();

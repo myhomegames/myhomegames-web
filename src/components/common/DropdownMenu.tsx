@@ -351,6 +351,44 @@ function DropdownMenu({
     requestSmartTvUiLayerFocus();
   }, [isOpen]);
 
+  // Smart TV / phone sheet: park remote focus on the first action as soon as the portal mounts.
+  useLayoutEffect(() => {
+    if (!isOpen || !phoneSheet) return;
+    const focusFirst = () => {
+      const root = popupRef.current;
+      if (!root) return false;
+      const first = root.querySelector<HTMLElement>(
+        "button.dropdown-menu-item:not([disabled]), .dropdown-menu-item:not(button)",
+      );
+      if (!first) return false;
+      if (first.tabIndex < 0 && !first.hasAttribute("tabindex")) {
+        first.tabIndex = 0;
+      }
+      try {
+        first.focus({ preventScroll: true });
+      } catch {
+        first.focus();
+      }
+      return document.activeElement === first;
+    };
+    if (focusFirst()) {
+      requestSmartTvUiLayerFocus();
+      return;
+    }
+    const t0 = window.setTimeout(() => {
+      focusFirst();
+      requestSmartTvUiLayerFocus();
+    }, 0);
+    const t1 = window.setTimeout(() => {
+      focusFirst();
+      requestSmartTvUiLayerFocus();
+    }, 50);
+    return () => {
+      window.clearTimeout(t0);
+      window.clearTimeout(t1);
+    };
+  }, [isOpen, phoneSheet, openRequest]);
+
   useEffect(() => {
     function handleCloseAllMenus() {
       setIsOpen(false);
@@ -836,9 +874,15 @@ function DropdownMenu({
             {/* Additional Executables (only for games with multiple executables) */}
             {gameId && gameExecutables && gameExecutables.length > 1 && (
               <div
+                role="button"
+                tabIndex={0}
                 className="dropdown-menu-item dropdown-menu-item-with-submenu additional-executables-menu-item"
                 onMouseEnter={handleAdditionalExecutablesMouseEnter}
                 onMouseLeave={handleAdditionalExecutablesMouseLeave}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAdditionalExecutablesMouseEnter();
+                }}
               >
                 <span>{t("gameDetail.additionalExecutables", "Additional executables")}</span>
                 <svg
@@ -861,9 +905,15 @@ function DropdownMenu({
               <>
                 {gameId ? (
                   <div
+                    role="button"
+                    tabIndex={0}
                     className="dropdown-menu-item dropdown-menu-item-with-submenu"
                     onMouseEnter={handleAddToCollectionMouseEnter}
                     onMouseLeave={handleAddToCollectionMouseLeave}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddToCollectionMouseEnter(e);
+                    }}
                   >
                     <span>{t("collections.addTo", "Add to")}</span>
                     <svg
@@ -881,6 +931,8 @@ function DropdownMenu({
                   </div>
                 ) : (
                   <div
+                    role="button"
+                    tabIndex={0}
                     className="dropdown-menu-item dropdown-menu-item-with-submenu"
                     onMouseEnter={() => setIsCollectionLikeSubmenuOpen(true)}
                     onMouseLeave={(e) => {
@@ -888,6 +940,10 @@ function DropdownMenu({
                       if (!target || !target.closest(".dropdown-menu-collectionlike-submenu")) {
                         setIsCollectionLikeSubmenuOpen(false);
                       }
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsCollectionLikeSubmenuOpen(true);
                     }}
                   >
                     <span>{t("collections.addTo", "Add to")}</span>
