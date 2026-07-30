@@ -121,11 +121,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const onApiBaseChanged = () => {
+      // Settings load is gated on tunnelReady; avoid hammering the new public URL
+      // during Cloudflare edge warmup right after device pairing / connect.
+      if (featureEnabled && !tunnelReady) return;
       void refreshSettings();
     };
     window.addEventListener("mhg-api-base-changed", onApiBaseChanged);
     return () => window.removeEventListener("mhg-api-base-changed", onApiBaseChanged);
-  }, [refreshSettings]);
+  }, [featureEnabled, tunnelReady, refreshSettings]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
