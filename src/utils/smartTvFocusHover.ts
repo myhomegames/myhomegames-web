@@ -45,6 +45,20 @@ function clearHoverMirror(el: HTMLElement): void {
 }
 
 function suppressTvFocusRing(el: HTMLElement): void {
+  // Plex / GOG (and similar) use outline as the cover :hover look — do not wipe it.
+  if (
+    el.classList.contains("cover-hover-effect") ||
+    el.classList.contains("games-list-cover") ||
+    el.classList.contains("games-list-item") ||
+    el.classList.contains("tag-list-item") ||
+    el.classList.contains("collections-list-item") ||
+    el.classList.contains("fixed-focal-games-item") ||
+    el.classList.contains("fixed-focal-tag-item") ||
+    el.classList.contains("fixed-focal-collections-item") ||
+    el.classList.contains("fixed-focal-recommended-strip-item")
+  ) {
+    return;
+  }
   el.style.setProperty("outline", "none", "important");
   el.style.setProperty("outline-offset", "0", "important");
 }
