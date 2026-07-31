@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
-import { getEmbedVideoUrl } from "../../utils/api";
+import { getEmbedVideoUrl, getVideoPosterUrl } from "../../utils/api";
 import { requestSmartTvUiLayerFocus } from "../../utils/smartTvRemote";
+
 type MediaGalleryProps = {
   screenshots?: string[];
   videos?: string[];
@@ -10,7 +11,7 @@ type MediaGalleryProps = {
 };
 
 type MediaItem = {
-  type: 'screenshot' | 'video';
+  type: "screenshot" | "video";
   src: string;
   index: number;
 };
@@ -20,60 +21,76 @@ export default function MediaGallery({ screenshots, videos, apiBase }: MediaGall
     !src ? "" : src.startsWith("http") ? src : apiBase ? new URL(src, apiBase).toString() : src;
   const resolvedScreenshots = (screenshots || []).map(resolveSrc);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [videoAutoplay, setVideoAutoplay] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Combine screenshots and videos into a single array
   const screenshotsCount = resolvedScreenshots.length;
   const mediaItems: MediaItem[] = [
-    ...resolvedScreenshots.map((src, index) => ({ type: 'screenshot' as const, src, index })),
-    ...(videos || []).map((src, index) => ({ type: 'video' as const, src, index: screenshotsCount + index })),
+    ...resolvedScreenshots.map((src, index) => ({ type: "screenshot" as const, src, index })),
+    ...(videos || []).map((src, index) => ({
+      type: "video" as const,
+      src,
+      index: screenshotsCount + index,
+    })),
   ];
 
-  if (mediaItems.length === 0) {
-    return null;
-  }
-
-  const openLightbox = (index: number) => {
+  const openLightbox = (index: number, autoplayVideo = false) => {
+    setVideoAutoplay(autoplayVideo);
     setSelectedIndex(index);
   };
 
-  const closeLightbox = () => {
+  const closeLightbox = useCallback(() => {
     setSelectedIndex(null);
-  };
+    setVideoAutoplay(false);
+  }, []);
 
-  const navigateMedia = useCallback((direction: 'prev' | 'next') => {
-    if (selectedIndex === null) return;
-    
-    if (direction === 'prev') {
-      const newIndex = selectedIndex > 0 ? selectedIndex - 1 : mediaItems.length - 1;
-      setSelectedIndex(newIndex);
-    } else {
-      const newIndex = selectedIndex < mediaItems.length - 1 ? selectedIndex + 1 : 0;
-      setSelectedIndex(newIndex);
-    }
-  }, [selectedIndex, mediaItems]);
+  const navigateMedia = useCallback(
+    (direction: "prev" | "next") => {
+      setSelectedIndex((current) => {
+        if (current === null || mediaItems.length === 0) return current;
+        const next =
+          direction === "prev"
+            ? current > 0
+              ? current - 1
+              : mediaItems.length - 1
+            : current < mediaItems.length - 1
+              ? current + 1
+              : 0;
+        setVideoAutoplay(false);
+        return next;
+      });
+    },
+    [mediaItems.length],
+  );
 
-  // Handle keyboard navigation
+  // Smart TV remote: arrows step slides; OK activates / plays the current video.
   useEffect(() => {
     if (selectedIndex === null) return;
 
     requestSmartTvUiLayerFocus();
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        closeLightbox();
-      } else if (e.key === 'ArrowLeft') {
-        navigateMedia('prev');
-      } else if (e.key === 'ArrowRight') {
-        navigateMedia('next');
+    const onRemoteNav = (e: Event) => {
+      const detail = (e as CustomEvent<{ direction?: "prev" | "next" }>).detail;
+      if (detail?.direction === "prev" || detail?.direction === "next") {
+        navigateMedia(detail.direction);
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+    const onRemoteOk = () => {
+      const item = mediaItems[selectedIndex];
+      if (!item) return;
+      if (item.type === "video") {
+        setVideoAutoplay(true);
+      }
     };
-  }, [selectedIndex, navigateMedia]);
+
+    window.addEventListener("mhg:media-gallery-nav", onRemoteNav);
+    window.addEventListener("mhg:media-gallery-ok", onRemoteOk);
+    return () => {
+      window.removeEventListener("mhg:media-gallery-nav", onRemoteNav);
+      window.removeEventListener("mhg:media-gallery-ok", onRemoteOk);
+    };
+  }, [selectedIndex, mediaItems, navigateMedia]);
 
   useEffect(() => {
     const container = scrollRef.current;
@@ -114,116 +131,134 @@ export default function MediaGallery({ screenshots, videos, apiBase }: MediaGall
     };
   }, []);
 
+  if (mediaItems.length === 0) {
+    return null;
+  }
+
   const selectedMedia = selectedIndex !== null ? mediaItems[selectedIndex] : null;
 
   return (
     <>
       <div ref={scrollRef} className="media-gallery-strip">
-          {/* Videos first */}
-          {videos && videos.map((video, index) => (
-            <button
-              key={`video-${index}`}
-              type="button"
-              className="media-gallery-tile"
-              onClick={() => openLightbox(screenshotsCount + index)}
-            >
-              <iframe
-                className="media-gallery-tile-iframe"
-                src={getEmbedVideoUrl(video)}
-                title={`Video ${index + 1}`}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; compute-pressure"
-                allowFullScreen
-                tabIndex={-1}
-              />
-            </button>
-          ))}
+        {videos &&
+          videos.map((video, index) => {
+            const poster = getVideoPosterUrl(video);
+            return (
+              <button
+                key={`video-${index}`}
+                type="button"
+                className="media-gallery-tile media-gallery-tile--video"
+                onClick={() => openLightbox(screenshotsCount + index, true)}
+                aria-label={`Video ${index + 1}`}
+              >
+                {poster ? (
+                  <img
+                    className="media-gallery-tile-poster"
+                    src={poster}
+                    alt=""
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="media-gallery-tile-poster media-gallery-tile-poster--fallback" />
+                )}
+                <span className="media-gallery-tile-play" aria-hidden="true">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </span>
+              </button>
+            );
+          })}
 
-          {/* Screenshots after videos */}
-          {resolvedScreenshots.map((screenshot, index) => (
-            <button
-              key={`screenshot-${index}`}
-              type="button"
-              className="media-gallery-thumb-button"
-              onClick={() => openLightbox(index)}
-            >
-              <img
-                className="media-gallery-thumb"
-                src={screenshot}
-                alt={`Screenshot ${index + 1}`}
-              />
-            </button>
-          ))}
+        {resolvedScreenshots.map((screenshot, index) => (
+          <button
+            key={`screenshot-${index}`}
+            type="button"
+            className="media-gallery-thumb-button"
+            onClick={() => openLightbox(index, false)}
+          >
+            <img
+              className="media-gallery-thumb"
+              src={screenshot}
+              alt={`Screenshot ${index + 1}`}
+            />
+          </button>
+        ))}
       </div>
 
-      {/* Lightbox Modal - rendered via portal to body */}
-      {selectedIndex !== null && selectedMedia && createPortal(
-        <div className="media-gallery-lightbox-backdrop" onClick={closeLightbox}>
-          <div className="media-gallery-lightbox-inner" onClick={(e) => e.stopPropagation()}>
-            {/* Previous Button */}
-            {mediaItems.length > 1 && (
+      {selectedIndex !== null &&
+        selectedMedia &&
+        createPortal(
+          <div
+            className="media-gallery-lightbox-backdrop"
+            data-mhg-media-gallery-lightbox=""
+            tabIndex={-1}
+            onClick={closeLightbox}
+          >
+            <div className="media-gallery-lightbox-inner" onClick={(e) => e.stopPropagation()}>
+              {mediaItems.length > 1 && (
+                <button
+                  type="button"
+                  className="media-gallery-lightbox-icon-btn media-gallery-lightbox-icon-btn--prev"
+                  tabIndex={-1}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigateMedia("prev");
+                  }}
+                >
+                  ‹
+                </button>
+              )}
+
+              {selectedMedia.type === "screenshot" ? (
+                <img
+                  className="media-gallery-lightbox-img"
+                  src={selectedMedia.src}
+                  alt={`Screenshot ${selectedIndex + 1}`}
+                />
+              ) : (
+                <iframe
+                  key={`${selectedMedia.src}-${videoAutoplay ? "play" : "idle"}`}
+                  className="media-gallery-lightbox-iframe"
+                  src={getEmbedVideoUrl(selectedMedia.src, { autoplay: videoAutoplay })}
+                  title={`Video ${selectedIndex + 1}`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; compute-pressure"
+                  allowFullScreen
+                />
+              )}
+
+              {mediaItems.length > 1 && (
+                <button
+                  type="button"
+                  className="media-gallery-lightbox-icon-btn media-gallery-lightbox-icon-btn--next"
+                  tabIndex={-1}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigateMedia("next");
+                  }}
+                >
+                  ›
+                </button>
+              )}
+
               <button
                 type="button"
-                className="media-gallery-lightbox-icon-btn media-gallery-lightbox-icon-btn--prev"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigateMedia('prev');
-                }}
+                className="media-gallery-lightbox-icon-btn media-gallery-lightbox-icon-btn--close"
+                tabIndex={-1}
+                onClick={closeLightbox}
               >
-                ‹
+                ×
               </button>
-            )}
 
-            {/* Media Content */}
-            {selectedMedia.type === 'screenshot' ? (
-              <img
-                className="media-gallery-lightbox-img"
-                src={selectedMedia.src}
-                alt={`Screenshot ${selectedIndex + 1}`}
-              />
-            ) : (
-              <iframe
-                className="media-gallery-lightbox-iframe"
-                src={getEmbedVideoUrl(selectedMedia.src)}
-                title={`Video ${selectedIndex + 1}`}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; compute-pressure"
-                allowFullScreen
-              />
-            )}
-
-            {/* Next Button */}
-            {mediaItems.length > 1 && (
-              <button
-                type="button"
-                className="media-gallery-lightbox-icon-btn media-gallery-lightbox-icon-btn--next"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigateMedia('next');
-                }}
-              >
-                ›
-              </button>
-            )}
-
-            {/* Close Button */}
-            <button
-              type="button"
-              className="media-gallery-lightbox-icon-btn media-gallery-lightbox-icon-btn--close"
-              onClick={closeLightbox}
-            >
-              ×
-            </button>
-
-            {/* Media Counter */}
-            {mediaItems.length > 1 && (
-              <div className="media-gallery-lightbox-counter">
-                {selectedIndex + 1} / {mediaItems.length}
-              </div>
-            )}
-          </div>
-        </div>,
-        document.body
-      )}
+              {mediaItems.length > 1 && (
+                <div className="media-gallery-lightbox-counter">
+                  {selectedIndex + 1} / {mediaItems.length}
+                </div>
+              )}
+            </div>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }
-

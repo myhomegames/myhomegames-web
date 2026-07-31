@@ -184,7 +184,10 @@ export function normalizeVideoUrl(url: string): string {
  * youtube-nocookie.com domain to reduce tracking and console noise from Google Ads/CORS.
  * Other URLs are returned unchanged.
  */
-export function getEmbedVideoUrl(url: string): string {
+export function getEmbedVideoUrl(
+  url: string,
+  options?: { autoplay?: boolean },
+): string {
   if (!url || !url.trim()) return "";
   try {
     const normalized = normalizeVideoUrl(url);
@@ -192,10 +195,26 @@ export function getEmbedVideoUrl(url: string): string {
     const host = u.hostname.toLowerCase();
     if (host === "www.youtube.com" || host === "youtube.com") {
       u.hostname = "www.youtube-nocookie.com";
-      return u.toString();
     }
-    return normalized;
+    if (options?.autoplay) {
+      u.searchParams.set("autoplay", "1");
+    }
+    return u.toString();
   } catch {
     return url.trim();
+  }
+}
+
+/** Best-effort poster image for a video URL (YouTube thumbnails when possible). */
+export function getVideoPosterUrl(url: string): string | null {
+  if (!url || !url.trim()) return null;
+  try {
+    const normalized = normalizeVideoUrl(url);
+    const parsed = new URL(normalized);
+    const id = extractYouTubeVideoId(parsed);
+    if (!id) return null;
+    return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+  } catch {
+    return null;
   }
 }

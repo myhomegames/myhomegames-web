@@ -265,6 +265,16 @@ function pickPreferredUiLayerFocus(layer: HTMLElement): HTMLElement | null {
     const cancel = layer.querySelector<HTMLElement>(".dropdown-menu-confirm-cancel");
     if (cancel && isVisible(cancel)) return cancel;
   }
+  // Media lightbox: park on the backdrop; L/R/OK are handled specially (not focus chrome).
+  if (
+    layer.classList.contains("media-gallery-lightbox-backdrop") ||
+    layer.hasAttribute("data-mhg-media-gallery-lightbox")
+  ) {
+    if (layer.tabIndex < 0 && !layer.hasAttribute("tabindex")) {
+      layer.tabIndex = -1;
+    }
+    return layer;
+  }
   if (layer.classList.contains("add-game-overlay")) {
     const searchInput = layer.querySelector<HTMLElement>("#add-game-search");
     if (searchInput && isVisible(searchInput)) return searchInput;
@@ -726,6 +736,21 @@ function tryDismissUiLayer(): boolean {
 
   // Prefer dismissing the topmost layer (e.g. ⋮ sheet above sidebar search).
   if (layer) {
+    if (
+      layer.classList.contains("media-gallery-lightbox-backdrop") ||
+      layer.hasAttribute("data-mhg-media-gallery-lightbox")
+    ) {
+      const closeBtn = layer.querySelector<HTMLElement>(
+        ".media-gallery-lightbox-icon-btn--close",
+      );
+      if (closeBtn) {
+        closeBtn.click();
+      } else {
+        layer.click();
+      }
+      return true;
+    }
+
     const closeInLayer = layer.querySelector<HTMLElement>(
       [
         "[aria-label='Close']",
@@ -1050,6 +1075,17 @@ export function installSmartTvRemoteKeys(
       syncBackgroundInert(uiLayer);
     }
 
+    // Media lightbox: OK plays / activates the current video (or confirms viewing).
+    if (
+      uiLayer &&
+      (uiLayer.classList.contains("media-gallery-lightbox-backdrop") ||
+        uiLayer.hasAttribute("data-mhg-media-gallery-lightbox"))
+    ) {
+      playTvActionSound();
+      window.dispatchEvent(new CustomEvent("mhg:media-gallery-ok"));
+      return;
+    }
+
     if (!uiLayer && isHorizontalLibraryStripMode() && activateStripFocusTarget()) {
       playTvActionSound();
       zone = "chrome";
@@ -1247,6 +1283,23 @@ export function installSmartTvRemoteKeys(
         e.stopImmediatePropagation();
         zone = "chrome";
         syncBackgroundInert(uiLayer);
+
+        // Media lightbox: Left/Right change slide; do not focus ← → × chrome.
+        if (
+          uiLayer.classList.contains("media-gallery-lightbox-backdrop") ||
+          uiLayer.hasAttribute("data-mhg-media-gallery-lightbox")
+        ) {
+          if (direction === "left" || direction === "right") {
+            window.dispatchEvent(
+              new CustomEvent("mhg:media-gallery-nav", {
+                detail: { direction: direction === "left" ? "prev" : "next" },
+              }),
+            );
+          }
+          focusIntoActiveUiLayer();
+          return;
+        }
+
         const active = document.activeElement as HTMLElement | null;
         const current =
           active &&
