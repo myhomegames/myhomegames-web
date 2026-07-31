@@ -5,6 +5,7 @@ import Cover from "../components/games/Cover";
 import Summary from "../components/common/Summary";
 import InlineTagList from "../components/common/InlineTagList";
 import GameInfoBlock from "../components/games/GameInfoBlock";
+import GameSummaryOverlay from "../components/games/GameSummaryOverlay";
 import MediaGallery from "../components/games/MediaGallery";
 import AgeRatings, { filterAgeRatingsByLocale } from "../components/games/AgeRatings";
 import BackgroundManager, { useBackground } from "../components/common/BackgroundManager";
@@ -24,6 +25,7 @@ import type { CatalogGame } from "../types";
 import { formatCatalogGameDate } from "../utils/date";
 import { displayGameType, toGameTypeId } from "../utils/gameType";
 import type { TFunction } from "i18next";
+import { isSmartTvBrowser } from "../utils/smartTv";
 export default function CatalogGameDetailPage() {
   const { t, i18n } = useTranslation();
   const { gameId } = useParams<{ gameId: string }>();
@@ -171,6 +173,13 @@ function CatalogGameDetailContent({
   t: TFunction;
   i18n: import("i18next").i18n;
 }) {
+  const { activeSkinWeb } = useSkin();
+  const [summaryOverlayOpen, setSummaryOverlayOpen] = useState(false);
+  const openSummaryOverlay =
+    activeSkinWeb.tvSummaryOverlay && isSmartTvBrowser()
+      ? () => setSummaryOverlayOpen(true)
+      : undefined;
+
   // Helper function to format release date
   const formatReleaseDate = (game: CatalogGame): string | null => {
     return formatCatalogGameDate(game, t, i18n);
@@ -422,6 +431,7 @@ function CatalogGameDetailContent({
                   <Summary
                     summary={game.summary}
                     maxLines={summaryMaxLines}
+                    onOpenOverlay={openSummaryOverlay}
                   />
                 </div>
               )}
@@ -440,6 +450,15 @@ function CatalogGameDetailContent({
         <div className="catalog-game-detail-info-section">
           <GameInfoBlock game={game} />
         </div>
+
+        <GameSummaryOverlay
+          open={summaryOverlayOpen}
+          onClose={() => setSummaryOverlayOpen(false)}
+          title={game.title}
+          coverUrl={coverUrl}
+          summary={game.summary || ""}
+          game={game}
+        />
 
         {/* Similar Games */}
         {game.similarGames && game.similarGames.length > 0 && (

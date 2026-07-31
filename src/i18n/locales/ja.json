@@ -98,6 +98,7 @@
         "autoShowBackgroundOnSelection": "フォーカス選択時に背景を表示",
         "detailBackdropLayout": "ゲーム詳細の背景レイアウト（スキン CSS）",
         "staticInlineTagListOnTvPhone": "TV・スマホではインラインタグをクリック不可",
+        "tvSummaryOverlay": "TV: open summary in full-screen overlay",
         "disableTitleTooltips": "ツールチップを非表示"
       }
     }

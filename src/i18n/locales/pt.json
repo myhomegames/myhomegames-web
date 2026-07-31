@@ -98,6 +98,7 @@
         "autoShowBackgroundOnSelection": "Mostrar fundo na seleção focal",
         "detailBackdropLayout": "Layout de fundo no detalhe do jogo (CSS do skin)",
         "staticInlineTagListOnTvPhone": "Tags em linha não clicáveis na TV e no telemóvel",
+        "tvSummaryOverlay": "TV: open summary in full-screen overlay",
         "disableTitleTooltips": "Ocultar dicas"
       }
     }

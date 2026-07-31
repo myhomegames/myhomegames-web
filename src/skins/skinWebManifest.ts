@@ -66,6 +66,12 @@ export type SkinWebManifest = {
    * (no navigation) and the “and more” collapse is disabled so all tags show.
    */
   staticInlineTagListOnTvPhone: boolean;
+  /**
+   * On Smart TV, activating a game/catalog detail Summary opens a full-screen
+   * overlay (full-height cover + full text + GameInfoBlock) instead of expanding
+   * the truncated text in place.
+   */
+  tvSummaryOverlay: boolean;
   /** Do not show hover tooltips anywhere in the UI. */
   disableTitleTooltips: boolean;
   /**
@@ -92,6 +98,7 @@ export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
   autoShowBackgroundOnSelection: false,
   detailBackdropLayout: false,
   staticInlineTagListOnTvPhone: false,
+  tvSummaryOverlay: false,
   disableTitleTooltips: false,
   collapsibleLibrarySidebar: false,
 };
@@ -113,6 +120,7 @@ export const SKIN_WEB_KEYS = [
   "autoShowBackgroundOnSelection",
   "detailBackdropLayout",
   "staticInlineTagListOnTvPhone",
+  "tvSummaryOverlay",
   "disableTitleTooltips",
   "collapsibleLibrarySidebar",
 ] as const satisfies readonly (keyof SkinWebManifest)[];

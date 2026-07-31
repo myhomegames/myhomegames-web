@@ -133,6 +133,7 @@
         "autoShowBackgroundOnSelection": "Show background on focal selection",
         "detailBackdropLayout": "Game detail backdrop layout (skin CSS)",
         "staticInlineTagListOnTvPhone": "Non-clickable inline tags on TV and phone",
+        "tvSummaryOverlay": "TV: open summary in full-screen overlay",
         "disableTitleTooltips": "Hide tooltips"
       }
     }

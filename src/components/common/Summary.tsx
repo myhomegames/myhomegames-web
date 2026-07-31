@@ -7,6 +7,11 @@ type SummaryProps = {
   truncateOnly?: boolean;
   maxLines?: number;
   fontSize?: string;
+  /**
+   * When set, activating the summary (click / OK) opens an overlay instead of
+   * expanding the text in place (Smart TV detail via skin `web.tvSummaryOverlay`).
+   */
+  onOpenOverlay?: () => void;
 };
 
 export default function Summary({
@@ -14,11 +19,13 @@ export default function Summary({
   truncateOnly = false,
   maxLines = 4,
   fontSize,
+  onOpenOverlay,
 }: SummaryProps) {
   const { t, i18n } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
   const [showExpandButton, setShowExpandButton] = useState(false);
   const textRef = useRef<HTMLDivElement>(null);
+  const opensOverlay = typeof onOpenOverlay === "function";
 
   useEffect(() => {
     setIsExpanded(false);
@@ -26,6 +33,7 @@ export default function Summary({
 
   useEffect(() => {
     setShowExpandButton(false);
+    if (opensOverlay) return;
     if (textRef.current && !truncateOnly) {
       const lineHeight = parseFloat(getComputedStyle(textRef.current).lineHeight);
       const maxHeight = lineHeight * maxLines;
@@ -33,21 +41,27 @@ export default function Summary({
         setShowExpandButton(true);
       }
     }
-  }, [summary, truncateOnly, maxLines]);
+  }, [summary, truncateOnly, maxLines, opensOverlay]);
 
   if (!summary) {
     return null;
   }
 
-  const canToggle = showExpandButton && !truncateOnly;
+  const canToggle = opensOverlay
+    ? !truncateOnly
+    : showExpandButton && !truncateOnly;
 
   const textStyle = {
     ["--summary-max-lines" as string]: String(maxLines),
     ...(fontSize ? { ["--summary-font-size" as string]: fontSize } : {}),
   } as CSSProperties;
 
-  const toggleExpanded = () => {
+  const activate = () => {
     if (!canToggle) return;
+    if (onOpenOverlay) {
+      onOpenOverlay();
+      return;
+    }
     setIsExpanded((prev) => !prev);
   };
 
@@ -55,29 +69,30 @@ export default function Summary({
     if (!canToggle) return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      toggleExpanded();
+      activate();
     }
   };
 
   return (
-    <div className="summary-root">
+    <div className={`summary-root${opensOverlay ? " summary-root--overlay" : ""}`}>
       <div
         ref={textRef}
-        className={`text-white summary-text${isExpanded ? " summary-text--expanded" : ""}${
+        className={`text-white summary-text${isExpanded && !opensOverlay ? " summary-text--expanded" : ""}${
           canToggle ? " summary-text--toggleable" : ""
         }`}
         style={textStyle}
-        onClick={toggleExpanded}
+        onClick={activate}
         onKeyDown={onTextKeyDown}
         role={canToggle ? "button" : undefined}
         tabIndex={canToggle ? 0 : undefined}
-        aria-expanded={canToggle ? isExpanded : undefined}
+        aria-expanded={canToggle && !opensOverlay ? isExpanded : undefined}
+        aria-haspopup={opensOverlay ? "dialog" : undefined}
         data-mhg-tv-focus={canToggle ? "" : undefined}
       >
         {summary}
       </div>
-      {canToggle && (
-        <button type="button" className="summary-toggle" onClick={toggleExpanded}>
+      {canToggle && !opensOverlay && (
+        <button type="button" className="summary-toggle" onClick={activate}>
           <span>{isExpanded ? t("common.less") : t("common.more")}</span>
           <svg
             className={`summary-toggle-chevron${isExpanded ? " summary-toggle-chevron--expanded" : ""}`}

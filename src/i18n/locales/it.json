@@ -133,6 +133,7 @@
         "autoShowBackgroundOnSelection": "Mostra sfondo alla selezione focale",
         "detailBackdropLayout": "Layout sfondo dettaglio gioco (CSS dello skin)",
         "staticInlineTagListOnTvPhone": "Tag in linea non cliccabili su TV e telefono",
+        "tvSummaryOverlay": "TV: apri il summary in overlay a tutto schermo",
         "disableTitleTooltips": "Nascondi i tooltip"
       }
     }

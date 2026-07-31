@@ -108,6 +108,7 @@ const UI_LAYER_SELECTORS = [
   ".add-game-overlay",
   ".game-search-modal-overlay",
   ".media-gallery-lightbox-backdrop",
+  ".game-summary-overlay",
   ".dropdown-menu-phone-sheet-overlay",
   "body > .update-notification-popup",
   "body > .add-to-collection-dropdown-menu",
@@ -273,6 +274,15 @@ function pickPreferredUiLayerFocus(layer: HTMLElement): HTMLElement | null {
       layer.tabIndex = -1;
     }
     return layer;
+  }
+  if (
+    layer.classList.contains("game-summary-overlay") ||
+    layer.hasAttribute("data-mhg-game-summary-overlay")
+  ) {
+    const panel = layer.querySelector<HTMLElement>(".game-summary-overlay-panel");
+    if (panel && isVisible(panel)) return panel;
+    const closeBtn = layer.querySelector<HTMLElement>(".game-summary-overlay-close");
+    if (closeBtn && isVisible(closeBtn)) return closeBtn;
   }
   if (layer.classList.contains("add-game-overlay")) {
     const searchInput = layer.querySelector<HTMLElement>("#add-game-search");

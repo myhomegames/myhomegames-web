@@ -8,6 +8,7 @@ import StarRating from "../common/StarRating";
 import Summary from "../common/Summary";
 import InlineTagList from "../common/InlineTagList";
 import GameInfoBlock from "./GameInfoBlock";
+import GameSummaryOverlay from "./GameSummaryOverlay";
 import MediaGallery from "./MediaGallery";
 import AgeRatings, { filterAgeRatingsByLocale } from "./AgeRatings";
 import EditGameModal from "./EditGameModal";
@@ -28,6 +29,7 @@ import { API_BASE, getApiToken } from "../../config";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useSkin } from "../../contexts/SkinContext";
 import { useTagLists } from "../../contexts/TagListsContext";
+import { isSmartTvBrowser } from "../../utils/smartTv";
 import { useLibraryGames } from "../../contexts/LibraryGamesContext";
 import { useCollections } from "../../contexts/CollectionsContext";
 import type { MainAppOutletContext } from "../../layouts/MainAppLayout";
@@ -233,6 +235,11 @@ function GameDetailContent({
   const outletContext = useOutletContext<MainAppOutletContext | null>();
   const { catalogSearchEnabled } = useSettings();
   const { activeSkinWeb } = useSkin();
+  const [summaryOverlayOpen, setSummaryOverlayOpen] = useState(false);
+  const openSummaryOverlay =
+    activeSkinWeb.tvSummaryOverlay && isSmartTvBrowser()
+      ? () => setSummaryOverlayOpen(true)
+      : undefined;
   const { tagLabels, tagLabelsReady } = useTagLists();
   const categoriesList = useMemo(
     () => Array.from(tagLabels.categories.entries()).map(([id, title]) => ({ id, title })),
@@ -829,6 +836,7 @@ function GameDetailContent({
                   <Summary
                     summary={game.summary}
                     maxLines={summaryMaxLines}
+                    onOpenOverlay={openSummaryOverlay}
                   />
                 </div>
               )}
@@ -847,6 +855,14 @@ function GameDetailContent({
         <div className="game-detail-info-section">
           <GameInfoBlock game={game} />
         </div>
+        <GameSummaryOverlay
+          open={summaryOverlayOpen}
+          onClose={() => setSummaryOverlayOpen(false)}
+          title={game.title}
+          coverUrl={coverUrl}
+          summary={game.summary || ""}
+          game={game}
+        />
         {collectionsWithSlideItems.length > 0 && (
           <div className="game-detail-collections-section">
             <h3 className="game-detail-section-title">
