@@ -132,6 +132,7 @@
         "fixedFocalStepSound": "Navigation sound",
         "autoShowBackgroundOnSelection": "Show background on focal selection",
         "detailBackdropLayout": "Game detail backdrop layout (skin CSS)",
+        "staticInlineTagListOnTvPhone": "Non-clickable inline tags on TV and phone",
         "disableTitleTooltips": "Hide tooltips"
       }
     }

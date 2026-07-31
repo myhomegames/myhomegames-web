@@ -56,10 +56,16 @@ export type SkinWebManifest = {
   autoShowBackgroundOnSelection: boolean;
   /**
    * Game/catalog detail: enable the detail backdrop layout hook
-   * (`data-mhg-background-layout="detail"` + scroll fade). Skin CSS decides the look
-   * (e.g. cropped hero on TV/phone); without matching CSS the portal stays full-bleed.
+   * (`data-mhg-background-layout="detail"` + narrow hero collapse on scroll).
+   * Skin CSS decides the look (e.g. cropped hero on TV/phone); without matching
+   * CSS the portal stays full-bleed.
    */
   detailBackdropLayout: boolean;
+  /**
+   * On Smart TV and narrow/phone viewports, InlineTagList items are not clickable
+   * (no navigation) and the “and more” collapse is disabled so all tags show.
+   */
+  staticInlineTagListOnTvPhone: boolean;
   /** Do not show hover tooltips anywhere in the UI. */
   disableTitleTooltips: boolean;
   /**
@@ -85,6 +91,7 @@ export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
   fixedFocalStepSound: false,
   autoShowBackgroundOnSelection: false,
   detailBackdropLayout: false,
+  staticInlineTagListOnTvPhone: false,
   disableTitleTooltips: false,
   collapsibleLibrarySidebar: false,
 };
@@ -105,6 +112,7 @@ export const SKIN_WEB_KEYS = [
   "fixedFocalStepSound",
   "autoShowBackgroundOnSelection",
   "detailBackdropLayout",
+  "staticInlineTagListOnTvPhone",
   "disableTitleTooltips",
   "collapsibleLibrarySidebar",
 ] as const satisfies readonly (keyof SkinWebManifest)[];

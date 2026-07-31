@@ -97,6 +97,7 @@
         "fixedFocalStepSound": "Son de navigation",
         "autoShowBackgroundOnSelection": "Afficher l'arrière-plan à la sélection focale",
         "detailBackdropLayout": "Disposition du fond fiche jeu (CSS du skin)",
+        "staticInlineTagListOnTvPhone": "Tags en ligne non cliquables sur TV et téléphone",
         "disableTitleTooltips": "Masquer les infobulles"
       }
     }

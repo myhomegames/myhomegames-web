@@ -97,6 +97,7 @@
         "fixedFocalStepSound": "ナビゲーション音",
         "autoShowBackgroundOnSelection": "フォーカス選択時に背景を表示",
         "detailBackdropLayout": "ゲーム詳細の背景レイアウト（スキン CSS）",
+        "staticInlineTagListOnTvPhone": "TV・スマホではインラインタグをクリック不可",
         "disableTitleTooltips": "ツールチップを非表示"
       }
     }
