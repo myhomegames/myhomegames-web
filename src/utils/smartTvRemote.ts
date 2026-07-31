@@ -281,8 +281,6 @@ function pickPreferredUiLayerFocus(layer: HTMLElement): HTMLElement | null {
   ) {
     const panel = layer.querySelector<HTMLElement>(".game-summary-overlay-panel");
     if (panel && isVisible(panel)) return panel;
-    const closeBtn = layer.querySelector<HTMLElement>(".game-summary-overlay-close");
-    if (closeBtn && isVisible(closeBtn)) return closeBtn;
   }
   if (layer.classList.contains("add-game-overlay")) {
     const searchInput = layer.querySelector<HTMLElement>("#add-game-search");
@@ -995,6 +993,17 @@ function tryDismissUiLayer(): boolean {
         layer.click();
       }
       return true;
+    }
+
+    if (
+      layer.classList.contains("game-summary-overlay") ||
+      layer.hasAttribute("data-mhg-game-summary-overlay")
+    ) {
+      const dismiss = layer.querySelector<HTMLElement>("[data-mhg-modal-close]");
+      if (dismiss) {
+        dismiss.click();
+        return true;
+      }
     }
 
     const closeInLayer = layer.querySelector<HTMLElement>(

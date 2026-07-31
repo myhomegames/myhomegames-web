@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
-import { useTranslation } from "react-i18next";
 import type { CatalogGame, GameItem } from "../../types";
 import { requestSmartTvUiLayerFocus } from "../../utils/smartTvRemote";
 import Cover from "./Cover";
@@ -17,7 +16,8 @@ type GameSummaryOverlayProps = {
 
 /**
  * Smart TV full-screen summary “page”: full-height cover left, full text + GameInfoBlock right.
- * Gated by skin `web.tvSummaryOverlay` at the call site.
+ * Gated by skin `web.tvSummaryOverlay` at the call site. Close via Back / Escape (no chrome X).
+ * Skin keeps ambient backdrop tint, hides sharp backdrop art + detail chrome via `data-mhg-summary-overlay`.
  */
 export default function GameSummaryOverlay({
   open,
@@ -27,11 +27,21 @@ export default function GameSummaryOverlay({
   summary,
   game,
 }: GameSummaryOverlayProps) {
-  const { t } = useTranslation();
-
   useEffect(() => {
     if (!open) return;
     requestSmartTvUiLayerFocus();
+  }, [open]);
+
+  /*
+   * Skin CSS: keep ambient backdrop tint, hide sharp backdrop image + detail chrome.
+   */
+  useEffect(() => {
+    if (!open) return;
+    const root = document.documentElement;
+    root.setAttribute("data-mhg-summary-overlay", "1");
+    return () => {
+      root.removeAttribute("data-mhg-summary-overlay");
+    };
   }, [open]);
 
   useEffect(() => {
@@ -56,23 +66,15 @@ export default function GameSummaryOverlay({
       aria-modal="true"
       aria-label={title}
     >
+      {/* Visually hidden — Smart TV Back / tryDismissUiLayer activate this. */}
       <button
         type="button"
-        className="game-summary-overlay-close"
+        className="game-summary-overlay-dismiss"
         data-mhg-modal-close=""
-        data-mhg-tv-focus=""
-        aria-label={t("common.close", "Close")}
+        aria-label="Close"
+        tabIndex={-1}
         onClick={onClose}
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M6 6l12 12M18 6L6 18"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </svg>
-      </button>
+      />
 
       <div className="game-summary-overlay-layout">
         <div className="game-summary-overlay-cover">
