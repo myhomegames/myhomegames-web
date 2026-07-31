@@ -1284,15 +1284,25 @@ export function installSmartTvRemoteKeys(
         zone = "chrome";
         syncBackgroundInert(uiLayer);
 
-        // Media lightbox: Left/Right change slide; do not focus ← → × chrome.
+        // Media lightbox: Left/Right change slide or seek video; Up/Down change slide.
         if (
           uiLayer.classList.contains("media-gallery-lightbox-backdrop") ||
           uiLayer.hasAttribute("data-mhg-media-gallery-lightbox")
         ) {
-          if (direction === "left" || direction === "right") {
+          if (
+            direction === "left" ||
+            direction === "right" ||
+            direction === "up" ||
+            direction === "down"
+          ) {
+            const horizontal = direction === "left" || direction === "right";
             window.dispatchEvent(
               new CustomEvent("mhg:media-gallery-nav", {
-                detail: { direction: direction === "left" ? "prev" : "next" },
+                detail: {
+                  direction:
+                    direction === "left" || direction === "up" ? "prev" : "next",
+                  axis: horizontal ? "horizontal" : "vertical",
+                },
               }),
             );
           }

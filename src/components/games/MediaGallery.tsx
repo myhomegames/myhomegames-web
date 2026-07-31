@@ -1,7 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
-import { getEmbedVideoUrl, getVideoPosterUrl } from "../../utils/api";
+import { getEmbedVideoUrl, getVideoPosterUrl, getYouTubeVideoId } from "../../utils/api";
 import { requestSmartTvUiLayerFocus } from "../../utils/smartTvRemote";
+import {
+  createYouTubePlayer,
+  seekYouTubePlayer,
+  toggleYouTubePlayback,
+  type YouTubePlayerLike,
+} from "../../utils/youtubeIframeApi";
 
 type MediaGalleryProps = {
   screenshots?: string[];
@@ -23,6 +29,9 @@ export default function MediaGallery({ screenshots, videos, apiBase }: MediaGall
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [videoAutoplay, setVideoAutoplay] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const ytHostRef = useRef<HTMLDivElement | null>(null);
+  const ytPlayerRef = useRef<YouTubePlayerLike | null>(null);
+  const pendingPlayRef = useRef(false);
 
   const screenshotsCount = resolvedScreenshots.length;
   const mediaItems: MediaItem[] = [
@@ -34,18 +43,29 @@ export default function MediaGallery({ screenshots, videos, apiBase }: MediaGall
     })),
   ];
 
+  const destroyYouTubePlayer = useCallback(() => {
+    try {
+      ytPlayerRef.current?.destroy();
+    } catch {
+      /* ignore */
+    }
+    ytPlayerRef.current = null;
+  }, []);
+
   const openLightbox = (index: number, autoplayVideo = false) => {
     setVideoAutoplay(autoplayVideo);
     setSelectedIndex(index);
   };
 
   const closeLightbox = useCallback(() => {
+    destroyYouTubePlayer();
     setSelectedIndex(null);
     setVideoAutoplay(false);
-  }, []);
+  }, [destroyYouTubePlayer]);
 
   const navigateMedia = useCallback(
     (direction: "prev" | "next") => {
+      destroyYouTubePlayer();
       setSelectedIndex((current) => {
         if (current === null || mediaItems.length === 0) return current;
         const next =
@@ -60,28 +80,124 @@ export default function MediaGallery({ screenshots, videos, apiBase }: MediaGall
         return next;
       });
     },
-    [mediaItems.length],
+    [mediaItems.length, destroyYouTubePlayer],
   );
 
-  // Smart TV remote: arrows step slides; OK activates / plays the current video.
+  const selectedMedia = selectedIndex !== null ? mediaItems[selectedIndex] ?? null : null;
+  const youtubeId =
+    selectedMedia?.type === "video" ? getYouTubeVideoId(selectedMedia.src) : null;
+
+  // Mount YouTube IFrame API player when the lightbox shows a YT video.
+  useEffect(() => {
+    if (selectedIndex === null || !youtubeId) {
+      destroyYouTubePlayer();
+      return;
+    }
+
+    let cancelled = false;
+    let attempts = 0;
+
+    const mountPlayer = () => {
+      if (cancelled) return;
+      const host = ytHostRef.current;
+      if (!host) {
+        if (attempts++ < 30) {
+          window.requestAnimationFrame(mountPlayer);
+        }
+        return;
+      }
+
+      host.replaceChildren();
+      const mount = document.createElement("div");
+      mount.className = "media-gallery-lightbox-youtube-host";
+      host.appendChild(mount);
+
+      const shouldAutoplay = videoAutoplay || pendingPlayRef.current;
+      pendingPlayRef.current = false;
+
+      void createYouTubePlayer({
+        element: mount,
+        videoId: youtubeId,
+        autoplay: shouldAutoplay,
+      }).then((player) => {
+        if (cancelled) {
+          try {
+            player.destroy();
+          } catch {
+            /* ignore */
+          }
+          return;
+        }
+        ytPlayerRef.current = player;
+        if (shouldAutoplay) {
+          try {
+            player.playVideo();
+          } catch {
+            /* ignore */
+          }
+        }
+      });
+    };
+
+    mountPlayer();
+
+    return () => {
+      cancelled = true;
+      destroyYouTubePlayer();
+    };
+    // videoAutoplay only seeds the initial mount; OK toggles via the player API after that.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- remount on slide/id only
+  }, [selectedIndex, youtubeId, destroyYouTubePlayer]);
+
+  // Smart TV remote: OK play/pause; ←/→ seek on YouTube; ↑/↓ (and ←/→ on screenshots) change slides.
   useEffect(() => {
     if (selectedIndex === null) return;
 
     requestSmartTvUiLayerFocus();
 
     const onRemoteNav = (e: Event) => {
-      const detail = (e as CustomEvent<{ direction?: "prev" | "next" }>).detail;
-      if (detail?.direction === "prev" || detail?.direction === "next") {
-        navigateMedia(detail.direction);
+      const detail = (e as CustomEvent<{ direction?: "prev" | "next"; axis?: "horizontal" | "vertical" }>)
+        .detail;
+      if (detail?.direction !== "prev" && detail?.direction !== "next") return;
+
+      const item = mediaItems[selectedIndex];
+      const axis = detail.axis ?? "horizontal";
+      const yt = ytPlayerRef.current;
+
+      if (axis === "horizontal" && item?.type === "video" && yt) {
+        seekYouTubePlayer(yt, detail.direction === "next" ? "forward" : "backward");
+        return;
       }
+
+      navigateMedia(detail.direction);
     };
 
     const onRemoteOk = () => {
       const item = mediaItems[selectedIndex];
-      if (!item) return;
-      if (item.type === "video") {
-        setVideoAutoplay(true);
+      if (!item || item.type !== "video") return;
+      const yt = ytPlayerRef.current;
+      if (yt) {
+        toggleYouTubePlayback(yt);
+        return;
       }
+      pendingPlayRef.current = true;
+      const started = Date.now();
+      const wait = window.setInterval(() => {
+        const player = ytPlayerRef.current;
+        if (player) {
+          window.clearInterval(wait);
+          pendingPlayRef.current = false;
+          try {
+            player.playVideo();
+          } catch {
+            /* ignore */
+          }
+          return;
+        }
+        if (Date.now() - started > 5000) {
+          window.clearInterval(wait);
+        }
+      }, 50);
     };
 
     window.addEventListener("mhg:media-gallery-nav", onRemoteNav);
@@ -134,8 +250,6 @@ export default function MediaGallery({ screenshots, videos, apiBase }: MediaGall
   if (mediaItems.length === 0) {
     return null;
   }
-
-  const selectedMedia = selectedIndex !== null ? mediaItems[selectedIndex] : null;
 
   return (
     <>
@@ -192,6 +306,7 @@ export default function MediaGallery({ screenshots, videos, apiBase }: MediaGall
           <div
             className="media-gallery-lightbox-backdrop"
             data-mhg-media-gallery-lightbox=""
+            data-mhg-media-type={selectedMedia.type}
             tabIndex={-1}
             onClick={closeLightbox}
           >
@@ -216,9 +331,14 @@ export default function MediaGallery({ screenshots, videos, apiBase }: MediaGall
                   src={selectedMedia.src}
                   alt={`Screenshot ${selectedIndex + 1}`}
                 />
+              ) : youtubeId ? (
+                <div
+                  ref={ytHostRef}
+                  className="media-gallery-lightbox-youtube"
+                  data-mhg-youtube-player=""
+                />
               ) : (
                 <iframe
-                  key={`${selectedMedia.src}-${videoAutoplay ? "play" : "idle"}`}
                   className="media-gallery-lightbox-iframe"
                   src={getEmbedVideoUrl(selectedMedia.src, { autoplay: videoAutoplay })}
                   title={`Video ${selectedIndex + 1}`}

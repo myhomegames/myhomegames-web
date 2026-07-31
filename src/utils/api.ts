@@ -162,6 +162,16 @@ function extractYouTubeVideoId(url: URL): string | null {
   return null;
 }
 
+/** YouTube video id from a watch / embed / shorts / youtu.be URL, or null. */
+export function getYouTubeVideoId(url: string): string | null {
+  if (!url || !url.trim()) return null;
+  try {
+    return extractYouTubeVideoId(new URL(normalizeVideoUrl(url)));
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Normalizes a video URL for storage. YouTube watch, shorts, and youtu.be links
  * are converted to https://www.youtube.com/embed/{id}. Other URLs are returned trimmed.
