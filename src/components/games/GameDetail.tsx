@@ -9,6 +9,7 @@ import Summary from "../common/Summary";
 import InlineTagList from "../common/InlineTagList";
 import GameInfoBlock from "./GameInfoBlock";
 import GameSummaryOverlay from "./GameSummaryOverlay";
+import GameStarRatingOverlay from "./GameStarRatingOverlay";
 import MediaGallery from "./MediaGallery";
 import AgeRatings, { filterAgeRatingsByLocale } from "./AgeRatings";
 import EditGameModal from "./EditGameModal";
@@ -87,9 +88,9 @@ export default function GameDetail({
   // Convert stars from 1-10 to 0-5 scale
   const rating = localGame.stars ? localGame.stars / 2 : null;
 
-  const handleRatingChange = async (newStars: number) => {
+  const handleRatingChange = async (newStars: number | null) => {
     // Optimistic UI: update immediately, then persist in background.
-    // If the request fails, revert.
+    // If the request fails, revert. `null` clears the rating.
     const previousGame = localGame;
     setLocalGame({ ...previousGame, stars: newStars });
     setIsSavingRating(true);
@@ -218,7 +219,7 @@ function GameDetailContent({
   onPlay: (game: GameItem) => void;
   coverSize: number;
   handleCoverSizeChange: (size: number) => void;
-  onRatingChange?: (newStars: number) => void;
+  onRatingChange?: (newStars: number | null) => void;
   isSavingRating: boolean;
   editGame: ReturnType<typeof useEditGame>;
   onGameUpdate: (updatedGame: GameItem) => void;
@@ -239,6 +240,11 @@ function GameDetailContent({
   const openSummaryOverlay =
     activeSkinWeb.tvSummaryOverlay && isSmartTvBrowser()
       ? () => setSummaryOverlayOpen(true)
+      : undefined;
+  const [starRatingOverlayOpen, setStarRatingOverlayOpen] = useState(false);
+  const openStarRatingOverlay =
+    activeSkinWeb.tvStarRatingOverlay && isSmartTvBrowser()
+      ? () => setStarRatingOverlayOpen(true)
       : undefined;
   const { tagLabels, tagLabelsReady } = useTagLists();
   const categoriesList = useMemo(
@@ -713,6 +719,7 @@ function GameDetailContent({
                 <StarRating 
                   rating={rating || 0} 
                   readOnly={false}
+                  onOpenOverlay={openStarRatingOverlay}
                   onRatingChange={isSavingRating ? undefined : onRatingChange}
                 />
               </div>
@@ -862,6 +869,13 @@ function GameDetailContent({
           coverUrl={coverUrl}
           summary={game.summary || ""}
           game={game}
+        />
+        <GameStarRatingOverlay
+          open={starRatingOverlayOpen}
+          onClose={() => setStarRatingOverlayOpen(false)}
+          title={game.title}
+          rating={rating || 0}
+          onRatingChange={isSavingRating ? undefined : onRatingChange}
         />
         {collectionsWithSlideItems.length > 0 && (
           <div className="game-detail-collections-section">

@@ -99,6 +99,7 @@
         "detailBackdropLayout": "ゲーム詳細の背景レイアウト（スキン CSS）",
         "staticInlineTagListOnTvPhone": "TV・スマホではインラインタグをクリック不可",
         "tvSummaryOverlay": "TV: open summary in full-screen overlay",
+        "tvStarRatingOverlay": "TV: open star rating in full-screen overlay",
         "disableTitleTooltips": "ツールチップを非表示"
       }
     }
@@ -309,6 +310,7 @@
     "loading": "読み込み中...",
     "error": "エラー",
     "close": "閉じる",
+    "done": "完了",
     "fetchError": "サーバーに接続できませんでした",
     "games": "ゲーム",
     "elements": "要素",

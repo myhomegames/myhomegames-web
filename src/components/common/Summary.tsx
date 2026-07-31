@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import type { CSSProperties, KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { isSmartTvBrowser } from "../../utils/smartTv";
 
 type SummaryProps = {
   summary: string;
@@ -14,6 +15,40 @@ type SummaryProps = {
   onOpenOverlay?: () => void;
 };
 
+/** Matches skin CSS that hides `.summary-toggle` on narrow / TV surfaces. */
+const SUMMARY_TEXT_ACTIVATE_MQ = "(max-width: 720px)";
+
+function useSummaryTextActivatableSurface(): boolean {
+  const [compact, setCompact] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return (
+      document.documentElement.dataset.mhgTv === "1" ||
+      isSmartTvBrowser() ||
+      window.matchMedia(SUMMARY_TEXT_ACTIVATE_MQ).matches
+    );
+  });
+
+  useEffect(() => {
+    const sync = () => {
+      setCompact(
+        document.documentElement.dataset.mhgTv === "1" ||
+          isSmartTvBrowser() ||
+          window.matchMedia(SUMMARY_TEXT_ACTIVATE_MQ).matches,
+      );
+    };
+    sync();
+    window.addEventListener("resize", sync);
+    const mq = window.matchMedia(SUMMARY_TEXT_ACTIVATE_MQ);
+    mq.addEventListener?.("change", sync);
+    return () => {
+      window.removeEventListener("resize", sync);
+      mq.removeEventListener?.("change", sync);
+    };
+  }, []);
+
+  return compact;
+}
+
 export default function Summary({
   summary,
   truncateOnly = false,
@@ -26,6 +61,7 @@ export default function Summary({
   const [showExpandButton, setShowExpandButton] = useState(false);
   const textRef = useRef<HTMLDivElement>(null);
   const opensOverlay = typeof onOpenOverlay === "function";
+  const textActivatableSurface = useSummaryTextActivatableSurface();
 
   useEffect(() => {
     setIsExpanded(false);
@@ -51,6 +87,14 @@ export default function Summary({
     ? !truncateOnly
     : showExpandButton && !truncateOnly;
 
+  /*
+   * Desktop web: only the More/Less button expands — text has no hover/click.
+   * Phone + Smart TV: toggle is hidden in skin CSS; activate via the text itself.
+   * Overlay mode (TV): text opens the full-screen summary.
+   */
+  const textActivatable =
+    canToggle && (opensOverlay || textActivatableSurface);
+
   const textStyle = {
     ["--summary-max-lines" as string]: String(maxLines),
     ...(fontSize ? { ["--summary-font-size" as string]: fontSize } : {}),
@@ -66,7 +110,7 @@ export default function Summary({
   };
 
   const onTextKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (!canToggle) return;
+    if (!textActivatable) return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       activate();
@@ -78,16 +122,16 @@ export default function Summary({
       <div
         ref={textRef}
         className={`text-white summary-text${isExpanded && !opensOverlay ? " summary-text--expanded" : ""}${
-          canToggle ? " summary-text--toggleable" : ""
+          textActivatable ? " summary-text--toggleable" : ""
         }`}
         style={textStyle}
-        onClick={activate}
+        onClick={textActivatable ? activate : undefined}
         onKeyDown={onTextKeyDown}
-        role={canToggle ? "button" : undefined}
-        tabIndex={canToggle ? 0 : undefined}
-        aria-expanded={canToggle && !opensOverlay ? isExpanded : undefined}
-        aria-haspopup={opensOverlay ? "dialog" : undefined}
-        data-mhg-tv-focus={canToggle ? "" : undefined}
+        role={textActivatable ? "button" : undefined}
+        tabIndex={textActivatable ? 0 : undefined}
+        aria-expanded={textActivatable && !opensOverlay ? isExpanded : undefined}
+        aria-haspopup={opensOverlay && textActivatable ? "dialog" : undefined}
+        data-mhg-tv-focus={textActivatable ? "" : undefined}
       >
         {summary}
       </div>

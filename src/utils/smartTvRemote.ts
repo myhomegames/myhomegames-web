@@ -109,6 +109,7 @@ const UI_LAYER_SELECTORS = [
   ".game-search-modal-overlay",
   ".media-gallery-lightbox-backdrop",
   ".game-summary-overlay",
+  ".game-star-rating-overlay",
   ".dropdown-menu-phone-sheet-overlay",
   "body > .update-notification-popup",
   "body > .add-to-collection-dropdown-menu",
@@ -281,6 +282,15 @@ function pickPreferredUiLayerFocus(layer: HTMLElement): HTMLElement | null {
   ) {
     const panel = layer.querySelector<HTMLElement>(".game-summary-overlay-panel");
     if (panel && isVisible(panel)) return panel;
+  }
+  if (
+    layer.classList.contains("game-star-rating-overlay") ||
+    layer.hasAttribute("data-mhg-game-star-rating-overlay")
+  ) {
+    const stars = layer.querySelector<HTMLElement>(".game-star-rating-overlay-stars");
+    if (stars && isVisible(stars)) return stars;
+    const done = layer.querySelector<HTMLElement>(".game-star-rating-overlay-done");
+    if (done && isVisible(done)) return done;
   }
   if (layer.classList.contains("add-game-overlay")) {
     const searchInput = layer.querySelector<HTMLElement>("#add-game-search");
@@ -580,9 +590,30 @@ function collectDetailBackgroundFocusables(): HTMLElement[] {
 function collectDetailStarFocusables(): HTMLElement[] {
   return Array.from(
     document.querySelectorAll<HTMLElement>(
-      ".game-detail-ratings .star-rating-star--interactive, .catalog-game-detail-ratings .star-rating-star--interactive, .library-item-detail-meta .star-rating-star--interactive, .star-rating .star-rating-star--interactive",
+      [
+        // TV overlay mode: single focus target for the whole control.
+        ".game-detail-ratings .star-rating--overlay-trigger",
+        ".catalog-game-detail-ratings .star-rating--overlay-trigger",
+        ".library-item-detail-meta .star-rating--overlay-trigger",
+        ".star-rating--overlay-trigger[data-mhg-tv-focus]",
+        // In-place editing (desktop / skins without tvStarRatingOverlay).
+        ".game-detail-ratings .star-rating-star--interactive",
+        ".catalog-game-detail-ratings .star-rating-star--interactive",
+        ".library-item-detail-meta .star-rating-star--interactive",
+        ".star-rating .star-rating-star--interactive",
+      ].join(","),
     ),
-  ).filter(isDetailFocusable);
+  ).filter((el) => {
+    if (!isDetailFocusable(el)) return false;
+    // Prefer the overlay trigger over any nested leftovers.
+    if (
+      el.classList.contains("star-rating-star--interactive") &&
+      el.closest(".star-rating--overlay-trigger")
+    ) {
+      return false;
+    }
+    return true;
+  });
 }
 
 /** Primary actions on detail pages (Play / Mark owned / Edit / ⋮). */
@@ -647,6 +678,7 @@ function detailLadderLevelOf(el: HTMLElement | null): DetailLadderLevel | null {
   }
   if (el.classList.contains("background-toggle-button")) return "background";
   if (
+    el.closest(".star-rating--overlay-trigger") ||
     el.closest(".star-rating") ||
     el.classList.contains("star-rating-star--interactive")
   ) {
@@ -752,6 +784,54 @@ function mediaGalleryFocusFrom(el: HTMLElement | null): HTMLElement | null {
   return el.closest(
     ".media-gallery-tile, .media-gallery-thumb-button",
   ) as HTMLElement | null;
+}
+
+/** Collections / similar (and other) horizontal cover rows on detail pages. */
+function detailCoverStripRootFrom(el: HTMLElement | null): HTMLElement | null {
+  if (!el || !isItemDetailPage()) return null;
+  return el.closest(".scrollable-section") as HTMLElement | null;
+}
+
+function collectDetailCoverStripFocusables(strip: HTMLElement): HTMLElement[] {
+  return Array.from(
+    strip.querySelectorAll<HTMLElement>(
+      ".games-list-cover[role='button'], .games-list-cover[tabindex]",
+    ),
+  ).filter((el) => isVisible(el) && !el.closest("[inert]") && !el.hasAttribute("disabled"));
+}
+
+type DetailHorizontalStrip =
+  | { kind: "media"; items: HTMLElement[] }
+  | { kind: "covers"; root: HTMLElement; items: HTMLElement[] };
+
+/** Media gallery + collection/similar rows, top → bottom in DOM order. */
+function collectDetailHorizontalStrips(): DetailHorizontalStrip[] {
+  const strips: DetailHorizontalStrip[] = [];
+  const media = collectMediaGalleryFocusables();
+  if (media.length > 0) {
+    strips.push({ kind: "media", items: media });
+  }
+  const detailRoot = document.querySelector(
+    ".game-detail-container, .catalog-game-detail-container, .library-item-detail-page-shell",
+  );
+  if (!detailRoot) return strips;
+  detailRoot.querySelectorAll<HTMLElement>(".scrollable-section").forEach((root) => {
+    const items = collectDetailCoverStripFocusables(root);
+    if (items.length > 0) {
+      strips.push({ kind: "covers", root, items });
+    }
+  });
+  return strips;
+}
+
+function focusDetailHorizontalStrip(
+  strip: DetailHorizontalStrip,
+  preferredIndex: number,
+): void {
+  const items = strip.items;
+  if (items.length === 0) return;
+  const idx = Math.min(Math.max(0, preferredIndex), items.length - 1);
+  focusElement(items[idx]!);
 }
 
 /** Vertical list rows inside ⋮ / cover / filter sheets — use DOM order, not geometry. */
@@ -998,6 +1078,17 @@ function tryDismissUiLayer(): boolean {
     if (
       layer.classList.contains("game-summary-overlay") ||
       layer.hasAttribute("data-mhg-game-summary-overlay")
+    ) {
+      const dismiss = layer.querySelector<HTMLElement>("[data-mhg-modal-close]");
+      if (dismiss) {
+        dismiss.click();
+        return true;
+      }
+    }
+
+    if (
+      layer.classList.contains("game-star-rating-overlay") ||
+      layer.hasAttribute("data-mhg-game-star-rating-overlay")
     ) {
       const dismiss = layer.querySelector<HTMLElement>("[data-mhg-modal-close]");
       if (dismiss) {
@@ -1609,6 +1700,60 @@ export function installSmartTvRemoteKeys(
           return;
         }
 
+        // Star rating overlay: on stars host L/R adjust 1–10; on actions L/R move buttons;
+        // Up/Down between stars and action row.
+        if (
+          uiLayer.classList.contains("game-star-rating-overlay") ||
+          uiLayer.hasAttribute("data-mhg-game-star-rating-overlay")
+        ) {
+          const starsHost = uiLayer.querySelector<HTMLElement>(
+            ".game-star-rating-overlay-stars",
+          );
+          const actionBtns = Array.from(
+            uiLayer.querySelectorAll<HTMLElement>(
+              ".game-star-rating-overlay-actions [data-mhg-tv-focus]",
+            ),
+          ).filter(isVisible);
+          const active = document.activeElement as HTMLElement | null;
+          const onStars =
+            !!starsHost &&
+            !!active &&
+            (active === starsHost || starsHost.contains(active));
+          const actionIdx = active ? actionBtns.indexOf(active) : -1;
+
+          if (direction === "left" || direction === "right") {
+            if (onStars || actionIdx < 0) {
+              window.dispatchEvent(
+                new CustomEvent("mhg:star-rating-adjust", {
+                  detail: { delta: direction === "right" ? 1 : -1 },
+                }),
+              );
+              if (starsHost && isVisible(starsHost)) {
+                focusElement(starsHost);
+              }
+              return;
+            }
+            const nextIdx =
+              direction === "right"
+                ? Math.min(actionBtns.length - 1, actionIdx + 1)
+                : Math.max(0, actionIdx - 1);
+            const next = actionBtns[nextIdx];
+            if (next) focusElement(next);
+            return;
+          }
+          if (direction === "down") {
+            if (actionBtns.length > 0) {
+              focusElement(actionBtns[0]!);
+            }
+            return;
+          }
+          if (direction === "up" && starsHost && isVisible(starsHost)) {
+            focusElement(starsHost);
+            return;
+          }
+          return;
+        }
+
         const active = document.activeElement as HTMLElement | null;
         const current =
           active &&
@@ -1947,13 +2092,7 @@ export function installSmartTvRemoteKeys(
               focusElement(nextMedia);
               return;
             }
-            if (direction === "left") {
-              const primary = collectDetailPrimaryFocusables()[0];
-              if (primary) {
-                focusElement(primary);
-                return;
-              }
-            }
+            // At first/last tile: stay in the strip (do not escape Left → Play).
             return;
           }
           if (direction === "up") {
@@ -1961,17 +2100,11 @@ export function installSmartTvRemoteKeys(
             if (focusDetailLadderLevel("actions", "first")) return;
           }
           if (direction === "down") {
-            // Leave the strip via geometry (collections / similar), scrolling as needed.
-            const next = pickNextFocus(mediaEl, "down", true);
-            if (next && !mediaGalleryFocusFrom(next)) {
-              focusElement(next);
-              return;
-            }
-            if (nudgeScrollParentForDirection(mediaEl, "down")) {
-              window.requestAnimationFrame(() => {
-                const retry = pickNextFocus(mediaEl, "down", true);
-                if (retry && !mediaGalleryFocusFrom(retry)) focusElement(retry);
-              });
+            const strips = collectDetailHorizontalStrips();
+            const mediaStripIdx = strips.findIndex((s) => s.kind === "media");
+            if (mediaStripIdx >= 0 && mediaStripIdx + 1 < strips.length) {
+              const fromIdx = Math.max(0, mediaItems.indexOf(mediaEl));
+              focusDetailHorizontalStrip(strips[mediaStripIdx + 1]!, fromIdx);
               return;
             }
             return;
@@ -1998,6 +2131,51 @@ export function installSmartTvRemoteKeys(
             }
             focusElement(geometric);
             return;
+          }
+        }
+
+        // Collections / similar cover rows: L/R stay in the strip; Up/Down → neighbor strip.
+        const coverStrip = detailCoverStripRootFrom(current);
+        const stripCover = coverFocusFrom(current);
+        if (coverStrip && stripCover && coverStrip.contains(stripCover)) {
+          const stripCovers = collectDetailCoverStripFocusables(coverStrip);
+          if (stripCovers.length > 0) {
+            if (direction === "left" || direction === "right") {
+              const idx = stripCovers.indexOf(stripCover);
+              const safeIdx = idx >= 0 ? idx : 0;
+              const nextIdx =
+                direction === "right"
+                  ? Math.min(stripCovers.length - 1, safeIdx + 1)
+                  : Math.max(0, safeIdx - 1);
+              const nextCover = stripCovers[nextIdx];
+              if (nextCover && nextCover !== stripCover) {
+                focusElement(nextCover);
+                return;
+              }
+              return;
+            }
+            if (direction === "up" || direction === "down") {
+              const strips = collectDetailHorizontalStrips();
+              const stripIdx = strips.findIndex(
+                (s) => s.kind === "covers" && s.root === coverStrip,
+              );
+              if (stripIdx >= 0) {
+                const fromIdx = Math.max(0, stripCovers.indexOf(stripCover));
+                const targetIdx = direction === "up" ? stripIdx - 1 : stripIdx + 1;
+                if (targetIdx >= 0 && targetIdx < strips.length) {
+                  focusDetailHorizontalStrip(strips[targetIdx]!, fromIdx);
+                  return;
+                }
+                if (direction === "up") {
+                  // Above the first cover strip (no media): back to summary / Play.
+                  if (focusDetailLadderLevel("summary", "first")) return;
+                  if (focusDetailLadderLevel("actions", "first")) return;
+                  return;
+                }
+                // Past the last strip — stay.
+                return;
+              }
+            }
           }
         }
       }

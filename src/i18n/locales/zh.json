@@ -99,6 +99,7 @@
         "detailBackdropLayout": "游戏详情背景布局（皮肤 CSS）",
         "staticInlineTagListOnTvPhone": "电视和手机上内联标签不可点击",
         "tvSummaryOverlay": "TV: open summary in full-screen overlay",
+        "tvStarRatingOverlay": "TV: open star rating in full-screen overlay",
         "disableTitleTooltips": "隐藏工具提示"
       }
     }
@@ -309,6 +310,7 @@
     "loading": "加载中...",
     "error": "错误",
     "close": "关闭",
+    "done": "完成",
     "fetchError": "无法连接到服务器",
     "games": "",
     "elements": "元素",

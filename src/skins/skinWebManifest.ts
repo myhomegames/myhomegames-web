@@ -72,6 +72,12 @@ export type SkinWebManifest = {
    * the truncated text in place.
    */
   tvSummaryOverlay: boolean;
+  /**
+   * On Smart TV, the detail star rating is a single focus target; OK opens a
+   * full-screen overlay (title + interactive stars + Done) instead of editing
+   * stars in place on the detail page.
+   */
+  tvStarRatingOverlay: boolean;
   /** Do not show hover tooltips anywhere in the UI. */
   disableTitleTooltips: boolean;
   /**
@@ -99,6 +105,7 @@ export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
   detailBackdropLayout: false,
   staticInlineTagListOnTvPhone: false,
   tvSummaryOverlay: false,
+  tvStarRatingOverlay: false,
   disableTitleTooltips: false,
   collapsibleLibrarySidebar: false,
 };
@@ -121,6 +128,7 @@ export const SKIN_WEB_KEYS = [
   "detailBackdropLayout",
   "staticInlineTagListOnTvPhone",
   "tvSummaryOverlay",
+  "tvStarRatingOverlay",
   "disableTitleTooltips",
   "collapsibleLibrarySidebar",
 ] as const satisfies readonly (keyof SkinWebManifest)[];

@@ -99,6 +99,7 @@
         "detailBackdropLayout": "Diseño de fondo en ficha de juego (CSS del skin)",
         "staticInlineTagListOnTvPhone": "Etiquetas en línea no clicables en TV y teléfono",
         "tvSummaryOverlay": "TV: open summary in full-screen overlay",
+        "tvStarRatingOverlay": "TV: open star rating in full-screen overlay",
         "disableTitleTooltips": "Ocultar tooltips"
       }
     }
@@ -309,6 +310,7 @@
     "loading": "Cargando...",
     "error": "Error",
     "close": "Cerrar",
+    "done": "Hecho",
     "fetchError": "Error al conectar con el servidor",
     "games": "Juegos",
     "elements": "Elementos",

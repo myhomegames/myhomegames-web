@@ -134,6 +134,7 @@
         "detailBackdropLayout": "Game detail backdrop layout (skin CSS)",
         "staticInlineTagListOnTvPhone": "Non-clickable inline tags on TV and phone",
         "tvSummaryOverlay": "TV: open summary in full-screen overlay",
+        "tvStarRatingOverlay": "TV: open star rating in full-screen overlay",
         "disableTitleTooltips": "Hide tooltips"
       }
     }
@@ -293,6 +294,8 @@
     "goBack": "Go back to home",
     "andMore": "and more",
     "editGame": "Edit Game",
+    "rate": "Rate",
+    "rated": "Rated",
     "title": "Title",
     "summary": "Summary",
     "year": "Year",
@@ -387,6 +390,7 @@
     "loading": "Loading...",
     "error": "Error",
     "close": "Close",
+    "done": "Done",
     "fetchError": "Failed to connect to server",
     "games": "Games",
     "elements": "Elements",

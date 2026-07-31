@@ -99,6 +99,7 @@
         "detailBackdropLayout": "Spieldetail-Hintergrundlayout (Skin-CSS)",
         "staticInlineTagListOnTvPhone": "Inline-Tags auf TV und Telefon nicht klickbar",
         "tvSummaryOverlay": "TV: open summary in full-screen overlay",
+        "tvStarRatingOverlay": "TV: open star rating in full-screen overlay",
         "disableTitleTooltips": "Tooltips ausblenden"
       }
     }
@@ -309,6 +310,7 @@
     "loading": "Lädt...",
     "error": "Fehler",
     "close": "Schließen",
+    "done": "Fertig",
     "fetchError": "Verbindung zum Server fehlgeschlagen",
     "games": "Spiele",
     "elements": "Elemente",
