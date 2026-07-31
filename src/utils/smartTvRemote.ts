@@ -817,6 +817,50 @@ function pickNextInMenuList(
   return items[Math.max(0, idx - 1)] ?? null;
 }
 
+function findDetailPageScrollContainer(): HTMLElement | null {
+  return (
+    document.querySelector<HTMLElement>(".game-detail-scroll-container") ??
+    document.querySelector<HTMLElement>(".catalog-game-detail-scroll-container") ??
+    document.querySelector<HTMLElement>(".library-item-detail-scroll")
+  );
+}
+
+/**
+ * Header / bg toggle live outside the detail scroll pane. Focusing them with
+ * preventScroll leaves the content scrolled down — title stays off-screen.
+ * Bring the hero/title back into the scroll viewport.
+ */
+function scrollDetailPageToHero(): void {
+  const scroll = findDetailPageScrollContainer();
+  if (!scroll) return;
+
+  const hero = scroll.querySelector<HTMLElement>(
+    [
+      ".game-detail-title",
+      ".catalog-game-detail-title",
+      ".library-item-detail-title",
+      ".game-detail-header",
+      ".catalog-game-detail-header",
+      ".library-item-detail-hero",
+    ].join(","),
+  );
+
+  if (hero) {
+    const scrollRect = scroll.getBoundingClientRect();
+    const heroRect = hero.getBoundingClientRect();
+    const delta = heroRect.top - scrollRect.top - 8;
+    if (Math.abs(delta) > 2) {
+      const max = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
+      scroll.scrollTop = Math.max(0, Math.min(max, scroll.scrollTop + delta));
+    }
+    return;
+  }
+
+  if (scroll.scrollTop > 0) {
+    scroll.scrollTop = 0;
+  }
+}
+
 function focusElement(el: HTMLElement): void {
   // Clickable sheet rows are often <div>s without tabindex — make them programmatically focusable.
   // Prefer tabindex=0 for menu rows so collectFocusables keeps them (button:not([tabindex='-1'])).
@@ -832,6 +876,15 @@ function focusElement(el: HTMLElement): void {
       el.tabIndex = isMenuRow ? 0 : -1;
     }
   }
+
+  // Detail chrome is outside the scroll pane — scroll content back so the title is visible.
+  if (isItemDetailPage()) {
+    const level = detailLadderLevelOf(el);
+    if (level === "header" || level === "background" || level === "stars") {
+      scrollDetailPageToHero();
+    }
+  }
+
   try {
     el.focus({ preventScroll: true });
   } catch {
@@ -841,7 +894,14 @@ function focusElement(el: HTMLElement): void {
   // overflow parents (GOG vertical library list, plex/gog cover grids, sheets).
   ensureElementVisibleInScrollParents(el);
   window.requestAnimationFrame(() => {
-    if (el.isConnected) ensureElementVisibleInScrollParents(el);
+    if (!el.isConnected) return;
+    if (isItemDetailPage()) {
+      const level = detailLadderLevelOf(el);
+      if (level === "header" || level === "background" || level === "stars") {
+        scrollDetailPageToHero();
+      }
+    }
+    ensureElementVisibleInScrollParents(el);
   });
 }
 

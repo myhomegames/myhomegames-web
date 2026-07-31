@@ -46,4 +46,15 @@ describe("smartTvFocusHover", () => {
     expect(tile.hasAttribute(SMART_TV_HOVER_ATTR)).toBe(false);
     tile.remove();
   });
+
+  it("sets hover mirror attribute on logo focus", () => {
+    const cleanup = installSmartTvFocusHoverMirror(true);
+    const logo = document.createElement("button");
+    logo.className = "mhg-logo-button";
+    document.body.appendChild(logo);
+    logo.focus();
+    expect(logo.getAttribute(SMART_TV_HOVER_ATTR)).toBe("true");
+    cleanup();
+    logo.remove();
+  });
 });

@@ -9,17 +9,9 @@ const SELECTED_CLASS = "mhg-cover-scale-selected";
 const HOVER_MIRROR_SELECTOR =
   ".cover-hover-effect, .games-list-item, .tag-list-item, .collections-list-item, .fixed-focal-games-item, .fixed-focal-tag-item, .fixed-focal-collections-item, .fixed-focal-recommended-strip-item";
 
-function isLogoButton(el: HTMLElement): boolean {
-  return (
-    el.classList.contains("mhg-logo-button") ||
-    el.classList.contains("mhg-top-right-tool-dock-logo")
-  );
-}
-
 function shouldMirrorFocusHover(el: HTMLElement): boolean {
   if (!el || el === document.body || el === document.documentElement) return false;
   if (el.hidden || el.getAttribute("aria-hidden") === "true") return false;
-  if (isLogoButton(el)) return false;
   const style = window.getComputedStyle(el);
   if (style.display === "none" || style.visibility === "hidden") return false;
   return true;
@@ -45,7 +37,7 @@ function clearHoverMirror(el: HTMLElement): void {
 }
 
 function suppressTvFocusRing(el: HTMLElement): void {
-  // Plex / GOG (and similar) use outline as the cover :hover look — do not wipe it.
+  // Plex / GOG (and similar) use outline / drop-shadow as the :hover look — do not wipe it.
   if (
     el.classList.contains("cover-hover-effect") ||
     el.classList.contains("games-list-cover") ||
@@ -55,7 +47,9 @@ function suppressTvFocusRing(el: HTMLElement): void {
     el.classList.contains("fixed-focal-games-item") ||
     el.classList.contains("fixed-focal-tag-item") ||
     el.classList.contains("fixed-focal-collections-item") ||
-    el.classList.contains("fixed-focal-recommended-strip-item")
+    el.classList.contains("fixed-focal-recommended-strip-item") ||
+    el.classList.contains("mhg-logo-button") ||
+    el.classList.contains("mhg-top-right-tool-dock-logo")
   ) {
     return;
   }
