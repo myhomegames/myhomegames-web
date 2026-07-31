@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { getEmbedVideoUrl } from "../../utils/api";
+import { requestSmartTvUiLayerFocus } from "../../utils/smartTvRemote";
 type MediaGalleryProps = {
   screenshots?: string[];
   videos?: string[];
@@ -55,6 +56,8 @@ export default function MediaGallery({ screenshots, videos, apiBase }: MediaGall
   // Handle keyboard navigation
   useEffect(() => {
     if (selectedIndex === null) return;
+
+    requestSmartTvUiLayerFocus();
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -118,8 +121,9 @@ export default function MediaGallery({ screenshots, videos, apiBase }: MediaGall
       <div ref={scrollRef} className="media-gallery-strip">
           {/* Videos first */}
           {videos && videos.map((video, index) => (
-            <div
+            <button
               key={`video-${index}`}
+              type="button"
               className="media-gallery-tile"
               onClick={() => openLightbox(screenshotsCount + index)}
             >
@@ -129,19 +133,25 @@ export default function MediaGallery({ screenshots, videos, apiBase }: MediaGall
                 title={`Video ${index + 1}`}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; compute-pressure"
                 allowFullScreen
+                tabIndex={-1}
               />
-            </div>
+            </button>
           ))}
 
           {/* Screenshots after videos */}
           {resolvedScreenshots.map((screenshot, index) => (
-            <img
+            <button
               key={`screenshot-${index}`}
-              className="media-gallery-thumb"
-              src={screenshot}
-              alt={`Screenshot ${index + 1}`}
+              type="button"
+              className="media-gallery-thumb-button"
               onClick={() => openLightbox(index)}
-            />
+            >
+              <img
+                className="media-gallery-thumb"
+                src={screenshot}
+                alt={`Screenshot ${index + 1}`}
+              />
+            </button>
           ))}
       </div>
 

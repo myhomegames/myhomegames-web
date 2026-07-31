@@ -779,7 +779,7 @@ function DropdownMenu({
         const popupPanel = (
           <div 
             ref={popupRef} 
-            className={`dropdown-menu-popup ${phoneSheet ? "dropdown-menu-popup--phone-sheet" : ""} ${hideTrigger ? "dropdown-menu-popup--cover-context" : ""} ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''} ${isInSidebarSearchDialog ? 'dropdown-menu-popup-in-sidebar-search' : ''} ${isInGamesTable ? 'dropdown-menu-popup-in-games-table' : ''} ${useFixedBodyPortalMenu ? 'dropdown-menu-popup-in-libraries-top' : ''}`}
+            className={`dropdown-menu-popup ${phoneSheet ? "dropdown-menu-popup--phone-sheet" : ""} ${hideTrigger ? "dropdown-menu-popup--cover-context" : ""} ${isInSearchDropdown ? 'dropdown-menu-popup-in-search' : ''} ${isInSidebarSearchDialog ? 'dropdown-menu-popup-in-sidebar-search' : ''} ${isInGamesTable ? 'dropdown-menu-popup-in-games-table' : ''} ${useFixedBodyPortalMenu ? 'dropdown-menu-popup-in-libraries-top' : ''} ${isGameDetailMenu ? 'game-detail-dropdown-menu' : ''}`}
             data-mhg-dropdown-menu=""
             onMouseLeave={handlePopupMouseLeave}
             {...(inSidebarSearchPortal || phoneSheet ? {} : sheetBackdropProps)}

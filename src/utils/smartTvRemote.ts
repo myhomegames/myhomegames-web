@@ -107,6 +107,7 @@ const UI_LAYER_SELECTORS = [
   ".launch-modal-overlay",
   ".add-game-overlay",
   ".game-search-modal-overlay",
+  ".media-gallery-lightbox-backdrop",
   ".dropdown-menu-phone-sheet-overlay",
   "body > .update-notification-popup",
   "body > .add-to-collection-dropdown-menu",
@@ -427,10 +428,18 @@ function collectCoverFocusables(): HTMLElement[] {
     document.querySelectorAll<HTMLElement>(
       ".games-list-cover[role='button'], .games-list-cover[tabindex]",
     ),
-  ).filter((el) => isVisible(el) && !el.closest("[inert]"));
+  ).filter(
+    (el) =>
+      isVisible(el) &&
+      !el.closest("[inert]") &&
+      // Detail hero covers are play/chrome, not library grid tiles.
+      !el.closest(
+        ".game-detail-cover-wrapper, .catalog-game-detail-cover-wrapper, .library-item-detail-hero-cover",
+      ),
+  );
 }
 
-/** Filter / sort / count row between libraries chrome and the cover grid. */
+/** Prefer filter / sort / count row between libraries chrome and the cover grid. */
 function collectToolbarFocusables(): HTMLElement[] {
   const root = document.querySelector<HTMLElement>(".games-list-toolbar");
   if (!root || !isVisible(root)) return [];
@@ -494,7 +503,61 @@ function pickAlphabetNear(from: HTMLElement | null): HTMLElement | null {
 /** Plex / GOG grid navigation (not PS3 fixed-focal strip). */
 function isLibraryMenuCoverGridNavMode(): boolean {
   if (isHorizontalLibraryStripMode()) return false;
+  // Game / catalog / collection-like detail: LibrariesBar is still mounted, but
+  // menu↔covers grid trapping would skip Play / Edit / ⋮ / summary / media.
+  if (isItemDetailPage()) return false;
   return collectLibraryMenuFocusables().length > 0;
+}
+
+/** Owned / catalog game detail or collection-like detail shell. */
+function isItemDetailPage(): boolean {
+  return !!document.querySelector(
+    [
+      ".game-detail-container",
+      ".catalog-game-detail-container",
+      ".library-item-detail-page-shell",
+    ].join(","),
+  );
+}
+
+/** Primary actions on detail pages (Play / Mark owned / Edit / ⋮). */
+function collectDetailPrimaryFocusables(): HTMLElement[] {
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(
+      [
+        ".game-detail-play-button",
+        ".game-detail-link-executable-button",
+        ".catalog-game-detail-mark-owned-button",
+        ".library-item-detail-play-btn",
+        ".game-detail-edit-button",
+        ".library-item-detail-edit-button",
+        ".game-detail-dropdown-menu .dropdown-menu-button",
+        ".library-item-detail-dropdown-menu .dropdown-menu-button",
+      ].join(","),
+    ),
+  ).filter((el) => isVisible(el) && !el.closest("[inert]") && !el.hasAttribute("disabled"));
+}
+
+/** Screenshot / video strip on game & catalog detail. */
+function collectMediaGalleryFocusables(): HTMLElement[] {
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(
+      ".media-gallery-strip .media-gallery-tile, .media-gallery-strip .media-gallery-thumb-button",
+    ),
+  ).filter((el) => isVisible(el) && !el.closest("[inert]") && !el.hasAttribute("disabled"));
+}
+
+function mediaGalleryFocusFrom(el: HTMLElement | null): HTMLElement | null {
+  if (!el) return null;
+  if (
+    el.classList.contains("media-gallery-tile") ||
+    el.classList.contains("media-gallery-thumb-button")
+  ) {
+    return el;
+  }
+  return el.closest(
+    ".media-gallery-tile, .media-gallery-thumb-button",
+  ) as HTMLElement | null;
 }
 
 /** Vertical list rows inside ⋮ / cover / filter sheets — use DOM order, not geometry. */
@@ -938,6 +1001,11 @@ export function installSmartTvRemoteKeys(
     if (getActiveUiLayer()) {
       zone = "chrome";
       focusIntoActiveUiLayer();
+      return;
+    }
+    // Detail pages have no fixed-focal content rail — "content" zone would trap the remote.
+    if (isItemDetailPage()) {
+      zone = "chrome";
       return;
     }
     zone = "content";
@@ -1427,6 +1495,110 @@ export function installSmartTvRemoteKeys(
           }
           return;
         }
+      }
+
+      // Detail pages: from libraries chrome, land on Play / Mark owned / Edit / ⋮ first.
+      if (isItemDetailPage() && (direction === "down" || direction === "right")) {
+        const onLibraryChrome = !!libraryMenuFocusFrom(current);
+        if (onLibraryChrome || !current) {
+          const primary = collectDetailPrimaryFocusables()[0];
+          if (primary) {
+            focusElement(primary);
+            return;
+          }
+        }
+      }
+
+      // Detail: media strip (screenshots / videos) — DOM order, not geometry.
+      if (isItemDetailPage()) {
+        const mediaEl = mediaGalleryFocusFrom(current);
+        const mediaItems = collectMediaGalleryFocusables();
+
+        if (mediaEl && mediaItems.length > 0) {
+          if (direction === "left" || direction === "right") {
+            const idx = mediaItems.indexOf(mediaEl);
+            const nextIdx =
+              direction === "right"
+                ? Math.min(mediaItems.length - 1, Math.max(0, idx) + 1)
+                : Math.max(0, Math.max(0, idx) - 1);
+            const nextMedia = mediaItems[nextIdx];
+            if (nextMedia && nextMedia !== mediaEl) {
+              focusElement(nextMedia);
+              return;
+            }
+            if (direction === "left") {
+              const primary = collectDetailPrimaryFocusables()[0];
+              if (primary) {
+                focusElement(primary);
+                return;
+              }
+            }
+            return;
+          }
+          if (direction === "up") {
+            const primary = collectDetailPrimaryFocusables()[0];
+            if (primary) {
+              focusElement(primary);
+              return;
+            }
+          }
+          if (direction === "down") {
+            // Leave the strip via geometry (collections / similar), scrolling as needed.
+            const next = pickNextFocus(mediaEl, "down", true);
+            if (next && !mediaGalleryFocusFrom(next)) {
+              focusElement(next);
+              return;
+            }
+            if (nudgeScrollParentForDirection(mediaEl, "down")) {
+              window.requestAnimationFrame(() => {
+                const retry = pickNextFocus(mediaEl, "down", true);
+                if (retry && !mediaGalleryFocusFrom(retry)) focusElement(retry);
+              });
+              return;
+            }
+            return;
+          }
+        }
+
+        // Down from hero actions / stars / summary → media strip (don't jump to similar covers).
+        if (direction === "down" && current && !mediaEl) {
+          const fromHero = !!current.closest(
+            [
+              ".game-detail-actions",
+              ".game-detail-ratings",
+              ".game-detail-info-primary",
+              ".game-detail-summary",
+              ".catalog-game-detail-info-content",
+              ".catalog-game-detail-ratings",
+              ".library-item-detail-actions",
+              ".library-item-detail-meta-primary",
+              ".library-item-detail-summary",
+              ".star-rating",
+            ].join(","),
+          );
+          if (fromHero && mediaItems.length > 0) {
+            const geometric = pickNextFocus(current, "down", true);
+            if (geometric && mediaGalleryFocusFrom(geometric)) {
+              focusElement(geometric);
+              return;
+            }
+            // Prefer media over jumping straight to collection/similar covers.
+            if (!geometric || coverFocusFrom(geometric)) {
+              focusElement(mediaItems[0]!);
+              return;
+            }
+            focusElement(geometric);
+            return;
+          }
+        }
+      }
+
+      // Detail: Up from primary actions / page chrome back to libraries bar.
+      if (isItemDetailPage() && direction === "up") {
+        const onPrimary = !!current?.closest?.(
+          ".game-detail-actions, .catalog-game-detail-info-content, .library-item-detail-actions, .game-detail-info-primary, .library-item-detail-meta-primary",
+        );
+        if (onPrimary && focusLibraryMenu()) return;
       }
 
       if (

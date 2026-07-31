@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type MouseEvent } from "react";
+import { useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from "react";
 type StarRatingProps = {
   rating: number; // Rating from 0 to 5
   starSize?: number;
@@ -9,18 +9,18 @@ type StarRatingProps = {
   onRatingChange?: (newRating: number) => void; // Callback when rating changes (receives value from 1-10)
 };
 
-export default function StarRating({ 
-  rating, 
-  starSize = 16, 
-  gap = 4, 
-  color = "#ffffff", 
+export default function StarRating({
+  rating,
+  starSize = 16,
+  gap = 4,
+  color = "#ffffff",
   noStroke = false,
   readOnly = true,
-  onRatingChange
+  onRatingChange,
 }: StarRatingProps) {
   const [hoverRating, setHoverRating] = useState<number | null>(null);
-  
-  const handleStarClick = (e: MouseEvent<HTMLDivElement>, starValue: number, isHalf: boolean) => {
+
+  const handleStarClick = (e: MouseEvent<HTMLElement>, starValue: number, isHalf: boolean) => {
     e.preventDefault();
     e.stopPropagation();
     if (!readOnly && onRatingChange) {
@@ -45,6 +45,14 @@ export default function StarRating({
     }
   };
 
+  const handleStarKeyDown = (e: KeyboardEvent<HTMLButtonElement>, starValue: number) => {
+    if (readOnly || !onRatingChange) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onRatingChange(starValue * 2);
+    }
+  };
+
   // Use hoverRating for preview if available, otherwise use actual rating
   const displayRating = hoverRating !== null ? hoverRating : rating;
 
@@ -54,17 +62,19 @@ export default function StarRating({
   } as CSSProperties;
 
   return (
-    <div className="star-rating" style={rowStyle} onMouseLeave={handleMouseLeave}>
+    <div
+      className="star-rating"
+      style={rowStyle}
+      onMouseLeave={handleMouseLeave}
+      role={readOnly ? undefined : "group"}
+      aria-label={readOnly ? undefined : "Rating"}
+    >
       {[1, 2, 3, 4, 5].map((star) => {
         const filled = displayRating >= star;
         const halfFilled = displayRating >= star - 0.5 && displayRating < star;
         const starId = `star-${star}-${displayRating}`;
-        
-        return (
-          <div
-            key={star}
-            className={`star-rating-star${readOnly ? "" : " star-rating-star--interactive"}`}
-          >
+        const starInner = (
+          <>
             {/* Background star (always visible) */}
             <svg
               className="star-rating-star-svg-bg"
@@ -74,10 +84,11 @@ export default function StarRating({
               fill="none"
               stroke="rgba(255, 255, 255, 0.3)"
               strokeWidth="1.5"
+              aria-hidden="true"
             >
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
             </svg>
-            
+
             {/* Left half for half star click/hover */}
             {!readOnly && (
               <div
@@ -86,7 +97,7 @@ export default function StarRating({
                 onMouseEnter={() => handleStarHover(star, true)}
               />
             )}
-            
+
             {/* Right half for full star click/hover */}
             {!readOnly && (
               <div
@@ -95,7 +106,7 @@ export default function StarRating({
                 onMouseEnter={() => handleStarHover(star, false)}
               />
             )}
-            
+
             {/* Filled star */}
             {filled && (
               <svg
@@ -106,11 +117,12 @@ export default function StarRating({
                 fill={color}
                 stroke={noStroke ? "none" : color}
                 strokeWidth={noStroke ? "0" : "1.5"}
+                aria-hidden="true"
               >
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
             )}
-            
+
             {/* Half filled star */}
             {halfFilled && (
               <svg
@@ -121,6 +133,7 @@ export default function StarRating({
                 fill="none"
                 stroke={noStroke ? "none" : color}
                 strokeWidth={noStroke ? "0" : "1.5"}
+                aria-hidden="true"
               >
                 <defs>
                   <linearGradient id={starId} x1="0%" y1="0%" x2="100%" y2="0%">
@@ -134,10 +147,30 @@ export default function StarRating({
                 />
               </svg>
             )}
-          </div>
+          </>
+        );
+
+        if (readOnly) {
+          return (
+            <div key={star} className="star-rating-star">
+              {starInner}
+            </div>
+          );
+        }
+
+        return (
+          <button
+            key={star}
+            type="button"
+            className="star-rating-star star-rating-star--interactive"
+            aria-label={`${star}`}
+            aria-pressed={filled || halfFilled}
+            onKeyDown={(e) => handleStarKeyDown(e, star)}
+          >
+            {starInner}
+          </button>
         );
       })}
     </div>
   );
 }
-
