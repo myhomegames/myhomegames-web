@@ -96,6 +96,7 @@
         "verticalCoverAlignment": "Vertikale Cover-Ausrichtung",
         "fixedFocalStepSound": "Navigationston",
         "autoShowBackgroundOnSelection": "Hintergrund bei Fokusauswahl anzeigen",
+        "detailBackdropLayout": "Spieldetail-Hintergrundlayout (Skin-CSS)",
         "disableTitleTooltips": "Tooltips ausblenden"
       }
     }

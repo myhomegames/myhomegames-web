@@ -131,6 +131,7 @@
         "verticalCoverAlignment": "Allineamento cover verticale",
         "fixedFocalStepSound": "Suono di navigazione",
         "autoShowBackgroundOnSelection": "Mostra sfondo alla selezione focale",
+        "detailBackdropLayout": "Layout sfondo dettaglio gioco (CSS dello skin)",
         "disableTitleTooltips": "Nascondi i tooltip"
       }
     }

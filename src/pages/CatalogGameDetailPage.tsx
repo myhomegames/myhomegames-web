@@ -130,6 +130,7 @@ export default function CatalogGameDetailPage() {
       hasBackground={hasBackground}
       elementId={`catalog-${game.id}`}
       autoShowWhenAvailable={activeSkinWeb.autoShowBackgroundOnSelection}
+      detailBackdrop={activeSkinWeb.detailBackdropLayout}
     >
       <CatalogGameDetailContent
         game={game}

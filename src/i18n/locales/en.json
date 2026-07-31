@@ -131,6 +131,7 @@
         "verticalCoverAlignment": "Vertical cover alignment",
         "fixedFocalStepSound": "Navigation sound",
         "autoShowBackgroundOnSelection": "Show background on focal selection",
+        "detailBackdropLayout": "Game detail backdrop layout (skin CSS)",
         "disableTitleTooltips": "Hide tooltips"
       }
     }

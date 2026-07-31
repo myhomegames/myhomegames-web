@@ -96,6 +96,7 @@
         "verticalCoverAlignment": "Alinhamento vertical das capas",
         "fixedFocalStepSound": "Som de navegação",
         "autoShowBackgroundOnSelection": "Mostrar fundo na seleção focal",
+        "detailBackdropLayout": "Layout de fundo no detalhe do jogo (CSS do skin)",
         "disableTitleTooltips": "Ocultar dicas"
       }
     }

@@ -54,6 +54,12 @@ export type SkinWebManifest = {
    * navigation — no click required), show its background automatically (XMB-style).
    */
   autoShowBackgroundOnSelection: boolean;
+  /**
+   * Game/catalog detail: enable the detail backdrop layout hook
+   * (`data-mhg-background-layout="detail"` + scroll fade). Skin CSS decides the look
+   * (e.g. cropped hero on TV/phone); without matching CSS the portal stays full-bleed.
+   */
+  detailBackdropLayout: boolean;
   /** Do not show hover tooltips anywhere in the UI. */
   disableTitleTooltips: boolean;
   /**
@@ -78,6 +84,7 @@ export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
   verticalCoverAlignment: false,
   fixedFocalStepSound: false,
   autoShowBackgroundOnSelection: false,
+  detailBackdropLayout: false,
   disableTitleTooltips: false,
   collapsibleLibrarySidebar: false,
 };
@@ -97,6 +104,7 @@ export const SKIN_WEB_KEYS = [
   "verticalCoverAlignment",
   "fixedFocalStepSound",
   "autoShowBackgroundOnSelection",
+  "detailBackdropLayout",
   "disableTitleTooltips",
   "collapsibleLibrarySidebar",
 ] as const satisfies readonly (keyof SkinWebManifest)[];

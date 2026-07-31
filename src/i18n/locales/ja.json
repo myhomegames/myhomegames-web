@@ -96,6 +96,7 @@
         "verticalCoverAlignment": "カバーの縦整列",
         "fixedFocalStepSound": "ナビゲーション音",
         "autoShowBackgroundOnSelection": "フォーカス選択時に背景を表示",
+        "detailBackdropLayout": "ゲーム詳細の背景レイアウト（スキン CSS）",
         "disableTitleTooltips": "ツールチップを非表示"
       }
     }

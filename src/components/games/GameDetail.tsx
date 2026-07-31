@@ -141,6 +141,7 @@ export default function GameDetail({
       hasBackground={hasBackground}
       elementId={game.id}
       autoShowWhenAvailable={activeSkinWeb.autoShowBackgroundOnSelection}
+      detailBackdrop={activeSkinWeb.detailBackdropLayout}
     >
       <GameDetailContent
         game={localGame}

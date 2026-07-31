@@ -96,6 +96,7 @@
         "verticalCoverAlignment": "封面垂直对齐",
         "fixedFocalStepSound": "导航音效",
         "autoShowBackgroundOnSelection": "焦点选中时显示背景",
+        "detailBackdropLayout": "游戏详情背景布局（皮肤 CSS）",
         "disableTitleTooltips": "隐藏工具提示"
       }
     }

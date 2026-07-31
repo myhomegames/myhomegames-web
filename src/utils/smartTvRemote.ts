@@ -174,7 +174,7 @@ export function getActiveUiLayer(): HTMLElement | null {
 
   candidates.sort((a, b) => {
     // Nested "Add to" / executables flyouts must win over the parent ⋮ / phone sheet
-    // even when a skin leaves their z-index below the overlay (plex / gog vs PS3).
+    // even when a skin leaves their z-index below the overlay.
     const parentMenuOpen = candidates.some(
       (c) =>
         c.classList.contains("dropdown-menu-phone-sheet-overlay") ||

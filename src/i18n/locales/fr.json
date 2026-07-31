@@ -96,6 +96,7 @@
         "verticalCoverAlignment": "Alignement vertical des jaquettes",
         "fixedFocalStepSound": "Son de navigation",
         "autoShowBackgroundOnSelection": "Afficher l'arrière-plan à la sélection focale",
+        "detailBackdropLayout": "Disposition du fond fiche jeu (CSS du skin)",
         "disableTitleTooltips": "Masquer les infobulles"
       }
     }
