@@ -1,4 +1,5 @@
-import { useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from "react";
+import { useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type MouseEvent } from "react";
+
 type StarRatingProps = {
   rating: number; // Rating from 0 to 5
   starSize?: number;
@@ -8,6 +9,11 @@ type StarRatingProps = {
   readOnly?: boolean; // If false, allows clicking to change rating
   onRatingChange?: (newRating: number) => void; // Callback when rating changes (receives value from 1-10)
 };
+
+function isLeftHalf(el: HTMLElement, clientX: number): boolean {
+  const rect = el.getBoundingClientRect();
+  return clientX - rect.left < rect.width / 2;
+}
 
 export default function StarRating({
   rating,
@@ -20,23 +26,24 @@ export default function StarRating({
 }: StarRatingProps) {
   const [hoverRating, setHoverRating] = useState<number | null>(null);
 
-  const handleStarClick = (e: MouseEvent<HTMLElement>, starValue: number, isHalf: boolean) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!readOnly && onRatingChange) {
-      // Convert from 0-5 scale to 1-10 scale
-      // starValue is 1-5, if isHalf then subtract 0.5
-      const ratingValue = isHalf ? starValue - 0.5 : starValue;
-      const newRating = ratingValue * 2;
-      onRatingChange(newRating);
-    }
+  const applyRating = (starValue: number, half: boolean) => {
+    if (readOnly || !onRatingChange) return;
+    const ratingValue = half ? starValue - 0.5 : starValue;
+    onRatingChange(ratingValue * 2);
   };
 
-  const handleStarHover = (starValue: number, isHalf: boolean) => {
-    if (!readOnly) {
-      const ratingValue = isHalf ? starValue - 0.5 : starValue;
-      setHoverRating(ratingValue);
-    }
+  const handleStarClick = (e: MouseEvent<HTMLButtonElement>, starValue: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    applyRating(starValue, isLeftHalf(e.currentTarget, e.clientX));
+  };
+
+  const handleStarPointerMove = (e: PointerEvent<HTMLButtonElement>, starValue: number) => {
+    if (readOnly || !onRatingChange) return;
+    // Touch drag preview is noisy; keep hover preview for fine pointers.
+    if (e.pointerType === "touch") return;
+    const half = isLeftHalf(e.currentTarget, e.clientX);
+    setHoverRating(half ? starValue - 0.5 : starValue);
   };
 
   const handleMouseLeave = () => {
@@ -75,7 +82,6 @@ export default function StarRating({
         const starId = `star-${star}-${displayRating}`;
         const starInner = (
           <>
-            {/* Background star (always visible) */}
             <svg
               className="star-rating-star-svg-bg"
               width={starSize}
@@ -89,25 +95,6 @@ export default function StarRating({
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
             </svg>
 
-            {/* Left half for half star click/hover */}
-            {!readOnly && (
-              <div
-                className="star-rating-star-half-hit star-rating-star-half-hit--left"
-                onClick={(e) => handleStarClick(e, star, true)}
-                onMouseEnter={() => handleStarHover(star, true)}
-              />
-            )}
-
-            {/* Right half for full star click/hover */}
-            {!readOnly && (
-              <div
-                className="star-rating-star-half-hit star-rating-star-half-hit--right"
-                onClick={(e) => handleStarClick(e, star, false)}
-                onMouseEnter={() => handleStarHover(star, false)}
-              />
-            )}
-
-            {/* Filled star */}
             {filled && (
               <svg
                 className="star-rating-star-svg-overlay"
@@ -123,7 +110,6 @@ export default function StarRating({
               </svg>
             )}
 
-            {/* Half filled star */}
             {halfFilled && (
               <svg
                 className="star-rating-star-svg-overlay"
@@ -165,6 +151,8 @@ export default function StarRating({
             className="star-rating-star star-rating-star--interactive"
             aria-label={`${star}`}
             aria-pressed={filled || halfFilled}
+            onClick={(e) => handleStarClick(e, star)}
+            onPointerMove={(e) => handleStarPointerMove(e, star)}
             onKeyDown={(e) => handleStarKeyDown(e, star)}
           >
             {starInner}

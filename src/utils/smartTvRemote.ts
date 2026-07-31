@@ -253,7 +253,6 @@ function collectFocusables(allowTextFields: boolean, scope?: ParentNode): HTMLEl
   );
   return Array.from(nodes).filter((el) => {
     if (!isVisible(el)) return false;
-    if (isLogoButton(el)) return false;
     if (!allowTextFields && isTextField(el)) return false;
     return true;
   });
@@ -530,6 +529,54 @@ function isItemDetailPage(): boolean {
   );
 }
 
+function isDetailFocusable(el: HTMLElement): boolean {
+  return (
+    isVisible(el) &&
+    !el.closest("[inert]") &&
+    !el.hasAttribute("disabled") &&
+    el.getAttribute("tabindex") !== "-1" &&
+    el.getAttribute("aria-hidden") !== "true"
+  );
+}
+
+/**
+ * Detail page vertical ladder (Smart TV):
+ * header (logo ↔ search ↔ settings) → hide background → stars → Play ↔ ⋮ → media…
+ */
+type DetailLadderLevel = "header" | "background" | "stars" | "actions" | "summary";
+
+/** Header row: logo ↔ search ↔ settings (DOM order inside `.mhg-header`). */
+function collectDetailHeaderFocusables(): HTMLElement[] {
+  const header = document.querySelector<HTMLElement>(".mhg-header");
+  if (!header) return [];
+  const items: HTMLElement[] = [];
+  const logo = header.querySelector<HTMLElement>(".mhg-logo-button");
+  if (logo && isDetailFocusable(logo)) items.push(logo);
+  const search = header.querySelector<HTMLElement>(
+    ".mhg-search-input, .mhg-title-filter-input, #search-input",
+  );
+  if (search && isDetailFocusable(search)) items.push(search);
+  const settings = header.querySelector<HTMLElement>(
+    '.mhg-header-button[data-mhg-header-action="settings"]',
+  );
+  if (settings && isDetailFocusable(settings)) items.push(settings);
+  return items;
+}
+
+function collectDetailBackgroundFocusables(): HTMLElement[] {
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(".background-toggle-button"),
+  ).filter(isDetailFocusable);
+}
+
+function collectDetailStarFocusables(): HTMLElement[] {
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(
+      ".game-detail-ratings .star-rating-star--interactive, .catalog-game-detail-ratings .star-rating-star--interactive, .library-item-detail-meta .star-rating-star--interactive, .star-rating .star-rating-star--interactive",
+    ),
+  ).filter(isDetailFocusable);
+}
+
 /** Primary actions on detail pages (Play / Mark owned / Edit / ⋮). */
 function collectDetailPrimaryFocusables(): HTMLElement[] {
   return Array.from(
@@ -545,7 +592,136 @@ function collectDetailPrimaryFocusables(): HTMLElement[] {
         ".library-item-detail-dropdown-menu .dropdown-menu-button",
       ].join(","),
     ),
-  ).filter((el) => isVisible(el) && !el.closest("[inert]") && !el.hasAttribute("disabled"));
+  ).filter(isDetailFocusable);
+}
+
+function collectDetailSummaryFocusables(): HTMLElement[] {
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(
+      [
+        ".game-detail-summary .summary-text--toggleable",
+        ".catalog-game-detail-summary .summary-text--toggleable",
+        ".library-item-detail-summary .summary-text--toggleable",
+        ".summary-text--toggleable[data-mhg-tv-focus]",
+      ].join(","),
+    ),
+  ).filter(isDetailFocusable);
+}
+
+function collectDetailLadderLevel(level: DetailLadderLevel): HTMLElement[] {
+  switch (level) {
+    case "header":
+      return collectDetailHeaderFocusables();
+    case "background":
+      return collectDetailBackgroundFocusables();
+    case "stars":
+      return collectDetailStarFocusables();
+    case "actions":
+      return collectDetailPrimaryFocusables();
+    case "summary":
+      return collectDetailSummaryFocusables();
+  }
+}
+
+function detailLadderLevelOf(el: HTMLElement | null): DetailLadderLevel | null {
+  if (!el) return null;
+  if (
+    el.closest(".mhg-header") &&
+    (el.classList.contains("mhg-logo-button") ||
+      el.classList.contains("mhg-search-input") ||
+      el.classList.contains("mhg-title-filter-input") ||
+      el.classList.contains("mhg-header-button") ||
+      el.classList.contains("profile-dropdown-button") ||
+      el.id === "search-input" ||
+      isTextField(el))
+  ) {
+    return "header";
+  }
+  if (el.classList.contains("background-toggle-button")) return "background";
+  if (
+    el.closest(".star-rating") ||
+    el.classList.contains("star-rating-star--interactive")
+  ) {
+    return "stars";
+  }
+  if (
+    el.closest(".game-detail-actions") ||
+    el.closest(".library-item-detail-actions") ||
+    el.classList.contains("game-detail-play-button") ||
+    el.classList.contains("game-detail-link-executable-button") ||
+    el.classList.contains("catalog-game-detail-mark-owned-button") ||
+    el.classList.contains("library-item-detail-play-btn") ||
+    (!!el.closest(".game-detail-dropdown-menu, .library-item-detail-dropdown-menu") &&
+      el.classList.contains("dropdown-menu-button"))
+  ) {
+    return "actions";
+  }
+  if (
+    el.classList.contains("summary-text--toggleable") ||
+    el.classList.contains("summary-toggle")
+  ) {
+    return "summary";
+  }
+  return null;
+}
+
+const DETAIL_LADDER_ORDER: DetailLadderLevel[] = [
+  "header",
+  "background",
+  "stars",
+  "actions",
+  "summary",
+];
+
+function nextPopulatedDetailLadderLevel(
+  from: DetailLadderLevel,
+  direction: "up" | "down",
+): DetailLadderLevel | null {
+  const idx = DETAIL_LADDER_ORDER.indexOf(from);
+  if (idx < 0) return null;
+  const step = direction === "down" ? 1 : -1;
+  for (let i = idx + step; i >= 0 && i < DETAIL_LADDER_ORDER.length; i += step) {
+    const level = DETAIL_LADDER_ORDER[i]!;
+    if (collectDetailLadderLevel(level).length > 0) return level;
+  }
+  return null;
+}
+
+function focusDetailLadderLevel(
+  level: DetailLadderLevel,
+  prefer: "first" | "last" | HTMLElement | null = "first",
+): boolean {
+  const items = collectDetailLadderLevel(level);
+  if (items.length === 0) return false;
+  let target: HTMLElement | null = null;
+  if (prefer instanceof HTMLElement && items.includes(prefer)) {
+    target = prefer;
+  } else if (prefer === "last") {
+    target = items[items.length - 1]!;
+  } else {
+    // Entering header from below: prefer settings. Entering actions from above: Play.
+    if (level === "header") {
+      target =
+        items.find((el) => el.getAttribute("data-mhg-header-action") === "settings") ??
+        items[items.length - 1]!;
+    } else {
+      target = items[0]!;
+    }
+  }
+  if (!target) return false;
+  focusElement(target);
+  return true;
+}
+
+/** True when the header search field should use L/R to leave (detail TV ladder). */
+function isDetailHeaderSearchField(field: HTMLElement): boolean {
+  return (
+    isItemDetailPage() &&
+    !!field.closest(".mhg-header") &&
+    (field.classList.contains("mhg-search-input") ||
+      field.classList.contains("mhg-title-filter-input") ||
+      field.id === "search-input")
+  );
 }
 
 /** Screenshot / video strip on game & catalog detail. */
@@ -1107,7 +1283,6 @@ export function installSmartTvRemoteKeys(
         active &&
         active !== document.body &&
         typeof active.click === "function" &&
-        !isLogoButton(active) &&
         (!uiLayer || uiLayer.contains(active)) &&
         isActivatable
       ) {
@@ -1136,7 +1311,6 @@ export function installSmartTvRemoteKeys(
       active &&
       active !== document.body &&
       active !== document.documentElement &&
-      !isLogoButton(active) &&
       !isTextField(active) &&
       collectFocusables(false).includes(active)
     ) {
@@ -1148,6 +1322,40 @@ export function installSmartTvRemoteKeys(
   };
 
   const leaveEditable = (field: HTMLElement, direction: Direction | null) => {
+    // Detail header search: L/R stay in the logo ↔ search ↔ settings row; Down → bg toggle.
+    if (isDetailHeaderSearchField(field) && direction) {
+      zone = "chrome";
+      const headerItems = collectDetailHeaderFocusables();
+      if (direction === "left" || direction === "right") {
+        const next = pickNextInSet(headerItems, field, direction);
+        if (next) {
+          try {
+            field.blur();
+          } catch {
+            /* ignore */
+          }
+          focusElement(next);
+          return;
+        }
+        return;
+      }
+      if (direction === "down") {
+        try {
+          field.blur();
+        } catch {
+          /* ignore */
+        }
+        if (focusDetailLadderLevel("background", "first")) return;
+        if (focusDetailLadderLevel("stars", "first")) return;
+        if (focusDetailLadderLevel("actions", "first")) return;
+        return;
+      }
+      if (direction === "up") {
+        // Top of ladder — stay in search.
+        return;
+      }
+    }
+
     try {
       field.blur();
     } catch {
@@ -1239,6 +1447,7 @@ export function installSmartTvRemoteKeys(
     }
 
     // Search / inputs: keep Left/Right for caret + on-screen keyboard.
+    // Detail header search: L/R also leave so logo ↔ search ↔ settings works on TV.
     // Back leaves; Up/Down also leave so we never stay trapped if Back is eaten by the IME.
     if (field) {
       if (isBackOrEscape(code, key)) {
@@ -1257,6 +1466,17 @@ export function installSmartTvRemoteKeys(
       let leaveDir: Direction | null = null;
       if (code === KEY_DOWN || key === "ArrowDown" || key === "Down") leaveDir = "down";
       else if (code === KEY_UP || key === "ArrowUp" || key === "Up") leaveDir = "up";
+      else if (
+        isDetailHeaderSearchField(field) &&
+        (code === KEY_LEFT || key === "ArrowLeft" || key === "Left")
+      ) {
+        leaveDir = "left";
+      } else if (
+        isDetailHeaderSearchField(field) &&
+        (code === KEY_RIGHT || key === "ArrowRight" || key === "Right")
+      ) {
+        leaveDir = "right";
+      }
 
       if (leaveDir) {
         e.preventDefault();
@@ -1415,7 +1635,7 @@ export function installSmartTvRemoteKeys(
       // chrome zone — XMB strip: Left/Right must step+select, not only move focus
       const active = document.activeElement as HTMLElement | null;
       const current =
-        active && active !== document.body && active !== document.documentElement && !isLogoButton(active)
+        active && active !== document.body && active !== document.documentElement
           ? active
           : null;
 
@@ -1560,15 +1780,74 @@ export function installSmartTvRemoteKeys(
         }
       }
 
-      // Detail pages: from libraries chrome, land on Play / Mark owned / Edit / ⋮ first.
-      if (isItemDetailPage() && (direction === "down" || direction === "right")) {
-        const onLibraryChrome = !!libraryMenuFocusFrom(current);
-        if (onLibraryChrome || !current) {
-          const primary = collectDetailPrimaryFocusables()[0];
-          if (primary) {
-            focusElement(primary);
+      // Detail pages: vertical ladder
+      // header (logo ↔ search ↔ settings) → hide background → stars → Play ↔ ⋮ → summary
+      if (isItemDetailPage()) {
+        const ladderLevel = detailLadderLevelOf(current);
+
+        if (ladderLevel) {
+          const levelItems = collectDetailLadderLevel(ladderLevel);
+
+          if (direction === "left" || direction === "right") {
+            // DOM order: logo ↔ search ↔ settings; stars; Play ↔ ⋮
+            if (
+              ladderLevel === "header" ||
+              ladderLevel === "stars" ||
+              ladderLevel === "actions"
+            ) {
+              const idx = current ? levelItems.indexOf(current) : -1;
+              if (idx >= 0) {
+                const nextIdx =
+                  direction === "right"
+                    ? Math.min(levelItems.length - 1, idx + 1)
+                    : Math.max(0, idx - 1);
+                const next = levelItems[nextIdx];
+                if (next && next !== current) {
+                  focusElement(next);
+                  return;
+                }
+                return;
+              }
+            }
+            const next = pickNextInSet(levelItems, current, direction);
+            if (next) {
+              focusElement(next);
+              return;
+            }
             return;
           }
+
+          if (direction === "up" || direction === "down") {
+            const nextLevel = nextPopulatedDetailLadderLevel(ladderLevel, direction);
+            if (nextLevel) {
+              if (direction === "up" && nextLevel === "header") {
+                const headerItems = collectDetailHeaderFocusables();
+                const settings =
+                  headerItems.find(
+                    (el) => el.getAttribute("data-mhg-header-action") === "settings",
+                  ) ?? headerItems[headerItems.length - 1];
+                if (settings) {
+                  focusElement(settings);
+                  return;
+                }
+              }
+              focusDetailLadderLevel(
+                nextLevel,
+                direction === "down" ? "first" : "last",
+              );
+              return;
+            }
+            // Top of ladder — stay; bottom (summary / actions) falls through to media.
+            if (direction === "up") return;
+          }
+        }
+
+        // From empty library tabs / nowhere: Down starts at Play; Up opens header.
+        if (direction === "down" && (!current || libraryMenuFocusFrom(current))) {
+          if (focusDetailLadderLevel("actions", "first")) return;
+        }
+        if (direction === "up" && (!current || libraryMenuFocusFrom(current))) {
+          if (focusDetailLadderLevel("header", "first")) return;
         }
       }
 
@@ -1599,11 +1878,8 @@ export function installSmartTvRemoteKeys(
             return;
           }
           if (direction === "up") {
-            const primary = collectDetailPrimaryFocusables()[0];
-            if (primary) {
-              focusElement(primary);
-              return;
-            }
+            if (focusDetailLadderLevel("summary", "first")) return;
+            if (focusDetailLadderLevel("actions", "first")) return;
           }
           if (direction === "down") {
             // Leave the strip via geometry (collections / similar), scrolling as needed.
@@ -1623,29 +1899,20 @@ export function installSmartTvRemoteKeys(
           }
         }
 
-        // Down from hero actions / stars / summary → media strip (don't jump to similar covers).
-        if (direction === "down" && current && !mediaEl) {
-          const fromHero = !!current.closest(
-            [
-              ".game-detail-actions",
-              ".game-detail-ratings",
-              ".game-detail-info-primary",
-              ".game-detail-summary",
-              ".catalog-game-detail-info-content",
-              ".catalog-game-detail-ratings",
-              ".library-item-detail-actions",
-              ".library-item-detail-meta-primary",
-              ".library-item-detail-summary",
-              ".star-rating",
-            ].join(","),
-          );
-          if (fromHero && mediaItems.length > 0) {
+        // Down from Play / summary → media strip (don't jump to similar covers).
+        if (
+          direction === "down" &&
+          current &&
+          !mediaEl &&
+          (detailLadderLevelOf(current) === "actions" ||
+            detailLadderLevelOf(current) === "summary")
+        ) {
+          if (mediaItems.length > 0) {
             const geometric = pickNextFocus(current, "down", true);
             if (geometric && mediaGalleryFocusFrom(geometric)) {
               focusElement(geometric);
               return;
             }
-            // Prefer media over jumping straight to collection/similar covers.
             if (!geometric || coverFocusFrom(geometric)) {
               focusElement(mediaItems[0]!);
               return;
@@ -1654,14 +1921,6 @@ export function installSmartTvRemoteKeys(
             return;
           }
         }
-      }
-
-      // Detail: Up from primary actions / page chrome back to libraries bar.
-      if (isItemDetailPage() && direction === "up") {
-        const onPrimary = !!current?.closest?.(
-          ".game-detail-actions, .catalog-game-detail-info-content, .library-item-detail-actions, .game-detail-info-primary, .library-item-detail-meta-primary",
-        );
-        if (onPrimary && focusLibraryMenu()) return;
       }
 
       if (
