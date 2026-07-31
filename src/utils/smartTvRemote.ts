@@ -450,6 +450,34 @@ function collectLibraryMenuFocusables(): HTMLElement[] {
   ).filter((el) => isVisible(el) && !isLogoButton(el));
 }
 
+/** True when two controls share the same horizontal band (header tab row). */
+function isSameVisualRow(a: HTMLElement, b: HTMLElement): boolean {
+  const ar = a.getBoundingClientRect();
+  const br = b.getBoundingClientRect();
+  const overlap = Math.min(ar.bottom, br.bottom) - Math.max(ar.top, br.top);
+  const minH = Math.min(ar.height, br.height);
+  if (minH > 0 && overlap >= minH * 0.35) return true;
+  return Math.abs(center(ar).y - center(br).y) <= 32;
+}
+
+/**
+ * Focusables on the libraries bar that sit on the same visual row as `from`
+ * (page tabs + trailing action icons). Excludes the filter/sort toolbar below.
+ */
+function collectLibrariesBarRowFocusables(from: HTMLElement): HTMLElement[] {
+  const root =
+    (from.closest(".mhg-libraries-bar") as HTMLElement | null) ??
+    document.querySelector<HTMLElement>(".mhg-libraries-bar");
+  if (!root) return [];
+  return collectFocusables(false, root).filter(
+    (el) =>
+      isSameVisualRow(from, el) &&
+      !toolbarFocusFrom(el) &&
+      !coverFocusFrom(el) &&
+      !el.closest(".games-list-toolbar"),
+  );
+}
+
 function collectCoverFocusables(): HTMLElement[] {
   return Array.from(
     document.querySelectorAll<HTMLElement>(
@@ -1895,22 +1923,56 @@ export function installSmartTvRemoteKeys(
               return;
             }
           } else {
-            // Plex header: Down → toolbar/covers; Left/Right move tabs.
+            // Plex header: Down → toolbar/covers; Left/Right stay on the same row
+            // (tabs + trailing icons). Never wrap Right onto the next row.
             if (direction === "down") {
               if (focusToolbarOrCovers()) return;
               return;
             }
             if (direction === "left" || direction === "right") {
-              const nextMenu = pickNextInSet(menus, menuEl, direction);
-              if (nextMenu) {
-                rememberLibraryMenuFocus(nextMenu);
-                focusElement(nextMenu);
+              const rowItems = collectLibrariesBarRowFocusables(menuEl);
+              const next = pickNextInSet(
+                rowItems.length > 0 ? rowItems : menus,
+                menuEl,
+                direction,
+              );
+              if (next) {
+                const nextMenu = libraryMenuFocusFrom(next);
+                if (nextMenu) rememberLibraryMenuFocus(nextMenu);
+                focusElement(next);
                 return;
               }
-              if (direction === "right" && focusToolbarOrCovers()) return;
               return;
             }
             if (direction === "up") return;
+          }
+        }
+
+        // Trailing icons on the Plex libraries bar row (not page tabs).
+        if (
+          !verticalMenu &&
+          current &&
+          !menuEl &&
+          !toolbarEl &&
+          !coverEl &&
+          !alphabetEl &&
+          current.closest(".mhg-libraries-bar")
+        ) {
+          if (direction === "down") {
+            if (focusToolbarOrCovers()) return;
+            return;
+          }
+          if (direction === "up") return;
+          if (direction === "left" || direction === "right") {
+            const rowItems = collectLibrariesBarRowFocusables(current);
+            const next = pickNextInSet(rowItems, current, direction);
+            if (next) {
+              const nextMenu = libraryMenuFocusFrom(next);
+              if (nextMenu) rememberLibraryMenuFocus(nextMenu);
+              focusElement(next);
+              return;
+            }
+            return;
           }
         }
 
