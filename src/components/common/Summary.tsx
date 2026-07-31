@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 
 type SummaryProps = {
@@ -39,22 +39,45 @@ export default function Summary({
     return null;
   }
 
+  const canToggle = showExpandButton && !truncateOnly;
+
   const textStyle = {
     ["--summary-max-lines" as string]: String(maxLines),
     ...(fontSize ? { ["--summary-font-size" as string]: fontSize } : {}),
   } as CSSProperties;
 
+  const toggleExpanded = () => {
+    if (!canToggle) return;
+    setIsExpanded((prev) => !prev);
+  };
+
+  const onTextKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (!canToggle) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggleExpanded();
+    }
+  };
+
   return (
     <div className="summary-root">
       <div
         ref={textRef}
-        className={`text-white summary-text${isExpanded ? " summary-text--expanded" : ""}`}
+        className={`text-white summary-text${isExpanded ? " summary-text--expanded" : ""}${
+          canToggle ? " summary-text--toggleable" : ""
+        }`}
         style={textStyle}
+        onClick={toggleExpanded}
+        onKeyDown={onTextKeyDown}
+        role={canToggle ? "button" : undefined}
+        tabIndex={canToggle ? 0 : undefined}
+        aria-expanded={canToggle ? isExpanded : undefined}
+        data-mhg-tv-focus={canToggle ? "" : undefined}
       >
         {summary}
       </div>
-      {showExpandButton && !truncateOnly && (
-        <button type="button" className="summary-toggle" onClick={() => setIsExpanded(!isExpanded)}>
+      {canToggle && (
+        <button type="button" className="summary-toggle" onClick={toggleExpanded}>
           <span>{isExpanded ? t("common.less") : t("common.more")}</span>
           <svg
             className={`summary-toggle-chevron${isExpanded ? " summary-toggle-chevron--expanded" : ""}`}
@@ -63,6 +86,7 @@ export default function Summary({
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
           >
             <path
               d="M7 10l5 5 5-5"
