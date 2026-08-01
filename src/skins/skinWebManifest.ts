@@ -78,6 +78,17 @@ export type SkinWebManifest = {
    * stars in place on the detail page.
    */
   tvStarRatingOverlay: boolean;
+  /**
+   * On Smart TV game/catalog/collection-like detail, render Summary above the
+   * Play/actions row (and navigate the TV focus ladder in that order).
+   */
+  tvDetailSummaryBeforeActions: boolean;
+  /**
+   * On Smart TV Recommended (horizontal strips), show a top browse panel with
+   * the focused game’s detail through Summary; auto-select the first cover and
+   * update as the remote moves between covers.
+   */
+  tvRecommendedBrowsePreview: boolean;
   /** Do not show hover tooltips anywhere in the UI. */
   disableTitleTooltips: boolean;
   /**
@@ -106,6 +117,8 @@ export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
   staticInlineTagListOnTvPhone: false,
   tvSummaryOverlay: false,
   tvStarRatingOverlay: false,
+  tvDetailSummaryBeforeActions: false,
+  tvRecommendedBrowsePreview: false,
   disableTitleTooltips: false,
   collapsibleLibrarySidebar: false,
 };
@@ -129,6 +142,8 @@ export const SKIN_WEB_KEYS = [
   "staticInlineTagListOnTvPhone",
   "tvSummaryOverlay",
   "tvStarRatingOverlay",
+  "tvDetailSummaryBeforeActions",
+  "tvRecommendedBrowsePreview",
   "disableTitleTooltips",
   "collapsibleLibrarySidebar",
 ] as const satisfies readonly (keyof SkinWebManifest)[];

@@ -100,6 +100,8 @@
         "staticInlineTagListOnTvPhone": "电视和手机上内联标签不可点击",
         "tvSummaryOverlay": "TV: open summary in full-screen overlay",
         "tvStarRatingOverlay": "TV: open star rating in full-screen overlay",
+        "tvDetailSummaryBeforeActions": "TV: show summary above the Play row on game detail",
+        "tvRecommendedBrowsePreview": "TV: Recommended top panel updates with the focused game (through summary)",
         "disableTitleTooltips": "隐藏工具提示"
       }
     }

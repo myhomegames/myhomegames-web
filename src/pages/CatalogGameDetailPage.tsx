@@ -179,6 +179,8 @@ function CatalogGameDetailContent({
     activeSkinWeb.tvSummaryOverlay && isSmartTvBrowser()
       ? () => setSummaryOverlayOpen(true)
       : undefined;
+  const summaryBeforeActions =
+    activeSkinWeb.tvDetailSummaryBeforeActions && isSmartTvBrowser();
 
   // Helper function to format release date
   const formatReleaseDate = (game: CatalogGame): string | null => {
@@ -407,6 +409,15 @@ function CatalogGameDetailContent({
                     )}
                   </div>
                 ) : null}
+              {summaryBeforeActions && game.summary ? (
+                <div className="game-detail-summary">
+                  <Summary
+                    summary={game.summary}
+                    maxLines={summaryMaxLines}
+                    onOpenOverlay={openSummaryOverlay}
+                  />
+                </div>
+              ) : null}
               <div className="game-detail-actions">
                 <button
                   onClick={onMarkAsOwned}
@@ -426,7 +437,7 @@ function CatalogGameDetailContent({
                 </button>
               </div>
               </div>
-              {game.summary && (
+              {!summaryBeforeActions && game.summary ? (
                 <div className="game-detail-summary">
                   <Summary
                     summary={game.summary}
@@ -434,7 +445,7 @@ function CatalogGameDetailContent({
                     onOpenOverlay={openSummaryOverlay}
                   />
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>

@@ -161,6 +161,18 @@ export function SkinProvider({ children }: { children: ReactNode }) {
   }, [activeSkinId, settingsLoaded, settingsSkinWeb, serverSkins]);
 
   useEffect(() => {
+    const root = document.documentElement;
+    if (activeSkinWeb.tvDetailSummaryBeforeActions) {
+      root.setAttribute("data-mhg-tv-summary-before-actions", "1");
+    } else {
+      root.removeAttribute("data-mhg-tv-summary-before-actions");
+    }
+    return () => {
+      root.removeAttribute("data-mhg-tv-summary-before-actions");
+    };
+  }, [activeSkinWeb.tvDetailSummaryBeforeActions]);
+
+  useEffect(() => {
     if (!isServerSkinId(activeSkinId)) return;
     const entry = serverSkins.find((s) => s.id === activeSkinId);
     if (entry) {

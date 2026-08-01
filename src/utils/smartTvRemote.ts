@@ -778,7 +778,7 @@ function detailLadderLevelOf(el: HTMLElement | null): DetailLadderLevel | null {
   return null;
 }
 
-const DETAIL_LADDER_ORDER: DetailLadderLevel[] = [
+const DETAIL_LADDER_ORDER_DEFAULT: DetailLadderLevel[] = [
   "header",
   "background",
   "stars",
@@ -786,15 +786,34 @@ const DETAIL_LADDER_ORDER: DetailLadderLevel[] = [
   "summary",
 ];
 
+const DETAIL_LADDER_ORDER_SUMMARY_BEFORE_ACTIONS: DetailLadderLevel[] = [
+  "header",
+  "background",
+  "stars",
+  "summary",
+  "actions",
+];
+
+function detailLadderOrder(): DetailLadderLevel[] {
+  if (
+    typeof document !== "undefined" &&
+    document.documentElement.getAttribute("data-mhg-tv-summary-before-actions") === "1"
+  ) {
+    return DETAIL_LADDER_ORDER_SUMMARY_BEFORE_ACTIONS;
+  }
+  return DETAIL_LADDER_ORDER_DEFAULT;
+}
+
 function nextPopulatedDetailLadderLevel(
   from: DetailLadderLevel,
   direction: "up" | "down",
 ): DetailLadderLevel | null {
-  const idx = DETAIL_LADDER_ORDER.indexOf(from);
+  const order = detailLadderOrder();
+  const idx = order.indexOf(from);
   if (idx < 0) return null;
   const step = direction === "down" ? 1 : -1;
-  for (let i = idx + step; i >= 0 && i < DETAIL_LADDER_ORDER.length; i += step) {
-    const level = DETAIL_LADDER_ORDER[i]!;
+  for (let i = idx + step; i >= 0 && i < order.length; i += step) {
+    const level = order[i]!;
     if (collectDetailLadderLevel(level).length > 0) return level;
   }
   return null;

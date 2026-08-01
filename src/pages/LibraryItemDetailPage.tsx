@@ -27,6 +27,7 @@ import DropdownMenu from "../components/common/DropdownMenu";
 import Tooltip from "../components/common/Tooltip";
 import BackgroundManager, { useBackground } from "../components/common/BackgroundManager";
 import { resolveFocalBackdropUrl } from "../components/common/FocalSelectionBackgroundShell";
+import { isSmartTvBrowser } from "../utils/smartTv";
 import { dispatchDeveloperOrPublisherUpdated, mergeCompanyProfileOntoItem, type CompanyProfilePatch, dispatchCollectionLikeChildLinked } from "../utils/companyProfileSync";
 import { collectionInfoFromApi, hasCompanyProfileFields, pickCompanyProfileFields } from "../utils/companyProfile";
 import BackgroundToggle from "../components/ui/BackgroundToggle";
@@ -1211,6 +1212,8 @@ function LibraryItemDetailContent({
   const compactDetail = activeSkinWeb.compactCollectionLikeDetail;
   /** Context rail: hide the icon strip; left column = library tab + cover, right column = scrollable games. */
   const contextRailLayout = compactDetail && activeSkinWeb.verticalCoverAlignment;
+  const summaryBeforeActions =
+    activeSkinWeb.tvDetailSummaryBeforeActions && isSmartTvBrowser();
   const contextRailViewTransitions = contextRailViewTransitionsEnabled(activeSkinWeb);
   const contextRailNavState = readContextRailNavState(routerLocation.state);
   const indexPeekSnapshot = contextRailNavState?.contextRailIndexPeek;
@@ -1904,6 +1907,14 @@ function LibraryItemDetailContent({
                                 )}
                                 {averageRating !== null && <StarRating rating={averageRating} />}
                               </div>
+                              {summaryBeforeActions && item?.summary ? (
+                                <div className="library-item-detail-summary">
+                                  <Summary
+                                    summary={item.summary}
+                                    maxLines={summaryMaxLines}
+                                  />
+                                </div>
+                              ) : null}
                               <div className="library-item-detail-actions">
                                 {onPlay && sortedGames.some((g) => g.executables?.length) && (
                                   <button
@@ -2020,14 +2031,14 @@ function LibraryItemDetailContent({
                             </div>
                           )}
                         </div>
-                        {item?.summary && (
+                        {!summaryBeforeActions && item?.summary ? (
                           <div className="library-item-detail-summary">
                             <Summary
                               summary={item.summary}
                               maxLines={summaryMaxLines}
                             />
                           </div>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   )}

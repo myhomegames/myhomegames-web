@@ -246,6 +246,8 @@ function GameDetailContent({
     activeSkinWeb.tvStarRatingOverlay && isSmartTvBrowser()
       ? () => setStarRatingOverlayOpen(true)
       : undefined;
+  const summaryBeforeActions =
+    activeSkinWeb.tvDetailSummaryBeforeActions && isSmartTvBrowser();
   const { tagLabels, tagLabelsReady } = useTagLists();
   const categoriesList = useMemo(
     () => Array.from(tagLabels.categories.entries()).map(([id, title]) => ({ id, title })),
@@ -723,6 +725,15 @@ function GameDetailContent({
                   onRatingChange={isSavingRating ? undefined : onRatingChange}
                 />
               </div>
+              {summaryBeforeActions && game.summary ? (
+                <div className="game-detail-summary">
+                  <Summary
+                    summary={game.summary}
+                    maxLines={summaryMaxLines}
+                    onOpenOverlay={openSummaryOverlay}
+                  />
+                </div>
+              ) : null}
               <div className="game-detail-actions">
                 {(game.executables && game.executables.length > 0) ? (
                   <button
@@ -838,7 +849,7 @@ function GameDetailContent({
                 }}
               />
               </div>
-              {game.summary && (
+              {!summaryBeforeActions && game.summary ? (
                 <div className="game-detail-summary">
                   <Summary
                     summary={game.summary}
@@ -846,7 +857,7 @@ function GameDetailContent({
                     onOpenOverlay={openSummaryOverlay}
                   />
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>

@@ -8,8 +8,12 @@ import { useSettings } from "../contexts/SettingsContext";
 import { useSkin } from "../contexts/SkinContext";
 import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
 import FixedFocalRecommendedSectionsList from "../components/lists/FixedFocalRecommendedSectionsList";
+import RecommendedBrowsePreview from "../components/games/RecommendedBrowsePreview";
+import BackgroundManager from "../components/common/BackgroundManager";
 import type { GameItem, CollectionItem } from "../types";
-import { buildApiHeaders, buildAppApiUrl } from "../utils/api";
+import { buildApiHeaders, buildAppApiUrl, buildBackgroundUrl } from "../utils/api";
+import { API_BASE } from "../config";
+import { isSmartTvBrowser } from "../utils/smartTv";
 import { buildCatalogApiUrl } from "../utils/catalogApi";
 import {
   clearRecommendedSectionsCache,
@@ -52,6 +56,11 @@ export default function RecommendedPage({
   const { setLoading } = useLoading();
   const { activeSkinWeb } = useSkin();
   const verticalStripsLayout = activeSkinWeb.verticalCoverAlignment;
+  const browsePreviewEnabled =
+    activeSkinWeb.tvRecommendedBrowsePreview &&
+    isSmartTvBrowser() &&
+    !verticalStripsLayout;
+  const [previewGame, setPreviewGame] = useState<GameItem | null>(null);
   // Only reuse cache when returning from a game/section; a fresh visit must fetch
   // a new random set without painting the previous strips first.
   const preserveCachedSections =
@@ -246,6 +255,67 @@ export default function RecommendedPage({
     return () => el.removeEventListener("scroll", pin);
   }, [verticalStripsLayout, isReady, stripRows.length]);
 
+  // TV Recommended browse preview: seed from first game + follow cover focus.
+  useEffect(() => {
+    if (!browsePreviewEnabled) {
+      setPreviewGame(null);
+      return;
+    }
+    const first = sectionsForDisplay[0]?.games[0] ?? null;
+    setPreviewGame((prev) => {
+      if (prev && sectionsForDisplay.some((s) => s.games.some((g) => String(g.id) === String(prev.id)))) {
+        return prev;
+      }
+      return first;
+    });
+  }, [browsePreviewEnabled, sectionsForDisplay]);
+
+  useEffect(() => {
+    if (!browsePreviewEnabled || !isReady) return;
+    const root = scrollContainerRef.current;
+    if (!root) return;
+
+    const resolveGameFromTarget = (target: EventTarget | null): GameItem | null => {
+      if (!(target instanceof Element)) return null;
+      const host = target.closest("[data-mhg-game-id]") as HTMLElement | null;
+      const id = host?.getAttribute("data-mhg-game-id");
+      if (!id) return null;
+      for (const section of sectionsForDisplay) {
+        const found = section.games.find((g) => String(g.id) === id);
+        if (found) return found;
+      }
+      return null;
+    };
+
+    const onFocusIn = (e: FocusEvent) => {
+      const game = resolveGameFromTarget(e.target);
+      if (game) setPreviewGame(game);
+    };
+
+    root.addEventListener("focusin", onFocusIn);
+    const focusTimer = window.setTimeout(() => {
+      const active = document.activeElement;
+      if (active instanceof Element && root.contains(active) && resolveGameFromTarget(active)) {
+        return;
+      }
+      const firstCover = root.querySelector<HTMLElement>(
+        ".games-list-cover[role='button'], .games-list-cover[tabindex]",
+      );
+      if (firstCover) {
+        try {
+          firstCover.focus({ preventScroll: true });
+        } catch {
+          firstCover.focus();
+        }
+      }
+    }, 120);
+
+    return () => {
+      root.removeEventListener("focusin", onFocusIn);
+      window.clearTimeout(focusTimer);
+    };
+  }, [browsePreviewEnabled, isReady, sectionsForDisplay]);
+
   async function fetchRecommendedSections(options?: { background?: boolean }) {
     if (fetchingRef.current) {
       return;
@@ -352,18 +422,28 @@ export default function RecommendedPage({
     }
   }
 
-  return (
+  const previewBackgroundUrl = useMemo(() => {
+    if (!browsePreviewEnabled || !previewGame) return "";
+    return buildBackgroundUrl(API_BASE, previewGame.background, true) || "";
+  }, [browsePreviewEnabled, previewGame]);
+
+  const pageBody = (
     <main
       className={`flex-1 home-page-content${
         verticalStripsLayout ? " mhg-recommended-strips-page" : ""
-      }`}
+      }${browsePreviewEnabled ? " mhg-recommended-browse-preview-page" : ""}`}
     >
       <div
         className={`home-page-layout${
           verticalStripsLayout ? " recommended-strips-page-layout" : ""
         }`}
       >
-        <div className={`home-page-content-wrapper home-page-fade-in${isReady ? " home-page-fade-in--ready" : ""}`}>
+        <div
+          className={`home-page-content-wrapper home-page-fade-in${
+            isReady ? " home-page-fade-in--ready" : ""
+          }${browsePreviewEnabled ? " mhg-recommended-browse-preview-host" : ""}`}
+        >
+          {browsePreviewEnabled ? <RecommendedBrowsePreview game={previewGame} /> : null}
           <div
             ref={scrollContainerRef}
             className={`home-page-scroll-container recommended-page-scroll${
@@ -401,5 +481,23 @@ export default function RecommendedPage({
       </div>
     </main>
   );
+
+  if (browsePreviewEnabled) {
+    return (
+      <BackgroundManager
+        backgroundUrl={previewBackgroundUrl}
+        hasBackground={Boolean(previewBackgroundUrl)}
+        elementId={
+          previewGame ? `recommended-browse-${previewGame.id}` : "recommended-browse"
+        }
+        autoShowWhenAvailable
+        detailBackdrop={activeSkinWeb.detailBackdropLayout}
+      >
+        {pageBody}
+      </BackgroundManager>
+    );
+  }
+
+  return pageBody;
 }
 

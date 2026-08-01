@@ -135,6 +135,8 @@
         "staticInlineTagListOnTvPhone": "Non-clickable inline tags on TV and phone",
         "tvSummaryOverlay": "TV: open summary in full-screen overlay",
         "tvStarRatingOverlay": "TV: open star rating in full-screen overlay",
+        "tvDetailSummaryBeforeActions": "TV: show summary above the Play row on game detail",
+        "tvRecommendedBrowsePreview": "TV: Recommended top panel updates with the focused game (through summary)",
         "disableTitleTooltips": "Hide tooltips"
       }
     }
