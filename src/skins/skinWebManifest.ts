@@ -54,6 +54,41 @@ export type SkinWebManifest = {
    * navigation — no click required), show its background automatically (XMB-style).
    */
   autoShowBackgroundOnSelection: boolean;
+  /**
+   * Game/catalog detail: enable the detail backdrop layout hook
+   * (`data-mhg-background-layout="detail"` + narrow hero collapse on scroll).
+   * Skin CSS decides the look (e.g. cropped hero on TV/phone); without matching
+   * CSS the portal stays full-bleed.
+   */
+  detailBackdropLayout: boolean;
+  /**
+   * On Smart TV and narrow/phone viewports, InlineTagList items are not clickable
+   * (no navigation) and the “and more” collapse is disabled so all tags show.
+   */
+  staticInlineTagListOnTvPhone: boolean;
+  /**
+   * On Smart TV, activating a game/catalog detail Summary opens a full-screen
+   * overlay (full-height cover + full text + GameInfoBlock) instead of expanding
+   * the truncated text in place.
+   */
+  tvSummaryOverlay: boolean;
+  /**
+   * On Smart TV, the detail star rating is a single focus target; OK opens a
+   * full-screen overlay (title + interactive stars + Done) instead of editing
+   * stars in place on the detail page.
+   */
+  tvStarRatingOverlay: boolean;
+  /**
+   * On Smart TV game/catalog/collection-like detail, render Summary above the
+   * Play/actions row (and navigate the TV focus ladder in that order).
+   */
+  tvDetailSummaryBeforeActions: boolean;
+  /**
+   * On Smart TV Recommended (horizontal strips), show a top browse panel with
+   * the focused game’s detail through Summary; auto-select the first cover and
+   * update as the remote moves between covers.
+   */
+  tvRecommendedBrowsePreview: boolean;
   /** Do not show hover tooltips anywhere in the UI. */
   disableTitleTooltips: boolean;
   /**
@@ -78,6 +113,12 @@ export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
   verticalCoverAlignment: false,
   fixedFocalStepSound: false,
   autoShowBackgroundOnSelection: false,
+  detailBackdropLayout: false,
+  staticInlineTagListOnTvPhone: false,
+  tvSummaryOverlay: false,
+  tvStarRatingOverlay: false,
+  tvDetailSummaryBeforeActions: false,
+  tvRecommendedBrowsePreview: false,
   disableTitleTooltips: false,
   collapsibleLibrarySidebar: false,
 };
@@ -97,6 +138,12 @@ export const SKIN_WEB_KEYS = [
   "verticalCoverAlignment",
   "fixedFocalStepSound",
   "autoShowBackgroundOnSelection",
+  "detailBackdropLayout",
+  "staticInlineTagListOnTvPhone",
+  "tvSummaryOverlay",
+  "tvStarRatingOverlay",
+  "tvDetailSummaryBeforeActions",
+  "tvRecommendedBrowsePreview",
   "disableTitleTooltips",
   "collapsibleLibrarySidebar",
 ] as const satisfies readonly (keyof SkinWebManifest)[];

@@ -246,6 +246,7 @@ export function GameListItem({
         }
       }}
       className={`group games-list-item games-list-item--cover-sized ${suppressDetailNavigation ? "games-list-item--detail-current" : "cursor-pointer"} ${draggable ? "games-list-item-draggable" : ""} ${isDragOver ? "games-list-item-drag-over" : ""}`}
+      data-mhg-game-id={String(game.id)}
       draggable={draggable}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}

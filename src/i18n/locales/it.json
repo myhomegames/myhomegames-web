@@ -131,6 +131,12 @@
         "verticalCoverAlignment": "Allineamento cover verticale",
         "fixedFocalStepSound": "Suono di navigazione",
         "autoShowBackgroundOnSelection": "Mostra sfondo alla selezione focale",
+        "detailBackdropLayout": "Layout sfondo dettaglio gioco (CSS dello skin)",
+        "staticInlineTagListOnTvPhone": "Tag in linea non cliccabili su TV e telefono",
+        "tvSummaryOverlay": "TV: apri il summary in overlay a tutto schermo",
+        "tvStarRatingOverlay": "TV: apri le stelline in overlay a tutto schermo",
+        "tvDetailSummaryBeforeActions": "TV: mostra il summary sopra la riga Play nel dettaglio gioco",
+        "tvRecommendedBrowsePreview": "TV: pannello in alto nei Consigliati aggiornato dal gioco in focus (fino al summary)",
         "disableTitleTooltips": "Nascondi i tooltip"
       }
     }
@@ -290,6 +296,8 @@
     "goBack": "Torna alla home",
     "andMore": "e molto altro",
     "editGame": "Modifica Gioco",
+    "rate": "Valuta",
+    "rated": "Valutato",
     "title": "Titolo",
     "summary": "Riassunto",
     "year": "Anno",
@@ -384,6 +392,7 @@
     "loading": "Caricamento...",
     "error": "Errore",
     "close": "Chiudi",
+    "done": "Fatto",
     "fetchError": "Impossibile connettersi al server",
     "games": "Giochi",
     "elements": "Elementi",

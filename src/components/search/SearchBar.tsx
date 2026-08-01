@@ -501,10 +501,14 @@ export default function SearchBar({ games, collections, developers = [], publish
       return;
     }
     
-    // Don't close on blur - let click outside handle it
-    // Just update focus state after a delay to allow clicks on dropdown items
+    // Don't close on blur - let click outside handle it.
+    // Keep "focused" chrome while D-pad focus stays on recent/result rows.
     blurTimeoutRef.current = setTimeout(() => {
       if (!isClosing) {
+        const active = document.activeElement;
+        if (active instanceof Node && searchRef.current?.contains(active)) {
+          return;
+        }
         setIsFocused(false);
       }
       blurTimeoutRef.current = null;
@@ -713,7 +717,7 @@ export default function SearchBar({ games, collections, developers = [], publish
         </div>
       )}
 
-      {isOpen && isFocused && searchQuery.trim() === "" && recentSearches.length > 0 && (
+      {isOpen && !isOnSearchResultsPage && searchQuery.trim() === "" && recentSearches.length > 0 && (
         <div className="mhg-dropdown search-dropdown" style={dropdownLayoutStyle}>
           <div className="search-dropdown-header">
             {t("search.recentSearches")}
@@ -722,7 +726,15 @@ export default function SearchBar({ games, collections, developers = [], publish
             {recentSearches.map((query, index) => (
               <div
                 key={index}
+                role="button"
+                tabIndex={0}
                 onClick={() => handleRecentSearchClick(query)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleRecentSearchClick(query);
+                  }
+                }}
                 className={`w-full mhg-dropdown-item search-dropdown-item search-recent-item ${
                   index < recentSearches.length - 1 ? "has-border" : ""
                 }`}
@@ -749,6 +761,8 @@ export default function SearchBar({ games, collections, developers = [], publish
                   </div>
                 </div>
                 <button
+                  type="button"
+                  tabIndex={-1}
                   className="search-recent-remove"
                   onMouseDown={(e) => {
                     e.preventDefault();

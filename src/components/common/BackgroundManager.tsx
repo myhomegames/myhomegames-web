@@ -9,6 +9,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
+import { isSmartTvBrowser } from "../../utils/smartTv";
 
 type BackgroundContextType = {
   hasBackground: boolean;
@@ -37,9 +38,47 @@ type BackgroundManagerProps = {
   children: React.ReactNode;
   /** When true, show the background whenever one is available (e.g. focal selection). */
   autoShowWhenAvailable?: boolean;
+  /**
+   * Game/catalog detail: enable the detail backdrop layout hook
+   * (`data-mhg-background-layout="detail"` + narrow hero collapse on scroll).
+   * Skin CSS decides the look (e.g. cropped hero on TV/phone); without matching
+   * CSS the portal stays full-bleed.
+   */
+  detailBackdrop?: boolean;
 };
 
 const STORAGE_KEY = "backgroundStates";
+const DETAIL_SCROLL_SELECTOR =
+  ".game-detail-scroll-container, .catalog-game-detail-scroll-container";
+/** Match game-detail phone/narrow layout (~locandina breakpoint), not a tiny handset-only width. */
+const NARROW_DETAIL_MQ = "(max-width: 720px)";
+
+type DetailBackdropVariant = "tv" | "narrow" | "wide";
+
+function resolveDetailBackdropVariant(): DetailBackdropVariant {
+  if (typeof document !== "undefined" && document.documentElement.dataset.mhgTv === "1") {
+    return "tv";
+  }
+  if (isSmartTvBrowser()) return "tv";
+  if (typeof window !== "undefined" && window.matchMedia(NARROW_DETAIL_MQ).matches) {
+    return "narrow";
+  }
+  return "wide";
+}
+
+function clearDetailBackdropDomAttrs(portalHost: HTMLElement | null) {
+  portalHost?.removeAttribute("data-mhg-background-layout");
+  portalHost?.removeAttribute("data-mhg-detail-backdrop");
+  document.documentElement.removeAttribute("data-mhg-background-layout");
+  document.documentElement.removeAttribute("data-mhg-detail-backdrop");
+}
+
+function applyDetailBackdropDomAttrs(portalHost: HTMLElement, variant: DetailBackdropVariant) {
+  portalHost.setAttribute("data-mhg-background-layout", "detail");
+  portalHost.setAttribute("data-mhg-detail-backdrop", variant);
+  document.documentElement.setAttribute("data-mhg-background-layout", "detail");
+  document.documentElement.setAttribute("data-mhg-detail-backdrop", variant);
+}
 
 function backgroundImageValue(url: string): string {
   return `url(${JSON.stringify(url)})`;
@@ -71,6 +110,7 @@ export default function BackgroundManager({
   elementId,
   children,
   autoShowWhenAvailable = false,
+  detailBackdrop = false,
 }: BackgroundManagerProps) {
   const [isBackgroundVisible, setIsBackgroundVisible] = useState(() => {
     if (autoShowWhenAvailable && hasBackground) return true;
@@ -107,6 +147,35 @@ export default function BackgroundManager({
   }, []);
 
   useEffect(() => {
+    if (!portalHost) return;
+    if (!detailBackdrop) {
+      clearDetailBackdropDomAttrs(portalHost);
+      return;
+    }
+
+    const syncVariant = () => {
+      applyDetailBackdropDomAttrs(portalHost, resolveDetailBackdropVariant());
+    };
+
+    syncVariant();
+    window.addEventListener("resize", syncVariant);
+    const mq = window.matchMedia(NARROW_DETAIL_MQ);
+    mq.addEventListener?.("change", syncVariant);
+    /*
+     * TV flag can be applied after mount (`applySmartTvDocumentFlag` in main).
+     * Re-check shortly so detail layout does not stay stuck on "wide".
+     */
+    const retry = window.setTimeout(syncVariant, 100);
+
+    return () => {
+      window.clearTimeout(retry);
+      window.removeEventListener("resize", syncVariant);
+      mq.removeEventListener?.("change", syncVariant);
+      clearDetailBackdropDomAttrs(portalHost);
+    };
+  }, [portalHost, detailBackdrop]);
+
+  useEffect(() => {
     if (!hasBackground) {
       setIsBackgroundVisible(false);
       return;
@@ -130,6 +199,84 @@ export default function BackgroundManager({
       document.documentElement.removeAttribute("data-mhg-background-visible");
     };
   }, [hasBackground, isBackgroundVisible]);
+
+  /* Narrow detail: collapse hero height on scroll (content starts below the slot). */
+  useEffect(() => {
+    if (!portalHost || !detailBackdrop || !hasBackground || !isBackgroundVisible) {
+      portalHost?.style.removeProperty("--mhg-bg-hero-height");
+      portalHost?.style.removeProperty("--mhg-bg-hero-slot");
+      portalHost?.style.removeProperty("--mhg-bg-content-offset");
+      document.documentElement.style.removeProperty("--mhg-bg-hero-height");
+      document.documentElement.style.removeProperty("--mhg-bg-hero-slot");
+      document.documentElement.style.removeProperty("--mhg-bg-content-offset");
+      portalHost?.style.setProperty("--mhg-bg-scroll-fade", "1");
+      return;
+    }
+
+    let scroller: HTMLElement | null = null;
+    let cancelled = false;
+
+    const clearCollapseVars = () => {
+      portalHost.style.removeProperty("--mhg-bg-hero-height");
+      portalHost.style.removeProperty("--mhg-bg-hero-slot");
+      portalHost.style.removeProperty("--mhg-bg-content-offset");
+      document.documentElement.style.removeProperty("--mhg-bg-hero-height");
+      document.documentElement.style.removeProperty("--mhg-bg-hero-slot");
+      document.documentElement.style.removeProperty("--mhg-bg-content-offset");
+      portalHost.style.setProperty("--mhg-bg-scroll-fade", "1");
+    };
+
+    const syncCollapse = () => {
+      if (cancelled) return;
+      if (resolveDetailBackdropVariant() !== "narrow") {
+        clearCollapseVars();
+        return;
+      }
+      const slot = Math.max(Math.round(window.innerHeight * 0.4), 140);
+      /* Content starts higher than the hero bottom so it blends into the art. */
+      const contentOffset = Math.max(Math.round(slot * 0.58), 96);
+      const scrollTop = scroller?.scrollTop ?? 0;
+      const height = Math.max(0, slot - scrollTop);
+      const slotPx = `${slot}px`;
+      const heightPx = `${height}px`;
+      const offsetPx = `${contentOffset}px`;
+      portalHost.style.setProperty("--mhg-bg-hero-slot", slotPx);
+      portalHost.style.setProperty("--mhg-bg-hero-height", heightPx);
+      portalHost.style.setProperty("--mhg-bg-content-offset", offsetPx);
+      document.documentElement.style.setProperty("--mhg-bg-hero-slot", slotPx);
+      document.documentElement.style.setProperty("--mhg-bg-hero-height", heightPx);
+      document.documentElement.style.setProperty("--mhg-bg-content-offset", offsetPx);
+      portalHost.style.setProperty("--mhg-bg-scroll-fade", "1");
+    };
+
+    const bindScroller = () => {
+      if (cancelled) return;
+      const next = document.querySelector<HTMLElement>(DETAIL_SCROLL_SELECTOR);
+      if (next === scroller) {
+        syncCollapse();
+        return;
+      }
+      scroller?.removeEventListener("scroll", syncCollapse);
+      scroller = next;
+      scroller?.addEventListener("scroll", syncCollapse, { passive: true });
+      syncCollapse();
+    };
+
+    bindScroller();
+    const timeouts = [50, 200, 500].map((ms) => window.setTimeout(bindScroller, ms));
+    window.addEventListener("resize", syncCollapse);
+    const mq = window.matchMedia(NARROW_DETAIL_MQ);
+    mq.addEventListener?.("change", syncCollapse);
+
+    return () => {
+      cancelled = true;
+      timeouts.forEach((id) => window.clearTimeout(id));
+      scroller?.removeEventListener("scroll", syncCollapse);
+      window.removeEventListener("resize", syncCollapse);
+      mq.removeEventListener?.("change", syncCollapse);
+      clearCollapseVars();
+    };
+  }, [portalHost, detailBackdrop, hasBackground, isBackgroundVisible, backgroundUrl]);
 
   const handleVisibilityChange = useCallback(
     (visible: boolean) => {
@@ -161,21 +308,28 @@ export default function BackgroundManager({
   const showPortalPaint =
     Boolean(portalHost) && hasBackground && isBackgroundVisible && backgroundUrl.trim() !== "";
 
+  const imageOnlyStyle: CSSProperties | undefined =
+    hasBackground && isBackgroundVisible && backgroundUrl.trim() !== ""
+      ? {
+          backgroundImage: backgroundImageValue(backgroundUrl),
+          backgroundRepeat: "no-repeat",
+        }
+      : undefined;
+
   /*
    * Portal paints full viewport when mounted; keep root paint only until the portal
    * host exists (first frame). Never stack image on both — that caused two-tone columns.
+   * Size/position live in skin CSS (defaults: cover / center).
    */
-  const paintedBackgroundStyle =
-    showPortalPaint
-      ? undefined
-      : hasBackground && isBackgroundVisible && backgroundUrl.trim() !== ""
-        ? {
-            backgroundImage: backgroundImageValue(backgroundUrl),
-            backgroundSize: "cover" as const,
-            backgroundPosition: "center" as const,
-            backgroundRepeat: "no-repeat" as const,
-          }
-        : undefined;
+  const paintedBackgroundStyle = showPortalPaint
+    ? undefined
+    : imageOnlyStyle
+      ? {
+          ...imageOnlyStyle,
+          backgroundSize: "cover" as const,
+          backgroundPosition: "center" as const,
+        }
+      : undefined;
 
   /*
    * Foreground must participate in flex layouts (e.g. `.home-page-layout > .home-page-content-wrapper`).
@@ -198,19 +352,13 @@ export default function BackgroundManager({
     showPortalPaint &&
     createPortal(
       <>
+        {/* Edge/ambient fill — skins blur/scale this under the sharp crop on TV. */}
         <div
-          className="background-manager-portal-bg"
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            backgroundImage: backgroundImageValue(backgroundUrl),
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
-          }}
+          className="background-manager-portal-bg-fill"
+          style={imageOnlyStyle}
+          aria-hidden="true"
         />
+        <div className="background-manager-portal-bg" style={imageOnlyStyle} />
         <div className="background-manager-portal-overlay" aria-hidden="true" />
       </>,
       portalHost!

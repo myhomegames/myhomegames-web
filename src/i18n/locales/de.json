@@ -96,6 +96,12 @@
         "verticalCoverAlignment": "Vertikale Cover-Ausrichtung",
         "fixedFocalStepSound": "Navigationston",
         "autoShowBackgroundOnSelection": "Hintergrund bei Fokusauswahl anzeigen",
+        "detailBackdropLayout": "Spieldetail-Hintergrundlayout (Skin-CSS)",
+        "staticInlineTagListOnTvPhone": "Inline-Tags auf TV und Telefon nicht klickbar",
+        "tvSummaryOverlay": "TV: open summary in full-screen overlay",
+        "tvStarRatingOverlay": "TV: open star rating in full-screen overlay",
+        "tvDetailSummaryBeforeActions": "TV: show summary above the Play row on game detail",
+        "tvRecommendedBrowsePreview": "TV: Recommended top panel updates with the focused game (through summary)",
         "disableTitleTooltips": "Tooltips ausblenden"
       }
     }
@@ -306,6 +312,7 @@
     "loading": "Lädt...",
     "error": "Fehler",
     "close": "Schließen",
+    "done": "Fertig",
     "fetchError": "Verbindung zum Server fehlgeschlagen",
     "games": "Spiele",
     "elements": "Elemente",

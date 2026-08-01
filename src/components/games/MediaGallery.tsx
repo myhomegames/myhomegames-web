@@ -1,6 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
-import { getEmbedVideoUrl } from "../../utils/api";
+import { getEmbedVideoUrl, getVideoPosterUrl, getYouTubeVideoId } from "../../utils/api";
+import { requestSmartTvUiLayerFocus } from "../../utils/smartTvRemote";
+import {
+  createYouTubePlayer,
+  seekYouTubePlayer,
+  toggleYouTubePlayback,
+  type YouTubePlayerLike,
+} from "../../utils/youtubeIframeApi";
+
 type MediaGalleryProps = {
   screenshots?: string[];
   videos?: string[];
@@ -9,7 +17,7 @@ type MediaGalleryProps = {
 };
 
 type MediaItem = {
-  type: 'screenshot' | 'video';
+  type: "screenshot" | "video";
   src: string;
   index: number;
 };
@@ -19,58 +27,186 @@ export default function MediaGallery({ screenshots, videos, apiBase }: MediaGall
     !src ? "" : src.startsWith("http") ? src : apiBase ? new URL(src, apiBase).toString() : src;
   const resolvedScreenshots = (screenshots || []).map(resolveSrc);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [videoAutoplay, setVideoAutoplay] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const ytHostRef = useRef<HTMLDivElement | null>(null);
+  const ytPlayerRef = useRef<YouTubePlayerLike | null>(null);
+  const pendingPlayRef = useRef(false);
 
-  // Combine screenshots and videos into a single array
   const screenshotsCount = resolvedScreenshots.length;
   const mediaItems: MediaItem[] = [
-    ...resolvedScreenshots.map((src, index) => ({ type: 'screenshot' as const, src, index })),
-    ...(videos || []).map((src, index) => ({ type: 'video' as const, src, index: screenshotsCount + index })),
+    ...resolvedScreenshots.map((src, index) => ({ type: "screenshot" as const, src, index })),
+    ...(videos || []).map((src, index) => ({
+      type: "video" as const,
+      src,
+      index: screenshotsCount + index,
+    })),
   ];
 
-  if (mediaItems.length === 0) {
-    return null;
-  }
+  const destroyYouTubePlayer = useCallback(() => {
+    try {
+      ytPlayerRef.current?.destroy();
+    } catch {
+      /* ignore */
+    }
+    ytPlayerRef.current = null;
+  }, []);
 
-  const openLightbox = (index: number) => {
+  const openLightbox = (index: number, autoplayVideo = false) => {
+    setVideoAutoplay(autoplayVideo);
     setSelectedIndex(index);
   };
 
-  const closeLightbox = () => {
+  const closeLightbox = useCallback(() => {
+    destroyYouTubePlayer();
     setSelectedIndex(null);
-  };
+    setVideoAutoplay(false);
+  }, [destroyYouTubePlayer]);
 
-  const navigateMedia = useCallback((direction: 'prev' | 'next') => {
-    if (selectedIndex === null) return;
-    
-    if (direction === 'prev') {
-      const newIndex = selectedIndex > 0 ? selectedIndex - 1 : mediaItems.length - 1;
-      setSelectedIndex(newIndex);
-    } else {
-      const newIndex = selectedIndex < mediaItems.length - 1 ? selectedIndex + 1 : 0;
-      setSelectedIndex(newIndex);
+  const navigateMedia = useCallback(
+    (direction: "prev" | "next") => {
+      destroyYouTubePlayer();
+      setSelectedIndex((current) => {
+        if (current === null || mediaItems.length === 0) return current;
+        const next =
+          direction === "prev"
+            ? current > 0
+              ? current - 1
+              : mediaItems.length - 1
+            : current < mediaItems.length - 1
+              ? current + 1
+              : 0;
+        setVideoAutoplay(false);
+        return next;
+      });
+    },
+    [mediaItems.length, destroyYouTubePlayer],
+  );
+
+  const selectedMedia = selectedIndex !== null ? mediaItems[selectedIndex] ?? null : null;
+  const youtubeId =
+    selectedMedia?.type === "video" ? getYouTubeVideoId(selectedMedia.src) : null;
+
+  // Mount YouTube IFrame API player when the lightbox shows a YT video.
+  useEffect(() => {
+    if (selectedIndex === null || !youtubeId) {
+      destroyYouTubePlayer();
+      return;
     }
-  }, [selectedIndex, mediaItems]);
 
-  // Handle keyboard navigation
+    let cancelled = false;
+    let attempts = 0;
+
+    const mountPlayer = () => {
+      if (cancelled) return;
+      const host = ytHostRef.current;
+      if (!host) {
+        if (attempts++ < 30) {
+          window.requestAnimationFrame(mountPlayer);
+        }
+        return;
+      }
+
+      host.replaceChildren();
+      const mount = document.createElement("div");
+      mount.className = "media-gallery-lightbox-youtube-host";
+      host.appendChild(mount);
+
+      const shouldAutoplay = videoAutoplay || pendingPlayRef.current;
+      pendingPlayRef.current = false;
+
+      void createYouTubePlayer({
+        element: mount,
+        videoId: youtubeId,
+        autoplay: shouldAutoplay,
+      }).then((player) => {
+        if (cancelled) {
+          try {
+            player.destroy();
+          } catch {
+            /* ignore */
+          }
+          return;
+        }
+        ytPlayerRef.current = player;
+        if (shouldAutoplay) {
+          try {
+            player.playVideo();
+          } catch {
+            /* ignore */
+          }
+        }
+      });
+    };
+
+    mountPlayer();
+
+    return () => {
+      cancelled = true;
+      destroyYouTubePlayer();
+    };
+    // videoAutoplay only seeds the initial mount; OK toggles via the player API after that.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- remount on slide/id only
+  }, [selectedIndex, youtubeId, destroyYouTubePlayer]);
+
+  // Smart TV remote: OK play/pause; ←/→ seek on YouTube; ↑/↓ (and ←/→ on screenshots) change slides.
   useEffect(() => {
     if (selectedIndex === null) return;
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        closeLightbox();
-      } else if (e.key === 'ArrowLeft') {
-        navigateMedia('prev');
-      } else if (e.key === 'ArrowRight') {
-        navigateMedia('next');
+    requestSmartTvUiLayerFocus();
+
+    const onRemoteNav = (e: Event) => {
+      const detail = (e as CustomEvent<{ direction?: "prev" | "next"; axis?: "horizontal" | "vertical" }>)
+        .detail;
+      if (detail?.direction !== "prev" && detail?.direction !== "next") return;
+
+      const item = mediaItems[selectedIndex];
+      const axis = detail.axis ?? "horizontal";
+      const yt = ytPlayerRef.current;
+
+      if (axis === "horizontal" && item?.type === "video" && yt) {
+        seekYouTubePlayer(yt, detail.direction === "next" ? "forward" : "backward");
+        return;
       }
+
+      navigateMedia(detail.direction);
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+    const onRemoteOk = () => {
+      const item = mediaItems[selectedIndex];
+      if (!item || item.type !== "video") return;
+      const yt = ytPlayerRef.current;
+      if (yt) {
+        toggleYouTubePlayback(yt);
+        return;
+      }
+      pendingPlayRef.current = true;
+      const started = Date.now();
+      const wait = window.setInterval(() => {
+        const player = ytPlayerRef.current;
+        if (player) {
+          window.clearInterval(wait);
+          pendingPlayRef.current = false;
+          try {
+            player.playVideo();
+          } catch {
+            /* ignore */
+          }
+          return;
+        }
+        if (Date.now() - started > 5000) {
+          window.clearInterval(wait);
+        }
+      }, 50);
     };
-  }, [selectedIndex, navigateMedia]);
+
+    window.addEventListener("mhg:media-gallery-nav", onRemoteNav);
+    window.addEventListener("mhg:media-gallery-ok", onRemoteOk);
+    return () => {
+      window.removeEventListener("mhg:media-gallery-nav", onRemoteNav);
+      window.removeEventListener("mhg:media-gallery-ok", onRemoteOk);
+    };
+  }, [selectedIndex, mediaItems, navigateMedia]);
 
   useEffect(() => {
     const container = scrollRef.current;
@@ -111,109 +247,138 @@ export default function MediaGallery({ screenshots, videos, apiBase }: MediaGall
     };
   }, []);
 
-  const selectedMedia = selectedIndex !== null ? mediaItems[selectedIndex] : null;
+  if (mediaItems.length === 0) {
+    return null;
+  }
 
   return (
     <>
       <div ref={scrollRef} className="media-gallery-strip">
-          {/* Videos first */}
-          {videos && videos.map((video, index) => (
-            <div
-              key={`video-${index}`}
-              className="media-gallery-tile"
-              onClick={() => openLightbox(screenshotsCount + index)}
-            >
-              <iframe
-                className="media-gallery-tile-iframe"
-                src={getEmbedVideoUrl(video)}
-                title={`Video ${index + 1}`}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; compute-pressure"
-                allowFullScreen
-              />
-            </div>
-          ))}
+        {videos &&
+          videos.map((video, index) => {
+            const poster = getVideoPosterUrl(video);
+            return (
+              <button
+                key={`video-${index}`}
+                type="button"
+                className="media-gallery-tile media-gallery-tile--video"
+                onClick={() => openLightbox(screenshotsCount + index, true)}
+                aria-label={`Video ${index + 1}`}
+              >
+                {poster ? (
+                  <img
+                    className="media-gallery-tile-poster"
+                    src={poster}
+                    alt=""
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="media-gallery-tile-poster media-gallery-tile-poster--fallback" />
+                )}
+                <span className="media-gallery-tile-play" aria-hidden="true">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </span>
+              </button>
+            );
+          })}
 
-          {/* Screenshots after videos */}
-          {resolvedScreenshots.map((screenshot, index) => (
+        {resolvedScreenshots.map((screenshot, index) => (
+          <button
+            key={`screenshot-${index}`}
+            type="button"
+            className="media-gallery-thumb-button"
+            onClick={() => openLightbox(index, false)}
+          >
             <img
-              key={`screenshot-${index}`}
               className="media-gallery-thumb"
               src={screenshot}
               alt={`Screenshot ${index + 1}`}
-              onClick={() => openLightbox(index)}
             />
-          ))}
+          </button>
+        ))}
       </div>
 
-      {/* Lightbox Modal - rendered via portal to body */}
-      {selectedIndex !== null && selectedMedia && createPortal(
-        <div className="media-gallery-lightbox-backdrop" onClick={closeLightbox}>
-          <div className="media-gallery-lightbox-inner" onClick={(e) => e.stopPropagation()}>
-            {/* Previous Button */}
-            {mediaItems.length > 1 && (
+      {selectedIndex !== null &&
+        selectedMedia &&
+        createPortal(
+          <div
+            className="media-gallery-lightbox-backdrop"
+            data-mhg-media-gallery-lightbox=""
+            data-mhg-media-type={selectedMedia.type}
+            tabIndex={-1}
+            onClick={closeLightbox}
+          >
+            <div className="media-gallery-lightbox-inner" onClick={(e) => e.stopPropagation()}>
+              {mediaItems.length > 1 && (
+                <button
+                  type="button"
+                  className="media-gallery-lightbox-icon-btn media-gallery-lightbox-icon-btn--prev"
+                  tabIndex={-1}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigateMedia("prev");
+                  }}
+                >
+                  ‹
+                </button>
+              )}
+
+              {selectedMedia.type === "screenshot" ? (
+                <img
+                  className="media-gallery-lightbox-img"
+                  src={selectedMedia.src}
+                  alt={`Screenshot ${selectedIndex + 1}`}
+                />
+              ) : youtubeId ? (
+                <div
+                  ref={ytHostRef}
+                  className="media-gallery-lightbox-youtube"
+                  data-mhg-youtube-player=""
+                />
+              ) : (
+                <iframe
+                  className="media-gallery-lightbox-iframe"
+                  src={getEmbedVideoUrl(selectedMedia.src, { autoplay: videoAutoplay })}
+                  title={`Video ${selectedIndex + 1}`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; compute-pressure"
+                  allowFullScreen
+                />
+              )}
+
+              {mediaItems.length > 1 && (
+                <button
+                  type="button"
+                  className="media-gallery-lightbox-icon-btn media-gallery-lightbox-icon-btn--next"
+                  tabIndex={-1}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigateMedia("next");
+                  }}
+                >
+                  ›
+                </button>
+              )}
+
               <button
                 type="button"
-                className="media-gallery-lightbox-icon-btn media-gallery-lightbox-icon-btn--prev"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigateMedia('prev');
-                }}
+                className="media-gallery-lightbox-icon-btn media-gallery-lightbox-icon-btn--close"
+                tabIndex={-1}
+                onClick={closeLightbox}
               >
-                ‹
+                ×
               </button>
-            )}
 
-            {/* Media Content */}
-            {selectedMedia.type === 'screenshot' ? (
-              <img
-                className="media-gallery-lightbox-img"
-                src={selectedMedia.src}
-                alt={`Screenshot ${selectedIndex + 1}`}
-              />
-            ) : (
-              <iframe
-                className="media-gallery-lightbox-iframe"
-                src={getEmbedVideoUrl(selectedMedia.src)}
-                title={`Video ${selectedIndex + 1}`}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; compute-pressure"
-                allowFullScreen
-              />
-            )}
-
-            {/* Next Button */}
-            {mediaItems.length > 1 && (
-              <button
-                type="button"
-                className="media-gallery-lightbox-icon-btn media-gallery-lightbox-icon-btn--next"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigateMedia('next');
-                }}
-              >
-                ›
-              </button>
-            )}
-
-            {/* Close Button */}
-            <button
-              type="button"
-              className="media-gallery-lightbox-icon-btn media-gallery-lightbox-icon-btn--close"
-              onClick={closeLightbox}
-            >
-              ×
-            </button>
-
-            {/* Media Counter */}
-            {mediaItems.length > 1 && (
-              <div className="media-gallery-lightbox-counter">
-                {selectedIndex + 1} / {mediaItems.length}
-              </div>
-            )}
-          </div>
-        </div>,
-        document.body
-      )}
+              {mediaItems.length > 1 && (
+                <div className="media-gallery-lightbox-counter">
+                  {selectedIndex + 1} / {mediaItems.length}
+                </div>
+              )}
+            </div>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }
-

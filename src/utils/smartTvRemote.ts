@@ -107,6 +107,9 @@ const UI_LAYER_SELECTORS = [
   ".launch-modal-overlay",
   ".add-game-overlay",
   ".game-search-modal-overlay",
+  ".media-gallery-lightbox-backdrop",
+  ".game-summary-overlay",
+  ".game-star-rating-overlay",
   ".dropdown-menu-phone-sheet-overlay",
   "body > .update-notification-popup",
   "body > .add-to-collection-dropdown-menu",
@@ -174,7 +177,7 @@ export function getActiveUiLayer(): HTMLElement | null {
 
   candidates.sort((a, b) => {
     // Nested "Add to" / executables flyouts must win over the parent ⋮ / phone sheet
-    // even when a skin leaves their z-index below the overlay (plex / gog vs PS3).
+    // even when a skin leaves their z-index below the overlay.
     const parentMenuOpen = candidates.some(
       (c) =>
         c.classList.contains("dropdown-menu-phone-sheet-overlay") ||
@@ -252,7 +255,6 @@ function collectFocusables(allowTextFields: boolean, scope?: ParentNode): HTMLEl
   );
   return Array.from(nodes).filter((el) => {
     if (!isVisible(el)) return false;
-    if (isLogoButton(el)) return false;
     if (!allowTextFields && isTextField(el)) return false;
     return true;
   });
@@ -263,6 +265,32 @@ function pickPreferredUiLayerFocus(layer: HTMLElement): HTMLElement | null {
   if (layer.hasAttribute("data-mhg-tv-exit-confirm")) {
     const cancel = layer.querySelector<HTMLElement>(".dropdown-menu-confirm-cancel");
     if (cancel && isVisible(cancel)) return cancel;
+  }
+  // Media lightbox: park on the backdrop; L/R/OK are handled specially (not focus chrome).
+  if (
+    layer.classList.contains("media-gallery-lightbox-backdrop") ||
+    layer.hasAttribute("data-mhg-media-gallery-lightbox")
+  ) {
+    if (layer.tabIndex < 0 && !layer.hasAttribute("tabindex")) {
+      layer.tabIndex = -1;
+    }
+    return layer;
+  }
+  if (
+    layer.classList.contains("game-summary-overlay") ||
+    layer.hasAttribute("data-mhg-game-summary-overlay")
+  ) {
+    const panel = layer.querySelector<HTMLElement>(".game-summary-overlay-panel");
+    if (panel && isVisible(panel)) return panel;
+  }
+  if (
+    layer.classList.contains("game-star-rating-overlay") ||
+    layer.hasAttribute("data-mhg-game-star-rating-overlay")
+  ) {
+    const stars = layer.querySelector<HTMLElement>(".game-star-rating-overlay-stars");
+    if (stars && isVisible(stars)) return stars;
+    const done = layer.querySelector<HTMLElement>(".game-star-rating-overlay-done");
+    if (done && isVisible(done)) return done;
   }
   if (layer.classList.contains("add-game-overlay")) {
     const searchInput = layer.querySelector<HTMLElement>("#add-game-search");
@@ -422,15 +450,51 @@ function collectLibraryMenuFocusables(): HTMLElement[] {
   ).filter((el) => isVisible(el) && !isLogoButton(el));
 }
 
+/** True when two controls share the same horizontal band (header tab row). */
+function isSameVisualRow(a: HTMLElement, b: HTMLElement): boolean {
+  const ar = a.getBoundingClientRect();
+  const br = b.getBoundingClientRect();
+  const overlap = Math.min(ar.bottom, br.bottom) - Math.max(ar.top, br.top);
+  const minH = Math.min(ar.height, br.height);
+  if (minH > 0 && overlap >= minH * 0.35) return true;
+  return Math.abs(center(ar).y - center(br).y) <= 32;
+}
+
+/**
+ * Focusables on the libraries bar that sit on the same visual row as `from`
+ * (page tabs + trailing action icons). Excludes the filter/sort toolbar below.
+ */
+function collectLibrariesBarRowFocusables(from: HTMLElement): HTMLElement[] {
+  const root =
+    (from.closest(".mhg-libraries-bar") as HTMLElement | null) ??
+    document.querySelector<HTMLElement>(".mhg-libraries-bar");
+  if (!root) return [];
+  return collectFocusables(false, root).filter(
+    (el) =>
+      isSameVisualRow(from, el) &&
+      !toolbarFocusFrom(el) &&
+      !coverFocusFrom(el) &&
+      !el.closest(".games-list-toolbar"),
+  );
+}
+
 function collectCoverFocusables(): HTMLElement[] {
   return Array.from(
     document.querySelectorAll<HTMLElement>(
       ".games-list-cover[role='button'], .games-list-cover[tabindex]",
     ),
-  ).filter((el) => isVisible(el) && !el.closest("[inert]"));
+  ).filter(
+    (el) =>
+      isVisible(el) &&
+      !el.closest("[inert]") &&
+      // Detail hero covers are play/chrome, not library grid tiles.
+      !el.closest(
+        ".game-detail-cover-wrapper, .catalog-game-detail-cover-wrapper, .library-item-detail-hero-cover",
+      ),
+  );
 }
 
-/** Filter / sort / count row between libraries chrome and the cover grid. */
+/** Prefer filter / sort / count row between libraries chrome and the cover grid. */
 function collectToolbarFocusables(): HTMLElement[] {
   const root = document.querySelector<HTMLElement>(".games-list-toolbar");
   if (!root || !isVisible(root)) return [];
@@ -494,7 +558,433 @@ function pickAlphabetNear(from: HTMLElement | null): HTMLElement | null {
 /** Plex / GOG grid navigation (not PS3 fixed-focal strip). */
 function isLibraryMenuCoverGridNavMode(): boolean {
   if (isHorizontalLibraryStripMode()) return false;
+  // Game / catalog / collection-like detail: LibrariesBar is still mounted, but
+  // menu↔covers grid trapping would skip Play / Edit / ⋮ / summary / media.
+  if (isItemDetailPage()) return false;
   return collectLibraryMenuFocusables().length > 0;
+}
+
+/** Owned / catalog game detail or collection-like detail shell. */
+function isItemDetailPage(): boolean {
+  return !!document.querySelector(
+    [
+      ".game-detail-container",
+      ".catalog-game-detail-container",
+      ".library-item-detail-page-shell",
+    ].join(","),
+  );
+}
+
+function isDetailFocusable(el: HTMLElement): boolean {
+  return (
+    isVisible(el) &&
+    !el.closest("[inert]") &&
+    !el.hasAttribute("disabled") &&
+    el.getAttribute("tabindex") !== "-1" &&
+    el.getAttribute("aria-hidden") !== "true"
+  );
+}
+
+/**
+ * Detail page vertical ladder (Smart TV):
+ * header (logo ↔ search ↔ settings) → hide background → stars → Play ↔ ⋮ → media…
+ */
+type DetailLadderLevel = "header" | "background" | "stars" | "actions" | "summary";
+
+/** Header row: logo ↔ search ↔ actions (DOM order inside `.mhg-header`). */
+function collectDetailHeaderFocusables(): HTMLElement[] {
+  const header = document.querySelector<HTMLElement>(".mhg-header");
+  if (!header || !isVisible(header)) return [];
+  const items: HTMLElement[] = [];
+  const push = (el: HTMLElement | null | undefined) => {
+    if (el && isDetailFocusable(el) && !items.includes(el)) items.push(el);
+  };
+  push(header.querySelector<HTMLElement>(".mhg-library-sidebar-toggle"));
+  push(header.querySelector<HTMLElement>(".mhg-logo-button"));
+  push(
+    header.querySelector<HTMLElement>(
+      ".mhg-search-input, .mhg-title-filter-input, #search-input",
+    ),
+  );
+  push(header.querySelector<HTMLElement>('.mhg-header-button[data-mhg-header-action="add-game"]'));
+  push(header.querySelector<HTMLElement>('.mhg-header-button[data-mhg-header-action="settings"]'));
+  push(header.querySelector<HTMLElement>(".profile-dropdown-button"));
+  return items;
+}
+
+/** Focus target when the active element is an app-header chrome control. */
+function appHeaderFocusFrom(el: HTMLElement | null): HTMLElement | null {
+  if (!el) return null;
+  const items = collectDetailHeaderFocusables();
+  if (items.includes(el)) return el;
+  for (const item of items) {
+    if (item.contains(el)) return item;
+  }
+  if (!el.closest(".mhg-header")) return null;
+  if (
+    el.classList.contains("mhg-logo-button") ||
+    el.classList.contains("mhg-library-sidebar-toggle") ||
+    el.classList.contains("mhg-search-input") ||
+    el.classList.contains("mhg-title-filter-input") ||
+    el.classList.contains("mhg-header-button") ||
+    el.classList.contains("profile-dropdown-button") ||
+    el.id === "search-input" ||
+    isTextField(el)
+  ) {
+    return el;
+  }
+  return null;
+}
+
+/** Prefer header control nearest in X to `from` (e.g. Up from a library tab). */
+function pickAppHeaderNear(from: HTMLElement | null): HTMLElement | null {
+  const items = collectDetailHeaderFocusables();
+  if (items.length === 0) return null;
+  if (!from) return items[items.length - 1] ?? items[0] ?? null;
+  const fromX = center(from.getBoundingClientRect()).x;
+  let best: HTMLElement | null = null;
+  let bestDist = Number.POSITIVE_INFINITY;
+  for (const el of items) {
+    const dist = Math.abs(center(el.getBoundingClientRect()).x - fromX);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = el;
+    }
+  }
+  return best ?? items[items.length - 1] ?? items[0] ?? null;
+}
+
+function collectDetailBackgroundFocusables(): HTMLElement[] {
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(".background-toggle-button"),
+  ).filter(isDetailFocusable);
+}
+
+function collectDetailStarFocusables(): HTMLElement[] {
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(
+      [
+        // TV overlay mode: single focus target for the whole control.
+        ".game-detail-ratings .star-rating--overlay-trigger",
+        ".catalog-game-detail-ratings .star-rating--overlay-trigger",
+        ".library-item-detail-meta .star-rating--overlay-trigger",
+        ".star-rating--overlay-trigger[data-mhg-tv-focus]",
+        // In-place editing (desktop / skins without tvStarRatingOverlay).
+        ".game-detail-ratings .star-rating-star--interactive",
+        ".catalog-game-detail-ratings .star-rating-star--interactive",
+        ".library-item-detail-meta .star-rating-star--interactive",
+        ".star-rating .star-rating-star--interactive",
+      ].join(","),
+    ),
+  ).filter((el) => {
+    if (!isDetailFocusable(el)) return false;
+    // Prefer the overlay trigger over any nested leftovers.
+    if (
+      el.classList.contains("star-rating-star--interactive") &&
+      el.closest(".star-rating--overlay-trigger")
+    ) {
+      return false;
+    }
+    return true;
+  });
+}
+
+/** Primary actions on detail pages (Play / Mark owned / Edit / ⋮). */
+function collectDetailPrimaryFocusables(): HTMLElement[] {
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(
+      [
+        ".game-detail-play-button",
+        ".game-detail-link-executable-button",
+        ".catalog-game-detail-mark-owned-button",
+        ".library-item-detail-play-btn",
+        ".game-detail-edit-button",
+        ".library-item-detail-edit-button",
+        ".game-detail-dropdown-menu .dropdown-menu-button",
+        ".library-item-detail-dropdown-menu .dropdown-menu-button",
+      ].join(","),
+    ),
+  ).filter(isDetailFocusable);
+}
+
+function collectDetailSummaryFocusables(): HTMLElement[] {
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(
+      [
+        ".game-detail-summary .summary-text--toggleable",
+        ".catalog-game-detail-summary .summary-text--toggleable",
+        ".library-item-detail-summary .summary-text--toggleable",
+        ".summary-text--toggleable[data-mhg-tv-focus]",
+      ].join(","),
+    ),
+  ).filter(isDetailFocusable);
+}
+
+function collectDetailLadderLevel(level: DetailLadderLevel): HTMLElement[] {
+  switch (level) {
+    case "header":
+      return collectDetailHeaderFocusables();
+    case "background":
+      return collectDetailBackgroundFocusables();
+    case "stars":
+      return collectDetailStarFocusables();
+    case "actions":
+      return collectDetailPrimaryFocusables();
+    case "summary":
+      return collectDetailSummaryFocusables();
+  }
+}
+
+function detailLadderLevelOf(el: HTMLElement | null): DetailLadderLevel | null {
+  if (!el) return null;
+  if (
+    el.closest(".mhg-header") &&
+    (el.classList.contains("mhg-logo-button") ||
+      el.classList.contains("mhg-search-input") ||
+      el.classList.contains("mhg-title-filter-input") ||
+      el.classList.contains("mhg-header-button") ||
+      el.classList.contains("profile-dropdown-button") ||
+      el.id === "search-input" ||
+      isTextField(el))
+  ) {
+    return "header";
+  }
+  if (el.classList.contains("background-toggle-button")) return "background";
+  if (
+    el.closest(".star-rating--overlay-trigger") ||
+    el.closest(".star-rating") ||
+    el.classList.contains("star-rating-star--interactive")
+  ) {
+    return "stars";
+  }
+  if (
+    el.closest(".game-detail-actions") ||
+    el.closest(".library-item-detail-actions") ||
+    el.classList.contains("game-detail-play-button") ||
+    el.classList.contains("game-detail-link-executable-button") ||
+    el.classList.contains("catalog-game-detail-mark-owned-button") ||
+    el.classList.contains("library-item-detail-play-btn") ||
+    (!!el.closest(".game-detail-dropdown-menu, .library-item-detail-dropdown-menu") &&
+      el.classList.contains("dropdown-menu-button"))
+  ) {
+    return "actions";
+  }
+  if (
+    el.classList.contains("summary-text--toggleable") ||
+    el.classList.contains("summary-toggle")
+  ) {
+    return "summary";
+  }
+  return null;
+}
+
+const DETAIL_LADDER_ORDER_DEFAULT: DetailLadderLevel[] = [
+  "header",
+  "background",
+  "stars",
+  "actions",
+  "summary",
+];
+
+const DETAIL_LADDER_ORDER_SUMMARY_BEFORE_ACTIONS: DetailLadderLevel[] = [
+  "header",
+  "background",
+  "stars",
+  "summary",
+  "actions",
+];
+
+function detailLadderOrder(): DetailLadderLevel[] {
+  if (
+    typeof document !== "undefined" &&
+    document.documentElement.getAttribute("data-mhg-tv-summary-before-actions") === "1"
+  ) {
+    return DETAIL_LADDER_ORDER_SUMMARY_BEFORE_ACTIONS;
+  }
+  return DETAIL_LADDER_ORDER_DEFAULT;
+}
+
+function nextPopulatedDetailLadderLevel(
+  from: DetailLadderLevel,
+  direction: "up" | "down",
+): DetailLadderLevel | null {
+  const order = detailLadderOrder();
+  const idx = order.indexOf(from);
+  if (idx < 0) return null;
+  const step = direction === "down" ? 1 : -1;
+  for (let i = idx + step; i >= 0 && i < order.length; i += step) {
+    const level = order[i]!;
+    if (collectDetailLadderLevel(level).length > 0) return level;
+  }
+  return null;
+}
+
+function focusDetailLadderLevel(
+  level: DetailLadderLevel,
+  prefer: "first" | "last" | HTMLElement | null = "first",
+): boolean {
+  const items = collectDetailLadderLevel(level);
+  if (items.length === 0) return false;
+  let target: HTMLElement | null = null;
+  if (prefer instanceof HTMLElement && items.includes(prefer)) {
+    target = prefer;
+  } else if (prefer === "last") {
+    target = items[items.length - 1]!;
+  } else {
+    // Entering header from below: prefer settings. Entering actions from above: Play.
+    if (level === "header") {
+      target =
+        items.find((el) => el.getAttribute("data-mhg-header-action") === "settings") ??
+        items[items.length - 1]!;
+    } else {
+      target = items[0]!;
+    }
+  }
+  if (!target) return false;
+  focusElement(target);
+  return true;
+}
+
+/** True when the header search field should use L/R to leave (detail TV ladder). */
+function isDetailHeaderSearchField(field: HTMLElement): boolean {
+  return (
+    isItemDetailPage() &&
+    !!field.closest(".mhg-header") &&
+    (field.classList.contains("mhg-search-input") ||
+      field.classList.contains("mhg-title-filter-input") ||
+      field.id === "search-input")
+  );
+}
+
+/** Home / library list: header search uses the same L/R / Down escape as detail. */
+function isAppHeaderSearchField(field: HTMLElement): boolean {
+  return (
+    !isItemDetailPage() &&
+    !!field.closest(".mhg-header") &&
+    (field.classList.contains("mhg-search-input") ||
+      field.classList.contains("mhg-title-filter-input") ||
+      field.id === "search-input")
+  );
+}
+
+function isSearchQueryField(field: HTMLElement): boolean {
+  return (
+    field.classList.contains("mhg-search-input") ||
+    field.id === "search-input" ||
+    field.getAttribute("role") === "searchbox"
+  );
+}
+
+/** Open header/sidebar search dropdown rows (recent searches, results, view-all). */
+function collectSearchDropdownFocusables(from: HTMLElement | null = null): HTMLElement[] {
+  const root =
+    (from?.closest(".search-bar-container") as HTMLElement | null) ??
+    document.querySelector<HTMLElement>(".search-bar-container:focus-within") ??
+    document.querySelector<HTMLElement>(".mhg-header .search-bar-container") ??
+    document.querySelector<HTMLElement>("[data-mhg-sidebar-search-dialog] .search-bar-container");
+  if (!root) return [];
+  const dropdown = root.querySelector<HTMLElement>(
+    ".search-dropdown, .mhg-dropdown.search-dropdown",
+  );
+  if (!dropdown || !isVisible(dropdown)) return [];
+  return Array.from(
+    dropdown.querySelectorAll<HTMLElement>(
+      ".search-dropdown-item, .search-view-all-button",
+    ),
+  ).filter(
+    (el) =>
+      isVisible(el) &&
+      !el.classList.contains("search-recent-remove") &&
+      !el.closest(".search-recent-remove"),
+  );
+}
+
+function searchDropdownItemFrom(el: HTMLElement | null): HTMLElement | null {
+  if (!el) return null;
+  if (el.classList.contains("search-view-all-button")) return el;
+  const item = el.closest(".search-dropdown-item") as HTMLElement | null;
+  if (item && !item.classList.contains("search-recent-remove")) return item;
+  return null;
+}
+
+function searchInputFromDropdownItem(el: HTMLElement): HTMLElement | null {
+  return (
+    el
+      .closest(".search-bar-container")
+      ?.querySelector<HTMLElement>(
+        ".mhg-search-input, #search-input, [role='searchbox']",
+      ) ?? null
+  );
+}
+
+/** Screenshot / video strip on game & catalog detail. */
+function collectMediaGalleryFocusables(): HTMLElement[] {
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(
+      ".media-gallery-strip .media-gallery-tile, .media-gallery-strip .media-gallery-thumb-button",
+    ),
+  ).filter((el) => isVisible(el) && !el.closest("[inert]") && !el.hasAttribute("disabled"));
+}
+
+function mediaGalleryFocusFrom(el: HTMLElement | null): HTMLElement | null {
+  if (!el) return null;
+  if (
+    el.classList.contains("media-gallery-tile") ||
+    el.classList.contains("media-gallery-thumb-button")
+  ) {
+    return el;
+  }
+  return el.closest(
+    ".media-gallery-tile, .media-gallery-thumb-button",
+  ) as HTMLElement | null;
+}
+
+/** Collections / similar (and other) horizontal cover rows on detail pages. */
+function detailCoverStripRootFrom(el: HTMLElement | null): HTMLElement | null {
+  if (!el || !isItemDetailPage()) return null;
+  return el.closest(".scrollable-section") as HTMLElement | null;
+}
+
+function collectDetailCoverStripFocusables(strip: HTMLElement): HTMLElement[] {
+  return Array.from(
+    strip.querySelectorAll<HTMLElement>(
+      ".games-list-cover[role='button'], .games-list-cover[tabindex]",
+    ),
+  ).filter((el) => isVisible(el) && !el.closest("[inert]") && !el.hasAttribute("disabled"));
+}
+
+type DetailHorizontalStrip =
+  | { kind: "media"; items: HTMLElement[] }
+  | { kind: "covers"; root: HTMLElement; items: HTMLElement[] };
+
+/** Media gallery + collection/similar rows, top → bottom in DOM order. */
+function collectDetailHorizontalStrips(): DetailHorizontalStrip[] {
+  const strips: DetailHorizontalStrip[] = [];
+  const media = collectMediaGalleryFocusables();
+  if (media.length > 0) {
+    strips.push({ kind: "media", items: media });
+  }
+  const detailRoot = document.querySelector(
+    ".game-detail-container, .catalog-game-detail-container, .library-item-detail-page-shell",
+  );
+  if (!detailRoot) return strips;
+  detailRoot.querySelectorAll<HTMLElement>(".scrollable-section").forEach((root) => {
+    const items = collectDetailCoverStripFocusables(root);
+    if (items.length > 0) {
+      strips.push({ kind: "covers", root, items });
+    }
+  });
+  return strips;
+}
+
+function focusDetailHorizontalStrip(
+  strip: DetailHorizontalStrip,
+  preferredIndex: number,
+): void {
+  const items = strip.items;
+  if (items.length === 0) return;
+  const idx = Math.min(Math.max(0, preferredIndex), items.length - 1);
+  focusElement(items[idx]!);
 }
 
 /** Vertical list rows inside ⋮ / cover / filter sheets — use DOM order, not geometry. */
@@ -568,6 +1058,50 @@ function pickNextInMenuList(
   return items[Math.max(0, idx - 1)] ?? null;
 }
 
+function findDetailPageScrollContainer(): HTMLElement | null {
+  return (
+    document.querySelector<HTMLElement>(".game-detail-scroll-container") ??
+    document.querySelector<HTMLElement>(".catalog-game-detail-scroll-container") ??
+    document.querySelector<HTMLElement>(".library-item-detail-scroll")
+  );
+}
+
+/**
+ * Header / bg toggle live outside the detail scroll pane. Focusing them with
+ * preventScroll leaves the content scrolled down — title stays off-screen.
+ * Bring the hero/title back into the scroll viewport.
+ */
+function scrollDetailPageToHero(): void {
+  const scroll = findDetailPageScrollContainer();
+  if (!scroll) return;
+
+  const hero = scroll.querySelector<HTMLElement>(
+    [
+      ".game-detail-title",
+      ".catalog-game-detail-title",
+      ".library-item-detail-title",
+      ".game-detail-header",
+      ".catalog-game-detail-header",
+      ".library-item-detail-hero",
+    ].join(","),
+  );
+
+  if (hero) {
+    const scrollRect = scroll.getBoundingClientRect();
+    const heroRect = hero.getBoundingClientRect();
+    const delta = heroRect.top - scrollRect.top - 8;
+    if (Math.abs(delta) > 2) {
+      const max = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
+      scroll.scrollTop = Math.max(0, Math.min(max, scroll.scrollTop + delta));
+    }
+    return;
+  }
+
+  if (scroll.scrollTop > 0) {
+    scroll.scrollTop = 0;
+  }
+}
+
 function focusElement(el: HTMLElement): void {
   // Clickable sheet rows are often <div>s without tabindex — make them programmatically focusable.
   // Prefer tabindex=0 for menu rows so collectFocusables keeps them (button:not([tabindex='-1'])).
@@ -583,6 +1117,15 @@ function focusElement(el: HTMLElement): void {
       el.tabIndex = isMenuRow ? 0 : -1;
     }
   }
+
+  // Detail chrome is outside the scroll pane — scroll content back so the title is visible.
+  if (isItemDetailPage()) {
+    const level = detailLadderLevelOf(el);
+    if (level === "header" || level === "background" || level === "stars") {
+      scrollDetailPageToHero();
+    }
+  }
+
   try {
     el.focus({ preventScroll: true });
   } catch {
@@ -592,7 +1135,14 @@ function focusElement(el: HTMLElement): void {
   // overflow parents (GOG vertical library list, plex/gog cover grids, sheets).
   ensureElementVisibleInScrollParents(el);
   window.requestAnimationFrame(() => {
-    if (el.isConnected) ensureElementVisibleInScrollParents(el);
+    if (!el.isConnected) return;
+    if (isItemDetailPage()) {
+      const level = detailLadderLevelOf(el);
+      if (level === "header" || level === "background" || level === "stars") {
+        scrollDetailPageToHero();
+      }
+    }
+    ensureElementVisibleInScrollParents(el);
   });
 }
 
@@ -663,6 +1213,43 @@ function tryDismissUiLayer(): boolean {
 
   // Prefer dismissing the topmost layer (e.g. ⋮ sheet above sidebar search).
   if (layer) {
+    if (
+      layer.classList.contains("media-gallery-lightbox-backdrop") ||
+      layer.hasAttribute("data-mhg-media-gallery-lightbox")
+    ) {
+      const closeBtn = layer.querySelector<HTMLElement>(
+        ".media-gallery-lightbox-icon-btn--close",
+      );
+      if (closeBtn) {
+        closeBtn.click();
+      } else {
+        layer.click();
+      }
+      return true;
+    }
+
+    if (
+      layer.classList.contains("game-summary-overlay") ||
+      layer.hasAttribute("data-mhg-game-summary-overlay")
+    ) {
+      const dismiss = layer.querySelector<HTMLElement>("[data-mhg-modal-close]");
+      if (dismiss) {
+        dismiss.click();
+        return true;
+      }
+    }
+
+    if (
+      layer.classList.contains("game-star-rating-overlay") ||
+      layer.hasAttribute("data-mhg-game-star-rating-overlay")
+    ) {
+      const dismiss = layer.querySelector<HTMLElement>("[data-mhg-modal-close]");
+      if (dismiss) {
+        dismiss.click();
+        return true;
+      }
+    }
+
     const closeInLayer = layer.querySelector<HTMLElement>(
       [
         "[aria-label='Close']",
@@ -805,6 +1392,8 @@ export function installSmartTvRemoteKeys(
   let lastToolbarFocus: HTMLElement | null = null;
   /** Last A–Z index letter focused from the cover grid. */
   let lastAlphabetFocus: HTMLElement | null = null;
+  /** Last app-header control focused before returning to libraries tabs (Plex). */
+  let lastAppHeaderFocus: HTMLElement | null = null;
 
   const rememberLibraryMenuFocus = (el: HTMLElement | null) => {
     const menu = libraryMenuFocusFrom(el);
@@ -814,6 +1403,11 @@ export function installSmartTvRemoteKeys(
   const rememberCoverFocus = (el: HTMLElement | null) => {
     const cover = coverFocusFrom(el);
     if (cover) lastCoverFocus = cover;
+  };
+
+  const rememberAppHeaderFocus = (el: HTMLElement | null) => {
+    const header = appHeaderFocusFrom(el);
+    if (header) lastAppHeaderFocus = header;
   };
 
   const rememberToolbarFocus = (el: HTMLElement | null) => {
@@ -873,6 +1467,25 @@ export function installSmartTvRemoteKeys(
     zone = "chrome";
     focusElement(menu);
     rememberLibraryMenuFocus(menu);
+    return true;
+  };
+
+  const resolveAppHeaderFocus = (near: HTMLElement | null = null): HTMLElement | null => {
+    const items = collectDetailHeaderFocusables();
+    if (items.length === 0) return null;
+    if (lastAppHeaderFocus?.isConnected && items.includes(lastAppHeaderFocus)) {
+      return lastAppHeaderFocus;
+    }
+    return pickAppHeaderNear(near);
+  };
+
+  /** Plex: Up from libraries tabs → app header (logo / search / settings…). */
+  const focusAppHeaderZone = (near: HTMLElement | null = null) => {
+    const header = resolveAppHeaderFocus(near);
+    if (!header) return false;
+    zone = "chrome";
+    focusElement(header);
+    rememberAppHeaderFocus(header);
     return true;
   };
 
@@ -940,6 +1553,11 @@ export function installSmartTvRemoteKeys(
       focusIntoActiveUiLayer();
       return;
     }
+    // Detail pages have no fixed-focal content rail — "content" zone would trap the remote.
+    if (isItemDetailPage()) {
+      zone = "chrome";
+      return;
+    }
     zone = "content";
     blurToContent();
   };
@@ -982,6 +1600,17 @@ export function installSmartTvRemoteKeys(
       syncBackgroundInert(uiLayer);
     }
 
+    // Media lightbox: OK plays / activates the current video (or confirms viewing).
+    if (
+      uiLayer &&
+      (uiLayer.classList.contains("media-gallery-lightbox-backdrop") ||
+        uiLayer.hasAttribute("data-mhg-media-gallery-lightbox"))
+    ) {
+      playTvActionSound();
+      window.dispatchEvent(new CustomEvent("mhg:media-gallery-ok"));
+      return;
+    }
+
     if (!uiLayer && isHorizontalLibraryStripMode() && activateStripFocusTarget()) {
       playTvActionSound();
       zone = "chrome";
@@ -1003,7 +1632,6 @@ export function installSmartTvRemoteKeys(
         active &&
         active !== document.body &&
         typeof active.click === "function" &&
-        !isLogoButton(active) &&
         (!uiLayer || uiLayer.contains(active)) &&
         isActivatable
       ) {
@@ -1032,7 +1660,6 @@ export function installSmartTvRemoteKeys(
       active &&
       active !== document.body &&
       active !== document.documentElement &&
-      !isLogoButton(active) &&
       !isTextField(active) &&
       collectFocusables(false).includes(active)
     ) {
@@ -1044,6 +1671,96 @@ export function installSmartTvRemoteKeys(
   };
 
   const leaveEditable = (field: HTMLElement, direction: Direction | null) => {
+    // Searchbox with open recent/results: Down enters the dropdown list.
+    if (direction === "down" && isSearchQueryField(field)) {
+      const dropdownItems = collectSearchDropdownFocusables(field);
+      if (dropdownItems[0]) {
+        zone = "chrome";
+        focusElement(dropdownItems[0]);
+        return;
+      }
+    }
+
+    // Detail header search: L/R stay in the logo ↔ search ↔ settings row; Down → bg toggle.
+    if (isDetailHeaderSearchField(field) && direction) {
+      zone = "chrome";
+      const headerItems = collectDetailHeaderFocusables();
+      if (direction === "left" || direction === "right") {
+        const next = pickNextInSet(headerItems, field, direction);
+        if (next) {
+          try {
+            field.blur();
+          } catch {
+            /* ignore */
+          }
+          focusElement(next);
+          return;
+        }
+        return;
+      }
+      if (direction === "down") {
+        try {
+          field.blur();
+        } catch {
+          /* ignore */
+        }
+        if (focusDetailLadderLevel("background", "first")) return;
+        if (focusDetailLadderLevel("stars", "first")) return;
+        if (focusDetailLadderLevel("actions", "first")) return;
+        return;
+      }
+      if (direction === "up") {
+        // Top of ladder — stay in search.
+        return;
+      }
+    }
+
+    // Plex library list: header search ↔ logo/settings; Down → libraries tabs.
+    if (
+      isAppHeaderSearchField(field) &&
+      direction &&
+      isLibraryMenuCoverGridNavMode() &&
+      !document.querySelector("[data-mhg-library-pages-vertical-list]")
+    ) {
+      zone = "chrome";
+      const headerItems = collectDetailHeaderFocusables();
+      if (direction === "left" || direction === "right") {
+        const idx = headerItems.indexOf(field);
+        const nextIdx =
+          idx >= 0
+            ? direction === "right"
+              ? Math.min(headerItems.length - 1, idx + 1)
+              : Math.max(0, idx - 1)
+            : -1;
+        const next =
+          nextIdx >= 0
+            ? headerItems[nextIdx]
+            : pickNextInSet(headerItems, field, direction);
+        if (next && next !== field) {
+          try {
+            field.blur();
+          } catch {
+            /* ignore */
+          }
+          rememberAppHeaderFocus(next);
+          focusElement(next);
+          return;
+        }
+        return;
+      }
+      if (direction === "down") {
+        try {
+          field.blur();
+        } catch {
+          /* ignore */
+        }
+        if (focusLibraryMenu()) return;
+        if (focusToolbarOrCovers()) return;
+        return;
+      }
+      if (direction === "up") return;
+    }
+
     try {
       field.blur();
     } catch {
@@ -1135,6 +1852,7 @@ export function installSmartTvRemoteKeys(
     }
 
     // Search / inputs: keep Left/Right for caret + on-screen keyboard.
+    // Detail header search: L/R also leave so logo ↔ search ↔ settings works on TV.
     // Back leaves; Up/Down also leave so we never stay trapped if Back is eaten by the IME.
     if (field) {
       if (isBackOrEscape(code, key)) {
@@ -1153,6 +1871,17 @@ export function installSmartTvRemoteKeys(
       let leaveDir: Direction | null = null;
       if (code === KEY_DOWN || key === "ArrowDown" || key === "Down") leaveDir = "down";
       else if (code === KEY_UP || key === "ArrowUp" || key === "Up") leaveDir = "up";
+      else if (
+        (isDetailHeaderSearchField(field) || isAppHeaderSearchField(field)) &&
+        (code === KEY_LEFT || key === "ArrowLeft" || key === "Left")
+      ) {
+        leaveDir = "left";
+      } else if (
+        (isDetailHeaderSearchField(field) || isAppHeaderSearchField(field)) &&
+        (code === KEY_RIGHT || key === "ArrowRight" || key === "Right")
+      ) {
+        leaveDir = "right";
+      }
 
       if (leaveDir) {
         e.preventDefault();
@@ -1179,6 +1908,87 @@ export function installSmartTvRemoteKeys(
         e.stopImmediatePropagation();
         zone = "chrome";
         syncBackgroundInert(uiLayer);
+
+        // Media lightbox: Left/Right change slide or seek video; Up/Down change slide.
+        if (
+          uiLayer.classList.contains("media-gallery-lightbox-backdrop") ||
+          uiLayer.hasAttribute("data-mhg-media-gallery-lightbox")
+        ) {
+          if (
+            direction === "left" ||
+            direction === "right" ||
+            direction === "up" ||
+            direction === "down"
+          ) {
+            const horizontal = direction === "left" || direction === "right";
+            window.dispatchEvent(
+              new CustomEvent("mhg:media-gallery-nav", {
+                detail: {
+                  direction:
+                    direction === "left" || direction === "up" ? "prev" : "next",
+                  axis: horizontal ? "horizontal" : "vertical",
+                },
+              }),
+            );
+          }
+          focusIntoActiveUiLayer();
+          return;
+        }
+
+        // Star rating overlay: on stars host L/R adjust 1–10; on actions L/R move buttons;
+        // Up/Down between stars and action row.
+        if (
+          uiLayer.classList.contains("game-star-rating-overlay") ||
+          uiLayer.hasAttribute("data-mhg-game-star-rating-overlay")
+        ) {
+          const starsHost = uiLayer.querySelector<HTMLElement>(
+            ".game-star-rating-overlay-stars",
+          );
+          const actionBtns = Array.from(
+            uiLayer.querySelectorAll<HTMLElement>(
+              ".game-star-rating-overlay-actions [data-mhg-tv-focus]",
+            ),
+          ).filter(isVisible);
+          const active = document.activeElement as HTMLElement | null;
+          const onStars =
+            !!starsHost &&
+            !!active &&
+            (active === starsHost || starsHost.contains(active));
+          const actionIdx = active ? actionBtns.indexOf(active) : -1;
+
+          if (direction === "left" || direction === "right") {
+            if (onStars || actionIdx < 0) {
+              window.dispatchEvent(
+                new CustomEvent("mhg:star-rating-adjust", {
+                  detail: { delta: direction === "right" ? 1 : -1 },
+                }),
+              );
+              if (starsHost && isVisible(starsHost)) {
+                focusElement(starsHost);
+              }
+              return;
+            }
+            const nextIdx =
+              direction === "right"
+                ? Math.min(actionBtns.length - 1, actionIdx + 1)
+                : Math.max(0, actionIdx - 1);
+            const next = actionBtns[nextIdx];
+            if (next) focusElement(next);
+            return;
+          }
+          if (direction === "down") {
+            if (actionBtns.length > 0) {
+              focusElement(actionBtns[0]!);
+            }
+            return;
+          }
+          if (direction === "up" && starsHost && isVisible(starsHost)) {
+            focusElement(starsHost);
+            return;
+          }
+          return;
+        }
+
         const active = document.activeElement as HTMLElement | null;
         const current =
           active &&
@@ -1284,9 +2094,38 @@ export function installSmartTvRemoteKeys(
       // chrome zone — XMB strip: Left/Right must step+select, not only move focus
       const active = document.activeElement as HTMLElement | null;
       const current =
-        active && active !== document.body && active !== document.documentElement && !isLogoButton(active)
+        active && active !== document.body && active !== document.documentElement
           ? active
           : null;
+
+      // Header/sidebar search dropdown: Up/Down through recent searches & results.
+      const searchItem = searchDropdownItemFrom(current);
+      if (searchItem) {
+        const items = collectSearchDropdownFocusables(searchItem);
+        if (direction === "up" || direction === "down") {
+          const idx = items.indexOf(searchItem);
+          const safeIdx = idx >= 0 ? idx : 0;
+          if (direction === "up" && safeIdx <= 0) {
+            const input = searchInputFromDropdownItem(searchItem);
+            if (input) {
+              focusElement(input);
+              return;
+            }
+          }
+          const nextIdx =
+            direction === "down"
+              ? Math.min(items.length - 1, safeIdx + 1)
+              : Math.max(0, safeIdx - 1);
+          const next = items[nextIdx];
+          if (next && next !== searchItem) {
+            focusElement(next);
+            return;
+          }
+          return;
+        }
+        // L/R stay on the row (do not jump to play/⋮ chrome inside the item).
+        return;
+      }
 
       // Plex / GOG: libraries menu ↔ list toolbar ↔ cover grid ↔ A–Z index.
       // Toolbar (Tutto / sort / count) sits between header tabs and covers.
@@ -1295,6 +2134,7 @@ export function installSmartTvRemoteKeys(
         const toolbarEl = toolbarFocusFrom(current);
         const coverEl = coverFocusFrom(current);
         const alphabetEl = alphabetFocusFrom(current);
+        const headerEl = appHeaderFocusFrom(current);
         const verticalMenu = !!document.querySelector(
           "[data-mhg-library-pages-vertical-list]",
         );
@@ -1320,22 +2160,98 @@ export function installSmartTvRemoteKeys(
               return;
             }
           } else {
-            // Plex header: Down → toolbar/covers; Left/Right move tabs.
+            // Plex header: Up → app header; Down → toolbar/covers;
+            // Left/Right stay on the same row (tabs + trailing icons).
             if (direction === "down") {
               if (focusToolbarOrCovers()) return;
               return;
             }
-            if (direction === "left" || direction === "right") {
-              const nextMenu = pickNextInSet(menus, menuEl, direction);
-              if (nextMenu) {
-                rememberLibraryMenuFocus(nextMenu);
-                focusElement(nextMenu);
-                return;
-              }
-              if (direction === "right" && focusToolbarOrCovers()) return;
+            if (direction === "up") {
+              if (focusAppHeaderZone(menuEl)) return;
               return;
             }
-            if (direction === "up") return;
+            if (direction === "left" || direction === "right") {
+              const rowItems = collectLibrariesBarRowFocusables(menuEl);
+              const next = pickNextInSet(
+                rowItems.length > 0 ? rowItems : menus,
+                menuEl,
+                direction,
+              );
+              if (next) {
+                const nextMenu = libraryMenuFocusFrom(next);
+                if (nextMenu) rememberLibraryMenuFocus(nextMenu);
+                focusElement(next);
+                return;
+              }
+              return;
+            }
+          }
+        }
+
+        // App header (logo / search / settings): L/R among icons; Down → libraries tabs.
+        if (!verticalMenu && headerEl) {
+          rememberAppHeaderFocus(headerEl);
+          const headers = collectDetailHeaderFocusables();
+          if (direction === "down") {
+            if (focusLibraryMenu()) return;
+            if (focusToolbarOrCovers()) return;
+            return;
+          }
+          if (direction === "up") return;
+          if (direction === "left" || direction === "right") {
+            const idx = headers.indexOf(headerEl);
+            if (idx >= 0) {
+              const nextIdx =
+                direction === "right"
+                  ? Math.min(headers.length - 1, idx + 1)
+                  : Math.max(0, idx - 1);
+              const next = headers[nextIdx];
+              if (next && next !== headerEl) {
+                rememberAppHeaderFocus(next);
+                focusElement(next);
+                return;
+              }
+              return;
+            }
+            const next = pickNextInSet(headers, headerEl, direction);
+            if (next) {
+              rememberAppHeaderFocus(next);
+              focusElement(next);
+              return;
+            }
+            return;
+          }
+        }
+
+        // Trailing icons on the Plex libraries bar row (not page tabs).
+        if (
+          !verticalMenu &&
+          current &&
+          !menuEl &&
+          !headerEl &&
+          !toolbarEl &&
+          !coverEl &&
+          !alphabetEl &&
+          current.closest(".mhg-libraries-bar")
+        ) {
+          if (direction === "down") {
+            if (focusToolbarOrCovers()) return;
+            return;
+          }
+          if (direction === "up") {
+            if (focusAppHeaderZone(current)) return;
+            return;
+          }
+          if (direction === "left" || direction === "right") {
+            const rowItems = collectLibrariesBarRowFocusables(current);
+            const next = pickNextInSet(rowItems, current, direction);
+            if (next) {
+              const nextMenu = libraryMenuFocusFrom(next);
+              if (nextMenu) rememberLibraryMenuFocus(nextMenu);
+              focusElement(next);
+              return;
+            }
+            return;
           }
         }
 
@@ -1426,6 +2342,182 @@ export function installSmartTvRemoteKeys(
             return;
           }
           return;
+        }
+      }
+
+      // Detail pages: vertical ladder
+      // header (logo ↔ search ↔ settings) → hide background → stars → Play ↔ ⋮ → summary
+      if (isItemDetailPage()) {
+        const ladderLevel = detailLadderLevelOf(current);
+
+        if (ladderLevel) {
+          const levelItems = collectDetailLadderLevel(ladderLevel);
+
+          if (direction === "left" || direction === "right") {
+            // DOM order: logo ↔ search ↔ settings; stars; Play ↔ ⋮
+            if (
+              ladderLevel === "header" ||
+              ladderLevel === "stars" ||
+              ladderLevel === "actions"
+            ) {
+              const idx = current ? levelItems.indexOf(current) : -1;
+              if (idx >= 0) {
+                const nextIdx =
+                  direction === "right"
+                    ? Math.min(levelItems.length - 1, idx + 1)
+                    : Math.max(0, idx - 1);
+                const next = levelItems[nextIdx];
+                if (next && next !== current) {
+                  focusElement(next);
+                  return;
+                }
+                return;
+              }
+            }
+            const next = pickNextInSet(levelItems, current, direction);
+            if (next) {
+              focusElement(next);
+              return;
+            }
+            return;
+          }
+
+          if (direction === "up" || direction === "down") {
+            const nextLevel = nextPopulatedDetailLadderLevel(ladderLevel, direction);
+            if (nextLevel) {
+              if (direction === "up" && nextLevel === "header") {
+                const headerItems = collectDetailHeaderFocusables();
+                const settings =
+                  headerItems.find(
+                    (el) => el.getAttribute("data-mhg-header-action") === "settings",
+                  ) ?? headerItems[headerItems.length - 1];
+                if (settings) {
+                  focusElement(settings);
+                  return;
+                }
+              }
+              focusDetailLadderLevel(
+                nextLevel,
+                direction === "down" ? "first" : "last",
+              );
+              return;
+            }
+            // Top of ladder — stay; bottom (summary / actions) falls through to media.
+            if (direction === "up") return;
+          }
+        }
+
+        // From empty library tabs / nowhere: Down starts at Play; Up opens header.
+        if (direction === "down" && (!current || libraryMenuFocusFrom(current))) {
+          if (focusDetailLadderLevel("actions", "first")) return;
+        }
+        if (direction === "up" && (!current || libraryMenuFocusFrom(current))) {
+          if (focusDetailLadderLevel("header", "first")) return;
+        }
+      }
+
+      // Detail: media strip (screenshots / videos) — DOM order, not geometry.
+      if (isItemDetailPage()) {
+        const mediaEl = mediaGalleryFocusFrom(current);
+        const mediaItems = collectMediaGalleryFocusables();
+
+        if (mediaEl && mediaItems.length > 0) {
+          if (direction === "left" || direction === "right") {
+            const idx = mediaItems.indexOf(mediaEl);
+            const nextIdx =
+              direction === "right"
+                ? Math.min(mediaItems.length - 1, Math.max(0, idx) + 1)
+                : Math.max(0, Math.max(0, idx) - 1);
+            const nextMedia = mediaItems[nextIdx];
+            if (nextMedia && nextMedia !== mediaEl) {
+              focusElement(nextMedia);
+              return;
+            }
+            // At first/last tile: stay in the strip (do not escape Left → Play).
+            return;
+          }
+          if (direction === "up") {
+            if (focusDetailLadderLevel("summary", "first")) return;
+            if (focusDetailLadderLevel("actions", "first")) return;
+          }
+          if (direction === "down") {
+            const strips = collectDetailHorizontalStrips();
+            const mediaStripIdx = strips.findIndex((s) => s.kind === "media");
+            if (mediaStripIdx >= 0 && mediaStripIdx + 1 < strips.length) {
+              const fromIdx = Math.max(0, mediaItems.indexOf(mediaEl));
+              focusDetailHorizontalStrip(strips[mediaStripIdx + 1]!, fromIdx);
+              return;
+            }
+            return;
+          }
+        }
+
+        // Down from Play / summary → media strip (don't jump to similar covers).
+        if (
+          direction === "down" &&
+          current &&
+          !mediaEl &&
+          (detailLadderLevelOf(current) === "actions" ||
+            detailLadderLevelOf(current) === "summary")
+        ) {
+          if (mediaItems.length > 0) {
+            const geometric = pickNextFocus(current, "down", true);
+            if (geometric && mediaGalleryFocusFrom(geometric)) {
+              focusElement(geometric);
+              return;
+            }
+            if (!geometric || coverFocusFrom(geometric)) {
+              focusElement(mediaItems[0]!);
+              return;
+            }
+            focusElement(geometric);
+            return;
+          }
+        }
+
+        // Collections / similar cover rows: L/R stay in the strip; Up/Down → neighbor strip.
+        const coverStrip = detailCoverStripRootFrom(current);
+        const stripCover = coverFocusFrom(current);
+        if (coverStrip && stripCover && coverStrip.contains(stripCover)) {
+          const stripCovers = collectDetailCoverStripFocusables(coverStrip);
+          if (stripCovers.length > 0) {
+            if (direction === "left" || direction === "right") {
+              const idx = stripCovers.indexOf(stripCover);
+              const safeIdx = idx >= 0 ? idx : 0;
+              const nextIdx =
+                direction === "right"
+                  ? Math.min(stripCovers.length - 1, safeIdx + 1)
+                  : Math.max(0, safeIdx - 1);
+              const nextCover = stripCovers[nextIdx];
+              if (nextCover && nextCover !== stripCover) {
+                focusElement(nextCover);
+                return;
+              }
+              return;
+            }
+            if (direction === "up" || direction === "down") {
+              const strips = collectDetailHorizontalStrips();
+              const stripIdx = strips.findIndex(
+                (s) => s.kind === "covers" && s.root === coverStrip,
+              );
+              if (stripIdx >= 0) {
+                const fromIdx = Math.max(0, stripCovers.indexOf(stripCover));
+                const targetIdx = direction === "up" ? stripIdx - 1 : stripIdx + 1;
+                if (targetIdx >= 0 && targetIdx < strips.length) {
+                  focusDetailHorizontalStrip(strips[targetIdx]!, fromIdx);
+                  return;
+                }
+                if (direction === "up") {
+                  // Above the first cover strip (no media): back to summary / Play.
+                  if (focusDetailLadderLevel("summary", "first")) return;
+                  if (focusDetailLadderLevel("actions", "first")) return;
+                  return;
+                }
+                // Past the last strip — stay.
+                return;
+              }
+            }
+          }
         }
       }
 

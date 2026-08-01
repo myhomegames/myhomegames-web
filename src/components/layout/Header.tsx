@@ -159,7 +159,6 @@ export default function Header({
             className="mhg-logo-button"
             aria-label={t("header.home")}
             style={isPhoneLayout ? { height: 40 } : undefined}
-            tabIndex={smartTv ? -1 : undefined}
           >
             <Logo width={isPhoneLayout ? 64 : 90} height={isPhoneLayout ? 40 : 50} />
           </button>
@@ -234,6 +233,7 @@ export default function Header({
             <Tooltip text={t("header.settings")} position="top" delay={200}>
               <button
                 className="mhg-header-button"
+                data-mhg-header-action="settings"
                 aria-label={t("header.settings")}
                 onClick={onSettingsClick}
                 style={isPhoneLayout ? PHONE_HEADER_BUTTON : undefined}
