@@ -82,6 +82,7 @@ export default function RecommendedPage({
   const stripsScrollRef = useRef<HTMLDivElement>(null);
   const fetchingRef = useRef<boolean>(false);
   const fetchGenerationRef = useRef(0);
+  const catalogPreviewFetchedRef = useRef<Set<string>>(new Set());
   const onGamesLoadedRef = useRef(onGamesLoaded);
   const setLoadingRef = useRef(setLoading);
   onGamesLoadedRef.current = onGamesLoaded;
@@ -316,6 +317,81 @@ export default function RecommendedPage({
     };
   }, [browsePreviewEnabled, isReady, sectionsForDisplay]);
 
+  // Catalog-only (“New”) covers ship lean from keyword search — enrich preview on focus.
+  useEffect(() => {
+    if (!browsePreviewEnabled || !previewGame?.isCatalogOnly) return;
+
+    const gameId = String(previewGame.id);
+    if (catalogPreviewFetchedRef.current.has(gameId)) return;
+
+    const baseGame = previewGame;
+    const controller = new AbortController();
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const url = buildCatalogApiUrl(`/igdb/game/${gameId}`);
+        const res = await fetch(url, {
+          headers: buildApiHeaders({ Accept: "application/json" }),
+          signal: controller.signal,
+        });
+        if (!res.ok || cancelled) return;
+        const detail = await res.json();
+        if (cancelled || !detail) return;
+
+        catalogPreviewFetchedRef.current.add(gameId);
+
+        const enriched: GameItem = {
+          ...baseGame,
+          title: detail.name || baseGame.title,
+          summary: detail.summary || baseGame.summary,
+          cover: detail.cover || baseGame.cover,
+          background: detail.background || baseGame.background,
+          year:
+            detail.releaseDateFull?.year ??
+            detail.releaseDate ??
+            baseGame.year,
+          month: detail.releaseDateFull?.month ?? baseGame.month,
+          day: detail.releaseDateFull?.day ?? baseGame.day,
+          genre: Array.isArray(detail.genres)
+            ? detail.genres.map((title: string, index: number) => ({
+                id: index,
+                title: typeof title === "string" ? title : String(title),
+              }))
+            : baseGame.genre,
+          criticratings: detail.criticRating ?? baseGame.criticratings ?? null,
+          userratings: detail.userRating ?? baseGame.userratings ?? null,
+          ageRatings: detail.ageRatings ?? baseGame.ageRatings,
+          type: detail.type ?? baseGame.type,
+          isCatalogOnly: true,
+        };
+
+        setPreviewGame((prev) =>
+          prev && String(prev.id) === gameId ? enriched : prev,
+        );
+        setSections((prev) => {
+          const next = prev.map((section) => ({
+            ...section,
+            games: section.games.map((game) =>
+              String(game.id) === gameId && game.isCatalogOnly
+                ? { ...game, ...enriched }
+                : game,
+            ),
+          }));
+          setRecommendedSectionsCache(next);
+          return next;
+        });
+      } catch {
+        /* aborted or network — keep lean catalog card */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [browsePreviewEnabled, previewGame?.id, previewGame?.isCatalogOnly]);
+
   async function fetchRecommendedSections(options?: { background?: boolean }) {
     if (fetchingRef.current) {
       return;
@@ -388,14 +464,40 @@ export default function RecommendedPage({
                 if (!pair || generation !== fetchGenerationRef.current) return;
                 const { catalogRes, catalogData } = pair;
                 if (!catalogRes.ok) return;
-                const catalogGamesList = (catalogData.games || []) as Array<{ id: number; name: string; cover?: string | null; releaseDate?: number | null }>;
+                const catalogGamesList = (catalogData.games || []) as Array<{
+                  id: number;
+                  name: string;
+                  summary?: string;
+                  cover?: string | null;
+                  background?: string | null;
+                  releaseDate?: number | null;
+                  releaseDateFull?: {
+                    year?: number;
+                    month?: number;
+                    day?: number;
+                  } | null;
+                  genres?: string[];
+                  criticRating?: number | null;
+                  userRating?: number | null;
+                  type?: number | null;
+                }>;
                 const catalogGames = catalogGamesList.map(
                   (g) =>
                     ({
                       id: String(g.id),
                       title: g.name,
+                      summary: g.summary || undefined,
                       cover: g.cover || undefined,
-                      year: g.releaseDate ?? undefined,
+                      background: g.background || undefined,
+                      year: g.releaseDateFull?.year ?? g.releaseDate ?? undefined,
+                      month: g.releaseDateFull?.month ?? undefined,
+                      day: g.releaseDateFull?.day ?? undefined,
+                      genre: Array.isArray(g.genres)
+                        ? g.genres.map((title, index) => ({ id: index, title }))
+                        : undefined,
+                      criticratings: g.criticRating ?? null,
+                      userratings: g.userRating ?? null,
+                      type: g.type ?? null,
                       isCatalogOnly: true,
                     }) as GameItem
                 );

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { CatalogGame, GameItem } from "../../types";
 import { requestSmartTvUiLayerFocus } from "../../utils/smartTvRemote";
@@ -14,10 +14,30 @@ type GameSummaryOverlayProps = {
   game: CatalogGame | GameItem;
 };
 
+const FIT_SCALE_MIN = 0.48;
+const FIT_SCALE_STEP = 0.04;
+const FIT_SCALE_VAR = "--mhg-summary-fit-scale";
+
+/** Shrink overlay type until title + full summary + info fit in the panel (no scroll). */
+function fitSummaryPanel(panel: HTMLElement) {
+  panel.style.setProperty(FIT_SCALE_VAR, "1");
+  void panel.offsetHeight;
+
+  let scale = 1;
+  for (let i = 0; i < 24; i++) {
+    if (panel.scrollHeight <= panel.clientHeight + 2) break;
+    scale = Math.max(FIT_SCALE_MIN, scale - FIT_SCALE_STEP);
+    panel.style.setProperty(FIT_SCALE_VAR, String(Number(scale.toFixed(3))));
+    void panel.offsetHeight;
+    if (scale <= FIT_SCALE_MIN) break;
+  }
+}
+
 /**
  * Smart TV full-screen summary “page”: full-height cover left, full text + GameInfoBlock right.
  * Gated by skin `web.tvSummaryOverlay` at the call site. Close via Back / Escape (no chrome X).
  * Skin keeps ambient backdrop tint, hides sharp backdrop art + detail chrome via `data-mhg-summary-overlay`.
+ * Type scales down so the whole page always fits the viewport (no panel scroll).
  */
 export default function GameSummaryOverlay({
   open,
@@ -27,6 +47,8 @@ export default function GameSummaryOverlay({
   summary,
   game,
 }: GameSummaryOverlayProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!open) return;
     requestSmartTvUiLayerFocus();
@@ -55,6 +77,40 @@ export default function GameSummaryOverlay({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const panel = panelRef.current;
+    if (!panel) return;
+
+    let frame = 0;
+    let fitting = false;
+
+    const runFit = () => {
+      if (fitting) return;
+      fitting = true;
+      fitSummaryPanel(panel);
+      fitting = false;
+    };
+
+    const scheduleFit = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(runFit);
+    };
+
+    runFit();
+
+    const ro = new ResizeObserver(scheduleFit);
+    ro.observe(panel);
+    window.addEventListener("resize", scheduleFit);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      ro.disconnect();
+      window.removeEventListener("resize", scheduleFit);
+      panel.style.removeProperty(FIT_SCALE_VAR);
+    };
+  }, [open, title, summary, game]);
 
   if (!open) return null;
 
@@ -93,6 +149,7 @@ export default function GameSummaryOverlay({
         </div>
 
         <div
+          ref={panelRef}
           className="game-summary-overlay-panel"
           tabIndex={0}
           data-mhg-tv-focus=""
