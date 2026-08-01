@@ -591,22 +591,67 @@ function isDetailFocusable(el: HTMLElement): boolean {
  */
 type DetailLadderLevel = "header" | "background" | "stars" | "actions" | "summary";
 
-/** Header row: logo ↔ search ↔ settings (DOM order inside `.mhg-header`). */
+/** Header row: logo ↔ search ↔ actions (DOM order inside `.mhg-header`). */
 function collectDetailHeaderFocusables(): HTMLElement[] {
   const header = document.querySelector<HTMLElement>(".mhg-header");
-  if (!header) return [];
+  if (!header || !isVisible(header)) return [];
   const items: HTMLElement[] = [];
-  const logo = header.querySelector<HTMLElement>(".mhg-logo-button");
-  if (logo && isDetailFocusable(logo)) items.push(logo);
-  const search = header.querySelector<HTMLElement>(
-    ".mhg-search-input, .mhg-title-filter-input, #search-input",
+  const push = (el: HTMLElement | null | undefined) => {
+    if (el && isDetailFocusable(el) && !items.includes(el)) items.push(el);
+  };
+  push(header.querySelector<HTMLElement>(".mhg-library-sidebar-toggle"));
+  push(header.querySelector<HTMLElement>(".mhg-logo-button"));
+  push(
+    header.querySelector<HTMLElement>(
+      ".mhg-search-input, .mhg-title-filter-input, #search-input",
+    ),
   );
-  if (search && isDetailFocusable(search)) items.push(search);
-  const settings = header.querySelector<HTMLElement>(
-    '.mhg-header-button[data-mhg-header-action="settings"]',
-  );
-  if (settings && isDetailFocusable(settings)) items.push(settings);
+  push(header.querySelector<HTMLElement>('.mhg-header-button[data-mhg-header-action="add-game"]'));
+  push(header.querySelector<HTMLElement>('.mhg-header-button[data-mhg-header-action="settings"]'));
+  push(header.querySelector<HTMLElement>(".profile-dropdown-button"));
   return items;
+}
+
+/** Focus target when the active element is an app-header chrome control. */
+function appHeaderFocusFrom(el: HTMLElement | null): HTMLElement | null {
+  if (!el) return null;
+  const items = collectDetailHeaderFocusables();
+  if (items.includes(el)) return el;
+  for (const item of items) {
+    if (item.contains(el)) return item;
+  }
+  if (!el.closest(".mhg-header")) return null;
+  if (
+    el.classList.contains("mhg-logo-button") ||
+    el.classList.contains("mhg-library-sidebar-toggle") ||
+    el.classList.contains("mhg-search-input") ||
+    el.classList.contains("mhg-title-filter-input") ||
+    el.classList.contains("mhg-header-button") ||
+    el.classList.contains("profile-dropdown-button") ||
+    el.id === "search-input" ||
+    isTextField(el)
+  ) {
+    return el;
+  }
+  return null;
+}
+
+/** Prefer header control nearest in X to `from` (e.g. Up from a library tab). */
+function pickAppHeaderNear(from: HTMLElement | null): HTMLElement | null {
+  const items = collectDetailHeaderFocusables();
+  if (items.length === 0) return null;
+  if (!from) return items[items.length - 1] ?? items[0] ?? null;
+  const fromX = center(from.getBoundingClientRect()).x;
+  let best: HTMLElement | null = null;
+  let bestDist = Number.POSITIVE_INFINITY;
+  for (const el of items) {
+    const dist = Math.abs(center(el.getBoundingClientRect()).x - fromX);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = el;
+    }
+  }
+  return best ?? items[items.length - 1] ?? items[0] ?? null;
 }
 
 function collectDetailBackgroundFocusables(): HTMLElement[] {
@@ -785,6 +830,17 @@ function focusDetailLadderLevel(
 function isDetailHeaderSearchField(field: HTMLElement): boolean {
   return (
     isItemDetailPage() &&
+    !!field.closest(".mhg-header") &&
+    (field.classList.contains("mhg-search-input") ||
+      field.classList.contains("mhg-title-filter-input") ||
+      field.id === "search-input")
+  );
+}
+
+/** Home / library list: header search uses the same L/R / Down escape as detail. */
+function isAppHeaderSearchField(field: HTMLElement): boolean {
+  return (
+    !isItemDetailPage() &&
     !!field.closest(".mhg-header") &&
     (field.classList.contains("mhg-search-input") ||
       field.classList.contains("mhg-title-filter-input") ||
@@ -1267,6 +1323,8 @@ export function installSmartTvRemoteKeys(
   let lastToolbarFocus: HTMLElement | null = null;
   /** Last A–Z index letter focused from the cover grid. */
   let lastAlphabetFocus: HTMLElement | null = null;
+  /** Last app-header control focused before returning to libraries tabs (Plex). */
+  let lastAppHeaderFocus: HTMLElement | null = null;
 
   const rememberLibraryMenuFocus = (el: HTMLElement | null) => {
     const menu = libraryMenuFocusFrom(el);
@@ -1276,6 +1334,11 @@ export function installSmartTvRemoteKeys(
   const rememberCoverFocus = (el: HTMLElement | null) => {
     const cover = coverFocusFrom(el);
     if (cover) lastCoverFocus = cover;
+  };
+
+  const rememberAppHeaderFocus = (el: HTMLElement | null) => {
+    const header = appHeaderFocusFrom(el);
+    if (header) lastAppHeaderFocus = header;
   };
 
   const rememberToolbarFocus = (el: HTMLElement | null) => {
@@ -1335,6 +1398,25 @@ export function installSmartTvRemoteKeys(
     zone = "chrome";
     focusElement(menu);
     rememberLibraryMenuFocus(menu);
+    return true;
+  };
+
+  const resolveAppHeaderFocus = (near: HTMLElement | null = null): HTMLElement | null => {
+    const items = collectDetailHeaderFocusables();
+    if (items.length === 0) return null;
+    if (lastAppHeaderFocus?.isConnected && items.includes(lastAppHeaderFocus)) {
+      return lastAppHeaderFocus;
+    }
+    return pickAppHeaderNear(near);
+  };
+
+  /** Plex: Up from libraries tabs → app header (logo / search / settings…). */
+  const focusAppHeaderZone = (near: HTMLElement | null = null) => {
+    const header = resolveAppHeaderFocus(near);
+    if (!header) return false;
+    zone = "chrome";
+    focusElement(header);
+    rememberAppHeaderFocus(header);
     return true;
   };
 
@@ -1554,6 +1636,52 @@ export function installSmartTvRemoteKeys(
       }
     }
 
+    // Plex library list: header search ↔ logo/settings; Down → libraries tabs.
+    if (
+      isAppHeaderSearchField(field) &&
+      direction &&
+      isLibraryMenuCoverGridNavMode() &&
+      !document.querySelector("[data-mhg-library-pages-vertical-list]")
+    ) {
+      zone = "chrome";
+      const headerItems = collectDetailHeaderFocusables();
+      if (direction === "left" || direction === "right") {
+        const idx = headerItems.indexOf(field);
+        const nextIdx =
+          idx >= 0
+            ? direction === "right"
+              ? Math.min(headerItems.length - 1, idx + 1)
+              : Math.max(0, idx - 1)
+            : -1;
+        const next =
+          nextIdx >= 0
+            ? headerItems[nextIdx]
+            : pickNextInSet(headerItems, field, direction);
+        if (next && next !== field) {
+          try {
+            field.blur();
+          } catch {
+            /* ignore */
+          }
+          rememberAppHeaderFocus(next);
+          focusElement(next);
+          return;
+        }
+        return;
+      }
+      if (direction === "down") {
+        try {
+          field.blur();
+        } catch {
+          /* ignore */
+        }
+        if (focusLibraryMenu()) return;
+        if (focusToolbarOrCovers()) return;
+        return;
+      }
+      if (direction === "up") return;
+    }
+
     try {
       field.blur();
     } catch {
@@ -1665,12 +1793,12 @@ export function installSmartTvRemoteKeys(
       if (code === KEY_DOWN || key === "ArrowDown" || key === "Down") leaveDir = "down";
       else if (code === KEY_UP || key === "ArrowUp" || key === "Up") leaveDir = "up";
       else if (
-        isDetailHeaderSearchField(field) &&
+        (isDetailHeaderSearchField(field) || isAppHeaderSearchField(field)) &&
         (code === KEY_LEFT || key === "ArrowLeft" || key === "Left")
       ) {
         leaveDir = "left";
       } else if (
-        isDetailHeaderSearchField(field) &&
+        (isDetailHeaderSearchField(field) || isAppHeaderSearchField(field)) &&
         (code === KEY_RIGHT || key === "ArrowRight" || key === "Right")
       ) {
         leaveDir = "right";
@@ -1898,6 +2026,7 @@ export function installSmartTvRemoteKeys(
         const toolbarEl = toolbarFocusFrom(current);
         const coverEl = coverFocusFrom(current);
         const alphabetEl = alphabetFocusFrom(current);
+        const headerEl = appHeaderFocusFrom(current);
         const verticalMenu = !!document.querySelector(
           "[data-mhg-library-pages-vertical-list]",
         );
@@ -1923,10 +2052,14 @@ export function installSmartTvRemoteKeys(
               return;
             }
           } else {
-            // Plex header: Down → toolbar/covers; Left/Right stay on the same row
-            // (tabs + trailing icons). Never wrap Right onto the next row.
+            // Plex header: Up → app header; Down → toolbar/covers;
+            // Left/Right stay on the same row (tabs + trailing icons).
             if (direction === "down") {
               if (focusToolbarOrCovers()) return;
+              return;
+            }
+            if (direction === "up") {
+              if (focusAppHeaderZone(menuEl)) return;
               return;
             }
             if (direction === "left" || direction === "right") {
@@ -1944,7 +2077,41 @@ export function installSmartTvRemoteKeys(
               }
               return;
             }
-            if (direction === "up") return;
+          }
+        }
+
+        // App header (logo / search / settings): L/R among icons; Down → libraries tabs.
+        if (!verticalMenu && headerEl) {
+          rememberAppHeaderFocus(headerEl);
+          const headers = collectDetailHeaderFocusables();
+          if (direction === "down") {
+            if (focusLibraryMenu()) return;
+            if (focusToolbarOrCovers()) return;
+            return;
+          }
+          if (direction === "up") return;
+          if (direction === "left" || direction === "right") {
+            const idx = headers.indexOf(headerEl);
+            if (idx >= 0) {
+              const nextIdx =
+                direction === "right"
+                  ? Math.min(headers.length - 1, idx + 1)
+                  : Math.max(0, idx - 1);
+              const next = headers[nextIdx];
+              if (next && next !== headerEl) {
+                rememberAppHeaderFocus(next);
+                focusElement(next);
+                return;
+              }
+              return;
+            }
+            const next = pickNextInSet(headers, headerEl, direction);
+            if (next) {
+              rememberAppHeaderFocus(next);
+              focusElement(next);
+              return;
+            }
+            return;
           }
         }
 
@@ -1953,6 +2120,7 @@ export function installSmartTvRemoteKeys(
           !verticalMenu &&
           current &&
           !menuEl &&
+          !headerEl &&
           !toolbarEl &&
           !coverEl &&
           !alphabetEl &&
@@ -1962,7 +2130,10 @@ export function installSmartTvRemoteKeys(
             if (focusToolbarOrCovers()) return;
             return;
           }
-          if (direction === "up") return;
+          if (direction === "up") {
+            if (focusAppHeaderZone(current)) return;
+            return;
+          }
           if (direction === "left" || direction === "right") {
             const rowItems = collectLibrariesBarRowFocusables(current);
             const next = pickNextInSet(rowItems, current, direction);
