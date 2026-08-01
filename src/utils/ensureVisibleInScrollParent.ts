@@ -23,6 +23,32 @@ function findScrollParent(el: HTMLElement, axis: "x" | "y"): HTMLElement | null 
 }
 
 /**
+ * Cover tiles keep the title in a sibling `.games-list-title-wrapper` below the
+ * focused `.games-list-cover`. Prefer the whole tile so D-pad focus doesn't leave
+ * titles clipped under the viewport (e.g. first Down from Play into a collection grid).
+ */
+export function resolveScrollVisibilityTarget(el: HTMLElement): HTMLElement {
+  const cover = el.classList.contains("games-list-cover")
+    ? el
+    : (el.closest(".games-list-cover") as HTMLElement | null);
+  if (!cover) return el;
+  const tile = cover.closest(
+    [
+      ".games-list-item",
+      ".collections-list-item",
+      ".library-item-detail-subcollection-cell",
+      ".similar-games-cover-cell",
+      ".fixed-focal-games-item",
+      ".virtualized-grid-cell-pad",
+    ].join(","),
+  ) as HTMLElement | null;
+  if (tile) return tile;
+  const parent = cover.parentElement;
+  if (parent?.querySelector(":scope > .games-list-title-wrapper")) return parent;
+  return el;
+}
+
+/**
  * After Smart TV D-pad focus (`preventScroll: true`), bring `el` into view inside
  * every scrollable ancestor (GOG vertical library menu, cover grids, sheets, …).
  */
@@ -32,10 +58,12 @@ export function ensureElementVisibleInScrollParents(
 ): void {
   if (!el.isConnected) return;
 
-  let node: HTMLElement | null = el.parentElement;
+  const target = resolveScrollVisibilityTarget(el);
+
+  let node: HTMLElement | null = target.parentElement;
   while (node && node !== document.body && node !== document.documentElement) {
     const parent = node;
-    const elRect = el.getBoundingClientRect();
+    const elRect = target.getBoundingClientRect();
     const parentRect = parent.getBoundingClientRect();
 
     if (canScrollAxis(parent, "y")) {
@@ -53,7 +81,7 @@ export function ensureElementVisibleInScrollParents(
 
     if (canScrollAxis(parent, "x")) {
       // Re-read after vertical scroll — layout may have shifted slightly.
-      const elRectX = el.getBoundingClientRect();
+      const elRectX = target.getBoundingClientRect();
       const parentRectX = parent.getBoundingClientRect();
       let deltaX = 0;
       if (elRectX.left < parentRectX.left + padPx) {
