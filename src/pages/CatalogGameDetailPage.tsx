@@ -465,7 +465,7 @@ function CatalogGameDetailContent({
         <GameSummaryOverlay
           open={summaryOverlayOpen}
           onClose={() => setSummaryOverlayOpen(false)}
-          title={game.title}
+          title={game.name}
           coverUrl={coverUrl}
           summary={game.summary || ""}
           game={game}
