@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSkin } from "../../contexts/SkinContext";
 import { useSettings } from "../../contexts/SettingsContext";
-import { SKIN_WEB_KEYS, type SkinWebManifest } from "../../skins/skinWebManifest";
+import { SKIN_WEB_SETTINGS_OPTION_KEYS, type SkinWebManifest } from "../../skins/skinWebManifest";
 import { API_BASE } from "../../config";
 
 function isZipSkinFile(file: File): boolean {
@@ -233,7 +233,7 @@ export default function SettingsSkinSection() {
               )}
             </p>
             <div className="settings-library-options">
-              {SKIN_WEB_KEYS.map((key) => (
+              {SKIN_WEB_SETTINGS_OPTION_KEYS.map((key) => (
                 <label key={key} className="settings-library-option">
                   <input
                     type="checkbox"

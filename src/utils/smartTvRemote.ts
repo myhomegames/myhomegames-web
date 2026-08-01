@@ -657,7 +657,18 @@ function pickAppHeaderNear(from: HTMLElement | null): HTMLElement | null {
 function collectDetailBackgroundFocusables(): HTMLElement[] {
   return Array.from(
     document.querySelectorAll<HTMLElement>(".background-toggle-button"),
-  ).filter(isDetailFocusable);
+  ).filter((el) => {
+    if (!isDetailFocusable(el)) return false;
+    // When the toggle sits beside Play, it belongs to the actions ladder row.
+    if (
+      el.closest(
+        ".game-detail-actions, .catalog-game-detail-actions, .library-item-detail-actions",
+      )
+    ) {
+      return false;
+    }
+    return true;
+  });
 }
 
 function collectDetailStarFocusables(): HTMLElement[] {
@@ -689,13 +700,16 @@ function collectDetailStarFocusables(): HTMLElement[] {
   });
 }
 
-/** Primary actions on detail pages (Play / Edit / ⋮). Add / Link executable are TV-hidden. */
+/** Primary actions on detail pages (Play / background toggle / Edit / ⋮). */
 function collectDetailPrimaryFocusables(): HTMLElement[] {
   return Array.from(
     document.querySelectorAll<HTMLElement>(
       [
         ".game-detail-play-button",
         ".library-item-detail-play-btn",
+        ".game-detail-actions .background-toggle-button",
+        ".catalog-game-detail-actions .background-toggle-button",
+        ".library-item-detail-actions .background-toggle-button",
         ".game-detail-edit-button",
         ".library-item-detail-edit-button",
         ".game-detail-dropdown-menu .dropdown-menu-button",
@@ -747,7 +761,16 @@ function detailLadderLevelOf(el: HTMLElement | null): DetailLadderLevel | null {
   ) {
     return "header";
   }
-  if (el.classList.contains("background-toggle-button")) return "background";
+  if (el.classList.contains("background-toggle-button")) {
+    if (
+      el.closest(
+        ".game-detail-actions, .catalog-game-detail-actions, .library-item-detail-actions",
+      )
+    ) {
+      return "actions";
+    }
+    return "background";
+  }
   if (
     el.closest(".star-rating--overlay-trigger") ||
     el.closest(".star-rating") ||

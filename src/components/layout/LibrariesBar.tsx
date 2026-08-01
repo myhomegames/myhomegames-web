@@ -880,7 +880,6 @@ export default function LibrariesBar({
   const showDetailBack = showDetailBackButton && isPhoneLayout;
 
   const showIconCluster =
-    showDetailBack ||
     (hasBackground && !hideBackgroundToggle) ||
     (!!rightActionsBeforeMainGames && !topRightToolDock) ||
     (showNewGamesToggle && !!onShowNewGamesChange && !topRightToolDock) ||
@@ -1720,23 +1719,24 @@ export default function LibrariesBar({
           </>
         )}
 
+        {showDetailBack ? (
+          <div className="mhg-libraries-detail-back-container">
+            <DetailBackButton
+              onClick={() => {
+                const idx = (window.history.state as { idx?: number } | null)?.idx;
+                if (typeof idx === "number" && idx > 0) {
+                  navigate(-1);
+                } else {
+                  navigate("/", { replace: true });
+                }
+              }}
+            />
+          </div>
+        ) : null}
+
         <div className="mhg-libraries-actions" ref={actionsRef}>
           {showIconCluster ? (
             <div className="mhg-libraries-actions-icon-cluster">
-              {showDetailBack ? (
-                <div className="mhg-libraries-actions-detail-back-container">
-                  <DetailBackButton
-                    onClick={() => {
-                      const idx = (window.history.state as { idx?: number } | null)?.idx;
-                      if (typeof idx === "number" && idx > 0) {
-                        navigate(-1);
-                      } else {
-                        navigate("/", { replace: true });
-                      }
-                    }}
-                  />
-                </div>
-              ) : null}
               {hasBackground && !hideBackgroundToggle && (
                 <div className="mhg-libraries-actions-background-toggle-container">
                   <BackgroundToggle

@@ -4,7 +4,7 @@ type DetailBackButtonProps = {
   onClick: () => void;
 };
 
-/** Phone game/catalog detail: navigate back (placed beside BackgroundToggle). */
+/** Phone game/catalog detail: navigate back (left side of the libraries row). */
 export default function DetailBackButton({ onClick }: DetailBackButtonProps) {
   const { t } = useTranslation();
   const label = t("common.back", "Back");
