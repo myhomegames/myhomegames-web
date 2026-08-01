@@ -587,7 +587,7 @@ function isDetailFocusable(el: HTMLElement): boolean {
 
 /**
  * Detail page vertical ladder (Smart TV):
- * header (logo ↔ search ↔ settings) → hide background → stars → Play ↔ ⋮ → media…
+ * header (logo ↔ search ↔ settings) → hide background → stars → Play ↔ toggles ↔ ⋮ → media…
  */
 type DetailLadderLevel = "header" | "background" | "stars" | "actions" | "summary";
 
@@ -657,7 +657,18 @@ function pickAppHeaderNear(from: HTMLElement | null): HTMLElement | null {
 function collectDetailBackgroundFocusables(): HTMLElement[] {
   return Array.from(
     document.querySelectorAll<HTMLElement>(".background-toggle-button"),
-  ).filter(isDetailFocusable);
+  ).filter((el) => {
+    if (!isDetailFocusable(el)) return false;
+    // When the toggle sits beside Play, it belongs to the actions ladder row.
+    if (
+      el.closest(
+        ".game-detail-actions, .catalog-game-detail-actions, .library-item-detail-actions",
+      )
+    ) {
+      return false;
+    }
+    return true;
+  });
 }
 
 function collectDetailStarFocusables(): HTMLElement[] {
@@ -689,19 +700,19 @@ function collectDetailStarFocusables(): HTMLElement[] {
   });
 }
 
-/** Primary actions on detail pages (Play / Mark owned / Edit / ⋮). */
+/** Primary actions on detail pages (Play / background / main-games / Edit / ⋮). */
 function collectDetailPrimaryFocusables(): HTMLElement[] {
   return Array.from(
     document.querySelectorAll<HTMLElement>(
       [
         ".game-detail-play-button",
-        ".game-detail-link-executable-button",
-        ".catalog-game-detail-mark-owned-button",
         ".library-item-detail-play-btn",
+        ".game-detail-actions .background-toggle-button",
+        ".catalog-game-detail-actions .background-toggle-button",
+        ".library-item-detail-actions .background-toggle-button",
+        ".library-item-detail-actions .main-games-toggle-button",
         ".game-detail-edit-button",
-        ".library-item-detail-edit-button",
         ".game-detail-dropdown-menu .dropdown-menu-button",
-        ".library-item-detail-dropdown-menu .dropdown-menu-button",
       ].join(","),
     ),
   ).filter(isDetailFocusable);
@@ -749,7 +760,16 @@ function detailLadderLevelOf(el: HTMLElement | null): DetailLadderLevel | null {
   ) {
     return "header";
   }
-  if (el.classList.contains("background-toggle-button")) return "background";
+  if (el.classList.contains("background-toggle-button")) {
+    if (
+      el.closest(
+        ".game-detail-actions, .catalog-game-detail-actions, .library-item-detail-actions",
+      )
+    ) {
+      return "actions";
+    }
+    return "background";
+  }
   if (
     el.closest(".star-rating--overlay-trigger") ||
     el.closest(".star-rating") ||
@@ -817,6 +837,15 @@ function nextPopulatedDetailLadderLevel(
     if (collectDetailLadderLevel(level).length > 0) return level;
   }
   return null;
+}
+
+/** Last populated ladder rung (Play or summary, depending on skin order). */
+function focusDetailLadderBottom(): boolean {
+  const order = detailLadderOrder();
+  for (let i = order.length - 1; i >= 0; i--) {
+    if (focusDetailLadderLevel(order[i]!, "first")) return true;
+  }
+  return false;
 }
 
 function focusDetailLadderLevel(
@@ -951,6 +980,60 @@ function collectDetailCoverStripFocusables(strip: HTMLElement): HTMLElement[] {
       ".games-list-cover[role='button'], .games-list-cover[tabindex]",
     ),
   ).filter((el) => isVisible(el) && !el.closest("[inert]") && !el.hasAttribute("disabled"));
+}
+
+/**
+ * Collection-like detail multi-column grids (subcollections + games).
+ * Not `.scrollable-section` carousels — those use the horizontal-strip path.
+ */
+const DETAIL_GAMES_GRID_SELECTOR =
+  ".library-item-detail-games-list, .library-item-detail-subcollections-grid";
+
+function detailGamesGridRootFrom(el: HTMLElement | null): HTMLElement | null {
+  if (!el || !isItemDetailPage()) return null;
+  return el.closest(DETAIL_GAMES_GRID_SELECTOR) as HTMLElement | null;
+}
+
+function collectDetailGamesGridFocusables(grid: HTMLElement): HTMLElement[] {
+  return Array.from(
+    grid.querySelectorAll<HTMLElement>(
+      ".games-list-cover[role='button'], .games-list-cover[tabindex]",
+    ),
+  ).filter((el) => isVisible(el) && !el.closest("[inert]") && !el.hasAttribute("disabled"));
+}
+
+/** Populated detail grids in DOM order (subcollections → games). */
+function collectDetailGamesGridRoots(): HTMLElement[] {
+  const detailRoot = document.querySelector(".library-item-detail-page-shell");
+  if (!detailRoot) return [];
+  return Array.from(
+    detailRoot.querySelectorAll<HTMLElement>(DETAIL_GAMES_GRID_SELECTOR),
+  ).filter((root) => collectDetailGamesGridFocusables(root).length > 0);
+}
+
+/** PS3 context-rail collection detail: Up/Down step via fixed-focal events. */
+function isDetailFixedFocalGamesList(): boolean {
+  return !!document.querySelector(
+    [
+      ".library-item-detail-page-shell .games-list-container--fixed-focal",
+      ".library-item-detail-page-shell .fixed-focal-games-list",
+    ].join(","),
+  );
+}
+
+function focusDetailGamesGrid(
+  prefer: "first" | "last" = "first",
+  gridIndex: number = 0,
+): boolean {
+  const grids = collectDetailGamesGridRoots();
+  const grid = grids[gridIndex];
+  if (!grid) return false;
+  const covers = collectDetailGamesGridFocusables(grid);
+  if (covers.length === 0) return false;
+  const target =
+    prefer === "last" ? covers[covers.length - 1]! : covers[0]!;
+  focusElement(target);
+  return true;
 }
 
 type DetailHorizontalStrip =
@@ -1553,8 +1636,9 @@ export function installSmartTvRemoteKeys(
       focusIntoActiveUiLayer();
       return;
     }
-    // Detail pages have no fixed-focal content rail — "content" zone would trap the remote.
-    if (isItemDetailPage()) {
+    // Most detail pages have no fixed-focal rail — "content" zone would trap the remote.
+    // Collection-like PS3 context rail is the exception (Up/Down step the list).
+    if (isItemDetailPage() && !isDetailFixedFocalGamesList()) {
       zone = "chrome";
       return;
     }
@@ -2077,6 +2161,12 @@ export function installSmartTvRemoteKeys(
             return;
           }
           if (direction === "left") {
+            // Detail context rail: Left returns to Play / actions ladder.
+            if (isItemDetailPage()) {
+              zone = "chrome";
+              if (focusDetailLadderLevel("actions", "first")) return;
+              if (focusDetailLadderLevel("summary", "first")) return;
+            }
             enterChrome();
           }
           return;
@@ -2437,8 +2527,7 @@ export function installSmartTvRemoteKeys(
             return;
           }
           if (direction === "up") {
-            if (focusDetailLadderLevel("summary", "first")) return;
-            if (focusDetailLadderLevel("actions", "first")) return;
+            if (focusDetailLadderBottom()) return;
           }
           if (direction === "down") {
             const strips = collectDetailHorizontalStrips();
@@ -2452,7 +2541,7 @@ export function installSmartTvRemoteKeys(
           }
         }
 
-        // Down from Play / summary → media strip (don't jump to similar covers).
+        // Down from Play / summary → media strip, then collection games grid.
         if (
           direction === "down" &&
           current &&
@@ -2471,6 +2560,130 @@ export function installSmartTvRemoteKeys(
               return;
             }
             focusElement(geometric);
+            return;
+          }
+          // PS3 collection context rail: enter fixed-focal content zone.
+          if (isDetailFixedFocalGamesList()) {
+            enterContent();
+            return;
+          }
+          // Collection-like detail: subcollections / games grid (not similar strips).
+          if (focusDetailGamesGrid("first", 0)) return;
+        }
+
+        // Collection-like detail: multi-column games / subcollections grids.
+        // Scope navigation to covers in the same grid so D-pad stays linear
+        // (global geometric pick jumps to Play / tabs / other sections).
+        const gamesGrid = detailGamesGridRootFrom(current);
+        const gridCover = coverFocusFrom(current);
+        if (gamesGrid && gridCover && gamesGrid.contains(gridCover)) {
+          // PS3 fixed-focal rail inside the games list: step selection, don't geometry-hop.
+          if (
+            gridCover.closest(
+              ".games-list-container--fixed-focal, .fixed-focal-games-list",
+            )
+          ) {
+            if (direction === "left") {
+              zone = "chrome";
+              if (focusDetailLadderLevel("actions", "first")) return;
+              if (focusDetailLadderLevel("summary", "first")) return;
+              return;
+            }
+            if (direction === "up" || direction === "down") {
+              zone = "content";
+              blurToContent();
+              document.dispatchEvent(
+                new CustomEvent("mhg:fixed-focal-step", {
+                  detail: { direction: direction === "down" ? 1 : -1 },
+                }),
+              );
+              return;
+            }
+            return;
+          }
+
+          const gridCovers = collectDetailGamesGridFocusables(gamesGrid);
+          if (gridCovers.length > 0) {
+            const nextCover = pickNextInSet(gridCovers, gridCover, direction);
+            if (nextCover) {
+              focusElement(nextCover);
+              return;
+            }
+            if (
+              (direction === "up" ||
+                direction === "down" ||
+                direction === "left" ||
+                direction === "right") &&
+              nudgeScrollParentForDirection(gridCover, direction)
+            ) {
+              window.requestAnimationFrame(() => {
+                const retry = pickNextInSet(
+                  collectDetailGamesGridFocusables(gamesGrid),
+                  coverFocusFrom(
+                    document.activeElement instanceof HTMLElement
+                      ? document.activeElement
+                      : gridCover,
+                  ),
+                  direction,
+                );
+                if (retry) {
+                  focusElement(retry);
+                  return;
+                }
+                if (direction === "up" || direction === "down") {
+                  const grids = collectDetailGamesGridRoots();
+                  const gridIdx = grids.indexOf(gamesGrid);
+                  if (direction === "up") {
+                    if (gridIdx > 0 && focusDetailGamesGrid("last", gridIdx - 1)) {
+                      return;
+                    }
+                    if (focusDetailLadderBottom()) return;
+                  } else {
+                    if (
+                      gridIdx >= 0 &&
+                      gridIdx + 1 < grids.length &&
+                      focusDetailGamesGrid("first", gridIdx + 1)
+                    ) {
+                      return;
+                    }
+                    const strips = collectDetailHorizontalStrips().filter(
+                      (s) => s.kind === "covers",
+                    );
+                    if (strips.length > 0) {
+                      focusDetailHorizontalStrip(strips[0]!, 0);
+                    }
+                  }
+                }
+              });
+              return;
+            }
+            if (direction === "up") {
+              const grids = collectDetailGamesGridRoots();
+              const gridIdx = grids.indexOf(gamesGrid);
+              if (gridIdx > 0 && focusDetailGamesGrid("last", gridIdx - 1)) return;
+              if (focusDetailLadderBottom()) return;
+              return;
+            }
+            if (direction === "down") {
+              const grids = collectDetailGamesGridRoots();
+              const gridIdx = grids.indexOf(gamesGrid);
+              if (
+                gridIdx >= 0 &&
+                gridIdx + 1 < grids.length &&
+                focusDetailGamesGrid("first", gridIdx + 1)
+              ) {
+                return;
+              }
+              const strips = collectDetailHorizontalStrips().filter(
+                (s) => s.kind === "covers",
+              );
+              if (strips.length > 0) {
+                focusDetailHorizontalStrip(strips[0]!, 0);
+                return;
+              }
+              return;
+            }
+            // Left/Right at row edge — stay in the grid.
             return;
           }
         }
@@ -2508,9 +2721,15 @@ export function installSmartTvRemoteKeys(
                   return;
                 }
                 if (direction === "up") {
-                  // Above the first cover strip (no media): back to summary / Play.
-                  if (focusDetailLadderLevel("summary", "first")) return;
-                  if (focusDetailLadderLevel("actions", "first")) return;
+                  // Above first cover strip: collection games grid, else summary / Play.
+                  const grids = collectDetailGamesGridRoots();
+                  if (
+                    grids.length > 0 &&
+                    focusDetailGamesGrid("last", grids.length - 1)
+                  ) {
+                    return;
+                  }
+                  if (focusDetailLadderBottom()) return;
                   return;
                 }
                 // Past the last strip — stay.

@@ -102,6 +102,7 @@
         "tvStarRatingOverlay": "TV: open star rating in full-screen overlay",
         "tvDetailSummaryBeforeActions": "TV: show summary above the Play row on game detail",
         "tvRecommendedBrowsePreview": "TV: Recommended top panel updates with the focused game (through summary)",
+
         "disableTitleTooltips": "隐藏工具提示"
       }
     }
@@ -323,6 +324,7 @@
     "less": "更少",
     "showBackground": "显示背景",
     "hideBackground": "隐藏背景",
+    "back": "返回",
     "cancel": "取消",
     "save": "保存",
     "saving": "保存中...",

@@ -6,6 +6,7 @@ import { useSkin } from "../contexts/SkinContext";
 import { TopDockSlotProvider } from "../contexts/TopDockSlotContext";
 import { LibrarySidebarLayoutProvider } from "../contexts/LibrarySidebarLayoutContext";
 import type { CollectionItem, GameItem, GameLibrarySection, ViewMode } from "../types";
+import { isSmartTvBrowser } from "../utils/smartTv";
 import { useLibrariesShellState } from "./useLibrariesShellState";
 
 function activeCollectionShortcutIdFromPathname(pathname: string): string | null {
@@ -110,6 +111,15 @@ export default function MainAppLayout({
     [pathname]
   );
 
+  /*
+   * Classic (non-compact) collection-like detail on Smart TV moves hide-background
+   * and main-games toggles beside Play — keep them out of the shell libraries bar.
+   */
+  const hideCollectionDetailChromeToggles =
+    isSmartTvBrowser() &&
+    isCollectionLikeDetailRoute &&
+    !activeSkinWeb.compactCollectionLikeDetail;
+
   const outletContext = useMemo<MainAppOutletContext>(
     () => ({
       onGameClick,
@@ -170,12 +180,14 @@ export default function MainAppLayout({
         onAddGameClick={onAddGameClick}
         showMainGamesToggle={
           !isGameDetailRoute &&
+          !hideCollectionDetailChromeToggles &&
           (activeLibrary?.key === "library" || isCollectionLikeDetailRoute) &&
           (viewMode === "grid" || viewMode === "detail")
         }
         mainGamesOnly={mainGamesOnly}
         onMainGamesOnlyChange={setMainGamesOnly}
         rightActionsBeforeMainGames={topBarBeforeMainGamesActions}
+        hideBackgroundToggle={hideCollectionDetailChromeToggles}
         rightActions={
           <>
             {topBarRightActions}

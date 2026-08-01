@@ -295,6 +295,7 @@ function CatalogGameDetailContent({
           viewMode="grid"
           onViewModeChange={() => {}}
           hideBackgroundToggle={true}
+          showDetailBackButton={activeSkinWeb.phoneDetailBackBesideBackground}
         />
       </div>
       <div className="catalog-game-detail-container">
@@ -419,6 +420,7 @@ function CatalogGameDetailContent({
                 </div>
               ) : null}
               <div className="game-detail-actions">
+                {!isSmartTvBrowser() ? (
                 <button
                   onClick={onMarkAsOwned}
                   disabled={markingAsOwned}
@@ -435,6 +437,7 @@ function CatalogGameDetailContent({
                   </svg>
                   {markingAsOwned ? t("catalogGameDetail.adding") : t("catalogGameDetail.add")}
                 </button>
+                ) : null}
               </div>
               </div>
               {!summaryBeforeActions && game.summary ? (

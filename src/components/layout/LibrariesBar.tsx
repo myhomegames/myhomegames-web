@@ -6,6 +6,7 @@ import { useLoading } from "../../contexts/LoadingContext";
 import CoverSizeSlider from "../ui/CoverSizeSlider";
 import ViewModeSelector from "../ui/ViewModeSelector";
 import BackgroundToggle from "../ui/BackgroundToggle";
+import DetailBackButton from "../ui/DetailBackButton";
 import NewGamesToggle from "../ui/NewGamesToggle";
 import MainGamesToggle from "../ui/MainGamesToggle";
 import DropdownMenu from "../common/DropdownMenu";
@@ -226,6 +227,11 @@ type LibrariesBarProps = {
   viewMode?: ViewMode;
   onViewModeChange?: (mode: ViewMode) => void;
   hideBackgroundToggle?: boolean;
+  /**
+   * Phone detail (skin `web.phoneDetailBackBesideBackground`): Back control
+   * beside the background toggle in the actions cluster.
+   */
+  showDetailBackButton?: boolean;
   onReloadMetadata?: () => Promise<void>;
   /** Opens Add Game modal from shell/header flow when available. */
   onAddGameClick?: () => void;
@@ -278,6 +284,7 @@ export default function LibrariesBar({
   viewMode = "grid",
   onViewModeChange,
   hideBackgroundToggle = false,
+  showDetailBackButton = false,
   onReloadMetadata,
   onAddGameClick,
   showNewGamesToggle = false,
@@ -867,6 +874,10 @@ export default function LibrariesBar({
   };
 
   const topRightToolDock = activeSkinWeb.topRightToolDock;
+  const smartTv = isSmartTvBrowser();
+  const isPhoneLayout = usePhoneLayout();
+
+  const showDetailBack = showDetailBackButton && isPhoneLayout;
 
   const showIconCluster =
     (hasBackground && !hideBackgroundToggle) ||
@@ -1122,8 +1133,6 @@ export default function LibrariesBar({
   /** Vertical sidebar list inside the persistent shell — native column scroll, not horizontal strip clamp. */
   const verticalPersistentSidebar =
     activeSkinWeb.persistentLibraryShell && activeSkinWeb.libraryPagesVerticalList;
-  const smartTv = isSmartTvBrowser();
-  const isPhoneLayout = usePhoneLayout();
   /* Add Game, view mode, cover slider, metadata ⋮ — hidden on Smart TV and phone. */
   const hideLibraryChromeTools = smartTv || isPhoneLayout;
   const showSidebarLibrariesMenu =
@@ -1709,6 +1718,21 @@ export default function LibrariesBar({
             )}
           </>
         )}
+
+        {showDetailBack ? (
+          <div className="mhg-libraries-detail-back-container">
+            <DetailBackButton
+              onClick={() => {
+                const idx = (window.history.state as { idx?: number } | null)?.idx;
+                if (typeof idx === "number" && idx > 0) {
+                  navigate(-1);
+                } else {
+                  navigate("/", { replace: true });
+                }
+              }}
+            />
+          </div>
+        ) : null}
 
         <div className="mhg-libraries-actions" ref={actionsRef}>
           {showIconCluster ? (

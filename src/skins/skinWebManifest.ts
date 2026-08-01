@@ -89,6 +89,11 @@ export type SkinWebManifest = {
    * update as the remote moves between covers.
    */
   tvRecommendedBrowsePreview: boolean;
+  /**
+   * On phone game/catalog detail, show a Back control beside the background
+   * toggle in the libraries bar actions (or alone if the toggle is moved).
+   */
+  phoneDetailBackBesideBackground: boolean;
   /** Do not show hover tooltips anywhere in the UI. */
   disableTitleTooltips: boolean;
   /**
@@ -119,6 +124,7 @@ export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
   tvStarRatingOverlay: false,
   tvDetailSummaryBeforeActions: false,
   tvRecommendedBrowsePreview: false,
+  phoneDetailBackBesideBackground: false,
   disableTitleTooltips: false,
   collapsibleLibrarySidebar: false,
 };
@@ -144,9 +150,23 @@ export const SKIN_WEB_KEYS = [
   "tvStarRatingOverlay",
   "tvDetailSummaryBeforeActions",
   "tvRecommendedBrowsePreview",
+  "phoneDetailBackBesideBackground",
   "disableTitleTooltips",
   "collapsibleLibrarySidebar",
 ] as const satisfies readonly (keyof SkinWebManifest)[];
+
+/**
+ * Skin-manifest layout chrome — applied from skin.json / hydrate, not shown as
+ * Settings checkboxes (authors set these; users should not toggle them ad hoc).
+ */
+export const SKIN_WEB_SETTINGS_HIDDEN_KEYS = new Set<keyof SkinWebManifest>([
+  "phoneDetailBackBesideBackground",
+]);
+
+/** Keys listed as checkboxes under Settings → Skin options. */
+export const SKIN_WEB_SETTINGS_OPTION_KEYS = SKIN_WEB_KEYS.filter(
+  (key) => !SKIN_WEB_SETTINGS_HIDDEN_KEYS.has(key),
+);
 
 /** @deprecated renamed to `SKIN_WEB_KEYS`, kept as alias to avoid churning internal imports. */
 const WEB_KEYS = SKIN_WEB_KEYS;

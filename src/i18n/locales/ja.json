@@ -102,6 +102,7 @@
         "tvStarRatingOverlay": "TV: open star rating in full-screen overlay",
         "tvDetailSummaryBeforeActions": "TV: show summary above the Play row on game detail",
         "tvRecommendedBrowsePreview": "TV: Recommended top panel updates with the focused game (through summary)",
+
         "disableTitleTooltips": "ツールチップを非表示"
       }
     }
@@ -323,6 +324,7 @@
     "less": "少なく",
     "showBackground": "背景を表示",
     "hideBackground": "背景を非表示",
+    "back": "戻る",
     "cancel": "キャンセル",
     "save": "保存",
     "saving": "保存中...",

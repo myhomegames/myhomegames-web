@@ -31,6 +31,7 @@ import { useSettings } from "../../contexts/SettingsContext";
 import { useSkin } from "../../contexts/SkinContext";
 import { useTagLists } from "../../contexts/TagListsContext";
 import { isSmartTvBrowser } from "../../utils/smartTv";
+import { usePhoneLayout } from "../../hooks/usePhoneLayout";
 import { useLibraryGames } from "../../contexts/LibraryGamesContext";
 import { useCollections } from "../../contexts/CollectionsContext";
 import type { MainAppOutletContext } from "../../layouts/MainAppLayout";
@@ -248,12 +249,15 @@ function GameDetailContent({
       : undefined;
   const summaryBeforeActions =
     activeSkinWeb.tvDetailSummaryBeforeActions && isSmartTvBrowser();
+  const isPhoneLayout = usePhoneLayout();
   const { tagLabels, tagLabelsReady } = useTagLists();
   const categoriesList = useMemo(
     () => Array.from(tagLabels.categories.entries()).map(([id, title]) => ({ id, title })),
     [tagLabels.categories]
   );
   const { hasBackground, isBackgroundVisible, setBackgroundVisible } = useBackground();
+  const backgroundToggleBesidePlay =
+    hasBackground && (isSmartTvBrowser() || isPhoneLayout);
   const { games: libraryGames, updateGame } = useLibraryGames();
   const { collectionGameIds, isLoading: collectionsLoading } = useCollections();
   const [collectionsWithSlideItems, setCollectionsWithSlideItems] = useState<
@@ -265,6 +269,7 @@ function GameDetailContent({
   const [linkSourceCollectionLike, setLinkSourceCollectionLike] = useState<CollectionItem | null>(null);
   const topBarBackgroundAction: ReactNode = useMemo(() => {
     if (
+      backgroundToggleBesidePlay ||
       !hasBackground ||
       (!activeSkinWeb.persistentLibraryShell && !activeSkinWeb.topRightToolDock)
     ) {
@@ -280,6 +285,7 @@ function GameDetailContent({
   }, [
     activeSkinWeb.persistentLibraryShell,
     activeSkinWeb.topRightToolDock,
+    backgroundToggleBesidePlay,
     hasBackground,
     isBackgroundVisible,
     setBackgroundVisible,
@@ -589,10 +595,15 @@ function GameDetailContent({
           coverSize={coverSize}
           onCoverSizeChange={handleCoverSizeChange}
           hideBackgroundToggle={
-            activeSkinWeb.persistentLibraryShell || activeSkinWeb.topRightToolDock
+            backgroundToggleBesidePlay ||
+            activeSkinWeb.persistentLibraryShell ||
+            activeSkinWeb.topRightToolDock
           }
+          showDetailBackButton={activeSkinWeb.phoneDetailBackBesideBackground}
           rightActionsBeforeMainGames={
-            activeSkinWeb.topRightToolDock && !activeSkinWeb.persistentLibraryShell
+            !backgroundToggleBesidePlay &&
+            activeSkinWeb.topRightToolDock &&
+            !activeSkinWeb.persistentLibraryShell
               ? topBarBackgroundAction
               : undefined
           }
@@ -751,7 +762,7 @@ function GameDetailContent({
                     </svg>
                     {t("common.play")}
                   </button>
-                ) : (
+                ) : !isSmartTvBrowser() ? (
                     <button
                       onClick={() => setIsManageInstallationModalOpen(true)}
                       className="game-detail-link-executable-button"
@@ -772,7 +783,15 @@ function GameDetailContent({
                       </svg>
                       {t("gameDetail.linkExecutable")}
                     </button>
-                )}
+                ) : null}
+                {backgroundToggleBesidePlay ? (
+                  <div className="game-detail-background-toggle">
+                    <BackgroundToggle
+                      isVisible={isBackgroundVisible}
+                      onChange={setBackgroundVisible}
+                    />
+                  </div>
+                ) : null}
                 <Tooltip text={t("common.edit")} delay={200}>
                   <button
                     onClick={() => editGame.openEditModal(game)}

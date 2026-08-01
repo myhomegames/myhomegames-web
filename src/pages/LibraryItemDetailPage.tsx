@@ -17,6 +17,7 @@ import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
 import { useCatalogGamesForTag, type CatalogTagKey } from "../hooks/useCatalogGamesForTag";
 import GamesList from "../components/games/GamesList";
 import Cover from "../components/games/Cover";
+import GameSummaryOverlay from "../components/games/GameSummaryOverlay";
 import LibrariesBar from "../components/layout/LibrariesBar";
 import StarRating from "../components/common/StarRating";
 import Summary from "../components/common/Summary";
@@ -31,6 +32,7 @@ import { isSmartTvBrowser } from "../utils/smartTv";
 import { dispatchDeveloperOrPublisherUpdated, mergeCompanyProfileOntoItem, type CompanyProfilePatch, dispatchCollectionLikeChildLinked } from "../utils/companyProfileSync";
 import { collectionInfoFromApi, hasCompanyProfileFields, pickCompanyProfileFields } from "../utils/companyProfile";
 import BackgroundToggle from "../components/ui/BackgroundToggle";
+import MainGamesToggle from "../components/ui/MainGamesToggle";
 import NewGamesToggle from "../components/ui/NewGamesToggle";
 import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
 import { navigateToLibraryRoot } from "../utils/libraryNavigation";
@@ -1214,6 +1216,17 @@ function LibraryItemDetailContent({
   const contextRailLayout = compactDetail && activeSkinWeb.verticalCoverAlignment;
   const summaryBeforeActions =
     activeSkinWeb.tvDetailSummaryBeforeActions && isSmartTvBrowser();
+  const [summaryOverlayOpen, setSummaryOverlayOpen] = useState(false);
+  const openSummaryOverlay =
+    activeSkinWeb.tvSummaryOverlay && isSmartTvBrowser()
+      ? () => setSummaryOverlayOpen(true)
+      : undefined;
+  /*
+   * Smart TV classic collection-like detail: hide-background + main-games toggles
+   * sit beside Play (same pattern as game detail), not in the libraries bar.
+   * Compact layouts keep them in the chrome bar (no hero Play row).
+   */
+  const detailTogglesBesidePlay = isSmartTvBrowser() && !compactDetail;
   const contextRailViewTransitions = contextRailViewTransitionsEnabled(activeSkinWeb);
   const contextRailNavState = readContextRailNavState(routerLocation.state);
   const indexPeekSnapshot = contextRailNavState?.contextRailIndexPeek;
@@ -1250,7 +1263,10 @@ function LibraryItemDetailContent({
   const showDeleteInMenu = resourceType === "developers" || resourceType === "publishers";
   const showCompactTopActions = compactDetail && !!item && (isCollection || showDeleteInMenu);
   const showTopBarBackgroundAction =
-    isCollection && hasBackground && (compactDetail || activeSkinWeb.persistentLibraryShell);
+    isCollection &&
+    hasBackground &&
+    !detailTogglesBesidePlay &&
+    (compactDetail || activeSkinWeb.persistentLibraryShell);
   const compactBackgroundAction = useMemo(
     () =>
       showTopBarBackgroundAction ? (
@@ -1827,13 +1843,15 @@ function LibraryItemDetailContent({
           showNewGames={showNewGames}
           onShowNewGamesChange={onShowNewGamesChange ?? (() => {})}
           showNewGamesLabel={showNewGamesLabel}
-          showMainGamesToggle={viewMode === "grid" && sortedGames.length > 0}
+          showMainGamesToggle={
+            viewMode === "grid" && sortedGames.length > 0 && !detailTogglesBesidePlay
+          }
           mainGamesOnly={mainGamesOnly}
           onMainGamesOnlyChange={onMainGamesOnlyChange}
           rightActionsBeforeMainGames={
             contextRailLayout ? contextRailDockActions : beforeMainGamesTopActions
           }
-          hideBackgroundToggle={showTopBarBackgroundAction}
+          hideBackgroundToggle={showTopBarBackgroundAction || detailTogglesBesidePlay}
           rightActions={contextRailLayout ? null : compactTopActions}
         />
       </div>
@@ -1912,6 +1930,7 @@ function LibraryItemDetailContent({
                                   <Summary
                                     summary={item.summary}
                                     maxLines={summaryMaxLines}
+                                    onOpenOverlay={openSummaryOverlay}
                                   />
                                 </div>
                               ) : null}
@@ -1931,6 +1950,25 @@ function LibraryItemDetailContent({
                                     {t("common.play")}
                                   </button>
                                 )}
+                                {detailTogglesBesidePlay && hasBackground ? (
+                                  <div className="library-item-detail-background-toggle">
+                                    <BackgroundToggle
+                                      isVisible={isBackgroundVisible}
+                                      onChange={setBackgroundVisible}
+                                    />
+                                  </div>
+                                ) : null}
+                                {detailTogglesBesidePlay &&
+                                viewMode === "grid" &&
+                                sortedGames.length > 0 &&
+                                onMainGamesOnlyChange ? (
+                                  <div className="library-item-detail-main-games-toggle">
+                                    <MainGamesToggle
+                                      mainGamesOnly={mainGamesOnly}
+                                      onChange={onMainGamesOnlyChange}
+                                    />
+                                  </div>
+                                ) : null}
                                 <Tooltip text={t("common.edit")} delay={200}>
                                   <button onClick={onEditModalOpen} className="library-item-detail-edit-button">
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -2036,6 +2074,7 @@ function LibraryItemDetailContent({
                             <Summary
                               summary={item.summary}
                               maxLines={summaryMaxLines}
+                              onOpenOverlay={openSummaryOverlay}
                             />
                           </div>
                         ) : null}
@@ -2338,6 +2377,15 @@ function LibraryItemDetailContent({
           </main>
         </div>
       </div>
+      {item?.summary ? (
+        <GameSummaryOverlay
+          open={summaryOverlayOpen}
+          onClose={() => setSummaryOverlayOpen(false)}
+          title={item.title}
+          cover={itemCover}
+          summary={item.summary}
+        />
+      ) : null}
     </>
   );
 }

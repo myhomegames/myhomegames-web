@@ -102,6 +102,7 @@
         "tvStarRatingOverlay": "TV: open star rating in full-screen overlay",
         "tvDetailSummaryBeforeActions": "TV: show summary above the Play row on game detail",
         "tvRecommendedBrowsePreview": "TV: Recommended top panel updates with the focused game (through summary)",
+
         "disableTitleTooltips": "Masquer les infobulles"
       }
     }
@@ -323,6 +324,7 @@
     "less": "Moins",
     "showBackground": "Afficher l'arrière-plan",
     "hideBackground": "Masquer l'arrière-plan",
+    "back": "Retour",
     "cancel": "Annuler",
     "save": "Enregistrer",
     "saving": "Enregistrement...",
