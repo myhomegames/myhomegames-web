@@ -591,6 +591,7 @@ function GameDetailContent({
           hideBackgroundToggle={
             activeSkinWeb.persistentLibraryShell || activeSkinWeb.topRightToolDock
           }
+          showDetailBackButton={activeSkinWeb.phoneDetailBackBesideBackground}
           rightActionsBeforeMainGames={
             activeSkinWeb.topRightToolDock && !activeSkinWeb.persistentLibraryShell
               ? topBarBackgroundAction
@@ -751,7 +752,7 @@ function GameDetailContent({
                     </svg>
                     {t("common.play")}
                   </button>
-                ) : (
+                ) : !isSmartTvBrowser() ? (
                     <button
                       onClick={() => setIsManageInstallationModalOpen(true)}
                       className="game-detail-link-executable-button"
@@ -772,7 +773,7 @@ function GameDetailContent({
                       </svg>
                       {t("gameDetail.linkExecutable")}
                     </button>
-                )}
+                ) : null}
                 <Tooltip text={t("common.edit")} delay={200}>
                   <button
                     onClick={() => editGame.openEditModal(game)}

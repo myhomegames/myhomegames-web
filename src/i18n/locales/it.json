@@ -137,6 +137,7 @@
         "tvStarRatingOverlay": "TV: apri le stelline in overlay a tutto schermo",
         "tvDetailSummaryBeforeActions": "TV: mostra il summary sopra la riga Play nel dettaglio gioco",
         "tvRecommendedBrowsePreview": "TV: pannello in alto nei Consigliati aggiornato dal gioco in focus (fino al summary)",
+        "phoneDetailBackBesideBackground": "Telefono: pulsante Indietro accanto a nascondi/mostra sfondo nel dettaglio gioco",
         "disableTitleTooltips": "Nascondi i tooltip"
       }
     }
@@ -403,6 +404,7 @@
     "less": "Meno",
     "showBackground": "Mostra sfondo",
     "hideBackground": "Nascondi sfondo",
+    "back": "Indietro",
     "cancel": "Annulla",
     "exitAppTitle": "Uscire da MyHomeGames?",
     "exitAppMessage": "Vuoi chiudere l'applicazione?",

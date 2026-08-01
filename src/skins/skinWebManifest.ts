@@ -89,6 +89,11 @@ export type SkinWebManifest = {
    * update as the remote moves between covers.
    */
   tvRecommendedBrowsePreview: boolean;
+  /**
+   * On phone game/catalog detail, show a Back control beside the background
+   * toggle in the libraries bar actions.
+   */
+  phoneDetailBackBesideBackground: boolean;
   /** Do not show hover tooltips anywhere in the UI. */
   disableTitleTooltips: boolean;
   /**
@@ -119,6 +124,7 @@ export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
   tvStarRatingOverlay: false,
   tvDetailSummaryBeforeActions: false,
   tvRecommendedBrowsePreview: false,
+  phoneDetailBackBesideBackground: false,
   disableTitleTooltips: false,
   collapsibleLibrarySidebar: false,
 };
@@ -144,6 +150,7 @@ export const SKIN_WEB_KEYS = [
   "tvStarRatingOverlay",
   "tvDetailSummaryBeforeActions",
   "tvRecommendedBrowsePreview",
+  "phoneDetailBackBesideBackground",
   "disableTitleTooltips",
   "collapsibleLibrarySidebar",
 ] as const satisfies readonly (keyof SkinWebManifest)[];

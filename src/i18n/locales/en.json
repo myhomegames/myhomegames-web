@@ -137,6 +137,7 @@
         "tvStarRatingOverlay": "TV: open star rating in full-screen overlay",
         "tvDetailSummaryBeforeActions": "TV: show summary above the Play row on game detail",
         "tvRecommendedBrowsePreview": "TV: Recommended top panel updates with the focused game (through summary)",
+        "phoneDetailBackBesideBackground": "Phone: Back button beside hide/show background on game detail",
         "disableTitleTooltips": "Hide tooltips"
       }
     }
@@ -403,6 +404,7 @@
     "less": "Less",
     "showBackground": "Show background",
     "hideBackground": "Hide background",
+    "back": "Back",
     "cancel": "Cancel",
     "exitAppTitle": "Exit MyHomeGames?",
     "exitAppMessage": "Do you want to close the application?",

@@ -689,14 +689,12 @@ function collectDetailStarFocusables(): HTMLElement[] {
   });
 }
 
-/** Primary actions on detail pages (Play / Mark owned / Edit / ⋮). */
+/** Primary actions on detail pages (Play / Edit / ⋮). Add / Link executable are TV-hidden. */
 function collectDetailPrimaryFocusables(): HTMLElement[] {
   return Array.from(
     document.querySelectorAll<HTMLElement>(
       [
         ".game-detail-play-button",
-        ".game-detail-link-executable-button",
-        ".catalog-game-detail-mark-owned-button",
         ".library-item-detail-play-btn",
         ".game-detail-edit-button",
         ".library-item-detail-edit-button",
