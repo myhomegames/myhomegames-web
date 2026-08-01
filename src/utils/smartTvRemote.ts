@@ -848,6 +848,56 @@ function isAppHeaderSearchField(field: HTMLElement): boolean {
   );
 }
 
+function isSearchQueryField(field: HTMLElement): boolean {
+  return (
+    field.classList.contains("mhg-search-input") ||
+    field.id === "search-input" ||
+    field.getAttribute("role") === "searchbox"
+  );
+}
+
+/** Open header/sidebar search dropdown rows (recent searches, results, view-all). */
+function collectSearchDropdownFocusables(from: HTMLElement | null = null): HTMLElement[] {
+  const root =
+    (from?.closest(".search-bar-container") as HTMLElement | null) ??
+    document.querySelector<HTMLElement>(".search-bar-container:focus-within") ??
+    document.querySelector<HTMLElement>(".mhg-header .search-bar-container") ??
+    document.querySelector<HTMLElement>("[data-mhg-sidebar-search-dialog] .search-bar-container");
+  if (!root) return [];
+  const dropdown = root.querySelector<HTMLElement>(
+    ".search-dropdown, .mhg-dropdown.search-dropdown",
+  );
+  if (!dropdown || !isVisible(dropdown)) return [];
+  return Array.from(
+    dropdown.querySelectorAll<HTMLElement>(
+      ".search-dropdown-item, .search-view-all-button",
+    ),
+  ).filter(
+    (el) =>
+      isVisible(el) &&
+      !el.classList.contains("search-recent-remove") &&
+      !el.closest(".search-recent-remove"),
+  );
+}
+
+function searchDropdownItemFrom(el: HTMLElement | null): HTMLElement | null {
+  if (!el) return null;
+  if (el.classList.contains("search-view-all-button")) return el;
+  const item = el.closest(".search-dropdown-item") as HTMLElement | null;
+  if (item && !item.classList.contains("search-recent-remove")) return item;
+  return null;
+}
+
+function searchInputFromDropdownItem(el: HTMLElement): HTMLElement | null {
+  return (
+    el
+      .closest(".search-bar-container")
+      ?.querySelector<HTMLElement>(
+        ".mhg-search-input, #search-input, [role='searchbox']",
+      ) ?? null
+  );
+}
+
 /** Screenshot / video strip on game & catalog detail. */
 function collectMediaGalleryFocusables(): HTMLElement[] {
   return Array.from(
@@ -1602,6 +1652,16 @@ export function installSmartTvRemoteKeys(
   };
 
   const leaveEditable = (field: HTMLElement, direction: Direction | null) => {
+    // Searchbox with open recent/results: Down enters the dropdown list.
+    if (direction === "down" && isSearchQueryField(field)) {
+      const dropdownItems = collectSearchDropdownFocusables(field);
+      if (dropdownItems[0]) {
+        zone = "chrome";
+        focusElement(dropdownItems[0]);
+        return;
+      }
+    }
+
     // Detail header search: L/R stay in the logo ↔ search ↔ settings row; Down → bg toggle.
     if (isDetailHeaderSearchField(field) && direction) {
       zone = "chrome";
@@ -2018,6 +2078,35 @@ export function installSmartTvRemoteKeys(
         active && active !== document.body && active !== document.documentElement
           ? active
           : null;
+
+      // Header/sidebar search dropdown: Up/Down through recent searches & results.
+      const searchItem = searchDropdownItemFrom(current);
+      if (searchItem) {
+        const items = collectSearchDropdownFocusables(searchItem);
+        if (direction === "up" || direction === "down") {
+          const idx = items.indexOf(searchItem);
+          const safeIdx = idx >= 0 ? idx : 0;
+          if (direction === "up" && safeIdx <= 0) {
+            const input = searchInputFromDropdownItem(searchItem);
+            if (input) {
+              focusElement(input);
+              return;
+            }
+          }
+          const nextIdx =
+            direction === "down"
+              ? Math.min(items.length - 1, safeIdx + 1)
+              : Math.max(0, safeIdx - 1);
+          const next = items[nextIdx];
+          if (next && next !== searchItem) {
+            focusElement(next);
+            return;
+          }
+          return;
+        }
+        // L/R stay on the row (do not jump to play/⋮ chrome inside the item).
+        return;
+      }
 
       // Plex / GOG: libraries menu ↔ list toolbar ↔ cover grid ↔ A–Z index.
       // Toolbar (Tutto / sort / count) sits between header tabs and covers.
