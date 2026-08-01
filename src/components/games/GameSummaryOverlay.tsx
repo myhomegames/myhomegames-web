@@ -9,9 +9,13 @@ type GameSummaryOverlayProps = {
   open: boolean;
   onClose: () => void;
   title: string;
-  coverUrl: string | null | undefined;
+  /** Pre-built URL (games / catalog). */
+  coverUrl?: string | null;
+  /** Server cover path (collections / company-like). */
+  cover?: string | null;
   summary: string;
-  game: CatalogGame | GameItem;
+  /** When set, shows GameInfoBlock under the summary (games / catalog detail). */
+  game?: CatalogGame | GameItem;
 };
 
 const FIT_SCALE_MIN = 0.48;
@@ -34,7 +38,8 @@ function fitSummaryPanel(panel: HTMLElement) {
 }
 
 /**
- * Smart TV full-screen summary “page”: full-height cover left, full text + GameInfoBlock right.
+ * Smart TV full-screen summary “page”: full-height cover left, full text right
+ * (+ GameInfoBlock when `game` is provided).
  * Gated by skin `web.tvSummaryOverlay` at the call site. Close via Back / Escape (no chrome X).
  * Skin keeps ambient backdrop tint, hides sharp backdrop art + detail chrome via `data-mhg-summary-overlay`.
  * Type scales down so the whole page always fits the viewport (no panel scroll).
@@ -44,6 +49,7 @@ export default function GameSummaryOverlay({
   onClose,
   title,
   coverUrl,
+  cover,
   summary,
   game,
 }: GameSummaryOverlayProps) {
@@ -136,6 +142,7 @@ export default function GameSummaryOverlay({
         <div className="game-summary-overlay-cover">
           <Cover
             title={title}
+            cover={cover || undefined}
             coverUrl={coverUrl || undefined}
             width={420}
             height={630}
@@ -156,9 +163,11 @@ export default function GameSummaryOverlay({
         >
           <h2 className="game-summary-overlay-title">{title}</h2>
           <div className="game-summary-overlay-text">{summary}</div>
-          <div className="game-summary-overlay-info">
-            <GameInfoBlock game={game} />
-          </div>
+          {game ? (
+            <div className="game-summary-overlay-info">
+              <GameInfoBlock game={game} />
+            </div>
+          ) : null}
         </div>
       </div>
     </div>,
