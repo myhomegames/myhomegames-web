@@ -135,6 +135,59 @@ describe("ensureElementVisibleInScrollParents", () => {
     // Tile bottom 238 > parent bottom 200 → delta 50; pad 12 → scrollTop 50
     expect(scrollTop).toBe(50);
   });
+
+  it("snaps Recommended strip keyword into view above the focused cover", () => {
+    const page = document.createElement("div");
+    page.className = "recommended-page-scroll";
+    const parent = document.createElement("div");
+    const section = document.createElement("div");
+    section.className = "scrollable-section";
+    const header = document.createElement("div");
+    header.className = "scrollable-section-header";
+    const title = document.createElement("h2");
+    title.className = "scrollable-section-title";
+    title.textContent = "Action";
+    header.appendChild(title);
+    const tile = document.createElement("div");
+    tile.className = "games-list-item";
+    const cover = document.createElement("div");
+    cover.className = "games-list-cover";
+    tile.appendChild(cover);
+    section.append(header, tile);
+    parent.appendChild(section);
+    page.appendChild(parent);
+    document.body.appendChild(page);
+
+    Object.defineProperty(parent, "clientHeight", { value: 300, configurable: true });
+    Object.defineProperty(parent, "scrollHeight", { value: 1200, configurable: true });
+    let scrollTop = 400;
+    Object.defineProperty(parent, "scrollTop", {
+      configurable: true,
+      get: () => scrollTop,
+      set: (v: number) => {
+        scrollTop = v;
+      },
+    });
+
+    vi.spyOn(window, "getComputedStyle").mockImplementation(
+      () =>
+        ({
+          overflowY: "auto",
+          overflowX: "hidden",
+          paddingTop: "8px",
+        }) as CSSStyleDeclaration,
+    );
+    mockBox(parent, { top: 100, left: 0, width: 400, height: 300 });
+    // Keyword clipped above the scrollport; cover is already in view.
+    mockBox(header, { top: 40, left: 0, width: 400, height: 40 });
+    mockBox(cover, { top: 160, left: 0, width: 120, height: 160 });
+    mockBox(tile, { top: 160, left: 0, width: 120, height: 200 });
+
+    ensureElementVisibleInScrollParents(cover, 12);
+
+    // inset = paddingTop 8; deltaY = 40 - 100 - 8 = -68 → scrollTop 400 - 68 = 332
+    expect(scrollTop).toBe(332);
+  });
 });
 
 describe("nudgeScrollParentForDirection", () => {

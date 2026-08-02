@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { usePageRevealReady } from "../hooks/usePageRevealReady";
@@ -36,6 +36,7 @@ import {
   type RecommendedSectionsNavState,
 } from "../utils/recommendedSectionsCache";
 import { titleMatchesFilter } from "../utils/titleFilter";
+import { ensureElementVisibleInScrollParents } from "../utils/ensureVisibleInScrollParent";
 
 type RecommendedSection = {
   id: string;
@@ -112,7 +113,12 @@ export default function RecommendedPage({
     [catalogSearchEnabled, navigate, onGameClick, sections]
   );
   
-  useScrollRestoration(scrollContainerRef, undefined, !verticalStripsLayout);
+  useScrollRestoration(
+    scrollContainerRef,
+    undefined,
+    // Smart TV: always open with the first keyword visible (no mid-list restore).
+    !verticalStripsLayout && !isSmartTvBrowser(),
+  );
 
   const sectionsForDisplay = useMemo(() => {
     const q = titleFilterQuery.trim();
@@ -267,6 +273,14 @@ export default function RecommendedPage({
     return () => el.removeEventListener("scroll", pin);
   }, [verticalStripsLayout, isReady, stripRows.length]);
 
+  // Smart TV horizontal strips: open at top so the first keyword sits under the summary.
+  useLayoutEffect(() => {
+    if (!isSmartTvBrowser() || verticalStripsLayout || !isReady) return;
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    el.scrollTop = 0;
+  }, [isReady, verticalStripsLayout]);
+
   // TV Recommended browse preview: seed from first game + follow cover focus.
   useEffect(() => {
     if (!browsePreviewEnabled) {
@@ -371,6 +385,8 @@ export default function RecommendedPage({
         } catch {
           firstCover.focus();
         }
+        root.scrollTop = 0;
+        ensureElementVisibleInScrollParents(firstCover);
       }
     }, 120);
 
