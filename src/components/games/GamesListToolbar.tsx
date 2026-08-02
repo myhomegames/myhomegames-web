@@ -639,13 +639,13 @@ export default function GamesListToolbar({
                     onSortDirectionChange={onSortDirectionChange}
                   />
             </div>
-            <span className="games-list-toolbar-count" tabIndex={0} data-mhg-tv-focus="">
+            <span className="games-list-toolbar-count">
               {gamesCount}
             </span>
           </>
         )}
         {viewMode === "table" && (
-          <span className="games-list-toolbar-count" tabIndex={0} data-mhg-tv-focus="">
+          <span className="games-list-toolbar-count">
             {gamesCount}
           </span>
         )}

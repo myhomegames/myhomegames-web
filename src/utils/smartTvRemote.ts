@@ -494,32 +494,21 @@ function collectCoverFocusables(): HTMLElement[] {
   );
 }
 
-/** Prefer filter / sort / count row between libraries chrome and the cover grid. */
+/** Prefer filter / sort row between libraries chrome and the cover grid. */
 function collectToolbarFocusables(): HTMLElement[] {
   const root = document.querySelector<HTMLElement>(".games-list-toolbar");
   if (!root || !isVisible(root)) return [];
   return Array.from(
-    root.querySelectorAll<HTMLElement>(
-      [
-        ".games-list-toolbar-button:not([disabled])",
-        ".games-list-toolbar-count[tabindex]",
-        ".games-list-toolbar-count[data-mhg-tv-focus]",
-      ].join(","),
-    ),
+    root.querySelectorAll<HTMLElement>(".games-list-toolbar-button:not([disabled])"),
   ).filter((el) => isVisible(el) && !el.closest("[inert]"));
 }
 
 function toolbarFocusFrom(el: HTMLElement | null): HTMLElement | null {
   if (!el) return null;
-  if (
-    el.classList.contains("games-list-toolbar-button") ||
-    el.classList.contains("games-list-toolbar-count")
-  ) {
+  if (el.classList.contains("games-list-toolbar-button")) {
     return el;
   }
-  return el.closest(
-    ".games-list-toolbar-button, .games-list-toolbar-count",
-  ) as HTMLElement | null;
+  return el.closest(".games-list-toolbar-button") as HTMLElement | null;
 }
 
 /** Side A–Z index (Plex / GOG) when sort is by title. */
