@@ -1158,6 +1158,7 @@ export default function LibrariesBar({
     showHeaderActionsInLibrariesBar && !hideLibraryChromeTools;
   const isAddGameRoute = pathname === "/add-game";
   const isSettingsRoute = pathname === "/settings";
+  const isProfileRoute = pathname === "/profile";
   const showProfileInLibrariesBar = showHeaderActionsInLibrariesBar && showProfile;
 
   useEffect(() => {
@@ -1186,6 +1187,7 @@ export default function LibrariesBar({
     currentLibraryFilterField,
     isAddGameRoute,
     isSettingsRoute,
+    isProfileRoute,
     libraries.length,
     collectionShortcuts.length,
     syncActiveLibraryIconPosition,
@@ -1557,6 +1559,7 @@ export default function LibrariesBar({
                 {showProfileInLibrariesBar && (
                   <ProfileDropdown
                     triggerVariant="library"
+                    libraryActive={isProfileRoute}
                     onTriggerMouseEnter={handleNonListStripIconMouseEnter}
                   />
                 )}

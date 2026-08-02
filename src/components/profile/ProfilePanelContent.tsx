@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
 import { useActiveProfile } from "../../hooks/useActiveProfile";
+import { useTunnel } from "../../contexts/TunnelContext";
 
 type ProfilePanelContentProps = {
   variant?: "page" | "dropdown";
@@ -31,7 +32,15 @@ export default function ProfilePanelContent({ variant = "page" }: ProfilePanelCo
   const { t } = useTranslation();
   const { user } = useAuth();
   const { hasCloudflareProfile, cloudflareProfile } = useActiveProfile();
+  const { disconnect } = useTunnel();
   const inDropdown = variant === "dropdown";
+
+  const handleDisconnectTunnel = async () => {
+    if (!window.confirm(t("settings.cloudflare.confirmDisconnect"))) {
+      return;
+    }
+    await disconnect();
+  };
 
   if (!user && !hasCloudflareProfile) {
     return (
@@ -139,6 +148,18 @@ export default function ProfilePanelContent({ variant = "page" }: ProfilePanelCo
                   <div className="profile-label">{t("profile.accountType", "Account Type")}</div>
                   <div className="profile-value">{t("profile.cloudflareAccount", "Cloudflare account")}</div>
                 </div>
+
+                {!inDropdown && (
+                  <div className="profile-field">
+                    <button
+                      type="button"
+                      className="settings-button"
+                      onClick={handleDisconnectTunnel}
+                    >
+                      {t("settings.cloudflare.disconnect", "Disconnect tunnel")}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
