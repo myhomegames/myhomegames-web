@@ -173,6 +173,18 @@ export function SkinProvider({ children }: { children: ReactNode }) {
   }, [activeSkinWeb.tvDetailSummaryBeforeActions]);
 
   useEffect(() => {
+    const root = document.documentElement;
+    if (activeSkinWeb.tvHideAppHeader) {
+      root.setAttribute("data-mhg-tv-hide-app-header", "1");
+    } else {
+      root.removeAttribute("data-mhg-tv-hide-app-header");
+    }
+    return () => {
+      root.removeAttribute("data-mhg-tv-hide-app-header");
+    };
+  }, [activeSkinWeb.tvHideAppHeader]);
+
+  useEffect(() => {
     if (!isServerSkinId(activeSkinId)) return;
     const entry = serverSkins.find((s) => s.id === activeSkinId);
     if (entry) {

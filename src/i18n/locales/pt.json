@@ -102,6 +102,7 @@
         "tvStarRatingOverlay": "TV: open star rating in full-screen overlay",
         "tvDetailSummaryBeforeActions": "TV: show summary above the Play row on game detail",
         "tvRecommendedBrowsePreview": "TV: Recommended top panel updates with the focused game (through summary)",
+        "tvHideAppHeader": "TV: hide app header (logo, search, settings)",
 
         "disableTitleTooltips": "Ocultar dicas"
       }

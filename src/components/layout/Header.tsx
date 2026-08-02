@@ -118,6 +118,10 @@ export default function Header({
     }
   }, [activeSkinWeb.headerTitleFilter, hideHeaderTitleFilter, setTitleFilterQuery]);
 
+  if (smartTv && activeSkinWeb.tvHideAppHeader) {
+    return null;
+  }
+
   return (
     <header className="mhg-header">
       <div

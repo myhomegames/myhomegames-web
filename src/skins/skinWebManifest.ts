@@ -94,6 +94,12 @@ export type SkinWebManifest = {
    * toggle in the libraries bar actions (or alone if the toggle is moved).
    */
   phoneDetailBackBesideBackground: boolean;
+  /**
+   * On Smart TV, do not render the app header (logo / search / settings).
+   * Skin CSS should collapse the usual 64px top offsets so content shifts up
+   * (`html[data-mhg-tv-hide-app-header="1"]`).
+   */
+  tvHideAppHeader: boolean;
   /** Do not show hover tooltips anywhere in the UI. */
   disableTitleTooltips: boolean;
   /**
@@ -125,6 +131,7 @@ export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
   tvDetailSummaryBeforeActions: false,
   tvRecommendedBrowsePreview: false,
   phoneDetailBackBesideBackground: false,
+  tvHideAppHeader: false,
   disableTitleTooltips: false,
   collapsibleLibrarySidebar: false,
 };
@@ -151,6 +158,7 @@ export const SKIN_WEB_KEYS = [
   "tvDetailSummaryBeforeActions",
   "tvRecommendedBrowsePreview",
   "phoneDetailBackBesideBackground",
+  "tvHideAppHeader",
   "disableTitleTooltips",
   "collapsibleLibrarySidebar",
 ] as const satisfies readonly (keyof SkinWebManifest)[];
