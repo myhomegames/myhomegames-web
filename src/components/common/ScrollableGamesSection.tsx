@@ -76,6 +76,7 @@ export default function ScrollableGamesSection({
 }: ScrollableGamesSectionProps) {
   const { activeSkinWeb } = useSkin();
   const location = useLocation();
+  const sectionRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const storageKey = `${location.pathname}:${sectionId}`;
   const forceVerticalCovers =
@@ -86,13 +87,45 @@ export default function ScrollableGamesSection({
 
   const title = titleOverride ?? sectionId;
 
+  /**
+   * Mouse wheel uses scrollLeft; Smart TV D-pad often keeps a cover visible without
+   * reaching scroll ends — when a cover in this strip is focused, drive < / > from
+   * its index so the sensors match remote navigation.
+   */
   const updateScrollButtons = () => {
     const container = scrollRef.current;
     if (!container) return;
-    
+
     const scrollLeft = container.scrollLeft;
     const maxScroll = container.scrollWidth - container.clientWidth;
-    
+
+    if (maxScroll <= 1) {
+      setCanScrollLeft(false);
+      setCanScrollRight(false);
+      return;
+    }
+
+    const active = document.activeElement;
+    const focusedCover =
+      active instanceof HTMLElement
+        ? active.classList.contains("games-list-cover")
+          ? active
+          : (active.closest(".games-list-cover") as HTMLElement | null)
+        : null;
+    if (focusedCover && container.contains(focusedCover)) {
+      const covers = Array.from(
+        container.querySelectorAll<HTMLElement>(
+          ".games-list-cover[role='button'], .games-list-cover[tabindex]",
+        ),
+      );
+      const idx = covers.indexOf(focusedCover);
+      if (idx >= 0) {
+        setCanScrollLeft(idx > 0);
+        setCanScrollRight(idx < covers.length - 1);
+        return;
+      }
+    }
+
     setCanScrollLeft(scrollLeft > 0);
     setCanScrollRight(scrollLeft < maxScroll - 1);
   };
@@ -239,12 +272,38 @@ export default function ScrollableGamesSection({
     };
   }, [games.length, forceVerticalCovers]);
 
+  // D-pad focus moves without always firing a meaningful scroll at the ends.
+  useEffect(() => {
+    if (forceVerticalCovers) return;
+    const section = sectionRef.current;
+    if (!section) return;
+
+    const onFocusIn = () => {
+      updateScrollButtons();
+      // ensureElementVisible may adjust scrollLeft just after focus.
+      window.requestAnimationFrame(updateScrollButtons);
+    };
+    const onFocusOut = (e: FocusEvent) => {
+      const next = e.relatedTarget;
+      if (next instanceof Node && section.contains(next)) return;
+      updateScrollButtons();
+    };
+
+    section.addEventListener("focusin", onFocusIn);
+    section.addEventListener("focusout", onFocusOut);
+    return () => {
+      section.removeEventListener("focusin", onFocusIn);
+      section.removeEventListener("focusout", onFocusOut);
+    };
+  }, [forceVerticalCovers, games.length, sectionId]);
+
   if (games.length === 0) {
     return null;
   }
 
   return (
     <div
+      ref={sectionRef}
       className={[
         "scrollable-section",
         disableVerticalCoverAlignment ? "scrollable-section--classic-covers" : "",

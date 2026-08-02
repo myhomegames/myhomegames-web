@@ -1122,6 +1122,22 @@ function collectDetailCoverStripFocusables(strip: HTMLElement): HTMLElement[] {
   ).filter((el) => isVisible(el) && !el.closest("[inert]") && !el.hasAttribute("disabled"));
 }
 
+/** Recommended page horizontal keyword strips (not detail carousels). */
+function recommendedStripRootFrom(el: HTMLElement | null): HTMLElement | null {
+  if (!el) return null;
+  const section = el.closest(".scrollable-section") as HTMLElement | null;
+  if (!section?.closest(".recommended-page-scroll")) return null;
+  return section;
+}
+
+function collectRecommendedStripCoverFocusables(strip: HTMLElement): HTMLElement[] {
+  return Array.from(
+    strip.querySelectorAll<HTMLElement>(
+      ".games-list-cover[role='button'], .games-list-cover[tabindex]",
+    ),
+  ).filter((el) => isVisible(el) && !el.closest("[inert]") && !el.hasAttribute("disabled"));
+}
+
 /**
  * Collection-like detail multi-column grids (subcollections + games).
  * Not `.scrollable-section` carousels — those use the horizontal-strip path.
@@ -2595,6 +2611,62 @@ export function installSmartTvRemoteKeys(
 
         if (coverEl) {
           rememberCoverFocus(coverEl);
+
+          // Recommended strips: Left/Right stay on the same keyword row at the ends;
+          // Up/Down may leave to another strip / chrome.
+          const recommendedStrip = recommendedStripRootFrom(coverEl);
+          if (
+            recommendedStrip &&
+            (direction === "left" || direction === "right")
+          ) {
+            const stripCovers =
+              collectRecommendedStripCoverFocusables(recommendedStrip);
+            if (stripCovers.length > 0) {
+              const idx = stripCovers.indexOf(coverEl);
+              const safeIdx = idx >= 0 ? idx : 0;
+              const nextIdx =
+                direction === "right"
+                  ? Math.min(stripCovers.length - 1, safeIdx + 1)
+                  : Math.max(0, safeIdx - 1);
+              const nextInStrip = stripCovers[nextIdx];
+              if (nextInStrip && nextInStrip !== coverEl) {
+                rememberCoverFocus(nextInStrip);
+                focusElement(nextInStrip);
+                return;
+              }
+              if (nudgeScrollParentForDirection(coverEl, direction)) {
+                window.requestAnimationFrame(() => {
+                  const retryStrip = recommendedStripRootFrom(
+                    document.activeElement instanceof HTMLElement
+                      ? document.activeElement
+                      : coverEl,
+                  );
+                  if (!retryStrip) return;
+                  const retryCovers =
+                    collectRecommendedStripCoverFocusables(retryStrip);
+                  const activeCover = coverFocusFrom(
+                    document.activeElement instanceof HTMLElement
+                      ? document.activeElement
+                      : coverEl,
+                  );
+                  if (!activeCover) return;
+                  const rIdx = retryCovers.indexOf(activeCover);
+                  const rSafe = rIdx >= 0 ? rIdx : 0;
+                  const rNext =
+                    direction === "right"
+                      ? Math.min(retryCovers.length - 1, rSafe + 1)
+                      : Math.max(0, rSafe - 1);
+                  const retry = retryCovers[rNext];
+                  if (retry && retry !== activeCover) {
+                    rememberCoverFocus(retry);
+                    focusElement(retry);
+                  }
+                });
+              }
+              return;
+            }
+          }
+
           const covers = collectCoverFocusables();
           let nextCover = pickNextInSet(covers, coverEl, direction);
           if (
