@@ -9,6 +9,7 @@ import BackgroundToggle from "../ui/BackgroundToggle";
 import DetailBackButton from "../ui/DetailBackButton";
 import NewGamesToggle from "../ui/NewGamesToggle";
 import MainGamesToggle from "../ui/MainGamesToggle";
+import SmartTvClock from "../ui/SmartTvClock";
 import DropdownMenu from "../common/DropdownMenu";
 import { useBackground } from "../common/BackgroundManager";
 import { API_BASE } from "../../config";
@@ -1367,6 +1368,11 @@ export default function LibrariesBar({
                 />
               </div>
             )}
+            {smartTv ? (
+              <div className="mhg-top-right-tool-dock-clock mhg-libraries-actions-clock">
+                <SmartTvClock />
+              </div>
+            ) : null}
           </div>
         </div>
       )}
@@ -1792,6 +1798,11 @@ export default function LibrariesBar({
           {rightActions ? (
             <div className="mhg-libraries-actions-right-extra">
               {rightActions}
+            </div>
+          ) : null}
+          {smartTv && !topRightToolDock ? (
+            <div className="mhg-libraries-actions-clock">
+              <SmartTvClock />
             </div>
           ) : null}
         </div>

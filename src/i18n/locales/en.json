@@ -157,6 +157,7 @@
   },
   "header": {
     "home": "Home",
+    "clock": "Clock",
     "addGame": "Add Game",
     "settings": "Settings",
     "account": "Account",
