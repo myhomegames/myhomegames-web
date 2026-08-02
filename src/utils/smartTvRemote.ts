@@ -401,6 +401,40 @@ function pickNextInSet(
   return best;
 }
 
+/**
+ * Same-row L/R among covers by left-edge order. Used when geometric pick misses
+ * a neighbor (uneven cover heights / titles) so the first column stays reachable.
+ */
+function pickCoverInRow(
+  covers: HTMLElement[],
+  current: HTMLElement,
+  direction: "left" | "right",
+): HTMLElement | null {
+  if (covers.length === 0) return null;
+  const fromY = center(current.getBoundingClientRect()).y;
+  const rowTol = Math.max(28, current.getBoundingClientRect().height * 0.45);
+  const sameRow = covers.filter(
+    (el) => Math.abs(center(el.getBoundingClientRect()).y - fromY) <= rowTol,
+  );
+  if (sameRow.length === 0) return null;
+  sameRow.sort(
+    (a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left,
+  );
+  let idx = sameRow.indexOf(current);
+  if (idx < 0) {
+    const fromLeft = current.getBoundingClientRect().left;
+    idx = sameRow.findIndex((el) => el.getBoundingClientRect().left >= fromLeft - 1);
+    if (idx < 0) idx = sameRow.length - 1;
+    // Snap to nearest in-row cover when current wasn't in the filtered set.
+    if (direction === "left") {
+      return idx > 0 ? sameRow[idx - 1]! : sameRow[0]!;
+    }
+    return idx < sameRow.length - 1 ? sameRow[idx + 1]! : sameRow[sameRow.length - 1]!;
+  }
+  if (direction === "left") return idx > 0 ? sameRow[idx - 1]! : null;
+  return idx < sameRow.length - 1 ? sameRow[idx + 1]! : null;
+}
+
 function pickNextFocus(
   current: HTMLElement | null,
   direction: Direction,
@@ -511,6 +545,57 @@ function toolbarFocusFrom(el: HTMLElement | null): HTMLElement | null {
   return el.closest(".games-list-toolbar-button") as HTMLElement | null;
 }
 
+const SHELL_ACTION_FOCUS_SELECTOR = [
+  ".new-games-toggle-button:not([disabled])",
+  ".main-games-toggle-button:not([disabled])",
+  ".background-toggle-button:not([disabled])",
+  ".view-mode-button:not([disabled]):not(.disabled)",
+  ".detail-back-button:not([disabled])",
+].join(",");
+
+/**
+ * Top-right LibrariesBar / tool-dock actions (New games, Main games, view mode, …).
+ * Separate from `.games-list-toolbar` so Library still prefers Tutto/sort first.
+ */
+function collectShellActionFocusables(): HTMLElement[] {
+  const roots = document.querySelectorAll<HTMLElement>(
+    ".mhg-libraries-actions, .mhg-top-right-tool-dock, .mhg-libraries-actions-before-main-games",
+  );
+  const items: HTMLElement[] = [];
+  const seen = new Set<HTMLElement>();
+  roots.forEach((root) => {
+    if (!isVisible(root)) return;
+    root.querySelectorAll<HTMLElement>(SHELL_ACTION_FOCUS_SELECTOR).forEach((el) => {
+      if (seen.has(el) || !isVisible(el) || el.closest("[inert]")) return;
+      seen.add(el);
+      items.push(el);
+    });
+  });
+  return items;
+}
+
+function shellActionFocusFrom(el: HTMLElement | null): HTMLElement | null {
+  if (!el) return null;
+  if (
+    el.classList.contains("new-games-toggle-button") ||
+    el.classList.contains("main-games-toggle-button") ||
+    el.classList.contains("background-toggle-button") ||
+    el.classList.contains("view-mode-button") ||
+    el.classList.contains("detail-back-button")
+  ) {
+    return el;
+  }
+  return el.closest(
+    [
+      ".new-games-toggle-button",
+      ".main-games-toggle-button",
+      ".background-toggle-button",
+      ".view-mode-button",
+      ".detail-back-button",
+    ].join(","),
+  ) as HTMLElement | null;
+}
+
 /** Side A–Z index (Plex / GOG) when sort is by title. */
 function collectAlphabetFocusables(): HTMLElement[] {
   const root = document.querySelector<HTMLElement>(".alphabet-navigator");
@@ -550,7 +635,23 @@ function isLibraryMenuCoverGridNavMode(): boolean {
   // Game / catalog / collection-like detail: LibrariesBar is still mounted, but
   // menu↔covers grid trapping would skip Play / Edit / ⋮ / summary / media.
   if (isItemDetailPage()) return false;
-  return collectLibraryMenuFocusables().length > 0;
+  if (collectLibraryMenuFocusables().length > 0) return true;
+  // Tag games (and similar) mount a dock without library tabs — still trap
+  // shell actions ↔ toolbar ↔ covers ↔ A–Z the same way as the owned-games library.
+  return (
+    collectCoverFocusables().length > 0 &&
+    Boolean(
+      document.querySelector(
+        [
+          ".games-list-page-fade",
+          ".tag-list-container",
+          ".fixed-focal-tag-list",
+          ".tag-games-page-shell",
+          ".home-page-scroll-container .games-list-container",
+        ].join(","),
+      ),
+    )
+  );
 }
 
 /** Owned / catalog game detail or collection-like detail shell. */
@@ -1462,6 +1563,8 @@ export function installSmartTvRemoteKeys(
   let lastCoverFocus: HTMLElement | null = null;
   /** Last filter/sort toolbar control between menu and covers. */
   let lastToolbarFocus: HTMLElement | null = null;
+  /** Last shell action (New games / Main games / view mode) in the libraries dock. */
+  let lastShellActionFocus: HTMLElement | null = null;
   /** Last A–Z index letter focused from the cover grid. */
   let lastAlphabetFocus: HTMLElement | null = null;
   /** Last app-header control focused before returning to libraries tabs (Plex). */
@@ -1485,6 +1588,11 @@ export function installSmartTvRemoteKeys(
   const rememberToolbarFocus = (el: HTMLElement | null) => {
     const toolbar = toolbarFocusFrom(el);
     if (toolbar) lastToolbarFocus = toolbar;
+  };
+
+  const rememberShellActionFocus = (el: HTMLElement | null) => {
+    const action = shellActionFocusFrom(el);
+    if (action) lastShellActionFocus = action;
   };
 
   const rememberAlphabetFocus = (el: HTMLElement | null) => {
@@ -1520,6 +1628,13 @@ export function installSmartTvRemoteKeys(
       return lastToolbarFocus;
     }
     return collectToolbarFocusables()[0] ?? null;
+  };
+
+  const resolveShellActionFocus = (): HTMLElement | null => {
+    if (lastShellActionFocus?.isConnected && isVisible(lastShellActionFocus)) {
+      return lastShellActionFocus;
+    }
+    return collectShellActionFocusables()[0] ?? null;
   };
 
   const resolveAlphabetFocus = (near: HTMLElement | null = null): HTMLElement | null => {
@@ -1579,6 +1694,15 @@ export function installSmartTvRemoteKeys(
     return true;
   };
 
+  const focusShellActionsZone = () => {
+    const action = resolveShellActionFocus();
+    if (!action) return false;
+    zone = "chrome";
+    focusElement(action);
+    rememberShellActionFocus(action);
+    return true;
+  };
+
   const focusAlphabetZone = (near: HTMLElement | null = null) => {
     const letter = resolveAlphabetFocus(near);
     if (!letter) return false;
@@ -1588,11 +1712,16 @@ export function installSmartTvRemoteKeys(
     return true;
   };
 
-  /** Prefer toolbar (Tutto / sort / count) when leaving the libraries header toward content. */
-  const focusToolbarOrCovers = () => focusToolbarZone() || focusCoversZone();
+  /**
+   * Prefer list toolbar (Tutto / sort), then shell actions (New/Main games),
+   * then covers — so Library keeps landing on filter/sort first.
+   */
+  const focusToolbarOrCovers = () =>
+    focusToolbarZone() || focusShellActionsZone() || focusCoversZone();
 
-  /** Prefer toolbar when leaving the cover grid upward; else libraries menu. */
-  const focusToolbarOrMenu = () => focusToolbarZone() || focusLibraryMenu();
+  /** Prefer toolbar / shell actions when leaving the cover grid upward; else libraries menu. */
+  const focusToolbarOrMenu = () =>
+    focusToolbarZone() || focusShellActionsZone() || focusLibraryMenu();
 
   const clearEnterLongPressTimer = () => {
     if (enterLongPressTimer != null) {
@@ -2211,6 +2340,7 @@ export function installSmartTvRemoteKeys(
       if (isLibraryMenuCoverGridNavMode()) {
         const menuEl = libraryMenuFocusFrom(current);
         const toolbarEl = toolbarFocusFrom(current);
+        const shellActionEl = shellActionFocusFrom(current);
         const coverEl = coverFocusFrom(current);
         const alphabetEl = alphabetFocusFrom(current);
         const headerEl = appHeaderFocusFrom(current);
@@ -2302,13 +2432,14 @@ export function installSmartTvRemoteKeys(
           }
         }
 
-        // Trailing icons on the Plex libraries bar row (not page tabs).
+        // Trailing icons on the Plex libraries bar row (not page tabs / shell actions).
         if (
           !verticalMenu &&
           current &&
           !menuEl &&
           !headerEl &&
           !toolbarEl &&
+          !shellActionEl &&
           !coverEl &&
           !alphabetEl &&
           current.closest(".mhg-libraries-bar")
@@ -2347,10 +2478,36 @@ export function installSmartTvRemoteKeys(
             return;
           }
           if (direction === "up") {
+            if (focusShellActionsZone()) return;
             if (focusLibraryMenu()) return;
             return;
           }
           if (direction === "down") {
+            if (focusCoversZone()) return;
+            return;
+          }
+        }
+
+        // New games / Main games / view mode in the libraries dock.
+        if (shellActionEl) {
+          rememberShellActionFocus(shellActionEl);
+          const actions = collectShellActionFocusables();
+          if (direction === "left" || direction === "right") {
+            const nextAction = pickNextInSet(actions, shellActionEl, direction);
+            if (nextAction) {
+              rememberShellActionFocus(nextAction);
+              focusElement(nextAction);
+              return;
+            }
+            return;
+          }
+          if (direction === "up") {
+            if (focusLibraryMenu()) return;
+            if (focusAppHeaderZone(shellActionEl)) return;
+            return;
+          }
+          if (direction === "down") {
+            if (focusToolbarZone()) return;
             if (focusCoversZone()) return;
             return;
           }
@@ -2378,7 +2535,13 @@ export function installSmartTvRemoteKeys(
         if (coverEl) {
           rememberCoverFocus(coverEl);
           const covers = collectCoverFocusables();
-          const nextCover = pickNextInSet(covers, coverEl, direction);
+          let nextCover = pickNextInSet(covers, coverEl, direction);
+          if (
+            !nextCover &&
+            (direction === "left" || direction === "right")
+          ) {
+            nextCover = pickCoverInRow(covers, coverEl, direction);
+          }
           if (nextCover) {
             rememberCoverFocus(nextCover);
             focusElement(nextCover);
@@ -2386,10 +2549,13 @@ export function installSmartTvRemoteKeys(
           }
           // Right edge of the cover grid → A–Z navigator when present.
           if (direction === "right" && focusAlphabetZone(coverEl)) return;
-          if (direction === "left" || direction === "up") {
-            if (direction === "up" && focusToolbarOrMenu()) return;
-            if (direction === "left" && focusLibraryMenu()) return;
+          // Up leaves the grid toward toolbar / shell; Left stays in-grid
+          // (or library menu when present) — never jump Left into the toolbar.
+          if (direction === "up") {
             if (focusToolbarOrMenu()) return;
+          }
+          if (direction === "left") {
+            if (focusLibraryMenu()) return;
           }
           if (
             (direction === "up" ||
@@ -2399,23 +2565,29 @@ export function installSmartTvRemoteKeys(
             nudgeScrollParentForDirection(coverEl, direction)
           ) {
             window.requestAnimationFrame(() => {
-              const retry = pickNextInSet(
-                collectCoverFocusables(),
-                coverFocusFrom(
-                  document.activeElement instanceof HTMLElement
-                    ? document.activeElement
-                    : coverEl,
-                ),
-                direction,
+              const retryCovers = collectCoverFocusables();
+              const activeCover = coverFocusFrom(
+                document.activeElement instanceof HTMLElement
+                  ? document.activeElement
+                  : coverEl,
               );
+              let retry = pickNextInSet(retryCovers, activeCover, direction);
+              if (
+                !retry &&
+                activeCover &&
+                (direction === "left" || direction === "right")
+              ) {
+                retry = pickCoverInRow(retryCovers, activeCover, direction);
+              }
               if (retry) {
                 rememberCoverFocus(retry);
                 focusElement(retry);
               } else if (direction === "right") {
                 focusAlphabetZone(coverEl);
-              } else if (direction === "left" || direction === "up") {
-                if (direction === "up") focusToolbarOrMenu();
-                else focusLibraryMenu();
+              } else if (direction === "up") {
+                focusToolbarOrMenu();
+              } else if (direction === "left") {
+                focusLibraryMenu();
               }
             });
             return;
