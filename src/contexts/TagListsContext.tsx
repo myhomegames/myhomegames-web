@@ -2,8 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect } from "rea
 import type { ReactNode } from "react";
 import { API_BASE } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
-import { useAuth } from "./AuthContext";
-import { useSettings } from "./SettingsContext";
+import { useListDataReady, withListFetchRetries } from "../hooks/useListDataReady";
 
 export type TagLabelsMap = {
   categories: Map<string, string>;
@@ -49,48 +48,51 @@ const ENDPOINTS: [keyof TagLabelsMap, string, string][] = [
 export function TagListsProvider({ children }: { children: ReactNode }) {
   const [tagLabels, setTagLabels] = useState<TagLabelsMap>(emptyMaps);
   const [tagLabelsReady, setTagLabelsReady] = useState(false);
-  const { isLoading: authLoading } = useAuth();
-  const { settingsLoaded } = useSettings();
+  const { ready: listDataReady, reloadToken } = useListDataReady();
 
   const refreshTagLists = useCallback(async () => {
-    if (authLoading) return;
-    if (!settingsLoaded) return;
+    if (!listDataReady) return;
 
-    const headers = buildApiHeaders({ Accept: "application/json" });
-    const results = await Promise.all(
-      ENDPOINTS.map(async ([key, path, listKey]) => {
-        const res = await fetch(buildApiUrl(API_BASE, path), { headers });
-        if (!res.ok) return { key, map: new Map<string, string>() };
-        const json = await res.json();
-        const list = (json[listKey] || []) as Array<{
-          id: number | string;
-          title?: string;
-          name?: string;
-        }>;
-        const map = new Map<string, string>();
-        for (const item of list) {
-          const id = String(item.id);
-          map.set(id, item.title ?? item.name ?? id);
-        }
-        return { key, map };
-      })
-    );
-    setTagLabels((prev) => {
-      const next = { ...prev };
-      for (const { key, map } of results) next[key] = map;
-      return next;
+    await withListFetchRetries(async () => {
+      const headers = buildApiHeaders({ Accept: "application/json" });
+      const results = await Promise.all(
+        ENDPOINTS.map(async ([key, path, listKey]) => {
+          const res = await fetch(buildApiUrl(API_BASE, path), { headers });
+          if (!res.ok) throw new Error(`HTTP ${res.status} ${path}`);
+          const json = await res.json();
+          const list = (json[listKey] || []) as Array<{
+            id: number | string;
+            title?: string;
+            name?: string;
+          }>;
+          const map = new Map<string, string>();
+          for (const item of list) {
+            const id = String(item.id);
+            map.set(id, item.title ?? item.name ?? id);
+          }
+          return { key, map };
+        }),
+      );
+      setTagLabels((prev) => {
+        const next = { ...prev };
+        for (const { key, map } of results) next[key] = map;
+        return next;
+      });
     });
-  }, [authLoading, settingsLoaded]);
+  }, [listDataReady]);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!settingsLoaded) {
-      setTagLabelsReady(true);
+    if (!listDataReady) {
+      // Stay not-ready until the tunnel/connectivity gate opens (avoid flashing empty labels).
       return;
     }
     setTagLabelsReady(false);
-    refreshTagLists().finally(() => setTagLabelsReady(true));
-  }, [authLoading, settingsLoaded, refreshTagLists]);
+    refreshTagLists()
+      .catch((err) => {
+        console.error("Error fetching tag lists:", err);
+      })
+      .finally(() => setTagLabelsReady(true));
+  }, [listDataReady, reloadToken, refreshTagLists]);
 
   // When a new game is added (possibly with new tags), refresh tag lists so new tags show titles instead of ids
   useEffect(() => {

@@ -4,8 +4,7 @@ import type { CollectionItem } from "../types";
 import { buildApiHeaders, buildAppApiUrl } from "../utils/api";
 import { compareTitles } from "../utils/stringUtils";
 import { schedulePostGameDeleteLibraryRefresh } from "../utils/librarySyncEvents";
-import { useAuth } from "./AuthContext";
-import { useSettings } from "./SettingsContext";
+import { useListDataReady, withListFetchRetries } from "../hooks/useListDataReady";
 import {
   readCollectionsSessionCache,
   recordToGameIdsMap,
@@ -45,14 +44,10 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
   const collectionsRef = useRef(collections);
   collectionsRef.current = collections;
   const cacheWriteEnabledRef = useRef((cachedCollections?.collections.length ?? 0) > 0);
-  const { isLoading: authLoading } = useAuth();
-  const { settingsLoaded } = useSettings();
+  const { ready: listDataReady, reloadToken } = useListDataReady();
 
   const fetchCollections = useCallback(async () => {
-    if (authLoading) {
-      return;
-    }
-    if (!settingsLoaded) {
+    if (!listDataReady) {
       return;
     }
 
@@ -61,46 +56,50 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
     }
     setError(null);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000);
     try {
-      const url = buildAppApiUrl("/collections");
-      const res = await fetch(url, {
-        headers: buildApiHeaders({ Accept: "application/json" }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      const items = (json.collections || []) as any[];
-      const parsed = items.map((v) => ({
-        id: String(v.id),
-        title: v.title,
-        summary: v.summary,
-        cover: v.cover,
-        background: v.background,
-        gameCount: v.gameCount,
-        showTitle: v.showTitle !== false,
-        childs: Array.isArray(v.childs) ? v.childs : [],
-      }));
-      parsed.sort((a, b) => compareTitles(a.title || "", b.title || ""));
-      setCollections(parsed);
-      setCollectionGameIds((prev) => {
-        const updated = new Map(prev);
-        for (const v of items) {
-          if (Array.isArray(v.gameIds)) {
-            updated.set(
-              String(v.id),
-              v.gameIds.map((id: string | number) => String(id)),
-            );
-          }
+      await withListFetchRetries(async () => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 90000);
+        try {
+          const url = buildAppApiUrl("/collections");
+          const res = await fetch(url, {
+            headers: buildApiHeaders({ Accept: "application/json" }),
+            signal: controller.signal,
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const json = await res.json();
+          const items = (json.collections || []) as any[];
+          const parsed = items.map((v) => ({
+            id: String(v.id),
+            title: v.title,
+            summary: v.summary,
+            cover: v.cover,
+            background: v.background,
+            gameCount: v.gameCount,
+            showTitle: v.showTitle !== false,
+            childs: Array.isArray(v.childs) ? v.childs : [],
+          }));
+          parsed.sort((a, b) => compareTitles(a.title || "", b.title || ""));
+          setCollections(parsed);
+          setCollectionGameIds((prev) => {
+            const updated = new Map(prev);
+            for (const v of items) {
+              if (Array.isArray(v.gameIds)) {
+                updated.set(
+                  String(v.id),
+                  v.gameIds.map((id: string | number) => String(id)),
+                );
+              }
+            }
+            cacheWriteEnabledRef.current = true;
+            writeCollectionsSessionCache(parsed, updated);
+            return updated;
+          });
+        } finally {
+          clearTimeout(timeoutId);
         }
-        cacheWriteEnabledRef.current = true;
-        writeCollectionsSessionCache(parsed, updated);
-        return updated;
       });
     } catch (err: any) {
-      clearTimeout(timeoutId);
       const errorMessage = String(err.message || err);
       console.error("Error fetching collections:", errorMessage);
       setError(errorMessage);
@@ -109,15 +108,14 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
       }
     }
-  }, [authLoading, settingsLoaded]);
+  }, [listDataReady]);
 
-  // Load collections on mount and when auth is ready (stagger to avoid all fetches at once)
+  // Stagger; wait for tunnel/connectivity (retry on cold-edge settle).
   useEffect(() => {
-    if (authLoading) return;
-    if (!settingsLoaded) return;
+    if (!listDataReady) return;
     const t = setTimeout(fetchCollections, 400);
     return () => clearTimeout(t);
-  }, [authLoading, settingsLoaded, fetchCollections]);
+  }, [listDataReady, reloadToken, fetchCollections]);
 
   useEffect(() => {
     if (!cacheWriteEnabledRef.current) return;
