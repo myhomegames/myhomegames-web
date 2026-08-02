@@ -18,8 +18,10 @@ import { isSmartTvBrowser } from "../utils/smartTv";
 import { buildCatalogApiUrl } from "../utils/catalogApi";
 import {
   collectGameBackgroundUrls,
+  isBackgroundUrlWarmed,
   preloadBackgroundUrl,
   preloadBackgroundUrls,
+  whenBackgroundUrlReady,
 } from "../utils/preloadBackground";
 import {
   clearRecommendedSectionsCache,
@@ -68,6 +70,8 @@ export default function RecommendedPage({
     isSmartTvBrowser() &&
     !verticalStripsLayout;
   const [previewGame, setPreviewGame] = useState<GameItem | null>(null);
+  /** Fanart applied only after decode — keeps cover hover/focus snappy on TV. */
+  const [paintedBackgroundUrl, setPaintedBackgroundUrl] = useState("");
   // Only reuse cache when returning from a game/section; a fresh visit must fetch
   // a new random set without painting the previous strips first.
   const preserveCachedSections =
@@ -340,15 +344,16 @@ export default function RecommendedPage({
         break;
       }
       if (neighborUrls.length > 0) {
-        preloadBackgroundUrls(neighborUrls, { concurrency: 2 });
+        preloadBackgroundUrls(neighborUrls, { concurrency: 2, priority: true });
       }
     };
 
     const onFocusIn = (e: FocusEvent) => {
       const game = resolveGameFromTarget(e.target);
       if (!game) return;
+      // Update browse text immediately; warm neighbors after paint so hover is not blocked.
       setPreviewGame(game);
-      preloadNeighbors(game);
+      window.requestAnimationFrame(() => preloadNeighbors(game));
     };
 
     root.addEventListener("focusin", onFocusIn);
@@ -587,10 +592,38 @@ export default function RecommendedPage({
     }
   }
 
-  const previewBackgroundUrl = useMemo(() => {
-    if (!browsePreviewEnabled || !previewGame) return "";
-    // Stable URL (no cache-bust timestamp) so idle/neighbor preloads hit the same resource.
-    return buildBackgroundUrl(API_BASE, previewGame.background) || "";
+  // Apply fanart only after it is decoded so D-pad hover is not blocked by CSS swaps.
+  useEffect(() => {
+    if (!browsePreviewEnabled) {
+      setPaintedBackgroundUrl("");
+      return;
+    }
+    if (!previewGame) {
+      setPaintedBackgroundUrl("");
+      return;
+    }
+
+    const url = buildBackgroundUrl(API_BASE, previewGame.background) || "";
+    if (!url) {
+      setPaintedBackgroundUrl("");
+      return;
+    }
+
+    if (isBackgroundUrlWarmed(url)) {
+      setPaintedBackgroundUrl(url);
+      return;
+    }
+
+    let cancelled = false;
+    whenBackgroundUrlReady(url).then(() => {
+      if (cancelled) return;
+      // Apply even if decode failed — CSS may still paint from cache/network.
+      setPaintedBackgroundUrl(url);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [browsePreviewEnabled, previewGame]);
 
   const pageBody = (
@@ -651,11 +684,9 @@ export default function RecommendedPage({
   if (browsePreviewEnabled) {
     return (
       <BackgroundManager
-        backgroundUrl={previewBackgroundUrl}
-        hasBackground={Boolean(previewBackgroundUrl)}
-        elementId={
-          previewGame ? `recommended-browse-${previewGame.id}` : "recommended-browse"
-        }
+        backgroundUrl={paintedBackgroundUrl}
+        hasBackground={Boolean(paintedBackgroundUrl)}
+        elementId="recommended-browse"
         autoShowWhenAvailable
         detailBackdrop={activeSkinWeb.detailBackdropLayout}
       >
