@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect, type MouseEvent as ReactMouseEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Tooltip from "../common/Tooltip";
 import ProfilePanelContent from "../profile/ProfilePanelContent";
 import { useSkin } from "../../contexts/SkinContext";
 import { bindSheetBackdropClose } from "../../utils/sheetPopupBackdrop";
 import { useTunnel } from "../../contexts/TunnelContext";
 import { useActiveProfile } from "../../hooks/useActiveProfile";
+import { isSmartTvBrowser } from "../../utils/smartTv";
 import { requestSmartTvUiLayerFocus } from "../../utils/smartTvRemote";
 
 type ProfileDropdownPanel = "menu" | "profile";
@@ -55,8 +56,12 @@ export default function ProfileDropdown({
   const { disconnect } = useTunnel();
   const { displayName, displayImage, hasCloudflareProfile } = useActiveProfile();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   const keepProfileInDropdown = activeSkinWeb.libraryBarHeaderActions;
+  /** Smart TV: open the dedicated /profile page (like Settings), never the sheet. */
+  const openAsDedicatedPage = isSmartTvBrowser();
+  const isProfileRoute = pathname === "/profile";
   const [isOpen, setIsOpen] = useState(false);
   const [panel, setPanel] = useState<ProfileDropdownPanel>("menu");
   const menuRef = useRef<HTMLDivElement>(null);
@@ -68,12 +73,12 @@ export default function ProfileDropdown({
 
   /** TV remote: park focus on the first sheet row after open / panel change. */
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || openAsDedicatedPage) return;
     requestSmartTvUiLayerFocus();
-  }, [isOpen, panel]);
+  }, [isOpen, panel, openAsDedicatedPage]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || openAsDedicatedPage) return;
 
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as HTMLElement;
@@ -91,11 +96,11 @@ export default function ProfileDropdown({
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen]);
+  }, [isOpen, openAsDedicatedPage]);
 
   // Close / step back on Escape / TV Back (tryDismissUiLayer → mhg:close-dropdown-menus + Escape).
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || openAsDedicatedPage) return;
 
     // tryDismiss fires both events for one Back — apply only one step.
     let handled = false;
@@ -129,10 +134,14 @@ export default function ProfileDropdown({
       window.removeEventListener("mhg:close-dropdown-menus", handleCloseAllMenus);
       document.removeEventListener("keydown", handleKeyDown, true);
     };
-  }, [isOpen, panel]);
+  }, [isOpen, panel, openAsDedicatedPage]);
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (openAsDedicatedPage) {
+      if (!isProfileRoute) navigate("/profile");
+      return;
+    }
     setIsOpen(!isOpen);
   };
 
@@ -165,7 +174,8 @@ export default function ProfileDropdown({
   };
 
   const libraryTrigger = triggerVariant === "library";
-  const triggerIsActive = libraryActive || (libraryTrigger && isOpen);
+  const triggerIsActive =
+    libraryActive || isProfileRoute || (libraryTrigger && isOpen && !openAsDedicatedPage);
 
   const triggerButton = (
     <button
@@ -181,7 +191,8 @@ export default function ProfileDropdown({
       onClick={handleToggle}
       onMouseEnter={libraryTrigger ? onTriggerMouseEnter : undefined}
       aria-label={t("header.profile")}
-      aria-expanded={isOpen}
+      aria-expanded={openAsDedicatedPage ? isProfileRoute : isOpen}
+      aria-current={isProfileRoute ? "page" : undefined}
       style={
         compactHeader && !libraryTrigger
           ? { width: 32, height: 32, gap: 0, padding: 0 }
@@ -240,7 +251,7 @@ export default function ProfileDropdown({
         </Tooltip>
       )}
 
-      {isOpen && (
+      {isOpen && !openAsDedicatedPage && (
         <div
           ref={popupRef}
           className="profile-dropdown-popup"
