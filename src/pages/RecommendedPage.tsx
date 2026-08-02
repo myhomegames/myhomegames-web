@@ -17,6 +17,11 @@ import { API_BASE } from "../config";
 import { isSmartTvBrowser } from "../utils/smartTv";
 import { buildCatalogApiUrl } from "../utils/catalogApi";
 import {
+  collectGameBackgroundUrls,
+  preloadBackgroundUrl,
+  preloadBackgroundUrls,
+} from "../utils/preloadBackground";
+import {
   clearRecommendedSectionsCache,
   consumeRecommendedReturnFromGame,
   consumeRecommendedReturnToIndex,
@@ -273,6 +278,36 @@ export default function RecommendedPage({
     });
   }, [browsePreviewEnabled, sectionsForDisplay]);
 
+  // Warm fanarts into the HTTP/image cache so focus swaps stay snappy on TV.
+  useEffect(() => {
+    if (!browsePreviewEnabled || !isReady || sectionsForDisplay.length === 0) return;
+
+    const urls = collectGameBackgroundUrls(
+      sectionsForDisplay,
+      (background) => buildBackgroundUrl(API_BASE, background) || "",
+      { perSection: 12, maxTotal: 36 },
+    );
+    if (urls.length === 0) return;
+
+    let idleId: number | null = null;
+    let timeoutId: number | null = null;
+    const start = () => preloadBackgroundUrls(urls, { concurrency: 2 });
+
+    const ric = window.requestIdleCallback;
+    if (typeof ric === "function") {
+      idleId = ric(() => start(), { timeout: 1500 });
+    } else {
+      timeoutId = window.setTimeout(start, 200);
+    }
+
+    return () => {
+      if (idleId != null && typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId != null) window.clearTimeout(timeoutId);
+    };
+  }, [browsePreviewEnabled, isReady, sectionsForDisplay]);
+
   useEffect(() => {
     if (!browsePreviewEnabled || !isReady) return;
     const root = scrollContainerRef.current;
@@ -290,9 +325,30 @@ export default function RecommendedPage({
       return null;
     };
 
+    const preloadNeighbors = (game: GameItem) => {
+      const neighborUrls: string[] = [];
+      for (const section of sectionsForDisplay) {
+        const idx = section.games.findIndex((g) => String(g.id) === String(game.id));
+        if (idx < 0) continue;
+        for (const offset of [-1, 0, 1, 2]) {
+          const neighbor = section.games[idx + offset];
+          const raw = neighbor?.background?.trim();
+          if (!raw) continue;
+          const url = buildBackgroundUrl(API_BASE, raw);
+          if (url) neighborUrls.push(url);
+        }
+        break;
+      }
+      if (neighborUrls.length > 0) {
+        preloadBackgroundUrls(neighborUrls, { concurrency: 2 });
+      }
+    };
+
     const onFocusIn = (e: FocusEvent) => {
       const game = resolveGameFromTarget(e.target);
-      if (game) setPreviewGame(game);
+      if (!game) return;
+      setPreviewGame(game);
+      preloadNeighbors(game);
     };
 
     root.addEventListener("focusin", onFocusIn);
@@ -371,6 +427,8 @@ export default function RecommendedPage({
         setPreviewGame((prev) =>
           prev && String(prev.id) === gameId ? enriched : prev,
         );
+        const bgUrl = buildBackgroundUrl(API_BASE, enriched.background);
+        if (bgUrl) preloadBackgroundUrl(bgUrl);
         setSections((prev) => {
           const next = prev.map((section) => ({
             ...section,
@@ -531,7 +589,8 @@ export default function RecommendedPage({
 
   const previewBackgroundUrl = useMemo(() => {
     if (!browsePreviewEnabled || !previewGame) return "";
-    return buildBackgroundUrl(API_BASE, previewGame.background, true) || "";
+    // Stable URL (no cache-bust timestamp) so idle/neighbor preloads hit the same resource.
+    return buildBackgroundUrl(API_BASE, previewGame.background) || "";
   }, [browsePreviewEnabled, previewGame]);
 
   const pageBody = (
