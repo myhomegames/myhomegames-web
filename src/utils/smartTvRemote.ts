@@ -512,6 +512,56 @@ function collectLibrariesBarRowFocusables(from: HTMLElement): HTMLElement[] {
   );
 }
 
+/**
+ * Full horizontal strip on the libraries bar: page tabs + shell actions
+ * (New/Main games, …), left-to-right. Used so Right from the last tab reaches
+ * the icons and Left from the icons returns to the tabs.
+ */
+function collectLibrariesBarHorizontalFocusables(
+  from: HTMLElement | null,
+): HTMLElement[] {
+  const root =
+    (from?.closest(".mhg-libraries-bar") as HTMLElement | null) ??
+    document.querySelector<HTMLElement>(".mhg-libraries-bar");
+  if (!root || !isVisible(root)) return [];
+
+  const seen = new Set<HTMLElement>();
+  const items: HTMLElement[] = [];
+  const push = (el: HTMLElement | null | undefined) => {
+    if (!el || seen.has(el) || !isVisible(el) || el.closest("[inert]")) return;
+    if (!root.contains(el)) return;
+    seen.add(el);
+    items.push(el);
+  };
+
+  collectLibraryMenuFocusables().forEach(push);
+  if (from) {
+    collectLibrariesBarRowFocusables(from).forEach(push);
+  }
+  collectShellActionFocusables().forEach(push);
+
+  items.sort(
+    (a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left,
+  );
+  return items;
+}
+
+function pickHorizontalInLibrariesBar(
+  items: HTMLElement[],
+  current: HTMLElement | null,
+  direction: "left" | "right",
+): HTMLElement | null {
+  if (items.length === 0) return null;
+  if (!current || !items.includes(current)) {
+    return direction === "right" ? items[0]! : items[items.length - 1]!;
+  }
+  const idx = items.indexOf(current);
+  if (direction === "right") {
+    return idx < items.length - 1 ? items[idx + 1]! : null;
+  }
+  return idx > 0 ? items[idx - 1]! : null;
+}
+
 function collectCoverFocusables(): HTMLElement[] {
   return Array.from(
     document.querySelectorAll<HTMLElement>(
@@ -2380,8 +2430,8 @@ export function installSmartTvRemoteKeys(
               return;
             }
             if (direction === "left" || direction === "right") {
-              const rowItems = collectLibrariesBarRowFocusables(menuEl);
-              const next = pickNextInSet(
+              const rowItems = collectLibrariesBarHorizontalFocusables(menuEl);
+              const next = pickHorizontalInLibrariesBar(
                 rowItems.length > 0 ? rowItems : menus,
                 menuEl,
                 direction,
@@ -2389,6 +2439,8 @@ export function installSmartTvRemoteKeys(
               if (next) {
                 const nextMenu = libraryMenuFocusFrom(next);
                 if (nextMenu) rememberLibraryMenuFocus(nextMenu);
+                const nextShell = shellActionFocusFrom(next);
+                if (nextShell) rememberShellActionFocus(nextShell);
                 focusElement(next);
                 return;
               }
@@ -2453,11 +2505,13 @@ export function installSmartTvRemoteKeys(
             return;
           }
           if (direction === "left" || direction === "right") {
-            const rowItems = collectLibrariesBarRowFocusables(current);
-            const next = pickNextInSet(rowItems, current, direction);
+            const rowItems = collectLibrariesBarHorizontalFocusables(current);
+            const next = pickHorizontalInLibrariesBar(rowItems, current, direction);
             if (next) {
               const nextMenu = libraryMenuFocusFrom(next);
               if (nextMenu) rememberLibraryMenuFocus(nextMenu);
+              const nextShell = shellActionFocusFrom(next);
+              if (nextShell) rememberShellActionFocus(nextShell);
               focusElement(next);
               return;
             }
@@ -2491,12 +2545,19 @@ export function installSmartTvRemoteKeys(
         // New games / Main games / view mode in the libraries dock.
         if (shellActionEl) {
           rememberShellActionFocus(shellActionEl);
-          const actions = collectShellActionFocusables();
           if (direction === "left" || direction === "right") {
-            const nextAction = pickNextInSet(actions, shellActionEl, direction);
-            if (nextAction) {
-              rememberShellActionFocus(nextAction);
-              focusElement(nextAction);
+            const rowItems = collectLibrariesBarHorizontalFocusables(shellActionEl);
+            const next = pickHorizontalInLibrariesBar(
+              rowItems,
+              shellActionEl,
+              direction,
+            );
+            if (next) {
+              const nextMenu = libraryMenuFocusFrom(next);
+              if (nextMenu) rememberLibraryMenuFocus(nextMenu);
+              const nextShell = shellActionFocusFrom(next);
+              if (nextShell) rememberShellActionFocus(nextShell);
+              focusElement(next);
               return;
             }
             return;
