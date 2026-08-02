@@ -4,6 +4,7 @@ import {
   isBackgroundUrlWarmed,
   preloadBackgroundUrl,
   preloadBackgroundUrls,
+  whenBackgroundUrlReady,
 } from "./preloadBackground";
 
 describe("collectGameBackgroundUrls", () => {
@@ -44,6 +45,7 @@ describe("preloadBackgroundUrls", () => {
       decoding = "";
       onload: ((ev: Event) => void) | null = null;
       onerror: ((ev: Event) => void) | null = null;
+      decode = () => Promise.resolve();
       set src(_value: string) {
         queueMicrotask(() => this.onload?.(new Event("load")));
       }
@@ -60,11 +62,18 @@ describe("preloadBackgroundUrls", () => {
     preloadBackgroundUrl("https://api.test/backgrounds/x");
     await Promise.resolve();
     await Promise.resolve();
+    await Promise.resolve();
     expect(isBackgroundUrlWarmed("https://api.test/backgrounds/x")).toBe(true);
   });
 
   it("ignores empty URLs", () => {
     preloadBackgroundUrls(["", "  "]);
     expect(isBackgroundUrlWarmed("")).toBe(false);
+  });
+
+  it("whenBackgroundUrlReady resolves after decode", async () => {
+    const ok = await whenBackgroundUrlReady("https://api.test/backgrounds/ready");
+    expect(ok).toBe(true);
+    expect(isBackgroundUrlWarmed("https://api.test/backgrounds/ready")).toBe(true);
   });
 });
