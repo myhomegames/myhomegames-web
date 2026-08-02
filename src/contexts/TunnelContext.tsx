@@ -221,8 +221,8 @@ export function TunnelProvider({ children }: { children: ReactNode }) {
         const next = await connectWithPayload(token, url);
         clearTunnelReturnHash();
         clearStashedTunnelPayload();
-        const needsWarmup = !tunnelWasConnectedOnLoadRef.current;
-        applyTunnelStatus(next, { warmupAfterConnect: needsWarmup });
+        // Always warm after device pairing — public Cloudflare edge is often cold.
+        applyTunnelStatus(next, { warmupAfterConnect: true });
         setNeedsDevicePairing(false);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);

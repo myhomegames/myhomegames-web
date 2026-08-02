@@ -6,6 +6,7 @@ import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
 import { useLoading } from "../contexts/LoadingContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { useSkin } from "../contexts/SkinContext";
+import { useListDataReady, withListFetchRetries } from "../hooks/useListDataReady";
 import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
 import FixedFocalRecommendedSectionsList from "../components/lists/FixedFocalRecommendedSectionsList";
 import RecommendedBrowsePreview from "../components/games/RecommendedBrowsePreview";
@@ -52,7 +53,8 @@ export default function RecommendedPage({
 }: RecommendedPageProps) {
   const navigate = useNavigate();
   const titleFilterQuery = useTitleFilterQuery();
-  const { catalogSearchEnabled, settingsLoaded } = useSettings();
+  const { catalogSearchEnabled } = useSettings();
+  const { ready: listDataReady, reloadToken } = useListDataReady();
   const { setLoading } = useLoading();
   const { activeSkinWeb } = useSkin();
   const verticalStripsLayout = activeSkinWeb.verticalCoverAlignment;
@@ -193,7 +195,7 @@ export default function RecommendedPage({
   }, []);
 
   useEffect(() => {
-    if (!settingsLoaded) return;
+    if (!listDataReady) return;
     if (
       (consumeRecommendedReturnFromGame() || consumeRecommendedReturnToIndex()) &&
       hydrateFromCache()
@@ -202,7 +204,7 @@ export default function RecommendedPage({
     }
     // Fresh visit: fetch a new random set — do not paint stale cache then refresh.
     fetchRecommendedSections();
-  }, [settingsLoaded, navigate, hydrateFromCache]);
+  }, [listDataReady, reloadToken, navigate, hydrateFromCache]);
 
   // Listen for metadata reload event
   useEffect(() => {
@@ -396,7 +398,7 @@ export default function RecommendedPage({
     if (fetchingRef.current) {
       return;
     }
-    if (!settingsLoaded) return;
+    if (!listDataReady) return;
     const background = options?.background === true;
     fetchingRef.current = true;
     const generation = ++fetchGenerationRef.current;
@@ -404,36 +406,41 @@ export default function RecommendedPage({
       setIsFetching(true);
       setLoadingRef.current(true);
     }
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000);
     try {
-      const url = buildAppApiUrl("/recommended");
-      const res = await fetch(url, {
-        headers: buildApiHeaders({ Accept: "application/json" }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      const sectionsData = (json.sections || []) as any[];
+      const parsedSections = await withListFetchRetries(async () => {
+        const attemptController = new AbortController();
+        const attemptTimeoutId = setTimeout(() => attemptController.abort(), 90000);
+        try {
+          const url = buildAppApiUrl("/recommended");
+          const res = await fetch(url, {
+            headers: buildApiHeaders({ Accept: "application/json" }),
+            signal: attemptController.signal,
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const json = await res.json();
+          const sectionsData = (json.sections || []) as any[];
 
-      const parsedSections = sectionsData.map((section) => ({
-        id: section.id,
-        title: section.title ?? section.id,
-        games: (section.games || []).map((v: any) => ({
-          id: v.id,
-          title: v.title,
-          summary: v.summary,
-          cover: v.cover,
-          background: v.background,
-          day: v.day,
-          month: v.month,
-          year: v.year,
-          stars: v.stars,
-          genre: v.genre,
-          executables: v.executables || null,
-        })),
-      }));
+          return sectionsData.map((section) => ({
+            id: section.id,
+            title: section.title ?? section.id,
+            games: (section.games || []).map((v: any) => ({
+              id: v.id,
+              title: v.title,
+              summary: v.summary,
+              cover: v.cover,
+              background: v.background,
+              day: v.day,
+              month: v.month,
+              year: v.year,
+              stars: v.stars,
+              genre: v.genre,
+              executables: v.executables || null,
+            })),
+          }));
+        } finally {
+          clearTimeout(attemptTimeoutId);
+        }
+      });
 
       // Show library data immediately so the page is fast
       setSections(parsedSections);
@@ -514,11 +521,9 @@ export default function RecommendedPage({
           });
       }
     } catch (err: any) {
-      clearTimeout(timeoutId);
       const errorMessage = err?.name === "AbortError" ? "Request timed out" : String(err.message || err);
       console.error("Error fetching recommended sections:", errorMessage);
     } finally {
-      clearTimeout(timeoutId);
       setIsFetching(false);
       fetchingRef.current = false;
     }

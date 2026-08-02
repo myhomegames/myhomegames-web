@@ -4,8 +4,7 @@ import type { GameItem } from "../types";
 import { API_BASE } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
 import { compareTitles } from "../utils/stringUtils";
-import { useAuth } from "./AuthContext";
-import { useSettings } from "./SettingsContext";
+import { useListDataReady, withListFetchRetries } from "../hooks/useListDataReady";
 import {
   readLibraryGamesSessionCache,
   writeLibraryGamesSessionCache,
@@ -31,14 +30,10 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
   const gamesRef = useRef(games);
   gamesRef.current = games;
   const cacheWriteEnabledRef = useRef((cachedGames?.length ?? 0) > 0);
-  const { isLoading: authLoading } = useAuth();
-  const { settingsLoaded } = useSettings();
+  const { ready: listDataReady, reloadToken } = useListDataReady();
 
   const fetchGames = useCallback(async () => {
-    if (authLoading) {
-      return;
-    }
-    if (!settingsLoaded) {
+    if (!listDataReady) {
       return;
     }
 
@@ -48,52 +43,54 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
     }
     setError(null);
     try {
-      const url = buildApiUrl(API_BASE, "/libraries/library/games", {
-        sort: "title",
+      await withListFetchRetries(async () => {
+        const url = buildApiUrl(API_BASE, "/libraries/library/games", {
+          sort: "title",
+        });
+        const res = await fetch(url, {
+          headers: buildApiHeaders({ Accept: "application/json" }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        const items = (json.games || []) as any[];
+        const parsed = items.map((v) => ({
+          id: String(v.id),
+          title: v.title,
+          summary: v.summary,
+          cover: v.cover,
+          background: v.background,
+          day: v.day,
+          month: v.month,
+          year: v.year,
+          stars: v.stars,
+          genre: v.genre,
+          criticratings: v.criticratings,
+          userratings: v.userratings,
+          executables: v.executables || null,
+          executableFileNames: v.executableFileNames || null,
+          themes: v.themes || null,
+          platforms: v.platforms || null,
+          gameModes: v.gameModes || null,
+          playerPerspectives: v.playerPerspectives || null,
+          websites: v.websites || null,
+          ageRatings: v.ageRatings || null,
+          developers: v.developers || null,
+          publishers: v.publishers || null,
+          franchise: v.franchise || null,
+          collection: v.collection || null,
+          series: v.series ?? v.collection ?? null,
+          screenshots: v.screenshots || null,
+          videos: v.videos || null,
+          gameEngines: v.gameEngines || null,
+          keywords: v.keywords || null,
+          alternativeNames: v.alternativeNames || null,
+          similarGames: v.similarGames || null,
+          type: v.type ?? null,
+        }));
+        setGames(parsed);
+        cacheWriteEnabledRef.current = true;
+        writeLibraryGamesSessionCache(parsed);
       });
-      const res = await fetch(url, {
-        headers: buildApiHeaders({ Accept: "application/json" }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      const items = (json.games || []) as any[];
-      const parsed = items.map((v) => ({
-        id: String(v.id),
-        title: v.title,
-        summary: v.summary,
-        cover: v.cover,
-        background: v.background,
-        day: v.day,
-        month: v.month,
-        year: v.year,
-        stars: v.stars,
-        genre: v.genre,
-        criticratings: v.criticratings,
-        userratings: v.userratings,
-        executables: v.executables || null,
-        executableFileNames: v.executableFileNames || null,
-        themes: v.themes || null,
-        platforms: v.platforms || null,
-        gameModes: v.gameModes || null,
-        playerPerspectives: v.playerPerspectives || null,
-        websites: v.websites || null,
-        ageRatings: v.ageRatings || null,
-        developers: v.developers || null,
-        publishers: v.publishers || null,
-        franchise: v.franchise || null,
-        collection: v.collection || null,
-        series: v.series ?? v.collection ?? null,
-        screenshots: v.screenshots || null,
-        videos: v.videos || null,
-        gameEngines: v.gameEngines || null,
-        keywords: v.keywords || null,
-        alternativeNames: v.alternativeNames || null,
-        similarGames: v.similarGames || null,
-        type: v.type ?? null,
-      }));
-      setGames(parsed);
-      cacheWriteEnabledRef.current = true;
-      writeLibraryGamesSessionCache(parsed);
     } catch (err: any) {
       const errorMessage = String(err.message || err);
       console.error("Error fetching library games:", errorMessage);
@@ -103,15 +100,15 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
       }
     }
-  }, [authLoading, settingsLoaded]);
+  }, [listDataReady]);
 
-  // Load games on mount and when auth is ready
+  // Load games when tunnel/connectivity is ready (retry on API base / cold-edge settle).
   useEffect(() => {
-    if (authLoading || !settingsLoaded) {
+    if (!listDataReady) {
       return;
     }
     fetchGames();
-  }, [authLoading, settingsLoaded, fetchGames]);
+  }, [listDataReady, reloadToken, fetchGames]);
 
   useEffect(() => {
     if (!cacheWriteEnabledRef.current) return;

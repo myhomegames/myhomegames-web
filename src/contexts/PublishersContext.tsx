@@ -3,8 +3,7 @@ import type { ReactNode } from "react";
 import type { CollectionItem } from "../types";
 import { API_BASE } from "../config";
 import { buildApiUrl, buildApiHeaders } from "../utils/api";
-import { useAuth } from "./AuthContext";
-import { useSettings } from "./SettingsContext";
+import { useListDataReady, withListFetchRetries } from "../hooks/useListDataReady";
 import {
   mergeCompanyProfileOntoItem,
   type CompanyProfilePatch,
@@ -45,70 +44,71 @@ export function PublishersProvider({ children }: { children: ReactNode }) {
   const publishersRef = useRef(publishers);
   publishersRef.current = publishers;
   const cacheWriteEnabledRef = useRef((cachedPublishers?.items.length ?? 0) > 0);
-  const { isLoading: authLoading } = useAuth();
-  const { settingsLoaded } = useSettings();
+  const { ready: listDataReady, reloadToken } = useListDataReady();
 
   const fetchPublishers = useCallback(async () => {
-    if (authLoading) return;
-    if (!settingsLoaded) return;
+    if (!listDataReady) return;
 
     const showLoading = publishersRef.current.length === 0;
     if (showLoading) {
       setIsLoading(true);
     }
     setError(null);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000);
     try {
-      const url = buildApiUrl(API_BASE, "/publishers");
-      const res = await fetch(url, {
-        headers: buildApiHeaders({ Accept: "application/json" }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      const items = (json.publishers || []).map((v: any) => ({
-        id: String(v.id),
-        title: v.title,
-        summary: v.summary,
-        cover: v.cover,
-        gameCount: v.gameCount,
-        background: v.background,
-        showTitle: v.showTitle !== false,
-        childs: Array.isArray(v.childs) ? v.childs : [],
-      }));
-      setPublishers(items);
-      setPublisherGameIds((prev) => {
-        const updated = new Map(prev);
-        for (const v of json.publishers || []) {
-          if (Array.isArray(v.gameIds)) {
-            updated.set(
-              String(v.id),
-              v.gameIds.map((id: string | number) => String(id)),
-            );
-          }
+      await withListFetchRetries(async () => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 90000);
+        try {
+          const url = buildApiUrl(API_BASE, "/publishers");
+          const res = await fetch(url, {
+            headers: buildApiHeaders({ Accept: "application/json" }),
+            signal: controller.signal,
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const json = await res.json();
+          const items = (json.publishers || []).map((v: any) => ({
+            id: String(v.id),
+            title: v.title,
+            summary: v.summary,
+            cover: v.cover,
+            gameCount: v.gameCount,
+            background: v.background,
+            showTitle: v.showTitle !== false,
+            childs: Array.isArray(v.childs) ? v.childs : [],
+          }));
+          setPublishers(items);
+          setPublisherGameIds((prev) => {
+            const updated = new Map(prev);
+            for (const v of json.publishers || []) {
+              if (Array.isArray(v.gameIds)) {
+                updated.set(
+                  String(v.id),
+                  v.gameIds.map((id: string | number) => String(id)),
+                );
+              }
+            }
+            cacheWriteEnabledRef.current = true;
+            writePublishersSessionCache(items, updated);
+            return updated;
+          });
+        } finally {
+          clearTimeout(timeoutId);
         }
-        cacheWriteEnabledRef.current = true;
-        writePublishersSessionCache(items, updated);
-        return updated;
       });
     } catch (err: any) {
-      clearTimeout(timeoutId);
       setError(String(err.message || err));
     } finally {
       if (showLoading) {
         setIsLoading(false);
       }
     }
-  }, [authLoading, settingsLoaded]);
+  }, [listDataReady]);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!settingsLoaded) return;
+    if (!listDataReady) return;
     const t = setTimeout(fetchPublishers, 1200);
     return () => clearTimeout(t);
-  }, [authLoading, settingsLoaded, fetchPublishers]);
+  }, [listDataReady, reloadToken, fetchPublishers]);
 
   useEffect(() => {
     if (!cacheWriteEnabledRef.current) return;
