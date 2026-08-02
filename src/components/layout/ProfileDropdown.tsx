@@ -7,6 +7,7 @@ import { useSkin } from "../../contexts/SkinContext";
 import { bindSheetBackdropClose } from "../../utils/sheetPopupBackdrop";
 import { useTunnel } from "../../contexts/TunnelContext";
 import { useActiveProfile } from "../../hooks/useActiveProfile";
+import { requestSmartTvUiLayerFocus } from "../../utils/smartTvRemote";
 
 type ProfileDropdownPanel = "menu" | "profile";
 
@@ -65,6 +66,12 @@ export default function ProfileDropdown({
     if (!isOpen) setPanel("menu");
   }, [isOpen]);
 
+  /** TV remote: park focus on the first sheet row after open / panel change. */
+  useEffect(() => {
+    if (!isOpen) return;
+    requestSmartTvUiLayerFocus();
+  }, [isOpen, panel]);
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -86,6 +93,44 @@ export default function ProfileDropdown({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
+  // Close / step back on Escape / TV Back (tryDismissUiLayer → mhg:close-dropdown-menus + Escape).
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // tryDismiss fires both events for one Back — apply only one step.
+    let handled = false;
+    function stepBackOrClose() {
+      if (handled) return;
+      handled = true;
+      queueMicrotask(() => {
+        handled = false;
+      });
+      if (panel === "profile") {
+        setPanel("menu");
+        return;
+      }
+      setIsOpen(false);
+    }
+
+    function handleCloseAllMenus() {
+      stepBackOrClose();
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape" && event.keyCode !== 27) return;
+      event.preventDefault();
+      event.stopPropagation();
+      stepBackOrClose();
+    }
+
+    window.addEventListener("mhg:close-dropdown-menus", handleCloseAllMenus);
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => {
+      window.removeEventListener("mhg:close-dropdown-menus", handleCloseAllMenus);
+      document.removeEventListener("keydown", handleKeyDown, true);
+    };
+  }, [isOpen, panel]);
+
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsOpen(!isOpen);
@@ -105,6 +150,10 @@ export default function ProfileDropdown({
 
     setIsOpen(false);
     navigate("/profile");
+  };
+
+  const handleBackToMenu = () => {
+    setPanel("menu");
   };
 
   const handleDisconnectTunnel = async () => {
@@ -229,7 +278,20 @@ export default function ProfileDropdown({
               )}
             </>
           ) : (
-            <ProfilePanelContent variant="dropdown" />
+            <>
+              <div className="profile-dropdown-panel-header">
+                <button
+                  type="button"
+                  className="profile-dropdown-item"
+                  onClick={handleBackToMenu}
+                >
+                  {t("common.back", "Back")}
+                </button>
+              </div>
+              <div className="profile-dropdown-panel-scroll">
+                <ProfilePanelContent variant="dropdown" />
+              </div>
+            </>
           )}
         </div>
       )}
