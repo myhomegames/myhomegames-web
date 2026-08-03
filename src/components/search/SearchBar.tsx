@@ -18,17 +18,26 @@ type SearchBarProps = {
   onPlay?: (game: GameItem) => void;
   /** Let the bar shrink inside a narrow header flex row (phone layout). */
   shrinkToFit?: boolean;
+  /**
+   * When SearchBar is the page chrome (e.g. Smart TV with `tvHideAppHeader`),
+   * keep focus and sync the query from route state instead of blurring on mount.
+   */
+  primaryOnSearchResultsPage?: boolean;
 };
 
 const RECENT_SEARCHES_KEY = "recentSearches";
 const MAX_RECENT_SEARCHES = 10;
 
-export default function SearchBar({ games, collections, developers = [], publishers = [], onGameSelect, onPlay, shrinkToFit = false }: SearchBarProps) {
+export default function SearchBar({ games, collections, developers = [], publishers = [], onGameSelect, onPlay, shrinkToFit = false, primaryOnSearchResultsPage = false }: SearchBarProps) {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const isOnSearchResultsPage = location.pathname === "/search-results";
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(() => {
+    if (!primaryOnSearchResultsPage || location.pathname !== "/search-results") return "";
+    const q = (location.state as { searchQuery?: string } | null)?.searchQuery;
+    return typeof q === "string" ? q : "";
+  });
   const [isOpen, setIsOpen] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [filteredGames, setFilteredGames] = useState<GameItem[]>([]);
@@ -164,16 +173,31 @@ export default function SearchBar({ games, collections, developers = [], publish
     }
   }, []);
 
-  // Remove focus from searchbox when arriving at search results page
+  // Remove focus from searchbox when arriving at search results page (header flow).
+  // Page-primary SearchBar (TV dedicated search) keeps / restores focus instead.
   useEffect(() => {
-    if (isOnSearchResultsPage) {
-      setIsFocused(false);
-      setIsOpen(false);
-      if (inputRef.current) {
-        inputRef.current.blur();
-      }
+    if (!isOnSearchResultsPage) return;
+    if (primaryOnSearchResultsPage) {
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+        setIsFocused(true);
+      });
+      return;
     }
-  }, [isOnSearchResultsPage]);
+    setIsFocused(false);
+    setIsOpen(false);
+    if (inputRef.current) {
+      inputRef.current.blur();
+    }
+  }, [isOnSearchResultsPage, primaryOnSearchResultsPage]);
+
+  useEffect(() => {
+    if (!isOnSearchResultsPage || !primaryOnSearchResultsPage) return;
+    const q = (location.state as { searchQuery?: string } | null)?.searchQuery;
+    if (typeof q === "string" && q !== searchQuery) {
+      setSearchQuery(q);
+    }
+  }, [isOnSearchResultsPage, primaryOnSearchResultsPage, location.state, searchQuery]);
 
   useEffect(() => {
     // Don't update if we're in the process of closing or selecting a game

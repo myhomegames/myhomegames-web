@@ -215,22 +215,24 @@ export default function ProfileDropdown({
               d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
             />
           </svg>
-          <svg
-            className={`profile-dropdown-arrow ${isOpen ? "profile-dropdown-arrow-open" : ""}`}
-            width="12"
-            height="12"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            style={compactHeader ? { display: "none" } : undefined}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M19.5 8.25l-7.5 7.5-7.5-7.5"
-            />
-          </svg>
+          {!openAsDedicatedPage && (
+            <svg
+              className={`profile-dropdown-arrow ${isOpen ? "profile-dropdown-arrow-open" : ""}`}
+              width="12"
+              height="12"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              style={compactHeader ? { display: "none" } : undefined}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+              />
+            </svg>
+          )}
         </>
       )}
       {libraryTrigger && (

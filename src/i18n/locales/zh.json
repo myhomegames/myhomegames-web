@@ -75,7 +75,11 @@
       "clientIdPlaceholder": "输入您的Twitch客户端ID",
       "clientSecretPlaceholder": "输入您的Twitch客户端密钥",
       "clientIdHelp": "应用程序的公开标识符。访问 IGDB API 所必需。",
-      "clientSecretHelp": "IGDB API 调用（Twitch client_credentials）所必需。在 Twitch 开发者控制台的 Manage → New Secret 中生成。"
+      "clientSecretHelp": "IGDB API 调用（Twitch client_credentials）所必需。在 Twitch 开发者控制台的 Manage → New Secret 中生成。",
+      "enableApi": "启用 IGDB API",
+      "enableApiLocal": "启用 Client ID / Secret（IGDB）",
+      "enableApiHelp": "关闭后，应用不会调用 IGDB 接口。",
+      "enableApiHelpLocal": "关闭后会保留已保存的凭据，但 IGDB 与 API 不会使用它们。可重新开启而无需再次输入。"
     },
     "skinOptions": {
       "title": "选项",
@@ -98,14 +102,44 @@
         "autoShowBackgroundOnSelection": "焦点选中时显示背景",
         "detailBackdropLayout": "游戏详情背景布局（皮肤 CSS）",
         "staticInlineTagListOnTvPhone": "电视和手机上内联标签不可点击",
-        "tvSummaryOverlay": "TV: open summary in full-screen overlay",
-        "tvStarRatingOverlay": "TV: open star rating in full-screen overlay",
-        "tvDetailSummaryBeforeActions": "TV: show summary above the Play row on game detail",
-        "tvRecommendedBrowsePreview": "TV: Recommended top panel updates with the focused game (through summary)",
-        "tvHideAppHeader": "TV: hide app header (logo, search, settings)",
-
-        "disableTitleTooltips": "隐藏工具提示"
+        "tvSummaryOverlay": "电视：在全屏浮层中打开简介",
+        "tvStarRatingOverlay": "电视：在全屏浮层中打开星级评分",
+        "tvDetailSummaryBeforeActions": "电视：在游戏详情的 Play 行上方显示简介",
+        "tvRecommendedBrowsePreview": "电视：推荐页顶部面板随焦点游戏更新（到简介为止）",
+        "tvHideAppHeader": "电视：隐藏应用顶栏；搜索与个人资料保留在媒体库栏",
+        "disableTitleTooltips": "隐藏工具提示",
+        "collapsibleLibrarySidebar": "窄视口下可折叠的媒体库侧栏"
       }
+    },
+    "webVersion": "网页版本",
+    "minServerVersionRequired": "需要服务器版本 {{version}} 或更高。",
+    "connectedServerVersion": "已连接服务器版本：{{version}}。",
+    "cloudflare": {
+      "title": "Cloudflare 个人资料",
+      "description": "将此设备连接到你的个人 Cloudflare Tunnel。远程 API 使用你的公网主机名；本地控制仍在本机。",
+      "statusLabel": "隧道状态",
+      "status": {
+        "connecting": "正在连接…",
+        "connected": "已连接 — cloudflared 正在运行。",
+        "stored": "凭据已保存 — 隧道未运行。请重新连接，或断开以清除。",
+        "disconnected": "未连接。"
+      },
+      "publicUrlLabel": "公网 API URL",
+      "managerLabel": "隧道管理器",
+      "connect": "连接隧道",
+      "disconnect": "断开隧道",
+      "confirmDisconnect": "断开此设备上的 Cloudflare Tunnel 并删除已保存的凭据？",
+      "linkTv": "关联电视",
+      "linkTvHelp": "在手机上打开此页面，并输入智能电视上显示的代码（无需用遥控器在 Cloudflare Access 中输入）。"
+    },
+    "streaming": {
+      "title": "远程游戏（Sunshine）",
+      "description": "从其他设备使用 MyHomeGames 时，Play 会打开 Moonlight Web。Sunshine 与 Moonlight Web 随服务器启动；若缺少 Docker 会自动安装（macOS 上为 Colima）。Sunshine 主机会自动添加并配对（登录 sunshine / admin）。",
+      "enabled": "启用远程串流",
+      "moonlightWebUrl": "Moonlight Web URL",
+      "moonlightWebUrlHelp": "由服务器管理 Moonlight Web 时会自动填写（http://127.0.0.1:8080）。局域网外的浏览器请使用公网 HTTPS URL。",
+      "save": "保存远程游戏设置",
+      "saved": "远程游戏设置已保存。"
     }
   },
   "tags": {
@@ -137,11 +171,15 @@
     "downloadLinux": "Linux",
     "downloadLinuxDeb": "Linux (.deb)",
     "downloadLinuxRpm": "Linux (.rpm)",
-    "serverCompatibilityMismatch": "Server update required",
-    "serverCompatibilityTooltip": "Server incompatible with this web app",
-    "serverCompatibilityDetail": "This web app requires server version {{required}} or newer. The connected server is {{version}}. Update the server to a matching release.",
+    "serverCompatibilityMismatch": "需要更新服务器",
+    "serverCompatibilityTooltip": "服务器与此网页应用不兼容",
+    "serverCompatibilityDetail": "此网页应用需要服务器版本 {{required}} 或更高。当前连接的是 {{version}}。请将服务器更新到匹配的版本。",
     "titleFilterPlaceholder": "搜索…",
-    "titleFilterAria": "搜索当前列表"
+    "titleFilterAria": "搜索当前列表",
+    "clock": "时钟",
+    "skinNewVersionAvailable": "{{name}}：有新版本 {{version}} 可用",
+    "updateSkin": "更新皮肤",
+    "updatingSkin": "正在更新 {{name}}…"
   },
   "profile": {
     "viewProfile": "查看个人资料",
@@ -152,7 +190,11 @@
     "username": "用户名",
     "userId": "用户ID",
     "accountType": "账户类型",
-    "developmentAccount": "开发账户"
+    "developmentAccount": "开发账户",
+    "cloudflareAccount": "Cloudflare 账户",
+    "cloudflareTunnel": "Cloudflare Tunnel",
+    "publicApiUrl": "公网 API URL",
+    "disconnectTunnel": "断开隧道"
   },
   "serverUnavailable": {
     "title": "无法连接 MyHomeGames 服务器",
@@ -199,7 +241,8 @@
     "noResults": "未找到",
     "typeToSearch": "至少输入 2 个字符进行搜索",
     "error": "搜索时出错",
-    "new": "新"
+    "new": "新",
+    "catalogSearchDisabled": "请在设置中启用目录搜索以搜索目录。"
   },
   "viewMode": {
     "grid": "网格视图",
@@ -290,7 +333,18 @@
     "addAlternativeName": "添加别名...",
     "add": "添加",
     "websites": "网站",
-    "addWebsiteUrl": "添加网站链接..."
+    "addWebsiteUrl": "添加网站链接...",
+    "rate": "评分",
+    "rated": "已评分",
+    "gameType": "游戏类型",
+    "gameTypeNotSet": "未设置",
+    "logo": "标志",
+    "uploadLogo": "上传标志",
+    "removeLogo": "移除标志",
+    "imageProcessFailed": "无法处理图片。请尝试其他格式（例如 JPEG 或 PNG）。",
+    "externalLogoUrl": "外部标志 URL",
+    "externalLogoUrlPlaceholder": "https://…（无本地标志时使用）",
+    "logoFormat": "推荐格式：WebP，最大 1200×600（contain，不裁剪）"
   },
   "manageInstallation": {
     "title": "管理安装",
@@ -350,7 +404,10 @@
     "create": "创建",
     "creating": "创建中...",
     "removing": "移除中...",
-    "unauthorized": "未授权"
+    "unauthorized": "未授权",
+    "exitAppTitle": "退出 MyHomeGames？",
+    "exitAppMessage": "要关闭应用程序吗？",
+    "exitAppConfirm": "退出"
   },
   "metadataReload": {
     "phase": {
@@ -639,7 +696,16 @@
     "noCompaniesFound": "未找到公司",
     "addFormerly": "添加公司",
     "addParentCompany": "添加公司",
-    "addUpdatedTo": "添加公司"
+    "addUpdatedTo": "添加公司",
+    "searchDevelopers": "搜索开发商...",
+    "searchPublishers": "搜索发行商...",
+    "newDeveloperName": "新开发商名称",
+    "newPublisherName": "新发行商名称",
+    "removeFromDeveloper": "从开发商移除",
+    "removeFromPublisher": "从发行商移除",
+    "editDeveloper": "编辑开发商",
+    "editPublisher": "编辑发行商",
+    "name": "名称"
   },
   "companyStatuses": {
     "active": "活跃",
@@ -679,5 +745,37 @@
     "add": "添加",
     "adding": "添加中...",
     "errorAdding": "添加到库时出错"
+  },
+  "tunnel": {
+    "title": "连接 Cloudflare Tunnel",
+    "lead": "在隧道管理器中用 Cloudflare Access 登录，然后连接此设备。",
+    "step1": "打开隧道管理器并完成 Cloudflare 登录。",
+    "step2": "返回此处并获取你的个人隧道令牌。",
+    "openManager": "打开隧道管理器",
+    "connect": "连接隧道",
+    "connecting": "正在连接…",
+    "publicApiNotReady": "公网 API 尚不可达。请稍等并重新加载页面，或断开后重新连接。"
+  },
+  "devicePairing": {
+    "title": "关联此电视",
+    "lead": "在手机或电脑上打开下方链接，用 Cloudflare 登录并输入此代码。登录无需电视遥控器。",
+    "loading": "正在准备关联码…",
+    "openLink": "前往 {{url}} 并输入代码",
+    "qrAlt": "用于在手机上打开电视关联页的二维码",
+    "waiting": "正在等待手机确认…",
+    "connecting": "正在连接你的媒体库…",
+    "expired": "此代码已过期。请生成新代码以继续。",
+    "retry": "新代码"
+  },
+  "streamPlay": {
+    "title": "远程游戏",
+    "launching": "正在家用电脑上启动游戏…",
+    "readyHint": "游戏已启动。正在通过 Moonlight Web 串流家用桌面…",
+    "setupHint": "需要家用电脑上的 Sunshine，以及可通过 HTTPS 访问的 Moonlight Web。",
+    "launchFailed": "无法在家用电脑上启动游戏",
+    "noMoonlightUrl": "服务器未配置 Moonlight Web URL。",
+    "sunshineUnreachable": "家用电脑上似乎未运行 Sunshine。请启动 Sunshine，然后刷新 Moonlight Web。",
+    "missingGame": "缺少游戏 id",
+    "iframeTitle": "Moonlight Web 串流"
   }
 }
