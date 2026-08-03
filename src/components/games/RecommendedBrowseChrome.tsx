@@ -39,7 +39,8 @@ type RecommendedBrowseChromeProps = {
 
 /**
  * Owns TV browse summary + fanart so cover strips are not in the same state tree.
- * Preview follows cover focus immediately; ambient blur fill stays off for TV perf.
+ * Preview follows cover focus immediately; ambient fill continues art edge colors
+ * (same idea as game-detail narrow/TV backdrop).
  */
 export default function RecommendedBrowseChrome({
   isReady,
@@ -259,7 +260,6 @@ export default function RecommendedBrowseChrome({
       elementId="recommended-browse"
       autoShowWhenAvailable
       detailBackdrop={detailBackdrop}
-      ambientFill={false}
     >
       {children(preview)}
     </BackgroundManager>
