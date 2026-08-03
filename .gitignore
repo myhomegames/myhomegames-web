@@ -38,3 +38,6 @@ docs
 
 # Static assets live on main only (PWA icons, etc.)
 public
+
+# Cursor (local only; never commit)
+.cursor
