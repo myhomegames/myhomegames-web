@@ -82,6 +82,53 @@ function isVisible(el: HTMLElement): boolean {
   return rect.width > 2 && rect.height > 2;
 }
 
+/**
+ * Plex Smart TV scales the whole cover tile (`transform: scale(...)` on the item).
+ * That inflates getBoundingClientRect() and makes geometric Up/Down fail when rows
+ * overlap — measure as if the tile were unscaled.
+ */
+const COVER_SCALE_TILE_SELECTOR = [
+  ".games-list-item--cover-sized",
+  ".tag-list-item",
+  ".collections-list-item--sized",
+  ".collections-list-item.library-item-detail-subcollection-cell",
+  ".similar-games-cover-cell",
+].join(",");
+
+function mapFocusNavRects(els: Iterable<HTMLElement>): Map<HTMLElement, DOMRect> {
+  const list = Array.from(els);
+  const tiles = new Set<HTMLElement>();
+  for (const el of list) {
+    const tile = el.closest(COVER_SCALE_TILE_SELECTOR) as HTMLElement | null;
+    if (tile) tiles.add(tile);
+  }
+
+  const saved: Array<{ tile: HTMLElement; value: string; priority: string }> = [];
+  for (const tile of tiles) {
+    if (getComputedStyle(tile).transform === "none") continue;
+    saved.push({
+      tile,
+      value: tile.style.getPropertyValue("transform"),
+      priority: tile.style.getPropertyPriority("transform"),
+    });
+    tile.style.setProperty("transform", "none", "important");
+  }
+
+  const map = new Map<HTMLElement, DOMRect>();
+  for (const el of list) {
+    map.set(el, el.getBoundingClientRect());
+  }
+
+  for (const entry of saved) {
+    if (entry.value) {
+      entry.tile.style.setProperty("transform", entry.value, entry.priority);
+    } else {
+      entry.tile.style.removeProperty("transform");
+    }
+  }
+  return map;
+}
+
 function isLogoButton(el: HTMLElement): boolean {
   return (
     el.classList.contains("mhg-logo-button") ||
@@ -361,14 +408,17 @@ function pickNextInSet(
     return items[0] ?? null;
   }
 
-  const from = current.getBoundingClientRect();
+  const rects = mapFocusNavRects([current, ...items]);
+  const from = rects.get(current) ?? current.getBoundingClientRect();
   const fromC = center(from);
+  // Center separation tolerates overlapping boxes from CSS tile scale.
+  const minPrimary = Math.max(8, Math.min(from.width, from.height) * 0.12);
   let best: HTMLElement | null = null;
   let bestScore = Number.POSITIVE_INFINITY;
 
   for (const el of items) {
     if (el === current) continue;
-    const to = el.getBoundingClientRect();
+    const to = rects.get(el) ?? el.getBoundingClientRect();
     const toC = center(to);
     const dx = toC.x - fromC.x;
     const dy = toC.y - fromC.y;
@@ -380,19 +430,19 @@ function pickNextInSet(
     if (direction === "down") {
       primary = dy;
       orthogonal = Math.abs(dx);
-      aligned = to.top >= from.top - 4;
+      aligned = dy >= minPrimary || to.top >= from.top - 4;
     } else if (direction === "up") {
       primary = -dy;
       orthogonal = Math.abs(dx);
-      aligned = to.bottom <= from.bottom + 4;
+      aligned = -dy >= minPrimary || to.bottom <= from.bottom + 4;
     } else if (direction === "right") {
       primary = dx;
       orthogonal = Math.abs(dy);
-      aligned = to.left >= from.left - 4;
+      aligned = dx >= minPrimary || to.left >= from.left - 4;
     } else {
       primary = -dx;
       orthogonal = Math.abs(dy);
-      aligned = to.right <= from.right + 4;
+      aligned = -dx >= minPrimary || to.right <= from.right + 4;
     }
 
     if (!aligned || primary < 1) continue;
@@ -416,19 +466,27 @@ function pickCoverInRow(
   direction: "left" | "right",
 ): HTMLElement | null {
   if (covers.length === 0) return null;
-  const fromY = center(current.getBoundingClientRect()).y;
-  const rowTol = Math.max(28, current.getBoundingClientRect().height * 0.45);
-  const sameRow = covers.filter(
-    (el) => Math.abs(center(el.getBoundingClientRect()).y - fromY) <= rowTol,
-  );
+  const rects = mapFocusNavRects([current, ...covers]);
+  const fromRect = rects.get(current) ?? current.getBoundingClientRect();
+  const fromY = center(fromRect).y;
+  const rowTol = Math.max(28, fromRect.height * 0.45);
+  const sameRow = covers.filter((el) => {
+    const r = rects.get(el) ?? el.getBoundingClientRect();
+    return Math.abs(center(r).y - fromY) <= rowTol;
+  });
   if (sameRow.length === 0) return null;
-  sameRow.sort(
-    (a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left,
-  );
+  sameRow.sort((a, b) => {
+    const ar = rects.get(a) ?? a.getBoundingClientRect();
+    const br = rects.get(b) ?? b.getBoundingClientRect();
+    return ar.left - br.left;
+  });
   let idx = sameRow.indexOf(current);
   if (idx < 0) {
-    const fromLeft = current.getBoundingClientRect().left;
-    idx = sameRow.findIndex((el) => el.getBoundingClientRect().left >= fromLeft - 1);
+    const fromLeft = fromRect.left;
+    idx = sameRow.findIndex((el) => {
+      const r = rects.get(el) ?? el.getBoundingClientRect();
+      return r.left >= fromLeft - 1;
+    });
     if (idx < 0) idx = sameRow.length - 1;
     // Snap to nearest in-row cover when current wasn't in the filtered set.
     if (direction === "left") {
@@ -1141,6 +1199,45 @@ function collectRecommendedStripCoverFocusables(strip: HTMLElement): HTMLElement
       ".games-list-cover[role='button'], .games-list-cover[tabindex]",
     ),
   ).filter((el) => isVisible(el) && !el.closest("[inert]") && !el.hasAttribute("disabled"));
+}
+
+/** Keyword strips on Recommended in DOM order (top → bottom). */
+function collectRecommendedStripRoots(): HTMLElement[] {
+  const root = document.querySelector(".recommended-page-scroll");
+  if (!root) return [];
+  return Array.from(root.querySelectorAll<HTMLElement>(".scrollable-section")).filter(
+    (section) => collectRecommendedStripCoverFocusables(section).length > 0,
+  );
+}
+
+/** Up/Down between Recommended keyword rows, keeping roughly the same column. */
+function pickCoverInAdjacentRecommendedStrip(
+  cover: HTMLElement,
+  direction: "up" | "down",
+): HTMLElement | null {
+  const strips = collectRecommendedStripRoots();
+  const currentStrip = recommendedStripRootFrom(cover);
+  if (!currentStrip || strips.length === 0) return null;
+  const idx = strips.indexOf(currentStrip);
+  if (idx < 0) return null;
+  const nextIdx = direction === "down" ? idx + 1 : idx - 1;
+  if (nextIdx < 0 || nextIdx >= strips.length) return null;
+  const nextCovers = collectRecommendedStripCoverFocusables(strips[nextIdx]!);
+  if (nextCovers.length === 0) return null;
+
+  const rects = mapFocusNavRects([cover, ...nextCovers]);
+  const fromX = center(rects.get(cover) ?? cover.getBoundingClientRect()).x;
+  let best: HTMLElement | null = null;
+  let bestDist = Number.POSITIVE_INFINITY;
+  for (const el of nextCovers) {
+    const x = center(rects.get(el) ?? el.getBoundingClientRect()).x;
+    const dist = Math.abs(x - fromX);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = el;
+    }
+  }
+  return best;
 }
 
 /**
@@ -2657,7 +2754,7 @@ export function installSmartTvRemoteKeys(
           rememberCoverFocus(coverEl);
 
           // Recommended strips: Left/Right stay on the same keyword row at the ends;
-          // Up/Down may leave to another strip / chrome.
+          // Up/Down step to the adjacent keyword strip (same column).
           const recommendedStrip = recommendedStripRootFrom(coverEl);
           if (
             recommendedStrip &&
@@ -2709,6 +2806,47 @@ export function installSmartTvRemoteKeys(
               }
               return;
             }
+          }
+          if (
+            recommendedStrip &&
+            (direction === "up" || direction === "down")
+          ) {
+            const nextStripCover = pickCoverInAdjacentRecommendedStrip(
+              coverEl,
+              direction,
+            );
+            if (nextStripCover) {
+              rememberCoverFocus(nextStripCover);
+              focusElement(nextStripCover);
+              return;
+            }
+            if (direction === "up") {
+              if (focusToolbarOrMenu()) return;
+            }
+            if (nudgeScrollParentForDirection(coverEl, direction)) {
+              window.requestAnimationFrame(() => {
+                const activeCover = coverFocusFrom(
+                  document.activeElement instanceof HTMLElement
+                    ? document.activeElement
+                    : coverEl,
+                );
+                if (!activeCover) return;
+                const retry = pickCoverInAdjacentRecommendedStrip(
+                  activeCover,
+                  direction,
+                );
+                if (retry) {
+                  rememberCoverFocus(retry);
+                  focusElement(retry);
+                } else if (direction === "up") {
+                  focusToolbarOrMenu();
+                }
+              });
+              return;
+            }
+            if (direction === "up") return;
+            // Last / only strip: stay in Recommended rail (don't jump to other chrome).
+            return;
           }
 
           const covers = collectCoverFocusables();
