@@ -337,6 +337,11 @@ function defaultChromeTarget(): HTMLElement | null {
   if (getActiveUiLayer()) {
     return items[0] ?? null;
   }
+  // Profile: land on Disconnect tunnel (only page action) instead of the libraries tab.
+  const profileAction = profilePagePrimaryAction();
+  if (profileAction && items.includes(profileAction)) {
+    return profileAction;
+  }
   return (
     items.find((el) => el.classList.contains("mhg-library-active")) ??
     items.find((el) => el.classList.contains("mhg-library-button")) ??
@@ -1576,6 +1581,20 @@ function isAppHomePath(): boolean {
   return path === "/app" || path === "/" || path === "/app/index.html";
 }
 
+function isProfilePagePath(): boolean {
+  const path = (window.location.pathname || "/").replace(/\/+$/, "") || "/";
+  return path === "/profile" || path.endsWith("/profile");
+}
+
+/** Disconnect tunnel — sole primary action on `/profile`. */
+function profilePagePrimaryAction(): HTMLElement | null {
+  if (!isProfilePagePath()) return null;
+  const btn = document.querySelector<HTMLElement>(
+    ".profile-page button.settings-button:not([disabled])",
+  );
+  return btn && isVisible(btn) ? btn : null;
+}
+
 function isExitConfirmOpen(): boolean {
   return Boolean(document.querySelector("[data-mhg-tv-exit-confirm]"));
 }
@@ -1778,12 +1797,24 @@ export function installSmartTvRemoteKeys(
     return true;
   };
 
+  const focusProfilePageAction = () => {
+    const action = profilePagePrimaryAction();
+    if (!action) return false;
+    zone = "chrome";
+    focusElement(action);
+    return true;
+  };
+
   /**
    * Prefer list toolbar (Tutto / sort), then shell actions (New/Main games),
    * then covers — so Library keeps landing on filter/sort first.
+   * On `/profile`, fall through to Disconnect tunnel (no covers/toolbar).
    */
   const focusToolbarOrCovers = () =>
-    focusToolbarZone() || focusShellActionsZone() || focusCoversZone();
+    focusToolbarZone() ||
+    focusShellActionsZone() ||
+    focusCoversZone() ||
+    focusProfilePageAction();
 
   /** Prefer toolbar / shell actions when leaving the cover grid upward; else libraries menu. */
   const focusToolbarOrMenu = () =>
@@ -2401,6 +2432,18 @@ export function installSmartTvRemoteKeys(
         return;
       }
 
+      // Profile page: Disconnect tunnel is the only page action.
+      const profileAction = profilePagePrimaryAction();
+      if (profileAction && current === profileAction) {
+        if (direction === "up") {
+          if (focusLibraryMenu()) return;
+          if (focusAppHeaderZone(current)) return;
+          return;
+        }
+        // Stay on the button for L/R/Down.
+        return;
+      }
+
       // Plex / GOG: libraries menu ↔ list toolbar ↔ cover grid ↔ A–Z index.
       // Toolbar (Tutto / sort / count) sits between header tabs and covers.
       if (isLibraryMenuCoverGridNavMode()) {
@@ -2586,6 +2629,7 @@ export function installSmartTvRemoteKeys(
           if (direction === "down") {
             if (focusToolbarZone()) return;
             if (focusCoversZone()) return;
+            if (focusProfilePageAction()) return;
             return;
           }
         }
