@@ -35,3 +35,6 @@ certs/*.pem
 .env.local
 .env.*.local
 .env.production
+
+# Cursor (local only; never commit)
+.cursor
