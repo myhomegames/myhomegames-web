@@ -37,13 +37,9 @@ type RecommendedBrowseChromeProps = {
   children: (preview: ReactNode) => ReactNode;
 };
 
-/** Wait for D-pad to settle before summary/fanart work — covers still move on native focus. */
-const PREVIEW_SETTLE_MS = 220;
-
 /**
  * Owns TV browse summary + fanart so cover strips are not in the same state tree.
- * Focus moves covers immediately; preview/background only commit after settle.
- * Ambient blur fill is off — full-viewport blur(72px) was the main TV hitch.
+ * Preview follows cover focus immediately; ambient blur fill stays off for TV perf.
  */
 export default function RecommendedBrowseChrome({
   isReady,
@@ -112,29 +108,11 @@ export default function RecommendedBrowseChrome({
       }
     };
 
-    let settleTimer: number | null = null;
-    let pendingGame: GameItem | null = null;
-
-    const commitPreview = (game: GameItem) => {
-      startTransition(() => {
-        setPreviewGame(game);
-      });
-      window.requestAnimationFrame(() => preloadNeighbors(game));
-    };
-
     const onFocusIn = (e: FocusEvent) => {
       const game = resolveGameFromTarget(e.target);
       if (!game) return;
-      pendingGame = game;
-      if (settleTimer != null) window.clearTimeout(settleTimer);
-      // Warm neighbor fanarts immediately; paint summary/fanart only after settle.
+      setPreviewGame(game);
       window.requestAnimationFrame(() => preloadNeighbors(game));
-      settleTimer = window.setTimeout(() => {
-        settleTimer = null;
-        const next = pendingGame;
-        pendingGame = null;
-        if (next) commitPreview(next);
-      }, PREVIEW_SETTLE_MS);
     };
 
     root.addEventListener("focusin", onFocusIn);
@@ -160,7 +138,6 @@ export default function RecommendedBrowseChrome({
     return () => {
       root.removeEventListener("focusin", onFocusIn);
       window.clearTimeout(focusTimer);
-      if (settleTimer != null) window.clearTimeout(settleTimer);
     };
   }, [isReady, scrollContainerRef, sectionsRef]);
 
@@ -246,34 +223,26 @@ export default function RecommendedBrowseChrome({
   // Fanart: keep previous art until the next URL is decoded; clear when the game has none.
   useEffect(() => {
     if (!previewGame) {
-      startTransition(() => {
-        setPaintedBackgroundUrl("");
-      });
+      setPaintedBackgroundUrl("");
       return;
     }
 
     const url = buildBackgroundUrl(API_BASE, previewGame.background) || "";
     if (!url) {
-      startTransition(() => {
-        setPaintedBackgroundUrl("");
-      });
+      setPaintedBackgroundUrl("");
       return;
     }
     if (url === paintedUrlRef.current) return;
 
     if (isBackgroundUrlWarmed(url)) {
-      startTransition(() => {
-        setPaintedBackgroundUrl(url);
-      });
+      setPaintedBackgroundUrl(url);
       return;
     }
 
     let cancelled = false;
     whenBackgroundUrlReady(url).then(() => {
       if (cancelled) return;
-      startTransition(() => {
-        setPaintedBackgroundUrl(url);
-      });
+      setPaintedBackgroundUrl(url);
     });
 
     return () => {
