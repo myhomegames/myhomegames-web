@@ -243,12 +243,22 @@ export default function RecommendedBrowseChrome({
     };
   }, [previewGame?.id, previewGame?.isCatalogOnly, sectionsRef]);
 
-  // Fanart: keep previous art until the next URL is decoded — never clear mid-step.
+  // Fanart: keep previous art until the next URL is decoded; clear when the game has none.
   useEffect(() => {
-    if (!previewGame) return;
+    if (!previewGame) {
+      startTransition(() => {
+        setPaintedBackgroundUrl("");
+      });
+      return;
+    }
 
     const url = buildBackgroundUrl(API_BASE, previewGame.background) || "";
-    if (!url) return;
+    if (!url) {
+      startTransition(() => {
+        setPaintedBackgroundUrl("");
+      });
+      return;
+    }
     if (url === paintedUrlRef.current) return;
 
     if (isBackgroundUrlWarmed(url)) {
