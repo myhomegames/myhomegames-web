@@ -147,7 +147,7 @@ export default function RecommendedBrowsePreview({ game }: RecommendedBrowsePrev
             </div>
             {game.summary ? (
               <div className="game-detail-summary">
-                <Summary summary={game.summary} maxLines={4} truncateOnly />
+                <Summary summary={game.summary} maxLines={6} truncateOnly />
               </div>
             ) : null}
           </div>
