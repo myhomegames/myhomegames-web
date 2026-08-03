@@ -22,6 +22,11 @@ function markHoverMirror(el: HTMLElement): void {
   el.querySelectorAll<HTMLElement>(HOVER_MIRROR_SELECTOR).forEach((node) => {
     node.setAttribute(SMART_TV_HOVER_ATTR, "true");
   });
+  // Horizontal strips: focus is on the cover; skin scale targets the item.
+  const stripItem = el.closest<HTMLElement>(".games-list-item");
+  if (stripItem && stripItem !== el) {
+    stripItem.setAttribute(SMART_TV_HOVER_ATTR, "true");
+  }
   const focal = el.closest<HTMLElement>(
     ".fixed-focal-games-item, .fixed-focal-tag-item, .fixed-focal-collections-item, .fixed-focal-recommended-strip-item",
   );
