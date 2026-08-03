@@ -150,7 +150,7 @@ export default function EditGameMediaTab({
                     showRemoveButton={!!hasCover && !coverRemoved && !isCoverFromCatalog}
                     removeMediaType="cover"
                     removeResourceId={game.id}
-                    removeResourceType="game"
+                    removeResourceType="games"
                     onGameUpdate={onGameUpdate}
                     onRemoveSuccess={handleCoverRemoveSuccess}
                     removeDisabled={saving || uploadingCover}
@@ -226,7 +226,7 @@ export default function EditGameMediaTab({
                     showRemoveButton={!!hasBackground && !backgroundRemoved && !isBackgroundFromCatalog}
                     removeMediaType="background"
                     removeResourceId={game.id}
-                    removeResourceType="game"
+                    removeResourceType="games"
                     onGameUpdate={onGameUpdate}
                     onRemoveSuccess={handleBackgroundRemoveSuccess}
                     removeDisabled={saving || uploadingBackground}
@@ -303,7 +303,7 @@ export default function EditGameMediaTab({
                     showRemoveButton={!!hasLogo && !logoRemoved && !isLogoFromCatalog}
                     removeMediaType="logo"
                     removeResourceId={game.id}
-                    removeResourceType="game"
+                    removeResourceType="games"
                     onGameUpdate={onGameUpdate}
                     onRemoveSuccess={handleLogoRemoveSuccess}
                     removeDisabled={saving || uploadingLogo}
