@@ -52,6 +52,7 @@ export function useAddGame({
           summaryEn: catalogGame.summaryEn,
           cover: catalogGame.cover,
           background: catalogGame.background,
+          logo: catalogGame.logo,
           releaseDate: catalogGame.releaseDateFull?.timestamp || catalogGame.releaseDate,
           genres: catalogGame.genres,
           criticRating: catalogGame.criticRating,

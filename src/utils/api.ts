@@ -141,6 +141,46 @@ export function buildBackgroundUrl(apiBase: string, background?: string, addTime
   return u.toString();
 }
 
+/**
+ * Builds a logo image URL
+ * @param apiBase - The base URL for the API
+ * @param logo - The logo path from the server (e.g., /logos/gameId) or full URL
+ * @returns The complete logo URL string, or empty string if logo is not provided
+ */
+export function buildLogoUrl(apiBase: string, logo?: string, addTimestamp?: boolean): string {
+  if (!logo) return "";
+  // If logo is already a full URL (starts with http:// or https://), return it directly
+  if (logo.startsWith('http://') || logo.startsWith('https://')) {
+    return logo;
+  }
+  // Logo is a relative path from server (e.g., /logos/gameId)
+  // Check if it already has a timestamp
+  const hasTimestamp = logo.includes('?t=') || logo.includes('&t=');
+  
+  // If it already has a timestamp, preserve it when building the URL
+  if (hasTimestamp) {
+    const basePath = logo.split('?')[0];
+    const queryString = logo.includes('?') ? logo.substring(logo.indexOf('?')) : '';
+    const u = new URL(basePath, apiBase);
+    // Parse existing query string and add to URL
+    if (queryString) {
+      const params = new URLSearchParams(queryString);
+      params.forEach((value, key) => {
+        u.searchParams.set(key, value);
+      });
+    }
+    return u.toString();
+  }
+  
+  // No timestamp, build URL normally
+  const u = new URL(logo, apiBase);
+  // Add timestamp to force browser reload if requested
+  if (addTimestamp) {
+    u.searchParams.set('t', Date.now().toString());
+  }
+  return u.toString();
+}
+
 function extractYouTubeVideoId(url: URL): string | null {
   const host = url.hostname.toLowerCase();
   if (host === "youtu.be") {

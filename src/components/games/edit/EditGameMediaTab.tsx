@@ -29,6 +29,15 @@ type EditGameMediaTabProps = {
   handleBackgroundRemoveSuccess: () => void;
   externalBackgroundUrl: string;
   onExternalBackgroundChange: (value: string) => void;
+  logoRemoved: boolean;
+  logoPreview: string | null;
+  logoLocalPreviewUrl: string;
+  uploadingLogo: boolean;
+  logoInputRef: RefObject<HTMLInputElement | null>;
+  handleLogoFileSelect: (event: ChangeEvent<HTMLInputElement>) => void;
+  handleLogoRemoveSuccess: () => void;
+  externalLogoUrl: string;
+  onExternalLogoChange: (value: string) => void;
   screenshotInputRef?: RefObject<HTMLInputElement | null>;
   pendingScreenshotFiles: File[];
   onAddPendingScreenshotFile: (file: File) => void;
@@ -65,6 +74,15 @@ export default function EditGameMediaTab({
   handleBackgroundRemoveSuccess,
   externalBackgroundUrl,
   onExternalBackgroundChange,
+  logoRemoved,
+  logoPreview,
+  logoLocalPreviewUrl,
+  uploadingLogo,
+  logoInputRef,
+  handleLogoFileSelect,
+  handleLogoRemoveSuccess,
+  externalLogoUrl,
+  onExternalLogoChange,
   screenshotInputRef: screenshotInputRefProp,
   pendingScreenshotFiles,
   onAddPendingScreenshotFile,
@@ -132,7 +150,7 @@ export default function EditGameMediaTab({
                     showRemoveButton={!!hasCover && !coverRemoved && !isCoverFromCatalog}
                     removeMediaType="cover"
                     removeResourceId={game.id}
-                    removeResourceType="games"
+                    removeResourceType="game"
                     onGameUpdate={onGameUpdate}
                     onRemoveSuccess={handleCoverRemoveSuccess}
                     removeDisabled={saving || uploadingCover}
@@ -208,7 +226,7 @@ export default function EditGameMediaTab({
                     showRemoveButton={!!hasBackground && !backgroundRemoved && !isBackgroundFromCatalog}
                     removeMediaType="background"
                     removeResourceId={game.id}
-                    removeResourceType="games"
+                    removeResourceType="game"
                     onGameUpdate={onGameUpdate}
                     onRemoveSuccess={handleBackgroundRemoveSuccess}
                     removeDisabled={saving || uploadingBackground}
@@ -243,6 +261,83 @@ export default function EditGameMediaTab({
               onChange={(e) => onExternalBackgroundChange(e.target.value)}
               disabled={saving}
               placeholder={t("gameDetail.externalBackgroundUrlPlaceholder", "https://… (used when no local background)")}
+              autoComplete="off"
+            />
+            <p className="edit-game-modal-external-url-hint">
+              {t("gameDetail.externalUrlHint", "A local uploaded file takes priority over this URL.")}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Logo + external URL */}
+      <div className="edit-game-modal-media-block">
+        <div className="edit-game-modal-media-row edit-game-modal-media-row--logo">
+          <div className="edit-game-modal-media-info">
+            <div className="edit-game-modal-label">{t("gameDetail.logo", "Logo")}</div>
+            <div className="edit-game-modal-media-description">
+              {t("gameDetail.logoFormat", "Recommended format: WebP, max 1200×600 (contain, no crop)")}
+            </div>
+          </div>
+          <div className="edit-game-modal-media-image-container">
+            {(() => {
+              const currentLogoUrl = logoRemoved ? "" : logoLocalPreviewUrl;
+              const hasLogo = currentLogoUrl && currentLogoUrl.trim() !== "";
+              const isLogoFromCatalog = false;
+              return (
+                <>
+                  <Cover
+                    key={`logo-${logoRemoved ? "removed" : logoPreview ? "preview" : logoLocalPreviewUrl}`}
+                    title={game.title}
+                    coverUrl={currentLogoUrl}
+                    width={300}
+                    height={120}
+                    showTitle={false}
+                    detail={false}
+                    play={false}
+                    showBorder={true}
+                    aspectRatio="5/2"
+                    imageFit="contain"
+                    onUpload={() => !uploadingLogo && !saving && logoInputRef.current?.click()}
+                    uploading={uploadingLogo}
+                    showRemoveButton={!!hasLogo && !logoRemoved && !isLogoFromCatalog}
+                    removeMediaType="logo"
+                    removeResourceId={game.id}
+                    removeResourceType="game"
+                    onGameUpdate={onGameUpdate}
+                    onRemoveSuccess={handleLogoRemoveSuccess}
+                    removeDisabled={saving || uploadingLogo}
+                  />
+                  <input
+                    ref={logoInputRef}
+                    id="edit-game-logo-input"
+                    name="logo"
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={handleLogoFileSelect}
+                    aria-label={t("gameDetail.logo", "Logo")}
+                  />
+                </>
+              );
+            })()}
+          </div>
+        </div>
+        <div className="edit-game-modal-media-row edit-game-modal-external-url-row">
+          <div className="edit-game-modal-media-info">
+            <label htmlFor="edit-game-external-logo-url" className="edit-game-modal-label">
+              {t("gameDetail.externalLogoUrl", "External logo URL")}
+            </label>
+          </div>
+          <div className="edit-game-modal-external-url-input-column">
+            <input
+              id="edit-game-external-logo-url"
+              type="url"
+              className="edit-game-modal-external-url-input"
+              value={externalLogoUrl}
+              onChange={(e) => onExternalLogoChange(e.target.value)}
+              disabled={saving}
+              placeholder={t("gameDetail.externalLogoUrlPlaceholder", "https://… (used when no local logo)")}
               autoComplete="off"
             />
             <p className="edit-game-modal-external-url-hint">

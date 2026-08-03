@@ -15,6 +15,7 @@ import { buildApiUrl } from "../../utils/api";
 import { bumpCoverCache } from "../../utils/coverUrlCache";
 import {
   normalizeGameCoverImage,
+  normalizeGameLogoImage,
   normalizeScreenshotImage,
   normalizeWideImage,
 } from "../../utils/imageUploadNormalize";
@@ -34,6 +35,12 @@ function initialExternalBackgroundUrl(g: GameItem): string {
   if (e) return e;
   const b = g.background?.split("?")[0] ?? "";
   return b.startsWith("http") ? b : "";
+}
+function initialExternalLogoUrl(g: GameItem): string {
+  const e = g.externalLogoUrl?.trim();
+  if (e) return e;
+  const l = g.logo?.split("?")[0] ?? "";
+  return l.startsWith("http") ? l : "";
 }
 
 function gameTypeFromGame(g: GameItem): number | null {
@@ -98,15 +105,20 @@ export default function EditGameModal({
   const [activeTab, setActiveTab] = useState<"INFO" | "TAGS" | "MEDIA">("INFO");
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingBackground, setUploadingBackground] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const backgroundInputRef = useRef<HTMLInputElement | null>(null);
+  const logoInputRef = useRef<HTMLInputElement | null>(null);
   const screenshotInputRef = useRef<HTMLInputElement | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [backgroundPreview, setBackgroundPreview] = useState<string | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [backgroundFile, setBackgroundFile] = useState<File | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [coverRemoved, setCoverRemoved] = useState(false);
   const [backgroundRemoved, setBackgroundRemoved] = useState(false);
+  const [logoRemoved, setLogoRemoved] = useState(false);
   const [imageTimestamp, setImageTimestamp] = useState<number>(Date.now());
   const [showTitle, setShowTitle] = useState(true);
   const prevIsOpenRef = useRef(false);
@@ -121,6 +133,7 @@ export default function EditGameModal({
   const [localUserRating, setLocalUserRating] = useState("");
   const [localExternalCover, setLocalExternalCover] = useState("");
   const [localExternalBackground, setLocalExternalBackground] = useState("");
+  const [localExternalLogo, setLocalExternalLogo] = useState("");
   const [localGameType, setLocalGameType] = useState<number | null>(() => gameTypeFromGame(game));
 
   // Memoize cover and background URLs with timestamp when modal opens
@@ -151,6 +164,19 @@ export default function EditGameModal({
     return `${url}${separator}t=${imageTimestamp}`;
   }, [game?.background, imageTimestamp]);
 
+  const logoUrlWithTimestamp = useMemo(() => {
+    if (!game?.logo) return "";
+    // Remove any existing timestamp from the URL
+    const baseUrl = game.logo.split('?')[0].split('&')[0];
+    // Don't show IGDB images (external URLs) in edit modal - return empty string
+    if (baseUrl.startsWith("http")) {
+      return "";
+    }
+    const url = buildApiUrl(API_BASE, baseUrl);
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}t=${imageTimestamp}`;
+  }, [game?.logo, imageTimestamp]);
+
   /** Cover image in modal: local file + upload preview only (never external/IGDB URLs). */
   const coverLocalPreviewUrl = useMemo(() => {
     if (coverRemoved) return "";
@@ -164,6 +190,13 @@ export default function EditGameModal({
     if (backgroundPreview) return backgroundPreview;
     return backgroundUrlWithTimestamp;
   }, [backgroundRemoved, backgroundPreview, backgroundUrlWithTimestamp]);
+
+  /** Logo image in modal: local file + upload preview only (never external URLs). */
+  const logoLocalPreviewUrl = useMemo(() => {
+    if (logoRemoved) return "";
+    if (logoPreview) return logoPreview;
+    return logoUrlWithTimestamp;
+  }, [logoRemoved, logoPreview, logoUrlWithTimestamp]);
 
   useEffect(() => {
     if (isOpen && !prevIsOpenRef.current) {
@@ -185,10 +218,13 @@ export default function EditGameModal({
       setActiveTab("INFO");
       setCoverPreview(null);
       setBackgroundPreview(null);
+      setLogoPreview(null);
       setCoverFile(null);
       setBackgroundFile(null);
+      setLogoFile(null);
       setCoverRemoved(false);
       setBackgroundRemoved(false);
+      setLogoRemoved(false);
       setShowTitle(game.showTitle !== false);
       setLocalScreenshots(Array.isArray(game.screenshots) ? [...game.screenshots] : []);
       setLocalVideos(Array.isArray(game.videos) ? [...game.videos] : []);
@@ -218,6 +254,7 @@ export default function EditGameModal({
       );
       setLocalExternalCover(initialExternalCoverUrl(game));
       setLocalExternalBackground(initialExternalBackgroundUrl(game));
+      setLocalExternalLogo(initialExternalLogoUrl(game));
       setLocalGameType(gameTypeFromGame(game));
       // Generate new timestamp to force image reload when modal opens
       setImageTimestamp(Date.now());
@@ -240,8 +277,14 @@ export default function EditGameModal({
         setBackgroundPreview(null);
         setImageTimestamp(Date.now());
       }
+      if (!game.logo && !logoRemoved && !logoFile) {
+        // Logo was removed externally
+        setLogoRemoved(true);
+        setLogoPreview(null);
+        setImageTimestamp(Date.now());
+      }
     }
-  }, [game?.cover, game?.background]);
+  }, [game?.cover, game?.background, game?.logo]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -308,10 +351,10 @@ export default function EditGameModal({
       return true;
 
     // Check if images were selected
-    if (coverFile || backgroundFile) return true;
+    if (coverFile || backgroundFile || logoFile) return true;
 
     // Check if images were removed
-    if (coverRemoved || backgroundRemoved) return true;
+    if (coverRemoved || backgroundRemoved || logoRemoved) return true;
 
     const gameScreenshots = Array.isArray(game.screenshots) ? game.screenshots : [];
     const gameVideos = Array.isArray(game.videos) ? game.videos : [];
@@ -342,6 +385,7 @@ export default function EditGameModal({
 
     if (normExt(localExternalCover) !== normExt(initialExternalCoverUrl(game))) return true;
     if (normExt(localExternalBackground) !== normExt(initialExternalBackgroundUrl(game))) return true;
+    if (normExt(localExternalLogo) !== normExt(initialExternalLogoUrl(game))) return true;
 
     return false;
   };
@@ -378,6 +422,7 @@ export default function EditGameModal({
       // First, handle image removal if marked for removal
       let updatedCover: string | null = null;
       let updatedBackground: string | null = null;
+      let updatedLogo: string | null = null;
       
       if (coverRemoved) {
         try {
@@ -428,6 +473,31 @@ export default function EditGameModal({
           return;
         }
       }
+
+      if (logoRemoved) {
+        try {
+          const url = buildApiUrl(API_BASE, `/games/${game.id}/delete-logo`);
+          const response = await fetch(url, {
+            method: 'DELETE',
+            headers: {
+              'X-Auth-Token': getApiToken() || '',
+            },
+          });
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Failed to remove logo' }));
+            throw new Error(errorData.error || 'Failed to remove logo');
+          }
+          const result = await response.json();
+          if (result.game) {
+            updatedLogo = result.game.logo || null;
+          }
+        } catch (err: any) {
+          setError(String(err.message || err));
+          setSaving(false);
+          setLoading(false);
+          return;
+        }
+      }
       
       // Then, upload images if any were selected
       if (coverFile) {
@@ -459,6 +529,9 @@ export default function EditGameModal({
             // Also get background if it's in the response
             if (coverResult.game.background) {
               updatedBackground = coverResult.game.background;
+            }
+            if (coverResult.game.logo && !updatedLogo) {
+              updatedLogo = coverResult.game.logo;
             }
           }
         } catch (err: any) {
@@ -502,6 +575,9 @@ export default function EditGameModal({
             if (backgroundResult.game.cover && !updatedCover) {
               updatedCover = backgroundResult.game.cover;
             }
+            if (backgroundResult.game.logo && !updatedLogo) {
+              updatedLogo = backgroundResult.game.logo;
+            }
           }
         } catch (err: any) {
           setUploadingBackground(false);
@@ -511,6 +587,47 @@ export default function EditGameModal({
           return;
         } finally {
           setUploadingBackground(false);
+        }
+      }
+
+      if (logoFile) {
+        setUploadingLogo(true);
+        try {
+          const formData = new FormData();
+          formData.append('file', logoFile);
+
+          const logoUrl = buildApiUrl(API_BASE, `/games/${game.id}/upload-logo`);
+          const logoResponse = await fetch(logoUrl, {
+            method: 'POST',
+            headers: {
+              'X-Auth-Token': getApiToken() || '',
+            },
+            body: formData,
+          });
+
+          if (!logoResponse.ok) {
+            const errorData = await logoResponse.json().catch(() => ({ error: 'Failed to upload logo' }));
+            throw new Error(errorData.error || 'Failed to upload logo');
+          }
+
+          const logoResult = await logoResponse.json();
+          if (logoResult.game) {
+            updatedLogo = logoResult.game.logo || null;
+            if (logoResult.game.cover && !updatedCover) {
+              updatedCover = logoResult.game.cover;
+            }
+            if (logoResult.game.background && !updatedBackground) {
+              updatedBackground = logoResult.game.background;
+            }
+          }
+        } catch (err: any) {
+          setUploadingLogo(false);
+          setLoading(false);
+          setSaving(false);
+          setError(String(err.message || err));
+          return;
+        } finally {
+          setUploadingLogo(false);
         }
       }
 
@@ -632,6 +749,9 @@ export default function EditGameModal({
           ? localExternalBackground.trim()
           : null;
       }
+      if (normExt(localExternalLogo) !== normExt(initialExternalLogoUrl(game))) {
+        updates.externalLogoUrl = localExternalLogo.trim() ? localExternalLogo.trim() : null;
+      }
 
       if (localGameType !== gameTypeFromGame(game)) {
         updates.type = localGameType;
@@ -660,6 +780,7 @@ export default function EditGameModal({
         // Add timestamp to image URLs if they were updated to force browser reload
         let finalCover = updatedCover !== null ? updatedCover : result.game.cover;
         let finalBackground = updatedBackground !== null ? updatedBackground : result.game.background;
+        let finalLogo = updatedLogo !== null ? updatedLogo : result.game.logo;
 
         // Add timestamp whenever we changed cover/background (upload or remove) so list UI updates even if API didn't return the new URL
         if ((coverFile || coverRemoved) && finalCover) {
@@ -671,6 +792,10 @@ export default function EditGameModal({
           const separator = finalBackground.includes('?') ? '&' : '?';
           finalBackground = `${finalBackground}${separator}t=${Date.now()}`;
         }
+        if ((logoFile || logoRemoved) && finalLogo) {
+          const separator = finalLogo.includes('?') ? '&' : '?';
+          finalLogo = `${finalLogo}${separator}t=${Date.now()}`;
+        }
         
         const updatedGame: GameItem = {
           id: result.game.id,
@@ -678,6 +803,7 @@ export default function EditGameModal({
           summary: result.game.summary,
           cover: finalCover,
           background: finalBackground,
+          logo: finalLogo,
           day: result.game.day,
           month: result.game.month,
           year: result.game.year,
@@ -733,6 +859,10 @@ export default function EditGameModal({
             result.game.externalBackgroundUrl !== undefined
               ? result.game.externalBackgroundUrl
               : (game.externalBackgroundUrl ?? null),
+          externalLogoUrl:
+            result.game.externalLogoUrl !== undefined
+              ? result.game.externalLogoUrl
+              : (game.externalLogoUrl ?? null),
           type: result.game.type !== undefined ? result.game.type : (game.type ?? null),
         };
 
@@ -791,14 +921,19 @@ export default function EditGameModal({
         }
 
         onGameUpdate(updatedGame);
-      } else if (coverFile || backgroundFile || coverRemoved || backgroundRemoved) {
-        // If only images were uploaded or removed, update the game with the new cover/background
+      } else if (coverFile || backgroundFile || logoFile || coverRemoved || backgroundRemoved || logoRemoved) {
+        // If only images were uploaded or removed, update the game with the new cover/background/logo
         // When removed, use undefined; otherwise use response or existing value
         let finalCover = coverRemoved ? undefined : (updatedCover !== null && updatedCover !== undefined ? updatedCover : game.cover);
         let finalBackground = backgroundRemoved ? undefined : (updatedBackground !== null && updatedBackground !== undefined ? updatedBackground : game.background);
+        let finalLogo = logoRemoved ? undefined : (updatedLogo !== null && updatedLogo !== undefined ? updatedLogo : game.logo);
         
         // If we don't have the values from upload/delete response, fetch from server (only for uploads)
-        if ((coverFile && (!finalCover || finalCover === '')) || (backgroundFile && (!finalBackground || finalBackground === ''))) {
+        if (
+          (coverFile && (!finalCover || finalCover === '')) ||
+          (backgroundFile && (!finalBackground || finalBackground === '')) ||
+          (logoFile && (!finalLogo || finalLogo === ''))
+        ) {
           const url = buildApiUrl(API_BASE, `/games/${game.id}`);
           const response = await fetch(url, {
             method: "GET",
@@ -816,6 +951,9 @@ export default function EditGameModal({
             if ((backgroundFile || backgroundRemoved) && finalBackground === undefined) {
               finalBackground = result.game.background || null;
             }
+            if ((logoFile || logoRemoved) && finalLogo === undefined) {
+              finalLogo = result.game.logo || null;
+            }
           }
         }
         
@@ -829,14 +967,20 @@ export default function EditGameModal({
           const separator = finalBackground.includes('?') ? '&' : '?';
           finalBackground = `${finalBackground}${separator}t=${Date.now()}`;
         }
+        if ((logoFile || logoRemoved) && finalLogo) {
+          const separator = finalLogo.includes('?') ? '&' : '?';
+          finalLogo = `${finalLogo}${separator}t=${Date.now()}`;
+        }
         
-        // Update game with new cover/background, preserving all other fields
+        // Update game with new cover/background/logo, preserving all other fields
         const updatedGame: GameItem = {
           ...game,
           cover: finalCover,
           background: finalBackground,
+          logo: finalLogo,
           externalCoverUrl: game.externalCoverUrl ?? null,
           externalBackgroundUrl: game.externalBackgroundUrl ?? null,
+          externalLogoUrl: game.externalLogoUrl ?? null,
         };
         
         onGameUpdate(updatedGame);
@@ -845,10 +989,13 @@ export default function EditGameModal({
       // Clear previews and files
       setCoverPreview(null);
       setBackgroundPreview(null);
+      setLogoPreview(null);
       setCoverFile(null);
       setBackgroundFile(null);
+      setLogoFile(null);
       setCoverRemoved(false);
       setBackgroundRemoved(false);
+      setLogoRemoved(false);
 
       onClose();
     } catch (err: any) {
@@ -909,6 +1056,31 @@ export default function EditGameModal({
     })();
   };
 
+  const handleLogoFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError(t("gameDetail.invalidImageType", "File must be an image"));
+      return;
+    }
+    void (async () => {
+      try {
+        const out = await normalizeGameLogoImage(file);
+        const reader = new FileReader();
+        reader.onloadend = () => setLogoPreview(reader.result as string);
+        reader.readAsDataURL(out);
+        setLogoFile(out);
+        setLogoRemoved(false);
+        setError(null);
+      } catch {
+        setError(
+          t("gameDetail.imageProcessFailed", "Could not process the image. Try another format (e.g. JPEG or PNG).")
+        );
+      }
+    })();
+  };
+
   const handleCoverRemoveSuccess = () => {
     setCoverRemoved(true);
     setCoverPreview(null);
@@ -920,6 +1092,13 @@ export default function EditGameModal({
     setBackgroundRemoved(true);
     setBackgroundPreview(null);
     setBackgroundFile(null);
+    setImageTimestamp(Date.now());
+  };
+
+  const handleLogoRemoveSuccess = () => {
+    setLogoRemoved(true);
+    setLogoPreview(null);
+    setLogoFile(null);
     setImageTimestamp(Date.now());
   };
 
@@ -1092,6 +1271,15 @@ export default function EditGameModal({
               handleBackgroundRemoveSuccess={handleBackgroundRemoveSuccess}
               externalBackgroundUrl={localExternalBackground}
               onExternalBackgroundChange={setLocalExternalBackground}
+              logoRemoved={logoRemoved}
+              logoPreview={logoPreview}
+              logoLocalPreviewUrl={logoLocalPreviewUrl}
+              uploadingLogo={uploadingLogo}
+              logoInputRef={logoInputRef}
+              handleLogoFileSelect={handleLogoFileSelect}
+              handleLogoRemoveSuccess={handleLogoRemoveSuccess}
+              externalLogoUrl={localExternalLogo}
+              onExternalLogoChange={setLocalExternalLogo}
               screenshotInputRef={screenshotInputRef}
               pendingScreenshotFiles={pendingScreenshotFiles}
               onAddPendingScreenshotFile={(file) => {

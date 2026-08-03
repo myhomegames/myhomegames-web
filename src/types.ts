@@ -7,10 +7,13 @@ export type GameItem = {
   summary?: string;
   cover?: string;
   background?: string;
+  logo?: string;
   /** Remote cover URL stored in metadata when no local cover.webp */
   externalCoverUrl?: string | null;
   /** Remote background URL stored in metadata when no local background.webp */
   externalBackgroundUrl?: string | null;
+  /** Remote logo URL stored in metadata when no local logo.webp */
+  externalLogoUrl?: string | null;
   showTitle?: boolean;
   day?: number | null;
   month?: number | null;
@@ -116,6 +119,7 @@ export type CatalogGame = {
   summaryEn?: string;
   cover: string | null;
   background?: string | null;
+  logo?: string | null;
   releaseDate: number | null;
   releaseDateFull?: {
     year: number;

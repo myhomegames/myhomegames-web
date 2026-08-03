@@ -62,8 +62,9 @@ type CoverProps = {
   /**
    * `cover`: proporzioni rispettate, ritaglio (default, elenchi).
    * `fill`: stesso riquadro che con `cover` (width + aspectRatio), ma l’immagine usa `object-fit: fill` così riempie il box anche deformandosi.
+   * `contain`: proporzioni rispettate, nessun ritaglio (es. logo).
    */
-  imageFit?: "cover" | "fill";
+  imageFit?: "cover" | "fill" | "contain";
   aspectRatio?: string; // e.g., "2/3" or "16/9"
   overlayContent?: React.ReactNode; // Content to overlay on the cover
   titlePosition?: "bottom" | "overlay"; // Position of title: below cover or inside image (default: "bottom")
@@ -75,7 +76,7 @@ type CoverProps = {
   allCollections?: CollectionItem[];
   // Remove media props (for modal use)
   showRemoveButton?: boolean; // Show remove button (for modal use)
-  removeMediaType?: "cover" | "background"; // Type of media to remove
+  removeMediaType?: "cover" | "background" | "logo"; // Type of media to remove
   removeResourceId?: string | number; // Resource ID for removal
   removeResourceType?:
     | "games"
@@ -440,7 +441,9 @@ export default function Cover({
             className={
               imageFit === "fill"
                 ? "block h-full w-full min-h-0 max-h-none max-w-none"
-                : "h-full w-full object-cover"
+                : imageFit === "contain"
+                  ? "h-full w-full object-contain"
+                  : "h-full w-full object-cover"
             }
             style={
               imageFit === "fill"
@@ -448,7 +451,12 @@ export default function Cover({
                     objectFit: "fill",
                     objectPosition: "center",
                   }
-                : undefined
+                : imageFit === "contain"
+                  ? {
+                      objectFit: "contain",
+                      objectPosition: "center",
+                    }
+                  : undefined
             }
             loading={displayUrl.startsWith('data:') ? undefined : "lazy"}
             draggable={false}
@@ -619,7 +627,9 @@ export default function Cover({
             title={
               removeMediaType === "cover"
                 ? t("gameDetail.removeCover", "Remove cover")
-                : t("gameDetail.removeBackground", "Remove background")
+                : removeMediaType === "logo"
+                  ? t("gameDetail.removeLogo", "Remove logo")
+                  : t("gameDetail.removeBackground", "Remove background")
             }
           />
         )}

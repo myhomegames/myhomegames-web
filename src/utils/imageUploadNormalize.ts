@@ -12,6 +12,9 @@ const WIDE_H = 1080;
 const SCREENSHOT_MAX_W = 1920;
 const SCREENSHOT_MAX_H = 1080;
 
+const GAME_LOGO_MAX_W = 1200;
+const GAME_LOGO_MAX_H = 600;
+
 function centerCropRect(
   sw: number,
   sh: number,
@@ -132,6 +135,25 @@ export async function normalizeScreenshotImage(file: File): Promise<File> {
     if (!ctx) throw new Error("no context");
     ctx.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height, 0, 0, w, h);
     return canvasToWebpOrJpeg(canvas, file.name || "screenshot.webp");
+  } finally {
+    bitmap.close();
+  }
+}
+
+/**
+ * Game logo: scale down to fit inside 1200×600, preserve aspect, no crop.
+ */
+export async function normalizeGameLogoImage(file: File): Promise<File> {
+  const bitmap = await decodeToBitmap(file);
+  try {
+    const { w, h } = containSize(bitmap.width, bitmap.height, GAME_LOGO_MAX_W, GAME_LOGO_MAX_H);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("no context");
+    ctx.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height, 0, 0, w, h);
+    return canvasToWebpOrJpeg(canvas, file.name || "logo.webp");
   } finally {
     bitmap.close();
   }
