@@ -22,6 +22,20 @@ function markHoverMirror(el: HTMLElement): void {
   el.querySelectorAll<HTMLElement>(HOVER_MIRROR_SELECTOR).forEach((node) => {
     node.setAttribute(SMART_TV_HOVER_ATTR, "true");
   });
+  // Focus is on the cover; skin scale targets the whole tile (cover + title).
+  const tileItem = el.closest<HTMLElement>(
+    [
+      ".games-list-item",
+      ".tag-list-item",
+      ".collections-list-item",
+      ".similar-games-cover-cell",
+      ".virtualized-grid-cell-pad",
+      ".library-item-detail-subcollection-cell",
+    ].join(","),
+  );
+  if (tileItem && tileItem !== el) {
+    tileItem.setAttribute(SMART_TV_HOVER_ATTR, "true");
+  }
   const focal = el.closest<HTMLElement>(
     ".fixed-focal-games-item, .fixed-focal-tag-item, .fixed-focal-collections-item, .fixed-focal-recommended-strip-item",
   );
