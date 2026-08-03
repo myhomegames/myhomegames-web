@@ -75,7 +75,11 @@
       "clientIdPlaceholder": "TwitchクライアントIDを入力してください",
       "clientSecretPlaceholder": "Twitchクライアントシークレットを入力してください",
       "clientIdHelp": "アプリケーションの公開識別子。IGDB APIアクセスに必要です。",
-      "clientSecretHelp": "IGDB API呼び出し（Twitch client_credentials）に必要です。Twitch Developer ConsoleのManage → New Secretで生成してください。"
+      "clientSecretHelp": "IGDB API呼び出し（Twitch client_credentials）に必要です。Twitch Developer ConsoleのManage → New Secretで生成してください。",
+      "enableApi": "IGDB API を有効化",
+      "enableApiLocal": "Client ID / Secret（IGDB）を有効化",
+      "enableApiHelp": "オフの場合、アプリは IGDB エンドポイントを呼び出しません。",
+      "enableApiHelpLocal": "オフでも保存済み認証情報は残りますが、IGDB/API では使いません。再入力なしで再度オンにできます。"
     },
     "skinOptions": {
       "title": "オプション",
@@ -98,14 +102,44 @@
         "autoShowBackgroundOnSelection": "フォーカス選択時に背景を表示",
         "detailBackdropLayout": "ゲーム詳細の背景レイアウト（スキン CSS）",
         "staticInlineTagListOnTvPhone": "TV・スマホではインラインタグをクリック不可",
-        "tvSummaryOverlay": "TV: open summary in full-screen overlay",
-        "tvStarRatingOverlay": "TV: open star rating in full-screen overlay",
-        "tvDetailSummaryBeforeActions": "TV: show summary above the Play row on game detail",
-        "tvRecommendedBrowsePreview": "TV: Recommended top panel updates with the focused game (through summary)",
-        "tvHideAppHeader": "TV: hide app header (logo, search, settings)",
-
-        "disableTitleTooltips": "ツールチップを非表示"
+        "tvSummaryOverlay": "TV: 概要を全画面オーバーレイで開く",
+        "tvStarRatingOverlay": "TV: 星評価を全画面オーバーレイで開く",
+        "tvDetailSummaryBeforeActions": "TV: ゲーム詳細で Play 行の上に概要を表示",
+        "tvRecommendedBrowsePreview": "TV: おすすめ上部パネルがフォーカス中のゲームに合わせて更新（概要まで）",
+        "tvHideAppHeader": "TV: アプリヘッダーを非表示（検索とプロフィールはライブラリバーに残す）",
+        "disableTitleTooltips": "ツールチップを非表示",
+        "collapsibleLibrarySidebar": "狭いビューポートで折りたたみ可能なライブラリサイドバー"
       }
+    },
+    "webVersion": "Web バージョン",
+    "minServerVersionRequired": "サーバーバージョン {{version}} 以降が必要です。",
+    "connectedServerVersion": "接続中のサーバーバージョン: {{version}}。",
+    "cloudflare": {
+      "title": "Cloudflare プロフィール",
+      "description": "このデバイスを個人の Cloudflare Tunnel に接続します。リモート API は公開ホスト名を使い、ローカル制御はこのマシンに残ります。",
+      "statusLabel": "トンネル状態",
+      "status": {
+        "connecting": "接続中…",
+        "connected": "接続済み — cloudflared が動作中です。",
+        "stored": "認証情報は保存済み — トンネルは未稼働。再接続するか切断して削除してください。",
+        "disconnected": "未接続。"
+      },
+      "publicUrlLabel": "公開 API URL",
+      "managerLabel": "トンネルマネージャー",
+      "connect": "トンネルを接続",
+      "disconnect": "トンネルを切断",
+      "confirmDisconnect": "このデバイスの Cloudflare Tunnel を切断し、保存済み認証情報を削除しますか？",
+      "linkTv": "TV を連携",
+      "linkTvHelp": "スマホでこのページを開き、Smart TV に表示されるコードを入力してください（リモコンでの Cloudflare Access 入力は不要）。"
+    },
+    "streaming": {
+      "title": "リモートプレイ（Sunshine）",
+      "description": "別デバイスから MyHomeGames を使うと、Play は Moonlight Web を開きます。Sunshine と Moonlight Web はサーバーと一緒に起動し、Docker が無い場合は自動インストールされます（macOS では Colima）。Sunshine ホストは自動追加・ペアリングされます（login sunshine / admin）。",
+      "enabled": "リモートストリーミングを有効化",
+      "moonlightWebUrl": "Moonlight Web URL",
+      "moonlightWebUrlHelp": "Moonlight Web がサーバー管理の場合は自動入力（http://127.0.0.1:8080）。LAN 外のブラウザーには公開 HTTPS URL を設定してください。",
+      "save": "リモートプレイを保存",
+      "saved": "リモートプレイ設定を保存しました。"
     }
   },
   "tags": {
@@ -137,11 +171,15 @@
     "downloadLinux": "Linux",
     "downloadLinuxDeb": "Linux (.deb)",
     "downloadLinuxRpm": "Linux (.rpm)",
-    "serverCompatibilityMismatch": "Server update required",
-    "serverCompatibilityTooltip": "Server incompatible with this web app",
-    "serverCompatibilityDetail": "This web app requires server version {{required}} or newer. The connected server is {{version}}. Update the server to a matching release.",
+    "serverCompatibilityMismatch": "サーバーの更新が必要です",
+    "serverCompatibilityTooltip": "この Web アプリとサーバーが互換ではありません",
+    "serverCompatibilityDetail": "この Web アプリにはサーバーバージョン {{required}} 以降が必要です。接続中は {{version}} です。対応するリリースに更新してください。",
     "titleFilterPlaceholder": "検索…",
-    "titleFilterAria": "現在のリストを検索"
+    "titleFilterAria": "現在のリストを検索",
+    "clock": "時計",
+    "skinNewVersionAvailable": "{{name}}: 新バージョン {{version}} が利用可能",
+    "updateSkin": "スキンを更新",
+    "updatingSkin": "{{name}} を更新中…"
   },
   "profile": {
     "viewProfile": "プロフィールを表示",
@@ -152,7 +190,11 @@
     "username": "ユーザー名",
     "userId": "ユーザーID",
     "accountType": "アカウントタイプ",
-    "developmentAccount": "開発アカウント"
+    "developmentAccount": "開発アカウント",
+    "cloudflareAccount": "Cloudflare アカウント",
+    "cloudflareTunnel": "Cloudflare Tunnel",
+    "publicApiUrl": "公開 API URL",
+    "disconnectTunnel": "トンネルを切断"
   },
   "serverUnavailable": {
     "title": "MyHomeGames サーバーに接続できません",
@@ -199,7 +241,8 @@
     "noResults": "ゲームが見つかりません",
     "typeToSearch": "検索するには少なくとも2文字入力してください",
     "error": "ゲームの検索中にエラーが発生しました",
-    "new": "新規"
+    "new": "新規",
+    "catalogSearchDisabled": "カタログを検索するには、設定でカタログ検索を有効にしてください。"
   },
   "viewMode": {
     "grid": "グリッド表示",
@@ -290,7 +333,18 @@
     "addAlternativeName": "別名を追加...",
     "add": "追加",
     "websites": "ウェブサイト",
-    "addWebsiteUrl": "ウェブサイトURLを追加..."
+    "addWebsiteUrl": "ウェブサイトURLを追加...",
+    "rate": "評価",
+    "rated": "評価済み",
+    "gameType": "ゲームタイプ",
+    "gameTypeNotSet": "未設定",
+    "logo": "ロゴ",
+    "uploadLogo": "ロゴをアップロード",
+    "removeLogo": "ロゴを削除",
+    "imageProcessFailed": "画像を処理できませんでした。別の形式（例: JPEG や PNG）を試してください。",
+    "externalLogoUrl": "外部ロゴ URL",
+    "externalLogoUrlPlaceholder": "https://…（ローカルロゴが無い場合に使用）",
+    "logoFormat": "推奨形式: WebP、最大 1200×600（contain、切り抜きなし）"
   },
   "manageInstallation": {
     "title": "インストール管理",
@@ -350,7 +404,10 @@
     "create": "作成",
     "creating": "作成中...",
     "removing": "削除中...",
-    "unauthorized": "認証されていません"
+    "unauthorized": "認証されていません",
+    "exitAppTitle": "MyHomeGames を終了しますか？",
+    "exitAppMessage": "アプリケーションを閉じますか？",
+    "exitAppConfirm": "終了"
   },
   "metadataReload": {
     "phase": {
@@ -639,7 +696,16 @@
     "noCompaniesFound": "会社が見つかりません",
     "addFormerly": "会社を追加",
     "addParentCompany": "会社を追加",
-    "addUpdatedTo": "会社を追加"
+    "addUpdatedTo": "会社を追加",
+    "searchDevelopers": "開発元を検索...",
+    "searchPublishers": "パブリッシャーを検索...",
+    "newDeveloperName": "新しい開発元名",
+    "newPublisherName": "新しいパブリッシャー名",
+    "removeFromDeveloper": "開発元から削除",
+    "removeFromPublisher": "パブリッシャーから削除",
+    "editDeveloper": "開発元を編集",
+    "editPublisher": "パブリッシャーを編集",
+    "name": "名前"
   },
   "companyStatuses": {
     "active": "活動中",
@@ -679,5 +745,37 @@
     "add": "追加",
     "adding": "追加中...",
     "errorAdding": "ライブラリにゲームを追加する際にエラーが発生しました"
+  },
+  "tunnel": {
+    "title": "Cloudflare Tunnel に接続",
+    "lead": "トンネルマネージャーで Cloudflare Access にサインインし、このデバイスを接続してください。",
+    "step1": "トンネルマネージャーを開き、Cloudflare ログインを完了します。",
+    "step2": "ここに戻り、個人用トンネルトークンを取得します。",
+    "openManager": "トンネルマネージャーを開く",
+    "connect": "トンネルを接続",
+    "connecting": "接続中…",
+    "publicApiNotReady": "公開 API はまだ到達できません。しばらく待ってページを再読み込みするか、切断して再接続してください。"
+  },
+  "devicePairing": {
+    "title": "この TV を連携",
+    "lead": "スマホまたはパソコンで下のリンクを開き、Cloudflare にサインインしてこのコードを入力してください。ログインにリモコンは不要です。",
+    "loading": "連携コードを準備中…",
+    "openLink": "{{url}} にアクセスしてコードを入力",
+    "qrAlt": "スマホで TV 連携ページを開く QR コード",
+    "waiting": "スマホでの承認を待機中…",
+    "connecting": "ライブラリに接続中…",
+    "expired": "このコードは期限切れです。続行するには新しいコードを生成してください。",
+    "retry": "新しいコード"
+  },
+  "streamPlay": {
+    "title": "リモートプレイ",
+    "launching": "自宅 PC でゲームを起動中…",
+    "readyHint": "ゲーム起動済み。Moonlight Web で自宅デスクトップをストリーミング中…",
+    "setupHint": "自宅 PC の Sunshine と、HTTPS で到達可能な Moonlight Web が必要です。",
+    "launchFailed": "自宅 PC でゲームを起動できませんでした",
+    "noMoonlightUrl": "サーバーに Moonlight Web URL が設定されていません。",
+    "sunshineUnreachable": "自宅 PC で Sunshine が動作していないようです。Sunshine を起動してから Moonlight Web を更新してください。",
+    "missingGame": "ゲーム ID がありません",
+    "iframeTitle": "Moonlight Web ストリーム"
   }
 }

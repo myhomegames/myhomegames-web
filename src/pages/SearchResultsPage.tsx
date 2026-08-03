@@ -12,7 +12,9 @@ import { useSkin } from "../contexts/SkinContext";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { useGameEvents } from "../hooks/useGameEvents";
 import { useLibrariesShellState } from "../layouts/useLibrariesShellState";
+import SearchBar from "../components/search/SearchBar";
 import SearchResultsList from "../components/search/SearchResultsList";
+import { isSmartTvBrowser } from "../utils/smartTv";
 import type { GameItem, CollectionItem } from "../types";
 
 type SearchResultsPageProps = {
@@ -62,9 +64,19 @@ export default function SearchResultsPage({
   const showCollectionShortcuts =
     activeSkinWeb.collectionsShortcutList && collectionsPageEnabled;
 
-  /** PS3: dock + library bar on this route. Plex and other skins keep the classic full-page layout. */
-  const useLibrariesShellOnSearchResults = activeSkinWeb.topRightToolDock;
+  /** PS3 dock, or Smart TV with hidden header: keep the libraries strip (search + profile). */
+  const useLibrariesShellOnSearchResults =
+    activeSkinWeb.topRightToolDock ||
+    (isSmartTvBrowser() && activeSkinWeb.tvHideAppHeader);
   const pageSurfaceClass = useLibrariesShellOnSearchResults ? "" : "bg-[#1a1a1a] ";
+  /** Smart TV + `tvHideAppHeader`: header SearchBar is gone — host it on this page. */
+  const showPagePrimarySearch =
+    isSmartTvBrowser() && activeSkinWeb.tvHideAppHeader;
+  /** PS3 dock: search sits between dock and strip; Plex TV: search sits in page content below strip. */
+  const pagePrimarySearchInDockGap =
+    showPagePrimarySearch && activeSkinWeb.topRightToolDock;
+  const pagePrimarySearchInContent =
+    showPagePrimarySearch && !activeSkinWeb.topRightToolDock;
 
   useScrollRestoration(scrollContainerRef);
 
@@ -216,6 +228,26 @@ export default function SearchResultsPage({
     </div>
   );
 
+  const pagePrimarySearchBar = showPagePrimarySearch ? (
+    <div className="search-results-inline-search">
+      <SearchBar
+        games={allGamesForSearch}
+        collections={allCollections}
+        developers={allDevelopersForSearch}
+        publishers={allPublishersForSearch}
+        onGameSelect={onGameClick}
+        onPlay={onPlay}
+        primaryOnSearchResultsPage
+      />
+    </div>
+  ) : null;
+  const pagePrimarySearchBarInContent = pagePrimarySearchInContent
+    ? pagePrimarySearchBar
+    : null;
+  const pagePrimarySearchBarInDockGap = pagePrimarySearchInDockGap
+    ? pagePrimarySearchBar
+    : null;
+
   const wrapPage = (content: ReactNode, options?: { betweenDockAndStrip?: ReactNode }) => {
     if (useLibrariesShellOnSearchResults) {
       return (
@@ -274,16 +306,22 @@ export default function SearchResultsPage({
   if (!searchQuery || searchQuery.trim().length < 2) {
     return wrapPage(
       <div
-        className={`${pageSurfaceClass}text-white flex items-center justify-center search-results-page-empty`}
+        className={`${pageSurfaceClass}text-white flex flex-col items-center search-results-page-empty${
+          showPagePrimarySearch ? " search-results-page-empty--with-search" : " justify-center"
+        }`}
       >
+        {pagePrimarySearchBarInContent}
         <div className="text-center">
           <div className="text-gray-400">
             {!searchQuery
-              ? t("searchResults.noResults")
+              ? showPagePrimarySearch
+                ? t("search.placeholder")
+                : t("searchResults.noResults")
               : t("search.minimumCharacters", "Please enter at least 2 characters to search")}
           </div>
         </div>
       </div>,
+      { betweenDockAndStrip: pagePrimarySearchBarInDockGap },
     );
   }
 
@@ -296,6 +334,7 @@ export default function SearchResultsPage({
   if (totalResults === 0) {
     const emptyPage = (
       <div className={`${pageSurfaceClass}text-white search-results-page`}>
+        {pagePrimarySearchBarInContent}
         {!useLibrariesShellOnSearchResults ? renderSearchResultsHeader() : null}
         <div className="search-results-content">
           <div className="search-results-content-inner">
@@ -338,7 +377,12 @@ export default function SearchResultsPage({
     );
 
     return wrapPage(emptyPage, {
-      betweenDockAndStrip: renderSearchResultsHeader(),
+      betweenDockAndStrip: (
+        <>
+          {pagePrimarySearchBarInDockGap}
+          {renderSearchResultsHeader()}
+        </>
+      ),
     });
   }
 
@@ -346,6 +390,7 @@ export default function SearchResultsPage({
     <div
       className={`${pageSurfaceClass}text-white search-results-page search-results-page--fade${isReady ? " search-results-page--fade-ready" : ""}`}
     >
+      {pagePrimarySearchBarInContent}
       {!useLibrariesShellOnSearchResults
         ? renderSearchResultsHeader({ showCount: true, count: totalResults })
         : null}
@@ -368,6 +413,11 @@ export default function SearchResultsPage({
   );
 
   return wrapPage(resultsPage, {
-    betweenDockAndStrip: renderSearchResultsHeader({ showCount: true, count: totalResults }),
+    betweenDockAndStrip: (
+      <>
+        {pagePrimarySearchBarInDockGap}
+        {renderSearchResultsHeader({ showCount: true, count: totalResults })}
+      </>
+    ),
   });
 }

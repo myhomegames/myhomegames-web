@@ -75,7 +75,11 @@
       "clientIdPlaceholder": "Digite seu Twitch Client ID",
       "clientSecretPlaceholder": "Digite seu Twitch Client Secret",
       "clientIdHelp": "Identificador público da aplicação. Obrigatório para acesso à API IGDB.",
-      "clientSecretHelp": "Obrigatório para chamadas à API IGDB (client_credentials Twitch). Gere em Manage → New Secret no Console de Desenvolvedores do Twitch."
+      "clientSecretHelp": "Obrigatório para chamadas à API IGDB (client_credentials Twitch). Gere em Manage → New Secret no Console de Desenvolvedores do Twitch.",
+      "enableApi": "Ativar API IGDB",
+      "enableApiLocal": "Ativar Client ID / Secret (IGDB)",
+      "enableApiHelp": "Se desativado, a app não chama os endpoints IGDB.",
+      "enableApiHelpLocal": "Se desativado, as credenciais guardadas mantêm-se mas IGDB e as API não as usam. Volte a ativar sem as reintroduzir."
     },
     "skinOptions": {
       "title": "Opções",
@@ -98,14 +102,44 @@
         "autoShowBackgroundOnSelection": "Mostrar fundo na seleção focal",
         "detailBackdropLayout": "Layout de fundo no detalhe do jogo (CSS do skin)",
         "staticInlineTagListOnTvPhone": "Tags em linha não clicáveis na TV e no telemóvel",
-        "tvSummaryOverlay": "TV: open summary in full-screen overlay",
-        "tvStarRatingOverlay": "TV: open star rating in full-screen overlay",
-        "tvDetailSummaryBeforeActions": "TV: show summary above the Play row on game detail",
-        "tvRecommendedBrowsePreview": "TV: Recommended top panel updates with the focused game (through summary)",
-        "tvHideAppHeader": "TV: hide app header (logo, search, settings)",
-
-        "disableTitleTooltips": "Ocultar dicas"
+        "tvSummaryOverlay": "TV: abrir o resumo em overlay ecrã inteiro",
+        "tvStarRatingOverlay": "TV: abrir a classificação por estrelas em overlay ecrã inteiro",
+        "tvDetailSummaryBeforeActions": "TV: mostrar o resumo acima da linha Play no detalhe do jogo",
+        "tvRecommendedBrowsePreview": "TV: o painel superior de Recomendados atualiza com o jogo em foco (até ao resumo)",
+        "tvHideAppHeader": "TV: ocultar o cabeçalho; pesquisa e perfil ficam na barra de bibliotecas",
+        "disableTitleTooltips": "Ocultar dicas",
+        "collapsibleLibrarySidebar": "Barra lateral de bibliotecas recolhível em viewports estreitos"
       }
+    },
+    "webVersion": "Versão web",
+    "minServerVersionRequired": "Requer versão do servidor {{version}} ou mais recente.",
+    "connectedServerVersion": "Versão do servidor ligado: {{version}}.",
+    "cloudflare": {
+      "title": "Perfil Cloudflare",
+      "description": "Ligue este dispositivo ao seu Cloudflare Tunnel pessoal. As API remotas usam o seu hostname público; o controlo local fica nesta máquina.",
+      "statusLabel": "Estado do túnel",
+      "status": {
+        "connecting": "A ligar…",
+        "connected": "Ligado — o cloudflared está a correr.",
+        "stored": "Credenciais guardadas — túnel inativo. Volte a ligar ou desligue para as limpar.",
+        "disconnected": "Não ligado."
+      },
+      "publicUrlLabel": "URL da API pública",
+      "managerLabel": "Gestor do túnel",
+      "connect": "Ligar túnel",
+      "disconnect": "Desligar túnel",
+      "confirmDisconnect": "Desligar o Cloudflare Tunnel neste dispositivo e remover as credenciais guardadas?",
+      "linkTv": "Associar uma TV",
+      "linkTvHelp": "Abra esta página no telemóvel e introduza o código mostrado na Smart TV (sem escrever com o comando no Cloudflare Access)."
+    },
+    "streaming": {
+      "title": "Jogo remoto (Sunshine)",
+      "description": "Quando usa o MyHomeGames noutro dispositivo, Play abre o Moonlight Web. Sunshine e Moonlight Web arrancam com o servidor; o Docker é instalado automaticamente se faltar (Colima no macOS). O host Sunshine é adicionado e emparelhado automaticamente (login sunshine / admin).",
+      "enabled": "Ativar streaming remoto",
+      "moonlightWebUrl": "URL do Moonlight Web",
+      "moonlightWebUrlHelp": "Preenchido automaticamente (http://127.0.0.1:8080) se o Moonlight Web for gerido pelo servidor. Para browsers fora da LAN use um URL HTTPS público.",
+      "save": "Guardar jogo remoto",
+      "saved": "Definições de jogo remoto guardadas."
     }
   },
   "tags": {
@@ -137,11 +171,15 @@
     "downloadLinux": "Linux",
     "downloadLinuxDeb": "Linux (.deb)",
     "downloadLinuxRpm": "Linux (.rpm)",
-    "serverCompatibilityMismatch": "Server update required",
-    "serverCompatibilityTooltip": "Server incompatible with this web app",
-    "serverCompatibilityDetail": "This web app requires server version {{required}} or newer. The connected server is {{version}}. Update the server to a matching release.",
+    "serverCompatibilityMismatch": "Atualização do servidor necessária",
+    "serverCompatibilityTooltip": "Servidor incompatível com esta aplicação web",
+    "serverCompatibilityDetail": "Esta aplicação web requer a versão do servidor {{required}} ou mais recente. O servidor ligado é {{version}}. Atualize o servidor para uma versão compatível.",
     "titleFilterPlaceholder": "Pesquisar…",
-    "titleFilterAria": "Pesquisar na lista atual"
+    "titleFilterAria": "Pesquisar na lista atual",
+    "clock": "Relógio",
+    "skinNewVersionAvailable": "{{name}}: nova versão {{version}} disponível",
+    "updateSkin": "Atualizar skin",
+    "updatingSkin": "A atualizar {{name}}…"
   },
   "profile": {
     "viewProfile": "Ver perfil",
@@ -152,7 +190,11 @@
     "username": "Nome de usuário",
     "userId": "ID do usuário",
     "accountType": "Tipo de conta",
-    "developmentAccount": "Conta de desenvolvimento"
+    "developmentAccount": "Conta de desenvolvimento",
+    "cloudflareAccount": "Conta Cloudflare",
+    "cloudflareTunnel": "Cloudflare Tunnel",
+    "publicApiUrl": "URL da API pública",
+    "disconnectTunnel": "Desligar túnel"
   },
   "serverUnavailable": {
     "title": "Servidor MyHomeGames inacessível",
@@ -199,7 +241,8 @@
     "noResults": "Nenhum jogo encontrado",
     "typeToSearch": "Digite pelo menos 2 caracteres para pesquisar",
     "error": "Erro ao pesquisar jogos",
-    "new": "Novo"
+    "new": "Novo",
+    "catalogSearchDisabled": "Ative a pesquisa do catálogo nas Definições para pesquisar no catálogo."
   },
   "viewMode": {
     "grid": "Visualização em Grade",
@@ -290,7 +333,18 @@
     "addAlternativeName": "Adicionar nome alternativo...",
     "add": "Adicionar",
     "websites": "Sites",
-    "addWebsiteUrl": "Adicionar URL do site..."
+    "addWebsiteUrl": "Adicionar URL do site...",
+    "rate": "Classificar",
+    "rated": "Classificado",
+    "gameType": "Tipo de jogo",
+    "gameTypeNotSet": "Não definido",
+    "logo": "Logótipo",
+    "uploadLogo": "Carregar logótipo",
+    "removeLogo": "Remover logótipo",
+    "imageProcessFailed": "Não foi possível processar a imagem. Tente outro formato (ex. JPEG ou PNG).",
+    "externalLogoUrl": "URL de logótipo externo",
+    "externalLogoUrlPlaceholder": "https://… (usado sem logótipo local)",
+    "logoFormat": "Formato recomendado: WebP, máx. 1200×600 (contain, sem corte)"
   },
   "manageInstallation": {
     "title": "Gerenciar Instalação",
@@ -350,7 +404,10 @@
     "create": "Criar",
     "creating": "Criando...",
     "removing": "Removendo...",
-    "unauthorized": "Não autorizado"
+    "unauthorized": "Não autorizado",
+    "exitAppTitle": "Sair do MyHomeGames?",
+    "exitAppMessage": "Quer fechar a aplicação?",
+    "exitAppConfirm": "Sair"
   },
   "metadataReload": {
     "phase": {
@@ -639,7 +696,16 @@
     "noCompaniesFound": "Nenhuma empresa encontrada",
     "addFormerly": "Adicionar empresa",
     "addParentCompany": "Adicionar empresa",
-    "addUpdatedTo": "Adicionar empresa"
+    "addUpdatedTo": "Adicionar empresa",
+    "searchDevelopers": "Pesquisar programadores...",
+    "searchPublishers": "Pesquisar editores...",
+    "newDeveloperName": "Nome do novo programador",
+    "newPublisherName": "Nome do novo editor",
+    "removeFromDeveloper": "Remover do programador",
+    "removeFromPublisher": "Remover do editor",
+    "editDeveloper": "Editar programador",
+    "editPublisher": "Editar editor",
+    "name": "Nome"
   },
   "companyStatuses": {
     "active": "Ativa",
@@ -679,5 +745,37 @@
     "add": "Adicionar",
     "adding": "Adicionando...",
     "errorAdding": "Erro ao adicionar jogo à biblioteca"
+  },
+  "tunnel": {
+    "title": "Ligar Cloudflare Tunnel",
+    "lead": "Inicie sessão com Cloudflare Access no gestor do túnel e depois ligue este dispositivo.",
+    "step1": "Abra o gestor do túnel e conclua o login Cloudflare.",
+    "step2": "Volte aqui e obtenha o seu token de túnel pessoal.",
+    "openManager": "Abrir gestor do túnel",
+    "connect": "Ligar túnel",
+    "connecting": "A ligar…",
+    "publicApiNotReady": "A API pública ainda não está acessível. Aguarde um momento e recarregue a página, ou desligue e volte a ligar."
+  },
+  "devicePairing": {
+    "title": "Associar esta TV",
+    "lead": "No telemóvel ou computador, abra a ligação abaixo, inicie sessão com Cloudflare e introduza este código. Não precisa do comando para o login.",
+    "loading": "A preparar um código de associação…",
+    "openLink": "Vá a {{url}} e introduza o código",
+    "qrAlt": "Código QR para abrir a página de associação da TV no telemóvel",
+    "waiting": "À espera de confirmação no telemóvel…",
+    "connecting": "A ligar à sua biblioteca…",
+    "expired": "Este código expirou. Gere um novo para continuar.",
+    "retry": "Novo código"
+  },
+  "streamPlay": {
+    "title": "Jogo remoto",
+    "launching": "A iniciar o jogo no PC de casa…",
+    "readyHint": "Jogo iniciado. A transmitir o ambiente de trabalho de casa via Moonlight Web…",
+    "setupHint": "Requer Sunshine no PC de casa e Moonlight Web acessível por HTTPS.",
+    "launchFailed": "Falha ao iniciar o jogo no PC de casa",
+    "noMoonlightUrl": "O URL do Moonlight Web não está configurado no servidor.",
+    "sunshineUnreachable": "O Sunshine não parece estar a correr no PC de casa. Inicie o Sunshine e depois atualize o Moonlight Web.",
+    "missingGame": "Id do jogo em falta",
+    "iframeTitle": "Stream Moonlight Web"
   }
 }

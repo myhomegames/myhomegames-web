@@ -137,8 +137,7 @@
         "tvStarRatingOverlay": "TV: apri le stelline in overlay a tutto schermo",
         "tvDetailSummaryBeforeActions": "TV: mostra il summary sopra la riga Play nel dettaglio gioco",
         "tvRecommendedBrowsePreview": "TV: pannello in alto nei Consigliati aggiornato dal gioco in focus (fino al summary)",
-        "tvHideAppHeader": "TV: nascondi l'header (logo, ricerca, impostazioni)",
-
+        "tvHideAppHeader": "TV: nascondi l'header; ricerca e profilo restano nella libraries bar",
         "disableTitleTooltips": "Nascondi i tooltip"
       }
     }
@@ -275,7 +274,7 @@
     "typeToSearch": "Digita almeno 2 caratteri per cercare",
     "error": "Errore nella ricerca dei giochi",
     "new": "Nuovo",
-    "catalogSearchDisabled": "Abilita l'ricerca catalogo nelle Impostazioni per cercare nel catalogo."
+    "catalogSearchDisabled": "Abilita la ricerca catalogo nelle Impostazioni per cercare nel catalogo."
   },
   "viewMode": {
     "grid": "Vista Griglia",
@@ -737,7 +736,8 @@
     "noCompaniesFound": "Nessuna azienda trovata",
     "addFormerly": "Aggiungi azienda",
     "addParentCompany": "Aggiungi azienda",
-    "addUpdatedTo": "Aggiungi azienda"
+    "addUpdatedTo": "Aggiungi azienda",
+    "name": "Nome"
   },
   "companyStatuses": {
     "active": "In attività",

@@ -884,7 +884,10 @@ export default function LibrariesBar({
     (hasBackground && !hideBackgroundToggle) ||
     (!!rightActionsBeforeMainGames && !topRightToolDock) ||
     (showNewGamesToggle && !!onShowNewGamesChange && !topRightToolDock) ||
-    (showMainGamesToggle && !!onMainGamesOnlyChange && !topRightToolDock);
+    (showMainGamesToggle &&
+      !!onMainGamesOnlyChange &&
+      !topRightToolDock &&
+      !(smartTv && activeSkinWeb.tvHideAppHeader));
 
   const showSidebarSearchPopup =
     activeSkinWeb.sidebarSearchPopup &&
@@ -1155,12 +1158,23 @@ export default function LibrariesBar({
     </div>
   ) : null;
   const showHeaderActionsInLibrariesBar = activeSkinWeb.libraryBarHeaderActions;
+  /**
+   * `tvHideAppHeader`: header chrome is gone on Smart TV, but search + profile stay
+   * on the libraries strip — search immediately left of profile (far right).
+   */
+  const relocateTvHeaderChrome = smartTv && activeSkinWeb.tvHideAppHeader;
   const showAddGameInLibrariesBar =
     showHeaderActionsInLibrariesBar && !hideLibraryChromeTools;
   const isAddGameRoute = pathname === "/add-game";
   const isSettingsRoute = pathname === "/settings";
   const isProfileRoute = pathname === "/profile";
-  const showProfileInLibrariesBar = showHeaderActionsInLibrariesBar && showProfile;
+  const isSearchResultsRoute = pathname === "/search-results";
+  const showProfileInLibrariesBar =
+    showHeaderActionsInLibrariesBar && showProfile && !relocateTvHeaderChrome;
+  const showTvRelocatedSearch = relocateTvHeaderChrome;
+  const showTvRelocatedProfile = relocateTvHeaderChrome && showProfile;
+  const showTvRelocatedMainGames =
+    relocateTvHeaderChrome && showMainGamesToggle && !!onMainGamesOnlyChange;
 
   useEffect(() => {
     if (!activeSkinWeb.verticalCoverAlignment || isNarrow || verticalPersistentSidebar) return;
@@ -1189,6 +1203,7 @@ export default function LibrariesBar({
     isAddGameRoute,
     isSettingsRoute,
     isProfileRoute,
+    isSearchResultsRoute,
     libraries.length,
     collectionShortcuts.length,
     syncActiveLibraryIconPosition,
@@ -1744,6 +1759,60 @@ export default function LibrariesBar({
         ) : null}
 
         <div className="mhg-libraries-actions" ref={actionsRef}>
+          {(showTvRelocatedMainGames ||
+            showTvRelocatedSearch ||
+            showTvRelocatedProfile) && (
+            <div
+              className="mhg-libraries-tv-header-actions flex shrink-0 items-center gap-1"
+              role="toolbar"
+              aria-label={`${t("libraries.sidebarSearch")} / ${t("header.profile")}`}
+            >
+              {showTvRelocatedMainGames && (
+                <div className="mhg-libraries-actions-main-games-container">
+                  <MainGamesToggle
+                    mainGamesOnly={mainGamesOnly}
+                    onChange={onMainGamesOnlyChange!}
+                  />
+                </div>
+              )}
+              {showTvRelocatedSearch && (
+                <button
+                  type="button"
+                  data-mhg-library-key="mhg-header-search"
+                  data-mhg-header-action="search"
+                  className={`mhg-header-button mhg-libraries-tv-header-action${
+                    isSearchResultsRoute ? " mhg-libraries-tv-header-action--active" : ""
+                  }`}
+                  style={{ transform: "translateY(3px)" }}
+                  aria-label={t("libraries.sidebarSearch")}
+                  aria-current={isSearchResultsRoute ? "page" : undefined}
+                  title={t("libraries.sidebarSearch")}
+                  onClick={() => navigateFromBar("/search-results", isSearchResultsRoute)}
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    aria-hidden
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </button>
+              )}
+              {showTvRelocatedProfile && (
+                <div style={{ transform: "translateY(3px)" }}>
+                  <ProfileDropdown />
+                </div>
+              )}
+            </div>
+          )}
           {showIconCluster ? (
             <div className="mhg-libraries-actions-icon-cluster">
               {hasBackground && !hideBackgroundToggle && (
@@ -1767,7 +1836,10 @@ export default function LibrariesBar({
                   {rightActionsBeforeMainGames}
                 </div>
               ) : null}
-              {showMainGamesToggle && onMainGamesOnlyChange && !topRightToolDock && (
+              {showMainGamesToggle &&
+                onMainGamesOnlyChange &&
+                !topRightToolDock &&
+                !showTvRelocatedMainGames && (
                 <div className="mhg-libraries-actions-main-games-container">
                   <MainGamesToggle
                     mainGamesOnly={mainGamesOnly}
