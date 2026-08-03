@@ -137,6 +137,7 @@
         "tvStarRatingOverlay": "TV: apri le stelline in overlay a tutto schermo",
         "tvDetailSummaryBeforeActions": "TV: mostra il summary sopra la riga Play nel dettaglio gioco",
         "tvRecommendedBrowsePreview": "TV: pannello in alto nei Consigliati aggiornato dal gioco in focus (fino al summary)",
+        "tvHideAppHeader": "TV: nascondi l'header (logo, ricerca, impostazioni)",
 
         "disableTitleTooltips": "Nascondi i tooltip"
       }
@@ -156,6 +157,7 @@
   },
   "header": {
     "home": "Home",
+    "clock": "Orologio",
     "addGame": "Aggiungi Gioco",
     "settings": "Impostazioni",
     "account": "Account",
@@ -338,10 +340,13 @@
     "media": "MEDIA",
     "cover": "Locandina",
     "background": "Sfondo",
+    "logo": "Logo",
     "uploadCover": "Carica Locandina",
     "uploadBackground": "Carica Sfondo",
+    "uploadLogo": "Carica Logo",
     "removeCover": "Rimuovi locandina",
     "removeBackground": "Rimuovi sfondo",
+    "removeLogo": "Rimuovi logo",
     "invalidImageType": "Il file deve essere un'immagine",
     "imageProcessFailed": "Impossibile elaborare l'immagine. Prova con un altro formato (es. JPEG o PNG).",
     "invalidCriticRating": "La valutazione della critica deve essere tra 0 e 100",
@@ -351,8 +356,11 @@
     "externalCoverUrlPlaceholder": "https://… (usato senza copertina locale)",
     "externalBackgroundUrl": "URL sfondo esterno",
     "externalBackgroundUrlPlaceholder": "https://… (usato senza sfondo locale)",
+    "externalLogoUrl": "URL logo esterno",
+    "externalLogoUrlPlaceholder": "https://… (usato senza logo locale)",
     "externalUrlHint": "Un file caricato in locale ha priorità su questo URL.",
     "backgroundFormat": "Rapporto consigliato: 16:9 (es. 1920x1080px)",
+    "logoFormat": "Formato consigliato: WebP, max 1200×600 (contain, senza ritaglio)",
     "showTitleInPreview": "Mostra titolo in anteprima",
     "showTitle": "Mostra titolo sulla copertina",
     "screenshotsAndVideos": "Video e screenshot",

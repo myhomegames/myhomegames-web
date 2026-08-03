@@ -1,7 +1,9 @@
 import { useTranslation } from "react-i18next";
+import { useEffect, useRef } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useActiveProfile } from "../../hooks/useActiveProfile";
 import { useTunnel } from "../../contexts/TunnelContext";
+import { isSmartTvBrowser } from "../../utils/smartTv";
 
 type ProfilePanelContentProps = {
   variant?: "page" | "dropdown";
@@ -34,6 +36,7 @@ export default function ProfilePanelContent({ variant = "page" }: ProfilePanelCo
   const { hasCloudflareProfile, cloudflareProfile } = useActiveProfile();
   const { disconnect } = useTunnel();
   const inDropdown = variant === "dropdown";
+  const disconnectBtnRef = useRef<HTMLButtonElement>(null);
 
   const handleDisconnectTunnel = async () => {
     if (!window.confirm(t("settings.cloudflare.confirmDisconnect"))) {
@@ -41,6 +44,27 @@ export default function ProfilePanelContent({ variant = "page" }: ProfilePanelCo
     }
     await disconnect();
   };
+
+  // Smart TV: only clickable control on the page — park remote focus here on open.
+  useEffect(() => {
+    if (inDropdown || !isSmartTvBrowser() || !hasCloudflareProfile) return;
+    const focusBtn = () => {
+      const btn = disconnectBtnRef.current;
+      if (!btn || !btn.isConnected) return;
+      try {
+        btn.focus({ preventScroll: true });
+      } catch {
+        btn.focus();
+      }
+    };
+    focusBtn();
+    const t1 = window.setTimeout(focusBtn, 100);
+    const t2 = window.setTimeout(focusBtn, 450);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
+  }, [inDropdown, hasCloudflareProfile]);
 
   if (!user && !hasCloudflareProfile) {
     return (
@@ -152,8 +176,10 @@ export default function ProfilePanelContent({ variant = "page" }: ProfilePanelCo
                 {!inDropdown && (
                   <div className="profile-field">
                     <button
+                      ref={disconnectBtnRef}
                       type="button"
                       className="settings-button"
+                      data-mhg-tv-focus=""
                       onClick={handleDisconnectTunnel}
                     >
                       {t("settings.cloudflare.disconnect", "Disconnect tunnel")}

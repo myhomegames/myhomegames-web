@@ -337,6 +337,11 @@ function defaultChromeTarget(): HTMLElement | null {
   if (getActiveUiLayer()) {
     return items[0] ?? null;
   }
+  // Profile: land on Disconnect tunnel (only page action) instead of the libraries tab.
+  const profileAction = profilePagePrimaryAction();
+  if (profileAction && items.includes(profileAction)) {
+    return profileAction;
+  }
   return (
     items.find((el) => el.classList.contains("mhg-library-active")) ??
     items.find((el) => el.classList.contains("mhg-library-button")) ??
@@ -399,6 +404,40 @@ function pickNextInSet(
   }
 
   return best;
+}
+
+/**
+ * Same-row L/R among covers by left-edge order. Used when geometric pick misses
+ * a neighbor (uneven cover heights / titles) so the first column stays reachable.
+ */
+function pickCoverInRow(
+  covers: HTMLElement[],
+  current: HTMLElement,
+  direction: "left" | "right",
+): HTMLElement | null {
+  if (covers.length === 0) return null;
+  const fromY = center(current.getBoundingClientRect()).y;
+  const rowTol = Math.max(28, current.getBoundingClientRect().height * 0.45);
+  const sameRow = covers.filter(
+    (el) => Math.abs(center(el.getBoundingClientRect()).y - fromY) <= rowTol,
+  );
+  if (sameRow.length === 0) return null;
+  sameRow.sort(
+    (a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left,
+  );
+  let idx = sameRow.indexOf(current);
+  if (idx < 0) {
+    const fromLeft = current.getBoundingClientRect().left;
+    idx = sameRow.findIndex((el) => el.getBoundingClientRect().left >= fromLeft - 1);
+    if (idx < 0) idx = sameRow.length - 1;
+    // Snap to nearest in-row cover when current wasn't in the filtered set.
+    if (direction === "left") {
+      return idx > 0 ? sameRow[idx - 1]! : sameRow[0]!;
+    }
+    return idx < sameRow.length - 1 ? sameRow[idx + 1]! : sameRow[sameRow.length - 1]!;
+  }
+  if (direction === "left") return idx > 0 ? sameRow[idx - 1]! : null;
+  return idx < sameRow.length - 1 ? sameRow[idx + 1]! : null;
 }
 
 function pickNextFocus(
@@ -478,6 +517,56 @@ function collectLibrariesBarRowFocusables(from: HTMLElement): HTMLElement[] {
   );
 }
 
+/**
+ * Full horizontal strip on the libraries bar: page tabs + shell actions
+ * (New/Main games, …), left-to-right. Used so Right from the last tab reaches
+ * the icons and Left from the icons returns to the tabs.
+ */
+function collectLibrariesBarHorizontalFocusables(
+  from: HTMLElement | null,
+): HTMLElement[] {
+  const root =
+    (from?.closest(".mhg-libraries-bar") as HTMLElement | null) ??
+    document.querySelector<HTMLElement>(".mhg-libraries-bar");
+  if (!root || !isVisible(root)) return [];
+
+  const seen = new Set<HTMLElement>();
+  const items: HTMLElement[] = [];
+  const push = (el: HTMLElement | null | undefined) => {
+    if (!el || seen.has(el) || !isVisible(el) || el.closest("[inert]")) return;
+    if (!root.contains(el)) return;
+    seen.add(el);
+    items.push(el);
+  };
+
+  collectLibraryMenuFocusables().forEach(push);
+  if (from) {
+    collectLibrariesBarRowFocusables(from).forEach(push);
+  }
+  collectShellActionFocusables().forEach(push);
+
+  items.sort(
+    (a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left,
+  );
+  return items;
+}
+
+function pickHorizontalInLibrariesBar(
+  items: HTMLElement[],
+  current: HTMLElement | null,
+  direction: "left" | "right",
+): HTMLElement | null {
+  if (items.length === 0) return null;
+  if (!current || !items.includes(current)) {
+    return direction === "right" ? items[0]! : items[items.length - 1]!;
+  }
+  const idx = items.indexOf(current);
+  if (direction === "right") {
+    return idx < items.length - 1 ? items[idx + 1]! : null;
+  }
+  return idx > 0 ? items[idx - 1]! : null;
+}
+
 function collectCoverFocusables(): HTMLElement[] {
   return Array.from(
     document.querySelectorAll<HTMLElement>(
@@ -494,31 +583,71 @@ function collectCoverFocusables(): HTMLElement[] {
   );
 }
 
-/** Prefer filter / sort / count row between libraries chrome and the cover grid. */
+/** Prefer filter / sort row between libraries chrome and the cover grid. */
 function collectToolbarFocusables(): HTMLElement[] {
   const root = document.querySelector<HTMLElement>(".games-list-toolbar");
   if (!root || !isVisible(root)) return [];
   return Array.from(
-    root.querySelectorAll<HTMLElement>(
-      [
-        ".games-list-toolbar-button:not([disabled])",
-        ".games-list-toolbar-count[tabindex]",
-        ".games-list-toolbar-count[data-mhg-tv-focus]",
-      ].join(","),
-    ),
+    root.querySelectorAll<HTMLElement>(".games-list-toolbar-button:not([disabled])"),
   ).filter((el) => isVisible(el) && !el.closest("[inert]"));
 }
 
 function toolbarFocusFrom(el: HTMLElement | null): HTMLElement | null {
   if (!el) return null;
+  if (el.classList.contains("games-list-toolbar-button")) {
+    return el;
+  }
+  return el.closest(".games-list-toolbar-button") as HTMLElement | null;
+}
+
+const SHELL_ACTION_FOCUS_SELECTOR = [
+  ".new-games-toggle-button:not([disabled])",
+  ".main-games-toggle-button:not([disabled])",
+  ".background-toggle-button:not([disabled])",
+  ".view-mode-button:not([disabled]):not(.disabled)",
+  ".detail-back-button:not([disabled])",
+].join(",");
+
+/**
+ * Top-right LibrariesBar / tool-dock actions (New games, Main games, view mode, …).
+ * Separate from `.games-list-toolbar` so Library still prefers Tutto/sort first.
+ */
+function collectShellActionFocusables(): HTMLElement[] {
+  const roots = document.querySelectorAll<HTMLElement>(
+    ".mhg-libraries-actions, .mhg-top-right-tool-dock, .mhg-libraries-actions-before-main-games",
+  );
+  const items: HTMLElement[] = [];
+  const seen = new Set<HTMLElement>();
+  roots.forEach((root) => {
+    if (!isVisible(root)) return;
+    root.querySelectorAll<HTMLElement>(SHELL_ACTION_FOCUS_SELECTOR).forEach((el) => {
+      if (seen.has(el) || !isVisible(el) || el.closest("[inert]")) return;
+      seen.add(el);
+      items.push(el);
+    });
+  });
+  return items;
+}
+
+function shellActionFocusFrom(el: HTMLElement | null): HTMLElement | null {
+  if (!el) return null;
   if (
-    el.classList.contains("games-list-toolbar-button") ||
-    el.classList.contains("games-list-toolbar-count")
+    el.classList.contains("new-games-toggle-button") ||
+    el.classList.contains("main-games-toggle-button") ||
+    el.classList.contains("background-toggle-button") ||
+    el.classList.contains("view-mode-button") ||
+    el.classList.contains("detail-back-button")
   ) {
     return el;
   }
   return el.closest(
-    ".games-list-toolbar-button, .games-list-toolbar-count",
+    [
+      ".new-games-toggle-button",
+      ".main-games-toggle-button",
+      ".background-toggle-button",
+      ".view-mode-button",
+      ".detail-back-button",
+    ].join(","),
   ) as HTMLElement | null;
 }
 
@@ -561,7 +690,23 @@ function isLibraryMenuCoverGridNavMode(): boolean {
   // Game / catalog / collection-like detail: LibrariesBar is still mounted, but
   // menu↔covers grid trapping would skip Play / Edit / ⋮ / summary / media.
   if (isItemDetailPage()) return false;
-  return collectLibraryMenuFocusables().length > 0;
+  if (collectLibraryMenuFocusables().length > 0) return true;
+  // Tag games (and similar) mount a dock without library tabs — still trap
+  // shell actions ↔ toolbar ↔ covers ↔ A–Z the same way as the owned-games library.
+  return (
+    collectCoverFocusables().length > 0 &&
+    Boolean(
+      document.querySelector(
+        [
+          ".games-list-page-fade",
+          ".tag-list-container",
+          ".fixed-focal-tag-list",
+          ".tag-games-page-shell",
+          ".home-page-scroll-container .games-list-container",
+        ].join(","),
+      ),
+    )
+  );
 }
 
 /** Owned / catalog game detail or collection-like detail shell. */
@@ -975,6 +1120,22 @@ function detailCoverStripRootFrom(el: HTMLElement | null): HTMLElement | null {
 }
 
 function collectDetailCoverStripFocusables(strip: HTMLElement): HTMLElement[] {
+  return Array.from(
+    strip.querySelectorAll<HTMLElement>(
+      ".games-list-cover[role='button'], .games-list-cover[tabindex]",
+    ),
+  ).filter((el) => isVisible(el) && !el.closest("[inert]") && !el.hasAttribute("disabled"));
+}
+
+/** Recommended page horizontal keyword strips (not detail carousels). */
+function recommendedStripRootFrom(el: HTMLElement | null): HTMLElement | null {
+  if (!el) return null;
+  const section = el.closest(".scrollable-section") as HTMLElement | null;
+  if (!section?.closest(".recommended-page-scroll")) return null;
+  return section;
+}
+
+function collectRecommendedStripCoverFocusables(strip: HTMLElement): HTMLElement[] {
   return Array.from(
     strip.querySelectorAll<HTMLElement>(
       ".games-list-cover[role='button'], .games-list-cover[tabindex]",
@@ -1420,6 +1581,20 @@ function isAppHomePath(): boolean {
   return path === "/app" || path === "/" || path === "/app/index.html";
 }
 
+function isProfilePagePath(): boolean {
+  const path = (window.location.pathname || "/").replace(/\/+$/, "") || "/";
+  return path === "/profile" || path.endsWith("/profile");
+}
+
+/** Disconnect tunnel — sole primary action on `/profile`. */
+function profilePagePrimaryAction(): HTMLElement | null {
+  if (!isProfilePagePath()) return null;
+  const btn = document.querySelector<HTMLElement>(
+    ".profile-page button.settings-button:not([disabled])",
+  );
+  return btn && isVisible(btn) ? btn : null;
+}
+
 function isExitConfirmOpen(): boolean {
   return Boolean(document.querySelector("[data-mhg-tv-exit-confirm]"));
 }
@@ -1473,6 +1648,8 @@ export function installSmartTvRemoteKeys(
   let lastCoverFocus: HTMLElement | null = null;
   /** Last filter/sort toolbar control between menu and covers. */
   let lastToolbarFocus: HTMLElement | null = null;
+  /** Last shell action (New games / Main games / view mode) in the libraries dock. */
+  let lastShellActionFocus: HTMLElement | null = null;
   /** Last A–Z index letter focused from the cover grid. */
   let lastAlphabetFocus: HTMLElement | null = null;
   /** Last app-header control focused before returning to libraries tabs (Plex). */
@@ -1496,6 +1673,11 @@ export function installSmartTvRemoteKeys(
   const rememberToolbarFocus = (el: HTMLElement | null) => {
     const toolbar = toolbarFocusFrom(el);
     if (toolbar) lastToolbarFocus = toolbar;
+  };
+
+  const rememberShellActionFocus = (el: HTMLElement | null) => {
+    const action = shellActionFocusFrom(el);
+    if (action) lastShellActionFocus = action;
   };
 
   const rememberAlphabetFocus = (el: HTMLElement | null) => {
@@ -1531,6 +1713,13 @@ export function installSmartTvRemoteKeys(
       return lastToolbarFocus;
     }
     return collectToolbarFocusables()[0] ?? null;
+  };
+
+  const resolveShellActionFocus = (): HTMLElement | null => {
+    if (lastShellActionFocus?.isConnected && isVisible(lastShellActionFocus)) {
+      return lastShellActionFocus;
+    }
+    return collectShellActionFocusables()[0] ?? null;
   };
 
   const resolveAlphabetFocus = (near: HTMLElement | null = null): HTMLElement | null => {
@@ -1590,6 +1779,15 @@ export function installSmartTvRemoteKeys(
     return true;
   };
 
+  const focusShellActionsZone = () => {
+    const action = resolveShellActionFocus();
+    if (!action) return false;
+    zone = "chrome";
+    focusElement(action);
+    rememberShellActionFocus(action);
+    return true;
+  };
+
   const focusAlphabetZone = (near: HTMLElement | null = null) => {
     const letter = resolveAlphabetFocus(near);
     if (!letter) return false;
@@ -1599,11 +1797,28 @@ export function installSmartTvRemoteKeys(
     return true;
   };
 
-  /** Prefer toolbar (Tutto / sort / count) when leaving the libraries header toward content. */
-  const focusToolbarOrCovers = () => focusToolbarZone() || focusCoversZone();
+  const focusProfilePageAction = () => {
+    const action = profilePagePrimaryAction();
+    if (!action) return false;
+    zone = "chrome";
+    focusElement(action);
+    return true;
+  };
 
-  /** Prefer toolbar when leaving the cover grid upward; else libraries menu. */
-  const focusToolbarOrMenu = () => focusToolbarZone() || focusLibraryMenu();
+  /**
+   * Prefer list toolbar (Tutto / sort), then shell actions (New/Main games),
+   * then covers — so Library keeps landing on filter/sort first.
+   * On `/profile`, fall through to Disconnect tunnel (no covers/toolbar).
+   */
+  const focusToolbarOrCovers = () =>
+    focusToolbarZone() ||
+    focusShellActionsZone() ||
+    focusCoversZone() ||
+    focusProfilePageAction();
+
+  /** Prefer toolbar / shell actions when leaving the cover grid upward; else libraries menu. */
+  const focusToolbarOrMenu = () =>
+    focusToolbarZone() || focusShellActionsZone() || focusLibraryMenu();
 
   const clearEnterLongPressTimer = () => {
     if (enterLongPressTimer != null) {
@@ -2217,11 +2432,24 @@ export function installSmartTvRemoteKeys(
         return;
       }
 
+      // Profile page: Disconnect tunnel is the only page action.
+      const profileAction = profilePagePrimaryAction();
+      if (profileAction && current === profileAction) {
+        if (direction === "up") {
+          if (focusLibraryMenu()) return;
+          if (focusAppHeaderZone(current)) return;
+          return;
+        }
+        // Stay on the button for L/R/Down.
+        return;
+      }
+
       // Plex / GOG: libraries menu ↔ list toolbar ↔ cover grid ↔ A–Z index.
       // Toolbar (Tutto / sort / count) sits between header tabs and covers.
       if (isLibraryMenuCoverGridNavMode()) {
         const menuEl = libraryMenuFocusFrom(current);
         const toolbarEl = toolbarFocusFrom(current);
+        const shellActionEl = shellActionFocusFrom(current);
         const coverEl = coverFocusFrom(current);
         const alphabetEl = alphabetFocusFrom(current);
         const headerEl = appHeaderFocusFrom(current);
@@ -2261,8 +2489,8 @@ export function installSmartTvRemoteKeys(
               return;
             }
             if (direction === "left" || direction === "right") {
-              const rowItems = collectLibrariesBarRowFocusables(menuEl);
-              const next = pickNextInSet(
+              const rowItems = collectLibrariesBarHorizontalFocusables(menuEl);
+              const next = pickHorizontalInLibrariesBar(
                 rowItems.length > 0 ? rowItems : menus,
                 menuEl,
                 direction,
@@ -2270,6 +2498,8 @@ export function installSmartTvRemoteKeys(
               if (next) {
                 const nextMenu = libraryMenuFocusFrom(next);
                 if (nextMenu) rememberLibraryMenuFocus(nextMenu);
+                const nextShell = shellActionFocusFrom(next);
+                if (nextShell) rememberShellActionFocus(nextShell);
                 focusElement(next);
                 return;
               }
@@ -2313,13 +2543,14 @@ export function installSmartTvRemoteKeys(
           }
         }
 
-        // Trailing icons on the Plex libraries bar row (not page tabs).
+        // Trailing icons on the Plex libraries bar row (not page tabs / shell actions).
         if (
           !verticalMenu &&
           current &&
           !menuEl &&
           !headerEl &&
           !toolbarEl &&
+          !shellActionEl &&
           !coverEl &&
           !alphabetEl &&
           current.closest(".mhg-libraries-bar")
@@ -2333,11 +2564,13 @@ export function installSmartTvRemoteKeys(
             return;
           }
           if (direction === "left" || direction === "right") {
-            const rowItems = collectLibrariesBarRowFocusables(current);
-            const next = pickNextInSet(rowItems, current, direction);
+            const rowItems = collectLibrariesBarHorizontalFocusables(current);
+            const next = pickHorizontalInLibrariesBar(rowItems, current, direction);
             if (next) {
               const nextMenu = libraryMenuFocusFrom(next);
               if (nextMenu) rememberLibraryMenuFocus(nextMenu);
+              const nextShell = shellActionFocusFrom(next);
+              if (nextShell) rememberShellActionFocus(nextShell);
               focusElement(next);
               return;
             }
@@ -2358,11 +2591,45 @@ export function installSmartTvRemoteKeys(
             return;
           }
           if (direction === "up") {
+            if (focusShellActionsZone()) return;
             if (focusLibraryMenu()) return;
             return;
           }
           if (direction === "down") {
             if (focusCoversZone()) return;
+            return;
+          }
+        }
+
+        // New games / Main games / view mode in the libraries dock.
+        if (shellActionEl) {
+          rememberShellActionFocus(shellActionEl);
+          if (direction === "left" || direction === "right") {
+            const rowItems = collectLibrariesBarHorizontalFocusables(shellActionEl);
+            const next = pickHorizontalInLibrariesBar(
+              rowItems,
+              shellActionEl,
+              direction,
+            );
+            if (next) {
+              const nextMenu = libraryMenuFocusFrom(next);
+              if (nextMenu) rememberLibraryMenuFocus(nextMenu);
+              const nextShell = shellActionFocusFrom(next);
+              if (nextShell) rememberShellActionFocus(nextShell);
+              focusElement(next);
+              return;
+            }
+            return;
+          }
+          if (direction === "up") {
+            if (focusLibraryMenu()) return;
+            if (focusAppHeaderZone(shellActionEl)) return;
+            return;
+          }
+          if (direction === "down") {
+            if (focusToolbarZone()) return;
+            if (focusCoversZone()) return;
+            if (focusProfilePageAction()) return;
             return;
           }
         }
@@ -2388,8 +2655,70 @@ export function installSmartTvRemoteKeys(
 
         if (coverEl) {
           rememberCoverFocus(coverEl);
+
+          // Recommended strips: Left/Right stay on the same keyword row at the ends;
+          // Up/Down may leave to another strip / chrome.
+          const recommendedStrip = recommendedStripRootFrom(coverEl);
+          if (
+            recommendedStrip &&
+            (direction === "left" || direction === "right")
+          ) {
+            const stripCovers =
+              collectRecommendedStripCoverFocusables(recommendedStrip);
+            if (stripCovers.length > 0) {
+              const idx = stripCovers.indexOf(coverEl);
+              const safeIdx = idx >= 0 ? idx : 0;
+              const nextIdx =
+                direction === "right"
+                  ? Math.min(stripCovers.length - 1, safeIdx + 1)
+                  : Math.max(0, safeIdx - 1);
+              const nextInStrip = stripCovers[nextIdx];
+              if (nextInStrip && nextInStrip !== coverEl) {
+                rememberCoverFocus(nextInStrip);
+                focusElement(nextInStrip);
+                return;
+              }
+              if (nudgeScrollParentForDirection(coverEl, direction)) {
+                window.requestAnimationFrame(() => {
+                  const retryStrip = recommendedStripRootFrom(
+                    document.activeElement instanceof HTMLElement
+                      ? document.activeElement
+                      : coverEl,
+                  );
+                  if (!retryStrip) return;
+                  const retryCovers =
+                    collectRecommendedStripCoverFocusables(retryStrip);
+                  const activeCover = coverFocusFrom(
+                    document.activeElement instanceof HTMLElement
+                      ? document.activeElement
+                      : coverEl,
+                  );
+                  if (!activeCover) return;
+                  const rIdx = retryCovers.indexOf(activeCover);
+                  const rSafe = rIdx >= 0 ? rIdx : 0;
+                  const rNext =
+                    direction === "right"
+                      ? Math.min(retryCovers.length - 1, rSafe + 1)
+                      : Math.max(0, rSafe - 1);
+                  const retry = retryCovers[rNext];
+                  if (retry && retry !== activeCover) {
+                    rememberCoverFocus(retry);
+                    focusElement(retry);
+                  }
+                });
+              }
+              return;
+            }
+          }
+
           const covers = collectCoverFocusables();
-          const nextCover = pickNextInSet(covers, coverEl, direction);
+          let nextCover = pickNextInSet(covers, coverEl, direction);
+          if (
+            !nextCover &&
+            (direction === "left" || direction === "right")
+          ) {
+            nextCover = pickCoverInRow(covers, coverEl, direction);
+          }
           if (nextCover) {
             rememberCoverFocus(nextCover);
             focusElement(nextCover);
@@ -2397,10 +2726,13 @@ export function installSmartTvRemoteKeys(
           }
           // Right edge of the cover grid → A–Z navigator when present.
           if (direction === "right" && focusAlphabetZone(coverEl)) return;
-          if (direction === "left" || direction === "up") {
-            if (direction === "up" && focusToolbarOrMenu()) return;
-            if (direction === "left" && focusLibraryMenu()) return;
+          // Up leaves the grid toward toolbar / shell; Left stays in-grid
+          // (or library menu when present) — never jump Left into the toolbar.
+          if (direction === "up") {
             if (focusToolbarOrMenu()) return;
+          }
+          if (direction === "left") {
+            if (focusLibraryMenu()) return;
           }
           if (
             (direction === "up" ||
@@ -2410,23 +2742,29 @@ export function installSmartTvRemoteKeys(
             nudgeScrollParentForDirection(coverEl, direction)
           ) {
             window.requestAnimationFrame(() => {
-              const retry = pickNextInSet(
-                collectCoverFocusables(),
-                coverFocusFrom(
-                  document.activeElement instanceof HTMLElement
-                    ? document.activeElement
-                    : coverEl,
-                ),
-                direction,
+              const retryCovers = collectCoverFocusables();
+              const activeCover = coverFocusFrom(
+                document.activeElement instanceof HTMLElement
+                  ? document.activeElement
+                  : coverEl,
               );
+              let retry = pickNextInSet(retryCovers, activeCover, direction);
+              if (
+                !retry &&
+                activeCover &&
+                (direction === "left" || direction === "right")
+              ) {
+                retry = pickCoverInRow(retryCovers, activeCover, direction);
+              }
               if (retry) {
                 rememberCoverFocus(retry);
                 focusElement(retry);
               } else if (direction === "right") {
                 focusAlphabetZone(coverEl);
-              } else if (direction === "left" || direction === "up") {
-                if (direction === "up") focusToolbarOrMenu();
-                else focusLibraryMenu();
+              } else if (direction === "up") {
+                focusToolbarOrMenu();
+              } else if (direction === "left") {
+                focusLibraryMenu();
               }
             });
             return;

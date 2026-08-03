@@ -40,6 +40,8 @@ export function resolveScrollVisibilityTarget(el: HTMLElement): HTMLElement {
       ".similar-games-cover-cell",
       ".fixed-focal-games-item",
       ".virtualized-grid-cell-pad",
+      ".tag-list-item",
+      ".fixed-focal-tag-item",
     ].join(","),
   ) as HTMLElement | null;
   if (tile) return tile;
@@ -48,9 +50,43 @@ export function resolveScrollVisibilityTarget(el: HTMLElement): HTMLElement {
   return el;
 }
 
+/** Recommended horizontal strip keyword (section title) for the focused cover. */
+export function resolveScrollableSectionKeyword(
+  el: HTMLElement,
+): HTMLElement | null {
+  const section = el.closest(".scrollable-section") as HTMLElement | null;
+  if (!section) return null;
+  // Only Recommended strips: detail-page carousels keep their own scroll behavior.
+  if (!section.closest(".recommended-page-scroll")) return null;
+  return (
+    section.querySelector<HTMLElement>(".scrollable-section-header") ??
+    section.querySelector<HTMLElement>(".scrollable-section-title") ??
+    null
+  );
+}
+
+function clampScroll(parent: HTMLElement, axis: "x" | "y", next: number): void {
+  if (axis === "y") {
+    const max = Math.max(0, parent.scrollHeight - parent.clientHeight);
+    parent.scrollTop = Math.max(0, Math.min(max, next));
+    return;
+  }
+  const max = Math.max(0, parent.scrollWidth - parent.clientWidth);
+  parent.scrollLeft = Math.max(0, Math.min(max, next));
+}
+
+/** Keep the same summary↔keyword gap as at rest (scroll container padding-top). */
+function recommendedKeywordTopInset(parent: HTMLElement, fallbackPadPx: number): number {
+  const padTop = Number.parseFloat(window.getComputedStyle(parent).paddingTop || "");
+  return Number.isFinite(padTop) ? padTop : fallbackPadPx;
+}
+
 /**
  * After Smart TV D-pad focus (`preventScroll: true`), bring `el` into view inside
  * every scrollable ancestor (GOG vertical library menu, cover grids, sheets, …).
+ *
+ * On Recommended strips, snap the section keyword to the scrollport top inset
+ * (padding-top) so the gap under the browse-preview summary stays constant.
  */
 export function ensureElementVisibleInScrollParents(
   el: HTMLElement,
@@ -59,6 +95,7 @@ export function ensureElementVisibleInScrollParents(
   if (!el.isConnected) return;
 
   const target = resolveScrollVisibilityTarget(el);
+  const keyword = resolveScrollableSectionKeyword(el);
 
   let node: HTMLElement | null = target.parentElement;
   while (node && node !== document.body && node !== document.documentElement) {
@@ -67,15 +104,23 @@ export function ensureElementVisibleInScrollParents(
     const parentRect = parent.getBoundingClientRect();
 
     if (canScrollAxis(parent, "y")) {
-      let deltaY = 0;
-      if (elRect.top < parentRect.top + padPx) {
-        deltaY = elRect.top - parentRect.top - padPx;
-      } else if (elRect.bottom > parentRect.bottom - padPx) {
-        deltaY = elRect.bottom - parentRect.bottom + padPx;
-      }
-      if (deltaY !== 0) {
-        const max = Math.max(0, parent.scrollHeight - parent.clientHeight);
-        parent.scrollTop = Math.max(0, Math.min(max, parent.scrollTop + deltaY));
+      if (keyword && parent.contains(keyword)) {
+        const inset = recommendedKeywordTopInset(parent, padPx);
+        const headerRect = keyword.getBoundingClientRect();
+        const deltaY = headerRect.top - parentRect.top - inset;
+        if (Math.abs(deltaY) > SCROLL_SLACK_PX) {
+          clampScroll(parent, "y", parent.scrollTop + deltaY);
+        }
+      } else {
+        let deltaY = 0;
+        if (elRect.top < parentRect.top + padPx) {
+          deltaY = elRect.top - parentRect.top - padPx;
+        } else if (elRect.bottom > parentRect.bottom - padPx) {
+          deltaY = elRect.bottom - parentRect.bottom + padPx;
+        }
+        if (deltaY !== 0) {
+          clampScroll(parent, "y", parent.scrollTop + deltaY);
+        }
       }
     }
 
@@ -90,8 +135,7 @@ export function ensureElementVisibleInScrollParents(
         deltaX = elRectX.right - parentRectX.right + padPx;
       }
       if (deltaX !== 0) {
-        const max = Math.max(0, parent.scrollWidth - parent.clientWidth);
-        parent.scrollLeft = Math.max(0, Math.min(max, parent.scrollLeft + deltaX));
+        clampScroll(parent, "x", parent.scrollLeft + deltaX);
       }
     }
 
@@ -119,22 +163,20 @@ export function nudgeScrollParentForDirection(
       : Math.max(64, Math.round(rect.width || parent.clientWidth * 0.35));
 
   if (axis === "y") {
-    const max = Math.max(0, parent.scrollHeight - parent.clientHeight);
     const before = parent.scrollTop;
     if (direction === "down") {
-      parent.scrollTop = Math.min(max, before + step);
+      clampScroll(parent, "y", before + step);
     } else {
-      parent.scrollTop = Math.max(0, before - step);
+      clampScroll(parent, "y", before - step);
     }
     return Math.abs(parent.scrollTop - before) > SCROLL_SLACK_PX;
   }
 
-  const max = Math.max(0, parent.scrollWidth - parent.clientWidth);
   const before = parent.scrollLeft;
   if (direction === "right") {
-    parent.scrollLeft = Math.min(max, before + step);
+    clampScroll(parent, "x", before + step);
   } else {
-    parent.scrollLeft = Math.max(0, before - step);
+    clampScroll(parent, "x", before - step);
   }
   return Math.abs(parent.scrollLeft - before) > SCROLL_SLACK_PX;
 }

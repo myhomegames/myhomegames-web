@@ -25,7 +25,7 @@ import { useEditGame } from "../common/actions";
 import type { GameItem, CollectionItem, CollectionInfo } from "../../types";
 import { formatGameDate } from "../../utils/date";
 import { displayGameType, toGameTypeId } from "../../utils/gameType";
-import { buildApiHeaders, buildApiUrl, buildAppApiUrl, buildBackgroundUrl } from "../../utils/api";
+import { buildApiHeaders, buildApiUrl, buildAppApiUrl, buildBackgroundUrl, buildLogoUrl } from "../../utils/api";
 import { API_BASE, getApiToken } from "../../config";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useSkin } from "../../contexts/SkinContext";
@@ -258,6 +258,9 @@ function GameDetailContent({
   const { hasBackground, isBackgroundVisible, setBackgroundVisible } = useBackground();
   const backgroundToggleBesidePlay =
     hasBackground && (isSmartTvBrowser() || isPhoneLayout);
+  const logoUrl =
+    buildLogoUrl(API_BASE, game.logo) || (game.externalLogoUrl?.trim() || "");
+  const hasLogo = Boolean(logoUrl);
   const { games: libraryGames, updateGame } = useLibraryGames();
   const { collectionGameIds, isLoading: collectionsLoading } = useCollections();
   const [collectionsWithSlideItems, setCollectionsWithSlideItems] = useState<
@@ -640,7 +643,16 @@ function GameDetailContent({
             <div className="game-detail-info-content">
               <div className="game-detail-info-primary">
               <div className="game-detail-title-row">
-                <h1 className="text-white game-detail-title">
+                {hasLogo ? (
+                  <img
+                    className="game-detail-logo"
+                    src={logoUrl}
+                    alt={game.title}
+                  />
+                ) : null}
+                <h1
+                  className={`text-white game-detail-title${hasLogo ? " game-detail-title--logo-fallback" : ""}`}
+                >
                   {game.title}
                 </h1>
               </div>
