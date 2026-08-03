@@ -37,9 +37,13 @@ type RecommendedBrowseChromeProps = {
   children: (preview: ReactNode) => ReactNode;
 };
 
+/** Wait for D-pad to settle before summary/fanart work — covers still move on native focus. */
+const PREVIEW_SETTLE_MS = 220;
+
 /**
  * Owns TV browse summary + fanart so cover strips are not in the same state tree.
- * Native focus moves covers immediately; preview/background commit via startTransition.
+ * Focus moves covers immediately; preview/background only commit after settle.
+ * Ambient blur fill is off — full-viewport blur(72px) was the main TV hitch.
  */
 export default function RecommendedBrowseChrome({
   isReady,
@@ -52,6 +56,8 @@ export default function RecommendedBrowseChrome({
   const [paintedBackgroundUrl, setPaintedBackgroundUrl] = useState("");
   const catalogPreviewFetchedRef = useRef<Set<string>>(new Set());
   const enrichedByIdRef = useRef<Map<string, GameItem>>(new Map());
+  const paintedUrlRef = useRef("");
+  paintedUrlRef.current = paintedBackgroundUrl;
 
   const resolveGame = (id: string): GameItem | null => {
     const enriched = enrichedByIdRef.current.get(id);
@@ -106,13 +112,29 @@ export default function RecommendedBrowseChrome({
       }
     };
 
-    const onFocusIn = (e: FocusEvent) => {
-      const game = resolveGameFromTarget(e.target);
-      if (!game) return;
+    let settleTimer: number | null = null;
+    let pendingGame: GameItem | null = null;
+
+    const commitPreview = (game: GameItem) => {
       startTransition(() => {
         setPreviewGame(game);
       });
       window.requestAnimationFrame(() => preloadNeighbors(game));
+    };
+
+    const onFocusIn = (e: FocusEvent) => {
+      const game = resolveGameFromTarget(e.target);
+      if (!game) return;
+      pendingGame = game;
+      if (settleTimer != null) window.clearTimeout(settleTimer);
+      // Warm neighbor fanarts immediately; paint summary/fanart only after settle.
+      window.requestAnimationFrame(() => preloadNeighbors(game));
+      settleTimer = window.setTimeout(() => {
+        settleTimer = null;
+        const next = pendingGame;
+        pendingGame = null;
+        if (next) commitPreview(next);
+      }, PREVIEW_SETTLE_MS);
     };
 
     root.addEventListener("focusin", onFocusIn);
@@ -138,6 +160,7 @@ export default function RecommendedBrowseChrome({
     return () => {
       root.removeEventListener("focusin", onFocusIn);
       window.clearTimeout(focusTimer);
+      if (settleTimer != null) window.clearTimeout(settleTimer);
     };
   }, [isReady, scrollContainerRef, sectionsRef]);
 
@@ -191,7 +214,6 @@ export default function RecommendedBrowseChrome({
 
         enrichedByIdRef.current.set(gameId, enriched);
 
-        // Cache only — do not mutate the page sections ref (page re-renders would overwrite it).
         setRecommendedSectionsCache(
           sectionsRef.current.map((section) => ({
             ...section,
@@ -221,17 +243,13 @@ export default function RecommendedBrowseChrome({
     };
   }, [previewGame?.id, previewGame?.isCatalogOnly, sectionsRef]);
 
+  // Fanart: keep previous art until the next URL is decoded — never clear mid-step.
   useEffect(() => {
-    if (!previewGame) {
-      setPaintedBackgroundUrl("");
-      return;
-    }
+    if (!previewGame) return;
 
     const url = buildBackgroundUrl(API_BASE, previewGame.background) || "";
-    if (!url) {
-      setPaintedBackgroundUrl("");
-      return;
-    }
+    if (!url) return;
+    if (url === paintedUrlRef.current) return;
 
     if (isBackgroundUrlWarmed(url)) {
       startTransition(() => {
@@ -262,6 +280,7 @@ export default function RecommendedBrowseChrome({
       elementId="recommended-browse"
       autoShowWhenAvailable
       detailBackdrop={detailBackdrop}
+      ambientFill={false}
     >
       {children(preview)}
     </BackgroundManager>

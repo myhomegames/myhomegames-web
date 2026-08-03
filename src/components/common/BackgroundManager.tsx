@@ -45,6 +45,11 @@ type BackgroundManagerProps = {
    * CSS the portal stays full-bleed.
    */
   detailBackdrop?: boolean;
+  /**
+   * Full-viewport ambient fill under the sharp crop. On TV skins this is often a
+   * heavy blur — disable on rapid focus surfaces (Recommended browse) to keep D-pad snappy.
+   */
+  ambientFill?: boolean;
 };
 
 const STORAGE_KEY = "backgroundStates";
@@ -111,6 +116,7 @@ export default function BackgroundManager({
   children,
   autoShowWhenAvailable = false,
   detailBackdrop = false,
+  ambientFill = true,
 }: BackgroundManagerProps) {
   const [isBackgroundVisible, setIsBackgroundVisible] = useState(() => {
     if (autoShowWhenAvailable && hasBackground) return true;
@@ -353,11 +359,13 @@ export default function BackgroundManager({
     createPortal(
       <>
         {/* Edge/ambient fill — skins blur/scale this under the sharp crop on TV. */}
-        <div
-          className="background-manager-portal-bg-fill"
-          style={imageOnlyStyle}
-          aria-hidden="true"
-        />
+        {ambientFill ? (
+          <div
+            className="background-manager-portal-bg-fill"
+            style={imageOnlyStyle}
+            aria-hidden="true"
+          />
+        ) : null}
         <div className="background-manager-portal-bg" style={imageOnlyStyle} />
         <div className="background-manager-portal-overlay" aria-hidden="true" />
       </>,
