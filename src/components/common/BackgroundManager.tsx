@@ -124,6 +124,8 @@ export default function BackgroundManager({
   });
 
   const [portalHost, setPortalHost] = useState<HTMLDivElement | null>(null);
+  /** Fade-in after URL paint — inline opacity beats skin `opacity: 1` on TV. */
+  const [portalBgRevealed, setPortalBgRevealed] = useState(false);
 
   useLayoutEffect(() => {
     const root = document.getElementById("root");
@@ -205,6 +207,31 @@ export default function BackgroundManager({
       document.documentElement.removeAttribute("data-mhg-background-visible");
     };
   }, [hasBackground, isBackgroundVisible]);
+
+  // Reset reveal before paint so the new URL never flashes at full opacity.
+  useLayoutEffect(() => {
+    setPortalBgRevealed(false);
+  }, [portalHost, hasBackground, isBackgroundVisible, backgroundUrl]);
+
+  // Then fade in after the opacity:0 frame is committed.
+  useEffect(() => {
+    const canPaint =
+      Boolean(portalHost) &&
+      hasBackground &&
+      isBackgroundVisible &&
+      backgroundUrl.trim() !== "";
+    if (!canPaint) return;
+    let raf2 = 0;
+    const raf1 = window.requestAnimationFrame(() => {
+      raf2 = window.requestAnimationFrame(() => {
+        setPortalBgRevealed(true);
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(raf1);
+      window.cancelAnimationFrame(raf2);
+    };
+  }, [portalHost, hasBackground, isBackgroundVisible, backgroundUrl]);
 
   /* Narrow detail: collapse hero height on scroll (content starts below the slot). */
   useEffect(() => {
@@ -322,6 +349,14 @@ export default function BackgroundManager({
         }
       : undefined;
 
+  const portalImageStyle: CSSProperties | undefined = imageOnlyStyle
+    ? {
+        ...imageOnlyStyle,
+        opacity: portalBgRevealed ? 1 : 0,
+        transition: "opacity 0.55s ease-out",
+      }
+    : undefined;
+
   /*
    * Portal paints full viewport when mounted; keep root paint only until the portal
    * host exists (first frame). Never stack image on both — that caused two-tone columns.
@@ -362,15 +397,15 @@ export default function BackgroundManager({
         {ambientFill ? (
           <div
             key={`fill-${backgroundUrl}`}
-            className="background-manager-portal-bg-fill background-manager-portal-bg--enter"
-            style={imageOnlyStyle}
+            className="background-manager-portal-bg-fill"
+            style={portalImageStyle}
             aria-hidden="true"
           />
         ) : null}
         <div
           key={`bg-${backgroundUrl}`}
-          className="background-manager-portal-bg background-manager-portal-bg--enter"
-          style={imageOnlyStyle}
+          className="background-manager-portal-bg"
+          style={portalImageStyle}
         />
         <div className="background-manager-portal-overlay" aria-hidden="true" />
       </>,
