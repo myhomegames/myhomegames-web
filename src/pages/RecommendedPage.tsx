@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback, memo, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { usePageRevealReady } from "../hooks/usePageRevealReady";
@@ -9,8 +9,7 @@ import { useSkin } from "../contexts/SkinContext";
 import { useListDataReady, withListFetchRetries } from "../hooks/useListDataReady";
 import ScrollableGamesSection from "../components/common/ScrollableGamesSection";
 import FixedFocalRecommendedSectionsList from "../components/lists/FixedFocalRecommendedSectionsList";
-import RecommendedBrowsePreview from "../components/games/RecommendedBrowsePreview";
-import BackgroundManager from "../components/common/BackgroundManager";
+import RecommendedBrowseChrome from "../components/games/RecommendedBrowseChrome";
 import type { GameItem, CollectionItem } from "../types";
 import { buildApiHeaders, buildAppApiUrl, buildBackgroundUrl } from "../utils/api";
 import { API_BASE } from "../config";
@@ -18,10 +17,7 @@ import { isSmartTvBrowser } from "../utils/smartTv";
 import { buildCatalogApiUrl } from "../utils/catalogApi";
 import {
   collectGameBackgroundUrls,
-  isBackgroundUrlWarmed,
-  preloadBackgroundUrl,
   preloadBackgroundUrls,
-  whenBackgroundUrlReady,
 } from "../utils/preloadBackground";
 import {
   clearRecommendedSectionsCache,
@@ -36,7 +32,6 @@ import {
   type RecommendedSectionsNavState,
 } from "../utils/recommendedSectionsCache";
 import { titleMatchesFilter } from "../utils/titleFilter";
-import { ensureElementVisibleInScrollParents } from "../utils/ensureVisibleInScrollParent";
 
 type RecommendedSection = {
   id: string;
@@ -51,6 +46,41 @@ type RecommendedPageProps = {
   coverSize: number;
   allCollections?: CollectionItem[];
 };
+
+/** Isolates strip re-renders from browse preview / fanart state updates. */
+const RecommendedHorizontalStrips = memo(function RecommendedHorizontalStrips({
+  sections,
+  onGameClick,
+  onPlay,
+  onGameUpdate,
+  coverSize,
+  allCollections,
+}: {
+  sections: RecommendedSection[];
+  onGameClick: (game: GameItem) => void;
+  onPlay?: (game: GameItem) => void;
+  onGameUpdate: (updatedGame: GameItem) => void;
+  coverSize: number;
+  allCollections: CollectionItem[];
+}) {
+  return (
+    <>
+      {sections.map((section) => (
+        <ScrollableGamesSection
+          key={section.id}
+          sectionId={section.id}
+          titleOverride={section.title ?? section.id}
+          games={section.games}
+          onGameClick={onGameClick}
+          onPlay={onPlay}
+          onGameUpdate={onGameUpdate}
+          coverSize={coverSize}
+          allCollections={allCollections}
+        />
+      ))}
+    </>
+  );
+});
 
 export default function RecommendedPage({
   onGameClick,
@@ -70,9 +100,6 @@ export default function RecommendedPage({
     activeSkinWeb.tvRecommendedBrowsePreview &&
     isSmartTvBrowser() &&
     !verticalStripsLayout;
-  const [previewGame, setPreviewGame] = useState<GameItem | null>(null);
-  /** Fanart follows settled preview (decode + focus debounce) so D-pad stays snappy on TV. */
-  const [paintedBackgroundUrl, setPaintedBackgroundUrl] = useState("");
   // Only reuse cache when returning from a game/section; a fresh visit must fetch
   // a new random set without painting the previous strips first.
   const preserveCachedSections =
@@ -94,7 +121,6 @@ export default function RecommendedPage({
   const stripsScrollRef = useRef<HTMLDivElement>(null);
   const fetchingRef = useRef<boolean>(false);
   const fetchGenerationRef = useRef(0);
-  const catalogPreviewFetchedRef = useRef<Set<string>>(new Set());
   const onGamesLoadedRef = useRef(onGamesLoaded);
   const setLoadingRef = useRef(setLoading);
   onGamesLoadedRef.current = onGamesLoaded;
@@ -131,7 +157,7 @@ export default function RecommendedPage({
       .filter((s) => s.games.length > 0);
   }, [sections, titleFilterQuery]);
 
-  const handleGameUpdate = (updatedGame: GameItem) => {
+  const handleGameUpdate = useCallback((updatedGame: GameItem) => {
     setSections((prevSections) => {
       const next = prevSections.map((section) => ({
         ...section,
@@ -143,7 +169,7 @@ export default function RecommendedPage({
       return next;
     });
     window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
-  };
+  }, []);
 
   // Listen for game events to update sections
   useEffect(() => {
@@ -281,21 +307,6 @@ export default function RecommendedPage({
     el.scrollTop = 0;
   }, [isReady, verticalStripsLayout]);
 
-  // TV Recommended browse preview: seed from first game + follow cover focus.
-  useEffect(() => {
-    if (!browsePreviewEnabled) {
-      setPreviewGame(null);
-      return;
-    }
-    const first = sectionsForDisplay[0]?.games[0] ?? null;
-    setPreviewGame((prev) => {
-      if (prev && sectionsForDisplay.some((s) => s.games.some((g) => String(g.id) === String(prev.id)))) {
-        return prev;
-      }
-      return first;
-    });
-  }, [browsePreviewEnabled, sectionsForDisplay]);
-
   // Warm fanarts into the HTTP/image cache so focus swaps stay snappy on TV.
   useEffect(() => {
     if (!browsePreviewEnabled || !isReady || sectionsForDisplay.length === 0) return;
@@ -326,169 +337,8 @@ export default function RecommendedPage({
     };
   }, [browsePreviewEnabled, isReady, sectionsForDisplay]);
 
-  useEffect(() => {
-    if (!browsePreviewEnabled || !isReady) return;
-    const root = scrollContainerRef.current;
-    if (!root) return;
-
-    const resolveGameFromTarget = (target: EventTarget | null): GameItem | null => {
-      if (!(target instanceof Element)) return null;
-      const host = target.closest("[data-mhg-game-id]") as HTMLElement | null;
-      const id = host?.getAttribute("data-mhg-game-id");
-      if (!id) return null;
-      for (const section of sectionsForDisplay) {
-        const found = section.games.find((g) => String(g.id) === id);
-        if (found) return found;
-      }
-      return null;
-    };
-
-    const preloadNeighbors = (game: GameItem) => {
-      const neighborUrls: string[] = [];
-      for (const section of sectionsForDisplay) {
-        const idx = section.games.findIndex((g) => String(g.id) === String(game.id));
-        if (idx < 0) continue;
-        for (const offset of [-1, 0, 1, 2]) {
-          const neighbor = section.games[idx + offset];
-          const raw = neighbor?.background?.trim();
-          if (!raw) continue;
-          const url = buildBackgroundUrl(API_BASE, raw);
-          if (url) neighborUrls.push(url);
-        }
-        break;
-      }
-      if (neighborUrls.length > 0) {
-        preloadBackgroundUrls(neighborUrls, { concurrency: 2, priority: true });
-      }
-    };
-
-    const PREVIEW_SETTLE_MS = 150;
-    let previewSettleTimer: number | null = null;
-    let pendingPreviewGame: GameItem | null = null;
-
-    const commitPreviewGame = (game: GameItem) => {
-      setPreviewGame(game);
-      window.requestAnimationFrame(() => preloadNeighbors(game));
-    };
-
-    const onFocusIn = (e: FocusEvent) => {
-      const game = resolveGameFromTarget(e.target);
-      if (!game) return;
-      // Keep D-pad focus/scroll immediate; defer browse panel + fanart until the
-      // user settles so warm/blur swaps do not stall every key on weak TVs.
-      pendingPreviewGame = game;
-      if (previewSettleTimer != null) window.clearTimeout(previewSettleTimer);
-      previewSettleTimer = window.setTimeout(() => {
-        previewSettleTimer = null;
-        const next = pendingPreviewGame;
-        pendingPreviewGame = null;
-        if (next) commitPreviewGame(next);
-      }, PREVIEW_SETTLE_MS);
-    };
-
-    root.addEventListener("focusin", onFocusIn);
-    const focusTimer = window.setTimeout(() => {
-      const active = document.activeElement;
-      if (active instanceof Element && root.contains(active) && resolveGameFromTarget(active)) {
-        return;
-      }
-      const firstCover = root.querySelector<HTMLElement>(
-        ".games-list-cover[role='button'], .games-list-cover[tabindex]",
-      );
-      if (firstCover) {
-        try {
-          firstCover.focus({ preventScroll: true });
-        } catch {
-          firstCover.focus();
-        }
-        root.scrollTop = 0;
-        ensureElementVisibleInScrollParents(firstCover);
-      }
-    }, 120);
-
-    return () => {
-      root.removeEventListener("focusin", onFocusIn);
-      window.clearTimeout(focusTimer);
-      if (previewSettleTimer != null) window.clearTimeout(previewSettleTimer);
-    };
-  }, [browsePreviewEnabled, isReady, sectionsForDisplay]);
-
-  // Catalog-only (“New”) covers ship lean from keyword search — enrich preview on focus.
-  useEffect(() => {
-    if (!browsePreviewEnabled || !previewGame?.isCatalogOnly) return;
-
-    const gameId = String(previewGame.id);
-    if (catalogPreviewFetchedRef.current.has(gameId)) return;
-
-    const baseGame = previewGame;
-    const controller = new AbortController();
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const url = buildCatalogApiUrl(`/igdb/game/${gameId}`);
-        const res = await fetch(url, {
-          headers: buildApiHeaders({ Accept: "application/json" }),
-          signal: controller.signal,
-        });
-        if (!res.ok || cancelled) return;
-        const detail = await res.json();
-        if (cancelled || !detail) return;
-
-        catalogPreviewFetchedRef.current.add(gameId);
-
-        const enriched: GameItem = {
-          ...baseGame,
-          title: detail.name || baseGame.title,
-          summary: detail.summary || baseGame.summary,
-          cover: detail.cover || baseGame.cover,
-          background: detail.background || baseGame.background,
-          year:
-            detail.releaseDateFull?.year ??
-            detail.releaseDate ??
-            baseGame.year,
-          month: detail.releaseDateFull?.month ?? baseGame.month,
-          day: detail.releaseDateFull?.day ?? baseGame.day,
-          genre: Array.isArray(detail.genres)
-            ? detail.genres.map((title: string, index: number) => ({
-                id: index,
-                title: typeof title === "string" ? title : String(title),
-              }))
-            : baseGame.genre,
-          criticratings: detail.criticRating ?? baseGame.criticratings ?? null,
-          userratings: detail.userRating ?? baseGame.userratings ?? null,
-          ageRatings: detail.ageRatings ?? baseGame.ageRatings,
-          type: detail.type ?? baseGame.type,
-          isCatalogOnly: true,
-        };
-
-        setPreviewGame((prev) =>
-          prev && String(prev.id) === gameId ? enriched : prev,
-        );
-        const bgUrl = buildBackgroundUrl(API_BASE, enriched.background);
-        if (bgUrl) preloadBackgroundUrl(bgUrl);
-        setSections((prev) => {
-          const next = prev.map((section) => ({
-            ...section,
-            games: section.games.map((game) =>
-              String(game.id) === gameId && game.isCatalogOnly
-                ? { ...game, ...enriched }
-                : game,
-            ),
-          }));
-          setRecommendedSectionsCache(next);
-          return next;
-        });
-      } catch {
-        /* aborted or network — keep lean catalog card */
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      controller.abort();
-    };
-  }, [browsePreviewEnabled, previewGame?.id, previewGame?.isCatalogOnly]);
+  const sectionsForDisplayRef = useRef(sectionsForDisplay);
+  sectionsForDisplayRef.current = sectionsForDisplay;
 
   async function fetchRecommendedSections(options?: { background?: boolean }) {
     if (fetchingRef.current) {
@@ -625,41 +475,7 @@ export default function RecommendedPage({
     }
   }
 
-  // Apply fanart only after preview settles and the image is decoded.
-  useEffect(() => {
-    if (!browsePreviewEnabled) {
-      setPaintedBackgroundUrl("");
-      return;
-    }
-    if (!previewGame) {
-      setPaintedBackgroundUrl("");
-      return;
-    }
-
-    const url = buildBackgroundUrl(API_BASE, previewGame.background) || "";
-    if (!url) {
-      setPaintedBackgroundUrl("");
-      return;
-    }
-
-    if (isBackgroundUrlWarmed(url)) {
-      setPaintedBackgroundUrl(url);
-      return;
-    }
-
-    let cancelled = false;
-    whenBackgroundUrlReady(url).then(() => {
-      if (cancelled) return;
-      // Apply even if decode failed — CSS may still paint from cache/network.
-      setPaintedBackgroundUrl(url);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [browsePreviewEnabled, previewGame]);
-
-  const pageBody = (
+  const renderPageBody = (preview: ReactNode = null) => (
     <main
       className={`flex-1 home-page-content${
         verticalStripsLayout ? " mhg-recommended-strips-page" : ""
@@ -675,7 +491,7 @@ export default function RecommendedPage({
             isReady ? " home-page-fade-in--ready" : ""
           }${browsePreviewEnabled ? " mhg-recommended-browse-preview-host" : ""}`}
         >
-          {browsePreviewEnabled ? <RecommendedBrowsePreview game={previewGame} /> : null}
+          {preview}
           <div
             ref={scrollContainerRef}
             className={`home-page-scroll-container recommended-page-scroll${
@@ -694,19 +510,14 @@ export default function RecommendedPage({
                   </div>
                 ) : null
               ) : (
-                sectionsForDisplay.map((section) => (
-                  <ScrollableGamesSection
-                    key={section.id}
-                    sectionId={section.id}
-                    titleOverride={section.title ?? section.id}
-                    games={section.games}
-                    onGameClick={handleGameClick}
-                    onPlay={onPlay}
-                    onGameUpdate={handleGameUpdate}
-                    coverSize={coverSize}
-                    allCollections={allCollections}
-                  />
-                ))
+                <RecommendedHorizontalStrips
+                  sections={sectionsForDisplay}
+                  onGameClick={handleGameClick}
+                  onPlay={onPlay}
+                  onGameUpdate={handleGameUpdate}
+                  coverSize={coverSize}
+                  allCollections={allCollections}
+                />
               ))}
           </div>
         </div>
@@ -716,18 +527,17 @@ export default function RecommendedPage({
 
   if (browsePreviewEnabled) {
     return (
-      <BackgroundManager
-        backgroundUrl={paintedBackgroundUrl}
-        hasBackground={Boolean(paintedBackgroundUrl)}
-        elementId="recommended-browse"
-        autoShowWhenAvailable
+      <RecommendedBrowseChrome
+        isReady={isReady}
+        scrollContainerRef={scrollContainerRef}
+        sectionsRef={sectionsForDisplayRef}
         detailBackdrop={activeSkinWeb.detailBackdropLayout}
       >
-        {pageBody}
-      </BackgroundManager>
+        {(preview) => renderPageBody(preview)}
+      </RecommendedBrowseChrome>
     );
   }
 
-  return pageBody;
+  return renderPageBody();
 }
 
