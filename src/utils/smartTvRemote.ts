@@ -411,8 +411,9 @@ function pickNextInSet(
   const rects = mapFocusNavRects([current, ...items]);
   const from = rects.get(current) ?? current.getBoundingClientRect();
   const fromC = center(from);
-  // Center separation tolerates overlapping boxes from CSS tile scale.
-  const minPrimary = Math.max(8, Math.min(from.width, from.height) * 0.12);
+  // Up/Down must clear most of a tile height — tiny dy to a side neighbor is L/R.
+  const minVertical = Math.max(24, from.height * 0.4);
+  const minHorizontal = Math.max(8, from.width * 0.12);
   let best: HTMLElement | null = null;
   let bestScore = Number.POSITIVE_INFINITY;
 
@@ -430,19 +431,23 @@ function pickNextInSet(
     if (direction === "down") {
       primary = dy;
       orthogonal = Math.abs(dx);
-      aligned = dy >= minPrimary || to.top >= from.top - 4;
+      aligned = dy >= minVertical && orthogonal <= primary * 1.25;
     } else if (direction === "up") {
       primary = -dy;
       orthogonal = Math.abs(dx);
-      aligned = -dy >= minPrimary || to.bottom <= from.bottom + 4;
+      aligned = -dy >= minVertical && orthogonal <= primary * 1.25;
     } else if (direction === "right") {
       primary = dx;
       orthogonal = Math.abs(dy);
-      aligned = dx >= minPrimary || to.left >= from.left - 4;
+      aligned =
+        (dx >= 1 && to.left >= from.left - 4) ||
+        (dx >= minHorizontal && orthogonal <= primary * 1.5);
     } else {
       primary = -dx;
       orthogonal = Math.abs(dy);
-      aligned = -dx >= minPrimary || to.right <= from.right + 4;
+      aligned =
+        (-dx >= 1 && to.right <= from.right + 4) ||
+        (-dx >= minHorizontal && orthogonal <= primary * 1.5);
     }
 
     if (!aligned || primary < 1) continue;
@@ -496,6 +501,63 @@ function pickCoverInRow(
   }
   if (direction === "left") return idx > 0 ? sameRow[idx - 1]! : null;
   return idx < sameRow.length - 1 ? sameRow[idx + 1]! : null;
+}
+
+/**
+ * Same-column U/D among covers by top-edge order. Keeps Down/Up from sliding
+ * sideways to a slightly lower/higher neighbor in the same row.
+ */
+function pickCoverInColumn(
+  covers: HTMLElement[],
+  current: HTMLElement,
+  direction: "up" | "down",
+): HTMLElement | null {
+  if (covers.length === 0) return null;
+  const rects = mapFocusNavRects([current, ...covers]);
+  const fromRect = rects.get(current) ?? current.getBoundingClientRect();
+  const fromX = center(fromRect).x;
+  const colTol = Math.max(28, fromRect.width * 0.45);
+  const sameCol = covers.filter((el) => {
+    const r = rects.get(el) ?? el.getBoundingClientRect();
+    return Math.abs(center(r).x - fromX) <= colTol;
+  });
+  if (sameCol.length === 0) return null;
+  sameCol.sort((a, b) => {
+    const ar = rects.get(a) ?? a.getBoundingClientRect();
+    const br = rects.get(b) ?? b.getBoundingClientRect();
+    return ar.top - br.top;
+  });
+  let idx = sameCol.indexOf(current);
+  if (idx < 0) {
+    const fromTop = fromRect.top;
+    idx = sameCol.findIndex((el) => {
+      const r = rects.get(el) ?? el.getBoundingClientRect();
+      return r.top >= fromTop - 1;
+    });
+    if (idx < 0) idx = sameCol.length - 1;
+    if (direction === "up") {
+      return idx > 0 ? sameCol[idx - 1]! : sameCol[0]!;
+    }
+    return idx < sameCol.length - 1 ? sameCol[idx + 1]! : sameCol[sameCol.length - 1]!;
+  }
+  if (direction === "up") return idx > 0 ? sameCol[idx - 1]! : null;
+  return idx < sameCol.length - 1 ? sameCol[idx + 1]! : null;
+}
+
+function pickCoverByDirection(
+  covers: HTMLElement[],
+  current: HTMLElement,
+  direction: Direction,
+): HTMLElement | null {
+  if (direction === "left" || direction === "right") {
+    let next = pickNextInSet(covers, current, direction);
+    if (!next) next = pickCoverInRow(covers, current, direction);
+    return next;
+  }
+  // Prefer same-column step so Down/Up never slide to a side neighbor.
+  let next = pickCoverInColumn(covers, current, direction);
+  if (!next) next = pickNextInSet(covers, current, direction);
+  return next;
 }
 
 function pickNextFocus(
@@ -2850,13 +2912,7 @@ export function installSmartTvRemoteKeys(
           }
 
           const covers = collectCoverFocusables();
-          let nextCover = pickNextInSet(covers, coverEl, direction);
-          if (
-            !nextCover &&
-            (direction === "left" || direction === "right")
-          ) {
-            nextCover = pickCoverInRow(covers, coverEl, direction);
-          }
+          const nextCover = pickCoverByDirection(covers, coverEl, direction);
           if (nextCover) {
             rememberCoverFocus(nextCover);
             focusElement(nextCover);
@@ -2886,14 +2942,9 @@ export function installSmartTvRemoteKeys(
                   ? document.activeElement
                   : coverEl,
               );
-              let retry = pickNextInSet(retryCovers, activeCover, direction);
-              if (
-                !retry &&
+              const retry =
                 activeCover &&
-                (direction === "left" || direction === "right")
-              ) {
-                retry = pickCoverInRow(retryCovers, activeCover, direction);
-              }
+                pickCoverByDirection(retryCovers, activeCover, direction);
               if (retry) {
                 rememberCoverFocus(retry);
                 focusElement(retry);
@@ -3080,7 +3131,7 @@ export function installSmartTvRemoteKeys(
 
           const gridCovers = collectDetailGamesGridFocusables(gamesGrid);
           if (gridCovers.length > 0) {
-            const nextCover = pickNextInSet(gridCovers, gridCover, direction);
+            const nextCover = pickCoverByDirection(gridCovers, gridCover, direction);
             if (nextCover) {
               focusElement(nextCover);
               return;
@@ -3093,15 +3144,18 @@ export function installSmartTvRemoteKeys(
               nudgeScrollParentForDirection(gridCover, direction)
             ) {
               window.requestAnimationFrame(() => {
-                const retry = pickNextInSet(
-                  collectDetailGamesGridFocusables(gamesGrid),
-                  coverFocusFrom(
-                    document.activeElement instanceof HTMLElement
-                      ? document.activeElement
-                      : gridCover,
-                  ),
-                  direction,
+                const active = coverFocusFrom(
+                  document.activeElement instanceof HTMLElement
+                    ? document.activeElement
+                    : gridCover,
                 );
+                const retry =
+                  active &&
+                  pickCoverByDirection(
+                    collectDetailGamesGridFocusables(gamesGrid),
+                    active,
+                    direction,
+                  );
                 if (retry) {
                   focusElement(retry);
                   return;
