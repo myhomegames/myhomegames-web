@@ -7,6 +7,7 @@ import type { CollectionLikeResourceType } from "../collections/EditCollectionLi
 import type { ActiveCollectionLikeDetail } from "../../utils/collectionLikePseudoGame";
 import { buildCoverUrl } from "../../utils/api";
 import { useSkin } from "../../contexts/SkinContext";
+import { isSmartTvBrowser } from "../../utils/smartTv";
 // sessionStorage helpers
 function getScrollPosition(key: string): number {
   try {
@@ -273,8 +274,9 @@ export default function ScrollableGamesSection({
   }, [games.length, forceVerticalCovers]);
 
   // D-pad focus moves without always firing a meaningful scroll at the ends.
+  // Smart TV: skip — nav chevrons are unused and querySelectorAll+setState per focus was hitching strips.
   useEffect(() => {
-    if (forceVerticalCovers) return;
+    if (forceVerticalCovers || isSmartTvBrowser()) return;
     const section = sectionRef.current;
     if (!section) return;
 
