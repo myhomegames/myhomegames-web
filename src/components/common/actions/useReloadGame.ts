@@ -61,6 +61,7 @@ function mapReloadedGame(data: Record<string, unknown>): GameItem {
     summary: typeof data.summary === "string" ? data.summary : "",
     cover: optional(typeof data.cover === "string" ? data.cover : undefined),
     background: optional(typeof data.background === "string" ? data.background : undefined),
+    logo: optional(typeof data.logo === "string" ? data.logo : undefined),
     day: optional(data.day as GameItem["day"]),
     month: optional(data.month as GameItem["month"]),
     year: optional(data.year as GameItem["year"]),

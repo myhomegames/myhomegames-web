@@ -9,6 +9,7 @@ export function parseGamesFromJson(json: { games?: any[] }): GameItem[] {
     summary: v.summary,
     cover: v.cover,
     background: v.background,
+    logo: v.logo,
     day: v.day,
     month: v.month,
     year: v.year,

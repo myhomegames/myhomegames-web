@@ -18,6 +18,7 @@ export function parseGamesListFromApiJson(json: { games?: unknown[] }): GameItem
     summary: v.summary as string | undefined,
     cover: v.cover as string | undefined,
     background: v.background as string | undefined,
+    logo: v.logo as string | undefined,
     day: (v.day as number | null | undefined) ?? null,
     month: (v.month as number | null | undefined) ?? null,
     year: (v.year as number | null | undefined) ?? null,
