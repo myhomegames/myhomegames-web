@@ -71,7 +71,7 @@ export default function RecommendedPage({
     isSmartTvBrowser() &&
     !verticalStripsLayout;
   const [previewGame, setPreviewGame] = useState<GameItem | null>(null);
-  /** Fanart applied only after decode — keeps cover hover/focus snappy on TV. */
+  /** Fanart follows settled preview (decode + focus debounce) so D-pad stays snappy on TV. */
   const [paintedBackgroundUrl, setPaintedBackgroundUrl] = useState("");
   // Only reuse cache when returning from a game/section; a fresh visit must fetch
   // a new random set without painting the previous strips first.
@@ -362,12 +362,28 @@ export default function RecommendedPage({
       }
     };
 
+    const PREVIEW_SETTLE_MS = 150;
+    let previewSettleTimer: number | null = null;
+    let pendingPreviewGame: GameItem | null = null;
+
+    const commitPreviewGame = (game: GameItem) => {
+      setPreviewGame(game);
+      window.requestAnimationFrame(() => preloadNeighbors(game));
+    };
+
     const onFocusIn = (e: FocusEvent) => {
       const game = resolveGameFromTarget(e.target);
       if (!game) return;
-      // Update browse text immediately; warm neighbors after paint so hover is not blocked.
-      setPreviewGame(game);
-      window.requestAnimationFrame(() => preloadNeighbors(game));
+      // Keep D-pad focus/scroll immediate; defer browse panel + fanart until the
+      // user settles so warm/blur swaps do not stall every key on weak TVs.
+      pendingPreviewGame = game;
+      if (previewSettleTimer != null) window.clearTimeout(previewSettleTimer);
+      previewSettleTimer = window.setTimeout(() => {
+        previewSettleTimer = null;
+        const next = pendingPreviewGame;
+        pendingPreviewGame = null;
+        if (next) commitPreviewGame(next);
+      }, PREVIEW_SETTLE_MS);
     };
 
     root.addEventListener("focusin", onFocusIn);
@@ -393,6 +409,7 @@ export default function RecommendedPage({
     return () => {
       root.removeEventListener("focusin", onFocusIn);
       window.clearTimeout(focusTimer);
+      if (previewSettleTimer != null) window.clearTimeout(previewSettleTimer);
     };
   }, [browsePreviewEnabled, isReady, sectionsForDisplay]);
 
@@ -608,7 +625,7 @@ export default function RecommendedPage({
     }
   }
 
-  // Apply fanart only after it is decoded so D-pad hover is not blocked by CSS swaps.
+  // Apply fanart only after preview settles and the image is decoded.
   useEffect(() => {
     if (!browsePreviewEnabled) {
       setPaintedBackgroundUrl("");
