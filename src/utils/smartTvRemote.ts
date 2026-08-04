@@ -929,6 +929,7 @@ function collectTvRelocatedHeaderActionFocusables(): HTMLElement[] {
       '.mhg-header-button[data-mhg-header-action="add-game"]',
     ),
   );
+  push(root.querySelector<HTMLElement>(".update-notification-button"));
   push(root.querySelector<HTMLElement>(".profile-dropdown-button"));
   return items;
 }

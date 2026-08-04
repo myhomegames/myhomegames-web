@@ -1175,6 +1175,13 @@ export default function LibrariesBar({
   const showTvRelocatedProfile = relocateTvHeaderChrome && showProfile;
   const showTvRelocatedMainGames =
     relocateTvHeaderChrome && showMainGamesToggle && !!onMainGamesOnlyChange;
+  /** Header is hidden on TV — keep the update bell with search/profile (not the PS3 dock). */
+  const showTvRelocatedUpdate = relocateTvHeaderChrome && !topRightToolDock;
+  const showTvRelocatedHeaderActions =
+    showTvRelocatedMainGames ||
+    showTvRelocatedSearch ||
+    showTvRelocatedProfile ||
+    showTvRelocatedUpdate;
 
   useEffect(() => {
     if (!activeSkinWeb.verticalCoverAlignment || isNarrow || verticalPersistentSidebar) return;
@@ -1759,9 +1766,7 @@ export default function LibrariesBar({
         ) : null}
 
         <div className="mhg-libraries-actions" ref={actionsRef}>
-          {(showTvRelocatedMainGames ||
-            showTvRelocatedSearch ||
-            showTvRelocatedProfile) && (
+          {(showTvRelocatedHeaderActions) && (
             <div
               className="mhg-libraries-tv-header-actions flex shrink-0 items-center gap-1"
               role="toolbar"
@@ -1806,6 +1811,7 @@ export default function LibrariesBar({
                   </svg>
                 </button>
               )}
+              {showTvRelocatedUpdate && <UpdateNotification />}
               {showTvRelocatedProfile && (
                 <div style={{ transform: "translateY(3px)" }}>
                   <ProfileDropdown />

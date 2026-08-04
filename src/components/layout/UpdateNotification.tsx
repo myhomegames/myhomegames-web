@@ -35,8 +35,9 @@ export default function UpdateNotification({
   const hasSkinUpdates =
     environmentCompatible && (availableUpdates.length > 0 || skinUpdating);
   const serverUpdateRequired = !environmentCompatible && hasServerUpdate;
-  /** Full-viewport sheet: portal avoids dock `transform` clipping. */
-  const portaledPopup = activeSkinWeb.disableTitleTooltips;
+  /** Full-viewport sheet: portal avoids dock/strip `overflow` clipping. */
+  const portaledPopup =
+    activeSkinWeb.disableTitleTooltips || isSmartTvBrowser();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
