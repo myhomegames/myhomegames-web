@@ -14,6 +14,8 @@ import AddGame from "./components/common/AddGame";
 import GameDetail from "./components/games/GameDetail";
 import LaunchModal from "./components/common/LaunchModal";
 import TvExitConfirmDialog from "./components/layout/TvExitConfirmDialog";
+import PreserveMhgTvSearch from "./components/common/PreserveMhgTvSearch";
+import TvCoverFocusRouteSync from "./components/common/TvCoverFocusRouteSync";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import MainAppLayout from "./layouts/MainAppLayout";
 
@@ -35,6 +37,7 @@ import type { GameItem, CollectionItem } from "./types";
 import { buildApiUrl, buildCoverUrl, buildApiHeaders } from "./utils/api";
 import { reloadAllMetadataItems } from "./utils/metadataReload";
 import { API_BASE, getApiToken } from "./config";
+import { pushTvCoverFocusId } from "./utils/tvCoverFocusRestore";
 import { useLoading } from "./contexts/LoadingContext";
 import { useAuth } from "./contexts/AuthContext";
 import { useSettings } from "./contexts/SettingsContext";
@@ -316,12 +319,14 @@ function AppContent() {
   }
 
   function handleGameClick(game: GameItem) {
+    pushTvCoverFocusId("game", game.id);
     navigate(`/game/${game.id}`, {
       state: { from: location.pathname + location.search },
     });
   }
 
   function handleGameSelect(game: GameItem) {
+    pushTvCoverFocusId("game", game.id);
     navigate(`/game/${game.id}`, {
       state: { from: location.pathname + location.search },
     });
@@ -1299,6 +1304,8 @@ function GameDetailPage({
 export default function App() {
   return (
     <BrowserRouter basename="/app/" unstable_useTransitions={false}>
+      <PreserveMhgTvSearch />
+      <TvCoverFocusRouteSync />
       <TitleFilterProvider>
         <AppContent />
       </TitleFilterProvider>

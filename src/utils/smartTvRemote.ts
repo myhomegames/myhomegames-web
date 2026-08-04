@@ -12,6 +12,7 @@ import {
   findCoverByTvFocusIdentity,
   findSelectedCoverMatchingIdentity,
   isTvCoverListFadePending,
+  MHG_TV_RESTORE_COVER_FOCUS,
   peekTvCoverFocusIdentity,
   popTvCoverFocusIdentity,
   pushTvCoverFocusIdentity,
@@ -1846,7 +1847,7 @@ function goBackInApp(): void {
       isItemDetailPage() || !!peekTvCoverFocusIdentity();
     window.history.back();
     if (restoreCoverAfterBack) {
-      window.dispatchEvent(new CustomEvent("mhg:tv-restore-cover-focus"));
+      window.dispatchEvent(new CustomEvent(MHG_TV_RESTORE_COVER_FOCUS));
     }
     return;
   }
@@ -1906,7 +1907,12 @@ export function installSmartTvRemoteKeys(
     const cover =
       findCoverByTvFocusIdentity(identity) ??
       findSelectedCoverMatchingIdentity(identity);
-    if (!cover || !isVisible(cover)) return false;
+    if (!cover?.isConnected) return false;
+    // During virtualized fade-in the cover may be opacity:0 — still focus it.
+    const inPendingFade = !!cover.closest(
+      ".virtualized-list-fade:not(.virtualized-list-fade--ready)",
+    );
+    if (!isVisible(cover) && !inPendingFade) return false;
     zone = "chrome";
     lastCoverFocus = cover;
     focusElement(cover);
@@ -1922,9 +1928,10 @@ export function installSmartTvRemoteKeys(
   const schedulePersistedCoverRestore = () => {
     restoreCoverAfterBackPending = true;
     let attempts = 0;
-    const maxAttempts = 50;
+    const maxAttempts = 60;
     const detailWaitStarted = performance.now();
     const maxDetailWaitMs = 8000;
+    let settlePasses = 0;
     const tick = () => {
       if (isGameOrCatalogDetailPage()) {
         if (performance.now() - detailWaitStarted > maxDetailWaitMs) {
@@ -1942,10 +1949,29 @@ export function installSmartTvRemoteKeys(
       // Nudge virtualized grids to mount the cell before we give up.
       requestTvCoverVisible(identity);
       if (tryFocusPersistedCover(identity)) {
-        popTvCoverFocusIdentity();
-        restoreCoverAfterBackPending = false;
+        // Virtualized remounts often steal focus right after a successful focus —
+        // require the cover to stay focused across a couple of frames before popping.
+        settlePasses += 1;
+        if (settlePasses < 4) {
+          window.setTimeout(tick, 50);
+          return;
+        }
+        const still =
+          findCoverByTvFocusIdentity(identity) ??
+          findSelectedCoverMatchingIdentity(identity);
+        if (
+          still &&
+          (document.activeElement === still || still.contains(document.activeElement))
+        ) {
+          popTvCoverFocusIdentity();
+          restoreCoverAfterBackPending = false;
+          return;
+        }
+        settlePasses = 0;
+        window.setTimeout(tick, 50);
         return;
       }
+      settlePasses = 0;
       // Scroll restore / fade-in still running — don't burn attempts.
       if (isTvCoverListFadePending()) {
         window.setTimeout(tick, 50);
@@ -1953,7 +1979,7 @@ export function installSmartTvRemoteKeys(
       }
       attempts += 1;
       if (attempts < maxAttempts) {
-        window.setTimeout(tick, attempts < 15 ? 50 : 100);
+        window.setTimeout(tick, attempts < 20 ? 50 : 100);
         return;
       }
       restoreCoverAfterBackPending = false;
@@ -2264,8 +2290,11 @@ export function installSmartTvRemoteKeys(
     if (zone === "content") return;
     // Prefer restoring the cover that opened this route (Back from detail / tag).
     if (tryFocusPersistedCover()) {
-      popTvCoverFocusIdentity();
-      restoreCoverAfterBackPending = false;
+      // While schedulePersistedCoverRestore is settling, do not pop yet —
+      // virtualized remounts often steal focus right after the first focus.
+      if (!restoreCoverAfterBackPending) {
+        popTvCoverFocusIdentity();
+      }
       return;
     }
     // Cover not mounted yet after Back — don't steal focus to the libraries tab
@@ -3687,7 +3716,7 @@ export function installSmartTvRemoteKeys(
   const onRestoreCoverFocus = () => schedulePersistedCoverRestore();
   window.addEventListener("mhg:tv-ui-layer-focus-request", onUiLayerFocusRequest);
   window.addEventListener("mhg:tv-request-exit", onExitRequested);
-  window.addEventListener("mhg:tv-restore-cover-focus", onRestoreCoverFocus);
+  window.addEventListener(MHG_TV_RESTORE_COVER_FOCUS, onRestoreCoverFocus);
 
   // Initial sync (no layer → clear any leftover inert marks).
   syncBackgroundInert(getActiveUiLayer());
@@ -3700,7 +3729,7 @@ export function installSmartTvRemoteKeys(
     window.removeEventListener("mhg-api-base-changed", onApi);
     window.removeEventListener("mhg:tv-ui-layer-focus-request", onUiLayerFocusRequest);
     window.removeEventListener("mhg:tv-request-exit", onExitRequested);
-    window.removeEventListener("mhg:tv-restore-cover-focus", onRestoreCoverFocus);
+    window.removeEventListener(MHG_TV_RESTORE_COVER_FOCUS, onRestoreCoverFocus);
     layerObserver.disconnect();
     if (layerSyncRaf) window.cancelAnimationFrame(layerSyncRaf);
     window.clearTimeout(t1);

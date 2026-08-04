@@ -6,6 +6,7 @@ import Tooltip from "../common/Tooltip";
 import type { TagItem } from "../../types";
 import { useSkin } from "../../contexts/SkinContext";
 import FixedFocalTagList from "./FixedFocalTagList";
+import { pushTvCoverFocusId } from "../../utils/tvCoverFocusRestore";
 
 type TagListProps = {
   items: TagItem[];
@@ -64,6 +65,7 @@ export function TagListItem({
       onActivate();
       return;
     }
+    pushTvCoverFocusId("tag", item.id);
     const route = getRoute ? getRoute(item) : `/category/${item.id}`;
     navigate(route);
   };

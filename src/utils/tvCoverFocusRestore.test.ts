@@ -5,6 +5,7 @@ import {
   isTvCoverListFadePending,
   peekTvCoverFocusIdentity,
   popTvCoverFocusIdentity,
+  pushTvCoverFocusId,
   pushTvCoverFocusIdentity,
   resolveCoverElForTvFocusPush,
   TV_COVER_FOCUS_STORAGE_KEY,
@@ -47,6 +48,13 @@ describe("tvCoverFocusRestore", () => {
     expect(popTvCoverFocusIdentity()).toEqual({ kind: "game", id: "7" });
     expect(peekTvCoverFocusIdentity()).toEqual({ kind: "tag", id: "rpg" });
     expect(sessionStorage.getItem(TV_COVER_FOCUS_STORAGE_KEY)).toContain("rpg");
+  });
+
+  it("pushes identity by id without a DOM node", () => {
+    pushTvCoverFocusId("game", 42);
+    expect(peekTvCoverFocusIdentity()).toEqual({ kind: "game", id: "42" });
+    pushTvCoverFocusId("game", "42");
+    expect(peekTvCoverFocusIdentity()).toEqual({ kind: "game", id: "42" });
   });
 
   it("finds a remounted cover by identity", () => {
