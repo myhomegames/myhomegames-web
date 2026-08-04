@@ -819,11 +819,104 @@ function pickAlphabetNear(from: HTMLElement | null): HTMLElement | null {
 }
 
 /** Plex / GOG grid navigation (not PS3 fixed-focal strip). */
+function isTvSearchPage(): boolean {
+  return !!document.querySelector("[data-mhg-tv-search-page]");
+}
+
+function collectTvSearchLeftFocusables(): HTMLElement[] {
+  const root = document.querySelector<HTMLElement>(
+    "[data-mhg-tv-search-page] .tv-search-page-left",
+  );
+  if (!root) return [];
+  return Array.from(
+    root.querySelectorAll<HTMLElement>(
+      [
+        ".tv-search-query-box",
+        ".tv-search-keyboard-key",
+        ".tv-search-recent-button",
+        ".tv-search-recent-remove",
+      ].join(","),
+    ),
+  ).filter((el) => isVisible(el) && !el.closest("[inert]"));
+}
+
+function collectTvSearchResultFocusables(): HTMLElement[] {
+  const root = document.querySelector<HTMLElement>(
+    "[data-mhg-tv-search-page] .tv-search-page-right",
+  );
+  if (!root) return [];
+  return Array.from(
+    root.querySelectorAll<HTMLElement>(
+      [
+        ".games-list-cover[role='button']",
+        ".games-list-cover[tabindex]",
+        ".search-result-play-button",
+      ].join(","),
+    ),
+  ).filter((el) => isVisible(el) && !el.closest("[inert]"));
+}
+
+function tvSearchLeftFocusFrom(el: HTMLElement | null): HTMLElement | null {
+  if (!el?.closest?.(".tv-search-page-left")) return null;
+  if (
+    el.classList.contains("tv-search-query-box") ||
+    el.classList.contains("tv-search-keyboard-key") ||
+    el.classList.contains("tv-search-recent-button") ||
+    el.classList.contains("tv-search-recent-remove")
+  ) {
+    return el;
+  }
+  return el.closest(
+    [
+      ".tv-search-query-box",
+      ".tv-search-keyboard-key",
+      ".tv-search-recent-button",
+      ".tv-search-recent-remove",
+    ].join(","),
+  ) as HTMLElement | null;
+}
+
+function tvSearchResultFocusFrom(el: HTMLElement | null): HTMLElement | null {
+  if (!el?.closest?.(".tv-search-page-right")) return null;
+  if (
+    el.classList.contains("games-list-cover") ||
+    el.classList.contains("search-result-play-button")
+  ) {
+    return el;
+  }
+  return (
+    (el.closest(".games-list-cover") as HTMLElement | null) ??
+    (el.closest(".search-result-play-button") as HTMLElement | null)
+  );
+}
+
+/** Prefer a result cover near the same vertical band as `from` (Right from keyboard). */
+function pickNearestTvSearchResult(
+  from: HTMLElement,
+  results: HTMLElement[],
+): HTMLElement | null {
+  if (results.length === 0) return null;
+  const fromY = center(from.getBoundingClientRect()).y;
+  let best: HTMLElement | null = null;
+  let bestScore = Number.POSITIVE_INFINITY;
+  for (const el of results) {
+    const rect = el.getBoundingClientRect();
+    const score = Math.abs(center(rect).y - fromY) + rect.left * 0.001;
+    if (score < bestScore) {
+      bestScore = score;
+      best = el;
+    }
+  }
+  return best;
+}
+
 function isLibraryMenuCoverGridNavMode(): boolean {
   if (isHorizontalLibraryStripMode()) return false;
   // Game / catalog / collection-like detail: LibrariesBar is still mounted, but
   // menu↔covers grid trapping would skip Play / Edit / ⋮ / summary / media.
   if (isItemDetailPage()) return false;
+  // Dedicated TV search: keyboard ↔ results zones (not library cover trapping).
+  if (isTvSearchPage()) return false;
   if (collectLibraryMenuFocusables().length > 0) return true;
   // Tag games (and similar) mount a dock without library tabs — still trap
   // shell actions ↔ toolbar ↔ covers ↔ A–Z the same way as the owned-games library.
@@ -1887,6 +1980,8 @@ export function installSmartTvRemoteKeys(
   let lastAlphabetFocus: HTMLElement | null = null;
   /** Last app-header control focused before returning to libraries tabs (Plex). */
   let lastAppHeaderFocus: HTMLElement | null = null;
+  /** Last left-column control on the Plex TV search page (query / keyboard / recent). */
+  let lastTvSearchLeftFocus: HTMLElement | null = null;
   /** True while waiting for list covers to remount after hardware Back. */
   let restoreCoverAfterBackPending = false;
 
@@ -2793,6 +2888,93 @@ export function installSmartTvRemoteKeys(
         }
         // Stay on the button for L/R/Down.
         return;
+      }
+
+      // Plex Smart TV dedicated search: left (query/keyboard/recent) ↔ right (results).
+      // Geometric pickNextFocus rarely leaves the dense keyboard toward covers.
+      if (isTvSearchPage()) {
+        const leftEl = tvSearchLeftFocusFrom(current);
+        const resultEl = tvSearchResultFocusFrom(current);
+        const leftItems = collectTvSearchLeftFocusables();
+        const resultItems = collectTvSearchResultFocusables();
+
+        if (leftEl) {
+          lastTvSearchLeftFocus = leftEl;
+          if (direction === "right") {
+            const nextLeft = pickNextInSet(leftItems, leftEl, "right");
+            if (nextLeft && tvSearchLeftFocusFrom(nextLeft)) {
+              lastTvSearchLeftFocus = nextLeft;
+              focusElement(nextLeft);
+              return;
+            }
+            const target = pickNearestTvSearchResult(leftEl, resultItems);
+            if (target) {
+              focusElement(target);
+              return;
+            }
+            return;
+          }
+          const nextLeft = pickNextInSet(leftItems, leftEl, direction);
+          if (nextLeft) {
+            lastTvSearchLeftFocus = nextLeft;
+            focusElement(nextLeft);
+            return;
+          }
+          if (direction === "up") {
+            if (focusLibraryMenu()) return;
+            if (focusAppHeaderZone(leftEl)) return;
+          }
+          return;
+        }
+
+        if (resultEl) {
+          const nextResult = pickNextInSet(resultItems, resultEl, direction);
+          if (nextResult) {
+            focusElement(nextResult);
+            return;
+          }
+          if (direction === "left") {
+            const back =
+              (lastTvSearchLeftFocus?.isConnected &&
+              isVisible(lastTvSearchLeftFocus)
+                ? lastTvSearchLeftFocus
+                : null) ??
+              leftItems.find((el) => el.classList.contains("tv-search-query-box")) ??
+              leftItems[0] ??
+              null;
+            if (back) {
+              focusElement(back);
+              return;
+            }
+          }
+          if (
+            (direction === "up" || direction === "down") &&
+            nudgeScrollParentForDirection(resultEl, direction)
+          ) {
+            window.requestAnimationFrame(() => {
+              const active = tvSearchResultFocusFrom(
+                document.activeElement instanceof HTMLElement
+                  ? document.activeElement
+                  : resultEl,
+              );
+              if (!active) return;
+              const retry = pickNextInSet(
+                collectTvSearchResultFocusables(),
+                active,
+                direction,
+              );
+              if (retry) focusElement(retry);
+            });
+            return;
+          }
+          return;
+        }
+
+        // Libraries strip / relocated header chrome above the search page.
+        if (direction === "down" && leftItems[0]) {
+          focusElement(leftItems[0]);
+          return;
+        }
       }
 
       // Plex / GOG: libraries menu ↔ list toolbar ↔ cover grid ↔ A–Z index.
