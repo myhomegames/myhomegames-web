@@ -85,6 +85,7 @@ export function TagListItem({
         }
       }}
       className={`group tag-list-item${navigationDisabled ? "" : " cursor-pointer"}${isSelected ? " mhg-cover-scale-selected" : ""}`}
+      data-mhg-tag-id={String(item.id)}
       style={
         forceVerticalAlignment
           ? {
