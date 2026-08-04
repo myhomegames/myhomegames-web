@@ -8,6 +8,13 @@ import {
 } from "./libraryStripStep";
 import { ensureElementVisibleInScrollParents, nudgeScrollParentForDirection } from "./ensureVisibleInScrollParent";
 import { playFixedFocalStepSound } from "./fixedFocalStepSound";
+import {
+  findCoverByTvFocusIdentity,
+  peekTvCoverFocusIdentity,
+  popTvCoverFocusIdentity,
+  pushTvCoverFocusIdentity,
+  tvCoverIdentityFrom,
+} from "./tvCoverFocusRestore";
 
 /** Tick for OK / Back only — never for D-pad arrow moves. */
 function playTvActionSound(): void {
@@ -1825,7 +1832,13 @@ function goBackInApp(): void {
   }
 
   if (canGoBackInHistory()) {
+    // Leaving detail / child list: restore the cover that opened it (not the libraries tab).
+    const restoreCoverAfterBack =
+      isItemDetailPage() || !!peekTvCoverFocusIdentity();
     window.history.back();
+    if (restoreCoverAfterBack) {
+      window.dispatchEvent(new CustomEvent("mhg:tv-restore-cover-focus"));
+    }
     return;
   }
 
@@ -1864,6 +1877,8 @@ export function installSmartTvRemoteKeys(
   let lastAlphabetFocus: HTMLElement | null = null;
   /** Last app-header control focused before returning to libraries tabs (Plex). */
   let lastAppHeaderFocus: HTMLElement | null = null;
+  /** True while waiting for list covers to remount after hardware Back. */
+  let restoreCoverAfterBackPending = false;
 
   const rememberLibraryMenuFocus = (el: HTMLElement | null) => {
     const menu = libraryMenuFocusFrom(el);
@@ -1873,6 +1888,48 @@ export function installSmartTvRemoteKeys(
   const rememberCoverFocus = (el: HTMLElement | null) => {
     const cover = coverFocusFrom(el);
     if (cover) lastCoverFocus = cover;
+  };
+
+  const tryFocusPersistedCover = (identity = peekTvCoverFocusIdentity()): boolean => {
+    if (!identity || isItemDetailPage()) return false;
+    const cover = findCoverByTvFocusIdentity(identity);
+    if (!cover || !isVisible(cover)) return false;
+    zone = "chrome";
+    lastCoverFocus = cover;
+    focusElement(cover);
+    return true;
+  };
+
+  /** After history.back(), remounted list covers need a few retries (virtualized grids). */
+  const schedulePersistedCoverRestore = () => {
+    restoreCoverAfterBackPending = true;
+    let attempts = 0;
+    const maxAttempts = 12;
+    const tick = () => {
+      attempts += 1;
+      if (isItemDetailPage()) {
+        if (attempts < maxAttempts) window.setTimeout(tick, 50);
+        return;
+      }
+      const identity = peekTvCoverFocusIdentity();
+      if (!identity) {
+        restoreCoverAfterBackPending = false;
+        return;
+      }
+      if (tryFocusPersistedCover(identity)) {
+        popTvCoverFocusIdentity();
+        restoreCoverAfterBackPending = false;
+        return;
+      }
+      if (attempts < maxAttempts) {
+        window.setTimeout(tick, attempts < 4 ? 50 : 100);
+        return;
+      }
+      restoreCoverAfterBackPending = false;
+    };
+    window.setTimeout(tick, 0);
+    window.setTimeout(tick, 80);
+    window.setTimeout(tick, 200);
   };
 
   const rememberAppHeaderFocus = (el: HTMLElement | null) => {
@@ -2145,6 +2202,13 @@ export function installSmartTvRemoteKeys(
         isActivatable
       ) {
         playTvActionSound();
+        // Opening a list cover → push identity so Back can restore it.
+        const cover = coverFocusFrom(active);
+        if (cover && !isItemDetailPage()) {
+          pushTvCoverFocusIdentity(cover);
+        } else if (tvCoverIdentityFrom(active) && !isItemDetailPage()) {
+          pushTvCoverFocusIdentity(active);
+        }
         active.click();
         requestSmartTvUiLayerFocus();
         return;
@@ -2164,7 +2228,20 @@ export function installSmartTvRemoteKeys(
   const bootstrapTvFocus = () => {
     if (focusIntoActiveUiLayer()) return;
     if (zone === "content") return;
+    // Prefer restoring the cover that opened this route (Back from detail / tag).
+    if (tryFocusPersistedCover()) {
+      popTvCoverFocusIdentity();
+      restoreCoverAfterBackPending = false;
+      return;
+    }
+    // Cover not mounted yet after Back — don't steal focus to the libraries tab.
+    if (restoreCoverAfterBackPending && !isItemDetailPage()) return;
     const active = document.activeElement as HTMLElement | null;
+    // Already on a list cover (restore won the race) — keep it.
+    if (active && coverFocusFrom(active) && !isItemDetailPage()) {
+      rememberCoverFocus(active);
+      return;
+    }
     if (
       active &&
       active !== document.body &&
@@ -3545,8 +3622,10 @@ export function installSmartTvRemoteKeys(
 
   const onUiLayerFocusRequest = () => requestSmartTvUiLayerFocus();
   const onExitRequested = () => requestSmartTvUiLayerFocus();
+  const onRestoreCoverFocus = () => schedulePersistedCoverRestore();
   window.addEventListener("mhg:tv-ui-layer-focus-request", onUiLayerFocusRequest);
   window.addEventListener("mhg:tv-request-exit", onExitRequested);
+  window.addEventListener("mhg:tv-restore-cover-focus", onRestoreCoverFocus);
 
   // Initial sync (no layer → clear any leftover inert marks).
   syncBackgroundInert(getActiveUiLayer());
@@ -3559,6 +3638,7 @@ export function installSmartTvRemoteKeys(
     window.removeEventListener("mhg-api-base-changed", onApi);
     window.removeEventListener("mhg:tv-ui-layer-focus-request", onUiLayerFocusRequest);
     window.removeEventListener("mhg:tv-request-exit", onExitRequested);
+    window.removeEventListener("mhg:tv-restore-cover-focus", onRestoreCoverFocus);
     layerObserver.disconnect();
     if (layerSyncRaf) window.cancelAnimationFrame(layerSyncRaf);
     window.clearTimeout(t1);

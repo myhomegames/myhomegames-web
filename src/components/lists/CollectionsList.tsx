@@ -144,6 +144,7 @@ export function CollectionListItem({
         }
       }}
       className={`group collections-list-item collections-list-item--sized${navigationDisabled ? "" : " cursor-pointer"}`}
+      data-mhg-collection-id={String(collection.id)}
       style={viewTransitionName ? ({ viewTransitionName } as React.CSSProperties) : undefined}
     >
       <Cover
