@@ -2,6 +2,7 @@ import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import {
   findCoverByTvFocusIdentity,
   findSelectedCoverMatchingIdentity,
+  isTvCoverListFadePending,
   peekTvCoverFocusIdentity,
   popTvCoverFocusIdentity,
   pushTvCoverFocusIdentity,
@@ -102,5 +103,13 @@ describe("tvCoverFocusRestore", () => {
     `;
     const el = resolveCoverElForTvFocusPush();
     expect(tvCoverIdentityFrom(el)).toEqual({ kind: "collection", id: "c1" });
+  });
+
+  it("detects pending virtualized list fade", () => {
+    expect(isTvCoverListFadePending()).toBe(false);
+    document.body.innerHTML = `<div class="virtualized-list-fade"></div>`;
+    expect(isTvCoverListFadePending()).toBe(true);
+    document.body.innerHTML = `<div class="virtualized-list-fade virtualized-list-fade--ready"></div>`;
+    expect(isTvCoverListFadePending()).toBe(false);
   });
 });

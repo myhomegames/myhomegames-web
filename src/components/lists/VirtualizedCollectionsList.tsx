@@ -23,6 +23,11 @@ import {
   readWheelStepThresholdPx,
   type VirtualizedStepScrollSnapOptions,
 } from "../../utils/stepScrollSnap";
+import {
+  findCoverByTvFocusIdentity,
+  MHG_TV_ENSURE_COVER_VISIBLE,
+  type TvCoverFocusIdentity,
+} from "../../utils/tvCoverFocusRestore";
 // Helper functions for scroll restoration
 function getScrollPosition(key: string): { scrollTop: number; scrollLeft: number } | null {
   try {
@@ -533,6 +538,53 @@ export default function VirtualizedCollectionsList({
     itemHeight,
     firstCoverInset,
     lastCoverRaisePx,
+  ]);
+
+  // Smart TV Back: mount the persisted collection cell if outside the virtual window.
+  useEffect(() => {
+    const onEnsure = (ev: Event) => {
+      const identity = (ev as CustomEvent<TvCoverFocusIdentity>).detail;
+      if (!identity || identity.kind !== "collection") return;
+      if (findCoverByTvFocusIdentity(identity)) return;
+      const index = collections.findIndex((c) => String(c.id) === identity.id);
+      if (index < 0 || columnCount <= 0 || itemHeight <= 0) return;
+      const gridElement = resolveCollectionsScrollHost(gridRef.current, containerRef.current);
+      if (!gridElement) return;
+      const row = Math.floor(index / columnCount);
+      const col = index % columnCount;
+      const lastRow = Math.max(0, rowCount - 1);
+      let scrollTop = 0;
+      for (let r = 0; r < row; r++) {
+        scrollTop += virtualizedGridRowHeightPx(
+          r,
+          lastRow,
+          itemHeight,
+          firstCoverInset,
+          tailInset,
+        );
+      }
+      const scrollLeft = FORCE_SINGLE_COLUMN ? 0 : col * (itemWidth + GAP);
+      isRestoringRef.current = true;
+      gridElement.scrollTop = scrollTop;
+      gridElement.scrollLeft = scrollLeft;
+      window.setTimeout(() => {
+        isRestoringRef.current = false;
+        setIsScrollRestored(true);
+      }, 50);
+    };
+    window.addEventListener(MHG_TV_ENSURE_COVER_VISIBLE, onEnsure);
+    return () => window.removeEventListener(MHG_TV_ENSURE_COVER_VISIBLE, onEnsure);
+  }, [
+    collections,
+    columnCount,
+    rowCount,
+    itemHeight,
+    itemWidth,
+    GAP,
+    firstCoverInset,
+    tailInset,
+    FORCE_SINGLE_COLUMN,
+    containerRef,
   ]);
 
   // Save scroll position when scrolling. Do not put `gridRef.current` in the dependency

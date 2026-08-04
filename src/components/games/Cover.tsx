@@ -11,6 +11,7 @@ import { useCompactCoverChrome } from "../../hooks/useCompactCoverChrome";
 import { usePhoneLayout } from "../../hooks/usePhoneLayout";
 import { isSmartTvBrowser } from "../../utils/smartTv";
 import { COVER_LONG_PRESS_EVENT } from "../../utils/coverLongPress";
+import { pushTvCoverFocusIdentity } from "../../utils/tvCoverFocusRestore";
 import {
   normalizeCoverCacheKey,
   pickCoverSource,
@@ -349,6 +350,9 @@ export default function Cover({
     } else if (detail && onClick) {
       // If detail enabled, clicking the cover goes to detail
       e.stopPropagation(); // Prevent event from bubbling to parent
+      if (isSmartTvBrowser()) {
+        pushTvCoverFocusIdentity(coverRef.current);
+      }
       onClick();
     }
     // If neither play nor detail, do nothing
@@ -396,6 +400,9 @@ export default function Cover({
     if (play && !detail && onPlay) {
       onPlay();
     } else if (detail && onClick) {
+      if (isSmartTvBrowser()) {
+        pushTvCoverFocusIdentity(coverRef.current);
+      }
       onClick();
     }
   };
