@@ -2710,6 +2710,8 @@ export function installSmartTvRemoteKeys(
                 if (nextMenu) rememberLibraryMenuFocus(nextMenu);
                 const nextShell = shellActionFocusFrom(next);
                 if (nextShell) rememberShellActionFocus(nextShell);
+                const nextHeader = appHeaderFocusFrom(next);
+                if (nextHeader) rememberAppHeaderFocus(nextHeader);
                 focusElement(next);
                 return;
               }
@@ -2718,10 +2720,12 @@ export function installSmartTvRemoteKeys(
           }
         }
 
-        // App header (logo / search / settings): L/R among icons; Down → libraries tabs.
+        // App header (logo / search / settings), or TV-relocated search/profile on the
+        // libraries strip. Relocated icons share the bar row with tabs + shell actions.
         if (!verticalMenu && headerEl) {
           rememberAppHeaderFocus(headerEl);
           const headers = collectDetailHeaderFocusables();
+          const tvRelocated = !!headerEl.closest(".mhg-libraries-tv-header-actions");
           if (direction === "down") {
             if (focusLibraryMenu()) return;
             if (focusToolbarOrCovers()) return;
@@ -2729,6 +2733,25 @@ export function installSmartTvRemoteKeys(
           }
           if (direction === "up") return;
           if (direction === "left" || direction === "right") {
+            if (tvRelocated) {
+              const rowItems = collectLibrariesBarHorizontalFocusables(headerEl);
+              const next = pickHorizontalInLibrariesBar(
+                rowItems,
+                headerEl,
+                direction,
+              );
+              if (next && next !== headerEl) {
+                const nextMenu = libraryMenuFocusFrom(next);
+                if (nextMenu) rememberLibraryMenuFocus(nextMenu);
+                const nextShell = shellActionFocusFrom(next);
+                if (nextShell) rememberShellActionFocus(nextShell);
+                const nextHeader = appHeaderFocusFrom(next);
+                if (nextHeader) rememberAppHeaderFocus(nextHeader);
+                focusElement(next);
+                return;
+              }
+              return;
+            }
             const idx = headers.indexOf(headerEl);
             if (idx >= 0) {
               const nextIdx =
@@ -2826,6 +2849,8 @@ export function installSmartTvRemoteKeys(
               if (nextMenu) rememberLibraryMenuFocus(nextMenu);
               const nextShell = shellActionFocusFrom(next);
               if (nextShell) rememberShellActionFocus(nextShell);
+              const nextHeader = appHeaderFocusFrom(next);
+              if (nextHeader) rememberAppHeaderFocus(nextHeader);
               focusElement(next);
               return;
             }
@@ -3022,6 +3047,23 @@ export function installSmartTvRemoteKeys(
           const levelItems = collectDetailLadderLevel(ladderLevel);
 
           if (direction === "left" || direction === "right") {
+            // TV-relocated search/profile share the libraries strip with tabs / back / toggles.
+            if (
+              ladderLevel === "header" &&
+              current?.closest(".mhg-libraries-tv-header-actions")
+            ) {
+              const rowItems = collectLibrariesBarHorizontalFocusables(current);
+              const next = pickHorizontalInLibrariesBar(
+                rowItems,
+                current,
+                direction,
+              );
+              if (next && next !== current) {
+                focusElement(next);
+                return;
+              }
+              return;
+            }
             // DOM order: logo ↔ search ↔ settings; stars; Play ↔ ⋮
             if (
               ladderLevel === "header" ||
