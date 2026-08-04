@@ -25,6 +25,7 @@ import {
 } from "../utils/contextRailIndexPeek";
 import { useActivationLockUntilPointerMove } from "../hooks/useActivationLockUntilPointerMove";
 import { isContextRailActivationLocked } from "../utils/contextRailActivationLock";
+import { pushTvCoverFocusId } from "../utils/tvCoverFocusRestore";
 
 type CollectionsPageProps = {
   onPlay?: (game: any) => void;
@@ -101,6 +102,7 @@ export default function CollectionsPage({
   const handleCollectionActivate = useCallback(
     (collection: CollectionItem, index: number) => {
       if (isContextRailActivationLocked()) return;
+      pushTvCoverFocusId("collection", collection.id);
       const path = `/collections/${collection.id}`;
       if (contextRailPeekEnabled) {
         navigateWithContextRailPeek(

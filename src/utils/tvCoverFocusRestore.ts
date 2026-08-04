@@ -70,6 +70,17 @@ export function tvCoverIdentityFrom(el: HTMLElement | null): TvCoverFocusIdentit
 export function pushTvCoverFocusIdentity(el: HTMLElement | null): void {
   const identity = tvCoverIdentityFrom(el);
   if (!identity) return;
+  pushTvCoverFocusId(identity.kind, identity.id);
+}
+
+/** Push by id when navigation does not go through a focused cover DOM node. */
+export function pushTvCoverFocusId(
+  kind: TvCoverFocusIdentity["kind"],
+  id: string | number,
+): void {
+  const normalized = String(id);
+  if (!normalized) return;
+  const identity: TvCoverFocusIdentity = { kind, id: normalized };
   const stack = readStack();
   const top = stack[stack.length - 1];
   if (top && top.kind === identity.kind && top.id === identity.id) {
@@ -89,6 +100,14 @@ export function popTvCoverFocusIdentity(): TvCoverFocusIdentity | null {
   const top = stack.pop() ?? null;
   writeStack(stack);
   return top;
+}
+
+/** Ask Smart TV remote to restore the persisted cover after leaving a detail route. */
+export const MHG_TV_RESTORE_COVER_FOCUS = "mhg:tv-restore-cover-focus";
+
+export function requestTvCoverFocusRestore(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(MHG_TV_RESTORE_COVER_FOCUS));
 }
 
 function coverControlFromHost(host: HTMLElement): HTMLElement | null {

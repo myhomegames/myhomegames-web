@@ -25,6 +25,7 @@ import {
 } from "../utils/contextRailIndexPeek";
 import { useActivationLockUntilPointerMove } from "../hooks/useActivationLockUntilPointerMove";
 import { isContextRailActivationLocked } from "../utils/contextRailActivationLock";
+import { pushTvCoverFocusId } from "../utils/tvCoverFocusRestore";
 
 type PublishersPageProps = {
   onPlay?: (game: import("../types").GameItem) => void;
@@ -88,6 +89,7 @@ export default function PublishersPage({ onPlay, coverSize }: PublishersPageProp
   const handlePublisherActivate = useCallback(
     (publisher: CollectionItem, index: number) => {
       if (isContextRailActivationLocked()) return;
+      pushTvCoverFocusId("collection", publisher.id);
       const path = `/publishers/${publisher.id}`;
       if (contextRailPeekEnabled) {
         navigateWithContextRailPeek(

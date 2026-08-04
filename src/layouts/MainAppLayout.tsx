@@ -7,6 +7,7 @@ import { TopDockSlotProvider } from "../contexts/TopDockSlotContext";
 import { LibrarySidebarLayoutProvider } from "../contexts/LibrarySidebarLayoutContext";
 import type { CollectionItem, GameItem, GameLibrarySection, ViewMode } from "../types";
 import { isSmartTvBrowser } from "../utils/smartTv";
+import { pushTvCoverFocusId } from "../utils/tvCoverFocusRestore";
 import { useLibrariesShellState } from "./useLibrariesShellState";
 
 function activeCollectionShortcutIdFromPathname(pathname: string): string | null {
@@ -200,8 +201,10 @@ export default function MainAppLayout({
         }
         onSelectCollectionShortcut={
           showCollectionShortcuts
-            ? (collectionId) =>
-                navigate(`/collections/${encodeURIComponent(collectionId)}`)
+            ? (collectionId) => {
+                pushTvCoverFocusId("collection", collectionId);
+                navigate(`/collections/${encodeURIComponent(collectionId)}`);
+              }
             : undefined
         }
         activeCollectionShortcutId={

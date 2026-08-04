@@ -25,6 +25,7 @@ import {
 } from "../utils/contextRailIndexPeek";
 import { useActivationLockUntilPointerMove } from "../hooks/useActivationLockUntilPointerMove";
 import { isContextRailActivationLocked } from "../utils/contextRailActivationLock";
+import { pushTvCoverFocusId } from "../utils/tvCoverFocusRestore";
 
 type DevelopersPageProps = {
   onPlay?: (game: import("../types").GameItem) => void;
@@ -88,6 +89,7 @@ export default function DevelopersPage({ onPlay, coverSize }: DevelopersPageProp
   const handleDeveloperActivate = useCallback(
     (developer: CollectionItem, index: number) => {
       if (isContextRailActivationLocked()) return;
+      pushTvCoverFocusId("collection", developer.id);
       const path = `/developers/${developer.id}`;
       if (contextRailPeekEnabled) {
         navigateWithContextRailPeek(

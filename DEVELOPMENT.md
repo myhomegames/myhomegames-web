@@ -149,7 +149,7 @@ http://localhost:5173/app/?mhgTv=1
 https://localhost:5173/app/?mhgTv=1
 ```
 
-The flag is read once at load time. Reload the page after adding or removing it.
+On first load the flag is stored for the browser tab, so in-app navigation (cover Enter → game detail, collections, …) keeps `?mhgTv=1` in the URL. To turn TV force off, remove the query and **reload** the page.
 
 ### What it enables
 

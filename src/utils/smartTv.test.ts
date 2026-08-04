@@ -1,12 +1,24 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import {
   applySmartTvDocumentFlag,
+  isMhgTvSessionForced,
   isSmartTvBrowser,
+  MHG_TV_SESSION_KEY,
   MOONLIGHT_TV_PROFILE,
+  searchWithMhgTvPreserved,
+  syncMhgTvSessionFromUrl,
   withMoonlightTvProfile,
 } from "./smartTv";
 
 describe("smartTv", () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+  });
+
+  afterEach(() => {
+    sessionStorage.clear();
+  });
+
   it("detects Samsung Tizen and LG webOS", () => {
     expect(
       isSmartTvBrowser(
@@ -78,6 +90,25 @@ describe("smartTv", () => {
         value: originalLocation,
       });
     }
+  });
+
+  it("remembers mhgTv force for the tab session after the query is dropped", () => {
+    syncMhgTvSessionFromUrl("?mhgTv=1");
+    expect(isMhgTvSessionForced()).toBe(true);
+    expect(sessionStorage.getItem(MHG_TV_SESSION_KEY)).toBe("1");
+    expect(isSmartTvBrowser("Mozilla/5.0 (Macintosh) Chrome/131.0.0.0")).toBe(true);
+
+    syncMhgTvSessionFromUrl("");
+    expect(isMhgTvSessionForced()).toBe(false);
+    expect(isSmartTvBrowser("Mozilla/5.0 (Macintosh) Chrome/131.0.0.0")).toBe(false);
+  });
+
+  it("re-attaches mhgTv=1 to SPA navigations that dropped the query", () => {
+    syncMhgTvSessionFromUrl("?mhgTv=1");
+    expect(searchWithMhgTvPreserved("")).toBe("?mhgTv=1");
+    expect(searchWithMhgTvPreserved("?foo=1")).toBe("?foo=1&mhgTv=1");
+    expect(searchWithMhgTvPreserved("?mhgTv=1")).toBeNull();
+    expect(searchWithMhgTvPreserved("?mhgTv=1&foo=1")).toBeNull();
   });
 
   it("toggles data-mhg-tv on the document element", () => {

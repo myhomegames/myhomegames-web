@@ -20,13 +20,14 @@ import { isServerSkinId } from "./skins/skinIds";
 import { getActiveSkinId } from "./skins/skinStorage";
 import { applySkinCss } from "./skins/skinRuntime";
 import { setupPwaInstallFromQuery } from "./utils/pwaInstall";
-import { applySmartTvDocumentFlag } from "./utils/smartTv";
+import { applySmartTvDocumentFlag, syncMhgTvSessionFromUrl } from "./utils/smartTv";
 import { installSmartTvFocusHoverMirror } from "./utils/smartTvFocusHover";
 import { installSmartTvRemoteKeys } from "./utils/smartTvRemote";
 import { installPendingStreamStopFlush } from "./utils/pendingStreamStop";
 
 registerSW({ immediate: true });
 setupPwaInstallFromQuery();
+syncMhgTvSessionFromUrl();
 applySmartTvDocumentFlag();
 installSmartTvFocusHoverMirror();
 installSmartTvRemoteKeys();
