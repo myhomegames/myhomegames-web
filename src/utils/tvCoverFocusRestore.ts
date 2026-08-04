@@ -162,3 +162,30 @@ export function resolveCoverElForTvFocusPush(): HTMLElement | null {
   }
   return null;
 }
+
+/**
+ * Ask virtualized grids to scroll the persisted cover into the mounted window.
+ * Dispatched while waiting for Back focus restore (Library / collection-like).
+ */
+export const MHG_TV_ENSURE_COVER_VISIBLE = "mhg:tv-ensure-cover-visible";
+
+export function requestTvCoverVisible(identity: TvCoverFocusIdentity): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent(MHG_TV_ENSURE_COVER_VISIBLE, { detail: identity }),
+  );
+}
+
+/**
+ * Virtualized lists hide cells behind `.virtualized-list-fade` until scroll restore
+ * finishes. Retries should not give up while that fade is still pending.
+ */
+export function isTvCoverListFadePending(): boolean {
+  if (typeof document === "undefined") return false;
+  const fades = document.querySelectorAll(".virtualized-list-fade");
+  if (fades.length === 0) return false;
+  for (const el of fades) {
+    if (!el.classList.contains("virtualized-list-fade--ready")) return true;
+  }
+  return false;
+}

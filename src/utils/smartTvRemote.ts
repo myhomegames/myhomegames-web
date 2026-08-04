@@ -11,9 +11,11 @@ import { playFixedFocalStepSound } from "./fixedFocalStepSound";
 import {
   findCoverByTvFocusIdentity,
   findSelectedCoverMatchingIdentity,
+  isTvCoverListFadePending,
   peekTvCoverFocusIdentity,
   popTvCoverFocusIdentity,
   pushTvCoverFocusIdentity,
+  requestTvCoverVisible,
   resolveCoverElForTvFocusPush,
   tvCoverIdentityFrom,
 } from "./tvCoverFocusRestore";
@@ -840,14 +842,18 @@ function isLibraryMenuCoverGridNavMode(): boolean {
   );
 }
 
+/** Owned game or IGDB catalog game detail (not collection-like / tag games). */
+function isGameOrCatalogDetailPage(): boolean {
+  return !!document.querySelector(
+    ".game-detail-container, .catalog-game-detail-container",
+  );
+}
+
 /** Owned / catalog game detail or collection-like detail shell. */
 function isItemDetailPage(): boolean {
-  return !!document.querySelector(
-    [
-      ".game-detail-container",
-      ".catalog-game-detail-container",
-      ".library-item-detail-page-shell",
-    ].join(","),
+  return (
+    isGameOrCatalogDetailPage() ||
+    !!document.querySelector(".library-item-detail-page-shell")
   );
 }
 
@@ -1894,7 +1900,9 @@ export function installSmartTvRemoteKeys(
   };
 
   const tryFocusPersistedCover = (identity = peekTvCoverFocusIdentity()): boolean => {
-    if (!identity || isItemDetailPage()) return false;
+    // Collection-like detail still matches isItemDetailPage(); only block while the
+    // game/catalog detail route is mounted (Back has not finished yet).
+    if (!identity || isGameOrCatalogDetailPage()) return false;
     const cover =
       findCoverByTvFocusIdentity(identity) ??
       findSelectedCoverMatchingIdentity(identity);
@@ -1907,8 +1915,9 @@ export function installSmartTvRemoteKeys(
 
   /**
    * After history.back(), list covers remount asynchronously (virtualized /
-   * fixed-focal + data fetch). Do not burn retries while still on the detail
-   * route — that was sending focus to the libraries tab for Library / collections.
+   * fixed-focal + data fetch). Wait only while the game/catalog detail is still
+   * mounted — collection-like detail keeps `.library-item-detail-page-shell` and
+   * must still restore the game cover that opened it.
    */
   const schedulePersistedCoverRestore = () => {
     restoreCoverAfterBackPending = true;
@@ -1917,7 +1926,7 @@ export function installSmartTvRemoteKeys(
     const detailWaitStarted = performance.now();
     const maxDetailWaitMs = 8000;
     const tick = () => {
-      if (isItemDetailPage()) {
+      if (isGameOrCatalogDetailPage()) {
         if (performance.now() - detailWaitStarted > maxDetailWaitMs) {
           restoreCoverAfterBackPending = false;
           return;
@@ -1930,9 +1939,16 @@ export function installSmartTvRemoteKeys(
         restoreCoverAfterBackPending = false;
         return;
       }
+      // Nudge virtualized grids to mount the cell before we give up.
+      requestTvCoverVisible(identity);
       if (tryFocusPersistedCover(identity)) {
         popTvCoverFocusIdentity();
         restoreCoverAfterBackPending = false;
+        return;
+      }
+      // Scroll restore / fade-in still running — don't burn attempts.
+      if (isTvCoverListFadePending()) {
+        window.setTimeout(tick, 50);
         return;
       }
       attempts += 1;
@@ -2252,11 +2268,12 @@ export function installSmartTvRemoteKeys(
       restoreCoverAfterBackPending = false;
       return;
     }
-    // Cover not mounted yet after Back — don't steal focus to the libraries tab.
-    if (restoreCoverAfterBackPending && !isItemDetailPage()) return;
+    // Cover not mounted yet after Back — don't steal focus to the libraries tab
+    // (also while still on collection-like detail restoring a game cover).
+    if (restoreCoverAfterBackPending && !isGameOrCatalogDetailPage()) return;
     const active = document.activeElement as HTMLElement | null;
     // Already on a list cover (restore won the race) — keep it.
-    if (active && coverFocusFrom(active) && !isItemDetailPage()) {
+    if (active && coverFocusFrom(active) && !isGameOrCatalogDetailPage()) {
       rememberCoverFocus(active);
       return;
     }
@@ -3599,15 +3616,42 @@ export function installSmartTvRemoteKeys(
   window.addEventListener("keyup", onKeyUp, true);
 
   // If Tizen spatial nav tries to focus covers behind a sheet, yank focus back in.
+  // Also: while waiting to restore a list cover after Back, yank focus off the
+  // libraries tabs (Tizen often parks there when covers are not mounted yet).
   const onFocusIn = (e: FocusEvent) => {
     const layer = getActiveUiLayer();
     syncBackgroundInert(layer);
-    if (!layer) return;
-    const target = e.target as Node | null;
-    if (target && layer.contains(target)) return;
-    zone = "chrome";
-    // Defer so we win against the browser's own focus move.
-    window.setTimeout(() => focusIntoActiveUiLayer(), 0);
+    if (layer) {
+      const target = e.target as Node | null;
+      if (target && layer.contains(target)) return;
+      zone = "chrome";
+      // Defer so we win against the browser's own focus move.
+      window.setTimeout(() => focusIntoActiveUiLayer(), 0);
+      return;
+    }
+    if (!restoreCoverAfterBackPending || isGameOrCatalogDetailPage()) return;
+    const target = e.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (coverFocusFrom(target)) {
+      rememberCoverFocus(target);
+      return;
+    }
+    if (
+      libraryMenuFocusFrom(target) ||
+      shellActionFocusFrom(target) ||
+      toolbarFocusFrom(target) ||
+      appHeaderFocusFrom(target)
+    ) {
+      window.setTimeout(() => {
+        if (!restoreCoverAfterBackPending) return;
+        const identity = peekTvCoverFocusIdentity();
+        if (identity) requestTvCoverVisible(identity);
+        if (tryFocusPersistedCover(identity ?? undefined)) {
+          popTvCoverFocusIdentity();
+          restoreCoverAfterBackPending = false;
+        }
+      }, 0);
+    }
   };
   window.addEventListener("focusin", onFocusIn, true);
 

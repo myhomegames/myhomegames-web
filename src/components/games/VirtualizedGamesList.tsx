@@ -27,6 +27,11 @@ import {
   readWheelStepThresholdPx,
   type VirtualizedStepScrollSnapOptions,
 } from "../../utils/stepScrollSnap";
+import {
+  findCoverByTvFocusIdentity,
+  MHG_TV_ENSURE_COVER_VISIBLE,
+  type TvCoverFocusIdentity,
+} from "../../utils/tvCoverFocusRestore";
 // Helper functions for scroll restoration
 function getScrollPosition(key: string): { scrollTop: number; scrollLeft: number } | null {
   try {
@@ -468,6 +473,53 @@ export default function VirtualizedGamesList({
       isRestoringRef.current = false;
     };
   }, [location.pathname, storageKey, dimensions.height, rowCount, columnCount, forceSingleColumn]);
+
+  // Smart TV Back: mount the persisted game cell if it is outside the virtual window.
+  useEffect(() => {
+    const onEnsure = (ev: Event) => {
+      const identity = (ev as CustomEvent<TvCoverFocusIdentity>).detail;
+      if (!identity || identity.kind !== "game") return;
+      if (findCoverByTvFocusIdentity(identity)) return;
+      const index = games.findIndex((g) => String(g.id) === identity.id);
+      if (index < 0 || columnCount <= 0 || itemHeight <= 0) return;
+      const gridElement = resolveGamesScrollHost(gridRef.current, containerRef.current);
+      if (!gridElement) return;
+      const row = Math.floor(index / columnCount);
+      const col = index % columnCount;
+      const lastRow = Math.max(0, rowCount - 1);
+      let scrollTop = 0;
+      for (let r = 0; r < row; r++) {
+        scrollTop += virtualizedGridRowHeightPx(
+          r,
+          lastRow,
+          itemHeight,
+          topInset,
+          effectiveBottomInset,
+        );
+      }
+      const scrollLeft = forceSingleColumn ? 0 : col * (itemWidth + GAP);
+      isRestoringRef.current = true;
+      gridElement.scrollTop = scrollTop;
+      gridElement.scrollLeft = scrollLeft;
+      window.setTimeout(() => {
+        isRestoringRef.current = false;
+        setIsScrollRestored(true);
+      }, 50);
+    };
+    window.addEventListener(MHG_TV_ENSURE_COVER_VISIBLE, onEnsure);
+    return () => window.removeEventListener(MHG_TV_ENSURE_COVER_VISIBLE, onEnsure);
+  }, [
+    games,
+    columnCount,
+    rowCount,
+    itemHeight,
+    itemWidth,
+    GAP,
+    topInset,
+    effectiveBottomInset,
+    forceSingleColumn,
+    containerRef,
+  ]);
 
   // Save scroll position when scrolling. See VirtualizedCollectionsList — avoid
   // `gridRef.current` in the dependency array; re-attach when layout/data changes.
