@@ -14,6 +14,7 @@ import { useGameEvents } from "../hooks/useGameEvents";
 import { useLibrariesShellState } from "../layouts/useLibrariesShellState";
 import SearchBar from "../components/search/SearchBar";
 import SearchResultsList from "../components/search/SearchResultsList";
+import TvSearchPage from "../components/search/TvSearchPage";
 import { isSmartTvBrowser } from "../utils/smartTv";
 import type { GameItem, CollectionItem } from "../types";
 
@@ -23,7 +24,19 @@ type SearchResultsPageProps = {
   onAddGameClick?: () => void;
 };
 
-export default function SearchResultsPage({
+export default function SearchResultsPage(props: SearchResultsPageProps) {
+  const { activeSkinWeb } = useSkin();
+  const useTvDedicatedSearch =
+    isSmartTvBrowser() &&
+    activeSkinWeb.tvHideAppHeader &&
+    !activeSkinWeb.topRightToolDock;
+  if (useTvDedicatedSearch) {
+    return <TvSearchPage onGameClick={props.onGameClick} onPlay={props.onPlay} />;
+  }
+  return <ClassicSearchResultsPage {...props} />;
+}
+
+function ClassicSearchResultsPage({
   onGameClick,
   onPlay,
   onAddGameClick,
@@ -64,7 +77,7 @@ export default function SearchResultsPage({
   const showCollectionShortcuts =
     activeSkinWeb.collectionsShortcutList && collectionsPageEnabled;
 
-  /** PS3 dock, or Smart TV with hidden header: keep the libraries strip (search + profile). */
+  /** PS3 dock, or Smart TV with hidden header: keep the libraries strip. */
   const useLibrariesShellOnSearchResults =
     activeSkinWeb.topRightToolDock ||
     (isSmartTvBrowser() && activeSkinWeb.tvHideAppHeader);
@@ -72,7 +85,7 @@ export default function SearchResultsPage({
   /** Smart TV + `tvHideAppHeader`: header SearchBar is gone — host it on this page. */
   const showPagePrimarySearch =
     isSmartTvBrowser() && activeSkinWeb.tvHideAppHeader;
-  /** PS3 dock: search sits between dock and strip; Plex TV: search sits in page content below strip. */
+  /** PS3 dock: search sits between dock and strip; Plex TV legacy path. */
   const pagePrimarySearchInDockGap =
     showPagePrimarySearch && activeSkinWeb.topRightToolDock;
   const pagePrimarySearchInContent =
