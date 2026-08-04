@@ -10,9 +10,11 @@ import { ensureElementVisibleInScrollParents, nudgeScrollParentForDirection } fr
 import { playFixedFocalStepSound } from "./fixedFocalStepSound";
 import {
   findCoverByTvFocusIdentity,
+  findSelectedCoverMatchingIdentity,
   peekTvCoverFocusIdentity,
   popTvCoverFocusIdentity,
   pushTvCoverFocusIdentity,
+  resolveCoverElForTvFocusPush,
   tvCoverIdentityFrom,
 } from "./tvCoverFocusRestore";
 
@@ -1893,7 +1895,9 @@ export function installSmartTvRemoteKeys(
 
   const tryFocusPersistedCover = (identity = peekTvCoverFocusIdentity()): boolean => {
     if (!identity || isItemDetailPage()) return false;
-    const cover = findCoverByTvFocusIdentity(identity);
+    const cover =
+      findCoverByTvFocusIdentity(identity) ??
+      findSelectedCoverMatchingIdentity(identity);
     if (!cover || !isVisible(cover)) return false;
     zone = "chrome";
     lastCoverFocus = cover;
@@ -1901,15 +1905,24 @@ export function installSmartTvRemoteKeys(
     return true;
   };
 
-  /** After history.back(), remounted list covers need a few retries (virtualized grids). */
+  /**
+   * After history.back(), list covers remount asynchronously (virtualized /
+   * fixed-focal + data fetch). Do not burn retries while still on the detail
+   * route — that was sending focus to the libraries tab for Library / collections.
+   */
   const schedulePersistedCoverRestore = () => {
     restoreCoverAfterBackPending = true;
     let attempts = 0;
-    const maxAttempts = 12;
+    const maxAttempts = 50;
+    const detailWaitStarted = performance.now();
+    const maxDetailWaitMs = 8000;
     const tick = () => {
-      attempts += 1;
       if (isItemDetailPage()) {
-        if (attempts < maxAttempts) window.setTimeout(tick, 50);
+        if (performance.now() - detailWaitStarted > maxDetailWaitMs) {
+          restoreCoverAfterBackPending = false;
+          return;
+        }
+        window.setTimeout(tick, 50);
         return;
       }
       const identity = peekTvCoverFocusIdentity();
@@ -1922,15 +1935,14 @@ export function installSmartTvRemoteKeys(
         restoreCoverAfterBackPending = false;
         return;
       }
+      attempts += 1;
       if (attempts < maxAttempts) {
-        window.setTimeout(tick, attempts < 4 ? 50 : 100);
+        window.setTimeout(tick, attempts < 15 ? 50 : 100);
         return;
       }
       restoreCoverAfterBackPending = false;
     };
     window.setTimeout(tick, 0);
-    window.setTimeout(tick, 80);
-    window.setTimeout(tick, 200);
   };
 
   const rememberAppHeaderFocus = (el: HTMLElement | null) => {
@@ -2222,6 +2234,11 @@ export function installSmartTvRemoteKeys(
 
     if (!uiLayer) {
       playTvActionSound();
+      // Content-zone Enter never focuses a cover button — push from the
+      // fixed-focal selection so Back can restore Library / collection-like.
+      if (!isItemDetailPage()) {
+        pushTvCoverFocusIdentity(resolveCoverElForTvFocusPush());
+      }
       document.dispatchEvent(new CustomEvent("mhg:fixed-focal-activate"));
     }
   };

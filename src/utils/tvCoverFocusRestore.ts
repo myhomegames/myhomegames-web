@@ -91,6 +91,15 @@ export function popTvCoverFocusIdentity(): TvCoverFocusIdentity | null {
   return top;
 }
 
+function coverControlFromHost(host: HTMLElement): HTMLElement | null {
+  if (host.classList.contains("games-list-cover")) return host;
+  return (
+    host.querySelector<HTMLElement>(
+      ".games-list-cover[role='button'], .games-list-cover[tabindex]",
+    ) ?? host.querySelector<HTMLElement>(".games-list-cover")
+  );
+}
+
 export function findCoverByTvFocusIdentity(
   identity: TvCoverFocusIdentity,
 ): HTMLElement | null {
@@ -104,8 +113,52 @@ export function findCoverByTvFocusIdentity(
     `[${attr}="${cssEscapeIdent(identity.id)}"]`,
   );
   if (!host) return null;
-  if (host.classList.contains("games-list-cover")) return host;
-  return host.querySelector<HTMLElement>(
-    ".games-list-cover[role='button'], .games-list-cover[tabindex]",
+  return coverControlFromHost(host);
+}
+
+/**
+ * Fixed-focal wrappers often own `mhg-cover-scale-selected` while the
+ * `data-mhg-*` identity lives on a child tile (game / tag / collection item).
+ */
+function identityHostFromSelectedTile(selected: HTMLElement): HTMLElement | null {
+  if (tvCoverIdentityFrom(selected)) return selected;
+  return selected.querySelector<HTMLElement>(
+    "[data-mhg-game-id], [data-mhg-tag-id], [data-mhg-collection-id]",
   );
+}
+
+/**
+ * Fixed-focal lists remount only a window around the selected index. After Back,
+ * the selected tile is the one that should match the persisted identity.
+ */
+export function findSelectedCoverMatchingIdentity(
+  identity: TvCoverFocusIdentity,
+): HTMLElement | null {
+  const selected = document.querySelector<HTMLElement>(".mhg-cover-scale-selected");
+  if (!selected) return null;
+  const host = identityHostFromSelectedTile(selected);
+  if (!host) return null;
+  const selectedIdentity = tvCoverIdentityFrom(host);
+  if (
+    !selectedIdentity ||
+    selectedIdentity.kind !== identity.kind ||
+    selectedIdentity.id !== identity.id
+  ) {
+    return null;
+  }
+  return coverControlFromHost(host);
+}
+
+/** Best available cover for Enter / OK while in the fixed-focal content zone. */
+export function resolveCoverElForTvFocusPush(): HTMLElement | null {
+  const selected = document.querySelector<HTMLElement>(".mhg-cover-scale-selected");
+  if (selected) {
+    const host = identityHostFromSelectedTile(selected);
+    if (host) return host;
+  }
+  const focused = document.activeElement;
+  if (focused instanceof HTMLElement && tvCoverIdentityFrom(focused)) {
+    return focused;
+  }
+  return null;
 }
