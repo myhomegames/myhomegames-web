@@ -2,6 +2,7 @@ import {
   useState,
   useEffect,
   useRef,
+  memo,
   startTransition,
   type ReactNode,
   type RefObject,
@@ -13,10 +14,8 @@ import { buildApiHeaders, buildBackgroundUrl } from "../../utils/api";
 import { API_BASE } from "../../config";
 import { buildCatalogApiUrl } from "../../utils/catalogApi";
 import {
-  isBackgroundUrlWarmed,
   preloadBackgroundUrl,
   preloadBackgroundUrls,
-  whenBackgroundUrlReady,
 } from "../../utils/preloadBackground";
 import { ensureElementVisibleInScrollParents } from "../../utils/ensureVisibleInScrollParent";
 import { setRecommendedSectionsCache } from "../../utils/recommendedSectionsCache";
@@ -37,10 +36,26 @@ type RecommendedBrowseChromeProps = {
   children: (preview: ReactNode) => ReactNode;
 };
 
+/** Fanart settle delay — D-pad focus/selection never waits on this. */
+const FANART_SETTLE_MS = 140;
+
 /**
- * Owns TV browse summary + fanart so cover strips are not in the same state tree.
- * Preview follows cover focus immediately; ambient fill continues art edge colors
- * (same idea as game-detail narrow/TV backdrop).
+ * Keeps strip reconciliation off the fanart update path. Preview still follows
+ * focus; BackgroundManager can remount portal layers without walking covers.
+ */
+const BrowseForeground = memo(function BrowseForeground({
+  previewGame,
+  renderBody,
+}: {
+  previewGame: GameItem | null;
+  renderBody: (preview: ReactNode) => ReactNode;
+}) {
+  return <>{renderBody(<RecommendedBrowsePreview game={previewGame} />)}</>;
+});
+
+/**
+ * Owns TV browse summary + fanart so cover strips are not blocked by fanart
+ * decode/paint. Cover focus/selection stays on the remote path; fanart lags.
  */
 export default function RecommendedBrowseChrome({
   isReady,
@@ -112,6 +127,7 @@ export default function RecommendedBrowseChrome({
     const onFocusIn = (e: FocusEvent) => {
       const game = resolveGameFromTarget(e.target);
       if (!game) return;
+      // Selection is DOM focus + TV hover mirror — never gate it on fanart.
       setPreviewGame(game);
       window.requestAnimationFrame(() => preloadNeighbors(game));
     };
@@ -209,7 +225,7 @@ export default function RecommendedBrowseChrome({
           );
         });
         const bgUrl = buildBackgroundUrl(API_BASE, enriched.background);
-        if (bgUrl) preloadBackgroundUrl(bgUrl);
+        if (bgUrl) preloadBackgroundUrl(bgUrl, { priority: true });
       } catch {
         /* aborted or network — keep lean catalog card */
       }
@@ -221,37 +237,28 @@ export default function RecommendedBrowseChrome({
     };
   }, [previewGame?.id, previewGame?.isCatalogOnly, sectionsRef]);
 
-  // Fanart: keep previous art until the next URL is decoded; clear when the game has none.
+  // Fanart follows preview after a short settle — never block cover selection.
+  // Apply the URL immediately (no decode wait); CSS paints when the image is ready.
   useEffect(() => {
     if (!previewGame) {
-      setPaintedBackgroundUrl("");
+      startTransition(() => setPaintedBackgroundUrl(""));
       return;
     }
 
     const url = buildBackgroundUrl(API_BASE, previewGame.background) || "";
-    if (!url) {
-      setPaintedBackgroundUrl("");
-      return;
-    }
     if (url === paintedUrlRef.current) return;
 
-    if (isBackgroundUrlWarmed(url)) {
-      setPaintedBackgroundUrl(url);
-      return;
-    }
-
-    let cancelled = false;
-    whenBackgroundUrlReady(url).then(() => {
-      if (cancelled) return;
-      setPaintedBackgroundUrl(url);
-    });
+    const timer = window.setTimeout(() => {
+      startTransition(() => {
+        setPaintedBackgroundUrl(url);
+      });
+      if (url) preloadBackgroundUrl(url, { priority: true });
+    }, FANART_SETTLE_MS);
 
     return () => {
-      cancelled = true;
+      window.clearTimeout(timer);
     };
   }, [previewGame]);
-
-  const preview = <RecommendedBrowsePreview game={previewGame} />;
 
   return (
     <BackgroundManager
@@ -261,7 +268,7 @@ export default function RecommendedBrowseChrome({
       autoShowWhenAvailable
       detailBackdrop={detailBackdrop}
     >
-      {children(preview)}
+      <BrowseForeground previewGame={previewGame} renderBody={children} />
     </BackgroundManager>
   );
 }
