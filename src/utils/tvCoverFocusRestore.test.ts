@@ -1,9 +1,11 @@
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import {
   findCoverByTvFocusIdentity,
+  findSelectedCoverMatchingIdentity,
   peekTvCoverFocusIdentity,
   popTvCoverFocusIdentity,
   pushTvCoverFocusIdentity,
+  resolveCoverElForTvFocusPush,
   TV_COVER_FOCUS_STORAGE_KEY,
   tvCoverIdentityFrom,
 } from "./tvCoverFocusRestore";
@@ -52,5 +54,53 @@ describe("tvCoverFocusRestore", () => {
     `;
     const found = findCoverByTvFocusIdentity({ kind: "game", id: "99" });
     expect(found?.id).toBe("c");
+  });
+
+  it("finds cover without role/tabindex fallback", () => {
+    document.body.innerHTML = `
+      <div data-mhg-collection-id="col1"><div class="games-list-cover" id="bare"></div></div>
+    `;
+    expect(findCoverByTvFocusIdentity({ kind: "collection", id: "col1" })?.id).toBe(
+      "bare",
+    );
+  });
+
+  it("matches selected fixed-focal host to identity", () => {
+    document.body.innerHTML = `
+      <div class="mhg-cover-scale-selected" data-mhg-game-id="55">
+        <div class="games-list-cover" role="button" id="sel"></div>
+      </div>
+    `;
+    expect(
+      findSelectedCoverMatchingIdentity({ kind: "game", id: "55" })?.id,
+    ).toBe("sel");
+    expect(findSelectedCoverMatchingIdentity({ kind: "game", id: "other" })).toBeNull();
+  });
+
+  it("resolves identity from child when selected is the fixed-focal wrapper", () => {
+    document.body.innerHTML = `
+      <div class="fixed-focal-games-item mhg-cover-scale-selected">
+        <div data-mhg-game-id="88">
+          <div class="games-list-cover" role="button" id="inner"></div>
+        </div>
+      </div>
+    `;
+    expect(tvCoverIdentityFrom(resolveCoverElForTvFocusPush())).toEqual({
+      kind: "game",
+      id: "88",
+    });
+    expect(findSelectedCoverMatchingIdentity({ kind: "game", id: "88" })?.id).toBe(
+      "inner",
+    );
+  });
+
+  it("resolves push target from selected fixed-focal tile", () => {
+    document.body.innerHTML = `
+      <div class="mhg-cover-scale-selected" data-mhg-collection-id="c1">
+        <div class="games-list-cover" role="button"></div>
+      </div>
+    `;
+    const el = resolveCoverElForTvFocusPush();
+    expect(tvCoverIdentityFrom(el)).toEqual({ kind: "collection", id: "c1" });
   });
 });
