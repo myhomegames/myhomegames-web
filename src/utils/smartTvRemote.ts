@@ -664,6 +664,8 @@ function collectLibrariesBarHorizontalFocusables(
     collectLibrariesBarRowFocusables(from).forEach(push);
   }
   collectShellActionFocusables().forEach(push);
+  // Plex Smart TV relocated search/profile (not in SHELL_ACTION_FOCUS_SELECTOR).
+  collectTvRelocatedHeaderActionFocusables().forEach(push);
 
   items.sort(
     (a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left,
@@ -858,22 +860,69 @@ type DetailLadderLevel = "header" | "background" | "stars" | "actions" | "summar
 
 /** Header row: logo ↔ search ↔ actions (DOM order inside `.mhg-header`). */
 function collectDetailHeaderFocusables(): HTMLElement[] {
-  const header = document.querySelector<HTMLElement>(".mhg-header");
-  if (!header || !isVisible(header)) return [];
   const items: HTMLElement[] = [];
   const push = (el: HTMLElement | null | undefined) => {
     if (el && isDetailFocusable(el) && !items.includes(el)) items.push(el);
   };
-  push(header.querySelector<HTMLElement>(".mhg-library-sidebar-toggle"));
-  push(header.querySelector<HTMLElement>(".mhg-logo-button"));
+
+  const header = document.querySelector<HTMLElement>(".mhg-header");
+  if (header && isVisible(header)) {
+    push(header.querySelector<HTMLElement>(".mhg-library-sidebar-toggle"));
+    push(header.querySelector<HTMLElement>(".mhg-logo-button"));
+    push(
+      header.querySelector<HTMLElement>(
+        ".mhg-search-input, .mhg-title-filter-input, #search-input",
+      ),
+    );
+    push(
+      header.querySelector<HTMLElement>(
+        '.mhg-header-button[data-mhg-header-action="add-game"]',
+      ),
+    );
+    push(
+      header.querySelector<HTMLElement>(
+        '.mhg-header-button[data-mhg-header-action="settings"]',
+      ),
+    );
+    push(header.querySelector<HTMLElement>(".profile-dropdown-button"));
+  }
+
+  // Plex Smart TV (`tvHideAppHeader`): search + profile live on the libraries strip.
+  collectTvRelocatedHeaderActionFocusables().forEach(push);
+  return items;
+}
+
+/**
+ * Search / profile (and siblings) relocated into `.mhg-libraries-tv-header-actions`
+ * when the app header is not rendered on Smart TV.
+ */
+function collectTvRelocatedHeaderActionFocusables(): HTMLElement[] {
+  const root = document.querySelector<HTMLElement>(
+    ".mhg-libraries-tv-header-actions",
+  );
+  if (!root || !isVisible(root)) return [];
+  const items: HTMLElement[] = [];
+  const push = (el: HTMLElement | null | undefined) => {
+    if (!el || !isVisible(el) || el.closest("[inert]")) return;
+    if (items.includes(el)) return;
+    items.push(el);
+  };
   push(
-    header.querySelector<HTMLElement>(
-      ".mhg-search-input, .mhg-title-filter-input, #search-input",
+    root.querySelector<HTMLElement>(
+      '.mhg-header-button[data-mhg-header-action="search"]',
     ),
   );
-  push(header.querySelector<HTMLElement>('.mhg-header-button[data-mhg-header-action="add-game"]'));
-  push(header.querySelector<HTMLElement>('.mhg-header-button[data-mhg-header-action="settings"]'));
-  push(header.querySelector<HTMLElement>(".profile-dropdown-button"));
+  push(
+    root.querySelector<HTMLElement>(
+      '.mhg-header-button[data-mhg-header-action="settings"]',
+    ),
+  );
+  push(
+    root.querySelector<HTMLElement>(
+      '.mhg-header-button[data-mhg-header-action="add-game"]',
+    ),
+  );
+  push(root.querySelector<HTMLElement>(".profile-dropdown-button"));
   return items;
 }
 
@@ -885,7 +934,9 @@ function appHeaderFocusFrom(el: HTMLElement | null): HTMLElement | null {
   for (const item of items) {
     if (item.contains(el)) return item;
   }
-  if (!el.closest(".mhg-header")) return null;
+  const inAppHeader = !!el.closest(".mhg-header");
+  const inTvHeaderActions = !!el.closest(".mhg-libraries-tv-header-actions");
+  if (!inAppHeader && !inTvHeaderActions) return null;
   if (
     el.classList.contains("mhg-logo-button") ||
     el.classList.contains("mhg-library-sidebar-toggle") ||
@@ -1014,7 +1065,7 @@ function collectDetailLadderLevel(level: DetailLadderLevel): HTMLElement[] {
 function detailLadderLevelOf(el: HTMLElement | null): DetailLadderLevel | null {
   if (!el) return null;
   if (
-    el.closest(".mhg-header") &&
+    (el.closest(".mhg-header") || el.closest(".mhg-libraries-tv-header-actions")) &&
     (el.classList.contains("mhg-logo-button") ||
       el.classList.contains("mhg-search-input") ||
       el.classList.contains("mhg-title-filter-input") ||
@@ -3004,12 +3055,19 @@ export function installSmartTvRemoteKeys(
             if (nextLevel) {
               if (direction === "up" && nextLevel === "header") {
                 const headerItems = collectDetailHeaderFocusables();
-                const settings =
+                const preferred =
                   headerItems.find(
                     (el) => el.getAttribute("data-mhg-header-action") === "settings",
-                  ) ?? headerItems[headerItems.length - 1];
-                if (settings) {
-                  focusElement(settings);
+                  ) ??
+                  headerItems.find((el) =>
+                    el.classList.contains("profile-dropdown-button"),
+                  ) ??
+                  headerItems.find(
+                    (el) => el.getAttribute("data-mhg-header-action") === "search",
+                  ) ??
+                  headerItems[headerItems.length - 1];
+                if (preferred) {
+                  focusElement(preferred);
                   return;
                 }
               }
