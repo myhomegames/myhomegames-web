@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import type { CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -6,7 +7,13 @@ import Tooltip from "../common/Tooltip";
 import type { TagItem } from "../../types";
 import { useSkin } from "../../contexts/SkinContext";
 import FixedFocalTagList from "./FixedFocalTagList";
+import VirtualizedTagList from "./VirtualizedTagList";
 import { pushTvCoverFocusId } from "../../utils/tvCoverFocusRestore";
+import { isSmartTvBrowser } from "../../utils/smartTv";
+
+/** Desktop can keep denser mounts; Smart TV D-pad walks every mounted cover. */
+const VIRTUALIZATION_THRESHOLD_DESKTOP = 100;
+const VIRTUALIZATION_THRESHOLD_TV = 36;
 
 type TagListProps = {
   items: TagItem[];
@@ -154,9 +161,17 @@ export default function TagList({
 }: TagListProps) {
   const { t } = useTranslation();
   const { activeSkinWeb } = useSkin();
+  const localContainerRef = useRef<HTMLDivElement>(null);
   const forceVerticalAlignment = activeSkinWeb.verticalCoverAlignment;
   const useFixedFocal = forceVerticalAlignment && scrollContainerRef != null && routeBase.length > 0;
-  
+  const virtualizationThreshold = isSmartTvBrowser()
+    ? VIRTUALIZATION_THRESHOLD_TV
+    : VIRTUALIZATION_THRESHOLD_DESKTOP;
+  const useVirtualization =
+    !useFixedFocal &&
+    scrollContainerRef != null &&
+    items.length > virtualizationThreshold;
+
   if (items.length === 0) {
     return (
       <div className="tag-list-empty">
@@ -189,7 +204,10 @@ export default function TagList({
 
   return (
     <div
-      className="tag-list-container"
+      ref={localContainerRef}
+      className={`tag-list-container${
+        useVirtualization ? " tag-list-container--virtualized" : ""
+      }`}
       style={
         {
           ["--tag-list-cover-size" as string]: `${coverSize}px`,
@@ -208,19 +226,33 @@ export default function TagList({
         } as CSSProperties
       }
     >
-      {items.map((item) => (
-        <TagListItem
-          key={String(item.id)}
-          item={item}
+      {useVirtualization ? (
+        <VirtualizedTagList
+          items={items}
           coverSize={coverSize}
-          forceVerticalAlignment={forceVerticalAlignment}
+          containerRef={scrollContainerRef}
           itemRefs={itemRefs}
           onItemEdit={onItemEdit}
           getDisplayName={getDisplayName}
           getCoverUrl={getCoverUrl}
           getRoute={getRoute}
+          routeBase={routeBase}
         />
-      ))}
+      ) : (
+        items.map((item) => (
+          <TagListItem
+            key={String(item.id)}
+            item={item}
+            coverSize={coverSize}
+            forceVerticalAlignment={forceVerticalAlignment}
+            itemRefs={itemRefs}
+            onItemEdit={onItemEdit}
+            getDisplayName={getDisplayName}
+            getCoverUrl={getCoverUrl}
+            getRoute={getRoute}
+          />
+        ))
+      )}
     </div>
   );
 }

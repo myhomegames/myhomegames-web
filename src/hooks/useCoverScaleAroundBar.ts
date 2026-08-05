@@ -44,6 +44,24 @@ function readSelectedOnlyMode(): boolean {
   return raw === "1" || raw === "true";
 }
 
+/**
+ * Continuous / selected-only `--mhg-cell-scale` is for skins that consume the
+ * variable (e.g. PS3 vertical rails). Plex uses CSS `:hover` / TV hover scale
+ * instead — skip the global pad walk so large tag grids stay snappy.
+ */
+function skinUsesCellScaleVar(): boolean {
+  if (typeof document === "undefined") return false;
+  if (readSelectedOnlyMode()) return true;
+  if (document.documentElement.getAttribute("data-mhg-vertical-cover-alignment") === "true") {
+    return true;
+  }
+  const optIn = getComputedStyle(document.documentElement)
+    .getPropertyValue("--mhg-cover-scale-around-bar")
+    .trim()
+    .toLowerCase();
+  return optIn === "1" || optIn === "true";
+}
+
 function readScaleUnselected(): number {
   if (typeof window === "undefined" || typeof document === "undefined") return SCALE_MIN;
   const raw = getComputedStyle(document.documentElement)
@@ -290,8 +308,14 @@ function isGameDetailCollectionsCoverEl(el: HTMLElement): boolean {
 }
 
 function updateGlobalScales(): void {
+  if (!skinUsesCellScaleVar()) return;
+
   const pads = document.querySelectorAll<HTMLElement>(GLOBAL_PAD_SELECTORS);
   if (pads.length === 0) return;
+
+  const viewportTop = -240;
+  const viewportBottom =
+    (typeof window !== "undefined" ? window.innerHeight : 1080) + 240;
 
   if (readSelectedOnlyMode()) {
     const byRoot = new Map<HTMLElement | null, HTMLElement[]>();
@@ -303,6 +327,10 @@ function updateGlobalScales(): void {
         isFixedFocalGamesCoverEl(pad) ||
         isGameDetailCollectionsCoverEl(pad)
       ) {
+        return;
+      }
+      const rect = pad.getBoundingClientRect();
+      if (rect.height <= 0 || rect.bottom < viewportTop || rect.top > viewportBottom) {
         return;
       }
       const root = findGlobalScrollRoot(pad);
@@ -346,9 +374,12 @@ function updateGlobalScales(): void {
     ) {
       return;
     }
-    pad.classList.remove("mhg-cover-scale-selected");
     const rect = pad.getBoundingClientRect();
-    if (rect.height === 0) return;
+    if (rect.height === 0 || rect.bottom < viewportTop || rect.top > viewportBottom) {
+      return;
+    }
+
+    pad.classList.remove("mhg-cover-scale-selected");
 
     const edge =
       tagLift > 0 && pad.classList.contains("tag-list-item") ? barBottom - tagLift : barBottom;

@@ -175,6 +175,7 @@ function pickWheelScrollTarget(): HTMLElement | null {
     ".fixed-focal-recommended-strips-list",
     ".virtualized-games-grid",
     ".virtualized-collections-grid",
+    ".virtualized-tags-grid",
     ".virtualized-games-list-detail",
     ".games-list-detail-container",
     ".games-table-scroll",
@@ -1009,7 +1010,8 @@ export default function LibrariesBar({
 
       if (
         mainScroll.classList.contains("virtualized-games-grid") ||
-        mainScroll.classList.contains("virtualized-collections-grid")
+        mainScroll.classList.contains("virtualized-collections-grid") ||
+        mainScroll.classList.contains("virtualized-tags-grid")
       ) {
         mainScroll.dispatchEvent(
           new WheelEvent("wheel", {
