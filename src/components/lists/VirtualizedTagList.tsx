@@ -137,7 +137,7 @@ export default function VirtualizedTagList({
     readGridLastCoverRaisePx(containerRef.current),
   );
   const { activeSkinId } = useSkin();
-  const gridRef = useRef<{ element?: HTMLElement | null } | null>(null);
+  const gridRef = useRef<any>(null);
   const isRestoringRef = useRef(false);
   const lastSavedScrollRef = useRef<{ scrollTop: number; scrollLeft: number } | null>(null);
   useCoverScaleAroundBar({ gridRef, containerRef });
@@ -667,7 +667,7 @@ export default function VirtualizedTagList({
         }
         overscanCount={OVERSCAN_COUNT}
         cellComponent={Cell}
-        cellProps={{} as object}
+        cellProps={{} as any}
         style={{ height: dimensions.height, width: gridContentWidth }}
       />
     </div>
