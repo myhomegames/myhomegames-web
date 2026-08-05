@@ -82,6 +82,20 @@ function recommendedKeywordTopInset(parent: HTMLElement, fallbackPadPx: number):
 }
 
 /**
+ * Default inset when bringing focused covers into view. On Smart TV, skins that
+ * use scale(1.14) set `--mhg-tv-cover-scale-pad` so edge tiles are not clipped.
+ */
+function readDefaultScrollVisibilityPadPx(): number {
+  if (typeof document === "undefined") return 12;
+  if (document.documentElement.getAttribute("data-mhg-tv") !== "1") return 12;
+  const raw = Number.parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue("--mhg-tv-cover-scale-pad"),
+  );
+  if (Number.isFinite(raw) && raw > 0) return Math.ceil(raw);
+  return 36;
+}
+
+/**
  * After Smart TV D-pad focus (`preventScroll: true`), bring `el` into view inside
  * every scrollable ancestor (GOG vertical library menu, cover grids, sheets, …).
  *
@@ -90,7 +104,7 @@ function recommendedKeywordTopInset(parent: HTMLElement, fallbackPadPx: number):
  */
 export function ensureElementVisibleInScrollParents(
   el: HTMLElement,
-  padPx: number = 12,
+  padPx: number = readDefaultScrollVisibilityPadPx(),
 ): void {
   if (!el.isConnected) return;
 
