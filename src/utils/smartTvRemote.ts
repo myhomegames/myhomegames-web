@@ -702,8 +702,31 @@ function pickHorizontalInLibrariesBar(
 }
 
 function collectCoverFocusables(): HTMLElement[] {
+  const active = document.activeElement;
+  const scopedRoot =
+    (active instanceof HTMLElement
+      ? active.closest(
+          [
+            ".home-page-scroll-container",
+            ".tag-games-context-games",
+            ".library-item-detail-context-games",
+            ".recommended-section-context-games",
+            ".tv-search-page-right",
+          ].join(", "),
+        )
+      : null) ??
+    document.querySelector<HTMLElement>(
+      [
+        ".home-page-scroll-container",
+        ".tag-games-context-games",
+        ".library-item-detail-context-games",
+        ".recommended-section-context-games",
+        ".tv-search-page-right",
+      ].join(", "),
+    ) ??
+    document;
   return Array.from(
-    document.querySelectorAll<HTMLElement>(
+    scopedRoot.querySelectorAll<HTMLElement>(
       ".games-list-cover[role='button'], .games-list-cover[tabindex]",
     ),
   ).filter(
