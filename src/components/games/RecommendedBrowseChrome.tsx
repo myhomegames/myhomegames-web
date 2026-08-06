@@ -41,8 +41,12 @@ type RecommendedBrowseChromeProps = {
   children: ReactNode;
 };
 
-/** Fanart settle delay — D-pad focus/selection never waits on this. */
-const FANART_SETTLE_MS = 140;
+/**
+ * Delay before fanart + ambient paint. Must be ≥ Plex TV cover scale transition
+ * (`transform 0.2s` on `.games-list-item--cover-sized`) so blur/decode never
+ * contend with hover. Focus/selection never waits on this.
+ */
+const FANART_SETTLE_MS = 240;
 
 /**
  * Preview updates independently; `strips` keeps the same React node identity
@@ -75,8 +79,8 @@ const BrowseForeground = memo(function BrowseForeground({
 
 /**
  * Owns TV browse summary + fanart so cover strips are not blocked by fanart
- * decode/paint. Cover focus/selection stays on the remote path; fanart lags
- * until the image is already decoded, then swaps without remounting cold art.
+ * paint. Cover focus/selection stays on the remote path; after hover settle,
+ * sharp + ambient share one URL swap (BackgroundManager opacity fade-in).
  */
 export default function RecommendedBrowseChrome({
   isReady,
@@ -263,8 +267,8 @@ export default function RecommendedBrowseChrome({
     };
   }, [previewGame?.id, previewGame?.isCatalogOnly, sectionsRef]);
 
-  // Fanart follows preview after settle — paint only once decode is cached so
-  // cover scale transitions are not stalled by cold fanart decode/paint.
+  // Same path for sharp crop + ambient fill: wait until cover scale (~200ms)
+  // finished, warm decode, then one painted URL → BackgroundManager fades both in.
   useEffect(() => {
     if (!previewGame) {
       const clearTimer = window.setTimeout(() => {
@@ -310,8 +314,7 @@ export default function RecommendedBrowseChrome({
       elementId="recommended-browse"
       autoShowWhenAvailable
       detailBackdrop={detailBackdrop}
-      // TV ambient fill is a full-viewport blur — far too heavy for D-pad focus swaps.
-      ambientFill={false}
+      // Ambient rides the same URL + opacity fade as sharp (default ambientFill).
     >
       <BrowseForeground previewGame={previewGame} strips={children} isReady={isReady} />
     </BackgroundManager>
