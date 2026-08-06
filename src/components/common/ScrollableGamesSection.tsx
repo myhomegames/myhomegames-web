@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
 import GamesList from "../games/GamesList";
+import { resolveHorizontalStripScroller } from "../games/VirtualizedHorizontalGamesStrip";
 import ScrollableGamesSectionNav from "./ScrollableGamesSectionNav";
 import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
@@ -24,6 +25,10 @@ function setScrollPosition(key: string, position: number): void {
   } catch {
     // Ignore
   }
+}
+
+function stripScrollEl(sectionScroll: HTMLDivElement | null): HTMLElement | null {
+  return resolveHorizontalStripScroller(sectionScroll);
 }
 
 type ScrollableGamesSectionProps = {
@@ -94,7 +99,8 @@ export default function ScrollableGamesSection({
    * its index so the sensors match remote navigation.
    */
   const updateScrollButtons = () => {
-    const container = scrollRef.current;
+    const sectionScroll = scrollRef.current;
+    const container = stripScrollEl(sectionScroll);
     if (!container) return;
 
     const scrollLeft = container.scrollLeft;
@@ -121,8 +127,8 @@ export default function ScrollableGamesSection({
       );
       const idx = covers.indexOf(focusedCover);
       if (idx >= 0) {
-        setCanScrollLeft(idx > 0);
-        setCanScrollRight(idx < covers.length - 1);
+        setCanScrollLeft(idx > 0 || scrollLeft > 0);
+        setCanScrollRight(idx < covers.length - 1 || scrollLeft < maxScroll - 1);
         return;
       }
     }
@@ -132,21 +138,21 @@ export default function ScrollableGamesSection({
   };
 
   const scrollToFirst = () => {
-    scrollRef.current?.scrollTo({ left: 0, behavior: 'smooth' });
+    stripScrollEl(scrollRef.current)?.scrollTo({ left: 0, behavior: "smooth" });
   };
 
   const scrollToLast = () => {
-    const container = scrollRef.current;
+    const container = stripScrollEl(scrollRef.current);
     if (container) {
       const maxScroll = container.scrollWidth - container.clientWidth;
-      container.scrollTo({ left: maxScroll, behavior: 'smooth' });
+      container.scrollTo({ left: maxScroll, behavior: "smooth" });
     }
   };
 
   // Restore position when route or section changes (not when only games.length changes, e.g. IGDB merge)
   useEffect(() => {
-    const container = scrollRef.current;
-    if (!container) return;
+    const sectionScroll = scrollRef.current;
+    if (!sectionScroll) return;
 
     if (forceVerticalCovers) {
       setIsRestoring(false);
@@ -163,6 +169,7 @@ export default function ScrollableGamesSection({
 
     // Check when content is ready
     const restoreScroll = (attempt = 0) => {
+      const container = stripScrollEl(scrollRef.current);
       if (!container) {
         setIsRestoring(false);
         return;
@@ -198,8 +205,8 @@ export default function ScrollableGamesSection({
 
   // Save position during scroll + re-attach when content changes (e.g. IGDB games merged) so scrollWidth is correct
   useEffect(() => {
-    const container = scrollRef.current;
-    if (!container) return;
+    const sectionScroll = scrollRef.current;
+    if (!sectionScroll) return;
 
     if (forceVerticalCovers) {
       setCanScrollLeft(false);
@@ -207,7 +214,12 @@ export default function ScrollableGamesSection({
       return;
     }
 
+    let attached: HTMLElement | null = null;
+    let detachTimer = 0;
+
     const handleScroll = () => {
+      const container = attached ?? stripScrollEl(scrollRef.current);
+      if (!container) return;
       if (!isRestoring) {
         setScrollPosition(storageKey, container.scrollLeft);
       }
@@ -216,45 +228,62 @@ export default function ScrollableGamesSection({
 
     // Prevent browser navigation during horizontal scroll
     const handleWheel = (e: WheelEvent) => {
+      const container = attached ?? stripScrollEl(scrollRef.current);
+      if (!container) return;
       const rect = container.getBoundingClientRect();
-      const isOverContainer = 
-        e.clientX >= rect.left && 
-        e.clientX <= rect.right && 
-        e.clientY >= rect.top && 
+      const isOverContainer =
+        e.clientX >= rect.left &&
+        e.clientX <= rect.right &&
+        e.clientY >= rect.top &&
         e.clientY <= rect.bottom;
-      
+
       if (!isOverContainer) return;
-      
+
       const hasHorizontalScroll = container.scrollWidth > container.clientWidth;
       if (!hasHorizontalScroll) return;
-      
+
       const isPrimarilyHorizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY);
-      
+
       if (isPrimarilyHorizontal || Math.abs(e.deltaX) > 0) {
         e.preventDefault();
         e.stopPropagation();
-        
+
         const currentScrollLeft = container.scrollLeft;
         const maxScrollLeft = container.scrollWidth - container.clientWidth;
         const canScrollLeft = currentScrollLeft > 0 && e.deltaX < 0;
         const canScrollRight = currentScrollLeft < maxScrollLeft && e.deltaX > 0;
-        
+
         if (canScrollLeft || canScrollRight) {
           container.scrollLeft += e.deltaX;
         }
       }
     };
 
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    container.addEventListener('wheel', handleWheel, { passive: false, capture: true });
+    const attach = (attempt = 0) => {
+      const container = stripScrollEl(scrollRef.current);
+      if (!container) {
+        if (attempt < 40) {
+          detachTimer = window.setTimeout(() => attach(attempt + 1), 50);
+        }
+        return;
+      }
+      attached = container;
+      container.addEventListener("scroll", handleScroll, { passive: true });
+      container.addEventListener("wheel", handleWheel, { passive: false, capture: true });
+      updateScrollButtons();
+    };
+
+    attach();
 
     return () => {
-      container.removeEventListener('scroll', handleScroll);
-      container.removeEventListener('wheel', handleWheel);
-      // Save final position when component is unmounted
-      const finalPosition = container.scrollLeft;
-      if (finalPosition > 0 && !isRestoring) {
-        setScrollPosition(storageKey, finalPosition);
+      window.clearTimeout(detachTimer);
+      if (attached) {
+        attached.removeEventListener("scroll", handleScroll);
+        attached.removeEventListener("wheel", handleWheel);
+        const finalPosition = attached.scrollLeft;
+        if (finalPosition > 0 && !isRestoring) {
+          setScrollPosition(storageKey, finalPosition);
+        }
       }
     };
   }, [sectionId, storageKey, isRestoring, games.length, forceVerticalCovers]);
@@ -344,9 +373,12 @@ export default function ScrollableGamesSection({
       )}
       <div
         ref={scrollRef}
-        className={`scrollable-section-scroll ${isRestoring ? 'restoring' : ''}`}
+        className={`scrollable-section-scroll${
+          !forceVerticalCovers ? " scrollable-section-scroll--may-virtualize" : ""
+        } ${isRestoring ? "restoring" : ""}`}
       >
-        {/* No scrollContainerRef: vertical-covers skins use overflow-y:visible here; VirtualizedGamesList needs a parent with real height (games-list-container). */}
+        {/* Vertical-covers: VirtualizedGamesList needs height on games-list-container (no scrollContainerRef).
+            Horizontal rails: pass scrollRef so the strip Grid can measure width and own scrollLeft. */}
         <GamesList
           games={games}
           onGameClick={onGameClick}
@@ -357,6 +389,8 @@ export default function ScrollableGamesSection({
           allCollections={allCollections}
           enableVirtualization={forceVerticalCovers}
           forceSingleColumnVirtualized={forceVerticalCovers}
+          horizontalStripVirtualization={!forceVerticalCovers}
+          scrollContainerRef={!forceVerticalCovers ? scrollRef : undefined}
           allCollectionLikes={allCollectionLikes}
           collectionLikeResourceType={collectionLikeResourceType}
           sliderParentCollectionLikeId={sliderParentCollectionLikeId}
