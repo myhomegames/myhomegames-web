@@ -396,14 +396,12 @@ export default function BackgroundManager({
         {/* Edge/ambient fill — skins blur/scale this under the sharp crop on TV. */}
         {ambientFill ? (
           <div
-            key={`fill-${backgroundUrl}`}
             className="background-manager-portal-bg-fill"
             style={portalImageStyle}
             aria-hidden="true"
           />
         ) : null}
         <div
-          key={`bg-${backgroundUrl}`}
           className="background-manager-portal-bg"
           style={portalImageStyle}
         />

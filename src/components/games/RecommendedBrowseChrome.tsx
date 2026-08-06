@@ -14,8 +14,10 @@ import { buildApiHeaders, buildBackgroundUrl } from "../../utils/api";
 import { API_BASE } from "../../config";
 import { buildCatalogApiUrl } from "../../utils/catalogApi";
 import {
+  isBackgroundUrlWarmed,
   preloadBackgroundUrl,
   preloadBackgroundUrls,
+  whenBackgroundUrlReady,
 } from "../../utils/preloadBackground";
 import { ensureElementVisibleInScrollParents } from "../../utils/ensureVisibleInScrollParent";
 import { setRecommendedSectionsCache } from "../../utils/recommendedSectionsCache";
@@ -32,30 +34,49 @@ type RecommendedBrowseChromeProps = {
   /** Live sections used to resolve focused covers — owned by the page. */
   sectionsRef: RefObject<RecommendedSection[]>;
   detailBackdrop: boolean;
-  /** Render page body; `preview` must be placed where the summary panel lives. */
-  children: (preview: ReactNode) => ReactNode;
+  /**
+   * Stable page shell (scroll + strips). Preview is rendered beside it so strip
+   * fibers are not rebuilt when fanart/summary state changes.
+   */
+  children: ReactNode;
 };
 
 /** Fanart settle delay — D-pad focus/selection never waits on this. */
 const FANART_SETTLE_MS = 140;
 
 /**
- * Keeps strip reconciliation off the fanart update path. Preview still follows
- * focus; BackgroundManager can remount portal layers without walking covers.
+ * Preview updates independently; `strips` keeps the same React node identity
+ * across focus changes so horizontal rails are not reconciled every time.
  */
 const BrowseForeground = memo(function BrowseForeground({
   previewGame,
-  renderBody,
+  strips,
+  isReady,
 }: {
   previewGame: GameItem | null;
-  renderBody: (preview: ReactNode) => ReactNode;
+  strips: ReactNode;
+  isReady: boolean;
 }) {
-  return <>{renderBody(<RecommendedBrowsePreview game={previewGame} />)}</>;
+  return (
+    <main className="flex-1 home-page-content mhg-recommended-browse-preview-page">
+      <div className="home-page-layout">
+        <div
+          className={`home-page-content-wrapper home-page-fade-in${
+            isReady ? " home-page-fade-in--ready" : ""
+          } mhg-recommended-browse-preview-host`}
+        >
+          <RecommendedBrowsePreview game={previewGame} />
+          {strips}
+        </div>
+      </div>
+    </main>
+  );
 });
 
 /**
  * Owns TV browse summary + fanart so cover strips are not blocked by fanart
- * decode/paint. Cover focus/selection stays on the remote path; fanart lags.
+ * decode/paint. Cover focus/selection stays on the remote path; fanart lags
+ * until the image is already decoded, then swaps without remounting cold art.
  */
 export default function RecommendedBrowseChrome({
   isReady,
@@ -69,7 +90,9 @@ export default function RecommendedBrowseChrome({
   const catalogPreviewFetchedRef = useRef<Set<string>>(new Set());
   const enrichedByIdRef = useRef<Map<string, GameItem>>(new Map());
   const paintedUrlRef = useRef("");
+  const previewIdRef = useRef<string | null>(null);
   paintedUrlRef.current = paintedBackgroundUrl;
+  previewIdRef.current = previewGame ? String(previewGame.id) : null;
 
   const resolveGame = (id: string): GameItem | null => {
     const enriched = enrichedByIdRef.current.get(id);
@@ -128,7 +151,10 @@ export default function RecommendedBrowseChrome({
       const game = resolveGameFromTarget(e.target);
       if (!game) return;
       // Selection is DOM focus + TV hover mirror — never gate it on fanart.
-      setPreviewGame(game);
+      // Defer React summary work so the cover scale transition can commit first.
+      startTransition(() => setPreviewGame(game));
+      const url = buildBackgroundUrl(API_BASE, game.background);
+      if (url) preloadBackgroundUrl(url, { priority: true });
       window.requestAnimationFrame(() => preloadNeighbors(game));
     };
 
@@ -237,25 +263,42 @@ export default function RecommendedBrowseChrome({
     };
   }, [previewGame?.id, previewGame?.isCatalogOnly, sectionsRef]);
 
-  // Fanart follows preview after a short settle — never block cover selection.
-  // Apply the URL immediately (no decode wait); CSS paints when the image is ready.
+  // Fanart follows preview after settle — paint only once decode is cached so
+  // cover scale transitions are not stalled by cold fanart decode/paint.
   useEffect(() => {
     if (!previewGame) {
-      startTransition(() => setPaintedBackgroundUrl(""));
-      return;
+      const clearTimer = window.setTimeout(() => {
+        startTransition(() => setPaintedBackgroundUrl(""));
+      }, FANART_SETTLE_MS);
+      return () => window.clearTimeout(clearTimer);
     }
 
+    const gameId = String(previewGame.id);
     const url = buildBackgroundUrl(API_BASE, previewGame.background) || "";
     if (url === paintedUrlRef.current) return;
 
+    let cancelled = false;
+
+    if (url) preloadBackgroundUrl(url, { priority: true });
+
     const timer = window.setTimeout(() => {
-      startTransition(() => {
-        setPaintedBackgroundUrl(url);
-      });
-      if (url) preloadBackgroundUrl(url, { priority: true });
+      void (async () => {
+        if (!url) {
+          if (!cancelled && previewIdRef.current === gameId) {
+            startTransition(() => setPaintedBackgroundUrl(""));
+          }
+          return;
+        }
+        if (!isBackgroundUrlWarmed(url)) {
+          await whenBackgroundUrlReady(url);
+        }
+        if (cancelled || previewIdRef.current !== gameId) return;
+        startTransition(() => setPaintedBackgroundUrl(url));
+      })();
     }, FANART_SETTLE_MS);
 
     return () => {
+      cancelled = true;
       window.clearTimeout(timer);
     };
   }, [previewGame]);
@@ -267,8 +310,10 @@ export default function RecommendedBrowseChrome({
       elementId="recommended-browse"
       autoShowWhenAvailable
       detailBackdrop={detailBackdrop}
+      // TV ambient fill is a full-viewport blur — far too heavy for D-pad focus swaps.
+      ambientFill={false}
     >
-      <BrowseForeground previewGame={previewGame} renderBody={children} />
+      <BrowseForeground previewGame={previewGame} strips={children} isReady={isReady} />
     </BackgroundManager>
   );
 }
