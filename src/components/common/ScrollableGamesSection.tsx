@@ -92,6 +92,8 @@ export default function ScrollableGamesSection({
    * Mouse wheel uses scrollLeft; Smart TV D-pad often keeps a cover visible without
    * reaching scroll ends — when a cover in this strip is focused, drive < / > from
    * its index so the sensors match remote navigation.
+   * Prefer focus index even when maxScroll is ~0 (all tiles fit, or scrollWidth
+   * under-reports with -webkit-box): sensors still need L/R at strip ends.
    */
   const updateScrollButtons = () => {
     const container = scrollRef.current;
@@ -99,12 +101,6 @@ export default function ScrollableGamesSection({
 
     const scrollLeft = container.scrollLeft;
     const maxScroll = container.scrollWidth - container.clientWidth;
-
-    if (maxScroll <= 1) {
-      setCanScrollLeft(false);
-      setCanScrollRight(false);
-      return;
-    }
 
     const active = document.activeElement;
     const focusedCover =
@@ -121,10 +117,16 @@ export default function ScrollableGamesSection({
       );
       const idx = covers.indexOf(focusedCover);
       if (idx >= 0) {
-        setCanScrollLeft(idx > 0);
-        setCanScrollRight(idx < covers.length - 1);
+        setCanScrollLeft(idx > 0 || scrollLeft > 0);
+        setCanScrollRight(idx < covers.length - 1 || scrollLeft < maxScroll - 1);
         return;
       }
+    }
+
+    if (maxScroll <= 1) {
+      setCanScrollLeft(false);
+      setCanScrollRight(false);
+      return;
     }
 
     setCanScrollLeft(scrollLeft > 0);
