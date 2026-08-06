@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback, memo, type ReactNode } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { usePageRevealReady } from "../hooks/usePageRevealReady";
@@ -475,11 +475,11 @@ export default function RecommendedPage({
     }
   }
 
-  const renderPageBody = (preview: ReactNode = null) => (
+  const renderPageBody = () => (
     <main
       className={`flex-1 home-page-content${
         verticalStripsLayout ? " mhg-recommended-strips-page" : ""
-      }${browsePreviewEnabled ? " mhg-recommended-browse-preview-page" : ""}`}
+      }`}
     >
       <div
         className={`home-page-layout${
@@ -489,9 +489,8 @@ export default function RecommendedPage({
         <div
           className={`home-page-content-wrapper home-page-fade-in${
             isReady ? " home-page-fade-in--ready" : ""
-          }${browsePreviewEnabled ? " mhg-recommended-browse-preview-host" : ""}`}
+          }`}
         >
-          {preview}
           <div
             ref={scrollContainerRef}
             className={`home-page-scroll-container recommended-page-scroll${
@@ -525,6 +524,52 @@ export default function RecommendedPage({
     </main>
   );
 
+  /** Scroll + strips only — chrome owns summary preview + page shell around this. */
+  const browseStrips = useMemo(
+    () => (
+      <div
+        ref={scrollContainerRef}
+        className={`home-page-scroll-container recommended-page-scroll${
+          verticalStripsLayout ? " recommended-page-scroll--strips-layout" : ""
+        }`}
+      >
+        {!isFetching &&
+          (verticalStripsLayout ? (
+            stripRows.length > 0 ? (
+              <div ref={stripsScrollRef} className="recommended-strips-column">
+                <FixedFocalRecommendedSectionsList
+                  sections={stripRows}
+                  containerRef={stripsScrollRef}
+                  onSectionClick={handleStripClick}
+                />
+              </div>
+            ) : null
+          ) : (
+            <RecommendedHorizontalStrips
+              sections={sectionsForDisplay}
+              onGameClick={handleGameClick}
+              onPlay={onPlay}
+              onGameUpdate={handleGameUpdate}
+              coverSize={coverSize}
+              allCollections={allCollections}
+            />
+          ))}
+      </div>
+    ),
+    [
+      isFetching,
+      verticalStripsLayout,
+      stripRows,
+      sectionsForDisplay,
+      handleGameClick,
+      onPlay,
+      handleGameUpdate,
+      coverSize,
+      allCollections,
+      handleStripClick,
+    ],
+  );
+
   if (browsePreviewEnabled) {
     return (
       <RecommendedBrowseChrome
@@ -533,7 +578,7 @@ export default function RecommendedPage({
         sectionsRef={sectionsForDisplayRef}
         detailBackdrop={activeSkinWeb.detailBackdropLayout}
       >
-        {(preview) => renderPageBody(preview)}
+        {browseStrips}
       </RecommendedBrowseChrome>
     );
   }
