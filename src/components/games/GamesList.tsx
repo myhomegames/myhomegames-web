@@ -5,7 +5,6 @@ import Cover from "./Cover";
 import EditGameModal from "./EditGameModal";
 import { useEditGame } from "../common/actions";
 import VirtualizedGamesList from "./VirtualizedGamesList";
-import VirtualizedHorizontalGamesStrip from "./VirtualizedHorizontalGamesStrip";
 import FixedFocalGamesList from "./FixedFocalGamesList";
 import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
@@ -16,11 +15,7 @@ import {
 } from "../../utils/collectionLikePseudoGame";
 import { gameHasExecutableForPlatform, getExecutablesForPlatform } from "../../utils/gameExecutables";
 import { portraitCoverHeight } from "../../utils/coverPortrait";
-import { isSmartTvBrowser } from "../../utils/smartTv";
 const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are more than this many items
-/** Horizontal rails (Recommended / detail sliders): window covers once strips grow. */
-const HORIZONTAL_STRIP_VIRTUALIZATION_THRESHOLD_TV = 8;
-const HORIZONTAL_STRIP_VIRTUALIZATION_THRESHOLD_DESKTOP = 24;
 
 type GamesListProps = {
   games: GameItem[];
@@ -46,11 +41,6 @@ type GamesListProps = {
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
   enableVirtualization?: boolean;
   forceSingleColumnVirtualized?: boolean;
-  /**
-   * Horizontal cover rail (ScrollableGamesSection): use a 1-row react-window Grid
-   * instead of mounting every cover. Ignored when vertical / fixed-focal virtualization wins.
-   */
-  horizontalStripVirtualization?: boolean;
   /** Library: fixed Y slots, wheel changes selection only (no grid scroll). */
   fixedFocalSelection?: boolean;
   onFocalSelectionChange?: (game: GameItem | null) => void;
@@ -402,7 +392,6 @@ export default function GamesList({
   scrollContainerRef,
   enableVirtualization = true,
   forceSingleColumnVirtualized = false,
-  horizontalStripVirtualization = false,
   fixedFocalSelection = false,
   onFocalSelectionChange,
   platformIdForPlay,
@@ -467,14 +456,6 @@ export default function GamesList({
     (forceSingleColumnVirtualized || games.length > VIRTUALIZATION_THRESHOLD) &&
     !draggable; // Don't use virtualization when dragging is enabled
   const useFixedFocalList = useVirtualization && fixedFocalSelection;
-  const stripThreshold = isSmartTvBrowser()
-    ? HORIZONTAL_STRIP_VIRTUALIZATION_THRESHOLD_TV
-    : HORIZONTAL_STRIP_VIRTUALIZATION_THRESHOLD_DESKTOP;
-  const useHorizontalStrip =
-    horizontalStripVirtualization &&
-    !useVirtualization &&
-    !draggable &&
-    games.length > stripThreshold;
   const containerRef = useRef<HTMLDivElement>(null);
 
   if (games.length === 0) {
@@ -494,9 +475,7 @@ export default function GamesList({
             ? " games-list-container--fixed-focal"
             : useVirtualization
               ? " games-list-container--virtualized"
-              : useHorizontalStrip
-                ? " games-list-container--virtualized-strip"
-                : ""
+              : ""
         }`}
         style={{ ["--games-list-cover-size" as string]: `${coverSize}px`, ...style } as CSSProperties}
       >
@@ -539,38 +518,6 @@ export default function GamesList({
             games={games}
             coverSize={coverSize}
             forceSingleColumn={forceSingleColumnVirtualized}
-            coverCacheBustTimestamp={coverCacheBustTimestamp}
-            containerRef={scrollContainerRef || containerRef}
-            itemRefs={itemRefs}
-            onGameClick={handleGameClick}
-            onPlay={onPlay}
-            onEditClick={editGame.openEditModal}
-            onGameDelete={onGameDelete}
-            onGameUpdate={onGameUpdate}
-            buildCoverUrl={buildCoverUrl}
-            allCollections={allCollections}
-            collectionId={collectionId}
-            onRemoveFromCollection={onRemoveFromCollection}
-            developerId={developerId}
-            publisherId={publisherId}
-            onRemoveFromDeveloper={onRemoveFromDeveloper}
-            onRemoveFromPublisher={onRemoveFromPublisher}
-            platformIdForPlay={platformIdForPlay}
-            allCollectionLikes={allCollectionLikes}
-            collectionLikeResourceType={collectionLikeResourceType}
-            sliderParentCollectionLikeId={sliderParentCollectionLikeId}
-            onRemoveChildFromSliderParent={onRemoveChildFromSliderParent}
-            onCollectionLikePseudoEdit={onCollectionLikePseudoEdit}
-            onPlayFirstInCollectionLike={onPlayFirstInCollectionLike}
-            onCollectionLikePseudoAddToParent={onCollectionLikePseudoAddToParent}
-            onCollectionLikePseudoUpdated={onCollectionLikePseudoUpdated}
-            activeCollectionLikeDetail={activeCollectionLikeDetail}
-            activeGameId={activeGameId}
-          />
-        ) : useHorizontalStrip ? (
-          <VirtualizedHorizontalGamesStrip
-            games={games}
-            coverSize={coverSize}
             coverCacheBustTimestamp={coverCacheBustTimestamp}
             containerRef={scrollContainerRef || containerRef}
             itemRefs={itemRefs}
