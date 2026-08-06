@@ -151,16 +151,12 @@ export default function WebsitesList({ websites }: WebsitesListProps) {
   return (
     <div className={`websites-list${staticMode ? " websites-list--static" : ""}`}>
       {websites.map((website, index) => (
-        <span key={index}>
-          <SingleWebsiteLink
-            url={website.url}
-            category={website.category}
-            staticMode={staticMode}
-          />
-          {index < websites.length - 1 && (
-            <span className="game-info-list-separator"> </span>
-          )}
-        </span>
+        <SingleWebsiteLink
+          key={`${website.url}-${index}`}
+          url={website.url}
+          category={website.category}
+          staticMode={staticMode}
+        />
       ))}
     </div>
   );
