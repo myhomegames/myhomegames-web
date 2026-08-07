@@ -39,5 +39,8 @@ docs
 # Static assets live on main only (PWA icons, etc.)
 public
 
+# GitHub Actions / Pages workflows live on main only
+.github
+
 # Cursor (local only; never commit)
 .cursor
