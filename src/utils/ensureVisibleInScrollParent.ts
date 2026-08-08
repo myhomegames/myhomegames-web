@@ -40,6 +40,7 @@ export function resolveScrollVisibilityTarget(el: HTMLElement): HTMLElement {
       ".similar-games-cover-cell",
       ".fixed-focal-games-item",
       ".virtualized-grid-cell-pad",
+      ".virtualized-horizontal-games-strip-cell-pad",
       ".tag-list-item",
       ".fixed-focal-tag-item",
     ].join(","),
