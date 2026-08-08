@@ -1,14 +1,25 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Grid } from "react-window";
 import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 import type { ActiveCollectionLikeDetail } from "../../utils/collectionLikePseudoGame";
 import { GRID_COVER_TITLE_BLOCK_HEIGHT, portraitCoverHeight } from "../../utils/coverPortrait";
+import { isSmartTvBrowser } from "../../utils/smartTv";
 import { GameListItem } from "./GamesList";
 
 /** Match plex `.scrollable-section-scroll .games-list-container { gap: 24px }`. */
 const DEFAULT_STRIP_GAP = 24;
-const OVERSCAN_COUNT = 3;
+const OVERSCAN_COUNT = 4;
+const OVERSCAN_COUNT_TV = 8;
+
+export type HorizontalStripScrollHost = HTMLElement & {
+  __mhgStripScroller?: HTMLElement;
+  __mhgStripScrollToIndex?: (
+    index: number,
+    align?: "auto" | "smart" | "start" | "center" | "end",
+  ) => void;
+  __mhgStripColumnCount?: number;
+};
 
 type VirtualizedHorizontalGamesStripProps = {
   games: GameItem[];
@@ -51,6 +62,41 @@ type VirtualizedHorizontalGamesStripProps = {
   activeGameId?: string | null;
 };
 
+type StripCellProps = {
+  games: GameItem[];
+  coverSize: number;
+  coverCacheBustTimestamp?: number;
+  itemRefs?: React.RefObject<Map<string, HTMLElement>>;
+  onGameClick: (game: GameItem) => void;
+  onPlay?: (game: GameItem) => void;
+  onEditClick: (game: GameItem) => void;
+  onGameDelete?: (deletedGame: GameItem) => void;
+  onGameUpdate?: (updatedGame: GameItem) => void;
+  buildCoverUrl: VirtualizedHorizontalGamesStripProps["buildCoverUrl"];
+  allCollections: CollectionItem[];
+  collectionId?: string;
+  onRemoveFromCollection?: (gameId: string) => void;
+  developerId?: string;
+  publisherId?: string;
+  onRemoveFromDeveloper?: (gameId: string) => void;
+  onRemoveFromPublisher?: (gameId: string) => void;
+  platformIdForPlay?: string;
+  allCollectionLikes: CollectionItem[];
+  collectionLikeResourceType?: CollectionLikeResourceType;
+  sliderParentCollectionLikeId?: string;
+  onRemoveChildFromSliderParent?: (childId: string) => void | Promise<void>;
+  onCollectionLikePseudoEdit?: (game: GameItem) => void;
+  onPlayFirstInCollectionLike?: (resourceType: string, cid: string) => void | Promise<void>;
+  onCollectionLikePseudoAddToParent?: (
+    source: CollectionItem,
+    parentId?: string,
+  ) => void | Promise<void>;
+  onCollectionLikePseudoUpdated?: (updated: CollectionInfo) => void;
+  activeCollectionLikeDetail?: ActiveCollectionLikeDetail | null;
+  activeGameId?: string | null;
+  scalePadPx: number;
+};
+
 function readStripGapPx(): number {
   if (typeof window === "undefined" || typeof document === "undefined") {
     return DEFAULT_STRIP_GAP;
@@ -60,6 +106,123 @@ function readStripGapPx(): number {
   );
   return Number.isFinite(raw) && raw >= 0 ? raw : DEFAULT_STRIP_GAP;
 }
+
+/** Room for TV `scale(1.14)` so focused tiles are not clipped by the strip scroller. */
+function readStripScalePadPx(coverSize: number): number {
+  if (typeof document === "undefined") return 0;
+  if (document.documentElement.getAttribute("data-mhg-tv") !== "1") return 0;
+  const fromVar = parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue("--mhg-tv-cover-scale-pad"),
+  );
+  const fromCover = Math.ceil(coverSize * 0.14);
+  if (Number.isFinite(fromVar) && fromVar > 0) return Math.max(fromVar, fromCover);
+  return fromCover || 0;
+}
+
+/**
+ * Stable cell renderer — an inline Cell identity remounts every strip re-render
+ * and drops D-pad focus once react-window recycles past the first window.
+ */
+const StripCell = memo(function StripCell({
+  columnIndex,
+  style,
+  games,
+  coverSize,
+  coverCacheBustTimestamp,
+  itemRefs,
+  onGameClick,
+  onPlay,
+  onEditClick,
+  onGameDelete,
+  onGameUpdate,
+  buildCoverUrl,
+  allCollections,
+  collectionId,
+  onRemoveFromCollection,
+  developerId,
+  publisherId,
+  onRemoveFromDeveloper,
+  onRemoveFromPublisher,
+  platformIdForPlay,
+  allCollectionLikes,
+  collectionLikeResourceType,
+  sliderParentCollectionLikeId,
+  onRemoveChildFromSliderParent,
+  onCollectionLikePseudoEdit,
+  onPlayFirstInCollectionLike,
+  onCollectionLikePseudoAddToParent,
+  onCollectionLikePseudoUpdated,
+  activeCollectionLikeDetail,
+  activeGameId,
+  scalePadPx,
+}: {
+  ariaAttributes: {
+    "aria-colindex": number;
+    role: "gridcell";
+  };
+  columnIndex: number;
+  rowIndex: number;
+  style: React.CSSProperties;
+} & StripCellProps) {
+  if (columnIndex < 0 || columnIndex >= games.length) {
+    return <div style={style} />;
+  }
+  const game = games[columnIndex]!;
+  return (
+    <div
+      style={style}
+      className="virtualized-horizontal-games-strip-cell"
+      data-mhg-strip-index={columnIndex}
+    >
+      <div
+        className="virtualized-horizontal-games-strip-cell-pad"
+        style={
+          scalePadPx > 0
+            ? { paddingTop: scalePadPx, paddingBottom: scalePadPx }
+            : undefined
+        }
+      >
+        <GameListItem
+          game={game}
+          onGameClick={onGameClick}
+          onPlay={onPlay}
+          onEditClick={onEditClick}
+          onGameDelete={onGameDelete}
+          onGameUpdate={onGameUpdate}
+          buildCoverUrl={buildCoverUrl}
+          coverSize={coverSize}
+          coverCacheBustTimestamp={coverCacheBustTimestamp}
+          itemRefs={itemRefs}
+          index={columnIndex}
+          onDragStart={() => {}}
+          onDragOver={() => {}}
+          onDragEnd={() => {}}
+          isDragging={false}
+          dragOverIndex={null}
+          viewMode="grid"
+          allCollections={allCollections}
+          collectionId={collectionId}
+          onRemoveFromCollection={onRemoveFromCollection}
+          developerId={developerId}
+          publisherId={publisherId}
+          onRemoveFromDeveloper={onRemoveFromDeveloper}
+          onRemoveFromPublisher={onRemoveFromPublisher}
+          platformIdForPlay={platformIdForPlay}
+          allCollectionLikes={allCollectionLikes}
+          collectionLikeResourceType={collectionLikeResourceType}
+          sliderParentCollectionLikeId={sliderParentCollectionLikeId}
+          onRemoveChildFromSliderParent={onRemoveChildFromSliderParent}
+          onCollectionLikePseudoEdit={onCollectionLikePseudoEdit}
+          onPlayFirstInCollectionLike={onPlayFirstInCollectionLike}
+          onCollectionLikePseudoAddToParent={onCollectionLikePseudoAddToParent}
+          onCollectionLikePseudoUpdated={onCollectionLikePseudoUpdated}
+          activeCollectionLikeDetail={activeCollectionLikeDetail}
+          activeGameId={activeGameId}
+        />
+      </div>
+    </div>
+  );
+});
 
 /**
  * Single-row react-window Grid for horizontal cover rails (Recommended, detail
@@ -100,8 +263,12 @@ export default function VirtualizedHorizontalGamesStrip({
   const gridRef = useRef<any>(null);
   const [viewportWidth, setViewportWidth] = useState(0);
   const gap = useMemo(() => readStripGapPx(), []);
+  const scalePadPx = useMemo(() => readStripScalePadPx(coverSize), [coverSize]);
   const columnWidth = coverSize + gap;
-  const rowHeight = portraitCoverHeight(coverSize) + GRID_COVER_TITLE_BLOCK_HEIGHT;
+  const rowHeight =
+    portraitCoverHeight(coverSize) + GRID_COVER_TITLE_BLOCK_HEIGHT + scalePadPx * 2;
+  const overscanCount = isSmartTvBrowser() ? OVERSCAN_COUNT_TV : OVERSCAN_COUNT;
+  const focusedIndexRef = useRef<number | null>(null);
 
   const measure = useCallback(() => {
     const el = containerRef.current;
@@ -126,81 +293,155 @@ export default function VirtualizedHorizontalGamesStrip({
     };
   }, [containerRef, measure, games.length]);
 
-  // Expose grid scroller on the section scroll host for restore / wheel / TV nudge.
+  const scrollToIndex = useCallback(
+    (
+      index: number,
+      align: "auto" | "smart" | "start" | "center" | "end" = "smart",
+    ) => {
+      const grid = gridRef.current;
+      if (!grid || typeof grid.scrollToColumn !== "function") return;
+      const clamped = Math.max(0, Math.min(games.length - 1, index));
+      try {
+        grid.scrollToColumn({ index: clamped, align, behavior: "instant" });
+      } catch {
+        const el = grid.element as HTMLElement | null | undefined;
+        if (el) {
+          el.scrollLeft = Math.max(0, clamped * columnWidth);
+        }
+      }
+    },
+    [columnWidth, games.length],
+  );
+
+  // Expose grid scroller + imperative index API on the section scroll host.
+  useEffect(() => {
+    const root = containerRef.current as HorizontalStripScrollHost | null;
+    const gridEl = gridRef.current?.element as HTMLElement | null | undefined;
+    if (!root || !gridEl) return;
+    root.__mhgStripScroller = gridEl;
+    root.__mhgStripScrollToIndex = scrollToIndex;
+    root.__mhgStripColumnCount = games.length;
+    return () => {
+      const host = containerRef.current as HorizontalStripScrollHost | null;
+      if (host?.__mhgStripScroller === gridEl) {
+        delete host.__mhgStripScroller;
+        delete host.__mhgStripScrollToIndex;
+        delete host.__mhgStripColumnCount;
+      }
+    };
+  }, [containerRef, viewportWidth, games.length, scrollToIndex]);
+
+  // After recycle/scroll, restore focus to the last strip index so D-pad keeps working.
   useEffect(() => {
     const root = containerRef.current;
     const gridEl = gridRef.current?.element as HTMLElement | null | undefined;
     if (!root || !gridEl) return;
-    (root as HTMLElement & { __mhgStripScroller?: HTMLElement }).__mhgStripScroller = gridEl;
-    return () => {
-      const host = containerRef.current as
-        | (HTMLElement & { __mhgStripScroller?: HTMLElement })
-        | null;
-      if (host?.__mhgStripScroller === gridEl) {
-        delete host.__mhgStripScroller;
+
+    const coverSelector =
+      ".games-list-cover[role='button'], .games-list-cover[tabindex]";
+
+    const readIndexFrom = (el: HTMLElement | null): number | null => {
+      const cell = el?.closest("[data-mhg-strip-index]") as HTMLElement | null;
+      if (!cell) return null;
+      const n = parseInt(cell.getAttribute("data-mhg-strip-index") || "", 10);
+      return Number.isFinite(n) && n >= 0 ? n : null;
+    };
+
+    const findCoverAt = (index: number): HTMLElement | null => {
+      const cell = gridEl.querySelector(
+        `[data-mhg-strip-index="${index}"]`,
+      ) as HTMLElement | null;
+      if (!cell) return null;
+      return cell.querySelector<HTMLElement>(coverSelector);
+    };
+
+    const onFocusIn = (event: FocusEvent) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement) || !gridEl.contains(target)) return;
+      const idx = readIndexFrom(target);
+      if (idx != null) focusedIndexRef.current = idx;
+    };
+
+    const restoreFocusedCover = () => {
+      const idx = focusedIndexRef.current;
+      if (idx == null) return;
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && gridEl.contains(active)) {
+        const activeIdx = readIndexFrom(active);
+        if (activeIdx != null) {
+          focusedIndexRef.current = activeIdx;
+          if (
+            active.classList.contains("games-list-cover") ||
+            active.closest(".games-list-cover")
+          ) {
+            return;
+          }
+        }
+      }
+      let cover = findCoverAt(idx);
+      if (!cover) {
+        scrollToIndex(idx, "smart");
+        cover = findCoverAt(idx);
+      }
+      if (!cover || document.activeElement === cover) return;
+      try {
+        cover.focus({ preventScroll: true });
+      } catch {
+        cover.focus();
       }
     };
-  }, [containerRef, viewportWidth, games.length]);
 
-  const Cell = ({
-    columnIndex,
-    style,
-  }: {
-    columnIndex: number;
-    rowIndex: number;
-    style: React.CSSProperties;
-  }) => {
-    if (columnIndex < 0 || columnIndex >= games.length) {
-      return <div style={style} />;
-    }
-    const game = games[columnIndex]!;
-    return (
-      <div style={style} className="virtualized-horizontal-games-strip-cell">
-        <div className="virtualized-horizontal-games-strip-cell-pad">
-          <GameListItem
-            game={game}
-            onGameClick={onGameClick}
-            onPlay={onPlay}
-            onEditClick={onEditClick}
-            onGameDelete={onGameDelete}
-            onGameUpdate={onGameUpdate}
-            buildCoverUrl={buildCoverUrl}
-            coverSize={coverSize}
-            coverCacheBustTimestamp={coverCacheBustTimestamp}
-            itemRefs={itemRefs}
-            index={columnIndex}
-            onDragStart={() => {}}
-            onDragOver={() => {}}
-            onDragEnd={() => {}}
-            isDragging={false}
-            dragOverIndex={null}
-            viewMode="grid"
-            allCollections={allCollections}
-            collectionId={collectionId}
-            onRemoveFromCollection={onRemoveFromCollection}
-            developerId={developerId}
-            publisherId={publisherId}
-            onRemoveFromDeveloper={onRemoveFromDeveloper}
-            onRemoveFromPublisher={onRemoveFromPublisher}
-            platformIdForPlay={platformIdForPlay}
-            allCollectionLikes={allCollectionLikes}
-            collectionLikeResourceType={collectionLikeResourceType}
-            sliderParentCollectionLikeId={sliderParentCollectionLikeId}
-            onRemoveChildFromSliderParent={onRemoveChildFromSliderParent}
-            onCollectionLikePseudoEdit={onCollectionLikePseudoEdit}
-            onPlayFirstInCollectionLike={onPlayFirstInCollectionLike}
-            onCollectionLikePseudoAddToParent={onCollectionLikePseudoAddToParent}
-            onCollectionLikePseudoUpdated={onCollectionLikePseudoUpdated}
-            activeCollectionLikeDetail={activeCollectionLikeDetail}
-            activeGameId={activeGameId}
-          />
-        </div>
-      </div>
-    );
+    const onScroll = () => {
+      window.requestAnimationFrame(restoreFocusedCover);
+    };
+
+    gridEl.addEventListener("focusin", onFocusIn);
+    gridEl.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      gridEl.removeEventListener("focusin", onFocusIn);
+      gridEl.removeEventListener("scroll", onScroll);
+    };
+  }, [containerRef, viewportWidth, games.length, scrollToIndex]);
+
+  const cellProps: StripCellProps = {
+    games,
+    coverSize,
+    coverCacheBustTimestamp,
+    itemRefs,
+    onGameClick,
+    onPlay,
+    onEditClick,
+    onGameDelete,
+    onGameUpdate,
+    buildCoverUrl,
+    allCollections,
+    collectionId,
+    onRemoveFromCollection,
+    developerId,
+    publisherId,
+    onRemoveFromDeveloper,
+    onRemoveFromPublisher,
+    platformIdForPlay,
+    allCollectionLikes,
+    collectionLikeResourceType,
+    sliderParentCollectionLikeId,
+    onRemoveChildFromSliderParent,
+    onCollectionLikePseudoEdit,
+    onPlayFirstInCollectionLike,
+    onCollectionLikePseudoAddToParent,
+    onCollectionLikePseudoUpdated,
+    activeCollectionLikeDetail,
+    activeGameId,
+    scalePadPx,
   };
 
   if (viewportWidth <= 0 || games.length === 0) {
-    return <div className="virtualized-horizontal-games-strip-placeholder" style={{ height: rowHeight }} />;
+    return (
+      <div
+        className="virtualized-horizontal-games-strip-placeholder"
+        style={{ height: rowHeight }}
+      />
+    );
   }
 
   return (
@@ -213,9 +454,9 @@ export default function VirtualizedHorizontalGamesStrip({
       rowHeight={rowHeight}
       defaultHeight={rowHeight}
       defaultWidth={viewportWidth}
-      overscanCount={OVERSCAN_COUNT}
-      cellComponent={Cell}
-      cellProps={{} as any}
+      overscanCount={overscanCount}
+      cellComponent={StripCell}
+      cellProps={cellProps}
       style={{ height: rowHeight, width: viewportWidth }}
     />
   );
@@ -226,11 +467,24 @@ export function resolveHorizontalStripScroller(
   sectionScrollEl: HTMLElement | null,
 ): HTMLElement | null {
   if (!sectionScrollEl) return null;
-  const tagged = (sectionScrollEl as HTMLElement & { __mhgStripScroller?: HTMLElement })
-    .__mhgStripScroller;
+  const tagged = (sectionScrollEl as HorizontalStripScrollHost).__mhgStripScroller;
   if (tagged?.isConnected) return tagged;
   const fromDom = sectionScrollEl.querySelector(
     ".virtualized-horizontal-games-strip",
   ) as HTMLElement | null;
   return fromDom ?? sectionScrollEl;
+}
+
+export function getHorizontalStripScrollHost(
+  from: HTMLElement,
+): HorizontalStripScrollHost | null {
+  const direct = from.closest(
+    ".scrollable-section-scroll",
+  ) as HorizontalStripScrollHost | null;
+  if (direct?.__mhgStripScrollToIndex || direct?.__mhgStripScroller) return direct;
+  const section = from.closest(".scrollable-section");
+  if (!section) return null;
+  return section.querySelector(
+    ".scrollable-section-scroll",
+  ) as HorizontalStripScrollHost | null;
 }

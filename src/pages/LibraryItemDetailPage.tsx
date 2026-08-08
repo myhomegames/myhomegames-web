@@ -954,6 +954,7 @@ export default function LibraryItemDetailPage({
       hasBackground={hasBackground}
       elementId={backgroundStateKey}
       autoShowWhenAvailable={activeSkinWeb.autoShowBackgroundOnSelection}
+      detailBackdrop={activeSkinWeb.detailBackdropLayout}
     >
       <LibraryItemDetailContent
         item={item}

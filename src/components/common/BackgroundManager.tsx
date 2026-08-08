@@ -39,7 +39,7 @@ type BackgroundManagerProps = {
   /** When true, show the background whenever one is available (e.g. focal selection). */
   autoShowWhenAvailable?: boolean;
   /**
-   * Game/catalog detail: enable the detail backdrop layout hook
+   * Game/catalog/collection-like detail: enable the detail backdrop layout hook
    * (`data-mhg-background-layout="detail"` + narrow hero collapse on scroll).
    * Skin CSS decides the look (e.g. cropped hero on TV/phone); without matching
    * CSS the portal stays full-bleed.
@@ -54,7 +54,7 @@ type BackgroundManagerProps = {
 
 const STORAGE_KEY = "backgroundStates";
 const DETAIL_SCROLL_SELECTOR =
-  ".game-detail-scroll-container, .catalog-game-detail-scroll-container";
+  ".game-detail-scroll-container, .catalog-game-detail-scroll-container, .library-item-detail-scroll";
 /** Match game-detail phone/narrow layout (~locandina breakpoint), not a tiny handset-only width. */
 const NARROW_DETAIL_MQ = "(max-width: 720px)";
 

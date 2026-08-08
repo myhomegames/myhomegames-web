@@ -26,6 +26,12 @@ function playTvActionSound(): void {
   playFixedFocalStepSound();
 }
 
+/**
+ * Wired by `installSmartTvRemoteKeys` so strip helpers (module scope) can update
+ * the last-cover memory used when leaving/returning from chrome.
+ */
+let rememberCoverFocusFromStrip: ((el: HTMLElement | null) => void) | null = null;
+
 const KEY_LEFT = 37;
 const KEY_UP = 38;
 const KEY_RIGHT = 39;
@@ -1447,6 +1453,131 @@ function collectRecommendedStripCoverFocusables(strip: HTMLElement): HTMLElement
   ).filter((el) => isVisible(el) && !el.closest("[inert]") && !el.hasAttribute("disabled"));
 }
 
+type StripScrollHost = HTMLElement & {
+  __mhgStripScrollToIndex?: (
+    index: number,
+    align?: "auto" | "smart" | "start" | "center" | "end",
+  ) => void;
+  __mhgStripColumnCount?: number;
+};
+
+function horizontalStripScrollHostFrom(el: HTMLElement): StripScrollHost | null {
+  const direct = el.closest(".scrollable-section-scroll") as StripScrollHost | null;
+  if (direct?.__mhgStripScrollToIndex) return direct;
+  const section = el.closest(".scrollable-section");
+  if (!section) return null;
+  const host = section.querySelector(
+    ".scrollable-section-scroll",
+  ) as StripScrollHost | null;
+  return host?.__mhgStripScrollToIndex ? host : null;
+}
+
+/** Absolute column index for virtualized rails (`data-mhg-strip-index`). */
+function absoluteStripCoverIndex(
+  cover: HTMLElement,
+  mountedCovers: HTMLElement[],
+): number {
+  const cell = cover.closest("[data-mhg-strip-index]") as HTMLElement | null;
+  if (cell) {
+    const n = parseInt(cell.getAttribute("data-mhg-strip-index") || "", 10);
+    if (Number.isFinite(n) && n >= 0) return n;
+  }
+  const idx = mountedCovers.indexOf(cover);
+  return idx >= 0 ? idx : 0;
+}
+
+function queryStripCoverAtIndex(
+  strip: HTMLElement,
+  index: number,
+): HTMLElement | null {
+  const cell = strip.querySelector(
+    `[data-mhg-strip-index="${index}"]`,
+  ) as HTMLElement | null;
+  if (!cell) return null;
+  const cover = cell.querySelector<HTMLElement>(
+    ".games-list-cover[role='button'], .games-list-cover[tabindex]",
+  );
+  if (!cover || !isVisible(cover) || cover.closest("[inert]") || cover.hasAttribute("disabled")) {
+    return null;
+  }
+  return cover;
+}
+
+/**
+ * Focus cover at absolute strip index. Scrolls the virtualized Grid first when
+ * the cell is not mounted yet (past the first overscan window).
+ */
+function focusStripCoverAtAbsoluteIndex(
+  strip: HTMLElement,
+  index: number,
+  options?: { remember?: boolean },
+): boolean {
+  const host = horizontalStripScrollHostFrom(strip);
+  const columnCount =
+    typeof host?.__mhgStripColumnCount === "number" && host.__mhgStripColumnCount > 0
+      ? host.__mhgStripColumnCount
+      : null;
+  const clamped =
+    columnCount != null
+      ? Math.max(0, Math.min(columnCount - 1, index))
+      : Math.max(0, index);
+
+  const focusFound = (cover: HTMLElement) => {
+    if (options?.remember !== false) rememberCoverFocusFromStrip?.(cover);
+    focusElement(cover);
+  };
+
+  const immediate = queryStripCoverAtIndex(strip, clamped);
+  if (immediate) {
+    focusFound(immediate);
+    return true;
+  }
+
+  if (typeof host?.__mhgStripScrollToIndex === "function") {
+    host.__mhgStripScrollToIndex(clamped, "smart");
+  }
+
+  const tryFocus = (attempt: number) => {
+    const cover = queryStripCoverAtIndex(strip, clamped);
+    if (cover) {
+      focusFound(cover);
+      return;
+    }
+    if (attempt >= 8) return;
+    if (typeof host?.__mhgStripScrollToIndex === "function" && attempt === 2) {
+      host.__mhgStripScrollToIndex(clamped, "center");
+    }
+    window.requestAnimationFrame(() => tryFocus(attempt + 1));
+  };
+  window.requestAnimationFrame(() => tryFocus(0));
+  return true;
+}
+
+/** Left/Right on a virtualized (or plain) horizontal cover strip. */
+function moveFocusInHorizontalCoverStrip(
+  strip: HTMLElement,
+  coverEl: HTMLElement,
+  direction: "left" | "right",
+  collectMounted: (strip: HTMLElement) => HTMLElement[],
+): boolean {
+  const mounted = collectMounted(strip);
+  const host = horizontalStripScrollHostFrom(strip);
+  const columnCount =
+    typeof host?.__mhgStripColumnCount === "number" && host.__mhgStripColumnCount > 0
+      ? host.__mhgStripColumnCount
+      : mounted.length;
+  if (columnCount <= 0) return false;
+
+  const currentIdx = absoluteStripCoverIndex(coverEl, mounted);
+  const nextIdx =
+    direction === "right"
+      ? Math.min(columnCount - 1, currentIdx + 1)
+      : Math.max(0, currentIdx - 1);
+  if (nextIdx === currentIdx) return true; // consumed — stay at strip end
+
+  return focusStripCoverAtAbsoluteIndex(strip, nextIdx);
+}
+
 /** Keyword strips on Recommended in DOM order (top → bottom). */
 function collectRecommendedStripRoots(): HTMLElement[] {
   const root = document.querySelector(".recommended-page-scroll");
@@ -1454,36 +1585,6 @@ function collectRecommendedStripRoots(): HTMLElement[] {
   return Array.from(root.querySelectorAll<HTMLElement>(".scrollable-section")).filter(
     (section) => collectRecommendedStripCoverFocusables(section).length > 0,
   );
-}
-
-/** Up/Down between Recommended keyword rows, keeping roughly the same column. */
-function pickCoverInAdjacentRecommendedStrip(
-  cover: HTMLElement,
-  direction: "up" | "down",
-): HTMLElement | null {
-  const strips = collectRecommendedStripRoots();
-  const currentStrip = recommendedStripRootFrom(cover);
-  if (!currentStrip || strips.length === 0) return null;
-  const idx = strips.indexOf(currentStrip);
-  if (idx < 0) return null;
-  const nextIdx = direction === "down" ? idx + 1 : idx - 1;
-  if (nextIdx < 0 || nextIdx >= strips.length) return null;
-  const nextCovers = collectRecommendedStripCoverFocusables(strips[nextIdx]!);
-  if (nextCovers.length === 0) return null;
-
-  const rects = mapFocusNavRects([cover, ...nextCovers]);
-  const fromX = center(rects.get(cover) ?? cover.getBoundingClientRect()).x;
-  let best: HTMLElement | null = null;
-  let bestDist = Number.POSITIVE_INFINITY;
-  for (const el of nextCovers) {
-    const x = center(rects.get(el) ?? el.getBoundingClientRect()).x;
-    const dist = Math.abs(x - fromX);
-    if (dist < bestDist) {
-      bestDist = dist;
-      best = el;
-    }
-  }
-  return best;
 }
 
 /**
@@ -1544,6 +1645,32 @@ type DetailHorizontalStrip =
   | { kind: "media"; items: HTMLElement[] }
   | { kind: "covers"; root: HTMLElement; items: HTMLElement[] };
 
+/** Linked section title on a detail collection/similar rail (opens the collection). */
+function detailStripTitleFocusable(strip: HTMLElement): HTMLElement | null {
+  const link = strip.querySelector<HTMLElement>(
+    "a.scrollable-section-title-link[href]",
+  );
+  if (
+    !link ||
+    !isVisible(link) ||
+    link.closest("[inert]") ||
+    link.getAttribute("tabindex") === "-1"
+  ) {
+    return null;
+  }
+  return link;
+}
+
+function detailStripTitleFrom(el: HTMLElement | null): HTMLElement | null {
+  if (!el || !isItemDetailPage()) return null;
+  const link = el.closest(
+    "a.scrollable-section-title-link",
+  ) as HTMLElement | null;
+  if (!link || !isVisible(link) || link.closest("[inert]")) return null;
+  if (!detailCoverStripRootFrom(link)) return null;
+  return link;
+}
+
 /** Media gallery + collection/similar rows, top → bottom in DOM order. */
 function collectDetailHorizontalStrips(): DetailHorizontalStrip[] {
   const strips: DetailHorizontalStrip[] = [];
@@ -1567,7 +1694,21 @@ function collectDetailHorizontalStrips(): DetailHorizontalStrip[] {
 function focusDetailHorizontalStrip(
   strip: DetailHorizontalStrip,
   preferredIndex: number,
+  options?: { preferTitle?: boolean },
 ): void {
+  if (strip.kind === "covers") {
+    if (options?.preferTitle) {
+      const title = detailStripTitleFocusable(strip.root);
+      if (title) {
+        focusElement(title);
+        return;
+      }
+    }
+    focusStripCoverAtAbsoluteIndex(strip.root, preferredIndex, {
+      remember: true,
+    });
+    return;
+  }
   const items = strip.items;
   if (items.length === 0) return;
   const idx = Math.min(Math.max(0, preferredIndex), items.length - 1);
@@ -2017,6 +2158,7 @@ export function installSmartTvRemoteKeys(
     const cover = coverFocusFrom(el);
     if (cover) lastCoverFocus = cover;
   };
+  rememberCoverFocusFromStrip = rememberCoverFocus;
 
   const tryFocusPersistedCover = (identity = peekTvCoverFocusIdentity()): boolean => {
     // Collection-like detail still matches isItemDetailPage(); only block while the
@@ -3244,50 +3386,14 @@ export function installSmartTvRemoteKeys(
             recommendedStrip &&
             (direction === "left" || direction === "right")
           ) {
-            const stripCovers =
-              collectRecommendedStripCoverFocusables(recommendedStrip);
-            if (stripCovers.length > 0) {
-              const idx = stripCovers.indexOf(coverEl);
-              const safeIdx = idx >= 0 ? idx : 0;
-              const nextIdx =
-                direction === "right"
-                  ? Math.min(stripCovers.length - 1, safeIdx + 1)
-                  : Math.max(0, safeIdx - 1);
-              const nextInStrip = stripCovers[nextIdx];
-              if (nextInStrip && nextInStrip !== coverEl) {
-                rememberCoverFocus(nextInStrip);
-                focusElement(nextInStrip);
-                return;
-              }
-              if (nudgeScrollParentForDirection(coverEl, direction)) {
-                window.requestAnimationFrame(() => {
-                  const retryStrip = recommendedStripRootFrom(
-                    document.activeElement instanceof HTMLElement
-                      ? document.activeElement
-                      : coverEl,
-                  );
-                  if (!retryStrip) return;
-                  const retryCovers =
-                    collectRecommendedStripCoverFocusables(retryStrip);
-                  const activeCover = coverFocusFrom(
-                    document.activeElement instanceof HTMLElement
-                      ? document.activeElement
-                      : coverEl,
-                  );
-                  if (!activeCover) return;
-                  const rIdx = retryCovers.indexOf(activeCover);
-                  const rSafe = rIdx >= 0 ? rIdx : 0;
-                  const rNext =
-                    direction === "right"
-                      ? Math.min(retryCovers.length - 1, rSafe + 1)
-                      : Math.max(0, rSafe - 1);
-                  const retry = retryCovers[rNext];
-                  if (retry && retry !== activeCover) {
-                    rememberCoverFocus(retry);
-                    focusElement(retry);
-                  }
-                });
-              }
+            if (
+              moveFocusInHorizontalCoverStrip(
+                recommendedStrip,
+                coverEl,
+                direction,
+                collectRecommendedStripCoverFocusables,
+              )
+            ) {
               return;
             }
           }
@@ -3295,14 +3401,19 @@ export function installSmartTvRemoteKeys(
             recommendedStrip &&
             (direction === "up" || direction === "down")
           ) {
-            const nextStripCover = pickCoverInAdjacentRecommendedStrip(
-              coverEl,
-              direction,
-            );
-            if (nextStripCover) {
-              rememberCoverFocus(nextStripCover);
-              focusElement(nextStripCover);
-              return;
+            const strips = collectRecommendedStripRoots();
+            const idx = strips.indexOf(recommendedStrip);
+            const nextIdx = direction === "down" ? idx + 1 : idx - 1;
+            if (idx >= 0 && nextIdx >= 0 && nextIdx < strips.length) {
+              const fromIdx = absoluteStripCoverIndex(
+                coverEl,
+                collectRecommendedStripCoverFocusables(recommendedStrip),
+              );
+              if (
+                focusStripCoverAtAbsoluteIndex(strips[nextIdx]!, fromIdx)
+              ) {
+                return;
+              }
             }
             if (direction === "up") {
               if (focusToolbarOrMenu()) return;
@@ -3315,14 +3426,23 @@ export function installSmartTvRemoteKeys(
                     : coverEl,
                 );
                 if (!activeCover) return;
-                const retry = pickCoverInAdjacentRecommendedStrip(
-                  activeCover,
-                  direction,
-                );
-                if (retry) {
-                  rememberCoverFocus(retry);
-                  focusElement(retry);
-                } else if (direction === "up") {
+                const activeStrip = recommendedStripRootFrom(activeCover);
+                if (!activeStrip) return;
+                const retryStrips = collectRecommendedStripRoots();
+                const aIdx = retryStrips.indexOf(activeStrip);
+                const aNext = direction === "down" ? aIdx + 1 : aIdx - 1;
+                if (aIdx >= 0 && aNext >= 0 && aNext < retryStrips.length) {
+                  const fromIdx = absoluteStripCoverIndex(
+                    activeCover,
+                    collectRecommendedStripCoverFocusables(activeStrip),
+                  );
+                  if (
+                    focusStripCoverAtAbsoluteIndex(retryStrips[aNext]!, fromIdx)
+                  ) {
+                    return;
+                  }
+                }
+                if (direction === "up") {
                   focusToolbarOrMenu();
                 }
               });
@@ -3507,7 +3627,9 @@ export function installSmartTvRemoteKeys(
             const mediaStripIdx = strips.findIndex((s) => s.kind === "media");
             if (mediaStripIdx >= 0 && mediaStripIdx + 1 < strips.length) {
               const fromIdx = Math.max(0, mediaItems.indexOf(mediaEl));
-              focusDetailHorizontalStrip(strips[mediaStripIdx + 1]!, fromIdx);
+              focusDetailHorizontalStrip(strips[mediaStripIdx + 1]!, fromIdx, {
+                preferTitle: true,
+              });
               return;
             }
             return;
@@ -3542,6 +3664,14 @@ export function installSmartTvRemoteKeys(
           }
           // Collection-like detail: subcollections / games grid (not similar strips).
           if (focusDetailGamesGrid("first", 0)) return;
+          // Game detail: no media / no games grid → first collection strip title.
+          const coverStrips = collectDetailHorizontalStrips().filter(
+            (s) => s.kind === "covers",
+          );
+          if (coverStrips.length > 0) {
+            focusDetailHorizontalStrip(coverStrips[0]!, 0, { preferTitle: true });
+            return;
+          }
         }
 
         // Collection-like detail: multi-column games / subcollections grids.
@@ -3626,7 +3756,9 @@ export function installSmartTvRemoteKeys(
                       (s) => s.kind === "covers",
                     );
                     if (strips.length > 0) {
-                      focusDetailHorizontalStrip(strips[0]!, 0);
+                      focusDetailHorizontalStrip(strips[0]!, 0, {
+                        preferTitle: true,
+                      });
                     }
                   }
                 }
@@ -3654,7 +3786,7 @@ export function installSmartTvRemoteKeys(
                 (s) => s.kind === "covers",
               );
               if (strips.length > 0) {
-                focusDetailHorizontalStrip(strips[0]!, 0);
+                focusDetailHorizontalStrip(strips[0]!, 0, { preferTitle: true });
                 return;
               }
               return;
@@ -3664,36 +3796,85 @@ export function installSmartTvRemoteKeys(
           }
         }
 
-        // Collections / similar cover rows: L/R stay in the strip; Up/Down → neighbor strip.
+        // Collection strip title (link to collection detail): Down → covers; Up → previous strip.
+        const stripTitle = detailStripTitleFrom(current);
+        if (stripTitle) {
+          const titleStrip = detailCoverStripRootFrom(stripTitle);
+          if (titleStrip) {
+            if (direction === "left" || direction === "right") {
+              return;
+            }
+            if (direction === "down") {
+              focusStripCoverAtAbsoluteIndex(titleStrip, 0, { remember: true });
+              return;
+            }
+            if (direction === "up") {
+              const strips = collectDetailHorizontalStrips();
+              const stripIdx = strips.findIndex(
+                (s) => s.kind === "covers" && s.root === titleStrip,
+              );
+              if (stripIdx > 0) {
+                // Previous strip covers (its title is reached with Up from those covers).
+                focusDetailHorizontalStrip(strips[stripIdx - 1]!, 0);
+                return;
+              }
+              if (stripIdx === 0) {
+                const grids = collectDetailGamesGridRoots();
+                if (
+                  grids.length > 0 &&
+                  focusDetailGamesGrid("last", grids.length - 1)
+                ) {
+                  return;
+                }
+                const mediaItems = collectMediaGalleryFocusables();
+                if (mediaItems.length > 0) {
+                  focusElement(mediaItems[mediaItems.length - 1]!);
+                  return;
+                }
+                if (focusDetailLadderBottom()) return;
+                return;
+              }
+            }
+          }
+        }
+
+        // Collections / similar cover rows: L/R stay in the strip; Up → title then neighbor.
         const coverStrip = detailCoverStripRootFrom(current);
         const stripCover = coverFocusFrom(current);
         if (coverStrip && stripCover && coverStrip.contains(stripCover)) {
           const stripCovers = collectDetailCoverStripFocusables(coverStrip);
           if (stripCovers.length > 0) {
             if (direction === "left" || direction === "right") {
-              const idx = stripCovers.indexOf(stripCover);
-              const safeIdx = idx >= 0 ? idx : 0;
-              const nextIdx =
-                direction === "right"
-                  ? Math.min(stripCovers.length - 1, safeIdx + 1)
-                  : Math.max(0, safeIdx - 1);
-              const nextCover = stripCovers[nextIdx];
-              if (nextCover && nextCover !== stripCover) {
-                focusElement(nextCover);
+              if (
+                moveFocusInHorizontalCoverStrip(
+                  coverStrip,
+                  stripCover,
+                  direction,
+                  collectDetailCoverStripFocusables,
+                )
+              ) {
                 return;
               }
-              return;
             }
             if (direction === "up" || direction === "down") {
+              if (direction === "up") {
+                const title = detailStripTitleFocusable(coverStrip);
+                if (title) {
+                  focusElement(title);
+                  return;
+                }
+              }
               const strips = collectDetailHorizontalStrips();
               const stripIdx = strips.findIndex(
                 (s) => s.kind === "covers" && s.root === coverStrip,
               );
               if (stripIdx >= 0) {
-                const fromIdx = Math.max(0, stripCovers.indexOf(stripCover));
+                const fromIdx = absoluteStripCoverIndex(stripCover, stripCovers);
                 const targetIdx = direction === "up" ? stripIdx - 1 : stripIdx + 1;
                 if (targetIdx >= 0 && targetIdx < strips.length) {
-                  focusDetailHorizontalStrip(strips[targetIdx]!, fromIdx);
+                  focusDetailHorizontalStrip(strips[targetIdx]!, fromIdx, {
+                    preferTitle: direction === "down",
+                  });
                   return;
                 }
                 if (direction === "up") {
@@ -3928,6 +4109,7 @@ export function installSmartTvRemoteKeys(
 
   return () => {
     focusActiveUiLayerImpl = null;
+    rememberCoverFocusFromStrip = null;
     window.removeEventListener("keydown", onKeyDown, true);
     window.removeEventListener("keyup", onKeyUp, true);
     window.removeEventListener("focusin", onFocusIn, true);
