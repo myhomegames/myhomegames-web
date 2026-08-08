@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Grid } from "react-window";
 import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
@@ -120,10 +120,10 @@ function readStripScalePadPx(coverSize: number): number {
 }
 
 /**
- * Stable cell renderer — an inline Cell identity remounts every strip re-render
- * and drops D-pad focus once react-window recycles past the first window.
+ * Stable cell renderer — must stay module-scoped (not inline) so strip re-renders
+ * do not remount covers and drop D-pad focus past the first virtualization window.
  */
-const StripCell = memo(function StripCell({
+function StripCell({
   columnIndex,
   style,
   games,
@@ -222,7 +222,7 @@ const StripCell = memo(function StripCell({
       </div>
     </div>
   );
-});
+}
 
 /**
  * Single-row react-window Grid for horizontal cover rails (Recommended, detail
