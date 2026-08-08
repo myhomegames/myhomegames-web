@@ -1853,6 +1853,7 @@ function LibraryItemDetailContent({
             contextRailLayout ? contextRailDockActions : beforeMainGamesTopActions
           }
           hideBackgroundToggle={showTopBarBackgroundAction || detailTogglesBesidePlay}
+          showDetailBackButton={activeSkinWeb.phoneDetailBackBesideBackground}
           rightActions={contextRailLayout ? null : compactTopActions}
         />
       </div>
