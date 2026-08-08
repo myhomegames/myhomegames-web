@@ -41,6 +41,9 @@ type RecommendedBrowseChromeProps = {
   children: ReactNode;
 };
 
+/** Delay before fanart preload while D-pad is still walking covers. */
+const FANART_PRELOAD_SETTLE_MS = 200;
+
 /**
  * Delay before fanart + ambient paint. Must be ≥ Plex TV cover scale transition
  * (`transform 0.2s` on `.games-list-item--cover-sized`) so blur/decode never
@@ -151,15 +154,21 @@ export default function RecommendedBrowseChrome({
       }
     };
 
+    let preloadTimer = 0;
+
     const onFocusIn = (e: FocusEvent) => {
       const game = resolveGameFromTarget(e.target);
       if (!game) return;
       // Selection is DOM focus + TV hover mirror — never gate it on fanart.
       // Defer React summary work so the cover scale transition can commit first.
       startTransition(() => setPreviewGame(game));
-      const url = buildBackgroundUrl(API_BASE, game.background);
-      if (url) preloadBackgroundUrl(url, { priority: true });
-      window.requestAnimationFrame(() => preloadNeighbors(game));
+      // Do not preload while D-pad is still walking — only after focus settles.
+      window.clearTimeout(preloadTimer);
+      preloadTimer = window.setTimeout(() => {
+        const url = buildBackgroundUrl(API_BASE, game.background);
+        if (url) preloadBackgroundUrl(url, { priority: true });
+        preloadNeighbors(game);
+      }, FANART_PRELOAD_SETTLE_MS);
     };
 
     root.addEventListener("focusin", onFocusIn);
@@ -185,6 +194,7 @@ export default function RecommendedBrowseChrome({
     return () => {
       root.removeEventListener("focusin", onFocusIn);
       window.clearTimeout(focusTimer);
+      window.clearTimeout(preloadTimer);
     };
   }, [isReady, scrollContainerRef, sectionsRef]);
 
