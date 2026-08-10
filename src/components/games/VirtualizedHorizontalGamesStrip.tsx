@@ -168,6 +168,9 @@ function StripCell({
     return <div style={style} />;
   }
   const game = games[columnIndex]!;
+  // First column is wider by scalePadPx; pad left so scale(1.14) / outline are not
+  // clipped by the strip scroller (CSS padding on the Grid does not inset abs cells).
+  const leftInset = columnIndex === 0 && scalePadPx > 0 ? scalePadPx : 0;
   return (
     <div
       style={style}
@@ -177,8 +180,13 @@ function StripCell({
       <div
         className="virtualized-horizontal-games-strip-cell-pad"
         style={
-          scalePadPx > 0
-            ? { paddingTop: scalePadPx, paddingBottom: scalePadPx }
+          scalePadPx > 0 || leftInset > 0
+            ? {
+                ...(scalePadPx > 0
+                  ? { paddingTop: scalePadPx, paddingBottom: scalePadPx }
+                  : null),
+                ...(leftInset > 0 ? { paddingLeft: leftInset } : null),
+              }
             : undefined
         }
       >
@@ -264,11 +272,33 @@ export default function VirtualizedHorizontalGamesStrip({
   const [viewportWidth, setViewportWidth] = useState(0);
   const gap = useMemo(() => readStripGapPx(), []);
   const scalePadPx = useMemo(() => readStripScalePadPx(coverSize), [coverSize]);
-  const columnWidth = coverSize + gap;
+  /** Base step between covers (cover + gap). Edge columns grow by scalePadPx. */
+  const baseColumnWidth = coverSize + gap;
   const rowHeight =
     portraitCoverHeight(coverSize) + GRID_COVER_TITLE_BLOCK_HEIGHT + scalePadPx * 2;
   const overscanCount = isSmartTvBrowser() ? OVERSCAN_COUNT_TV : OVERSCAN_COUNT;
   const focusedIndexRef = useRef<number | null>(null);
+
+  const columnWidthForIndex = useCallback(
+    (index: number) => {
+      let width = baseColumnWidth;
+      if (scalePadPx > 0) {
+        if (index === 0) width += scalePadPx;
+        if (index === games.length - 1) width += scalePadPx;
+      }
+      return width;
+    },
+    [baseColumnWidth, games.length, scalePadPx],
+  );
+
+  const columnOffset = useCallback(
+    (index: number) => {
+      let offset = 0;
+      for (let i = 0; i < index; i++) offset += columnWidthForIndex(i);
+      return offset;
+    },
+    [columnWidthForIndex],
+  );
 
   const measure = useCallback(() => {
     const el = containerRef.current;
@@ -306,11 +336,11 @@ export default function VirtualizedHorizontalGamesStrip({
       } catch {
         const el = grid.element as HTMLElement | null | undefined;
         if (el) {
-          el.scrollLeft = Math.max(0, clamped * columnWidth);
+          el.scrollLeft = Math.max(0, columnOffset(clamped));
         }
       }
     },
-    [columnWidth, games.length],
+    [columnOffset, games.length],
   );
 
   // Expose grid scroller + imperative index API on the section scroll host.
@@ -449,7 +479,7 @@ export default function VirtualizedHorizontalGamesStrip({
       gridRef={gridRef}
       className="virtualized-horizontal-games-strip"
       columnCount={games.length}
-      columnWidth={columnWidth}
+      columnWidth={columnWidthForIndex}
       rowCount={1}
       rowHeight={rowHeight}
       defaultHeight={rowHeight}
