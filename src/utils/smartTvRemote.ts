@@ -1493,19 +1493,38 @@ function queryStripCoverAtIndex(
   const cell = strip.querySelector(
     `[data-mhg-strip-index="${index}"]`,
   ) as HTMLElement | null;
-  if (!cell) return null;
-  const cover = cell.querySelector<HTMLElement>(
-    ".games-list-cover[role='button'], .games-list-cover[tabindex]",
-  );
-  if (!cover || !isVisible(cover) || cover.closest("[inert]") || cover.hasAttribute("disabled")) {
-    return null;
+  if (cell) {
+    const cover = cell.querySelector<HTMLElement>(
+      ".games-list-cover[role='button'], .games-list-cover[tabindex]",
+    );
+    if (
+      cover &&
+      isVisible(cover) &&
+      !cover.closest("[inert]") &&
+      !cover.hasAttribute("disabled")
+    ) {
+      return cover;
+    }
   }
-  return cover;
+
+  // Non-virtualized strips (typical on game detail: ≤8 games) have no
+  // data-mhg-strip-index — all covers are already mounted in the DOM.
+  const mounted = Array.from(
+    strip.querySelectorAll<HTMLElement>(
+      ".games-list-cover[role='button'], .games-list-cover[tabindex]",
+    ),
+  ).filter(
+    (el) => isVisible(el) && !el.closest("[inert]") && !el.hasAttribute("disabled"),
+  );
+  if (mounted.length === 0) return null;
+  const clamped = Math.max(0, Math.min(mounted.length - 1, index));
+  return mounted[clamped] ?? null;
 }
 
 /**
  * Focus cover at absolute strip index. Scrolls the virtualized Grid first when
- * the cell is not mounted yet (past the first overscan window).
+ * the cell is not mounted yet (past the first overscan window). Falls back to
+ * mounted covers when the strip is not virtualized.
  */
 function focusStripCoverAtAbsoluteIndex(
   strip: HTMLElement,
@@ -1533,9 +1552,12 @@ function focusStripCoverAtAbsoluteIndex(
     return true;
   }
 
-  if (typeof host?.__mhgStripScrollToIndex === "function") {
-    host.__mhgStripScrollToIndex(clamped, "smart");
+  // Only virtualized hosts need scroll-then-retry; plain strips already failed above.
+  if (typeof host?.__mhgStripScrollToIndex !== "function") {
+    return false;
   }
+
+  host.__mhgStripScrollToIndex(clamped, "smart");
 
   const tryFocus = (attempt: number) => {
     const cover = queryStripCoverAtIndex(strip, clamped);
@@ -1544,8 +1566,8 @@ function focusStripCoverAtAbsoluteIndex(
       return;
     }
     if (attempt >= 8) return;
-    if (typeof host?.__mhgStripScrollToIndex === "function" && attempt === 2) {
-      host.__mhgStripScrollToIndex(clamped, "center");
+    if (attempt === 2) {
+      host.__mhgStripScrollToIndex?.(clamped, "center");
     }
     window.requestAnimationFrame(() => tryFocus(attempt + 1));
   };
@@ -1704,9 +1726,17 @@ function focusDetailHorizontalStrip(
         return;
       }
     }
-    focusStripCoverAtAbsoluteIndex(strip.root, preferredIndex, {
-      remember: true,
-    });
+    if (
+      focusStripCoverAtAbsoluteIndex(strip.root, preferredIndex, {
+        remember: true,
+      })
+    ) {
+      return;
+    }
+    const items = strip.items;
+    if (items.length === 0) return;
+    const idx = Math.min(Math.max(0, preferredIndex), items.length - 1);
+    focusElement(items[idx]!);
     return;
   }
   const items = strip.items;
@@ -3805,7 +3835,14 @@ export function installSmartTvRemoteKeys(
               return;
             }
             if (direction === "down") {
-              focusStripCoverAtAbsoluteIndex(titleStrip, 0, { remember: true });
+              if (
+                !focusStripCoverAtAbsoluteIndex(titleStrip, 0, {
+                  remember: true,
+                })
+              ) {
+                const covers = collectDetailCoverStripFocusables(titleStrip);
+                if (covers[0]) focusElement(covers[0]);
+              }
               return;
             }
             if (direction === "up") {
