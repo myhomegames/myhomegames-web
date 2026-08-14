@@ -165,21 +165,35 @@ export default function AlphabetNavigator({
     // If using virtualized grid (grid view with virtualization)
     if (actualGridRef && viewMode === "grid") {
       const grid = actualGridRef;
-      if (grid && typeof grid.scrollToCell === 'function') {
-        // Use the exact same formula as VirtualizedGamesList to avoid wrong row (e.g. T landing on E)
-        const GAP = 40;
-        const rect = container.getBoundingClientRect();
-        const dimensionsWidth = rect.width - 40;
-        const itemWidth = (coverSize || 150) + GAP;
-        const columnCount = Math.max(
-          1,
-          dimensionsWidth <= 0 ? 1 : Math.floor((dimensionsWidth + GAP) / itemWidth)
-        );
+      if (grid && typeof grid.scrollToCell === "function") {
+        // Prefer the grid's live column count (tags/library/collections gutters differ).
+        // Recomputing with a hardcoded width-40 formula over-counts columns and lands
+        // on earlier letters (e.g. T → E).
+        const storedColumnCount = Number(containerAny.__virtualizedColumnCount);
+        let columnCount =
+          Number.isFinite(storedColumnCount) && storedColumnCount > 0
+            ? Math.floor(storedColumnCount)
+            : 0;
+        if (columnCount <= 0) {
+          // Match VirtualizedTagList / VirtualizedGamesList gutters (not width-40).
+          const GAP = 40;
+          const MIN_SIDE_GUTTER = 56;
+          const rect = container.getBoundingClientRect();
+          const usableWidth = Math.max(
+            coverSize || 150,
+            rect.width - MIN_SIDE_GUTTER * 2,
+          );
+          const itemWidth = (coverSize || 150) + GAP;
+          columnCount = Math.max(
+            1,
+            usableWidth <= 0 ? 1 : Math.floor((usableWidth + GAP) / itemWidth),
+          );
+        }
         const rowCount = Math.ceil(games.length / columnCount);
 
         const rowIndex = Math.min(
           Math.floor(firstGameIndex / columnCount),
-          Math.max(0, rowCount - 1)
+          Math.max(0, rowCount - 1),
         );
         const columnIndex = Math.min(firstGameIndex % columnCount, columnCount - 1);
 
@@ -187,7 +201,11 @@ export default function AlphabetNavigator({
           grid.scrollToCell({
             rowIndex,
             columnIndex,
-            align: "start",
+            // react-window Grid uses rowAlign/columnAlign — plain `align` is ignored
+            // and defaults to "auto", which only peeks the cell at the bottom so the
+            // viewport is filled with earlier (previous-letter) titles.
+            rowAlign: "start",
+            columnAlign: "start",
             behavior: "auto",
           });
         } catch {

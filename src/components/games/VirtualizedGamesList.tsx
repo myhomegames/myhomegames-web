@@ -202,14 +202,6 @@ export default function VirtualizedGamesList({
   const lastSavedScrollRef = useRef<{ scrollTop: number; scrollLeft: number } | null>(null);
   const storageKey = `${location.pathname}:grid`;
 
-  // Expose gridRef to parent via containerRef if it's a ref object
-  useEffect(() => {
-    if (containerRef && 'current' in containerRef && containerRef.current) {
-      // Store gridRef in a data attribute or custom property for AlphabetNavigator to access
-      (containerRef.current as any).__virtualizedGridRef = gridRef;
-    }
-  }, [containerRef]);
-
   // Calculate column count based on container width
   const columnCount = useMemo(() => {
     if (forceSingleColumn) return 1;
@@ -218,6 +210,14 @@ export default function VirtualizedGamesList({
     const usableWidth = Math.max(coverSize, dimensions.width - MIN_LEFT_GUTTER - MIN_RIGHT_GUTTER);
     return Math.max(1, Math.floor((usableWidth + GAP) / itemWidthWithGap));
   }, [forceSingleColumn, dimensions.width, coverSize, GAP, MIN_LEFT_GUTTER, MIN_RIGHT_GUTTER]);
+
+  // Expose grid API for AlphabetNavigator (same column math as this grid).
+  useEffect(() => {
+    if (containerRef && "current" in containerRef && containerRef.current) {
+      (containerRef.current as any).__virtualizedGridRef = gridRef;
+      (containerRef.current as any).__virtualizedColumnCount = columnCount;
+    }
+  }, [containerRef, columnCount]);
 
   // Calculate row count
   const rowCount = useMemo(() => {
