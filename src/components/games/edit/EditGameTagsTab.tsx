@@ -1,10 +1,26 @@
-import { useState, useEffect, useId } from "react";
+import { useState, useEffect, useId, useMemo } from "react";
 import type { TFunction } from "i18next";
 import TagEditor from "../../common/TagEditor";
 import type { IdNameItem } from "./FranchiseSeriesEditor";
 import { useTagLists } from "../../../contexts/TagListsContext";
-import { API_BASE, getApiToken } from "../../../config";
+import { useLibraryGames } from "../../../contexts/LibraryGamesContext";
+import { API_BASE } from "../../../config";
 import { buildApiUrl, buildApiHeaders } from "../../../utils/api";
+
+function uniqueKeywords(values: unknown[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const value of values) {
+    if (typeof value !== "string" || !value.trim()) continue;
+    const keyword = value.trim();
+    const key = keyword.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(keyword);
+  }
+  out.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  return out;
+}
 
 /** Deterministic numeric id from name (same as server-side hash for franchise/series). */
 function hashStringToId(s: string): number {
@@ -77,6 +93,15 @@ export default function EditGameTagsTab({
   const tagInputFranchise = useId();
   const tagInputSeries = useId();
   const { tagLabels } = useTagLists();
+  const { games } = useLibraryGames();
+  const keywordsFromLibrary = useMemo(() => {
+    const collected: string[] = [];
+    for (const game of games) {
+      if (!Array.isArray(game.keywords)) continue;
+      collected.push(...game.keywords);
+    }
+    return uniqueKeywords(collected);
+  }, [games]);
   const [availableThemes, setAvailableThemes] = useState<string[]>([]);
   const [availablePlatforms, setAvailablePlatforms] = useState<string[]>([]);
   const [availableGameModes, setAvailableGameModes] = useState<string[]>([]);
@@ -102,14 +127,30 @@ export default function EditGameTagsTab({
     );
   }, [isOpen, tagLabels]);
 
-  // Keywords: not in TagListsContext, fetch when modal opens
+  // Keywords are not in TagListsContext. Seed from the loaded library (always
+  // available) and refresh from GET /keywords — do not require VITE_API_TOKEN
+  // (Cloudflare Access / optional token still authenticates the fetch).
   useEffect(() => {
-    if (!isOpen || !getApiToken()) return;
-    fetch(buildApiUrl(API_BASE, "/keywords"), { headers: buildApiHeaders({ Accept: "application/json" }) })
+    if (!isOpen) return;
+    setAvailableKeywords(keywordsFromLibrary);
+    let cancelled = false;
+    fetch(buildApiUrl(API_BASE, "/keywords"), {
+      headers: buildApiHeaders({ Accept: "application/json" }),
+    })
       .then((r) => (r.ok ? r.json() : { keywords: [] }))
-      .then((data) => setAvailableKeywords(Array.isArray(data.keywords) ? data.keywords : []))
-      .catch(() => {});
-  }, [isOpen]);
+      .then((data) => {
+        if (cancelled) return;
+        const fromApi = Array.isArray(data.keywords) ? data.keywords : [];
+        const merged = uniqueKeywords([...keywordsFromLibrary, ...fromApi]);
+        setAvailableKeywords(merged.length > 0 ? merged : keywordsFromLibrary);
+      })
+      .catch(() => {
+        if (!cancelled) setAvailableKeywords(keywordsFromLibrary);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, keywordsFromLibrary]);
 
   return (
     <>
