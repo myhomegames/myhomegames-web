@@ -9,6 +9,8 @@ import { GameListItem } from "./GamesList";
 
 /** Match plex `.scrollable-section-scroll .games-list-container { gap: 24px }`. */
 const DEFAULT_STRIP_GAP = 24;
+/** Classic `.scrollable-section-scroll { padding-right: 64px }` end gutter (non-TV). */
+const END_SCROLL_GUTTER_PX = 64;
 const OVERSCAN_COUNT = 4;
 const OVERSCAN_COUNT_TV = 8;
 
@@ -285,10 +287,14 @@ export default function VirtualizedHorizontalGamesStrip({
       if (scalePadPx > 0) {
         if (index === 0) width += scalePadPx;
         if (index === games.length - 1) width += scalePadPx;
+      } else if (index === games.length - 1) {
+        // Host padding-right is cleared for virtualized rails so it does not
+        // shrink the viewport; keep the classic end gutter in content width.
+        width += Math.max(0, END_SCROLL_GUTTER_PX - gap);
       }
       return width;
     },
-    [baseColumnWidth, games.length, scalePadPx],
+    [baseColumnWidth, games.length, gap, scalePadPx],
   );
 
   const columnOffset = useCallback(
