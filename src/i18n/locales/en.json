@@ -231,10 +231,11 @@
   "streamPlay": {
     "title": "Remote play",
     "launching": "Starting the game on your home PC…",
-    "readyHint": "Game started. Streaming the home desktop via Moonlight Web…",
+    "readyHint": "Connecting to the game via Moonlight Web (application capture)…",
     "setupHint": "Requires Sunshine on the home PC and Moonlight Web reachable over HTTPS.",
-    "launchFailed": "Failed to start the game on the home PC",
+    "launchFailed": "Failed to start remote play on the home PC",
     "noMoonlightUrl": "Moonlight Web URL is not configured on the server.",
+    "noAppStream": "Could not open the game application stream. Restart the home server and try again.",
     "sunshineUnreachable": "Sunshine does not appear to be running on the home PC. Start Sunshine, then refresh Moonlight Web.",
     "missingGame": "Missing game id",
     "iframeTitle": "Moonlight Web stream"

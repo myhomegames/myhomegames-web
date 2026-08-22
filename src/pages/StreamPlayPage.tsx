@@ -268,8 +268,8 @@ export default function StreamPlayPage() {
           setLaunchState("error");
           setError(
             t(
-              "streamPlay.noDesktopStream",
-              "Could not open the Desktop stream automatically. Restart the home server and try again.",
+              "streamPlay.noAppStream",
+              "Could not open the game application stream. Restart the home server and try again.",
             ),
           );
           return;
@@ -320,7 +320,7 @@ export default function StreamPlayPage() {
           setEmbedMode("popup");
         } else {
           // Mobile browsers often block popups; open stream.html top-level so Moonlight
-          // auto-starts Desktop instead of landing on the host/settings index.
+          // auto-starts the application stream instead of landing on the host/settings index.
           stashPendingStreamStop({
             hostId: resolvedHostId,
             gameId,
@@ -472,7 +472,7 @@ export default function StreamPlayPage() {
                   : launchState === "ready"
                     ? t(
                         "streamPlay.readyHint",
-                        "Game started. Streaming the home desktop via Moonlight Web…",
+                        "Connecting to the game via Moonlight Web (application capture)…",
                       )
                     : t(
                         "streamPlay.setupHint",

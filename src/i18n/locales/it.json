@@ -229,11 +229,12 @@
   },
   "streamPlay": {
     "title": "Gioco remoto",
-    "launching": "Avvio del gioco sul PC di casa…",
-    "readyHint": "Gioco avviato. Streaming del desktop di casa via Moonlight Web…",
+    "launching": "Preparing remote play on your home PC…",
+    "readyHint": "Connessione al gioco via Moonlight Web (cattura applicazione)…",
     "setupHint": "Richiede Sunshine sul PC di casa e Moonlight Web raggiungibile via HTTPS.",
-    "launchFailed": "Impossibile avviare il gioco sul PC di casa",
+    "launchFailed": "Impossibile avviare il gioco remoto sul PC di casa",
     "noMoonlightUrl": "URL Moonlight Web non configurato sul server.",
+    "noAppStream": "Impossibile aprire lo stream dell'applicazione. Riavvia il server di casa e riprova.",
     "sunshineUnreachable": "Sunshine non sembra in esecuzione sul PC di casa. Avvia Sunshine, poi aggiorna Moonlight Web.",
     "missingGame": "Id gioco mancante",
     "iframeTitle": "Stream Moonlight Web"
