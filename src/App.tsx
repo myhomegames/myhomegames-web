@@ -1225,6 +1225,8 @@ function GameDetailPage({
         day: found.day,
         month: found.month,
         year: found.year,
+        dateAdded: found.dateAdded ?? null,
+        dateInstalled: found.dateInstalled ?? null,
         stars: found.stars,
         genre: found.genre,
         criticratings: found.criticratings,

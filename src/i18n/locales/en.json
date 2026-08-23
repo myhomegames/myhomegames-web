@@ -21,6 +21,9 @@
     "gamesSidebar": "Games",
     "topRightToolDock": "Top tools"
   },
+  "recommended": {
+    "recentlyAdded": "Recently added"
+  },
   "settings": {
     "title": "Settings",
     "subtitle": "Configure application preferences",
@@ -138,7 +141,6 @@
         "tvDetailSummaryBeforeActions": "TV: show summary above the Play row on game detail",
         "tvRecommendedBrowsePreview": "TV: Recommended top panel updates with the focused game (through summary)",
         "tvHideAppHeader": "TV: hide app header; keep search + profile on the libraries strip",
-
         "disableTitleTooltips": "Hide tooltips"
       }
     }

@@ -63,6 +63,8 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
           day: v.day,
           month: v.month,
           year: v.year,
+          dateAdded: v.dateAdded ?? null,
+          dateInstalled: v.dateInstalled ?? null,
           stars: v.stars,
           genre: v.genre,
           criticratings: v.criticratings,

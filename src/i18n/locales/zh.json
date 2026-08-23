@@ -21,6 +21,9 @@
     "gamesSidebar": "游戏",
     "topRightToolDock": "工具栏"
   },
+  "recommended": {
+    "recentlyAdded": "最近添加"
+  },
   "settings": {
     "title": "设置",
     "subtitle": "配置应用程序偏好",

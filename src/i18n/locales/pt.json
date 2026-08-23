@@ -21,6 +21,9 @@
     "gamesSidebar": "Jogos",
     "topRightToolDock": "Ferramentas"
   },
+  "recommended": {
+    "recentlyAdded": "Adicionados recentemente"
+  },
   "settings": {
     "title": "Configurações",
     "subtitle": "Configurar preferências do aplicativo",

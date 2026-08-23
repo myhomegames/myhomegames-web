@@ -21,6 +21,9 @@
     "gamesSidebar": "ゲーム",
     "topRightToolDock": "ツールバー"
   },
+  "recommended": {
+    "recentlyAdded": "最近追加したゲーム"
+  },
   "settings": {
     "title": "設定",
     "subtitle": "アプリケーションの設定を構成",

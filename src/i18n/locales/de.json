@@ -21,6 +21,9 @@
     "gamesSidebar": "Spiele",
     "topRightToolDock": "Werkzeuge"
   },
+  "recommended": {
+    "recentlyAdded": "Zuletzt hinzugefügt"
+  },
   "settings": {
     "title": "Einstellungen",
     "subtitle": "Anwendungseinstellungen konfigurieren",
