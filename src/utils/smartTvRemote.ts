@@ -939,6 +939,54 @@ function pickNearestTvSearchResult(
   return best;
 }
 
+/**
+ * Linear grid nav for the on-screen keyboard. Rows have unequal lengths and are
+ * centered, so geometric pickNextInSet zig-zags (esp. QWERTY ↔ ASDF).
+ * L/R stay in-row; U/D keep the same column index (clamped on shorter rows).
+ */
+function pickTvSearchKeyboardKey(
+  current: HTMLElement,
+  direction: Direction,
+): HTMLElement | null {
+  if (!current.classList.contains("tv-search-keyboard-key")) return null;
+  const row = current.closest(".tv-search-keyboard-row");
+  if (!row) return null;
+  const keyboard = row.closest(".tv-search-keyboard");
+  if (!keyboard) return null;
+
+  const rows = Array.from(
+    keyboard.querySelectorAll<HTMLElement>(".tv-search-keyboard-row"),
+  );
+  const rowIndex = rows.indexOf(row as HTMLElement);
+  if (rowIndex < 0) return null;
+
+  const keysInRow = Array.from(
+    row.querySelectorAll<HTMLElement>(".tv-search-keyboard-key"),
+  ).filter((el) => isVisible(el) && !el.closest("[inert]"));
+  const colIndex = keysInRow.indexOf(current);
+  if (colIndex < 0) return null;
+
+  if (direction === "left") {
+    return colIndex > 0 ? (keysInRow[colIndex - 1] ?? null) : null;
+  }
+  if (direction === "right") {
+    return colIndex < keysInRow.length - 1
+      ? (keysInRow[colIndex + 1] ?? null)
+      : null;
+  }
+
+  const nextRowIndex = direction === "up" ? rowIndex - 1 : rowIndex + 1;
+  if (nextRowIndex < 0 || nextRowIndex >= rows.length) return null;
+  const nextRow = rows[nextRowIndex];
+  if (!nextRow) return null;
+  const nextKeys = Array.from(
+    nextRow.querySelectorAll<HTMLElement>(".tv-search-keyboard-key"),
+  ).filter((el) => isVisible(el) && !el.closest("[inert]"));
+  if (nextKeys.length === 0) return null;
+  const targetCol = Math.min(colIndex, nextKeys.length - 1);
+  return nextKeys[targetCol] ?? null;
+}
+
 function isLibraryMenuCoverGridNavMode(): boolean {
   if (isHorizontalLibraryStripMode()) return false;
   // Game / catalog / collection-like detail: LibrariesBar is still mounted, but
@@ -3095,6 +3143,24 @@ export function installSmartTvRemoteKeys(
 
         if (leftEl) {
           lastTvSearchLeftFocus = leftEl;
+          // Keyboard: DOM row/column nav (avoids zig-zag on centered unequal rows).
+          if (leftEl.classList.contains("tv-search-keyboard-key")) {
+            const nextKey = pickTvSearchKeyboardKey(leftEl, direction);
+            if (nextKey) {
+              lastTvSearchLeftFocus = nextKey;
+              focusElement(nextKey);
+              return;
+            }
+            if (direction === "right") {
+              const target = pickNearestTvSearchResult(leftEl, resultItems);
+              if (target) {
+                focusElement(target);
+                return;
+              }
+              return;
+            }
+            // Up from top row / Down from actions: leave keyboard via geometric set.
+          }
           if (direction === "right") {
             const nextLeft = pickNextInSet(leftItems, leftEl, "right");
             if (nextLeft && tvSearchLeftFocusFrom(nextLeft)) {
