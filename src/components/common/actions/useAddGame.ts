@@ -115,6 +115,7 @@ export function useAddGame({
         year: json.game?.year || catalogGame.releaseDateFull?.year || catalogGame.releaseDate || null,
         dateAdded: json.game?.dateAdded ?? null,
         dateInstalled: json.game?.dateInstalled ?? null,
+        datePlayed: json.game?.datePlayed ?? null,
         stars: json.game?.stars || null,
         genre: json.game?.genre || catalogGame.genres || null,
         criticratings: json.game?.criticratings || (catalogGame.criticRating ? catalogGame.criticRating / 10 : null),

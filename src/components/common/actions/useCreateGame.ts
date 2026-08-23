@@ -71,6 +71,7 @@ export function useCreateGame({
         year: g.year ?? null,
         dateAdded: g.dateAdded ?? null,
         dateInstalled: g.dateInstalled ?? null,
+        datePlayed: g.datePlayed ?? null,
         stars: g.stars ?? null,
         genre: g.genre ?? null,
         criticratings: g.criticratings ?? null,
