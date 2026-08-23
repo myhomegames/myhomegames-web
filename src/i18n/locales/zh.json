@@ -781,6 +781,7 @@
     "setupHint": "需要家用电脑上的 Sunshine，以及可通过 HTTPS 访问的 Moonlight Web。",
     "launchFailed": "无法在家用电脑上启动游戏",
     "noMoonlightUrl": "服务器未配置 Moonlight Web URL。",
+    "noAppStream": "无法打开游戏应用串流。请重启家用服务器后重试。",
     "sunshineUnreachable": "家用电脑上似乎未运行 Sunshine。请启动 Sunshine，然后刷新 Moonlight Web。",
     "missingGame": "缺少游戏 id",
     "iframeTitle": "Moonlight Web 串流"

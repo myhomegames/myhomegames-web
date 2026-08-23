@@ -781,6 +781,7 @@
     "setupHint": "Requer Sunshine no PC de casa e Moonlight Web acessível por HTTPS.",
     "launchFailed": "Falha ao iniciar o jogo no PC de casa",
     "noMoonlightUrl": "O URL do Moonlight Web não está configurado no servidor.",
+    "noAppStream": "Não foi possível abrir o stream da aplicação do jogo. Reinicie o servidor de casa e tente novamente.",
     "sunshineUnreachable": "O Sunshine não parece estar a correr no PC de casa. Inicie o Sunshine e depois atualize o Moonlight Web.",
     "missingGame": "Id do jogo em falta",
     "iframeTitle": "Stream Moonlight Web"

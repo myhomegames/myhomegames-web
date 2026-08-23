@@ -781,6 +781,7 @@
     "setupHint": "自宅 PC の Sunshine と、HTTPS で到達可能な Moonlight Web が必要です。",
     "launchFailed": "自宅 PC でゲームを起動できませんでした",
     "noMoonlightUrl": "サーバーに Moonlight Web URL が設定されていません。",
+    "noAppStream": "ゲームアプリケーションのストリームを開けませんでした。ホームサーバーを再起動してからもう一度お試しください。",
     "sunshineUnreachable": "自宅 PC で Sunshine が動作していないようです。Sunshine を起動してから Moonlight Web を更新してください。",
     "missingGame": "ゲーム ID がありません",
     "iframeTitle": "Moonlight Web ストリーム"
