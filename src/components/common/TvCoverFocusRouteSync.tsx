@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { isSmartTvBrowser } from "../../utils/smartTv";
+import { requestTvGameDetailPlayFocus } from "../../utils/smartTvRemote";
 import {
   peekTvCoverFocusIdentity,
   requestTvCoverFocusRestore,
@@ -15,10 +16,9 @@ function isGameOrCatalogPath(pathname: string): boolean {
 }
 
 /**
- * When SPA navigation leaves a game/catalog detail (Back, navigate(-1), …),
- * ask the Smart TV remote layer to restore the cover that opened it.
- * Complements hardware-Back-only restore so Library / collection-like work
- * the same way tags already do.
+ * Smart TV route sync for game / catalog detail:
+ * - Entering detail → focus Play (or the icon beside it).
+ * - Leaving detail → restore the cover that opened it (complements hardware Back).
  */
 export default function TvCoverFocusRouteSync() {
   const location = useLocation();
@@ -28,7 +28,17 @@ export default function TvCoverFocusRouteSync() {
     const prev = prevPathRef.current;
     prevPathRef.current = location.pathname;
     if (!isSmartTvBrowser()) return;
-    if (!isGameOrCatalogPath(prev) || isGameOrCatalogPath(location.pathname)) {
+
+    const onDetail = isGameOrCatalogPath(location.pathname);
+    const wasDetail = isGameOrCatalogPath(prev);
+
+    // Entering detail, or switching between game detail routes.
+    if (onDetail && (!wasDetail || prev !== location.pathname)) {
+      requestTvGameDetailPlayFocus();
+      return;
+    }
+
+    if (!wasDetail || onDetail) {
       return;
     }
     if (!peekTvCoverFocusIdentity()) return;

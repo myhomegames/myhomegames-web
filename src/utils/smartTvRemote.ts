@@ -391,6 +391,15 @@ export function requestSmartTvUiLayerFocus(): void {
   }
 }
 
+/** Fired when SPA navigates onto a game / catalog detail (Smart TV). */
+export const MHG_TV_GAME_DETAIL_FOCUS = "mhg:tv-game-detail-focus";
+
+/** Ask the remote layer to focus Play (or the icon beside it) on game detail. */
+export function requestTvGameDetailPlayFocus(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(MHG_TV_GAME_DETAIL_FOCUS));
+}
+
 function center(rect: DOMRect): { x: number; y: number } {
   return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
 }
@@ -401,6 +410,22 @@ function defaultChromeTarget(): HTMLElement | null {
   // Inside a sheet/modal: first focusable in that layer (not page chrome).
   if (getActiveUiLayer()) {
     return items[0] ?? null;
+  }
+  // Game / catalog detail: Play, else background toggle beside it.
+  if (isGameOrCatalogDetailPage()) {
+    const actions = collectDetailPrimaryFocusables();
+    const play =
+      actions.find(
+        (el) =>
+          el.classList.contains("game-detail-play-button") ||
+          el.classList.contains("library-item-detail-play-btn"),
+      ) ?? null;
+    if (play && items.includes(play)) return play;
+    const beside =
+      actions.find((el) => el.classList.contains("background-toggle-button")) ?? null;
+    if (beside && items.includes(beside)) return beside;
+    const bgOutside = collectDetailBackgroundFocusables()[0] ?? null;
+    if (bgOutside && items.includes(bgOutside)) return bgOutside;
   }
   // Profile: land on Disconnect tunnel (only page action) instead of the libraries tab.
   const profileAction = profilePagePrimaryAction();
@@ -1375,6 +1400,50 @@ function focusDetailLadderLevel(
   if (!target) return false;
   focusElement(target);
   return true;
+}
+
+/**
+ * On game / catalog detail: focus Play when present, otherwise the icon beside it
+ * (background toggle in the actions row).
+ */
+function focusDetailPlayOrBeside(): boolean {
+  if (!isGameOrCatalogDetailPage()) return false;
+  const items = collectDetailPrimaryFocusables();
+  const play =
+    items.find(
+      (el) =>
+        el.classList.contains("game-detail-play-button") ||
+        el.classList.contains("library-item-detail-play-btn"),
+    ) ?? null;
+  if (play) {
+    focusElement(play);
+    return true;
+  }
+  const beside =
+    items.find((el) => el.classList.contains("background-toggle-button")) ?? null;
+  if (beside) {
+    focusElement(beside);
+    return true;
+  }
+  // Fanart toggle may sit outside the actions row on some layouts.
+  const bgOutside = collectDetailBackgroundFocusables()[0] ?? null;
+  if (bgOutside) {
+    focusElement(bgOutside);
+    return true;
+  }
+  return false;
+}
+
+function isDetailPlayOrBesideFocus(el: HTMLElement | null): boolean {
+  if (!el) return false;
+  return (
+    el.classList.contains("game-detail-play-button") ||
+    el.classList.contains("library-item-detail-play-btn") ||
+    (el.classList.contains("background-toggle-button") &&
+      !!el.closest(
+        ".game-detail-actions, .catalog-game-detail-actions, .library-item-detail-actions",
+      ))
+  );
 }
 
 /** True when the header search field should use L/R to leave (detail TV ladder). */
@@ -2638,6 +2707,17 @@ export function installSmartTvRemoteKeys(
     // Cover not mounted yet after Back — don't steal focus to the libraries tab
     // (also while still on collection-like detail restoring a game cover).
     if (restoreCoverAfterBackPending && !isGameOrCatalogDetailPage()) return;
+
+    // Game / catalog detail: land on Play, else the icon beside it (fanart toggle).
+    if (isGameOrCatalogDetailPage()) {
+      const activeOnDetail = document.activeElement as HTMLElement | null;
+      if (isDetailPlayOrBesideFocus(activeOnDetail)) return;
+      zone = "chrome";
+      if (focusDetailPlayOrBeside()) return;
+      // Actions not mounted yet — wait for a later bootstrap / detail-focus retry.
+      return;
+    }
+
     const active = document.activeElement as HTMLElement | null;
     // Already on a list cover (restore won the race) — keep it.
     if (active && coverFocusFrom(active) && !isGameOrCatalogDetailPage()) {
@@ -2656,6 +2736,25 @@ export function installSmartTvRemoteKeys(
     // Don't bootstrap onto a search box — that traps the remote on some pages.
     if (active && isTextField(active)) return;
     enterChrome();
+  };
+
+  /** Retry until Play / beside-icon mounts after navigating to game detail. */
+  const scheduleGameDetailPlayFocus = () => {
+    let attempts = 0;
+    const maxAttempts = 40;
+    const tick = () => {
+      if (!isGameOrCatalogDetailPage()) return;
+      if (getActiveUiLayer()) return;
+      const active = document.activeElement as HTMLElement | null;
+      if (isDetailPlayOrBesideFocus(active)) return;
+      zone = "chrome";
+      if (focusDetailPlayOrBeside()) return;
+      attempts += 1;
+      if (attempts < maxAttempts) {
+        window.setTimeout(tick, attempts < 10 ? 50 : 100);
+      }
+    };
+    window.setTimeout(tick, 0);
   };
 
   const leaveEditable = (field: HTMLElement, direction: Direction | null) => {
@@ -4203,9 +4302,11 @@ export function installSmartTvRemoteKeys(
   const onUiLayerFocusRequest = () => requestSmartTvUiLayerFocus();
   const onExitRequested = () => requestSmartTvUiLayerFocus();
   const onRestoreCoverFocus = () => schedulePersistedCoverRestore();
+  const onGameDetailFocus = () => scheduleGameDetailPlayFocus();
   window.addEventListener("mhg:tv-ui-layer-focus-request", onUiLayerFocusRequest);
   window.addEventListener("mhg:tv-request-exit", onExitRequested);
   window.addEventListener(MHG_TV_RESTORE_COVER_FOCUS, onRestoreCoverFocus);
+  window.addEventListener(MHG_TV_GAME_DETAIL_FOCUS, onGameDetailFocus);
 
   // Initial sync (no layer → clear any leftover inert marks).
   syncBackgroundInert(getActiveUiLayer());
@@ -4220,6 +4321,7 @@ export function installSmartTvRemoteKeys(
     window.removeEventListener("mhg:tv-ui-layer-focus-request", onUiLayerFocusRequest);
     window.removeEventListener("mhg:tv-request-exit", onExitRequested);
     window.removeEventListener(MHG_TV_RESTORE_COVER_FOCUS, onRestoreCoverFocus);
+    window.removeEventListener(MHG_TV_GAME_DETAIL_FOCUS, onGameDetailFocus);
     layerObserver.disconnect();
     if (layerSyncRaf) window.cancelAnimationFrame(layerSyncRaf);
     window.clearTimeout(t1);

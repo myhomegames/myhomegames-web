@@ -730,7 +730,7 @@ function DropdownMenu({
     <button
       onClick={handleToggle}
       className="dropdown-menu-button"
-      aria-label="Menu"
+      aria-label={t("common.more", "More")}
     >
       {horizontal ? (
         <svg
@@ -763,6 +763,9 @@ function DropdownMenu({
           <circle cx="12" cy="19" r="1" />
         </svg>
       )}
+      {horizontal ? (
+        <span className="mhg-tv-action-label">{t("common.more", "More")}</span>
+      ) : null}
     </button>
   );
 
