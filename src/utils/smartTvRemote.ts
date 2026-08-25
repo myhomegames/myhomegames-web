@@ -2738,23 +2738,106 @@ export function installSmartTvRemoteKeys(
     enterChrome();
   };
 
-  /** Retry until Play / beside-icon mounts after navigating to game detail. */
+  /** Retry until Play / beside-icon mounts and stays focused after cover→detail nav. */
+  let gameDetailPlayFocusGen = 0;
+  let gameDetailPlayFocusCleanup: (() => void) | null = null;
   const scheduleGameDetailPlayFocus = () => {
+    gameDetailPlayFocusCleanup?.();
+    gameDetailPlayFocusCleanup = null;
+    const gen = ++gameDetailPlayFocusGen;
     let attempts = 0;
-    const maxAttempts = 40;
-    const tick = () => {
-      if (!isGameOrCatalogDetailPage()) return;
-      if (getActiveUiLayer()) return;
-      const active = document.activeElement as HTMLElement | null;
-      if (isDetailPlayOrBesideFocus(active)) return;
+    let settlePasses = 0;
+    const maxAttempts = 60;
+    const needSettle = 5;
+    const graceMs = 4500;
+    const graceUntil = performance.now() + graceMs;
+
+    zone = "chrome";
+
+    const stealBackFromListChrome = (el: HTMLElement | null): boolean => {
+      if (!el) return false;
+      if (isDetailPlayOrBesideFocus(el)) return false;
+      // Allow intentional ladder moves (stars / summary / header) once Play has been reached.
+      const ladder = detailLadderLevelOf(el);
+      if (ladder && ladder !== "actions") return false;
+      return !!(
+        coverFocusFrom(el) ||
+        libraryMenuFocusFrom(el) ||
+        shellActionFocusFrom(el) ||
+        toolbarFocusFrom(el) ||
+        alphabetFocusFrom(el)
+      );
+    };
+
+    const onFocusIn = (e: FocusEvent) => {
+      if (gen !== gameDetailPlayFocusGen) return;
+      if (performance.now() > graceUntil) return;
+      if (!isGameOrCatalogDetailPage() || getActiveUiLayer()) return;
+      const target = e.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (!stealBackFromListChrome(target)) return;
       zone = "chrome";
-      if (focusDetailPlayOrBeside()) return;
+      window.setTimeout(() => {
+        if (gen !== gameDetailPlayFocusGen) return;
+        if (!isGameOrCatalogDetailPage()) return;
+        focusDetailPlayOrBeside();
+      }, 0);
+    };
+    window.addEventListener("focusin", onFocusIn, true);
+
+    const tick = () => {
+      if (gen !== gameDetailPlayFocusGen) return;
+      // Path already changed but React may not have mounted `.game-detail-container` yet.
+      if (!isGameOrCatalogDetailPage()) {
+        attempts += 1;
+        if (attempts < maxAttempts && performance.now() < graceUntil) {
+          window.setTimeout(tick, 50);
+        }
+        return;
+      }
+      if (getActiveUiLayer()) {
+        attempts += 1;
+        if (attempts < maxAttempts && performance.now() < graceUntil) {
+          window.setTimeout(tick, 100);
+        }
+        return;
+      }
+
+      zone = "chrome";
+      const active = document.activeElement as HTMLElement | null;
+      if (isDetailPlayOrBesideFocus(active)) {
+        settlePasses += 1;
+        if (settlePasses >= needSettle) return;
+        window.setTimeout(tick, 50);
+        return;
+      }
+
+      settlePasses = 0;
+      if (focusDetailPlayOrBeside()) {
+        window.setTimeout(tick, 50);
+        return;
+      }
+
       attempts += 1;
-      if (attempts < maxAttempts) {
-        window.setTimeout(tick, attempts < 10 ? 50 : 100);
+      if (attempts < maxAttempts && performance.now() < graceUntil) {
+        window.setTimeout(tick, attempts < 15 ? 50 : 100);
       }
     };
+
     window.setTimeout(tick, 0);
+    // Second wave after React paints the detail shell (cover click remounts slowly).
+    window.setTimeout(tick, 100);
+    window.setTimeout(tick, 300);
+    window.setTimeout(tick, 700);
+
+    const graceTimer = window.setTimeout(() => {
+      window.removeEventListener("focusin", onFocusIn, true);
+    }, graceMs + 200);
+
+    gameDetailPlayFocusCleanup = () => {
+      window.removeEventListener("focusin", onFocusIn, true);
+      window.clearTimeout(graceTimer);
+    };
   };
 
   const leaveEditable = (field: HTMLElement, direction: Direction | null) => {
@@ -4322,6 +4405,9 @@ export function installSmartTvRemoteKeys(
     window.removeEventListener("mhg:tv-request-exit", onExitRequested);
     window.removeEventListener(MHG_TV_RESTORE_COVER_FOCUS, onRestoreCoverFocus);
     window.removeEventListener(MHG_TV_GAME_DETAIL_FOCUS, onGameDetailFocus);
+    gameDetailPlayFocusCleanup?.();
+    gameDetailPlayFocusCleanup = null;
+    gameDetailPlayFocusGen += 1;
     layerObserver.disconnect();
     if (layerSyncRaf) window.cancelAnimationFrame(layerSyncRaf);
     window.clearTimeout(t1);
