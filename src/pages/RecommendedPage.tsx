@@ -16,6 +16,7 @@ import { buildApiHeaders, buildAppApiUrl, buildBackgroundUrl } from "../utils/ap
 import { API_BASE } from "../config";
 import { isSmartTvBrowser } from "../utils/smartTv";
 import { buildCatalogApiUrl } from "../utils/catalogApi";
+import { gameItemToCatalogSeed } from "../utils/catalogGameSeed";
 import {
   collectGameBackgroundUrls,
   preloadBackgroundUrls,
@@ -156,7 +157,9 @@ export default function RecommendedPage({
       setRecommendedSectionsCache(sections);
       markRecommendedReturnFromGame();
       if (catalogSearchEnabled && (game as GameItem & { isCatalogOnly?: boolean }).isCatalogOnly) {
-        navigate(`/catalog-game/${game.id}`);
+        navigate(`/catalog-game/${game.id}`, {
+          state: { gameData: gameItemToCatalogSeed(game) },
+        });
       } else {
         onGameClick(game);
       }

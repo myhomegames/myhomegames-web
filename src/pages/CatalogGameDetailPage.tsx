@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Cover from "../components/games/Cover";
 import Summary from "../components/common/Summary";
@@ -26,13 +26,26 @@ import { formatCatalogGameDate } from "../utils/date";
 import { displayGameType, toGameTypeId } from "../utils/gameType";
 import type { TFunction } from "i18next";
 import { isSmartTvBrowser } from "../utils/smartTv";
+
+function catalogGameFromRouteState(raw: unknown): CatalogGame | null {
+  if (!raw || typeof raw !== "object") return null;
+  const game = raw as Partial<CatalogGame>;
+  if (game.id == null || !game.name) return null;
+  return game as CatalogGame;
+}
+
 export default function CatalogGameDetailPage() {
   const { t, i18n } = useTranslation();
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { isLoading, setLoading } = useLoading();
   const { activeSkinWeb } = useSkin();
-  const [game, setGame] = useState<CatalogGame | null>(null);
+  const [game, setGame] = useState<CatalogGame | null>(() =>
+    catalogGameFromRouteState(
+      (location.state as { gameData?: unknown } | null)?.gameData,
+    ),
+  );
   
   const addGame = useAddGame({
     onGameAdded: (addedGame) => {
@@ -49,11 +62,11 @@ export default function CatalogGameDetailPage() {
     },
   });
 
-  const fetchCatalogGame = useCallback(async (gameId: number) => {
+  const fetchCatalogGame = useCallback(async (id: number) => {
     setLoading(true);
     try {
       // Fetch game details with high-res cover from dedicated endpoint
-      const url = buildCatalogApiUrl(`/igdb/game/${gameId}`);
+      const url = buildCatalogApiUrl(`/igdb/game/${id}`);
       const res = await fetch(url, {
         headers: buildApiHeaders({ Accept: "application/json" }),
       });
@@ -69,7 +82,7 @@ export default function CatalogGameDetailPage() {
       const foundGame = await res.json();
 
       if (!foundGame) {
-        setGame(null);
+        setGame((prev) => (prev && prev.id === id ? prev : null));
         return;
       }
 
@@ -77,19 +90,30 @@ export default function CatalogGameDetailPage() {
     } catch (err: any) {
       const errorMessage = String(err.message || err);
       console.error("Error fetching IGDB game:", errorMessage);
-      setGame(null);
+      // Keep route-state seed (already localized summary) if enrich fails.
+      setGame((prev) => (prev && prev.id === id ? prev : null));
     } finally {
       setLoading(false);
     }
   }, [setLoading]);
 
   useEffect(() => {
-    // Always fetch game details with high-res cover from dedicated endpoint
-    // This ensures we get the high-resolution cover even if game data was passed via state
+    const seeded = catalogGameFromRouteState(
+      (location.state as { gameData?: unknown } | null)?.gameData,
+    );
+    if (seeded && String(seeded.id) === String(gameId)) {
+      setGame(seeded);
+    } else {
+      setGame((prev) =>
+        prev && String(prev.id) === String(gameId) ? prev : null,
+      );
+    }
+
+    // Always fetch full details (hi-res cover, etc.); seed shows translated summary immediately.
     if (gameId) {
       fetchCatalogGame(parseInt(gameId, 10));
     }
-  }, [gameId, fetchCatalogGame]);
+  }, [gameId, location.state, fetchCatalogGame]);
 
   async function handleMarkAsOwned() {
     if (!game) return;

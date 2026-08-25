@@ -4,6 +4,7 @@
 
 import { getApiBase, getApiToken } from "../config";
 import { bulkMetadataReloadRequestHeaders } from "./bulkMetadataReloadContext";
+import i18n from "../i18n/config";
 
 /**
  * Builds an API URL with optional query parameters
@@ -46,9 +47,14 @@ export function buildApiHeaders(additionalHeaders: Record<string, string> = {}):
   }
 
   try {
-    const language = localStorage.getItem("language");
-    if (language && language.trim()) {
-      headers["Accept-Language"] = language.trim();
+    // Prefer the live UI language so IGDB translations match the selected locale
+    // even before settings finish syncing into localStorage.
+    let language = String(i18n.language || "").trim();
+    if (!language) {
+      language = String(localStorage.getItem("language") || "").trim();
+    }
+    if (language) {
+      headers["Accept-Language"] = language.split(/[-_]/)[0] || language;
     }
   } catch {
     // Ignore storage access errors
