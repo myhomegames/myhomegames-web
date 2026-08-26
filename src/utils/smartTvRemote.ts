@@ -391,10 +391,10 @@ export function requestSmartTvUiLayerFocus(): void {
   }
 }
 
-/** Fired when SPA navigates onto a game / catalog detail (Smart TV). */
+/** Fired when SPA navigates onto a game / catalog / collection-like detail (Smart TV). */
 export const MHG_TV_GAME_DETAIL_FOCUS = "mhg:tv-game-detail-focus";
 
-/** Ask the remote layer to focus Play (or the icon beside it) on game detail. */
+/** Ask the remote layer to focus Play (or the icon beside it) on detail pages. */
 export function requestTvGameDetailPlayFocus(): void {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent(MHG_TV_GAME_DETAIL_FOCUS));
@@ -411,8 +411,8 @@ function defaultChromeTarget(): HTMLElement | null {
   if (getActiveUiLayer()) {
     return items[0] ?? null;
   }
-  // Game / catalog detail: Play, else background toggle beside it.
-  if (isGameOrCatalogDetailPage()) {
+  // Game / catalog / collection-like detail: Play, else background toggle beside it.
+  if (isItemDetailPage()) {
     const actions = collectDetailPrimaryFocusables();
     const play =
       actions.find(
@@ -1403,22 +1403,28 @@ function focusDetailLadderLevel(
 }
 
 /**
- * On game / catalog detail: focus Play when present, otherwise the icon beside it
- * (background toggle in the actions row).
+ * On game / catalog / collection-like detail: focus Play when present, otherwise
+ * the icon beside it (background toggle in the actions row).
  */
-function focusDetailPlayOrBeside(): boolean {
-  if (!isGameOrCatalogDetailPage()) return false;
-  const items = collectDetailPrimaryFocusables();
-  const play =
-    items.find(
+function findDetailPlayButton(): HTMLElement | null {
+  if (!isItemDetailPage()) return null;
+  return (
+    collectDetailPrimaryFocusables().find(
       (el) =>
         el.classList.contains("game-detail-play-button") ||
         el.classList.contains("library-item-detail-play-btn"),
-    ) ?? null;
+    ) ?? null
+  );
+}
+
+function focusDetailPlayOrBeside(): boolean {
+  if (!isItemDetailPage()) return false;
+  const play = findDetailPlayButton();
   if (play) {
     focusElement(play);
     return true;
   }
+  const items = collectDetailPrimaryFocusables();
   const beside =
     items.find((el) => el.classList.contains("background-toggle-button")) ?? null;
   if (beside) {
@@ -1444,6 +1450,14 @@ function isDetailPlayOrBesideFocus(el: HTMLElement | null): boolean {
         ".game-detail-actions, .catalog-game-detail-actions, .library-item-detail-actions",
       ))
   );
+}
+
+/** Preferred landing control: Play when mounted, otherwise the icon beside it. */
+function isDetailLandingActionFocus(el: HTMLElement | null): boolean {
+  if (!el) return false;
+  const play = findDetailPlayButton();
+  if (play) return el === play || play.contains(el);
+  return isDetailPlayOrBesideFocus(el);
 }
 
 /** True when the header search field should use L/R to leave (detail TV ladder). */
@@ -2708,10 +2722,10 @@ export function installSmartTvRemoteKeys(
     // (also while still on collection-like detail restoring a game cover).
     if (restoreCoverAfterBackPending && !isGameOrCatalogDetailPage()) return;
 
-    // Game / catalog detail: land on Play, else the icon beside it (fanart toggle).
-    if (isGameOrCatalogDetailPage()) {
+    // Game / catalog / collection-like detail: land on Play, else the icon beside it.
+    if (isItemDetailPage()) {
       const activeOnDetail = document.activeElement as HTMLElement | null;
-      if (isDetailPlayOrBesideFocus(activeOnDetail)) return;
+      if (isDetailLandingActionFocus(activeOnDetail)) return;
       zone = "chrome";
       if (focusDetailPlayOrBeside()) return;
       // Actions not mounted yet — wait for a later bootstrap / detail-focus retry.
@@ -2720,7 +2734,7 @@ export function installSmartTvRemoteKeys(
 
     const active = document.activeElement as HTMLElement | null;
     // Already on a list cover (restore won the race) — keep it.
-    if (active && coverFocusFrom(active) && !isGameOrCatalogDetailPage()) {
+    if (active && coverFocusFrom(active) && !isItemDetailPage()) {
       rememberCoverFocus(active);
       return;
     }
@@ -2756,10 +2770,12 @@ export function installSmartTvRemoteKeys(
 
     const stealBackFromListChrome = (el: HTMLElement | null): boolean => {
       if (!el) return false;
+      // Play / beside are valid action-row targets — never yank between them.
       if (isDetailPlayOrBesideFocus(el)) return false;
-      // Allow intentional ladder moves (stars / summary / header) once Play has been reached.
+      // Allow intentional ladder moves (stars / summary / header / main-games).
       const ladder = detailLadderLevelOf(el);
       if (ladder && ladder !== "actions") return false;
+      if (ladder === "actions") return false;
       return !!(
         coverFocusFrom(el) ||
         libraryMenuFocusFrom(el) ||
@@ -2772,14 +2788,17 @@ export function installSmartTvRemoteKeys(
     const onFocusIn = (e: FocusEvent) => {
       if (gen !== gameDetailPlayFocusGen) return;
       if (performance.now() > graceUntil) return;
-      if (!isGameOrCatalogDetailPage() || getActiveUiLayer()) return;
+      // Hardware Back restoring a cover onto collection-like — don't steal Play.
+      if (restoreCoverAfterBackPending && !isGameOrCatalogDetailPage()) return;
+      if (!isItemDetailPage() || getActiveUiLayer()) return;
       const target = e.target;
       if (!(target instanceof HTMLElement)) return;
       if (!stealBackFromListChrome(target)) return;
       zone = "chrome";
       window.setTimeout(() => {
         if (gen !== gameDetailPlayFocusGen) return;
-        if (!isGameOrCatalogDetailPage()) return;
+        if (restoreCoverAfterBackPending && !isGameOrCatalogDetailPage()) return;
+        if (!isItemDetailPage()) return;
         focusDetailPlayOrBeside();
       }, 0);
     };
@@ -2787,8 +2806,12 @@ export function installSmartTvRemoteKeys(
 
     const tick = () => {
       if (gen !== gameDetailPlayFocusGen) return;
-      // Path already changed but React may not have mounted `.game-detail-container` yet.
-      if (!isGameOrCatalogDetailPage()) {
+      // Hardware Back is restoring a cover onto collection-like / list — abort.
+      if (restoreCoverAfterBackPending && !isGameOrCatalogDetailPage()) {
+        return;
+      }
+      // Path already changed but React may not have mounted the detail shell yet.
+      if (!isItemDetailPage()) {
         attempts += 1;
         if (attempts < maxAttempts && performance.now() < graceUntil) {
           window.setTimeout(tick, 50);
@@ -2805,17 +2828,30 @@ export function installSmartTvRemoteKeys(
 
       zone = "chrome";
       const active = document.activeElement as HTMLElement | null;
-      if (isDetailPlayOrBesideFocus(active)) {
-        settlePasses += 1;
-        if (settlePasses >= needSettle) return;
+      const play = findDetailPlayButton();
+
+      // Prefer Play whenever it mounts (collection Play often appears after games load).
+      if (play) {
+        if (active === play || play.contains(active)) {
+          settlePasses += 1;
+          if (settlePasses >= needSettle) {
+            // Landing done — stop yanking focus so the user can leave Play freely.
+            window.removeEventListener("focusin", onFocusIn, true);
+            return;
+          }
+          window.setTimeout(tick, 50);
+          return;
+        }
+        settlePasses = 0;
+        focusElement(play);
         window.setTimeout(tick, 50);
         return;
       }
 
+      // No Play yet — park on beside temporarily, but keep retrying until grace ends.
       settlePasses = 0;
-      if (focusDetailPlayOrBeside()) {
-        window.setTimeout(tick, 50);
-        return;
+      if (!isDetailPlayOrBesideFocus(active)) {
+        focusDetailPlayOrBeside();
       }
 
       attempts += 1;

@@ -1946,10 +1946,16 @@ function LibraryItemDetailContent({
                                       if (g) onPlay(g);
                                     }}
                                   >
-                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                                    <svg
+                                      width="28"
+                                      height="28"
+                                      viewBox="0 0 24 24"
+                                      fill="currentColor"
+                                      className="library-item-detail-play-btn-icon"
+                                    >
                                       <path d="M8 5v14l11-7z" />
                                     </svg>
-                                    {t("common.play")}
+                                    <span className="mhg-tv-action-label">{t("common.play")}</span>
                                   </button>
                                 )}
                                 {detailTogglesBesidePlay && hasBackground ? (

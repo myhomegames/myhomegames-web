@@ -39,6 +39,9 @@ export default function MainGamesToggle({
             />
           </svg>
         </span>
+        <span className="mhg-tv-action-label">
+          {mainGamesOnly ? t("tagGames.showAllGameTypes") : t("tagGames.mainGamesOnly")}
+        </span>
       </button>
     </Tooltip>
   );
