@@ -1636,6 +1636,9 @@ function queryStripCoverAtIndex(
     ) {
       return cover;
     }
+    // Slot exists (e.g. detail-current game) but is not focusable — do not remap
+    // via the mounted-only fallback below (indices would be wrong).
+    return null;
   }
 
   // Non-virtualized strips (typical on game detail: ≤8 games) have no
@@ -1650,6 +1653,55 @@ function queryStripCoverAtIndex(
   if (mounted.length === 0) return null;
   const clamped = Math.max(0, Math.min(mounted.length - 1, index));
   return mounted[clamped] ?? null;
+}
+
+function stripColumnCount(
+  strip: HTMLElement,
+  mountedCovers: HTMLElement[],
+): number {
+  const host = horizontalStripScrollHostFrom(strip);
+  if (
+    typeof host?.__mhgStripColumnCount === "number" &&
+    host.__mhgStripColumnCount > 0
+  ) {
+    return host.__mhgStripColumnCount;
+  }
+  return mountedCovers.length;
+}
+
+/** Skip detail-current / non-focusable slots (e.g. the open game in a collection rail). */
+function findAdjacentFocusableStripIndex(
+  strip: HTMLElement,
+  fromIndex: number,
+  direction: "left" | "right",
+  columnCount: number,
+): number | null {
+  const step = direction === "right" ? 1 : -1;
+  let idx = fromIndex;
+  for (let n = 0; n < columnCount; n++) {
+    idx += step;
+    if (idx < 0 || idx >= columnCount) return null;
+    if (queryStripCoverAtIndex(strip, idx)) return idx;
+  }
+  return null;
+}
+
+/** When the preferred column is not focusable, pick the nearest focusable neighbor. */
+function findNearestFocusableStripIndex(
+  strip: HTMLElement,
+  preferredIndex: number,
+  columnCount: number,
+): number | null {
+  if (columnCount <= 0) return null;
+  const clamped = Math.max(0, Math.min(columnCount - 1, preferredIndex));
+  if (queryStripCoverAtIndex(strip, clamped)) return clamped;
+  for (let delta = 1; delta < columnCount; delta++) {
+    const right = clamped + delta;
+    if (right < columnCount && queryStripCoverAtIndex(strip, right)) return right;
+    const left = clamped - delta;
+    if (left >= 0 && queryStripCoverAtIndex(strip, left)) return left;
+  }
+  return null;
 }
 
 /**
@@ -1714,19 +1766,17 @@ function moveFocusInHorizontalCoverStrip(
   collectMounted: (strip: HTMLElement) => HTMLElement[],
 ): boolean {
   const mounted = collectMounted(strip);
-  const host = horizontalStripScrollHostFrom(strip);
-  const columnCount =
-    typeof host?.__mhgStripColumnCount === "number" && host.__mhgStripColumnCount > 0
-      ? host.__mhgStripColumnCount
-      : mounted.length;
+  const columnCount = stripColumnCount(strip, mounted);
   if (columnCount <= 0) return false;
 
   const currentIdx = absoluteStripCoverIndex(coverEl, mounted);
-  const nextIdx =
-    direction === "right"
-      ? Math.min(columnCount - 1, currentIdx + 1)
-      : Math.max(0, currentIdx - 1);
-  if (nextIdx === currentIdx) return true; // consumed — stay at strip end
+  const nextIdx = findAdjacentFocusableStripIndex(
+    strip,
+    currentIdx,
+    direction,
+    columnCount,
+  );
+  if (nextIdx == null) return true; // consumed — stay at strip end
 
   return focusStripCoverAtAbsoluteIndex(strip, nextIdx);
 }
@@ -1857,8 +1907,13 @@ function focusDetailHorizontalStrip(
         return;
       }
     }
+    const mounted = collectDetailCoverStripFocusables(strip.root);
+    const columnCount = stripColumnCount(strip.root, mounted);
+    const resolved =
+      findNearestFocusableStripIndex(strip.root, preferredIndex, columnCount) ??
+      preferredIndex;
     if (
-      focusStripCoverAtAbsoluteIndex(strip.root, preferredIndex, {
+      focusStripCoverAtAbsoluteIndex(strip.root, resolved, {
         remember: true,
       })
     ) {
