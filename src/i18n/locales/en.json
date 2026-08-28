@@ -136,14 +136,19 @@
         "fixedFocalStepSound": "Navigation sound",
         "autoShowBackgroundOnSelection": "Show background on focal selection",
         "detailBackdropLayout": "Game detail backdrop layout (skin CSS)",
+        "tvDetailBackdropAmbient": "Ambient blur and cropped hero on detail backgrounds",
         "staticInlineTagListOnTvPhone": "Non-clickable inline tags on TV and phone",
-        "tvSummaryOverlay": "TV: open summary in full-screen overlay",
-        "tvStarRatingOverlay": "TV: open star rating in full-screen overlay",
-        "tvDetailSummaryBeforeActions": "TV: show summary above the Play row on game detail",
-        "tvRecommendedBrowsePreview": "TV: Recommended top panel updates with the focused game (through summary)",
-        "tvHideAppHeader": "TV: hide app header; keep search + profile on the libraries strip",
+        "tvSummaryOverlay": "Open summary in full-screen overlay",
+        "tvStarRatingOverlay": "Open star rating in full-screen overlay",
+        "tvDetailSummaryBeforeActions": "Show summary above the Play row on game detail",
+        "tvRecommendedBrowsePreview": "Recommended top panel updates with the focused game (through summary)",
+        "tvHideAppHeader": "Hide app header; keep search + profile on the libraries strip",
         "disableTitleTooltips": "Hide tooltips"
       }
+    },
+    "skinTvOptions": {
+      "title": "Smart TV",
+      "description": "Options that apply on Smart TV (Tizen, webOS, Android TV, etc.)."
     }
   },
   "tags": {

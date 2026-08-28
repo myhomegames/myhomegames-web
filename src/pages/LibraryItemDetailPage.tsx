@@ -955,6 +955,7 @@ export default function LibraryItemDetailPage({
       elementId={backgroundStateKey}
       autoShowWhenAvailable={activeSkinWeb.autoShowBackgroundOnSelection}
       detailBackdrop={activeSkinWeb.detailBackdropLayout}
+      tvDetailBackdropAmbient={activeSkinWeb.tvDetailBackdropAmbient}
     >
       <LibraryItemDetailContent
         item={item}

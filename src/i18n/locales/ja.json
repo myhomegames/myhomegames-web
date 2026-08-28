@@ -105,15 +105,20 @@
         "fixedFocalStepSound": "ナビゲーション音",
         "autoShowBackgroundOnSelection": "フォーカス選択時に背景を表示",
         "detailBackdropLayout": "ゲーム詳細の背景レイアウト（スキン CSS）",
+        "tvDetailBackdropAmbient": "詳細背景の環境ぼかしとトリミングヒーロー",
         "staticInlineTagListOnTvPhone": "TV・スマホではインラインタグをクリック不可",
-        "tvSummaryOverlay": "TV: 概要を全画面オーバーレイで開く",
-        "tvStarRatingOverlay": "TV: 星評価を全画面オーバーレイで開く",
-        "tvDetailSummaryBeforeActions": "TV: ゲーム詳細で Play 行の上に概要を表示",
-        "tvRecommendedBrowsePreview": "TV: おすすめ上部パネルがフォーカス中のゲームに合わせて更新（概要まで）",
-        "tvHideAppHeader": "TV: アプリヘッダーを非表示（検索とプロフィールはライブラリバーに残す）",
+        "tvSummaryOverlay": "概要を全画面オーバーレイで開く",
+        "tvStarRatingOverlay": "星評価を全画面オーバーレイで開く",
+        "tvDetailSummaryBeforeActions": "ゲーム詳細で Play 行の上に概要を表示",
+        "tvRecommendedBrowsePreview": "おすすめ上部パネルがフォーカス中のゲームに合わせて更新（概要まで）",
+        "tvHideAppHeader": "アプリヘッダーを非表示（検索とプロフィールはライブラリバーに残す）",
         "disableTitleTooltips": "ツールチップを非表示",
         "collapsibleLibrarySidebar": "狭いビューポートで折りたたみ可能なライブラリサイドバー"
       }
+    },
+    "skinTvOptions": {
+      "title": "スマート TV",
+      "description": "スマート TV（Tizen、webOS、Android TV など）向けのオプション。"
     },
     "webVersion": "Web バージョン",
     "minServerVersionRequired": "サーバーバージョン {{version}} 以降が必要です。",

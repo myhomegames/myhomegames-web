@@ -62,6 +62,12 @@ export type SkinWebManifest = {
    */
   detailBackdropLayout: boolean;
   /**
+   * Smart TV detail/focal backgrounds: ambient blur fill + cropped hero layout
+   * (`data-mhg-detail-backdrop="tv"`). When false on TV, backgrounds use the
+   * normal full-bleed layout (like skins without Plex TV backdrop CSS).
+   */
+  tvDetailBackdropAmbient: boolean;
+  /**
    * On Smart TV and narrow/phone viewports, InlineTagList items are not clickable
    * (no navigation) and the “and more” collapse is disabled so all tags show.
    */
@@ -125,6 +131,7 @@ export const DEFAULT_SKIN_WEB_MANIFEST: SkinWebManifest = {
   fixedFocalStepSound: false,
   autoShowBackgroundOnSelection: false,
   detailBackdropLayout: false,
+  tvDetailBackdropAmbient: false,
   staticInlineTagListOnTvPhone: false,
   tvSummaryOverlay: false,
   tvStarRatingOverlay: false,
@@ -152,6 +159,7 @@ export const SKIN_WEB_KEYS = [
   "fixedFocalStepSound",
   "autoShowBackgroundOnSelection",
   "detailBackdropLayout",
+  "tvDetailBackdropAmbient",
   "staticInlineTagListOnTvPhone",
   "tvSummaryOverlay",
   "tvStarRatingOverlay",
@@ -176,6 +184,25 @@ export const SKIN_WEB_SETTINGS_OPTION_KEYS = SKIN_WEB_KEYS.filter(
   (key) => !SKIN_WEB_SETTINGS_HIDDEN_KEYS.has(key),
 );
 
+/** Smart TV–specific skin flags (Settings → Skin → Smart TV). */
+const SKIN_WEB_SETTINGS_TV_KEYS = new Set<keyof SkinWebManifest>([
+  "tvDetailBackdropAmbient",
+  "staticInlineTagListOnTvPhone",
+  "tvSummaryOverlay",
+  "tvStarRatingOverlay",
+  "tvDetailSummaryBeforeActions",
+  "tvRecommendedBrowsePreview",
+  "tvHideAppHeader",
+]);
+
+export const SKIN_WEB_SETTINGS_TV_OPTION_KEYS = SKIN_WEB_SETTINGS_OPTION_KEYS.filter((key) =>
+  SKIN_WEB_SETTINGS_TV_KEYS.has(key),
+);
+
+export const SKIN_WEB_SETTINGS_GENERAL_OPTION_KEYS = SKIN_WEB_SETTINGS_OPTION_KEYS.filter(
+  (key) => !SKIN_WEB_SETTINGS_TV_KEYS.has(key),
+);
+
 /** @deprecated renamed to `SKIN_WEB_KEYS`, kept as alias to avoid churning internal imports. */
 const WEB_KEYS = SKIN_WEB_KEYS;
 
@@ -187,9 +214,16 @@ export function normalizeSkinWebManifest(raw: unknown): SkinWebManifest {
   }
   const o = raw as Record<string, unknown>;
   for (const key of WEB_KEYS) {
+    if (key === "tvDetailBackdropAmbient") continue;
     if (o[key] === true) {
       out[key] = true;
     }
+  }
+  if ("tvDetailBackdropAmbient" in o) {
+    out.tvDetailBackdropAmbient = o.tvDetailBackdropAmbient === true;
+  } else if (out.detailBackdropLayout) {
+    /* Skins that already ship detail backdrop layout keep TV ambient until opted out. */
+    out.tvDetailBackdropAmbient = true;
   }
   /*
    * Skins that ship `headerTitleFilter` without re-uploading `skin.json` after `sidebarSearchPopup`

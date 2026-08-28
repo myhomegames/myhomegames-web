@@ -9,7 +9,11 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
-import { isSmartTvBrowser } from "../../utils/smartTv";
+import {
+  resolveDetailBackdropAmbientFill,
+  resolveDetailBackdropVariant,
+  type DetailBackdropVariant,
+} from "../../utils/detailBackdropTvAmbient";
 
 type BackgroundContextType = {
   hasBackground: boolean;
@@ -50,6 +54,11 @@ type BackgroundManagerProps = {
    * heavy blur — disable on rapid focus surfaces (Recommended browse) to keep D-pad snappy.
    */
   ambientFill?: boolean;
+  /**
+   * Smart TV: ambient blur + cropped hero (`tv` backdrop variant). When false on TV,
+   * uses full-bleed background like skins without Plex TV backdrop CSS.
+   */
+  tvDetailBackdropAmbient?: boolean;
 };
 
 const STORAGE_KEY = "backgroundStates";
@@ -57,19 +66,6 @@ const DETAIL_SCROLL_SELECTOR =
   ".game-detail-scroll-container, .catalog-game-detail-scroll-container, .library-item-detail-scroll";
 /** Match game-detail phone/narrow layout (~locandina breakpoint), not a tiny handset-only width. */
 const NARROW_DETAIL_MQ = "(max-width: 720px)";
-
-type DetailBackdropVariant = "tv" | "narrow" | "wide";
-
-function resolveDetailBackdropVariant(): DetailBackdropVariant {
-  if (typeof document !== "undefined" && document.documentElement.dataset.mhgTv === "1") {
-    return "tv";
-  }
-  if (isSmartTvBrowser()) return "tv";
-  if (typeof window !== "undefined" && window.matchMedia(NARROW_DETAIL_MQ).matches) {
-    return "narrow";
-  }
-  return "wide";
-}
 
 function clearDetailBackdropDomAttrs(portalHost: HTMLElement | null) {
   portalHost?.removeAttribute("data-mhg-background-layout");
@@ -117,7 +113,12 @@ export default function BackgroundManager({
   autoShowWhenAvailable = false,
   detailBackdrop = false,
   ambientFill = true,
+  tvDetailBackdropAmbient = true,
 }: BackgroundManagerProps) {
+  const effectiveAmbientFill = resolveDetailBackdropAmbientFill(
+    tvDetailBackdropAmbient,
+    ambientFill,
+  );
   const [isBackgroundVisible, setIsBackgroundVisible] = useState(() => {
     if (autoShowWhenAvailable && hasBackground) return true;
     return getBackgroundState(elementId, hasBackground);
@@ -162,7 +163,10 @@ export default function BackgroundManager({
     }
 
     const syncVariant = () => {
-      applyDetailBackdropDomAttrs(portalHost, resolveDetailBackdropVariant());
+      applyDetailBackdropDomAttrs(
+        portalHost,
+        resolveDetailBackdropVariant(tvDetailBackdropAmbient),
+      );
     };
 
     syncVariant();
@@ -181,7 +185,7 @@ export default function BackgroundManager({
       mq.removeEventListener?.("change", syncVariant);
       clearDetailBackdropDomAttrs(portalHost);
     };
-  }, [portalHost, detailBackdrop]);
+  }, [portalHost, detailBackdrop, tvDetailBackdropAmbient]);
 
   useEffect(() => {
     if (!hasBackground) {
@@ -261,7 +265,7 @@ export default function BackgroundManager({
 
     const syncCollapse = () => {
       if (cancelled) return;
-      if (resolveDetailBackdropVariant() !== "narrow") {
+      if (resolveDetailBackdropVariant(tvDetailBackdropAmbient) !== "narrow") {
         clearCollapseVars();
         return;
       }
@@ -309,7 +313,7 @@ export default function BackgroundManager({
       mq.removeEventListener?.("change", syncCollapse);
       clearCollapseVars();
     };
-  }, [portalHost, detailBackdrop, hasBackground, isBackgroundVisible, backgroundUrl]);
+  }, [portalHost, detailBackdrop, hasBackground, isBackgroundVisible, backgroundUrl, tvDetailBackdropAmbient]);
 
   const handleVisibilityChange = useCallback(
     (visible: boolean) => {
@@ -394,7 +398,7 @@ export default function BackgroundManager({
     createPortal(
       <>
         {/* Edge/ambient fill — skins blur/scale this under the sharp crop on TV. */}
-        {ambientFill ? (
+        {effectiveAmbientFill ? (
           <div
             className="background-manager-portal-bg-fill"
             style={portalImageStyle}

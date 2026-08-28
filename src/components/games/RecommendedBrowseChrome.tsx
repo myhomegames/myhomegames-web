@@ -34,6 +34,7 @@ type RecommendedBrowseChromeProps = {
   /** Live sections used to resolve focused covers — owned by the page. */
   sectionsRef: RefObject<RecommendedSection[]>;
   detailBackdrop: boolean;
+  tvDetailBackdropAmbient: boolean;
   /**
    * Stable page shell (scroll + strips). Preview is rendered beside it so strip
    * fibers are not rebuilt when fanart/summary state changes.
@@ -90,6 +91,7 @@ export default function RecommendedBrowseChrome({
   scrollContainerRef,
   sectionsRef,
   detailBackdrop,
+  tvDetailBackdropAmbient,
   children,
 }: RecommendedBrowseChromeProps) {
   const [previewGame, setPreviewGame] = useState<GameItem | null>(null);
@@ -324,7 +326,7 @@ export default function RecommendedBrowseChrome({
       elementId="recommended-browse"
       autoShowWhenAvailable
       detailBackdrop={detailBackdrop}
-      // Ambient rides the same URL + opacity fade as sharp (default ambientFill).
+      tvDetailBackdropAmbient={tvDetailBackdropAmbient}
     >
       <BrowseForeground previewGame={previewGame} strips={children} isReady={isReady} />
     </BackgroundManager>

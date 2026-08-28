@@ -105,15 +105,20 @@
         "fixedFocalStepSound": "Sonido de navegación",
         "autoShowBackgroundOnSelection": "Mostrar fondo al seleccionar con foco",
         "detailBackdropLayout": "Diseño de fondo en ficha de juego (CSS del skin)",
+        "tvDetailBackdropAmbient": "Desenfoque ambiental y héroe recortado en fondos de detalle",
         "staticInlineTagListOnTvPhone": "Etiquetas en línea no clicables en TV y teléfono",
-        "tvSummaryOverlay": "TV: abrir el resumen en overlay a pantalla completa",
-        "tvStarRatingOverlay": "TV: abrir la puntuación con estrellas en overlay a pantalla completa",
-        "tvDetailSummaryBeforeActions": "TV: mostrar el resumen encima de la fila Play en el detalle del juego",
-        "tvRecommendedBrowsePreview": "TV: el panel superior de Recomendados se actualiza con el juego enfocado (hasta el resumen)",
-        "tvHideAppHeader": "TV: ocultar la cabecera; búsqueda y perfil se quedan en la barra de bibliotecas",
+        "tvSummaryOverlay": "Abrir el resumen en overlay a pantalla completa",
+        "tvStarRatingOverlay": "Abrir la puntuación con estrellas en overlay a pantalla completa",
+        "tvDetailSummaryBeforeActions": "Mostrar el resumen encima de la fila Play en el detalle del juego",
+        "tvRecommendedBrowsePreview": "El panel superior de Recomendados se actualiza con el juego enfocado (hasta el resumen)",
+        "tvHideAppHeader": "Ocultar la cabecera; búsqueda y perfil se quedan en la barra de bibliotecas",
         "disableTitleTooltips": "Ocultar tooltips",
         "collapsibleLibrarySidebar": "Barra lateral de bibliotecas plegable en viewports estrechos"
       }
+    },
+    "skinTvOptions": {
+      "title": "Smart TV",
+      "description": "Opciones que se aplican en Smart TV (Tizen, webOS, Android TV, etc.)."
     },
     "webVersion": "Versión web",
     "minServerVersionRequired": "Requiere versión del servidor {{version}} o posterior.",

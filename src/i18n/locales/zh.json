@@ -105,15 +105,20 @@
         "fixedFocalStepSound": "导航音效",
         "autoShowBackgroundOnSelection": "焦点选中时显示背景",
         "detailBackdropLayout": "游戏详情背景布局（皮肤 CSS）",
+        "tvDetailBackdropAmbient": "详情背景的环境模糊与裁剪主图",
         "staticInlineTagListOnTvPhone": "电视和手机上内联标签不可点击",
-        "tvSummaryOverlay": "电视：在全屏浮层中打开简介",
-        "tvStarRatingOverlay": "电视：在全屏浮层中打开星级评分",
-        "tvDetailSummaryBeforeActions": "电视：在游戏详情的 Play 行上方显示简介",
-        "tvRecommendedBrowsePreview": "电视：推荐页顶部面板随焦点游戏更新（到简介为止）",
-        "tvHideAppHeader": "电视：隐藏应用顶栏；搜索与个人资料保留在媒体库栏",
+        "tvSummaryOverlay": "在全屏浮层中打开简介",
+        "tvStarRatingOverlay": "在全屏浮层中打开星级评分",
+        "tvDetailSummaryBeforeActions": "在游戏详情的 Play 行上方显示简介",
+        "tvRecommendedBrowsePreview": "推荐页顶部面板随焦点游戏更新（到简介为止）",
+        "tvHideAppHeader": "隐藏应用顶栏；搜索与个人资料保留在媒体库栏",
         "disableTitleTooltips": "隐藏工具提示",
         "collapsibleLibrarySidebar": "窄视口下可折叠的媒体库侧栏"
       }
+    },
+    "skinTvOptions": {
+      "title": "智能电视",
+      "description": "适用于智能电视（Tizen、webOS、Android TV 等）的选项。"
     },
     "webVersion": "网页版本",
     "minServerVersionRequired": "需要服务器版本 {{version}} 或更高。",

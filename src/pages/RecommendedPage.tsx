@@ -610,6 +610,7 @@ export default function RecommendedPage({
         scrollContainerRef={scrollContainerRef}
         sectionsRef={sectionsForDisplayRef}
         detailBackdrop={activeSkinWeb.detailBackdropLayout}
+        tvDetailBackdropAmbient={activeSkinWeb.tvDetailBackdropAmbient}
       >
         {browseStrips}
       </RecommendedBrowseChrome>
