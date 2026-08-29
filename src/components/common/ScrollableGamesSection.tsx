@@ -344,6 +344,7 @@ export default function ScrollableGamesSection({
       ]
         .filter(Boolean)
         .join(" ")}
+      data-mhg-section-id={sectionId}
     >
       {showTitle && (
         <div className="scrollable-section-header">

@@ -1823,6 +1823,9 @@ function focusStripCoverAtAbsoluteIndex(
 
   const focusFound = (cover: HTMLElement) => {
     if (options?.remember !== false) rememberCoverFocusFromStrip?.(cover);
+    if (strip.closest(".recommended-page-scroll")) {
+      rememberRecommendedStripFocus(strip, cover);
+    }
     focusElement(cover);
   };
 
@@ -1887,6 +1890,99 @@ function collectRecommendedStripRoots(): HTMLElement[] {
   );
 }
 
+type RecommendedStripFocusMemory = {
+  cover: HTMLElement | null;
+  index: number;
+  identity: ReturnType<typeof tvCoverIdentityFrom>;
+};
+
+const lastRecommendedStripFocus = new Map<number, RecommendedStripFocusMemory>();
+let lastRecommendedStripPageKey = "";
+let lastRecommendedStripFingerprint = "";
+
+function recommendedStripFingerprint(): string {
+  const strips = collectRecommendedStripRoots();
+  return strips
+    .map((strip) => {
+      const sectionId = strip.getAttribute("data-mhg-section-id");
+      const mounted = collectRecommendedStripCoverFocusables(strip);
+      const host = horizontalStripScrollHostFrom(strip);
+      const columnCount =
+        typeof host?.__mhgStripColumnCount === "number" && host.__mhgStripColumnCount > 0
+          ? host.__mhgStripColumnCount
+          : mounted.length;
+      if (sectionId) return `${sectionId}:${columnCount}`;
+      const title =
+        strip.querySelector(".scrollable-section-title")?.textContent?.trim() ?? "";
+      return `${title || "section"}:${columnCount}`;
+    })
+    .join("|");
+}
+
+function syncRecommendedStripFocusState(): void {
+  const pageKey = detailGridPageKey();
+  const fingerprint = recommendedStripFingerprint();
+  if (
+    pageKey !== lastRecommendedStripPageKey ||
+    fingerprint !== lastRecommendedStripFingerprint
+  ) {
+    lastRecommendedStripFocus.clear();
+    lastRecommendedStripPageKey = pageKey;
+    lastRecommendedStripFingerprint = fingerprint;
+  }
+}
+
+function recommendedStripIndexFromRoot(strip: HTMLElement): number {
+  return collectRecommendedStripRoots().indexOf(strip);
+}
+
+function rememberRecommendedStripFocus(strip: HTMLElement, cover: HTMLElement): void {
+  if (!strip.closest(".recommended-page-scroll")) return;
+  syncRecommendedStripFocusState();
+  const stripIdx = recommendedStripIndexFromRoot(strip);
+  if (stripIdx < 0) return;
+  const mounted = collectRecommendedStripCoverFocusables(strip);
+  lastRecommendedStripFocus.set(stripIdx, {
+    cover,
+    index: absoluteStripCoverIndex(cover, mounted),
+    identity: tvCoverIdentityFrom(cover),
+  });
+}
+
+function resolveRecommendedStripFocusIndex(
+  strip: HTMLElement,
+  fallbackIndex: number,
+): number {
+  const mounted = collectRecommendedStripCoverFocusables(strip);
+  const columnCount = stripColumnCount(strip, mounted);
+  if (columnCount <= 0) return fallbackIndex;
+
+  syncRecommendedStripFocusState();
+  const stripIdx = recommendedStripIndexFromRoot(strip);
+  if (stripIdx >= 0) {
+    const mem = lastRecommendedStripFocus.get(stripIdx);
+    if (mem) {
+      if (
+        mem.cover?.isConnected &&
+        strip.contains(mem.cover) &&
+        isVisible(mem.cover)
+      ) {
+        return absoluteStripCoverIndex(mem.cover, mounted);
+      }
+      if (mem.identity) {
+        const byId = findCoverByTvFocusIdentity(mem.identity);
+        if (byId && strip.contains(byId) && isVisible(byId)) {
+          return absoluteStripCoverIndex(byId, mounted);
+        }
+      }
+      const nearest = findNearestFocusableStripIndex(strip, mem.index, columnCount);
+      if (nearest != null) return nearest;
+    }
+  }
+
+  return findNearestFocusableStripIndex(strip, fallbackIndex, columnCount) ?? fallbackIndex;
+}
+
 /**
  * Collection-like detail multi-column grids (subcollections + games).
  * Not `.scrollable-section` carousels — those use the horizontal-strip path.
@@ -1905,6 +2001,104 @@ function collectDetailGamesGridFocusables(grid: HTMLElement): HTMLElement[] {
       ".games-list-cover[role='button'], .games-list-cover[tabindex]",
     ),
   ).filter((el) => isVisible(el) && !el.closest("[inert]") && !el.hasAttribute("disabled"));
+}
+
+type DetailGridFocusMemory = {
+  cover: HTMLElement | null;
+  index: number;
+  identity: ReturnType<typeof tvCoverIdentityFrom>;
+};
+
+const lastDetailGridFocus = new Map<number, DetailGridFocusMemory>();
+let lastDetailGridPageKey = "";
+let lastDetailGridFingerprint = "";
+
+function detailGridPageKey(): string {
+  return (window.location.pathname || "/").replace(/\/+$/, "") || "/";
+}
+
+function detailGamesGridFingerprint(): string {
+  return collectDetailGamesGridRoots()
+    .map((grid) => {
+      const kind = grid.classList.contains("library-item-detail-subcollections-grid")
+        ? "subcollections"
+        : "games";
+      const covers = collectDetailGamesGridFocusables(grid);
+      const ids = covers
+        .map((cover, index) => {
+          const identity = tvCoverIdentityFrom(cover);
+          return identity ? `${identity.kind}:${identity.id}` : String(index);
+        })
+        .join(",");
+      return `${kind}:${covers.length}:${ids}`;
+    })
+    .join("||");
+}
+
+function syncDetailGridFocusState(): void {
+  const pageKey = detailGridPageKey();
+  const fingerprint = detailGamesGridFingerprint();
+  if (pageKey !== lastDetailGridPageKey || fingerprint !== lastDetailGridFingerprint) {
+    lastDetailGridFocus.clear();
+    lastDetailGridPageKey = pageKey;
+    lastDetailGridFingerprint = fingerprint;
+  }
+}
+
+function detailGridIndexFromRoot(grid: HTMLElement): number {
+  return collectDetailGamesGridRoots().indexOf(grid);
+}
+
+function rememberDetailGamesGridFocus(grid: HTMLElement, cover: HTMLElement): void {
+  syncDetailGridFocusState();
+  const gridIdx = detailGridIndexFromRoot(grid);
+  if (gridIdx < 0) return;
+  const covers = collectDetailGamesGridFocusables(grid);
+  const index = covers.indexOf(cover);
+  lastDetailGridFocus.set(gridIdx, {
+    cover,
+    index: index >= 0 ? index : 0,
+    identity: tvCoverIdentityFrom(cover),
+  });
+}
+
+function resolveDetailGamesGridFocus(
+  grid: HTMLElement,
+  fallback: "first" | "last",
+): HTMLElement | null {
+  const covers = collectDetailGamesGridFocusables(grid);
+  if (covers.length === 0) return null;
+
+  syncDetailGridFocusState();
+  const gridIdx = detailGridIndexFromRoot(grid);
+  if (gridIdx >= 0) {
+    const mem = lastDetailGridFocus.get(gridIdx);
+    if (mem) {
+      if (
+        mem.cover?.isConnected &&
+        covers.includes(mem.cover) &&
+        isVisible(mem.cover)
+      ) {
+        return mem.cover;
+      }
+      if (mem.identity) {
+        const byId = findCoverByTvFocusIdentity(mem.identity);
+        if (
+          byId &&
+          grid.contains(byId) &&
+          covers.includes(byId) &&
+          isVisible(byId)
+        ) {
+          return byId;
+        }
+      }
+      if (mem.index >= 0 && mem.index < covers.length) {
+        return covers[mem.index]!;
+      }
+    }
+  }
+
+  return fallback === "last" ? covers[covers.length - 1]! : covers[0]!;
 }
 
 /** Populated detail grids in DOM order (subcollections → games). */
@@ -1927,17 +2121,16 @@ function isDetailFixedFocalGamesList(): boolean {
 }
 
 function focusDetailGamesGrid(
-  prefer: "first" | "last" = "first",
-  gridIndex: number = 0,
+  gridIndex: number,
+  fallback: "first" | "last" = "first",
 ): boolean {
   const grids = collectDetailGamesGridRoots();
   const grid = grids[gridIndex];
   if (!grid) return false;
-  const covers = collectDetailGamesGridFocusables(grid);
-  if (covers.length === 0) return false;
-  const target =
-    prefer === "last" ? covers[covers.length - 1]! : covers[0]!;
+  const target = resolveDetailGamesGridFocus(grid, fallback);
+  if (!target) return false;
   focusElement(target);
+  rememberDetailGamesGridFocus(grid, target);
   return true;
 }
 
@@ -2469,7 +2662,11 @@ export function installSmartTvRemoteKeys(
 
   const rememberCoverFocus = (el: HTMLElement | null) => {
     const cover = coverFocusFrom(el);
-    if (cover) lastCoverFocus = cover;
+    if (cover) {
+      lastCoverFocus = cover;
+      const grid = detailGamesGridRootFrom(cover);
+      if (grid) rememberDetailGamesGridFocus(grid, cover);
+    }
   };
   rememberCoverFocusFromStrip = rememberCoverFocus;
 
@@ -3852,6 +4049,7 @@ export function installSmartTvRemoteKeys(
             recommendedStrip &&
             (direction === "left" || direction === "right")
           ) {
+            rememberRecommendedStripFocus(recommendedStrip, coverEl);
             if (
               moveFocusInHorizontalCoverStrip(
                 recommendedStrip,
@@ -3871,13 +4069,17 @@ export function installSmartTvRemoteKeys(
             const idx = strips.indexOf(recommendedStrip);
             const nextIdx = direction === "down" ? idx + 1 : idx - 1;
             if (idx >= 0 && nextIdx >= 0 && nextIdx < strips.length) {
+              rememberRecommendedStripFocus(recommendedStrip, coverEl);
               const fromIdx = absoluteStripCoverIndex(
                 coverEl,
                 collectRecommendedStripCoverFocusables(recommendedStrip),
               );
-              if (
-                focusStripCoverAtAbsoluteIndex(strips[nextIdx]!, fromIdx)
-              ) {
+              const targetStrip = strips[nextIdx]!;
+              const targetIdx = resolveRecommendedStripFocusIndex(
+                targetStrip,
+                fromIdx,
+              );
+              if (focusStripCoverAtAbsoluteIndex(targetStrip, targetIdx)) {
                 return;
               }
             }
@@ -3898,13 +4100,17 @@ export function installSmartTvRemoteKeys(
                 const aIdx = retryStrips.indexOf(activeStrip);
                 const aNext = direction === "down" ? aIdx + 1 : aIdx - 1;
                 if (aIdx >= 0 && aNext >= 0 && aNext < retryStrips.length) {
+                  rememberRecommendedStripFocus(activeStrip, activeCover);
                   const fromIdx = absoluteStripCoverIndex(
                     activeCover,
                     collectRecommendedStripCoverFocusables(activeStrip),
                   );
-                  if (
-                    focusStripCoverAtAbsoluteIndex(retryStrips[aNext]!, fromIdx)
-                  ) {
+                  const targetStrip = retryStrips[aNext]!;
+                  const targetIdx = resolveRecommendedStripFocusIndex(
+                    targetStrip,
+                    fromIdx,
+                  );
+                  if (focusStripCoverAtAbsoluteIndex(targetStrip, targetIdx)) {
                     return;
                   }
                 }
@@ -4129,7 +4335,7 @@ export function installSmartTvRemoteKeys(
             return;
           }
           // Collection-like detail: subcollections / games grid (not similar strips).
-          if (focusDetailGamesGrid("first", 0)) return;
+          if (focusDetailGamesGrid(0, "first")) return;
           // Game detail: no media / no games grid → first collection strip title.
           const coverStrips = collectDetailHorizontalStrips().filter(
             (s) => s.kind === "covers",
@@ -4173,8 +4379,10 @@ export function installSmartTvRemoteKeys(
 
           const gridCovers = collectDetailGamesGridFocusables(gamesGrid);
           if (gridCovers.length > 0) {
+            rememberDetailGamesGridFocus(gamesGrid, gridCover);
             const nextCover = pickCoverByDirection(gridCovers, gridCover, direction);
             if (nextCover) {
+              rememberDetailGamesGridFocus(gamesGrid, nextCover);
               focusElement(nextCover);
               return;
             }
@@ -4199,6 +4407,7 @@ export function installSmartTvRemoteKeys(
                     direction,
                   );
                 if (retry) {
+                  rememberDetailGamesGridFocus(gamesGrid, retry);
                   focusElement(retry);
                   return;
                 }
@@ -4206,7 +4415,7 @@ export function installSmartTvRemoteKeys(
                   const grids = collectDetailGamesGridRoots();
                   const gridIdx = grids.indexOf(gamesGrid);
                   if (direction === "up") {
-                    if (gridIdx > 0 && focusDetailGamesGrid("last", gridIdx - 1)) {
+                    if (gridIdx > 0 && focusDetailGamesGrid(gridIdx - 1, "last")) {
                       return;
                     }
                     if (focusDetailLadderBottom()) return;
@@ -4214,7 +4423,7 @@ export function installSmartTvRemoteKeys(
                     if (
                       gridIdx >= 0 &&
                       gridIdx + 1 < grids.length &&
-                      focusDetailGamesGrid("first", gridIdx + 1)
+                      focusDetailGamesGrid(gridIdx + 1, "first")
                     ) {
                       return;
                     }
@@ -4234,7 +4443,7 @@ export function installSmartTvRemoteKeys(
             if (direction === "up") {
               const grids = collectDetailGamesGridRoots();
               const gridIdx = grids.indexOf(gamesGrid);
-              if (gridIdx > 0 && focusDetailGamesGrid("last", gridIdx - 1)) return;
+              if (gridIdx > 0 && focusDetailGamesGrid(gridIdx - 1, "last")) return;
               if (focusDetailLadderBottom()) return;
               return;
             }
@@ -4244,7 +4453,7 @@ export function installSmartTvRemoteKeys(
               if (
                 gridIdx >= 0 &&
                 gridIdx + 1 < grids.length &&
-                focusDetailGamesGrid("first", gridIdx + 1)
+                focusDetailGamesGrid(gridIdx + 1, "first")
               ) {
                 return;
               }
@@ -4295,7 +4504,7 @@ export function installSmartTvRemoteKeys(
                 const grids = collectDetailGamesGridRoots();
                 if (
                   grids.length > 0 &&
-                  focusDetailGamesGrid("last", grids.length - 1)
+                  focusDetailGamesGrid(grids.length - 1, "last")
                 ) {
                   return;
                 }
@@ -4355,7 +4564,7 @@ export function installSmartTvRemoteKeys(
                   const grids = collectDetailGamesGridRoots();
                   if (
                     grids.length > 0 &&
-                    focusDetailGamesGrid("last", grids.length - 1)
+                    focusDetailGamesGrid(grids.length - 1, "last")
                   ) {
                     return;
                   }

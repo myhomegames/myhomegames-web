@@ -2246,6 +2246,9 @@ function LibraryItemDetailContent({
                                     <div
                                       key={String(col.id)}
                                       className={`group collections-list-item library-item-detail-subcollection-cell${isActiveDetailChild ? " games-list-item--detail-current" : " cursor-pointer"}`}
+                                      {...(resourceType === "collections"
+                                        ? { "data-mhg-collection-id": String(col.id) }
+                                        : {})}
                                     >
                                       <Cover
                                         title={col.title}
