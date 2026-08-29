@@ -546,6 +546,102 @@ function pickCoverInRow(
   return idx < sameRow.length - 1 ? sameRow[idx + 1]! : null;
 }
 
+function groupCoversByRow(covers: HTMLElement[]): HTMLElement[][] {
+  if (covers.length === 0) return [];
+  const rects = mapFocusNavRects(covers);
+  const sorted = [...covers].sort((a, b) => {
+    const ar = rects.get(a) ?? a.getBoundingClientRect();
+    const br = rects.get(b) ?? b.getBoundingClientRect();
+    const rowTol = Math.max(28, Math.min(ar.height, br.height) * 0.45);
+    const dy = ar.top - br.top;
+    if (Math.abs(dy) > rowTol) return dy;
+    return ar.left - br.left;
+  });
+
+  const rows: HTMLElement[][] = [];
+  for (const el of sorted) {
+    const r = rects.get(el) ?? el.getBoundingClientRect();
+    const elY = center(r).y;
+    const lastRow = rows[rows.length - 1];
+    if (!lastRow) {
+      rows.push([el]);
+      continue;
+    }
+    const ref = lastRow[0]!;
+    const refRect = rects.get(ref) ?? ref.getBoundingClientRect();
+    const rowTol = Math.max(28, refRect.height * 0.45);
+    if (Math.abs(elY - center(refRect).y) <= rowTol) {
+      lastRow.push(el);
+    } else {
+      rows.push([el]);
+    }
+  }
+
+  for (const row of rows) {
+    row.sort((a, b) => {
+      const ar = rects.get(a) ?? a.getBoundingClientRect();
+      const br = rects.get(b) ?? b.getBoundingClientRect();
+      return ar.left - br.left;
+    });
+  }
+  return rows;
+}
+
+function coverRowColIndex(
+  rows: HTMLElement[][],
+  current: HTMLElement,
+  rects: Map<HTMLElement, DOMRect>,
+): { rowIndex: number; colIndex: number } | null {
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r]!;
+    const c = row.indexOf(current);
+    if (c >= 0) return { rowIndex: r, colIndex: c };
+  }
+
+  const fromRect = rects.get(current) ?? current.getBoundingClientRect();
+  const fromY = center(fromRect).y;
+  const fromLeft = fromRect.left;
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r]!;
+    if (row.length === 0) continue;
+    const refRect = rects.get(row[0]!) ?? row[0]!.getBoundingClientRect();
+    const rowTol = Math.max(28, refRect.height * 0.45);
+    if (Math.abs(fromY - center(refRect).y) > rowTol) continue;
+    let colIndex = row.findIndex((el) => {
+      const rect = rects.get(el) ?? el.getBoundingClientRect();
+      return rect.left >= fromLeft - 1;
+    });
+    if (colIndex < 0) colIndex = row.length - 1;
+    return { rowIndex: r, colIndex };
+  }
+  return null;
+}
+
+/**
+ * Row-aware U/D when same-column geometry misses (e.g. shorter last row).
+ * Keeps column index clamped on uneven rows, like the TV search keyboard.
+ */
+function pickCoverAcrossRows(
+  covers: HTMLElement[],
+  current: HTMLElement,
+  direction: "up" | "down",
+): HTMLElement | null {
+  if (covers.length === 0) return null;
+  const rows = groupCoversByRow(covers);
+  if (rows.length < 2) return null;
+  const rects = mapFocusNavRects([current, ...covers]);
+  const pos = coverRowColIndex(rows, current, rects);
+  if (!pos) return null;
+
+  const nextRowIndex =
+    direction === "up" ? pos.rowIndex - 1 : pos.rowIndex + 1;
+  if (nextRowIndex < 0 || nextRowIndex >= rows.length) return null;
+  const nextRow = rows[nextRowIndex]!;
+  if (nextRow.length === 0) return null;
+  const targetCol = Math.min(pos.colIndex, nextRow.length - 1);
+  return nextRow[targetCol] ?? null;
+}
+
 /**
  * Same-column U/D among covers by top-edge order. Keeps Down/Up from sliding
  * sideways to a slightly lower/higher neighbor in the same row.
@@ -599,6 +695,7 @@ function pickCoverByDirection(
   }
   // Prefer same-column step so Down/Up never slide to a side neighbor.
   let next = pickCoverInColumn(covers, current, direction);
+  if (!next) next = pickCoverAcrossRows(covers, current, direction);
   if (!next) next = pickNextInSet(covers, current, direction);
   return next;
 }
