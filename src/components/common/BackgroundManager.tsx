@@ -37,6 +37,12 @@ export function useBackground() {
 
 type BackgroundManagerProps = {
   backgroundUrl: string;
+  /**
+   * When set, ambient fill uses `backgroundUrl` and the sharp hero crop uses this URL.
+   * Pass `""` to hide the sharp layer while keeping ambient tint (Recommended TV browse).
+   * Omit to paint both layers from `backgroundUrl` (detail pages, focal selection).
+   */
+  sharpBackgroundUrl?: string;
   hasBackground: boolean;
   elementId: string;
   children: React.ReactNode;
@@ -107,6 +113,7 @@ const getBackgroundState = (elementId: string, defaultVisible: boolean): boolean
 
 export default function BackgroundManager({
   backgroundUrl,
+  sharpBackgroundUrl,
   hasBackground,
   elementId,
   children,
@@ -115,6 +122,7 @@ export default function BackgroundManager({
   ambientFill = true,
   tvDetailBackdropAmbient = true,
 }: BackgroundManagerProps) {
+  const splitSharpLayer = sharpBackgroundUrl !== undefined;
   const effectiveAmbientFill = resolveDetailBackdropAmbientFill(
     tvDetailBackdropAmbient,
     ambientFill,
@@ -127,6 +135,7 @@ export default function BackgroundManager({
   const [portalHost, setPortalHost] = useState<HTMLDivElement | null>(null);
   /** Fade-in after URL paint — inline opacity beats skin `opacity: 1` on TV. */
   const [portalBgRevealed, setPortalBgRevealed] = useState(false);
+  const [portalSharpRevealed, setPortalSharpRevealed] = useState(false);
 
   useLayoutEffect(() => {
     const root = document.getElementById("root");
@@ -217,6 +226,11 @@ export default function BackgroundManager({
     setPortalBgRevealed(false);
   }, [portalHost, hasBackground, isBackgroundVisible, backgroundUrl]);
 
+  useLayoutEffect(() => {
+    if (!splitSharpLayer) return;
+    setPortalSharpRevealed(false);
+  }, [portalHost, hasBackground, isBackgroundVisible, sharpBackgroundUrl, splitSharpLayer]);
+
   // Then fade in after the opacity:0 frame is committed.
   useEffect(() => {
     const canPaint =
@@ -236,6 +250,33 @@ export default function BackgroundManager({
       window.cancelAnimationFrame(raf2);
     };
   }, [portalHost, hasBackground, isBackgroundVisible, backgroundUrl]);
+
+  useEffect(() => {
+    if (!splitSharpLayer) return;
+    const sharpUrl = sharpBackgroundUrl?.trim() ?? "";
+    const canPaint =
+      Boolean(portalHost) &&
+      hasBackground &&
+      isBackgroundVisible &&
+      sharpUrl !== "";
+    if (!canPaint) return;
+    let raf2 = 0;
+    const raf1 = window.requestAnimationFrame(() => {
+      raf2 = window.requestAnimationFrame(() => {
+        setPortalSharpRevealed(true);
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(raf1);
+      window.cancelAnimationFrame(raf2);
+    };
+  }, [
+    portalHost,
+    hasBackground,
+    isBackgroundVisible,
+    sharpBackgroundUrl,
+    splitSharpLayer,
+  ]);
 
   /* Narrow detail: collapse hero height on scroll (content starts below the slot). */
   useEffect(() => {
@@ -361,6 +402,19 @@ export default function BackgroundManager({
       }
     : undefined;
 
+  const sharpUrl = splitSharpLayer ? sharpBackgroundUrl?.trim() ?? "" : "";
+  const portalSharpImageStyle: CSSProperties | undefined =
+    splitSharpLayer && hasBackground && isBackgroundVisible && sharpUrl !== ""
+      ? {
+          backgroundImage: backgroundImageValue(sharpUrl),
+          backgroundRepeat: "no-repeat",
+          opacity: portalSharpRevealed ? 1 : 0,
+          transition: "opacity 0.55s ease-out",
+        }
+      : splitSharpLayer
+        ? { opacity: 0, transition: "opacity 0s" }
+        : undefined;
+
   /*
    * Portal paints full viewport when mounted; keep root paint only until the portal
    * host exists (first frame). Never stack image on both — that caused two-tone columns.
@@ -407,7 +461,7 @@ export default function BackgroundManager({
         ) : null}
         <div
           className="background-manager-portal-bg"
-          style={portalImageStyle}
+          style={splitSharpLayer ? portalSharpImageStyle : portalImageStyle}
         />
         <div className="background-manager-portal-overlay" aria-hidden="true" />
       </>,
