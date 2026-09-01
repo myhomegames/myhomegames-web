@@ -7,8 +7,13 @@ import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 import type { ActiveCollectionLikeDetail } from "../../utils/collectionLikePseudoGame";
 import { buildCoverUrl } from "../../utils/api";
+import {
+  readAbsoluteStripCoverIndex,
+  readStripColumnCount,
+  stripNavFromAbsoluteIndex,
+  STRIP_NAV_SYNC_EVENT,
+} from "../../utils/horizontalStripNavState";
 import { useSkin } from "../../contexts/SkinContext";
-import { isSmartTvBrowser } from "../../utils/smartTv";
 // sessionStorage helpers
 function getScrollPosition(key: string): number {
   try {
@@ -117,6 +122,15 @@ export default function ScrollableGamesSection({
           : (active.closest(".games-list-cover") as HTMLElement | null)
         : null;
     if (focusedCover && host.contains(focusedCover)) {
+      const columnCount = readStripColumnCount(host, container);
+      const absoluteIdx = readAbsoluteStripCoverIndex(focusedCover);
+      if (columnCount != null && absoluteIdx != null) {
+        const nav = stripNavFromAbsoluteIndex(absoluteIdx, columnCount);
+        setCanScrollLeft(nav.canScrollLeft);
+        setCanScrollRight(nav.canScrollRight);
+        return;
+      }
+
       const covers = Array.from(
         host.querySelectorAll<HTMLElement>(
           ".games-list-cover[role='button'], .games-list-cover[tabindex]",
@@ -318,16 +332,14 @@ export default function ScrollableGamesSection({
     };
   }, [games.length, forceVerticalCovers]);
 
-  // D-pad focus moves without always firing a meaningful scroll at the ends.
-  // Smart TV: skip — nav chevrons are unused and querySelectorAll+setState per focus was hitching strips.
+  // D-pad focus moves without always firing scroll at strip ends — sync chevrons from focus.
   useEffect(() => {
-    if (forceVerticalCovers || isSmartTvBrowser()) return;
+    if (forceVerticalCovers) return;
     const section = sectionRef.current;
     if (!section) return;
 
     const onFocusIn = () => {
       updateScrollButtons();
-      // ensureElementVisible may adjust scrollLeft just after focus.
       window.requestAnimationFrame(updateScrollButtons);
     };
     const onFocusOut = (e: FocusEvent) => {
@@ -335,12 +347,17 @@ export default function ScrollableGamesSection({
       if (next instanceof Node && section.contains(next)) return;
       updateScrollButtons();
     };
+    const onStripNavSync = () => {
+      updateScrollButtons();
+    };
 
     section.addEventListener("focusin", onFocusIn);
     section.addEventListener("focusout", onFocusOut);
+    section.addEventListener(STRIP_NAV_SYNC_EVENT, onStripNavSync);
     return () => {
       section.removeEventListener("focusin", onFocusIn);
       section.removeEventListener("focusout", onFocusOut);
+      section.removeEventListener(STRIP_NAV_SYNC_EVENT, onStripNavSync);
     };
   }, [forceVerticalCovers, games.length, sectionId]);
 

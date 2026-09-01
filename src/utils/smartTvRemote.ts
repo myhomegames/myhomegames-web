@@ -7,6 +7,7 @@ import {
   stepOverflowingLibraryPagesStrip,
 } from "./libraryStripStep";
 import { ensureElementVisibleInScrollParents, nudgeScrollParentForDirection } from "./ensureVisibleInScrollParent";
+import { notifyStripNavSync } from "./horizontalStripNavState";
 import { playFixedFocalStepSound } from "./fixedFocalStepSound";
 import {
   findCoverByTvFocusIdentity,
@@ -1880,7 +1881,7 @@ function findNearestFocusableStripIndex(
 function scrollStripToIndex(
   strip: HTMLElement,
   index: number,
-  align: "auto" | "smart" | "start" | "center" | "end" = "start",
+  align: "auto" | "smart" | "start" | "center" | "end" = "smart",
 ): void {
   const host = horizontalStripScrollHostFrom(strip);
   if (typeof host?.__mhgStripScrollToIndex === "function") {
@@ -1956,8 +1957,9 @@ function focusStripCoverAtAbsoluteIndex(
 
   primeStripNavigationTarget(host, clamped);
 
-  const scrollAlign: "start" | "end" | "smart" =
-    clamped === columnCount - 1 ? "end" : "start";
+  // "smart" keeps focus moving across the row and scrolls only near the edges.
+  const scrollAlign: "smart" | "end" =
+    clamped === columnCount - 1 ? "end" : "smart";
 
   const focusFound = (cover: HTMLElement) => {
     if (options?.remember !== false) rememberCoverFocusFromStrip?.(cover);
@@ -1965,6 +1967,7 @@ function focusStripCoverAtAbsoluteIndex(
       rememberRecommendedStripFocus(strip, cover);
     }
     focusElement(cover);
+    notifyStripNavSync(strip);
   };
 
   const immediate = queryStripCoverAtIndex(strip, clamped);
