@@ -498,6 +498,9 @@ export default function GamesList({
                 ? " games-list-container--virtualized-strip"
                 : ""
         }`}
+        {...(useHorizontalStrip && games.length > 0
+          ? { "data-mhg-strip-column-count": String(games.length) }
+          : {})}
         style={{ ["--games-list-cover-size" as string]: `${coverSize}px`, ...style } as CSSProperties}
       >
         {useFixedFocalList ? (

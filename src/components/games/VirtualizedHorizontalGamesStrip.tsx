@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Grid } from "react-window";
 import type { CollectionInfo, CollectionItem, GameItem } from "../../types";
 import type { CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
@@ -21,6 +21,8 @@ export type HorizontalStripScrollHost = HTMLElement & {
     align?: "auto" | "smart" | "start" | "center" | "end",
   ) => void;
   __mhgStripColumnCount?: number;
+  /** D-pad target while scrolling — prevents restoreFocusedCover from snapping back. */
+  __mhgStripNavigateToIndex?: number | null;
 };
 
 type VirtualizedHorizontalGamesStripProps = {
@@ -281,8 +283,17 @@ export default function VirtualizedHorizontalGamesStrip({
   const overscanCount = isSmartTvBrowser() ? OVERSCAN_COUNT_TV : OVERSCAN_COUNT;
   const focusedIndexRef = useRef<number | null>(null);
 
+  /** Host padding-right is cleared for virtualized rails — restore it as a trailing column. */
+  const trailingSpacerPx = useMemo(() => {
+    const classic = Math.max(0, END_SCROLL_GUTTER_PX - gap);
+    if (scalePadPx <= 0) return classic;
+    return Math.max(classic, 64, Math.ceil(coverSize * 0.12) + 40);
+  }, [coverSize, gap, scalePadPx]);
+  const gridColumnCount = games.length + (trailingSpacerPx > 0 ? 1 : 0);
+
   const columnWidthForIndex = useCallback(
     (index: number) => {
+      if (index >= games.length) return trailingSpacerPx;
       let width = baseColumnWidth;
       if (scalePadPx > 0) {
         if (index === 0) width += scalePadPx;
@@ -294,7 +305,7 @@ export default function VirtualizedHorizontalGamesStrip({
       }
       return width;
     },
-    [baseColumnWidth, games.length, gap, scalePadPx],
+    [baseColumnWidth, games.length, gap, scalePadPx, trailingSpacerPx],
   );
 
   const columnOffset = useCallback(
@@ -306,6 +317,26 @@ export default function VirtualizedHorizontalGamesStrip({
     [columnWidthForIndex],
   );
 
+  const totalContentWidth = useMemo(
+    () => columnOffset(gridColumnCount),
+    [columnOffset, gridColumnCount],
+  );
+
+  /** react-window underestimates scrollWidth until its bounds cache fills (~26 cols). */
+  const syncGridScrollExtent = useCallback(() => {
+    const gridEl = gridRef.current?.element as HTMLElement | null | undefined;
+    if (!gridEl || totalContentWidth <= 0) return;
+    const hidden =
+      (gridEl.lastElementChild as HTMLElement | null)?.getAttribute("aria-hidden") ===
+      "true"
+        ? (gridEl.lastElementChild as HTMLElement)
+        : gridEl.querySelector<HTMLElement>('[aria-hidden="true"]');
+    if (hidden) {
+      hidden.style.width = `${totalContentWidth}px`;
+      hidden.style.minWidth = `${totalContentWidth}px`;
+    }
+  }, [totalContentWidth]);
+
   const measure = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -313,59 +344,168 @@ export default function VirtualizedHorizontalGamesStrip({
     const padLeft = parseFloat(cs.paddingLeft) || 0;
     const padRight = parseFloat(cs.paddingRight) || 0;
     const width = Math.max(0, el.clientWidth - padLeft - padRight);
-    setViewportWidth(width || el.clientWidth);
+    const next = width || el.clientWidth;
+    setViewportWidth((prev) => (prev === next ? prev : next));
   }, [containerRef]);
 
+  /** Navigation reads column count before react-window finishes mounting. */
+  const publishStripColumnCount = useCallback(() => {
+    const root = containerRef.current as HorizontalStripScrollHost | null;
+    if (!root || games.length <= 0) return;
+    root.setAttribute("data-mhg-strip-column-count", String(games.length));
+    const container = root.querySelector(".games-list-container--virtualized-strip");
+    container?.setAttribute("data-mhg-strip-column-count", String(games.length));
+  }, [containerRef, games.length]);
+
   useEffect(() => {
+    publishStripColumnCount();
     measure();
     const el = containerRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(measure);
+
+    const ro = new ResizeObserver(() => {
+      measure();
+      publishStripColumnCount();
+    });
     ro.observe(el);
+
+    const delayedMeasure = [0, 100, 250, 500].map((ms) =>
+      window.setTimeout(measure, ms),
+    );
     window.addEventListener("resize", measure);
+
     return () => {
       ro.disconnect();
+      delayedMeasure.forEach((id) => window.clearTimeout(id));
       window.removeEventListener("resize", measure);
     };
-  }, [containerRef, measure, games.length]);
+  }, [containerRef, measure, games.length, publishStripColumnCount]);
 
   const scrollToIndex = useCallback(
     (
       index: number,
       align: "auto" | "smart" | "start" | "center" | "end" = "smart",
     ) => {
-      const grid = gridRef.current;
-      if (!grid || typeof grid.scrollToColumn !== "function") return;
+      const scroller = gridRef.current?.element as HTMLElement | null | undefined;
+      if (!scroller) return;
       const clamped = Math.max(0, Math.min(games.length - 1, index));
-      try {
-        grid.scrollToColumn({ index: clamped, align, behavior: "instant" });
-      } catch {
-        const el = grid.element as HTMLElement | null | undefined;
-        if (el) {
-          el.scrollLeft = Math.max(0, columnOffset(clamped));
-        }
+      const host = containerRef.current as HorizontalStripScrollHost | null;
+      focusedIndexRef.current = clamped;
+      if (host) host.__mhgStripNavigateToIndex = clamped;
+
+      syncGridScrollExtent();
+      const max = Math.max(0, totalContentWidth - scroller.clientWidth);
+
+      if (align === "end" || (align === "smart" && clamped === games.length - 1)) {
+        scroller.scrollLeft = max;
+        return;
       }
+
+      const pad = scalePadPx > 0 ? scalePadPx : 12;
+      const left = columnOffset(clamped);
+      const width = columnWidthForIndex(clamped);
+      const viewLeft = scroller.scrollLeft;
+      const viewRight = viewLeft + scroller.clientWidth;
+      let nextScroll = viewLeft;
+
+      if (align === "center") {
+        nextScroll = left + width / 2 - scroller.clientWidth / 2;
+      } else if (align === "start") {
+        nextScroll = left - pad;
+      } else if (left + width > viewRight - pad) {
+        nextScroll = left + width - scroller.clientWidth + pad;
+      } else if (left < viewLeft + pad) {
+        nextScroll = left - pad;
+      }
+
+      scroller.scrollLeft = Math.max(0, Math.min(max, nextScroll));
     },
-    [columnOffset, games.length],
+    [
+      columnOffset,
+      columnWidthForIndex,
+      containerRef,
+      games.length,
+      scalePadPx,
+      syncGridScrollExtent,
+      totalContentWidth,
+    ],
   );
 
-  // Expose grid scroller + imperative index API on the section scroll host.
-  useEffect(() => {
-    const root = containerRef.current as HorizontalStripScrollHost | null;
-    const gridEl = gridRef.current?.element as HTMLElement | null | undefined;
-    if (!root || !gridEl) return;
-    root.__mhgStripScroller = gridEl;
-    root.__mhgStripScrollToIndex = scrollToIndex;
-    root.__mhgStripColumnCount = games.length;
-    return () => {
-      const host = containerRef.current as HorizontalStripScrollHost | null;
-      if (host?.__mhgStripScroller === gridEl) {
-        delete host.__mhgStripScroller;
-        delete host.__mhgStripScrollToIndex;
-        delete host.__mhgStripColumnCount;
+  const attachStripScrollApi = useCallback(
+    (host: HorizontalStripScrollHost, gridEl: HTMLElement) => {
+      host.__mhgStripScroller = gridEl;
+      host.__mhgStripScrollToIndex = scrollToIndex;
+      host.__mhgStripColumnCount = games.length;
+      host.setAttribute("data-mhg-strip-column-count", String(games.length));
+      const gridHost = gridEl as HorizontalStripScrollHost;
+      gridHost.__mhgStripScroller = gridEl;
+      gridHost.__mhgStripScrollToIndex = scrollToIndex;
+      gridHost.__mhgStripColumnCount = games.length;
+    },
+    [games.length, scrollToIndex],
+  );
+
+  useLayoutEffect(() => {
+    publishStripColumnCount();
+  }, [publishStripColumnCount, viewportWidth]);
+
+  useLayoutEffect(() => {
+    let cancelled = false;
+    let attachedGrid: HTMLElement | null = null;
+    let attachedHost: HorizontalStripScrollHost | null = null;
+
+    const ensureScrollExtent = (gridEl: HTMLElement, attempt = 0) => {
+      if (cancelled) return;
+      syncGridScrollExtent();
+      if (gridEl.scrollWidth < totalContentWidth - 2 && attempt < 48) {
+        window.requestAnimationFrame(() => ensureScrollExtent(gridEl, attempt + 1));
       }
     };
-  }, [containerRef, viewportWidth, games.length, scrollToIndex]);
+
+    const tryAttach = (attempt = 0) => {
+      if (cancelled) return;
+      const root = containerRef.current as HorizontalStripScrollHost | null;
+      const gridEl = gridRef.current?.element as HTMLElement | null | undefined;
+      if (root && gridEl) {
+        attachStripScrollApi(root, gridEl);
+        attachedHost = root;
+        attachedGrid = gridEl;
+        ensureScrollExtent(gridEl);
+        return;
+      }
+      if (attempt < 120) {
+        window.requestAnimationFrame(() => tryAttach(attempt + 1));
+      }
+    };
+
+    tryAttach();
+
+    return () => {
+      cancelled = true;
+      if (attachedHost && attachedGrid && attachedHost.__mhgStripScroller === attachedGrid) {
+        delete attachedHost.__mhgStripScroller;
+        delete attachedHost.__mhgStripScrollToIndex;
+        delete attachedHost.__mhgStripColumnCount;
+        attachedHost.removeAttribute("data-mhg-strip-column-count");
+      }
+      if (attachedGrid) {
+        const gridHost = attachedGrid as HorizontalStripScrollHost;
+        if (gridHost.__mhgStripScroller === attachedGrid) {
+          delete gridHost.__mhgStripScroller;
+          delete gridHost.__mhgStripScrollToIndex;
+          delete gridHost.__mhgStripColumnCount;
+        }
+      }
+    };
+  }, [
+    attachStripScrollApi,
+    containerRef,
+    games.length,
+    publishStripColumnCount,
+    syncGridScrollExtent,
+    totalContentWidth,
+    viewportWidth,
+  ]);
 
   // After recycle/scroll, restore focus to the last strip index so D-pad keeps working.
   useEffect(() => {
@@ -395,14 +535,28 @@ export default function VirtualizedHorizontalGamesStrip({
       const target = event.target;
       if (!(target instanceof HTMLElement) || !gridEl.contains(target)) return;
       const idx = readIndexFrom(target);
-      if (idx != null) focusedIndexRef.current = idx;
+      if (idx != null) {
+        focusedIndexRef.current = idx;
+        const host = root as HorizontalStripScrollHost;
+        if (host.__mhgStripNavigateToIndex === idx) {
+          host.__mhgStripNavigateToIndex = null;
+        }
+      }
     };
 
     const restoreFocusedCover = () => {
-      const idx = focusedIndexRef.current;
+      const host = root as HorizontalStripScrollHost;
+      const navigateTo = host.__mhgStripNavigateToIndex;
+      const idx =
+        navigateTo != null ? navigateTo : focusedIndexRef.current;
       if (idx == null) return;
+
       const active = document.activeElement;
-      if (active instanceof HTMLElement && gridEl.contains(active)) {
+      if (
+        navigateTo == null &&
+        active instanceof HTMLElement &&
+        gridEl.contains(active)
+      ) {
         const activeIdx = readIndexFrom(active);
         if (activeIdx != null) {
           focusedIndexRef.current = activeIdx;
@@ -414,9 +568,13 @@ export default function VirtualizedHorizontalGamesStrip({
           }
         }
       }
+
       let cover = findCoverAt(idx);
       if (!cover) {
-        scrollToIndex(idx, "smart");
+        scrollToIndex(
+          idx,
+          idx === games.length - 1 ? "end" : "smart",
+        );
         cover = findCoverAt(idx);
       }
       if (!cover || document.activeElement === cover) return;
@@ -425,10 +583,16 @@ export default function VirtualizedHorizontalGamesStrip({
       } catch {
         cover.focus();
       }
+      if (document.activeElement === cover && host.__mhgStripNavigateToIndex === idx) {
+        host.__mhgStripNavigateToIndex = null;
+      }
     };
 
     const onScroll = () => {
-      window.requestAnimationFrame(restoreFocusedCover);
+      syncGridScrollExtent();
+      if (!isSmartTvBrowser()) {
+        window.requestAnimationFrame(restoreFocusedCover);
+      }
     };
 
     gridEl.addEventListener("focusin", onFocusIn);
@@ -437,7 +601,7 @@ export default function VirtualizedHorizontalGamesStrip({
       gridEl.removeEventListener("focusin", onFocusIn);
       gridEl.removeEventListener("scroll", onScroll);
     };
-  }, [containerRef, viewportWidth, games.length, scrollToIndex]);
+  }, [containerRef, viewportWidth, games.length, scrollToIndex, syncGridScrollExtent]);
 
   const cellProps: StripCellProps = {
     games,
@@ -484,7 +648,7 @@ export default function VirtualizedHorizontalGamesStrip({
     <Grid
       gridRef={gridRef}
       className="virtualized-horizontal-games-strip"
-      columnCount={games.length}
+      columnCount={gridColumnCount}
       columnWidth={columnWidthForIndex}
       rowCount={1}
       rowHeight={rowHeight}

@@ -206,6 +206,19 @@ export default function ScrollableGamesSection({
     };
   }, [location.pathname, sectionId, storageKey, forceVerticalCovers]);
 
+  // Virtualized rails measure width / attach scroll API after restore opacity ends.
+  useEffect(() => {
+    if (forceVerticalCovers || isRestoring) return;
+    const id = window.requestAnimationFrame(() => {
+      window.dispatchEvent(new Event("resize"));
+    });
+    const t = window.setTimeout(() => window.dispatchEvent(new Event("resize")), 120);
+    return () => {
+      window.cancelAnimationFrame(id);
+      window.clearTimeout(t);
+    };
+  }, [forceVerticalCovers, isRestoring, games.length, sectionId]);
+
   // Save position during scroll + re-attach when content changes (e.g. IGDB games merged) so scrollWidth is correct
   useEffect(() => {
     const sectionScroll = scrollRef.current;
@@ -380,6 +393,9 @@ export default function ScrollableGamesSection({
         className={`scrollable-section-scroll${
           !forceVerticalCovers ? " scrollable-section-scroll--may-virtualize" : ""
         } ${isRestoring ? "restoring" : ""}`}
+        {...(!forceVerticalCovers && games.length > 0
+          ? { "data-mhg-strip-column-count": String(games.length) }
+          : {})}
       >
         {/* Vertical-covers: VirtualizedGamesList needs height on games-list-container (no scrollContainerRef).
             Horizontal rails: pass scrollRef so the strip Grid can measure width and own scrollLeft. */}
