@@ -441,12 +441,20 @@ export default function TagListPage({
           isReady &&
           displayItems.length > 0 && (
           <AlphabetNavigator
-            games={displayItems as { id: string; title: string }[]}
+            games={displayItems.map((item) => ({
+              id: item.id,
+              title: resolveItemLabel(item),
+            }))}
             scrollContainerRef={scrollContainerRef}
             itemRefs={itemRefs}
             ascending={true}
             viewMode="grid"
-            coverSize={coverSize * 2}
+            coverSize={tagListCoverSize}
+            virtualizedGridRef={
+              scrollContainerRef.current
+                ? (scrollContainerRef.current as any).__virtualizedGridRef
+                : undefined
+            }
           />
         )}
       </div>

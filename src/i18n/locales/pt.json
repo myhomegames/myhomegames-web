@@ -21,6 +21,10 @@
     "gamesSidebar": "Jogos",
     "topRightToolDock": "Ferramentas"
   },
+  "recommended": {
+    "continuePlaying": "Continuar a jogar",
+    "recentlyAdded": "Adicionados recentemente"
+  },
   "settings": {
     "title": "Configurações",
     "subtitle": "Configurar preferências do aplicativo",
@@ -101,15 +105,20 @@
         "fixedFocalStepSound": "Som de navegação",
         "autoShowBackgroundOnSelection": "Mostrar fundo na seleção focal",
         "detailBackdropLayout": "Layout de fundo no detalhe do jogo (CSS do skin)",
+        "tvDetailBackdropAmbient": "Desfoque ambiente e herói recortado nos fundos de detalhe",
         "staticInlineTagListOnTvPhone": "Tags em linha não clicáveis na TV e no telemóvel",
-        "tvSummaryOverlay": "TV: abrir o resumo em overlay ecrã inteiro",
-        "tvStarRatingOverlay": "TV: abrir a classificação por estrelas em overlay ecrã inteiro",
-        "tvDetailSummaryBeforeActions": "TV: mostrar o resumo acima da linha Play no detalhe do jogo",
-        "tvRecommendedBrowsePreview": "TV: o painel superior de Recomendados atualiza com o jogo em foco (até ao resumo)",
-        "tvHideAppHeader": "TV: ocultar o cabeçalho; pesquisa e perfil ficam na barra de bibliotecas",
+        "tvSummaryOverlay": "Abrir o resumo em overlay ecrã inteiro",
+        "tvStarRatingOverlay": "Abrir a classificação por estrelas em overlay ecrã inteiro",
+        "tvDetailSummaryBeforeActions": "Mostrar o resumo acima da linha Play no detalhe do jogo",
+        "tvRecommendedBrowsePreview": "O painel superior de Recomendados atualiza com o jogo em foco (até ao resumo)",
+        "tvHideAppHeader": "Ocultar o cabeçalho; pesquisa e perfil ficam na barra de bibliotecas",
         "disableTitleTooltips": "Ocultar dicas",
         "collapsibleLibrarySidebar": "Barra lateral de bibliotecas recolhível em viewports estreitos"
       }
+    },
+    "skinTvOptions": {
+      "title": "Smart TV",
+      "description": "Opções que se aplicam na Smart TV (Tizen, webOS, Android TV, etc.)."
     },
     "webVersion": "Versão web",
     "minServerVersionRequired": "Requer versão do servidor {{version}} ou mais recente.",
@@ -781,6 +790,7 @@
     "setupHint": "Requer Sunshine no PC de casa e Moonlight Web acessível por HTTPS.",
     "launchFailed": "Falha ao iniciar o jogo no PC de casa",
     "noMoonlightUrl": "O URL do Moonlight Web não está configurado no servidor.",
+    "noAppStream": "Não foi possível abrir o stream da aplicação do jogo. Reinicie o servidor de casa e tente novamente.",
     "sunshineUnreachable": "O Sunshine não parece estar a correr no PC de casa. Inicie o Sunshine e depois atualize o Moonlight Web.",
     "missingGame": "Id do jogo em falta",
     "iframeTitle": "Stream Moonlight Web"

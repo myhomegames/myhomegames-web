@@ -590,10 +590,15 @@ export default function VirtualizedTagList({
 
   useEffect(() => {
     if (containerRef && "current" in containerRef && containerRef.current) {
-      (containerRef.current as HTMLDivElement & { __virtualizedGridRef?: typeof gridRef }).__virtualizedGridRef =
-        gridRef;
+      (containerRef.current as HTMLDivElement & {
+        __virtualizedGridRef?: typeof gridRef;
+        __virtualizedColumnCount?: number;
+      }).__virtualizedGridRef = gridRef;
+      (containerRef.current as HTMLDivElement & {
+        __virtualizedColumnCount?: number;
+      }).__virtualizedColumnCount = columnCount;
     }
-  }, [containerRef]);
+  }, [containerRef, columnCount]);
 
   const Cell = ({
     columnIndex,

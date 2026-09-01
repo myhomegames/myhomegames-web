@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { getEmbedVideoUrl, getVideoPosterUrl, getYouTubeVideoId } from "../../utils/api";
 import { requestSmartTvUiLayerFocus } from "../../utils/smartTvRemote";
+import { isSmartTvBrowser } from "../../utils/smartTv";
 import {
   createYouTubePlayer,
   seekYouTubePlayer,
@@ -251,6 +252,8 @@ export default function MediaGallery({ screenshots, videos, apiBase }: MediaGall
     return null;
   }
 
+  const isSmartTv = isSmartTvBrowser();
+
   return (
     <>
       <div ref={scrollRef} className="media-gallery-strip">
@@ -361,14 +364,16 @@ export default function MediaGallery({ screenshots, videos, apiBase }: MediaGall
                 </button>
               )}
 
-              <button
-                type="button"
-                className="media-gallery-lightbox-icon-btn media-gallery-lightbox-icon-btn--close"
-                tabIndex={-1}
-                onClick={closeLightbox}
-              >
-                ×
-              </button>
+              {!isSmartTv && (
+                <button
+                  type="button"
+                  className="media-gallery-lightbox-icon-btn media-gallery-lightbox-icon-btn--close"
+                  tabIndex={-1}
+                  onClick={closeLightbox}
+                >
+                  ×
+                </button>
+              )}
 
               {mediaItems.length > 1 && (
                 <div className="media-gallery-lightbox-counter">

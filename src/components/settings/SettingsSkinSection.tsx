@@ -2,7 +2,11 @@ import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSkin } from "../../contexts/SkinContext";
 import { useSettings } from "../../contexts/SettingsContext";
-import { SKIN_WEB_SETTINGS_OPTION_KEYS, type SkinWebManifest } from "../../skins/skinWebManifest";
+import {
+  SKIN_WEB_SETTINGS_GENERAL_OPTION_KEYS,
+  SKIN_WEB_SETTINGS_TV_OPTION_KEYS,
+  type SkinWebManifest,
+} from "../../skins/skinWebManifest";
 import { API_BASE } from "../../config";
 
 function isZipSkinFile(file: File): boolean {
@@ -19,6 +23,25 @@ export default function SettingsSkinSection() {
   const [busy, setBusy] = useState(false);
   const [snapshotErrorIds, setSnapshotErrorIds] = useState<Record<string, boolean>>({});
   const canRemoveSkins = skins.length > 1;
+
+  const renderSkinOptionCheckboxes = (keys: readonly (keyof SkinWebManifest)[]) => (
+    <div className="settings-library-options">
+      {keys.map((key) => (
+        <label key={key} className="settings-library-option">
+          <input
+            type="checkbox"
+            checked={skinWeb[key] === true}
+            onChange={(e) => {
+              const partial: Partial<SkinWebManifest> = { [key]: e.target.checked };
+              void updateSkinWebFlags(partial);
+            }}
+            className="settings-checkbox"
+          />
+          <span>{t(`settings.skinOptions.flags.${key}`, key)}</span>
+        </label>
+      ))}
+    </div>
+  );
 
   const handlePickFile = () => {
     setUploadError(null);
@@ -232,22 +255,20 @@ export default function SettingsSkinSection() {
                 "Fine-tune how the active skin renders the interface. When you install or switch to a skin, these options are reset to the values that skin declares in its manifest."
               )}
             </p>
-            <div className="settings-library-options">
-              {SKIN_WEB_SETTINGS_OPTION_KEYS.map((key) => (
-                <label key={key} className="settings-library-option">
-                  <input
-                    type="checkbox"
-                    checked={skinWeb[key] === true}
-                    onChange={(e) => {
-                      const partial: Partial<SkinWebManifest> = { [key]: e.target.checked };
-                      void updateSkinWebFlags(partial);
-                    }}
-                    className="settings-checkbox"
-                  />
-                  <span>{t(`settings.skinOptions.flags.${key}`, key)}</span>
-                </label>
-              ))}
-            </div>
+            {renderSkinOptionCheckboxes(SKIN_WEB_SETTINGS_GENERAL_OPTION_KEYS)}
+          </div>
+        )}
+
+        {activeSkinId && (
+          <div className="settings-field settings-skin-tv-options" style={{ marginTop: 32 }}>
+            <div className="settings-label">{t("settings.skinTvOptions.title", "Smart TV")}</div>
+            <p className="settings-help-text">
+              {t(
+                "settings.skinTvOptions.description",
+                "Options that apply on Smart TV (Tizen, webOS, Android TV, etc.)."
+              )}
+            </p>
+            {renderSkinOptionCheckboxes(SKIN_WEB_SETTINGS_TV_OPTION_KEYS)}
           </div>
         )}
       </div>

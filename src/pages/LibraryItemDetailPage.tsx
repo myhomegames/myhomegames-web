@@ -955,6 +955,7 @@ export default function LibraryItemDetailPage({
       elementId={backgroundStateKey}
       autoShowWhenAvailable={activeSkinWeb.autoShowBackgroundOnSelection}
       detailBackdrop={activeSkinWeb.detailBackdropLayout}
+      tvDetailBackdropAmbient={activeSkinWeb.tvDetailBackdropAmbient}
     >
       <LibraryItemDetailContent
         item={item}
@@ -1946,10 +1947,16 @@ function LibraryItemDetailContent({
                                       if (g) onPlay(g);
                                     }}
                                   >
-                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                                    <svg
+                                      width="28"
+                                      height="28"
+                                      viewBox="0 0 24 24"
+                                      fill="currentColor"
+                                      className="library-item-detail-play-btn-icon"
+                                    >
                                       <path d="M8 5v14l11-7z" />
                                     </svg>
-                                    {t("common.play")}
+                                    <span className="mhg-tv-action-label">{t("common.play")}</span>
                                   </button>
                                 )}
                                 {detailTogglesBesidePlay && hasBackground ? (
@@ -2239,6 +2246,9 @@ function LibraryItemDetailContent({
                                     <div
                                       key={String(col.id)}
                                       className={`group collections-list-item library-item-detail-subcollection-cell${isActiveDetailChild ? " games-list-item--detail-current" : " cursor-pointer"}`}
+                                      {...(resourceType === "collections"
+                                        ? { "data-mhg-collection-id": String(col.id) }
+                                        : {})}
                                     >
                                       <Cover
                                         title={col.title}

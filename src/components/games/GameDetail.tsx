@@ -146,6 +146,7 @@ export default function GameDetail({
       elementId={game.id}
       autoShowWhenAvailable={activeSkinWeb.autoShowBackgroundOnSelection}
       detailBackdrop={activeSkinWeb.detailBackdropLayout}
+      tvDetailBackdropAmbient={activeSkinWeb.tvDetailBackdropAmbient}
     >
       <GameDetailContent
         game={localGame}
@@ -772,7 +773,7 @@ function GameDetailContent({
                     >
                       <path d="M8 5v14l11-7z" />
                     </svg>
-                    {t("common.play")}
+                    <span className="mhg-tv-action-label">{t("common.play")}</span>
                   </button>
                 ) : !isSmartTvBrowser() ? (
                     <button

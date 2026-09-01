@@ -74,7 +74,7 @@ function AppContent() {
   const { collections: allCollections } = useCollections();
   const { developers: allDevelopers } = useDevelopers();
   const { publishers: allPublishers } = usePublishers();
-  const { games: allGames } = useLibraryGames();
+  const { games: allGames, updateGame } = useLibraryGames();
   const [launchError, setLaunchError] = useState<string | null>(null);
   const [isLaunching, setIsLaunching] = useState(false);
   const [addGameOpen, setAddGameOpen] = useState(false);
@@ -306,6 +306,13 @@ function AppContent() {
         setIsLaunching(false);
         setLaunchError(errorMessage);
       } else {
+        const result = await res.json().catch(() => ({}));
+        if (typeof result.datePlayed === "number") {
+          const playedGame = allGames.find((g) => String(g.id) === String(gameId));
+          if (playedGame) {
+            updateGame({ ...playedGame, datePlayed: result.datePlayed });
+          }
+        }
         // Success - close loading after a short delay
         setTimeout(() => {
           setIsLaunching(false);
@@ -1225,6 +1232,9 @@ function GameDetailPage({
         day: found.day,
         month: found.month,
         year: found.year,
+        dateAdded: found.dateAdded ?? null,
+        dateInstalled: found.dateInstalled ?? null,
+        datePlayed: found.datePlayed ?? null,
         stars: found.stars,
         genre: found.genre,
         criticratings: found.criticratings,

@@ -42,6 +42,9 @@ export default function BackgroundToggle({
         )}
         </svg>
       </span>
+      <span className="mhg-tv-action-label">
+        {isVisible ? t("common.hideBackground") : t("common.showBackground")}
+      </span>
     </button>
   );
 }

@@ -1,6 +1,7 @@
 import {
   useState,
   useEffect,
+  useLayoutEffect,
   useRef,
   memo,
   startTransition,
@@ -34,6 +35,7 @@ type RecommendedBrowseChromeProps = {
   /** Live sections used to resolve focused covers — owned by the page. */
   sectionsRef: RefObject<RecommendedSection[]>;
   detailBackdrop: boolean;
+  tvDetailBackdropAmbient: boolean;
   /**
    * Stable page shell (scroll + strips). Preview is rendered beside it so strip
    * fibers are not rebuilt when fanart/summary state changes.
@@ -83,23 +85,31 @@ const BrowseForeground = memo(function BrowseForeground({
 /**
  * Owns TV browse summary + fanart so cover strips are not blocked by fanart
  * paint. Cover focus/selection stays on the remote path; after hover settle,
- * sharp + ambient share one URL swap (BackgroundManager opacity fade-in).
+ * ambient tint + sharp crop share one decode, with sharp hidden immediately on
+ * cover change so D-pad scale never contends with the hero layer.
  */
 export default function RecommendedBrowseChrome({
   isReady,
   scrollContainerRef,
   sectionsRef,
   detailBackdrop,
+  tvDetailBackdropAmbient,
   children,
 }: RecommendedBrowseChromeProps) {
   const [previewGame, setPreviewGame] = useState<GameItem | null>(null);
-  const [paintedBackgroundUrl, setPaintedBackgroundUrl] = useState("");
+  const [ambientBackgroundUrl, setAmbientBackgroundUrl] = useState("");
+  const [sharpBackgroundUrl, setSharpBackgroundUrl] = useState("");
   const catalogPreviewFetchedRef = useRef<Set<string>>(new Set());
   const enrichedByIdRef = useRef<Map<string, GameItem>>(new Map());
-  const paintedUrlRef = useRef("");
+  const ambientUrlRef = useRef("");
   const previewIdRef = useRef<string | null>(null);
-  paintedUrlRef.current = paintedBackgroundUrl;
+  ambientUrlRef.current = ambientBackgroundUrl;
   previewIdRef.current = previewGame ? String(previewGame.id) : null;
+
+  // Drop the top-right hero as soon as focus leaves a cover; keep ambient tint.
+  useLayoutEffect(() => {
+    setSharpBackgroundUrl("");
+  }, [previewGame?.id]);
 
   const resolveGame = (id: string): GameItem | null => {
     const enriched = enrichedByIdRef.current.get(id);
@@ -277,19 +287,26 @@ export default function RecommendedBrowseChrome({
     };
   }, [previewGame?.id, previewGame?.isCatalogOnly, sectionsRef]);
 
-  // Same path for sharp crop + ambient fill: wait until cover scale (~200ms)
-  // finished, warm decode, then one painted URL → BackgroundManager fades both in.
+  // Ambient tint waits for cover scale (~200ms); sharp reuses the same decode.
   useEffect(() => {
     if (!previewGame) {
       const clearTimer = window.setTimeout(() => {
-        startTransition(() => setPaintedBackgroundUrl(""));
+        startTransition(() => {
+          setAmbientBackgroundUrl("");
+          setSharpBackgroundUrl("");
+        });
       }, FANART_SETTLE_MS);
       return () => window.clearTimeout(clearTimer);
     }
 
     const gameId = String(previewGame.id);
     const url = buildBackgroundUrl(API_BASE, previewGame.background) || "";
-    if (url === paintedUrlRef.current) return;
+    if (url === ambientUrlRef.current) {
+      if (url) {
+        startTransition(() => setSharpBackgroundUrl(url));
+      }
+      return;
+    }
 
     let cancelled = false;
 
@@ -299,7 +316,10 @@ export default function RecommendedBrowseChrome({
       void (async () => {
         if (!url) {
           if (!cancelled && previewIdRef.current === gameId) {
-            startTransition(() => setPaintedBackgroundUrl(""));
+            startTransition(() => {
+              setAmbientBackgroundUrl("");
+              setSharpBackgroundUrl("");
+            });
           }
           return;
         }
@@ -307,7 +327,10 @@ export default function RecommendedBrowseChrome({
           await whenBackgroundUrlReady(url);
         }
         if (cancelled || previewIdRef.current !== gameId) return;
-        startTransition(() => setPaintedBackgroundUrl(url));
+        startTransition(() => {
+          setAmbientBackgroundUrl(url);
+          setSharpBackgroundUrl(url);
+        });
       })();
     }, FANART_SETTLE_MS);
 
@@ -319,12 +342,13 @@ export default function RecommendedBrowseChrome({
 
   return (
     <BackgroundManager
-      backgroundUrl={paintedBackgroundUrl}
-      hasBackground={Boolean(paintedBackgroundUrl)}
+      backgroundUrl={ambientBackgroundUrl}
+      sharpBackgroundUrl={sharpBackgroundUrl}
+      hasBackground={Boolean(ambientBackgroundUrl)}
       elementId="recommended-browse"
       autoShowWhenAvailable
       detailBackdrop={detailBackdrop}
-      // Ambient rides the same URL + opacity fade as sharp (default ambientFill).
+      tvDetailBackdropAmbient={tvDetailBackdropAmbient}
     >
       <BrowseForeground previewGame={previewGame} strips={children} isReady={isReady} />
     </BackgroundManager>

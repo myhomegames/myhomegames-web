@@ -21,6 +21,10 @@
     "gamesSidebar": "游戏",
     "topRightToolDock": "工具栏"
   },
+  "recommended": {
+    "continuePlaying": "继续游戏",
+    "recentlyAdded": "最近添加"
+  },
   "settings": {
     "title": "设置",
     "subtitle": "配置应用程序偏好",
@@ -101,15 +105,20 @@
         "fixedFocalStepSound": "导航音效",
         "autoShowBackgroundOnSelection": "焦点选中时显示背景",
         "detailBackdropLayout": "游戏详情背景布局（皮肤 CSS）",
+        "tvDetailBackdropAmbient": "详情背景的环境模糊与裁剪主图",
         "staticInlineTagListOnTvPhone": "电视和手机上内联标签不可点击",
-        "tvSummaryOverlay": "电视：在全屏浮层中打开简介",
-        "tvStarRatingOverlay": "电视：在全屏浮层中打开星级评分",
-        "tvDetailSummaryBeforeActions": "电视：在游戏详情的 Play 行上方显示简介",
-        "tvRecommendedBrowsePreview": "电视：推荐页顶部面板随焦点游戏更新（到简介为止）",
-        "tvHideAppHeader": "电视：隐藏应用顶栏；搜索与个人资料保留在媒体库栏",
+        "tvSummaryOverlay": "在全屏浮层中打开简介",
+        "tvStarRatingOverlay": "在全屏浮层中打开星级评分",
+        "tvDetailSummaryBeforeActions": "在游戏详情的 Play 行上方显示简介",
+        "tvRecommendedBrowsePreview": "推荐页顶部面板随焦点游戏更新（到简介为止）",
+        "tvHideAppHeader": "隐藏应用顶栏；搜索与个人资料保留在媒体库栏",
         "disableTitleTooltips": "隐藏工具提示",
         "collapsibleLibrarySidebar": "窄视口下可折叠的媒体库侧栏"
       }
+    },
+    "skinTvOptions": {
+      "title": "智能电视",
+      "description": "适用于智能电视（Tizen、webOS、Android TV 等）的选项。"
     },
     "webVersion": "网页版本",
     "minServerVersionRequired": "需要服务器版本 {{version}} 或更高。",
@@ -781,6 +790,7 @@
     "setupHint": "需要家用电脑上的 Sunshine，以及可通过 HTTPS 访问的 Moonlight Web。",
     "launchFailed": "无法在家用电脑上启动游戏",
     "noMoonlightUrl": "服务器未配置 Moonlight Web URL。",
+    "noAppStream": "无法打开游戏应用串流。请重启家用服务器后重试。",
     "sunshineUnreachable": "家用电脑上似乎未运行 Sunshine。请启动 Sunshine，然后刷新 Moonlight Web。",
     "missingGame": "缺少游戏 id",
     "iframeTitle": "Moonlight Web 串流"

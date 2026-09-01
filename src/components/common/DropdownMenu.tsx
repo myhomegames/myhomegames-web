@@ -13,6 +13,7 @@ import {
 } from "../../utils/activitySession";
 import { bindSheetBackdropClose } from "../../utils/sheetPopupBackdrop";
 import { requestSmartTvUiLayerFocus } from "../../utils/smartTvRemote";
+import { isSmartTvBrowser } from "../../utils/smartTv";
 import { useSidebarSearchInteraction } from "../../contexts/SidebarSearchInteractionContext";
 import {
   HEADER_SEARCH_ACTION_Z_INDEX,
@@ -225,6 +226,10 @@ function DropdownMenu({
   const isDetailDockMenu = className.includes('library-item-detail-dropdown-menu');
   /** Game detail ⋮: portal to body so the right sheet covers the overlay dock. */
   const isGameDetailMenu = className.includes('game-detail-dropdown-menu');
+  const isTvGameDetailMenu =
+    isGameDetailMenu &&
+    (isSmartTvBrowser() ||
+      (typeof document !== "undefined" && document.documentElement.dataset.mhgTv === "1"));
   const useDockPortalMenu = isLibrariesTopMenu || isDetailDockMenu;
   /** Body portal + fixed position under trigger (dock, detail sheet, game detail actions). */
   const useFixedBodyPortalMenu = useDockPortalMenu || isGameDetailMenu;
@@ -725,7 +730,7 @@ function DropdownMenu({
     <button
       onClick={handleToggle}
       className="dropdown-menu-button"
-      aria-label="Menu"
+      aria-label={t("common.more", "More")}
     >
       {horizontal ? (
         <svg
@@ -758,6 +763,9 @@ function DropdownMenu({
           <circle cx="12" cy="19" r="1" />
         </svg>
       )}
+      {horizontal ? (
+        <span className="mhg-tv-action-label">{t("common.more", "More")}</span>
+      ) : null}
     </button>
   );
 
@@ -776,6 +784,44 @@ function DropdownMenu({
         buttonContent
       )}
       {isOpen && (() => {
+        const showAdditionalExecutablesMenuItem =
+          !!gameId && !!gameExecutables && gameExecutables.length > 1;
+        const additionalExecutablesMenuItem = showAdditionalExecutablesMenuItem ? (
+          <button
+            type="button"
+            className="dropdown-menu-item dropdown-menu-item-with-submenu additional-executables-menu-item"
+            onMouseEnter={handleAdditionalExecutablesMouseEnter}
+            onMouseLeave={handleAdditionalExecutablesMouseLeave}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAdditionalExecutablesMouseEnter();
+            }}
+          >
+            <span>{t("gameDetail.additionalExecutables", "Additional executables")}</span>
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        ) : null;
+        const deleteMenuItem =
+          onDelete || (hasBackendAuth && (gameId || collectionId || developerId || publisherId)) ? (
+            <button
+              onClick={handleDeleteClick}
+              className="dropdown-menu-item dropdown-menu-item-danger"
+            >
+              <span>{t("common.delete", "Delete")}</span>
+            </button>
+          ) : null;
+
         const popupPanel = (
           <div 
             ref={popupRef} 
@@ -861,6 +907,16 @@ function DropdownMenu({
               return undefined;
             })()}
           >
+            {isTvGameDetailMenu ? (
+              <>
+                {additionalExecutablesMenuItem}
+                {additionalExecutablesMenuItem && deleteMenuItem ? (
+                  <div className="dropdown-menu-divider" />
+                ) : null}
+                {deleteMenuItem}
+              </>
+            ) : (
+              <>
             {onPlay && (
               <button onClick={handlePlay} className="dropdown-menu-item">
                 <span>{t("common.play", "Play")}</span>
@@ -878,33 +934,7 @@ function DropdownMenu({
               )}
 
             {/* Additional Executables (only for games with multiple executables) */}
-            {gameId && gameExecutables && gameExecutables.length > 1 && (
-              <div
-                role="button"
-                tabIndex={0}
-                className="dropdown-menu-item dropdown-menu-item-with-submenu additional-executables-menu-item"
-                onMouseEnter={handleAdditionalExecutablesMouseEnter}
-                onMouseLeave={handleAdditionalExecutablesMouseLeave}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleAdditionalExecutablesMouseEnter();
-                }}
-              >
-                <span>{t("gameDetail.additionalExecutables", "Additional executables")}</span>
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </div>
-            )}
+            {additionalExecutablesMenuItem}
 
             {/* First Section: Add to Collection */}
             {onAddToCollection && (
@@ -1159,12 +1189,9 @@ function DropdownMenu({
               </button>
             )}
             {(onDelete || (hasBackendAuth && (gameId || collectionId || developerId || publisherId))) && (
-              <button
-                onClick={handleDeleteClick}
-                className="dropdown-menu-item dropdown-menu-item-danger"
-              >
-                <span>{t("common.delete", "Delete")}</span>
-              </button>
+              deleteMenuItem
+            )}
+              </>
             )}
           </div>
         );

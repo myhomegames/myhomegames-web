@@ -78,6 +78,7 @@ export function useExecutable({
           criticratings: result.game.criticratings ?? game.criticratings ?? null,
           userratings: result.game.userratings ?? game.userratings ?? null,
           executables: result.game.executables ?? game.executables ?? null, // Array of executable names
+          dateInstalled: result.game.dateInstalled ?? game.dateInstalled ?? null,
           // Preserve all other fields from original game
           themes: result.game.themes ?? game.themes ?? null,
           platforms: result.game.platforms ?? game.platforms ?? null,

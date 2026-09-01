@@ -11,6 +11,7 @@ import type { MainAppOutletContext } from "../layouts/MainAppLayout";
 import type { GameItem, CollectionItem } from "../types";
 import { API_BASE } from "../config";
 import { buildApiUrl, buildApiHeaders, buildCoverUrl } from "../utils/api";
+import { gameItemToCatalogSeed } from "../utils/catalogGameSeed";
 import {
   consumeRecommendedReturnFromGame,
   getRecommendedSectionsCache,
@@ -137,7 +138,9 @@ export default function RecommendedSectionDetailPage({
         markRecommendedReturnFromGame();
       }
       if (catalogSearchEnabled && (game as GameItem & { isCatalogOnly?: boolean }).isCatalogOnly) {
-        navigate(`/catalog-game/${game.id}`);
+        navigate(`/catalog-game/${game.id}`, {
+          state: { gameData: gameItemToCatalogSeed(game) },
+        });
       } else {
         onGameClick(game);
       }

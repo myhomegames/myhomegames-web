@@ -1,5 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useScrollRestoration } from "../hooks/useScrollRestoration";
 import { usePageRevealReady } from "../hooks/usePageRevealReady";
 import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
@@ -15,6 +16,7 @@ import { buildApiHeaders, buildAppApiUrl, buildBackgroundUrl } from "../utils/ap
 import { API_BASE } from "../config";
 import { isSmartTvBrowser } from "../utils/smartTv";
 import { buildCatalogApiUrl } from "../utils/catalogApi";
+import { gameItemToCatalogSeed } from "../utils/catalogGameSeed";
 import {
   collectGameBackgroundUrls,
   preloadBackgroundUrls,
@@ -32,6 +34,29 @@ import {
   type RecommendedSectionsNavState,
 } from "../utils/recommendedSectionsCache";
 import { titleMatchesFilter } from "../utils/titleFilter";
+
+/** Fixed rails from GET /recommended (not keyword-based). */
+const CONTINUE_PLAYING_SECTION_ID = "continue-playing";
+const RECENTLY_ADDED_SECTION_ID = "recently-added";
+
+const FIXED_RECOMMENDED_SECTION_IDS = new Set([
+  CONTINUE_PLAYING_SECTION_ID,
+  RECENTLY_ADDED_SECTION_ID,
+]);
+
+function resolveRecommendedSectionTitle(
+  sectionId: string,
+  fallbackTitle: string | undefined,
+  t: (key: string, defaultValue: string) => string,
+): string {
+  if (sectionId === CONTINUE_PLAYING_SECTION_ID) {
+    return t("recommended.continuePlaying", "Continue playing");
+  }
+  if (sectionId === RECENTLY_ADDED_SECTION_ID) {
+    return t("recommended.recentlyAdded", "Recently added");
+  }
+  return fallbackTitle ?? sectionId;
+}
 
 type RecommendedSection = {
   id: string;
@@ -90,6 +115,7 @@ export default function RecommendedPage({
   allCollections = [],
 }: RecommendedPageProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const titleFilterQuery = useTitleFilterQuery();
   const { catalogSearchEnabled } = useSettings();
   const { ready: listDataReady, reloadToken } = useListDataReady();
@@ -131,7 +157,9 @@ export default function RecommendedPage({
       setRecommendedSectionsCache(sections);
       markRecommendedReturnFromGame();
       if (catalogSearchEnabled && (game as GameItem & { isCatalogOnly?: boolean }).isCatalogOnly) {
-        navigate(`/catalog-game/${game.id}`);
+        navigate(`/catalog-game/${game.id}`, {
+          state: { gameData: gameItemToCatalogSeed(game) },
+        });
       } else {
         onGameClick(game);
       }
@@ -368,7 +396,7 @@ export default function RecommendedPage({
 
           return sectionsData.map((section) => ({
             id: section.id,
-            title: section.title ?? section.id,
+            title: resolveRecommendedSectionTitle(section.id, section.title, t),
             games: (section.games || []).map((v: any) => ({
               id: v.id,
               title: v.title,
@@ -378,6 +406,9 @@ export default function RecommendedPage({
               day: v.day,
               month: v.month,
               year: v.year,
+              dateAdded: v.dateAdded ?? null,
+              dateInstalled: v.dateInstalled ?? null,
+              datePlayed: v.datePlayed ?? null,
               stars: v.stars,
               genre: v.genre,
               executables: v.executables || null,
@@ -398,6 +429,8 @@ export default function RecommendedPage({
       if (catalogSearchEnabled) {
           // Fetch IGDB data in background; update each section as its response arrives
           parsedSections.forEach((section) => {
+            // Fixed library rails — do not append catalog-only titles.
+            if (FIXED_RECOMMENDED_SECTION_IDS.has(section.id)) return;
             const excludeIds = section.games
               .map((g: GameItem) => Number(g.id))
               .filter((id: number) => !Number.isNaN(id));
@@ -577,6 +610,7 @@ export default function RecommendedPage({
         scrollContainerRef={scrollContainerRef}
         sectionsRef={sectionsForDisplayRef}
         detailBackdrop={activeSkinWeb.detailBackdropLayout}
+        tvDetailBackdropAmbient={activeSkinWeb.tvDetailBackdropAmbient}
       >
         {browseStrips}
       </RecommendedBrowseChrome>

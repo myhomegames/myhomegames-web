@@ -21,6 +21,10 @@
     "gamesSidebar": "ゲーム",
     "topRightToolDock": "ツールバー"
   },
+  "recommended": {
+    "continuePlaying": "プレイを続ける",
+    "recentlyAdded": "最近追加したゲーム"
+  },
   "settings": {
     "title": "設定",
     "subtitle": "アプリケーションの設定を構成",
@@ -101,15 +105,20 @@
         "fixedFocalStepSound": "ナビゲーション音",
         "autoShowBackgroundOnSelection": "フォーカス選択時に背景を表示",
         "detailBackdropLayout": "ゲーム詳細の背景レイアウト（スキン CSS）",
+        "tvDetailBackdropAmbient": "詳細背景の環境ぼかしとトリミングヒーロー",
         "staticInlineTagListOnTvPhone": "TV・スマホではインラインタグをクリック不可",
-        "tvSummaryOverlay": "TV: 概要を全画面オーバーレイで開く",
-        "tvStarRatingOverlay": "TV: 星評価を全画面オーバーレイで開く",
-        "tvDetailSummaryBeforeActions": "TV: ゲーム詳細で Play 行の上に概要を表示",
-        "tvRecommendedBrowsePreview": "TV: おすすめ上部パネルがフォーカス中のゲームに合わせて更新（概要まで）",
-        "tvHideAppHeader": "TV: アプリヘッダーを非表示（検索とプロフィールはライブラリバーに残す）",
+        "tvSummaryOverlay": "概要を全画面オーバーレイで開く",
+        "tvStarRatingOverlay": "星評価を全画面オーバーレイで開く",
+        "tvDetailSummaryBeforeActions": "ゲーム詳細で Play 行の上に概要を表示",
+        "tvRecommendedBrowsePreview": "おすすめ上部パネルがフォーカス中のゲームに合わせて更新（概要まで）",
+        "tvHideAppHeader": "アプリヘッダーを非表示（検索とプロフィールはライブラリバーに残す）",
         "disableTitleTooltips": "ツールチップを非表示",
         "collapsibleLibrarySidebar": "狭いビューポートで折りたたみ可能なライブラリサイドバー"
       }
+    },
+    "skinTvOptions": {
+      "title": "スマート TV",
+      "description": "スマート TV（Tizen、webOS、Android TV など）向けのオプション。"
     },
     "webVersion": "Web バージョン",
     "minServerVersionRequired": "サーバーバージョン {{version}} 以降が必要です。",
@@ -781,6 +790,7 @@
     "setupHint": "自宅 PC の Sunshine と、HTTPS で到達可能な Moonlight Web が必要です。",
     "launchFailed": "自宅 PC でゲームを起動できませんでした",
     "noMoonlightUrl": "サーバーに Moonlight Web URL が設定されていません。",
+    "noAppStream": "ゲームアプリケーションのストリームを開けませんでした。ホームサーバーを再起動してからもう一度お試しください。",
     "sunshineUnreachable": "自宅 PC で Sunshine が動作していないようです。Sunshine を起動してから Moonlight Web を更新してください。",
     "missingGame": "ゲーム ID がありません",
     "iframeTitle": "Moonlight Web ストリーム"

@@ -780,13 +780,13 @@ export default function VirtualizedCollectionsList({
     containerRef,
   ]);
 
-  // Expose gridRef to parent via containerRef if it's a ref object
+  // Expose grid API for AlphabetNavigator (same column math as this grid).
   useEffect(() => {
-    if (containerRef && 'current' in containerRef && containerRef.current) {
-      // Store gridRef in a data attribute or custom property for AlphabetNavigator to access
+    if (containerRef && "current" in containerRef && containerRef.current) {
       (containerRef.current as any).__virtualizedGridRef = gridRef;
+      (containerRef.current as any).__virtualizedColumnCount = columnCount;
     }
-  }, [containerRef]);
+  }, [containerRef, columnCount]);
 
   // Cell renderer for grid
   const Cell = ({ columnIndex, rowIndex, style }: { columnIndex: number; rowIndex: number; style: React.CSSProperties }) => {

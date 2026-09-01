@@ -18,6 +18,12 @@ export type GameItem = {
   day?: number | null;
   month?: number | null;
   year?: number | null;
+  /** Epoch ms when the game was added to the library (server-set on create/import). */
+  dateAdded?: number | null;
+  /** Epoch ms when an executable was last installed (server-set on upload-executable). */
+  dateInstalled?: number | null;
+  /** Epoch ms when the game was last launched (server-set on play). */
+  datePlayed?: number | null;
   stars?: number | null;
   /** Categories/genres: API returns [{ id, title }]; legacy may use string[]. */
   genre?: Array<{ id: number; title: string }> | string | string[];

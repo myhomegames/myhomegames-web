@@ -9,7 +9,11 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
-import { isSmartTvBrowser } from "../../utils/smartTv";
+import {
+  resolveDetailBackdropAmbientFill,
+  resolveDetailBackdropVariant,
+  type DetailBackdropVariant,
+} from "../../utils/detailBackdropTvAmbient";
 
 type BackgroundContextType = {
   hasBackground: boolean;
@@ -33,6 +37,12 @@ export function useBackground() {
 
 type BackgroundManagerProps = {
   backgroundUrl: string;
+  /**
+   * When set, ambient fill uses `backgroundUrl` and the sharp hero crop uses this URL.
+   * Pass `""` to hide the sharp layer while keeping ambient tint (Recommended TV browse).
+   * Omit to paint both layers from `backgroundUrl` (detail pages, focal selection).
+   */
+  sharpBackgroundUrl?: string;
   hasBackground: boolean;
   elementId: string;
   children: React.ReactNode;
@@ -50,6 +60,11 @@ type BackgroundManagerProps = {
    * heavy blur — disable on rapid focus surfaces (Recommended browse) to keep D-pad snappy.
    */
   ambientFill?: boolean;
+  /**
+   * Smart TV: ambient blur + cropped hero (`tv` backdrop variant). When false on TV,
+   * uses full-bleed background like skins without Plex TV backdrop CSS.
+   */
+  tvDetailBackdropAmbient?: boolean;
 };
 
 const STORAGE_KEY = "backgroundStates";
@@ -57,19 +72,6 @@ const DETAIL_SCROLL_SELECTOR =
   ".game-detail-scroll-container, .catalog-game-detail-scroll-container, .library-item-detail-scroll";
 /** Match game-detail phone/narrow layout (~locandina breakpoint), not a tiny handset-only width. */
 const NARROW_DETAIL_MQ = "(max-width: 720px)";
-
-type DetailBackdropVariant = "tv" | "narrow" | "wide";
-
-function resolveDetailBackdropVariant(): DetailBackdropVariant {
-  if (typeof document !== "undefined" && document.documentElement.dataset.mhgTv === "1") {
-    return "tv";
-  }
-  if (isSmartTvBrowser()) return "tv";
-  if (typeof window !== "undefined" && window.matchMedia(NARROW_DETAIL_MQ).matches) {
-    return "narrow";
-  }
-  return "wide";
-}
 
 function clearDetailBackdropDomAttrs(portalHost: HTMLElement | null) {
   portalHost?.removeAttribute("data-mhg-background-layout");
@@ -111,13 +113,20 @@ const getBackgroundState = (elementId: string, defaultVisible: boolean): boolean
 
 export default function BackgroundManager({
   backgroundUrl,
+  sharpBackgroundUrl,
   hasBackground,
   elementId,
   children,
   autoShowWhenAvailable = false,
   detailBackdrop = false,
   ambientFill = true,
+  tvDetailBackdropAmbient = true,
 }: BackgroundManagerProps) {
+  const splitSharpLayer = sharpBackgroundUrl !== undefined;
+  const effectiveAmbientFill = resolveDetailBackdropAmbientFill(
+    tvDetailBackdropAmbient,
+    ambientFill,
+  );
   const [isBackgroundVisible, setIsBackgroundVisible] = useState(() => {
     if (autoShowWhenAvailable && hasBackground) return true;
     return getBackgroundState(elementId, hasBackground);
@@ -126,6 +135,7 @@ export default function BackgroundManager({
   const [portalHost, setPortalHost] = useState<HTMLDivElement | null>(null);
   /** Fade-in after URL paint — inline opacity beats skin `opacity: 1` on TV. */
   const [portalBgRevealed, setPortalBgRevealed] = useState(false);
+  const [portalSharpRevealed, setPortalSharpRevealed] = useState(false);
 
   useLayoutEffect(() => {
     const root = document.getElementById("root");
@@ -162,7 +172,10 @@ export default function BackgroundManager({
     }
 
     const syncVariant = () => {
-      applyDetailBackdropDomAttrs(portalHost, resolveDetailBackdropVariant());
+      applyDetailBackdropDomAttrs(
+        portalHost,
+        resolveDetailBackdropVariant(tvDetailBackdropAmbient),
+      );
     };
 
     syncVariant();
@@ -181,7 +194,7 @@ export default function BackgroundManager({
       mq.removeEventListener?.("change", syncVariant);
       clearDetailBackdropDomAttrs(portalHost);
     };
-  }, [portalHost, detailBackdrop]);
+  }, [portalHost, detailBackdrop, tvDetailBackdropAmbient]);
 
   useEffect(() => {
     if (!hasBackground) {
@@ -213,6 +226,11 @@ export default function BackgroundManager({
     setPortalBgRevealed(false);
   }, [portalHost, hasBackground, isBackgroundVisible, backgroundUrl]);
 
+  useLayoutEffect(() => {
+    if (!splitSharpLayer) return;
+    setPortalSharpRevealed(false);
+  }, [portalHost, hasBackground, isBackgroundVisible, sharpBackgroundUrl, splitSharpLayer]);
+
   // Then fade in after the opacity:0 frame is committed.
   useEffect(() => {
     const canPaint =
@@ -232,6 +250,33 @@ export default function BackgroundManager({
       window.cancelAnimationFrame(raf2);
     };
   }, [portalHost, hasBackground, isBackgroundVisible, backgroundUrl]);
+
+  useEffect(() => {
+    if (!splitSharpLayer) return;
+    const sharpUrl = sharpBackgroundUrl?.trim() ?? "";
+    const canPaint =
+      Boolean(portalHost) &&
+      hasBackground &&
+      isBackgroundVisible &&
+      sharpUrl !== "";
+    if (!canPaint) return;
+    let raf2 = 0;
+    const raf1 = window.requestAnimationFrame(() => {
+      raf2 = window.requestAnimationFrame(() => {
+        setPortalSharpRevealed(true);
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(raf1);
+      window.cancelAnimationFrame(raf2);
+    };
+  }, [
+    portalHost,
+    hasBackground,
+    isBackgroundVisible,
+    sharpBackgroundUrl,
+    splitSharpLayer,
+  ]);
 
   /* Narrow detail: collapse hero height on scroll (content starts below the slot). */
   useEffect(() => {
@@ -261,7 +306,7 @@ export default function BackgroundManager({
 
     const syncCollapse = () => {
       if (cancelled) return;
-      if (resolveDetailBackdropVariant() !== "narrow") {
+      if (resolveDetailBackdropVariant(tvDetailBackdropAmbient) !== "narrow") {
         clearCollapseVars();
         return;
       }
@@ -309,7 +354,7 @@ export default function BackgroundManager({
       mq.removeEventListener?.("change", syncCollapse);
       clearCollapseVars();
     };
-  }, [portalHost, detailBackdrop, hasBackground, isBackgroundVisible, backgroundUrl]);
+  }, [portalHost, detailBackdrop, hasBackground, isBackgroundVisible, backgroundUrl, tvDetailBackdropAmbient]);
 
   const handleVisibilityChange = useCallback(
     (visible: boolean) => {
@@ -357,6 +402,19 @@ export default function BackgroundManager({
       }
     : undefined;
 
+  const sharpUrl = splitSharpLayer ? sharpBackgroundUrl?.trim() ?? "" : "";
+  const portalSharpImageStyle: CSSProperties | undefined =
+    splitSharpLayer && hasBackground && isBackgroundVisible && sharpUrl !== ""
+      ? {
+          backgroundImage: backgroundImageValue(sharpUrl),
+          backgroundRepeat: "no-repeat",
+          opacity: portalSharpRevealed ? 1 : 0,
+          transition: "opacity 0.55s ease-out",
+        }
+      : splitSharpLayer
+        ? { opacity: 0, transition: "opacity 0s" }
+        : undefined;
+
   /*
    * Portal paints full viewport when mounted; keep root paint only until the portal
    * host exists (first frame). Never stack image on both — that caused two-tone columns.
@@ -394,7 +452,7 @@ export default function BackgroundManager({
     createPortal(
       <>
         {/* Edge/ambient fill — skins blur/scale this under the sharp crop on TV. */}
-        {ambientFill ? (
+        {effectiveAmbientFill ? (
           <div
             className="background-manager-portal-bg-fill"
             style={portalImageStyle}
@@ -403,7 +461,7 @@ export default function BackgroundManager({
         ) : null}
         <div
           className="background-manager-portal-bg"
-          style={portalImageStyle}
+          style={splitSharpLayer ? portalSharpImageStyle : portalImageStyle}
         />
         <div className="background-manager-portal-overlay" aria-hidden="true" />
       </>,

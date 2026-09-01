@@ -391,6 +391,15 @@ export function requestSmartTvUiLayerFocus(): void {
   }
 }
 
+/** Fired when SPA navigates onto a game / catalog / collection-like detail (Smart TV). */
+export const MHG_TV_GAME_DETAIL_FOCUS = "mhg:tv-game-detail-focus";
+
+/** Ask the remote layer to focus Play (or the icon beside it) on detail pages. */
+export function requestTvGameDetailPlayFocus(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(MHG_TV_GAME_DETAIL_FOCUS));
+}
+
 function center(rect: DOMRect): { x: number; y: number } {
   return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
 }
@@ -401,6 +410,22 @@ function defaultChromeTarget(): HTMLElement | null {
   // Inside a sheet/modal: first focusable in that layer (not page chrome).
   if (getActiveUiLayer()) {
     return items[0] ?? null;
+  }
+  // Game / catalog / collection-like detail: Play, else background toggle beside it.
+  if (isItemDetailPage()) {
+    const actions = collectDetailPrimaryFocusables();
+    const play =
+      actions.find(
+        (el) =>
+          el.classList.contains("game-detail-play-button") ||
+          el.classList.contains("library-item-detail-play-btn"),
+      ) ?? null;
+    if (play && items.includes(play)) return play;
+    const beside =
+      actions.find((el) => el.classList.contains("background-toggle-button")) ?? null;
+    if (beside && items.includes(beside)) return beside;
+    const bgOutside = collectDetailBackgroundFocusables()[0] ?? null;
+    if (bgOutside && items.includes(bgOutside)) return bgOutside;
   }
   // Profile: land on Disconnect tunnel (only page action) instead of the libraries tab.
   const profileAction = profilePagePrimaryAction();
@@ -521,6 +546,102 @@ function pickCoverInRow(
   return idx < sameRow.length - 1 ? sameRow[idx + 1]! : null;
 }
 
+function groupCoversByRow(covers: HTMLElement[]): HTMLElement[][] {
+  if (covers.length === 0) return [];
+  const rects = mapFocusNavRects(covers);
+  const sorted = [...covers].sort((a, b) => {
+    const ar = rects.get(a) ?? a.getBoundingClientRect();
+    const br = rects.get(b) ?? b.getBoundingClientRect();
+    const rowTol = Math.max(28, Math.min(ar.height, br.height) * 0.45);
+    const dy = ar.top - br.top;
+    if (Math.abs(dy) > rowTol) return dy;
+    return ar.left - br.left;
+  });
+
+  const rows: HTMLElement[][] = [];
+  for (const el of sorted) {
+    const r = rects.get(el) ?? el.getBoundingClientRect();
+    const elY = center(r).y;
+    const lastRow = rows[rows.length - 1];
+    if (!lastRow) {
+      rows.push([el]);
+      continue;
+    }
+    const ref = lastRow[0]!;
+    const refRect = rects.get(ref) ?? ref.getBoundingClientRect();
+    const rowTol = Math.max(28, refRect.height * 0.45);
+    if (Math.abs(elY - center(refRect).y) <= rowTol) {
+      lastRow.push(el);
+    } else {
+      rows.push([el]);
+    }
+  }
+
+  for (const row of rows) {
+    row.sort((a, b) => {
+      const ar = rects.get(a) ?? a.getBoundingClientRect();
+      const br = rects.get(b) ?? b.getBoundingClientRect();
+      return ar.left - br.left;
+    });
+  }
+  return rows;
+}
+
+function coverRowColIndex(
+  rows: HTMLElement[][],
+  current: HTMLElement,
+  rects: Map<HTMLElement, DOMRect>,
+): { rowIndex: number; colIndex: number } | null {
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r]!;
+    const c = row.indexOf(current);
+    if (c >= 0) return { rowIndex: r, colIndex: c };
+  }
+
+  const fromRect = rects.get(current) ?? current.getBoundingClientRect();
+  const fromY = center(fromRect).y;
+  const fromLeft = fromRect.left;
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r]!;
+    if (row.length === 0) continue;
+    const refRect = rects.get(row[0]!) ?? row[0]!.getBoundingClientRect();
+    const rowTol = Math.max(28, refRect.height * 0.45);
+    if (Math.abs(fromY - center(refRect).y) > rowTol) continue;
+    let colIndex = row.findIndex((el) => {
+      const rect = rects.get(el) ?? el.getBoundingClientRect();
+      return rect.left >= fromLeft - 1;
+    });
+    if (colIndex < 0) colIndex = row.length - 1;
+    return { rowIndex: r, colIndex };
+  }
+  return null;
+}
+
+/**
+ * Row-aware U/D when same-column geometry misses (e.g. shorter last row).
+ * Keeps column index clamped on uneven rows, like the TV search keyboard.
+ */
+function pickCoverAcrossRows(
+  covers: HTMLElement[],
+  current: HTMLElement,
+  direction: "up" | "down",
+): HTMLElement | null {
+  if (covers.length === 0) return null;
+  const rows = groupCoversByRow(covers);
+  if (rows.length < 2) return null;
+  const rects = mapFocusNavRects([current, ...covers]);
+  const pos = coverRowColIndex(rows, current, rects);
+  if (!pos) return null;
+
+  const nextRowIndex =
+    direction === "up" ? pos.rowIndex - 1 : pos.rowIndex + 1;
+  if (nextRowIndex < 0 || nextRowIndex >= rows.length) return null;
+  const nextRow = rows[nextRowIndex]!;
+  if (nextRow.length === 0) return null;
+  const targetCol = Math.min(pos.colIndex, nextRow.length - 1);
+  return nextRow[targetCol] ?? null;
+}
+
 /**
  * Same-column U/D among covers by top-edge order. Keeps Down/Up from sliding
  * sideways to a slightly lower/higher neighbor in the same row.
@@ -574,6 +695,7 @@ function pickCoverByDirection(
   }
   // Prefer same-column step so Down/Up never slide to a side neighbor.
   let next = pickCoverInColumn(covers, current, direction);
+  if (!next) next = pickCoverAcrossRows(covers, current, direction);
   if (!next) next = pickNextInSet(covers, current, direction);
   return next;
 }
@@ -937,6 +1059,54 @@ function pickNearestTvSearchResult(
     }
   }
   return best;
+}
+
+/**
+ * Linear grid nav for the on-screen keyboard. Rows have unequal lengths and are
+ * centered, so geometric pickNextInSet zig-zags (esp. QWERTY ↔ ASDF).
+ * L/R stay in-row; U/D keep the same column index (clamped on shorter rows).
+ */
+function pickTvSearchKeyboardKey(
+  current: HTMLElement,
+  direction: Direction,
+): HTMLElement | null {
+  if (!current.classList.contains("tv-search-keyboard-key")) return null;
+  const row = current.closest(".tv-search-keyboard-row");
+  if (!row) return null;
+  const keyboard = row.closest(".tv-search-keyboard");
+  if (!keyboard) return null;
+
+  const rows = Array.from(
+    keyboard.querySelectorAll<HTMLElement>(".tv-search-keyboard-row"),
+  );
+  const rowIndex = rows.indexOf(row as HTMLElement);
+  if (rowIndex < 0) return null;
+
+  const keysInRow = Array.from(
+    row.querySelectorAll<HTMLElement>(".tv-search-keyboard-key"),
+  ).filter((el) => isVisible(el) && !el.closest("[inert]"));
+  const colIndex = keysInRow.indexOf(current);
+  if (colIndex < 0) return null;
+
+  if (direction === "left") {
+    return colIndex > 0 ? (keysInRow[colIndex - 1] ?? null) : null;
+  }
+  if (direction === "right") {
+    return colIndex < keysInRow.length - 1
+      ? (keysInRow[colIndex + 1] ?? null)
+      : null;
+  }
+
+  const nextRowIndex = direction === "up" ? rowIndex - 1 : rowIndex + 1;
+  if (nextRowIndex < 0 || nextRowIndex >= rows.length) return null;
+  const nextRow = rows[nextRowIndex];
+  if (!nextRow) return null;
+  const nextKeys = Array.from(
+    nextRow.querySelectorAll<HTMLElement>(".tv-search-keyboard-key"),
+  ).filter((el) => isVisible(el) && !el.closest("[inert]"));
+  if (nextKeys.length === 0) return null;
+  const targetCol = Math.min(colIndex, nextKeys.length - 1);
+  return nextKeys[targetCol] ?? null;
 }
 
 function isLibraryMenuCoverGridNavMode(): boolean {
@@ -1329,6 +1499,64 @@ function focusDetailLadderLevel(
   return true;
 }
 
+/**
+ * On game / catalog / collection-like detail: focus Play when present, otherwise
+ * the icon beside it (background toggle in the actions row).
+ */
+function findDetailPlayButton(): HTMLElement | null {
+  if (!isItemDetailPage()) return null;
+  return (
+    collectDetailPrimaryFocusables().find(
+      (el) =>
+        el.classList.contains("game-detail-play-button") ||
+        el.classList.contains("library-item-detail-play-btn"),
+    ) ?? null
+  );
+}
+
+function focusDetailPlayOrBeside(): boolean {
+  if (!isItemDetailPage()) return false;
+  const play = findDetailPlayButton();
+  if (play) {
+    focusElement(play);
+    return true;
+  }
+  const items = collectDetailPrimaryFocusables();
+  const beside =
+    items.find((el) => el.classList.contains("background-toggle-button")) ?? null;
+  if (beside) {
+    focusElement(beside);
+    return true;
+  }
+  // Fanart toggle may sit outside the actions row on some layouts.
+  const bgOutside = collectDetailBackgroundFocusables()[0] ?? null;
+  if (bgOutside) {
+    focusElement(bgOutside);
+    return true;
+  }
+  return false;
+}
+
+function isDetailPlayOrBesideFocus(el: HTMLElement | null): boolean {
+  if (!el) return false;
+  return (
+    el.classList.contains("game-detail-play-button") ||
+    el.classList.contains("library-item-detail-play-btn") ||
+    (el.classList.contains("background-toggle-button") &&
+      !!el.closest(
+        ".game-detail-actions, .catalog-game-detail-actions, .library-item-detail-actions",
+      ))
+  );
+}
+
+/** Preferred landing control: Play when mounted, otherwise the icon beside it. */
+function isDetailLandingActionFocus(el: HTMLElement | null): boolean {
+  if (!el) return false;
+  const play = findDetailPlayButton();
+  if (play) return el === play || play.contains(el);
+  return isDetailPlayOrBesideFocus(el);
+}
+
 /** True when the header search field should use L/R to leave (detail TV ladder). */
 function isDetailHeaderSearchField(field: HTMLElement): boolean {
   return (
@@ -1459,17 +1687,43 @@ type StripScrollHost = HTMLElement & {
     align?: "auto" | "smart" | "start" | "center" | "end",
   ) => void;
   __mhgStripColumnCount?: number;
+  __mhgStripNavigateToIndex?: number | null;
 };
 
+function primeStripNavigationTarget(host: StripScrollHost | null, index: number): void {
+  if (!host) return;
+  host.__mhgStripNavigateToIndex = index;
+}
+
+function virtualizedStripIn(strip: HTMLElement): HTMLElement | null {
+  return strip.querySelector(
+    ".virtualized-horizontal-games-strip, .games-list-container--virtualized-strip",
+  );
+}
+
 function horizontalStripScrollHostFrom(el: HTMLElement): StripScrollHost | null {
+  const grid = el.closest(
+    ".virtualized-horizontal-games-strip",
+  ) as StripScrollHost | null;
+  if (grid?.__mhgStripScrollToIndex) return grid;
+
   const direct = el.closest(".scrollable-section-scroll") as StripScrollHost | null;
   if (direct?.__mhgStripScrollToIndex) return direct;
+
   const section = el.closest(".scrollable-section");
   if (!section) return null;
+
   const host = section.querySelector(
     ".scrollable-section-scroll",
   ) as StripScrollHost | null;
-  return host?.__mhgStripScrollToIndex ? host : null;
+  if (host?.__mhgStripScrollToIndex) return host;
+
+  const gridInSection = section.querySelector(
+    ".virtualized-horizontal-games-strip",
+  ) as StripScrollHost | null;
+  if (gridInSection?.__mhgStripScrollToIndex) return gridInSection;
+
+  return host;
 }
 
 /** Absolute column index for virtualized rails (`data-mhg-strip-index`). */
@@ -1484,6 +1738,13 @@ function absoluteStripCoverIndex(
   }
   const idx = mountedCovers.indexOf(cover);
   return idx >= 0 ? idx : 0;
+}
+
+function stripUsesVirtualizedScroll(strip: HTMLElement): boolean {
+  if (typeof horizontalStripScrollHostFrom(strip)?.__mhgStripScrollToIndex === "function") {
+    return true;
+  }
+  return Boolean(virtualizedStripIn(strip));
 }
 
 function queryStripCoverAtIndex(
@@ -1505,6 +1766,15 @@ function queryStripCoverAtIndex(
     ) {
       return cover;
     }
+    // Slot exists (e.g. detail-current game) but is not focusable — do not remap
+    // via the mounted-only fallback below (indices would be wrong).
+    return null;
+  }
+
+  // Virtualized rails: unmounted columns are not in the DOM — never remap index N
+  // to mounted[N] (that capped navigation around the overscan window, ~cover 26/60).
+  if (stripUsesVirtualizedScroll(strip)) {
+    return null;
   }
 
   // Non-virtualized strips (typical on game detail: ≤8 games) have no
@@ -1521,6 +1791,147 @@ function queryStripCoverAtIndex(
   return mounted[clamped] ?? null;
 }
 
+function stripColumnCount(
+  strip: HTMLElement,
+  mountedCovers: HTMLElement[],
+): number {
+  const host = horizontalStripScrollHostFrom(strip);
+  if (
+    typeof host?.__mhgStripColumnCount === "number" &&
+    host.__mhgStripColumnCount > 0
+  ) {
+    return host.__mhgStripColumnCount;
+  }
+  const fromData = host?.getAttribute("data-mhg-strip-column-count");
+  if (fromData) {
+    const n = parseInt(fromData, 10);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  const container = strip.querySelector(".games-list-container--virtualized-strip");
+  const fromContainer = container?.getAttribute("data-mhg-strip-column-count");
+  if (fromContainer) {
+    const n = parseInt(fromContainer, 10);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return mountedCovers.length;
+}
+
+/** Skip detail-current / non-focusable slots (e.g. the open game in a collection rail). */
+function findAdjacentFocusableStripIndex(
+  strip: HTMLElement,
+  fromIndex: number,
+  direction: "left" | "right",
+  columnCount: number,
+): number | null {
+  const step = direction === "right" ? 1 : -1;
+  const virtualized = stripUsesVirtualizedScroll(strip);
+  let idx = fromIndex;
+
+  for (let n = 0; n < columnCount; n++) {
+    idx += step;
+    if (idx < 0 || idx >= columnCount) return null;
+
+    if (virtualized) {
+      const cell = strip.querySelector(`[data-mhg-strip-index="${idx}"]`);
+      if (!cell) {
+        // Not mounted yet — focusStripCoverAtAbsoluteIndex will scroll then mount.
+        return idx;
+      }
+    }
+
+    if (queryStripCoverAtIndex(strip, idx)) return idx;
+  }
+  return null;
+}
+
+/** When the preferred column is not focusable, pick the nearest focusable neighbor. */
+function findNearestFocusableStripIndex(
+  strip: HTMLElement,
+  preferredIndex: number,
+  columnCount: number,
+): number | null {
+  if (columnCount <= 0) return null;
+  const clamped = Math.max(0, Math.min(columnCount - 1, preferredIndex));
+  const virtualized = stripUsesVirtualizedScroll(strip);
+  if (virtualized) {
+    const cell = strip.querySelector(`[data-mhg-strip-index="${clamped}"]`);
+    if (!cell) return clamped;
+  }
+  if (queryStripCoverAtIndex(strip, clamped)) return clamped;
+  for (let delta = 1; delta < columnCount; delta++) {
+    const right = clamped + delta;
+    if (right < columnCount) {
+      if (virtualized && !strip.querySelector(`[data-mhg-strip-index="${right}"]`)) {
+        return right;
+      }
+      if (queryStripCoverAtIndex(strip, right)) return right;
+    }
+    const left = clamped - delta;
+    if (left >= 0) {
+      if (virtualized && !strip.querySelector(`[data-mhg-strip-index="${left}"]`)) {
+        return left;
+      }
+      if (queryStripCoverAtIndex(strip, left)) return left;
+    }
+  }
+  return null;
+}
+
+function scrollStripToIndex(
+  strip: HTMLElement,
+  index: number,
+  align: "auto" | "smart" | "start" | "center" | "end" = "start",
+): void {
+  const host = horizontalStripScrollHostFrom(strip);
+  if (typeof host?.__mhgStripScrollToIndex === "function") {
+    host.__mhgStripScrollToIndex(index, align);
+    return;
+  }
+
+  const grid = strip.querySelector(
+    ".virtualized-horizontal-games-strip",
+  ) as HTMLElement | null;
+  if (!grid) return;
+
+  const countAttr =
+    host?.getAttribute("data-mhg-strip-column-count") ??
+    strip
+      .querySelector("[data-mhg-strip-column-count]")
+      ?.getAttribute("data-mhg-strip-column-count");
+  const columnCount = countAttr ? parseInt(countAttr, 10) : 0;
+
+  const cell0 = strip.querySelector('[data-mhg-strip-index="0"]') as HTMLElement | null;
+  const cell1 = strip.querySelector('[data-mhg-strip-index="1"]') as HTMLElement | null;
+  let step = 174;
+  if (cell0 && cell1) {
+    const o0 = cell0.getBoundingClientRect().left;
+    const o1 = cell1.getBoundingClientRect().left;
+    if (o1 > o0) step = o1 - o0;
+  } else if (cell0) {
+    step = cell0.getBoundingClientRect().width || step;
+  }
+
+  const pad = 12;
+  const left = index * step;
+  const total = (columnCount > 0 ? columnCount : index + 1) * step;
+  const max = Math.max(0, total - grid.clientWidth);
+
+  if (align === "end") {
+    grid.scrollLeft = max;
+  } else if (align === "center") {
+    grid.scrollLeft = Math.max(0, Math.min(max, left + step / 2 - grid.clientWidth / 2));
+  } else if (align === "start") {
+    grid.scrollLeft = Math.max(0, Math.min(max, left - pad));
+  } else {
+    const viewRight = grid.scrollLeft + grid.clientWidth;
+    if (left + step > viewRight - pad) {
+      grid.scrollLeft = Math.max(0, Math.min(max, left + step - grid.clientWidth + pad));
+    } else if (left < grid.scrollLeft + pad) {
+      grid.scrollLeft = Math.max(0, left - pad);
+    }
+  }
+}
+
 /**
  * Focus cover at absolute strip index. Scrolls the virtualized Grid first when
  * the cell is not mounted yet (past the first overscan window). Falls back to
@@ -1532,42 +1943,55 @@ function focusStripCoverAtAbsoluteIndex(
   options?: { remember?: boolean },
 ): boolean {
   const host = horizontalStripScrollHostFrom(strip);
-  const columnCount =
-    typeof host?.__mhgStripColumnCount === "number" && host.__mhgStripColumnCount > 0
-      ? host.__mhgStripColumnCount
-      : null;
+  const mountedForCount = Array.from(
+    strip.querySelectorAll<HTMLElement>(
+      ".games-list-cover[role='button'], .games-list-cover[tabindex]",
+    ),
+  ).filter((el) => isVisible(el) && !el.closest("[inert]") && !el.hasAttribute("disabled"));
+  const columnCount = stripColumnCount(strip, mountedForCount);
   const clamped =
-    columnCount != null
+    columnCount > 0
       ? Math.max(0, Math.min(columnCount - 1, index))
       : Math.max(0, index);
 
+  primeStripNavigationTarget(host, clamped);
+
+  const scrollAlign: "start" | "end" | "smart" =
+    clamped === columnCount - 1 ? "end" : "start";
+
   const focusFound = (cover: HTMLElement) => {
     if (options?.remember !== false) rememberCoverFocusFromStrip?.(cover);
+    if (strip.closest(".recommended-page-scroll")) {
+      rememberRecommendedStripFocus(strip, cover);
+    }
     focusElement(cover);
   };
 
   const immediate = queryStripCoverAtIndex(strip, clamped);
   if (immediate) {
+    scrollStripToIndex(strip, clamped, scrollAlign);
     focusFound(immediate);
+    if (host) host.__mhgStripNavigateToIndex = null;
     return true;
   }
 
-  // Only virtualized hosts need scroll-then-retry; plain strips already failed above.
-  if (typeof host?.__mhgStripScrollToIndex !== "function") {
+  // Only virtualized rails need scroll-then-retry; plain strips already failed above.
+  if (!stripUsesVirtualizedScroll(strip)) {
     return false;
   }
 
-  host.__mhgStripScrollToIndex(clamped, "smart");
+  scrollStripToIndex(strip, clamped, scrollAlign);
 
   const tryFocus = (attempt: number) => {
     const cover = queryStripCoverAtIndex(strip, clamped);
     if (cover) {
       focusFound(cover);
+      if (host) host.__mhgStripNavigateToIndex = null;
       return;
     }
-    if (attempt >= 8) return;
-    if (attempt === 2) {
-      host.__mhgStripScrollToIndex?.(clamped, "center");
+    if (attempt >= 16) return;
+    if (attempt > 0 && attempt % 3 === 0) {
+      scrollStripToIndex(strip, clamped, scrollAlign);
     }
     window.requestAnimationFrame(() => tryFocus(attempt + 1));
   };
@@ -1583,21 +2007,73 @@ function moveFocusInHorizontalCoverStrip(
   collectMounted: (strip: HTMLElement) => HTMLElement[],
 ): boolean {
   const mounted = collectMounted(strip);
-  const host = horizontalStripScrollHostFrom(strip);
-  const columnCount =
-    typeof host?.__mhgStripColumnCount === "number" && host.__mhgStripColumnCount > 0
-      ? host.__mhgStripColumnCount
-      : mounted.length;
+  const columnCount = stripColumnCount(strip, mounted);
   if (columnCount <= 0) return false;
 
   const currentIdx = absoluteStripCoverIndex(coverEl, mounted);
-  const nextIdx =
-    direction === "right"
-      ? Math.min(columnCount - 1, currentIdx + 1)
-      : Math.max(0, currentIdx - 1);
-  if (nextIdx === currentIdx) return true; // consumed — stay at strip end
+  const nextIdx = findAdjacentFocusableStripIndex(
+    strip,
+    currentIdx,
+    direction,
+    columnCount,
+  );
+  if (nextIdx == null) return true; // consumed — stay at strip end
 
   return focusStripCoverAtAbsoluteIndex(strip, nextIdx);
+}
+
+/** Collection / similar horizontal rows on game or library-item detail. */
+function moveFocusInDetailCoverStrip(
+  strip: HTMLElement,
+  coverEl: HTMLElement,
+  direction: Direction,
+): boolean {
+  const stripCover = coverFocusFrom(coverEl) ?? coverEl;
+  if (!strip.contains(stripCover)) return false;
+
+  const stripCovers = collectDetailCoverStripFocusables(strip);
+  if (stripCovers.length === 0) return false;
+
+  if (direction === "left" || direction === "right") {
+    return moveFocusInHorizontalCoverStrip(
+      strip,
+      stripCover,
+      direction,
+      collectDetailCoverStripFocusables,
+    );
+  }
+
+  if (direction === "up" || direction === "down") {
+    if (direction === "up") {
+      const title = detailStripTitleFocusable(strip);
+      if (title) {
+        focusElement(title);
+        return true;
+      }
+    }
+    const strips = collectDetailHorizontalStrips();
+    const stripIdx = strips.findIndex((s) => s.kind === "covers" && s.root === strip);
+    if (stripIdx >= 0) {
+      const fromIdx = absoluteStripCoverIndex(stripCover, stripCovers);
+      const targetIdx = direction === "up" ? stripIdx - 1 : stripIdx + 1;
+      if (targetIdx >= 0 && targetIdx < strips.length) {
+        focusDetailHorizontalStrip(strips[targetIdx]!, fromIdx, {
+          preferTitle: direction === "down",
+        });
+        return true;
+      }
+      if (direction === "up") {
+        const grids = collectDetailGamesGridRoots();
+        if (grids.length > 0 && focusDetailGamesGrid(grids.length - 1, "last")) {
+          return true;
+        }
+        if (focusDetailLadderBottom()) return true;
+      }
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /** Keyword strips on Recommended in DOM order (top → bottom). */
@@ -1607,6 +2083,99 @@ function collectRecommendedStripRoots(): HTMLElement[] {
   return Array.from(root.querySelectorAll<HTMLElement>(".scrollable-section")).filter(
     (section) => collectRecommendedStripCoverFocusables(section).length > 0,
   );
+}
+
+type RecommendedStripFocusMemory = {
+  cover: HTMLElement | null;
+  index: number;
+  identity: ReturnType<typeof tvCoverIdentityFrom>;
+};
+
+const lastRecommendedStripFocus = new Map<number, RecommendedStripFocusMemory>();
+let lastRecommendedStripPageKey = "";
+let lastRecommendedStripFingerprint = "";
+
+function recommendedStripFingerprint(): string {
+  const strips = collectRecommendedStripRoots();
+  return strips
+    .map((strip) => {
+      const sectionId = strip.getAttribute("data-mhg-section-id");
+      const mounted = collectRecommendedStripCoverFocusables(strip);
+      const host = horizontalStripScrollHostFrom(strip);
+      const columnCount =
+        typeof host?.__mhgStripColumnCount === "number" && host.__mhgStripColumnCount > 0
+          ? host.__mhgStripColumnCount
+          : mounted.length;
+      if (sectionId) return `${sectionId}:${columnCount}`;
+      const title =
+        strip.querySelector(".scrollable-section-title")?.textContent?.trim() ?? "";
+      return `${title || "section"}:${columnCount}`;
+    })
+    .join("|");
+}
+
+function syncRecommendedStripFocusState(): void {
+  const pageKey = detailGridPageKey();
+  const fingerprint = recommendedStripFingerprint();
+  if (
+    pageKey !== lastRecommendedStripPageKey ||
+    fingerprint !== lastRecommendedStripFingerprint
+  ) {
+    lastRecommendedStripFocus.clear();
+    lastRecommendedStripPageKey = pageKey;
+    lastRecommendedStripFingerprint = fingerprint;
+  }
+}
+
+function recommendedStripIndexFromRoot(strip: HTMLElement): number {
+  return collectRecommendedStripRoots().indexOf(strip);
+}
+
+function rememberRecommendedStripFocus(strip: HTMLElement, cover: HTMLElement): void {
+  if (!strip.closest(".recommended-page-scroll")) return;
+  syncRecommendedStripFocusState();
+  const stripIdx = recommendedStripIndexFromRoot(strip);
+  if (stripIdx < 0) return;
+  const mounted = collectRecommendedStripCoverFocusables(strip);
+  lastRecommendedStripFocus.set(stripIdx, {
+    cover,
+    index: absoluteStripCoverIndex(cover, mounted),
+    identity: tvCoverIdentityFrom(cover),
+  });
+}
+
+function resolveRecommendedStripFocusIndex(
+  strip: HTMLElement,
+  fallbackIndex: number,
+): number {
+  const mounted = collectRecommendedStripCoverFocusables(strip);
+  const columnCount = stripColumnCount(strip, mounted);
+  if (columnCount <= 0) return fallbackIndex;
+
+  syncRecommendedStripFocusState();
+  const stripIdx = recommendedStripIndexFromRoot(strip);
+  if (stripIdx >= 0) {
+    const mem = lastRecommendedStripFocus.get(stripIdx);
+    if (mem) {
+      if (
+        mem.cover?.isConnected &&
+        strip.contains(mem.cover) &&
+        isVisible(mem.cover)
+      ) {
+        return absoluteStripCoverIndex(mem.cover, mounted);
+      }
+      if (mem.identity) {
+        const byId = findCoverByTvFocusIdentity(mem.identity);
+        if (byId && strip.contains(byId) && isVisible(byId)) {
+          return absoluteStripCoverIndex(byId, mounted);
+        }
+      }
+      const nearest = findNearestFocusableStripIndex(strip, mem.index, columnCount);
+      if (nearest != null) return nearest;
+    }
+  }
+
+  return findNearestFocusableStripIndex(strip, fallbackIndex, columnCount) ?? fallbackIndex;
 }
 
 /**
@@ -1629,6 +2198,104 @@ function collectDetailGamesGridFocusables(grid: HTMLElement): HTMLElement[] {
   ).filter((el) => isVisible(el) && !el.closest("[inert]") && !el.hasAttribute("disabled"));
 }
 
+type DetailGridFocusMemory = {
+  cover: HTMLElement | null;
+  index: number;
+  identity: ReturnType<typeof tvCoverIdentityFrom>;
+};
+
+const lastDetailGridFocus = new Map<number, DetailGridFocusMemory>();
+let lastDetailGridPageKey = "";
+let lastDetailGridFingerprint = "";
+
+function detailGridPageKey(): string {
+  return (window.location.pathname || "/").replace(/\/+$/, "") || "/";
+}
+
+function detailGamesGridFingerprint(): string {
+  return collectDetailGamesGridRoots()
+    .map((grid) => {
+      const kind = grid.classList.contains("library-item-detail-subcollections-grid")
+        ? "subcollections"
+        : "games";
+      const covers = collectDetailGamesGridFocusables(grid);
+      const ids = covers
+        .map((cover, index) => {
+          const identity = tvCoverIdentityFrom(cover);
+          return identity ? `${identity.kind}:${identity.id}` : String(index);
+        })
+        .join(",");
+      return `${kind}:${covers.length}:${ids}`;
+    })
+    .join("||");
+}
+
+function syncDetailGridFocusState(): void {
+  const pageKey = detailGridPageKey();
+  const fingerprint = detailGamesGridFingerprint();
+  if (pageKey !== lastDetailGridPageKey || fingerprint !== lastDetailGridFingerprint) {
+    lastDetailGridFocus.clear();
+    lastDetailGridPageKey = pageKey;
+    lastDetailGridFingerprint = fingerprint;
+  }
+}
+
+function detailGridIndexFromRoot(grid: HTMLElement): number {
+  return collectDetailGamesGridRoots().indexOf(grid);
+}
+
+function rememberDetailGamesGridFocus(grid: HTMLElement, cover: HTMLElement): void {
+  syncDetailGridFocusState();
+  const gridIdx = detailGridIndexFromRoot(grid);
+  if (gridIdx < 0) return;
+  const covers = collectDetailGamesGridFocusables(grid);
+  const index = covers.indexOf(cover);
+  lastDetailGridFocus.set(gridIdx, {
+    cover,
+    index: index >= 0 ? index : 0,
+    identity: tvCoverIdentityFrom(cover),
+  });
+}
+
+function resolveDetailGamesGridFocus(
+  grid: HTMLElement,
+  fallback: "first" | "last",
+): HTMLElement | null {
+  const covers = collectDetailGamesGridFocusables(grid);
+  if (covers.length === 0) return null;
+
+  syncDetailGridFocusState();
+  const gridIdx = detailGridIndexFromRoot(grid);
+  if (gridIdx >= 0) {
+    const mem = lastDetailGridFocus.get(gridIdx);
+    if (mem) {
+      if (
+        mem.cover?.isConnected &&
+        covers.includes(mem.cover) &&
+        isVisible(mem.cover)
+      ) {
+        return mem.cover;
+      }
+      if (mem.identity) {
+        const byId = findCoverByTvFocusIdentity(mem.identity);
+        if (
+          byId &&
+          grid.contains(byId) &&
+          covers.includes(byId) &&
+          isVisible(byId)
+        ) {
+          return byId;
+        }
+      }
+      if (mem.index >= 0 && mem.index < covers.length) {
+        return covers[mem.index]!;
+      }
+    }
+  }
+
+  return fallback === "last" ? covers[covers.length - 1]! : covers[0]!;
+}
+
 /** Populated detail grids in DOM order (subcollections → games). */
 function collectDetailGamesGridRoots(): HTMLElement[] {
   const detailRoot = document.querySelector(".library-item-detail-page-shell");
@@ -1649,17 +2316,16 @@ function isDetailFixedFocalGamesList(): boolean {
 }
 
 function focusDetailGamesGrid(
-  prefer: "first" | "last" = "first",
-  gridIndex: number = 0,
+  gridIndex: number,
+  fallback: "first" | "last" = "first",
 ): boolean {
   const grids = collectDetailGamesGridRoots();
   const grid = grids[gridIndex];
   if (!grid) return false;
-  const covers = collectDetailGamesGridFocusables(grid);
-  if (covers.length === 0) return false;
-  const target =
-    prefer === "last" ? covers[covers.length - 1]! : covers[0]!;
+  const target = resolveDetailGamesGridFocus(grid, fallback);
+  if (!target) return false;
   focusElement(target);
+  rememberDetailGamesGridFocus(grid, target);
   return true;
 }
 
@@ -1673,14 +2339,27 @@ function detailStripTitleFocusable(strip: HTMLElement): HTMLElement | null {
     "a.scrollable-section-title-link[href]",
   );
   if (
-    !link ||
-    !isVisible(link) ||
-    link.closest("[inert]") ||
-    link.getAttribute("tabindex") === "-1"
+    link &&
+    isVisible(link) &&
+    !link.closest("[inert]") &&
+    link.getAttribute("tabindex") !== "-1"
   ) {
-    return null;
+    return link;
   }
-  return link;
+  if (!isSmartTvBrowser()) return null;
+  const heading = strip.querySelector<HTMLElement>(".scrollable-section-title");
+  if (
+    heading &&
+    isVisible(heading) &&
+    !heading.closest("[inert]") &&
+    heading.getAttribute("tabindex") !== "-1"
+  ) {
+    if (heading.tabIndex < 0 && !heading.hasAttribute("tabindex")) {
+      heading.tabIndex = 0;
+    }
+    return heading;
+  }
+  return null;
 }
 
 function detailStripTitleFrom(el: HTMLElement | null): HTMLElement | null {
@@ -1688,9 +2367,78 @@ function detailStripTitleFrom(el: HTMLElement | null): HTMLElement | null {
   const link = el.closest(
     "a.scrollable-section-title-link",
   ) as HTMLElement | null;
-  if (!link || !isVisible(link) || link.closest("[inert]")) return null;
-  if (!detailCoverStripRootFrom(link)) return null;
-  return link;
+  if (link && isVisible(link) && !link.closest("[inert]")) {
+    if (!detailCoverStripRootFrom(link)) return null;
+    return link;
+  }
+  const heading = el.closest(".scrollable-section-title") as HTMLElement | null;
+  if (
+    heading &&
+    isVisible(heading) &&
+    !heading.closest("[inert]") &&
+    detailCoverStripRootFrom(heading)
+  ) {
+    return detailStripTitleFocusable(heading.closest(".scrollable-section")!) ?? heading;
+  }
+  return null;
+}
+
+/** Strip section title row: Down → covers; Up → previous strip / games grid. */
+function moveFocusFromDetailStripTitle(
+  strip: HTMLElement,
+  direction: Direction,
+): boolean {
+  if (direction === "left" || direction === "right") {
+    return true;
+  }
+
+  if (direction === "down") {
+    const mounted = collectDetailCoverStripFocusables(strip);
+    if (mounted.length === 0) return false;
+
+    const scroller =
+      strip.querySelector<HTMLElement>(".virtualized-horizontal-games-strip") ??
+      strip.querySelector<HTMLElement>(".scrollable-section-scroll");
+    if (scroller) {
+      ensureElementVisibleInScrollParents(scroller);
+    }
+
+    const columnCount = stripColumnCount(strip, mounted);
+    const targetIdx =
+      findNearestFocusableStripIndex(strip, 0, columnCount) ?? 0;
+    if (focusStripCoverAtAbsoluteIndex(strip, targetIdx, { remember: true })) {
+      return true;
+    }
+    if (mounted[0]) {
+      focusElement(mounted[0]);
+      return true;
+    }
+    return false;
+  }
+
+  if (direction === "up") {
+    const strips = collectDetailHorizontalStrips();
+    const stripIdx = strips.findIndex((s) => s.kind === "covers" && s.root === strip);
+    if (stripIdx > 0) {
+      focusDetailHorizontalStrip(strips[stripIdx - 1]!, 0);
+      return true;
+    }
+    if (stripIdx === 0) {
+      const grids = collectDetailGamesGridRoots();
+      if (grids.length > 0 && focusDetailGamesGrid(grids.length - 1, "last")) {
+        return true;
+      }
+      const mediaItems = collectMediaGalleryFocusables();
+      if (mediaItems.length > 0) {
+        focusElement(mediaItems[mediaItems.length - 1]!);
+        return true;
+      }
+      if (focusDetailLadderBottom()) return true;
+    }
+    return true;
+  }
+
+  return false;
 }
 
 /** Media gallery + collection/similar rows, top → bottom in DOM order. */
@@ -1713,6 +2461,20 @@ function collectDetailHorizontalStrips(): DetailHorizontalStrip[] {
   return strips;
 }
 
+/** Cover strips that sit below the main games grid (e.g. “Acquired by” on developer detail). */
+function detailCoverStripsBelowGamesGrid(): DetailHorizontalStrip[] {
+  const strips = collectDetailHorizontalStrips().filter((s) => s.kind === "covers");
+  if (strips.length === 0) return strips;
+  const grids = collectDetailGamesGridRoots();
+  const grid = grids[grids.length - 1];
+  if (!grid) return strips;
+  const gridBottom = grid.getBoundingClientRect().bottom;
+  const below = strips.filter(
+    (s) => s.root.getBoundingClientRect().top >= gridBottom - 8,
+  );
+  return below.length > 0 ? below : strips;
+}
+
 function focusDetailHorizontalStrip(
   strip: DetailHorizontalStrip,
   preferredIndex: number,
@@ -1726,8 +2488,13 @@ function focusDetailHorizontalStrip(
         return;
       }
     }
+    const mounted = collectDetailCoverStripFocusables(strip.root);
+    const columnCount = stripColumnCount(strip.root, mounted);
+    const resolved =
+      findNearestFocusableStripIndex(strip.root, preferredIndex, columnCount) ??
+      preferredIndex;
     if (
-      focusStripCoverAtAbsoluteIndex(strip.root, preferredIndex, {
+      focusStripCoverAtAbsoluteIndex(strip.root, resolved, {
         remember: true,
       })
     ) {
@@ -2186,7 +2953,11 @@ export function installSmartTvRemoteKeys(
 
   const rememberCoverFocus = (el: HTMLElement | null) => {
     const cover = coverFocusFrom(el);
-    if (cover) lastCoverFocus = cover;
+    if (cover) {
+      lastCoverFocus = cover;
+      const grid = detailGamesGridRootFrom(cover);
+      if (grid) rememberDetailGamesGridFocus(grid, cover);
+    }
   };
   rememberCoverFocusFromStrip = rememberCoverFocus;
 
@@ -2590,9 +3361,20 @@ export function installSmartTvRemoteKeys(
     // Cover not mounted yet after Back — don't steal focus to the libraries tab
     // (also while still on collection-like detail restoring a game cover).
     if (restoreCoverAfterBackPending && !isGameOrCatalogDetailPage()) return;
+
+    // Game / catalog / collection-like detail: land on Play, else the icon beside it.
+    if (isItemDetailPage()) {
+      const activeOnDetail = document.activeElement as HTMLElement | null;
+      if (isDetailLandingActionFocus(activeOnDetail)) return;
+      zone = "chrome";
+      if (focusDetailPlayOrBeside()) return;
+      // Actions not mounted yet — wait for a later bootstrap / detail-focus retry.
+      return;
+    }
+
     const active = document.activeElement as HTMLElement | null;
     // Already on a list cover (restore won the race) — keep it.
-    if (active && coverFocusFrom(active) && !isGameOrCatalogDetailPage()) {
+    if (active && coverFocusFrom(active) && !isItemDetailPage()) {
       rememberCoverFocus(active);
       return;
     }
@@ -2608,6 +3390,130 @@ export function installSmartTvRemoteKeys(
     // Don't bootstrap onto a search box — that traps the remote on some pages.
     if (active && isTextField(active)) return;
     enterChrome();
+  };
+
+  /** Retry until Play / beside-icon mounts and stays focused after cover→detail nav. */
+  let gameDetailPlayFocusGen = 0;
+  let gameDetailPlayFocusCleanup: (() => void) | null = null;
+  const scheduleGameDetailPlayFocus = () => {
+    gameDetailPlayFocusCleanup?.();
+    gameDetailPlayFocusCleanup = null;
+    const gen = ++gameDetailPlayFocusGen;
+    let attempts = 0;
+    let settlePasses = 0;
+    const maxAttempts = 60;
+    const needSettle = 5;
+    const graceMs = 4500;
+    const graceUntil = performance.now() + graceMs;
+
+    zone = "chrome";
+
+    const stealBackFromListChrome = (el: HTMLElement | null): boolean => {
+      if (!el) return false;
+      // Play / beside are valid action-row targets — never yank between them.
+      if (isDetailPlayOrBesideFocus(el)) return false;
+      // Allow intentional ladder moves (stars / summary / header / main-games).
+      const ladder = detailLadderLevelOf(el);
+      if (ladder && ladder !== "actions") return false;
+      if (ladder === "actions") return false;
+      return !!(
+        coverFocusFrom(el) ||
+        libraryMenuFocusFrom(el) ||
+        shellActionFocusFrom(el) ||
+        toolbarFocusFrom(el) ||
+        alphabetFocusFrom(el)
+      );
+    };
+
+    const onFocusIn = (e: FocusEvent) => {
+      if (gen !== gameDetailPlayFocusGen) return;
+      if (performance.now() > graceUntil) return;
+      // Hardware Back restoring a cover onto collection-like — don't steal Play.
+      if (restoreCoverAfterBackPending && !isGameOrCatalogDetailPage()) return;
+      if (!isItemDetailPage() || getActiveUiLayer()) return;
+      const target = e.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (!stealBackFromListChrome(target)) return;
+      zone = "chrome";
+      window.setTimeout(() => {
+        if (gen !== gameDetailPlayFocusGen) return;
+        if (restoreCoverAfterBackPending && !isGameOrCatalogDetailPage()) return;
+        if (!isItemDetailPage()) return;
+        focusDetailPlayOrBeside();
+      }, 0);
+    };
+    window.addEventListener("focusin", onFocusIn, true);
+
+    const tick = () => {
+      if (gen !== gameDetailPlayFocusGen) return;
+      // Hardware Back is restoring a cover onto collection-like / list — abort.
+      if (restoreCoverAfterBackPending && !isGameOrCatalogDetailPage()) {
+        return;
+      }
+      // Path already changed but React may not have mounted the detail shell yet.
+      if (!isItemDetailPage()) {
+        attempts += 1;
+        if (attempts < maxAttempts && performance.now() < graceUntil) {
+          window.setTimeout(tick, 50);
+        }
+        return;
+      }
+      if (getActiveUiLayer()) {
+        attempts += 1;
+        if (attempts < maxAttempts && performance.now() < graceUntil) {
+          window.setTimeout(tick, 100);
+        }
+        return;
+      }
+
+      zone = "chrome";
+      const active = document.activeElement as HTMLElement | null;
+      const play = findDetailPlayButton();
+
+      // Prefer Play whenever it mounts (collection Play often appears after games load).
+      if (play) {
+        if (active === play || play.contains(active)) {
+          settlePasses += 1;
+          if (settlePasses >= needSettle) {
+            // Landing done — stop yanking focus so the user can leave Play freely.
+            window.removeEventListener("focusin", onFocusIn, true);
+            return;
+          }
+          window.setTimeout(tick, 50);
+          return;
+        }
+        settlePasses = 0;
+        focusElement(play);
+        window.setTimeout(tick, 50);
+        return;
+      }
+
+      // No Play yet — park on beside temporarily, but keep retrying until grace ends.
+      settlePasses = 0;
+      if (!isDetailPlayOrBesideFocus(active)) {
+        focusDetailPlayOrBeside();
+      }
+
+      attempts += 1;
+      if (attempts < maxAttempts && performance.now() < graceUntil) {
+        window.setTimeout(tick, attempts < 15 ? 50 : 100);
+      }
+    };
+
+    window.setTimeout(tick, 0);
+    // Second wave after React paints the detail shell (cover click remounts slowly).
+    window.setTimeout(tick, 100);
+    window.setTimeout(tick, 300);
+    window.setTimeout(tick, 700);
+
+    const graceTimer = window.setTimeout(() => {
+      window.removeEventListener("focusin", onFocusIn, true);
+    }, graceMs + 200);
+
+    gameDetailPlayFocusCleanup = () => {
+      window.removeEventListener("focusin", onFocusIn, true);
+      window.clearTimeout(graceTimer);
+    };
   };
 
   const leaveEditable = (field: HTMLElement, direction: Direction | null) => {
@@ -3044,6 +3950,31 @@ export function installSmartTvRemoteKeys(
           ? active
           : null;
 
+      // Detail collection / similar rails — must run before library grid trapping
+      // (isLibraryMenuCoverGridNavMode is false on game detail) and before pickNextFocus.
+      const detailCoverEarly = coverFocusFrom(current);
+      if (detailCoverEarly && isItemDetailPage()) {
+        const detailStripEarly = detailCoverStripRootFrom(detailCoverEarly);
+        if (
+          detailStripEarly &&
+          detailStripEarly.contains(detailCoverEarly) &&
+          moveFocusInDetailCoverStrip(detailStripEarly, detailCoverEarly, direction)
+        ) {
+          return;
+        }
+      }
+
+      const detailStripTitleEarly = detailStripTitleFrom(current);
+      if (detailStripTitleEarly && isItemDetailPage()) {
+        const titleStripEarly = detailCoverStripRootFrom(detailStripTitleEarly);
+        if (
+          titleStripEarly &&
+          moveFocusFromDetailStripTitle(titleStripEarly, direction)
+        ) {
+          return;
+        }
+      }
+
       // Header/sidebar search dropdown: Up/Down through recent searches & results.
       const searchItem = searchDropdownItemFrom(current);
       if (searchItem) {
@@ -3095,6 +4026,24 @@ export function installSmartTvRemoteKeys(
 
         if (leftEl) {
           lastTvSearchLeftFocus = leftEl;
+          // Keyboard: DOM row/column nav (avoids zig-zag on centered unequal rows).
+          if (leftEl.classList.contains("tv-search-keyboard-key")) {
+            const nextKey = pickTvSearchKeyboardKey(leftEl, direction);
+            if (nextKey) {
+              lastTvSearchLeftFocus = nextKey;
+              focusElement(nextKey);
+              return;
+            }
+            if (direction === "right") {
+              const target = pickNearestTvSearchResult(leftEl, resultItems);
+              if (target) {
+                focusElement(target);
+                return;
+              }
+              return;
+            }
+            // Up from top row / Down from actions: leave keyboard via geometric set.
+          }
           if (direction === "right") {
             const nextLeft = pickNextInSet(leftItems, leftEl, "right");
             if (nextLeft && tvSearchLeftFocusFrom(nextLeft)) {
@@ -3416,6 +4365,7 @@ export function installSmartTvRemoteKeys(
             recommendedStrip &&
             (direction === "left" || direction === "right")
           ) {
+            rememberRecommendedStripFocus(recommendedStrip, coverEl);
             if (
               moveFocusInHorizontalCoverStrip(
                 recommendedStrip,
@@ -3435,13 +4385,17 @@ export function installSmartTvRemoteKeys(
             const idx = strips.indexOf(recommendedStrip);
             const nextIdx = direction === "down" ? idx + 1 : idx - 1;
             if (idx >= 0 && nextIdx >= 0 && nextIdx < strips.length) {
+              rememberRecommendedStripFocus(recommendedStrip, coverEl);
               const fromIdx = absoluteStripCoverIndex(
                 coverEl,
                 collectRecommendedStripCoverFocusables(recommendedStrip),
               );
-              if (
-                focusStripCoverAtAbsoluteIndex(strips[nextIdx]!, fromIdx)
-              ) {
+              const targetStrip = strips[nextIdx]!;
+              const targetIdx = resolveRecommendedStripFocusIndex(
+                targetStrip,
+                fromIdx,
+              );
+              if (focusStripCoverAtAbsoluteIndex(targetStrip, targetIdx)) {
                 return;
               }
             }
@@ -3462,13 +4416,17 @@ export function installSmartTvRemoteKeys(
                 const aIdx = retryStrips.indexOf(activeStrip);
                 const aNext = direction === "down" ? aIdx + 1 : aIdx - 1;
                 if (aIdx >= 0 && aNext >= 0 && aNext < retryStrips.length) {
+                  rememberRecommendedStripFocus(activeStrip, activeCover);
                   const fromIdx = absoluteStripCoverIndex(
                     activeCover,
                     collectRecommendedStripCoverFocusables(activeStrip),
                   );
-                  if (
-                    focusStripCoverAtAbsoluteIndex(retryStrips[aNext]!, fromIdx)
-                  ) {
+                  const targetStrip = retryStrips[aNext]!;
+                  const targetIdx = resolveRecommendedStripFocusIndex(
+                    targetStrip,
+                    fromIdx,
+                  );
+                  if (focusStripCoverAtAbsoluteIndex(targetStrip, targetIdx)) {
                     return;
                   }
                 }
@@ -3480,6 +4438,13 @@ export function installSmartTvRemoteKeys(
             }
             if (direction === "up") return;
             // Last / only strip: stay in Recommended rail (don't jump to other chrome).
+            return;
+          }
+
+          // Detail collection / similar strips: virtualized L/R must not fall through to
+          // pickCoverByDirection (only sees mounted covers, ~viewport + overscan).
+          const detailStrip = detailCoverStripRootFrom(coverEl);
+          if (detailStrip && moveFocusInDetailCoverStrip(detailStrip, coverEl, direction)) {
             return;
           }
 
@@ -3693,7 +4658,7 @@ export function installSmartTvRemoteKeys(
             return;
           }
           // Collection-like detail: subcollections / games grid (not similar strips).
-          if (focusDetailGamesGrid("first", 0)) return;
+          if (focusDetailGamesGrid(0, "first")) return;
           // Game detail: no media / no games grid → first collection strip title.
           const coverStrips = collectDetailHorizontalStrips().filter(
             (s) => s.kind === "covers",
@@ -3737,8 +4702,10 @@ export function installSmartTvRemoteKeys(
 
           const gridCovers = collectDetailGamesGridFocusables(gamesGrid);
           if (gridCovers.length > 0) {
+            rememberDetailGamesGridFocus(gamesGrid, gridCover);
             const nextCover = pickCoverByDirection(gridCovers, gridCover, direction);
             if (nextCover) {
+              rememberDetailGamesGridFocus(gamesGrid, nextCover);
               focusElement(nextCover);
               return;
             }
@@ -3763,6 +4730,7 @@ export function installSmartTvRemoteKeys(
                     direction,
                   );
                 if (retry) {
+                  rememberDetailGamesGridFocus(gamesGrid, retry);
                   focusElement(retry);
                   return;
                 }
@@ -3770,7 +4738,7 @@ export function installSmartTvRemoteKeys(
                   const grids = collectDetailGamesGridRoots();
                   const gridIdx = grids.indexOf(gamesGrid);
                   if (direction === "up") {
-                    if (gridIdx > 0 && focusDetailGamesGrid("last", gridIdx - 1)) {
+                    if (gridIdx > 0 && focusDetailGamesGrid(gridIdx - 1, "last")) {
                       return;
                     }
                     if (focusDetailLadderBottom()) return;
@@ -3778,7 +4746,7 @@ export function installSmartTvRemoteKeys(
                     if (
                       gridIdx >= 0 &&
                       gridIdx + 1 < grids.length &&
-                      focusDetailGamesGrid("first", gridIdx + 1)
+                      focusDetailGamesGrid(gridIdx + 1, "first")
                     ) {
                       return;
                     }
@@ -3798,7 +4766,7 @@ export function installSmartTvRemoteKeys(
             if (direction === "up") {
               const grids = collectDetailGamesGridRoots();
               const gridIdx = grids.indexOf(gamesGrid);
-              if (gridIdx > 0 && focusDetailGamesGrid("last", gridIdx - 1)) return;
+              if (gridIdx > 0 && focusDetailGamesGrid(gridIdx - 1, "last")) return;
               if (focusDetailLadderBottom()) return;
               return;
             }
@@ -3808,13 +4776,11 @@ export function installSmartTvRemoteKeys(
               if (
                 gridIdx >= 0 &&
                 gridIdx + 1 < grids.length &&
-                focusDetailGamesGrid("first", gridIdx + 1)
+                focusDetailGamesGrid(gridIdx + 1, "first")
               ) {
                 return;
               }
-              const strips = collectDetailHorizontalStrips().filter(
-                (s) => s.kind === "covers",
-              );
+              const strips = detailCoverStripsBelowGamesGrid();
               if (strips.length > 0) {
                 focusDetailHorizontalStrip(strips[0]!, 0, { preferTitle: true });
                 return;
@@ -3830,107 +4796,21 @@ export function installSmartTvRemoteKeys(
         const stripTitle = detailStripTitleFrom(current);
         if (stripTitle) {
           const titleStrip = detailCoverStripRootFrom(stripTitle);
-          if (titleStrip) {
-            if (direction === "left" || direction === "right") {
-              return;
-            }
-            if (direction === "down") {
-              if (
-                !focusStripCoverAtAbsoluteIndex(titleStrip, 0, {
-                  remember: true,
-                })
-              ) {
-                const covers = collectDetailCoverStripFocusables(titleStrip);
-                if (covers[0]) focusElement(covers[0]);
-              }
-              return;
-            }
-            if (direction === "up") {
-              const strips = collectDetailHorizontalStrips();
-              const stripIdx = strips.findIndex(
-                (s) => s.kind === "covers" && s.root === titleStrip,
-              );
-              if (stripIdx > 0) {
-                // Previous strip covers (its title is reached with Up from those covers).
-                focusDetailHorizontalStrip(strips[stripIdx - 1]!, 0);
-                return;
-              }
-              if (stripIdx === 0) {
-                const grids = collectDetailGamesGridRoots();
-                if (
-                  grids.length > 0 &&
-                  focusDetailGamesGrid("last", grids.length - 1)
-                ) {
-                  return;
-                }
-                const mediaItems = collectMediaGalleryFocusables();
-                if (mediaItems.length > 0) {
-                  focusElement(mediaItems[mediaItems.length - 1]!);
-                  return;
-                }
-                if (focusDetailLadderBottom()) return;
-                return;
-              }
-            }
+          if (titleStrip && moveFocusFromDetailStripTitle(titleStrip, direction)) {
+            return;
           }
         }
 
-        // Collections / similar cover rows: L/R stay in the strip; Up → title then neighbor.
+        // Collections / similar cover rows (when focus is not on a .games-list-cover).
         const coverStrip = detailCoverStripRootFrom(current);
         const stripCover = coverFocusFrom(current);
-        if (coverStrip && stripCover && coverStrip.contains(stripCover)) {
-          const stripCovers = collectDetailCoverStripFocusables(coverStrip);
-          if (stripCovers.length > 0) {
-            if (direction === "left" || direction === "right") {
-              if (
-                moveFocusInHorizontalCoverStrip(
-                  coverStrip,
-                  stripCover,
-                  direction,
-                  collectDetailCoverStripFocusables,
-                )
-              ) {
-                return;
-              }
-            }
-            if (direction === "up" || direction === "down") {
-              if (direction === "up") {
-                const title = detailStripTitleFocusable(coverStrip);
-                if (title) {
-                  focusElement(title);
-                  return;
-                }
-              }
-              const strips = collectDetailHorizontalStrips();
-              const stripIdx = strips.findIndex(
-                (s) => s.kind === "covers" && s.root === coverStrip,
-              );
-              if (stripIdx >= 0) {
-                const fromIdx = absoluteStripCoverIndex(stripCover, stripCovers);
-                const targetIdx = direction === "up" ? stripIdx - 1 : stripIdx + 1;
-                if (targetIdx >= 0 && targetIdx < strips.length) {
-                  focusDetailHorizontalStrip(strips[targetIdx]!, fromIdx, {
-                    preferTitle: direction === "down",
-                  });
-                  return;
-                }
-                if (direction === "up") {
-                  // Above first cover strip: collection games grid, else summary / Play.
-                  const grids = collectDetailGamesGridRoots();
-                  if (
-                    grids.length > 0 &&
-                    focusDetailGamesGrid("last", grids.length - 1)
-                  ) {
-                    return;
-                  }
-                  if (focusDetailLadderBottom()) return;
-                  return;
-                }
-                // Past the last strip — stay.
-                return;
-              }
-            }
-          }
+        if (
+          coverStrip &&
+          stripCover &&
+          coverStrip.contains(stripCover) &&
+          moveFocusInDetailCoverStrip(coverStrip, stripCover, direction)
+        ) {
+          return;
         }
       }
 
@@ -4137,9 +5017,11 @@ export function installSmartTvRemoteKeys(
   const onUiLayerFocusRequest = () => requestSmartTvUiLayerFocus();
   const onExitRequested = () => requestSmartTvUiLayerFocus();
   const onRestoreCoverFocus = () => schedulePersistedCoverRestore();
+  const onGameDetailFocus = () => scheduleGameDetailPlayFocus();
   window.addEventListener("mhg:tv-ui-layer-focus-request", onUiLayerFocusRequest);
   window.addEventListener("mhg:tv-request-exit", onExitRequested);
   window.addEventListener(MHG_TV_RESTORE_COVER_FOCUS, onRestoreCoverFocus);
+  window.addEventListener(MHG_TV_GAME_DETAIL_FOCUS, onGameDetailFocus);
 
   // Initial sync (no layer → clear any leftover inert marks).
   syncBackgroundInert(getActiveUiLayer());
@@ -4154,6 +5036,10 @@ export function installSmartTvRemoteKeys(
     window.removeEventListener("mhg:tv-ui-layer-focus-request", onUiLayerFocusRequest);
     window.removeEventListener("mhg:tv-request-exit", onExitRequested);
     window.removeEventListener(MHG_TV_RESTORE_COVER_FOCUS, onRestoreCoverFocus);
+    window.removeEventListener(MHG_TV_GAME_DETAIL_FOCUS, onGameDetailFocus);
+    gameDetailPlayFocusCleanup?.();
+    gameDetailPlayFocusCleanup = null;
+    gameDetailPlayFocusGen += 1;
     layerObserver.disconnect();
     if (layerSyncRaf) window.cancelAnimationFrame(layerSyncRaf);
     window.clearTimeout(t1);

@@ -21,6 +21,10 @@
     "gamesSidebar": "Giochi",
     "topRightToolDock": "Strumenti"
   },
+  "recommended": {
+    "continuePlaying": "Continua a giocare",
+    "recentlyAdded": "Aggiunti di recente"
+  },
   "settings": {
     "title": "Impostazioni",
     "subtitle": "Configura le preferenze dell'applicazione",
@@ -132,14 +136,19 @@
         "fixedFocalStepSound": "Suono di navigazione",
         "autoShowBackgroundOnSelection": "Mostra sfondo alla selezione focale",
         "detailBackdropLayout": "Layout sfondo dettaglio gioco (CSS dello skin)",
+        "tvDetailBackdropAmbient": "Alone sfocato e hero ritagliato sugli sfondi di dettaglio",
         "staticInlineTagListOnTvPhone": "Tag in linea non cliccabili su TV e telefono",
-        "tvSummaryOverlay": "TV: apri il summary in overlay a tutto schermo",
-        "tvStarRatingOverlay": "TV: apri le stelline in overlay a tutto schermo",
-        "tvDetailSummaryBeforeActions": "TV: mostra il summary sopra la riga Play nel dettaglio gioco",
-        "tvRecommendedBrowsePreview": "TV: pannello in alto nei Consigliati aggiornato dal gioco in focus (fino al summary)",
-        "tvHideAppHeader": "TV: nascondi l'header; ricerca e profilo restano nella libraries bar",
+        "tvSummaryOverlay": "Apri il summary in overlay a tutto schermo",
+        "tvStarRatingOverlay": "Apri le stelline in overlay a tutto schermo",
+        "tvDetailSummaryBeforeActions": "Mostra il summary sopra la riga Play nel dettaglio gioco",
+        "tvRecommendedBrowsePreview": "Pannello in alto nei Consigliati aggiornato dal gioco in focus (fino al summary)",
+        "tvHideAppHeader": "Nascondi l'header; ricerca e profilo restano nella libraries bar",
         "disableTitleTooltips": "Nascondi i tooltip"
       }
+    },
+    "skinTvOptions": {
+      "title": "Smart TV",
+      "description": "Opzioni che si applicano sulla Smart TV (Tizen, webOS, Android TV, ecc.)."
     }
   },
   "tags": {
@@ -229,11 +238,12 @@
   },
   "streamPlay": {
     "title": "Gioco remoto",
-    "launching": "Avvio del gioco sul PC di casa…",
-    "readyHint": "Gioco avviato. Streaming del desktop di casa via Moonlight Web…",
+    "launching": "Preparing remote play on your home PC…",
+    "readyHint": "Connessione al gioco via Moonlight Web (cattura applicazione)…",
     "setupHint": "Richiede Sunshine sul PC di casa e Moonlight Web raggiungibile via HTTPS.",
-    "launchFailed": "Impossibile avviare il gioco sul PC di casa",
+    "launchFailed": "Impossibile avviare il gioco remoto sul PC di casa",
     "noMoonlightUrl": "URL Moonlight Web non configurato sul server.",
+    "noAppStream": "Impossibile aprire lo stream dell'applicazione. Riavvia il server di casa e riprova.",
     "sunshineUnreachable": "Sunshine non sembra in esecuzione sul PC di casa. Avvia Sunshine, poi aggiorna Moonlight Web.",
     "missingGame": "Id gioco mancante",
     "iframeTitle": "Stream Moonlight Web"
