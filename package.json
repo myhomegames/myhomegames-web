@@ -1,7 +1,7 @@
 {
   "name": "myhomegames-web",
   "private": true,
-  "version": "1.2.2",
+  "version": "1.2.3",
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
@@ -13,7 +13,8 @@
     "test:run": "vitest run",
     "compat:validate": "node scripts/compat-validate.mjs",
     "tizen:package": "node scripts/package-tizen.mjs",
-    "tizen:deploy": "node scripts/deploy-tizen.mjs"
+    "tizen:deploy": "node scripts/deploy-tizen.mjs",
+    "android:aab": "node scripts/package-android-aab.mjs"
   },
   "dependencies": {
     "@types/react-tabs": "^5.0.5",
@@ -28,6 +29,7 @@
     "react-window": "^2.2.5"
   },
   "devDependencies": {
+    "@bubblewrap/cli": "^1.25.0",
     "@eslint/js": "^9.36.0",
     "@tailwindcss/vite": "^4.1.14",
     "@types/node": "^24.6.0",

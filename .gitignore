@@ -44,3 +44,8 @@ public
 
 # Cursor (local only; never commit)
 .cursor
+
+# Android TWA / Bubblewrap (generated project + signing secrets)
+android-twa/**
+!android-twa/README.md
+!android-twa/twa-manifest.json
