@@ -136,6 +136,28 @@ npm run preview
 
 This will serve the production build locally at `https://localhost:5173/app/` (same port as dev; HTTPS when `VITE_HTTPS_ENABLED=true`).
 
+## Packaging for Smart TV and Android
+
+MyHomeGames Web is distributed as a **hosted PWA**. Optional native shells only
+launch that URL:
+
+| Platform | Package | Guide |
+| --- | --- | --- |
+| Samsung Tizen TV | `.wgt` | [tizen/README.md](tizen/README.md) — `npm run tizen:package`, `npm run tizen:deploy` |
+| Android (Play Store) | `.aab` (Trusted Web Activity) | [android-twa/README.md](android-twa/README.md) — `npm run android:aab` |
+
+Quick Android build (needs JDK 17):
+
+```bash
+npm run android:aab
+# optional:
+npm run android:aab -- --skip-pwa-validation
+```
+
+Output: `android-twa/dist/MyHomeGames-<version>.aab` (gitignored). Deploy
+`android-twa/assetlinks.json` to `https://myhomegames.vige.it/.well-known/assetlinks.json`
+for fullscreen TWA. Details and troubleshooting are in the Android guide above.
+
 ## Testing Smart TV behaviour on desktop
 
 On a real TV the app detects Tizen, webOS, Android TV, and similar user agents via `isSmartTvBrowser()` in `src/utils/smartTv.ts`. On a desktop browser you can force the same behaviour with the query flag **`mhgTv=1`**.
