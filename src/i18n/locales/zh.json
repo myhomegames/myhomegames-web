@@ -213,8 +213,14 @@
     "downloadForPlatform": "下载 {{platform}} 版本",
     "download": "下载",
     "retry": "重试连接",
-    "openSettings": "打开设置"
+    "openSettings": "打开设置",
+    "supportHint": "需要帮助？联系支持：",
+    "supportMail": "邮件",
+    "supportFacebook": "Facebook",
+    "supportInstagram": "Instagram",
+    "supportMailSubject": "MyHomeGames 支持"
   },
+
   "search": {
     "noResults": "未找到术语 \"{{query}}\" 的结果",
     "viewAllResults": "查看所有结果 ({{count}})",

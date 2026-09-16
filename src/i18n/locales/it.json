@@ -234,8 +234,14 @@
     "downloadForPlatform": "Scarica per {{platform}}",
     "download": "Scarica",
     "retry": "Riprova connessione",
-    "openSettings": "Apri impostazioni"
+    "openSettings": "Apri impostazioni",
+    "supportHint": "Hai bisogno di aiuto? Contatta il supporto:",
+    "supportMail": "Email",
+    "supportFacebook": "Facebook",
+    "supportInstagram": "Instagram",
+    "supportMailSubject": "Supporto MyHomeGames"
   },
+
   "streamPlay": {
     "title": "Gioco remoto",
     "launching": "Preparing remote play on your home PC…",

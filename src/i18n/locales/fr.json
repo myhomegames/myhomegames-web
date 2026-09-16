@@ -213,8 +213,14 @@
     "downloadForPlatform": "Télécharger pour {{platform}}",
     "download": "Télécharger",
     "retry": "Réessayer la connexion",
-    "openSettings": "Ouvrir les paramètres"
+    "openSettings": "Ouvrir les paramètres",
+    "supportHint": "Besoin d'aide ? Contactez le support :",
+    "supportMail": "Email",
+    "supportFacebook": "Facebook",
+    "supportInstagram": "Instagram",
+    "supportMailSubject": "Support MyHomeGames"
   },
+
   "search": {
     "noResults": "Aucun résultat trouvé pour le terme \"{{query}}\"",
     "viewAllResults": "Voir tous les résultats ({{count}})",

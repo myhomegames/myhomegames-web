@@ -213,8 +213,14 @@
     "downloadForPlatform": "{{platform}} 向けダウンロード",
     "download": "ダウンロード",
     "retry": "再接続",
-    "openSettings": "設定を開く"
+    "openSettings": "設定を開く",
+    "supportHint": "お困りですか？サポートに連絡：",
+    "supportMail": "メール",
+    "supportFacebook": "Facebook",
+    "supportInstagram": "Instagram",
+    "supportMailSubject": "MyHomeGames サポート"
   },
+
   "search": {
     "noResults": "用語 \"{{query}}\" の結果が見つかりません",
     "viewAllResults": "すべての結果を表示 ({{count}})",
