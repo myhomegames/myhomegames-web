@@ -212,6 +212,7 @@
     "downloadHint": "Descarga el servidor para tu plataforma:",
     "downloadForPlatform": "Descargar para {{platform}}",
     "download": "Descargar",
+    "orBrowseReleases": "o consulta las versiones",
     "retry": "Reintentar conexión",
     "openSettings": "Abrir ajustes",
     "supportHint": "¿Necesitas ayuda? Contacta con el soporte:",

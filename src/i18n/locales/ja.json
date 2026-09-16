@@ -212,6 +212,7 @@
     "downloadHint": "お使いのプラットフォーム向けサーバーをダウンロード:",
     "downloadForPlatform": "{{platform}} 向けダウンロード",
     "download": "ダウンロード",
+    "orBrowseReleases": "またはリリース一覧を開く",
     "retry": "再接続",
     "openSettings": "設定を開く",
     "supportHint": "お困りですか？サポートに連絡：",

@@ -1,6 +1,10 @@
 import { useTranslation } from "react-i18next";
 import { useServerDownload } from "../hooks/useServerDownload";
-import { isPhoneWithoutServerPackage, SERVER_OS_I18N_KEY } from "../utils/serverDownload";
+import {
+  isPhoneWithoutServerPackage,
+  SERVER_OS_I18N_KEY,
+  SERVER_RELEASES_URL,
+} from "../utils/serverDownload";
 import { isSmartTvBrowser } from "../utils/smartTv";
 
 type ServerUnavailablePageProps = {
@@ -10,36 +14,40 @@ type ServerUnavailablePageProps = {
 const SUPPORT_EMAIL = "myhomegames@vige.it";
 const SUPPORT_FACEBOOK_URL = "https://www.facebook.com/groups/1864095787557962";
 const SUPPORT_INSTAGRAM_URL = "https://www.instagram.com/myhomegames/";
+const SITE_LOGO_URL = "https://myhomegames.vige.it/logo.png";
 
 function MailIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-      <rect x="3" y="5" width="18" height="14" rx="2" />
-      <path d="M3 7l9 7 9-7" />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5L4 8V6l8 5 8-5v2z"
+      />
     </svg>
   );
 }
 
 function FacebookIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M14 8h3V4h-3c-2.8 0-5 2.2-5 5v2H6v4h3v8h4v-8h3.2l.8-4H13V9c0-.6.4-1 1-1z" />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
+      />
     </svg>
   );
 }
 
 function InstagramIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-      <rect x="3" y="3" width="18" height="18" rx="5" />
-      <circle cx="12" cy="12" r="4" />
-      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"
+      />
     </svg>
   );
 }
-
-const supportButtonClass =
-  "inline-flex items-center justify-center gap-2 rounded-lg border border-white/25 px-3 py-2 text-sm font-medium text-white transition hover:border-white/50 hover:bg-white/10";
 
 export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePageProps) {
   const { t } = useTranslation();
@@ -61,12 +69,31 @@ export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePage
   const mailtoHref = `mailto:${SUPPORT_EMAIL}?subject=${mailSubject}`;
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-10 text-white">
-      <div className="w-full max-w-lg rounded-xl border border-white/15 bg-black/45 p-8 shadow-2xl backdrop-blur-sm">
-        <h1 className="mb-3 text-2xl font-semibold leading-tight">
+    <div
+      className="flex min-h-screen flex-col items-center px-4 py-8 text-[#333] sm:py-12"
+      style={{
+        fontFamily:
+          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      }}
+    >
+      <header className="mb-6 text-center text-white sm:mb-8">
+        <a href="https://myhomegames.vige.it/" className="inline-block">
+          <img
+            src={SITE_LOGO_URL}
+            alt="MyHomeGames"
+            className="mx-auto h-auto w-full max-w-[min(100%,320px)] drop-shadow-[2px_2px_4px_rgba(0,0,0,0.2)] sm:max-w-[400px]"
+          />
+        </a>
+      </header>
+
+      <main
+        className="w-full max-w-xl rounded-xl bg-white p-6 shadow-[0_10px_40px_rgba(0,0,0,0.2)] sm:p-10"
+      >
+        <h1 className="mb-4 border-b-[3px] border-[#667eea] pb-2 text-2xl font-semibold text-[#667eea] sm:text-[1.75rem]">
           {t("serverUnavailable.title", "MyHomeGames server is not reachable")}
         </h1>
-        <p className="mb-6 text-sm leading-relaxed text-white/75">
+        <p className="mb-6 text-base leading-relaxed text-[#333] sm:text-[1.1rem]">
           {t(
             "serverUnavailable.message",
             "The web app cannot connect to the server. Install and start it, or verify it is running, then retry.",
@@ -74,72 +101,109 @@ export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePage
         </p>
 
         {showDownload && (
-          <div className="mb-6 flex flex-col gap-2">
-            <p className="text-sm text-white/75">
+          <div className="mb-8">
+            <p className="mb-3 text-base text-[#555] sm:text-[1.1rem]">
               {t("serverUnavailable.downloadHint", "Download the server for your platform:")}
             </p>
             {downloadsLoading ? (
-              <p className="text-sm text-white/60">{t("common.loading", "Loading...")}</p>
+              <p className="text-sm text-[#777]">{t("common.loading", "Loading...")}</p>
             ) : (
-              <>
+              <div className="flex flex-col items-center gap-2">
                 <a
-                  className="inline-flex rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-black transition hover:bg-white/90"
+                  className="inline-flex items-center justify-center rounded-lg px-8 py-3.5 text-center text-lg font-semibold text-white no-underline shadow-[0_4px_15px_rgba(245,87,108,0.4)] transition hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(245,87,108,0.6)]"
+                  style={{
+                    background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+                  }}
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
                   {downloadLabel}
                 </a>
-                <code className="break-all text-xs text-white/60">{url}</code>
-              </>
+                <a
+                  className="text-center text-sm font-medium text-[#667eea] underline-offset-2 hover:underline"
+                  href={SERVER_RELEASES_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {t("serverUnavailable.orBrowseReleases", "or browse the releases")}
+                </a>
+              </div>
             )}
           </div>
         )}
 
-        <div className="mb-6">
-          <p className="mb-2 text-sm text-white/75">
+        <div className="mb-8">
+          <p className="mb-4 text-base text-[#555] sm:text-[1.1rem]">
             {t("serverUnavailable.supportHint", "Need help? Contact support:")}
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap justify-center gap-x-8 gap-y-5 sm:justify-start">
             <a
-              className={supportButtonClass}
+              className="flex min-w-[5.5rem] max-w-[11rem] flex-col items-center gap-2 text-[#444] no-underline transition hover:-translate-y-0.5"
               href={mailtoHref}
               title={SUPPORT_EMAIL}
             >
-              <MailIcon />
-              <span className="break-all">{SUPPORT_EMAIL}</span>
+              <span
+                className="flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_4px_14px_rgba(0,0,0,0.18)]"
+                style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}
+              >
+                <MailIcon />
+              </span>
+              <span className="break-all text-center text-[0.8rem] font-semibold leading-snug text-[#555]">
+                {SUPPORT_EMAIL}
+              </span>
             </a>
             <a
-              className={supportButtonClass}
+              className="flex w-[5.5rem] flex-col items-center gap-2 text-[#444] no-underline transition hover:-translate-y-0.5"
               href={SUPPORT_FACEBOOK_URL}
               target="_blank"
               rel="noopener noreferrer"
             >
-              <FacebookIcon />
-              {t("serverUnavailable.supportFacebook", "Facebook")}
+              <span
+                className="flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_4px_14px_rgba(0,0,0,0.18)]"
+                style={{ background: "#1877f2" }}
+              >
+                <FacebookIcon />
+              </span>
+              <span className="text-center text-[0.9rem] font-semibold leading-snug text-[#555]">
+                {t("serverUnavailable.supportFacebook", "Facebook")}
+              </span>
             </a>
             <a
-              className={supportButtonClass}
+              className="flex w-[5.5rem] flex-col items-center gap-2 text-[#444] no-underline transition hover:-translate-y-0.5"
               href={SUPPORT_INSTAGRAM_URL}
               target="_blank"
               rel="noopener noreferrer"
             >
-              <InstagramIcon />
-              {t("serverUnavailable.supportInstagram", "Instagram")}
+              <span
+                className="flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_4px_14px_rgba(0,0,0,0.18)]"
+                style={{
+                  background:
+                    "radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285aeb 90%)",
+                }}
+              >
+                <InstagramIcon />
+              </span>
+              <span className="text-center text-[0.9rem] font-semibold leading-snug text-[#555]">
+                {t("serverUnavailable.supportInstagram", "Instagram")}
+              </span>
             </a>
           </div>
         </div>
 
-        <div>
+        <div className="flex justify-center">
           <button
             type="button"
-            className="rounded-lg border border-white/25 px-4 py-2 text-sm font-medium text-white transition hover:border-white/50 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex cursor-pointer items-center justify-center rounded-lg border-0 px-8 py-3.5 text-lg font-semibold text-white shadow-[0_4px_15px_rgba(102,126,234,0.4)] transition hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(102,126,234,0.6)] disabled:cursor-not-allowed disabled:opacity-60"
+            style={{
+              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            }}
             onClick={onRetry}
           >
             {t("serverUnavailable.retry", "Retry connection")}
           </button>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

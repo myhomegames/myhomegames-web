@@ -233,6 +233,7 @@
     "downloadHint": "Download the server for your platform:",
     "downloadForPlatform": "Download for {{platform}}",
     "download": "Download",
+    "orBrowseReleases": "or browse the releases",
     "retry": "Retry connection",
     "openSettings": "Open settings",
     "supportHint": "Need help? Contact support:",

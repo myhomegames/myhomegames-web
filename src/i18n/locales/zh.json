@@ -212,6 +212,7 @@
     "downloadHint": "下载适用于您平台的服务器：",
     "downloadForPlatform": "下载 {{platform}} 版本",
     "download": "下载",
+    "orBrowseReleases": "或浏览发布版本",
     "retry": "重试连接",
     "openSettings": "打开设置",
     "supportHint": "需要帮助？联系支持：",
