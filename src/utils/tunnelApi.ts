@@ -1,4 +1,4 @@
-import { LOCAL_API_BASE, setTunnelApiBase } from "../config";
+import { clearTunnelApiBase, LOCAL_API_BASE, setTunnelApiBase } from "../config";
 
 const LOCAL_TUNNEL_PROBE_MS = 2500;
 const REMOTE_TUNNEL_PROBE_MS = 8000;
@@ -207,12 +207,16 @@ export async function adoptRemoteTunnelApi(publicUrl: string): Promise<TunnelSta
   try {
     status = await fetchTunnelStatusAt(base);
   } catch {
+    clearTunnelApiBase();
     throw new Error("tunnel_unreachable");
   }
   if (!status.featureEnabled) {
+    clearTunnelApiBase();
     throw new Error("tunnel_feature_disabled");
   }
   if (!status.connected) {
+    // Home PC is not running cloudflared yet (typical first login before install).
+    clearTunnelApiBase();
     throw new Error("tunnel_not_connected");
   }
   return { ...status, publicUrl: status.publicUrl || base };

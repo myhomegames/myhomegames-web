@@ -1,5 +1,4 @@
 import { useTranslation } from "react-i18next";
-import { isLocalApiBase } from "../config";
 import { useServerDownload } from "../hooks/useServerDownload";
 import { isPhoneWithoutServerPackage, SERVER_OS_I18N_KEY } from "../utils/serverDownload";
 import { isSmartTvBrowser } from "../utils/smartTv";
@@ -11,8 +10,9 @@ type ServerUnavailablePageProps = {
 export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePageProps) {
   const { t } = useTranslation();
   const { url, os, loading: downloadsLoading, platformSpecific } = useServerDownload();
-  const showDownload =
-    isLocalApiBase() && !isPhoneWithoutServerPackage() && !isSmartTvBrowser();
+  // Desktop browsers: always offer the server package when unreachable (localhost
+  // or after Access login with no home tunnel yet). Phones/TVs have no package.
+  const showDownload = !isPhoneWithoutServerPackage() && !isSmartTvBrowser();
   const platformLabel = t(SERVER_OS_I18N_KEY[os], os);
 
   const downloadLabel = platformSpecific

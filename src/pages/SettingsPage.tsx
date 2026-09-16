@@ -15,6 +15,10 @@ import { useServerVersion } from "../hooks/useServerVersion";
 import {
   WEB_REQUIRES_MIN_SERVER_VERSION,
 } from "../utils/apiCompatibility";
+import {
+  normalizeUiLanguage,
+  resolveInitialUiLanguage,
+} from "../i18n/resolveUiLanguage";
 
 export default function SettingsPage() {
   const { t, i18n } = useTranslation();
@@ -24,7 +28,7 @@ export default function SettingsPage() {
   const { version: connectedServerVersion } = useServerVersion();
   const skipApiRedirect = () =>
     shouldSkipApiBaseBrowserRedirect({ tunnelFeatureEnabled: featureEnabled, tunnelReady });
-  const [language, setLanguage] = useState("en");
+  const [language, setLanguage] = useState(() => resolveInitialUiLanguage());
   const [visibleLibraries, setVisibleLibraries] = useState<string[]>([...LIBRARY_ORDER]);
   const [twitchApiEnabled, setTwitchApiEnabled] = useState(false);
   const [initialTwitchApiEnabled, setInitialTwitchApiEnabled] = useState<boolean | null>(null);
@@ -98,9 +102,14 @@ export default function SettingsPage() {
         clearTimeout(timeoutId);
         if (res.ok) {
           const data = await res.json();
-          const loadedLanguage = data.language || "en";
+          const settingsLanguage =
+            typeof data.language === "string" ? data.language.trim() : "";
+          const loadedLanguage = settingsLanguage
+            ? normalizeUiLanguage(settingsLanguage)
+            : resolveInitialUiLanguage();
           setLanguage(loadedLanguage);
           i18n.changeLanguage(loadedLanguage);
+          localStorage.setItem("language", loadedLanguage);
           const loadedVisibleLibraries = normalizeVisibleLibraries(data.visibleLibraries);
           setVisibleLibraries(loadedVisibleLibraries);
           localStorage.setItem("visibleLibraries", JSON.stringify(loadedVisibleLibraries));
@@ -121,8 +130,8 @@ export default function SettingsPage() {
           setInitialTwitchClientSecret(loadedClientSecret);
           clearLegacyCatalogCredentialStorage();
         } else {
-          // Fallback to localStorage
-          const saved = localStorage.getItem("language") || "en";
+          // Fallback to localStorage / browser
+          const saved = resolveInitialUiLanguage();
           setLanguage(saved);
           i18n.changeLanguage(saved);
           const normalized = normalizeVisibleLibraries(parseStoredLibraries());
@@ -134,8 +143,8 @@ export default function SettingsPage() {
       } catch (err) {
         clearTimeout(timeoutId);
         console.error("Failed to load settings:", err);
-        // Fallback to localStorage
-        const saved = localStorage.getItem("language") || "en";
+        // Fallback to localStorage / browser
+        const saved = resolveInitialUiLanguage();
         setLanguage(saved);
         i18n.changeLanguage(saved);
         const normalized = normalizeVisibleLibraries(parseStoredLibraries());

@@ -13,9 +13,10 @@ import {
 vi.mock("../config", () => ({
   LOCAL_API_BASE: "http://localhost:4000",
   setTunnelApiBase: vi.fn(),
+  clearTunnelApiBase: vi.fn(),
 }));
 
-import { setTunnelApiBase } from "../config";
+import { clearTunnelApiBase, setTunnelApiBase } from "../config";
 
 function mockLocation(origin: string, pathname: string) {
   vi.stubGlobal("location", {
@@ -164,5 +165,15 @@ describe("connectTunnelWithFallback", () => {
     await expect(
       adoptRemoteTunnelApi("https://user-myhomegames-server.vige.it"),
     ).rejects.toThrow("tunnel_not_connected");
+    expect(clearTunnelApiBase).toHaveBeenCalled();
+  });
+
+  it("adoptRemoteTunnelApi clears API base when status fetch fails", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+
+    await expect(
+      adoptRemoteTunnelApi("https://user-myhomegames-server.vige.it"),
+    ).rejects.toThrow("tunnel_unreachable");
+    expect(clearTunnelApiBase).toHaveBeenCalled();
   });
 });
