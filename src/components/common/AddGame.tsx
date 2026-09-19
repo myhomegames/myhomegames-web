@@ -4,8 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { formatCatalogGameDate } from "../../utils/date";
 import { displayGameType } from "../../utils/gameType";
-import { buildCatalogApiUrl } from "../../utils/catalogApi";
-import { buildApiHeaders } from "../../utils/api";
+import { isIgdbSearchQueryReady, searchIgdbGames } from "../../utils/igdbSearch";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useSkin } from "../../contexts/SkinContext";
 import { useCreateGame } from "./actions";
@@ -297,13 +296,12 @@ export default function AddGame({
     const trimmedQuery = query.trim();
     
     // Don't search if query is the same as last search (avoid cancelling timeout)
-    if (trimmedQuery === lastSearchQueryRef.current && trimmedQuery.length >= 2) {
+    if (trimmedQuery === lastSearchQueryRef.current && isIgdbSearchQueryReady(trimmedQuery)) {
       return;
     }
     
     // Don't search if query is too short (allow single digit when it's a numeric ID)
-    const isNumericId = /^\d+$/.test(trimmedQuery);
-    if (trimmedQuery.length < 2 && !isNumericId) {
+    if (!isIgdbSearchQueryReady(trimmedQuery)) {
       setResults([]);
       setIsSearching(false);
       lastSearchQueryRef.current = "";
@@ -334,21 +332,8 @@ export default function AddGame({
           return;
         }
 
-        const url = new URL(buildCatalogApiUrl("/igdb/search"));
-        url.searchParams.set("q", trimmedQuery);
-
-        const res = await fetch(url.toString(), {
-          headers: buildApiHeaders({ Accept: "application/json" }),
-        });
-
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          const message = typeof body?.error === "string" ? body.error : `HTTP ${res.status}`;
-          throw new Error(message);
-        }
-
-        const json = await res.json();
-        setResults(json.games || []);
+        const games = await searchIgdbGames(trimmedQuery);
+        setResults(games);
         setError(null);
         
         // Close browser autocomplete popup when results arrive (desktop only).
@@ -356,8 +341,7 @@ export default function AddGame({
         if (
           !smartTv &&
           inputRef.current &&
-          json.games &&
-          json.games.length > 0
+          games.length > 0
         ) {
           inputRef.current.blur();
           setTimeout(() => {

@@ -1,7 +1,6 @@
 import { useState, useId } from "react";
 import type { TFunction } from "i18next";
-import GameSearchModal from "../GameSearchModal";
-import type { GameItem } from "../../../types";
+import GameSearchModal, { type GameSearchSelection } from "../GameSearchModal";
 import { useResolvedSimilarGamesNames } from "../../../hooks/useResolvedSimilarGamesNames";
 import {
   AGE_RATING_CATEGORIES,
@@ -132,11 +131,12 @@ export default function EditGameInfoTab({
     setNewWebsiteUrl("");
   };
 
-  const handleAddSimilarGame = (game: GameItem) => {
+  const handleAddSimilarGame = (game: GameSearchSelection) => {
     const id = Number(game.id);
     if (Number.isNaN(id)) return;
     if (similarGames.some((s) => s.id === id)) return;
-    onSimilarGamesChange([...similarGames, { id, name: game.title }]);
+    const name = String(game.name || "").trim() || String(id);
+    onSimilarGamesChange([...similarGames, { id, name }]);
   };
 
   const handleRemoveSimilarGame = (index: number) => {

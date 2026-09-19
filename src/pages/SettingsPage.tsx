@@ -199,13 +199,14 @@ export default function SettingsPage() {
   }
 
   function applyGeneralSettings(nextLanguage: string, nextVisibleLibraries: string[]) {
-    setLanguage(nextLanguage);
+    const languageCode = normalizeUiLanguage(nextLanguage);
+    setLanguage(languageCode);
     setVisibleLibraries(nextVisibleLibraries);
-    localStorage.setItem("language", nextLanguage);
+    localStorage.setItem("language", languageCode);
     localStorage.setItem("visibleLibraries", JSON.stringify(nextVisibleLibraries));
-    i18n.changeLanguage(nextLanguage);
-    window.dispatchEvent(new CustomEvent("mhg-language-changed", { detail: { language: nextLanguage } }));
-    void persistGeneralSettings(nextLanguage, nextVisibleLibraries);
+    i18n.changeLanguage(languageCode);
+    window.dispatchEvent(new CustomEvent("mhg-language-changed", { detail: { language: languageCode } }));
+    void persistGeneralSettings(languageCode, nextVisibleLibraries);
   }
 
   const toggleLibraryVisibility = (key: string) => {

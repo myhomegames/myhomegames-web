@@ -498,6 +498,7 @@ export default function ManageInstallationModal({
                       <TagEditor
                         key={`manage-installation-platform-${game.id}-${index}-${isOpen}`}
                         mode="freeform"
+                        singleSelect
                         selectedTags={executable.platform ? [executable.platform] : []}
                         onTagsChange={(tags) => handlePlatformChange(index, tags)}
                         disabled={saving}
