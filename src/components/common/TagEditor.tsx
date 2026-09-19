@@ -13,6 +13,8 @@ type TagEditorProps = {
   availableTags?: string[];
   getDisplayName?: (tag: string) => string;
   allowCreate?: boolean;
+  /** When true, at most one tag is kept and suggestions close right after a pick. */
+  singleSelect?: boolean;
   /** Optional; use with a parent `<label htmlFor={sameId}>`. If omitted, a unique id is generated. */
   inputId?: string;
 };
@@ -26,6 +28,7 @@ export default function TagEditor({
   availableTags,
   getDisplayName,
   allowCreate = true,
+  singleSelect = false,
   inputId: inputIdProp,
 }: TagEditorProps) {
   const generatedInputId = useId();
@@ -42,12 +45,31 @@ export default function TagEditor({
     [tagLabels.categories]
   );
   const [tagSearch, setTagSearch] = useState("");
-  const [isFocused, setIsFocused] = useState(false);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [suggestionsStyle, setSuggestionsStyle] = useState<React.CSSProperties | null>(null);
   const blurHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
   const isCategoryMode = mode === "categories";
+
+  function clearBlurHideTimer() {
+    if (blurHideTimerRef.current) {
+      clearTimeout(blurHideTimerRef.current);
+      blurHideTimerRef.current = null;
+    }
+  }
+
+  function dismissSuggestions() {
+    clearBlurHideTimer();
+    setSuggestionsOpen(false);
+  }
+
+  function openSuggestionsFromInput() {
+    clearBlurHideTimer();
+    setSuggestionsOpen(true);
+  }
 
   async function createCategory(title: string): Promise<string | null> {
     if (!isCategoryMode) return null;
@@ -65,20 +87,20 @@ export default function TagEditor({
         },
         body: JSON.stringify({ title }),
       });
-      
+
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.error || `HTTP ${res.status}`);
       }
-      
+
       const json = await res.json();
       const newCategory = json.category;
       // Handle both old format (string) and new format (object)
       const categoryTitle = typeof newCategory === "string" ? newCategory : newCategory.title;
-      
+
       // Refresh tag lists so the new category appears in suggestions
       await refreshTagLists();
-      
+
       return categoryTitle;
     } catch (err: any) {
       console.error("Error creating category:", err);
@@ -93,6 +115,13 @@ export default function TagEditor({
   };
 
   const handleAddTag = (tagId: string) => {
+    if (singleSelect) {
+      onTagsChange([tagId]);
+      setTagSearch("");
+      dismissSuggestions();
+      inputRef.current?.blur();
+      return;
+    }
     if (!selectedTags.includes(tagId)) {
       onTagsChange([...selectedTags, tagId]);
       setTagSearch("");
@@ -141,6 +170,11 @@ export default function TagEditor({
         }
       }
     }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      dismissSuggestions();
+      (e.target as HTMLInputElement).blur();
+    }
   };
 
   const tagOptions = isCategoryMode
@@ -155,7 +189,7 @@ export default function TagEditor({
   const filteredSuggestions = tagOptions.filter((tag) => {
     if (selectedTags.includes(tag)) return false;
     const searchTerm = tagSearch.toLowerCase();
-    if (!searchTerm) return isFocused;
+    if (!searchTerm) return suggestionsOpen;
     if (isCategoryMode) {
       const translatedName = t(`genre.${tag}`, tag).toLowerCase();
       return tag.toLowerCase().includes(searchTerm) || translatedName.includes(searchTerm);
@@ -164,7 +198,8 @@ export default function TagEditor({
     return tag.toLowerCase().includes(searchTerm) || displayName.includes(searchTerm);
   });
 
-  const showSuggestions = (isFocused || Boolean(tagSearch)) && filteredSuggestions.length > 0;
+  // Open only after a direct click/type in the input — not from label focus or outside clicks.
+  const showSuggestions = suggestionsOpen && filteredSuggestions.length > 0;
 
   const updateSuggestionsPosition = () => {
     const el = containerRef.current;
@@ -208,14 +243,33 @@ export default function TagEditor({
   }, [showSuggestions]);
 
   useEffect(() => {
+    if (!showSuggestions) return;
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      // Only the input itself (not chips/labels/container padding) keeps the list open.
+      if (inputRef.current === target || inputRef.current?.contains(target)) return;
+      if (suggestionsRef.current?.contains(target)) return;
+      dismissSuggestions();
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [showSuggestions]);
+
+  useEffect(() => {
     return () => {
-      if (blurHideTimerRef.current) clearTimeout(blurHideTimerRef.current);
+      clearBlurHideTimer();
     };
   }, []);
 
   const suggestionsList = showSuggestions && suggestionsStyle && typeof document !== "undefined"
     ? createPortal(
-        <div className="tag-editor-suggestions" style={suggestionsStyle} role="listbox">
+        <div
+          ref={suggestionsRef}
+          className="tag-editor-suggestions"
+          style={suggestionsStyle}
+          role="listbox"
+        >
           {filteredSuggestions.slice(0, 50).map((tag) => (
             <button
               key={tag}
@@ -250,21 +304,26 @@ export default function TagEditor({
           </span>
         ))}
         <input
+          ref={inputRef}
           id={inputId}
           name={inputName}
           type="text"
           value={tagSearch}
-          onChange={(e) => setTagSearch(e.target.value)}
+          onChange={(e) => {
+            setTagSearch(e.target.value);
+            openSuggestionsFromInput();
+          }}
           onKeyDown={handleKeyDown}
+          onPointerDown={() => {
+            openSuggestionsFromInput();
+          }}
           onFocus={() => {
-            if (blurHideTimerRef.current) {
-              clearTimeout(blurHideTimerRef.current);
-              blurHideTimerRef.current = null;
-            }
-            setIsFocused(true);
+            clearBlurHideTimer();
+            // Do not open on focus alone (label click / programmatic focus).
           }}
           onBlur={() => {
-            blurHideTimerRef.current = setTimeout(() => setIsFocused(false), 150);
+            clearBlurHideTimer();
+            blurHideTimerRef.current = setTimeout(() => setSuggestionsOpen(false), 150);
           }}
           disabled={disabled}
           placeholder={placeholder || t("gameDetail.addTag", "Add tag...")}
@@ -277,4 +336,3 @@ export default function TagEditor({
     </div>
   );
 }
-
