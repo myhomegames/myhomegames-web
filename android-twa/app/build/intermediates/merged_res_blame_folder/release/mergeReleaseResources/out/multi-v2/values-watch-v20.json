@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "it.vige.myhomegames.app-mergeReleaseResources-2:/values-watch-v20/values-watch-v20.xml",
+            "map": [
+                {
+                    "source": "/private/var/folders/nr/dj0cyyvs7r96jfkfc63rc3t80000gn/T/cursor-sandbox-cache/fe03c45d9d65bcf0aad171ff6ab71767/gradle/caches/8.11.1/transforms/183ebbc8ed821348f80a6d36d20b75e3/transformed/appcompat-1.7.0/res/values-watch-v20/values-watch-v20.xml",
+                    "from": {
+                        "startLines": "2,5,8",
+                        "startColumns": "4,4,4",
+                        "startOffsets": "55,214,385",
+                        "endLines": "4,7,10",
+                        "endColumns": "12,12,12",
+                        "endOffsets": "209,380,553"
+                    }
+                }
+            ]
+        }
+    ]
+}
