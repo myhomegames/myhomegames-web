@@ -233,9 +233,17 @@
     "downloadHint": "Download the server for your platform:",
     "downloadForPlatform": "Download for {{platform}}",
     "download": "Download",
+    "orBrowseReleases": "or browse the releases",
     "retry": "Retry connection",
-    "openSettings": "Open settings"
+    "openSettings": "Open settings",
+    "supportHint": "Need help? Contact support:",
+    "supportMail": "Email",
+    "supportFacebook": "Facebook",
+    "supportInstagram": "Instagram",
+    "supportTelegram": "Telegram",
+    "supportMailSubject": "MyHomeGames support"
   },
+
   "streamPlay": {
     "title": "Remote play",
     "launching": "Starting the game on your home PC…",

@@ -38,6 +38,17 @@ npm run preview
 
 This will serve the production build locally at `https://localhost:5173/app/` (same port as dev; HTTPS when `VITE_HTTPS_ENABLED=true`).
 
+### Packaging (TV / Android)
+
+The web app is a hosted PWA. Platform shells wrap that URL:
+
+| Target | Guide | Command |
+| --- | --- | --- |
+| Samsung Tizen TV (`.wgt`) | **[tizen/README.md](tizen/README.md)** | `npm run tizen:package` / `npm run tizen:deploy` |
+| Android Play Store (`.aab` TWA) | **[android-twa/README.md](android-twa/README.md)** | `npm run android:aab` |
+
+Neither package embeds the web bundle; both open the live PWA (default `https://myhomegames.vige.it/app/`).
+
 ---
 
 ## React + TypeScript + Vite

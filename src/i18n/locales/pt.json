@@ -212,9 +212,17 @@
     "downloadHint": "Descarregue o servidor para a sua plataforma:",
     "downloadForPlatform": "Descarregar para {{platform}}",
     "download": "Descarregar",
+    "orBrowseReleases": "ou consulte as releases",
     "retry": "Tentar ligação novamente",
-    "openSettings": "Abrir definições"
+    "openSettings": "Abrir definições",
+    "supportHint": "Precisa de ajuda? Contacte o suporte:",
+    "supportMail": "Email",
+    "supportFacebook": "Facebook",
+    "supportInstagram": "Instagram",
+    "supportTelegram": "Telegram",
+    "supportMailSubject": "Suporte MyHomeGames"
   },
+
   "search": {
     "noResults": "Nenhum resultado encontrado para o termo \"{{query}}\"",
     "viewAllResults": "Ver todos os resultados ({{count}})",

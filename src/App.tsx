@@ -38,6 +38,10 @@ import { buildApiUrl, buildCoverUrl, buildApiHeaders } from "./utils/api";
 import { reloadAllMetadataItems } from "./utils/metadataReload";
 import { API_BASE, getApiToken } from "./config";
 import { pushTvCoverFocusId } from "./utils/tvCoverFocusRestore";
+import {
+  normalizeUiLanguage,
+  resolveInitialUiLanguage,
+} from "./i18n/resolveUiLanguage";
 import { useLoading } from "./contexts/LoadingContext";
 import { useAuth } from "./contexts/AuthContext";
 import { useSettings } from "./contexts/SettingsContext";
@@ -201,11 +205,23 @@ function AppContent() {
         clearTimeout(timeoutId);
         if (res.ok) {
           const data = await res.json();
-          const loadedLanguage = data.language || "en";
+          const settingsLanguage =
+            typeof data.language === "string" ? data.language.trim() : "";
+          const loadedLanguage = settingsLanguage
+            ? normalizeUiLanguage(settingsLanguage)
+            : resolveInitialUiLanguage();
           if (i18n.language !== loadedLanguage) {
             i18n.changeLanguage(loadedLanguage);
           }
           localStorage.setItem("language", loadedLanguage);
+          // Persist browser-resolved language as the server default when unset.
+          if (!settingsLanguage) {
+            void fetch(new URL("/settings", API_BASE).toString(), {
+              method: "PUT",
+              headers: buildApiHeaders({ "Content-Type": "application/json" }),
+              body: JSON.stringify({ language: loadedLanguage }),
+            }).catch(() => {});
+          }
           if (Array.isArray(data.visibleLibraries)) {
             localStorage.setItem(
               "visibleLibraries",

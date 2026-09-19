@@ -336,6 +336,9 @@ A **hosted** app (shell + navigate to remote PWA) is suitable for developer side
 Public store listing of hosted content usually needs partnership / Content Manager
 approval. A fully offline SPA package would be a separate product decision.
 
+For the Android Play Store equivalent (`.aab` Trusted Web Activity), see
+[`android-twa/README.md`](../android-twa/README.md).
+
 ---
 
 ## Commands (summary)
