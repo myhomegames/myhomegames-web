@@ -176,6 +176,11 @@
         min-height: 100vh;
       }
 
+      html:not([data-i18n-ready]) body {
+        visibility: hidden;
+      }
+
+
       .container {
         max-width: 1200px;
         margin: 0 auto;
@@ -518,6 +523,28 @@
         }
       }
     </style>
+
+    <script src="home-i18n.js"></script>
+    <script>
+      setTimeout(function () {
+        if (!document.documentElement.hasAttribute("data-i18n-ready")) {
+          document.documentElement.setAttribute("data-i18n-ready", "1");
+        }
+      }, 2000);
+    </script>
+
+    <script>
+      (function () {
+        try {
+          if (!window.MHG_HOME_I18N) return;
+          var lang = window.MHG_HOME_I18N.resolveLang();
+          window.__MHG_HOME_LANG = lang;
+          document.documentElement.lang =
+            { en: "en", it: "it", es: "es", de: "de", fr: "fr", pt: "pt", ja: "ja", zh: "zh-CN" }[lang] || lang;
+          document.documentElement.setAttribute("data-home-lang", lang);
+        } catch (_) {}
+      })();
+    </script>
   </head>
   <body>
     <div class="container">
@@ -526,15 +553,16 @@
           <img
             src="logo.png"
             alt="MyHomeGames — self-hosted video game library manager"
+            data-i18n-attr="alt:logoAlt"
             width="528"
             height="158"
             decoding="async"
             fetchpriority="high"
           />
         </h1>
-        <p class="subtitle">Personal video game collection management system</p>
+        <p class="subtitle" data-i18n="subtitle">Personal video game collection management system</p>
         <div style="margin-top: 2rem">
-          <a href="/app/" id="webapp-link" class="cta-button">
+          <a href="/app/" id="webapp-link" class="cta-button" data-i18n="ctaAccessWebApp">
             🌐 Access Web App
           </a>
         </div>
@@ -546,6 +574,7 @@
         height="567"
         src="https://www.youtube.com/embed/0zaQ4R9pXk0"
         title="MyHomeGames overview video"
+        data-i18n-attr="title:videoTitle"
         frameborder="0"
         allow="
           accelerometer;
@@ -562,13 +591,13 @@
 
       <div class="content">
         <section class="section">
-          <h2>📖 About MyHomeGames</h2>
-          <p>
+          <h2 data-i18n="aboutTitle">📖 About MyHomeGames</h2>
+          <p data-i18n="aboutP1">
             MyHomeGames is a modern web application for managing your personal
             video game collection. Organize your games, create custom
             collections, add ratings, and much more.
           </p>
-          <div class="info" role="note">
+          <div class="info" role="note" data-i18n-html="aboutImportant">
             <strong>Important:</strong> MyHomeGames does not distribute, sell,
             host, or provide video games for download or streaming. It is only a
             personal catalog tool to organize metadata and links for games you
@@ -577,62 +606,61 @@
 
           <div class="feature-list">
             <div class="feature-card">
-              <h4>📚 Library Management</h4>
-              <p>Organize all your video games in one centralized library</p>
+              <h4 data-i18n="featureLibraryTitle">📚 Library Management</h4>
+              <p data-i18n="featureLibraryDesc">Organize all your video games in one centralized library</p>
             </div>
             <div class="feature-card">
-              <h4>🏷️ Categories & Collections</h4>
-              <p>
+              <h4 data-i18n="featureCategoriesTitle">🏷️ Categories & Collections</h4>
+              <p data-i18n="featureCategoriesDesc">
                 Create custom categories and collections to organize your games
               </p>
             </div>
             <div class="feature-card">
-              <h4>⭐ Ratings</h4>
-              <p>Rate your games with a star system and add critic ratings</p>
+              <h4 data-i18n="featureRatingsTitle">⭐ Ratings</h4>
+              <p data-i18n="featureRatingsDesc">Rate your games with a star system and add critic ratings</p>
             </div>
             <div class="feature-card">
-              <h4>🔍 Advanced Search</h4>
-              <p>Search games by name, year, genre, and more</p>
+              <h4 data-i18n="featureSearchTitle">🔍 Advanced Search</h4>
+              <p data-i18n="featureSearchDesc">Search games by name, year, genre, and more</p>
             </div>
             <div class="feature-card">
-              <h4>🌐 Multi-language</h4>
-              <p>
+              <h4 data-i18n="featureLangTitle">🌐 Multi-language</h4>
+              <p data-i18n="featureLangDesc">
                 Support for multiple languages: English, Italian, Spanish,
                 French, German, Portuguese, Japanese, Chinese
               </p>
             </div>
             <div class="feature-card">
-              <h4>🎮 IGDB Catalog</h4>
+              <h4 data-i18n="featureIgdbTitle">🎮 IGDB Catalog</h4>
               <p>
-                Optional: enrich your library with IGDB metadata (covers,
-                descriptions, similar games).
-                <a href="igdb.html">Setup guide</a>
+                <span data-i18n="featureIgdbDescBefore">Optional: enrich your library with IGDB metadata (covers, descriptions, similar games).</span>
+                <a href="igdb.html" data-i18n="setupGuide">Setup guide</a>
               </p>
             </div>
           </div>
         </section>
 
         <section class="section">
-          <h2>🚀 Getting Started</h2>
-          <p>
+          <h2 data-i18n="gettingStartedTitle">🚀 Getting Started</h2>
+          <p data-i18n="gettingStartedIntro">
             To use MyHomeGames, download and run the server, then open the web app.
           </p>
 
           <div id="download-server-section">
-          <h3>1. Download the Server Package</h3>
-          <p>
+          <h3 data-i18n="step1Title">1. Download the Server Package</h3>
+          <p data-i18n-html="step1P1">
             <strong>The server is essential for MyHomeGames to work.</strong>
             Download and install the server package before proceeding.
           </p>
           <p id="download-server-remote-note">
-            Install the server on a <strong>Windows, macOS, or Linux</strong> computer — not on this phone, tablet, or TV.
-            From a desktop PC, download the package for your platform, then return here to open the web app.
+            <span data-i18n-html="remoteNoteBefore">Install the server on a <strong>Windows, macOS, or Linux</strong> computer — not on this phone, tablet, or TV. From a desktop PC, download the package for your platform, then return here to open the web app.</span>
             <a
               id="download-all-releases-remote"
               href="https://github.com/myhomegames/myhomegames-server/releases"
               target="_blank"
               rel="noopener noreferrer"
               style="color: #667eea; font-weight: 600"
+              data-i18n="viewAllReleases"
               >View all releases</a
             >.
           </p>
@@ -644,7 +672,7 @@
               class="button button-secondary"
               style="font-size: 1.3rem; padding: 1.2rem 2.5rem"
             >
-              Download…
+              <span data-i18n="downloadEllipsis">Download…</span>
             </a>
           </div>
           <p
@@ -664,13 +692,14 @@
               href="install-linux.html"
               hidden
               style="color: #667eea; font-weight: 600"
-              >Install with Yum/Dnf/Apt</a
+              data-i18n="installYumDnfApt">Install with Yum/Dnf/Apt</a
             >
             <a
               id="mac-package-install"
               href="install-homebrew.html"
               hidden
               style="color: #667eea; font-weight: 600"
+              data-i18n="installBrew"
               >Install with Brew</a
             >
             <a
@@ -679,42 +708,43 @@
               target="_blank"
               rel="noopener noreferrer"
               style="color: #667eea; font-weight: 600"
+              data-i18n="viewAllReleases"
               >View all releases</a
             >
           </p>
           </div>
           </div>
-          <h3>2. Access the Web Application</h3>
-          <p>
+          <h3 data-i18n="step2Title">2. Access the Web Application</h3>
+          <p data-i18n="step2P1">
             Once the server is running, access the web application using the button at the top of this page
             or by visiting the web app URL directly. You can start managing your video game collection right away.
           </p>
-          <p>
+          <p data-i18n-html="step2P2">
             Sign in with your <strong>email address</strong>.
           </p>
-          <p>
+          <p data-i18n-html="step2P3">
             Enter the <strong>verification code</strong> sent to your inbox to complete access.
           </p>
-          <p style="color: #555; line-height: 1.45">
+          <p style="color: #555; line-height: 1.45" data-i18n-html="step2Important">
             <strong>Important:</strong> complete the
             <strong>first login on the same Windows, macOS, or Linux PC</strong>
             where the server is installed. That first sign-in creates the secure tunnel to your home server.
             Afterwards you can open the web app from a phone, tablet, or TV with the same email and verification code.
           </p>
 
-          <h3>3. Choose and Install Skins (optional)</h3>
-          <p>
+          <h3 data-i18n="step3Title">3. Choose and Install Skins (optional)</h3>
+          <p data-i18n="step3P1">
             MyHomeGames supports installable skins to customize the interface style and layout.
             You can choose from available skins, download them, and install them directly from the web app settings.
           </p>
           <ol>
-            <li>
+            <li data-i18n="step3Li1">
               Browse available skins in the official skins repository releases.
             </li>
-            <li>
+            <li data-i18n-html="step3Li2">
               Download a skin package (<code>.zip</code> / <code>.mhg-skin.zip</code>).
             </li>
-            <li>
+            <li data-i18n-html="step3Li3">
               In MyHomeGames open <strong>Settings → Skin</strong>, upload the package, then select it from the installed skins list.
             </li>
           </ol>
@@ -724,6 +754,7 @@
               target="_blank"
               rel="noopener noreferrer"
               class="button"
+              data-i18n="browseSkins"
             >
               🎨 Browse and Download Skins
             </a>
@@ -731,8 +762,8 @@
         </section>
 
         <section class="section">
-          <h2>🔗 Useful Links</h2>
-          <div class="social-links" aria-label="Useful links">
+          <h2 data-i18n="usefulLinksTitle">🔗 Useful Links</h2>
+          <div class="social-links" aria-label="Useful links" data-i18n-attr="aria-label:usefulLinksAria">
             <a
               href="https://github.com/myhomegames/myhomegames-server"
               target="_blank"
@@ -762,7 +793,7 @@
                   alt=""
                 />
               </span>
-              <span class="social-link__label">Web App</span>
+              <span class="social-link__label" data-i18n="webAppLabel">Web App</span>
             </a>
             <a
               href="https://www.paypal.com/paypalme/LStancapiano"
@@ -868,46 +899,50 @@
         </section>
 
         <section class="section">
-          <h2>📚 Documentation</h2>
+          <h2 data-i18n="docsTitle">📚 Documentation</h2>
           <ul>
             <li>
               <a
                 href="https://github.com/myhomegames/myhomegames-server/blob/main/DEVELOPMENT.md"
+                data-i18n="docsDevGuide"
                 >Development Guide</a
               >
-              - Development environment setup
+              - <span data-i18n="docsDevGuideDesc">Development environment setup</span>
             </li>
             <li>
               <a
                 href="https://github.com/myhomegames/myhomegames-server/blob/main/README.md"
+                data-i18n="docsServer"
                 >Server Documentation</a
               >
-              - API and backend configuration
+              - <span data-i18n="docsServerDesc">API and backend configuration</span>
             </li>
             <li>
               <a
                 href="https://github.com/myhomegames/myhomegames-web/blob/main/README.md"
+                data-i18n="docsWeb"
                 >Web App Documentation</a
               >
-              - Frontend and build
+              - <span data-i18n="docsWebDesc">Frontend and build</span>
             </li>
             <li>
-              <a href="igdb.html">IGDB Catalog Setup</a>
-              - Automatic proxy credentials or manual Twitch Developer Console
+              <a href="igdb.html" data-i18n="docsIgdbSetup">IGDB Catalog Setup</a>
+              - <span data-i18n="docsIgdbSetupDesc">Automatic proxy credentials or manual Twitch Developer Console</span>
             </li>
             <li>
               <a
                 href="https://github.com/myhomegames/myhomegames-server/blob/main/docs/IGDB.md"
+                data-i18n="docsIgdbTech"
                 >IGDB (technical reference)</a
               >
-              - Server-side configuration details
+              - <span data-i18n="docsIgdbTechDesc">Server-side configuration details</span>
             </li>
           </ul>
         </section>
 
         <section class="section">
-          <h2>📄 License</h2>
-          <p>
+          <h2 data-i18n="licenseTitle">📄 License</h2>
+          <p data-i18n-html="licenseP">
             This project is released under the
             <strong>Apache License 2.0</strong>. See the
             <a
@@ -921,30 +956,55 @@
       </main>
 
       <footer>
-        <p>© 2026 MyHomeGames — Self-hosted game library catalog</p>
-        <p style="margin-top: 0.5rem; opacity: 0.8">
+        <p data-i18n="footerTagline">© 2026 MyHomeGames — Self-hosted game library catalog</p>
+        <p style="margin-top: 0.5rem; opacity: 0.8" data-i18n="footerBuilt">
           Built with ❤️ using React, TypeScript, and Express.js
         </p>
         <p style="margin-top: 0.75rem; opacity: 0.9">
-          <a href="/privacy/" style="color: inherit">Privacy Policy</a>
+          <a href="/privacy/" style="color: inherit" data-i18n="privacyPolicy">Privacy Policy</a>
         </p>
       </footer>
     </div>
+
+    <script>
+      (function () {
+        try {
+          if (window.MHG_HOME_I18N) {
+            window.MHG_HOME_I18N.apply(window.__MHG_HOME_LANG || window.MHG_HOME_I18N.resolveLang());
+          } else {
+            document.documentElement.setAttribute("data-i18n-ready", "1");
+          }
+        } catch (_) {
+          document.documentElement.setAttribute("data-i18n-ready", "1");
+        }
+      })();
+    </script>
 
     <script>
       const GITHUB_SERVER_REPO = "myhomegames/myhomegames-server";
       const RELEASES_URL =
         "https://github.com/myhomegames/myhomegames-server/releases";
 
-      const OS_LABELS = {
-        win: "Windows",
-        "mac-arm64": "macOS (Apple Silicon)",
-        "mac-x64": "macOS (Intel)",
-        "linux-deb": "Linux (.deb)",
-        "linux-rpm": "Linux (.rpm)",
-        linux: "Linux",
-        android: "Android",
-      };
+      function tHome(key, vars) {
+        try {
+          if (window.MHG_HOME_I18N && typeof window.MHG_HOME_I18N.t === "function") {
+            return window.MHG_HOME_I18N.t(key, vars);
+          }
+        } catch (_) {}
+        return key;
+      }
+
+      function osLabels() {
+        return {
+          win: tHome("osWin"),
+          "mac-arm64": tHome("osMacArm"),
+          "mac-x64": tHome("osMacIntel"),
+          "linux-deb": tHome("osLinuxDeb"),
+          "linux-rpm": tHome("osLinuxRpm"),
+          linux: tHome("osLinux"),
+          android: tHome("osAndroid"),
+        };
+      }
 
       const ASSET_PATTERNS = {
         win: [/MyHomeGames-[0-9.]+-win-x64\.zip$/i],
@@ -1137,21 +1197,22 @@
           return;
         }
 
-        const osLabel = OS_LABELS[os] || "your platform";
+        const labels = osLabels();
+        const osLabel = labels[os] || tHome("osPlatform");
         const linuxPkg = document.getElementById("linux-package-install");
         if (linuxPkg) {
           if (os === "linux-deb") {
             linuxPkg.hidden = false;
             linuxPkg.href = "install-linux.html#apt";
-            linuxPkg.textContent = "Install with Apt";
+            linuxPkg.textContent = tHome("installApt");
           } else if (os === "linux-rpm") {
             linuxPkg.hidden = false;
             linuxPkg.href = "install-linux.html#yum-dnf";
-            linuxPkg.textContent = "Install with Yum/Dnf";
+            linuxPkg.textContent = tHome("installYumDnf");
           } else if (os === "linux") {
             linuxPkg.hidden = false;
             linuxPkg.href = "install-linux.html";
-            linuxPkg.textContent = "Install with Yum/Dnf/Apt";
+            linuxPkg.textContent = tHome("installYumDnfApt");
           } else {
             linuxPkg.hidden = true;
           }
@@ -1176,7 +1237,7 @@
             btn.href = asset.browser_download_url;
             btn.target = "_blank";
             btn.rel = "noopener noreferrer";
-            btn.textContent = `Download for ${osLabel}`;
+            btn.textContent = tHome("downloadFor", { platform: osLabel });
             return;
           }
         } catch (_) {
@@ -1186,7 +1247,7 @@
         btn.href = RELEASES_URL;
         btn.target = "_blank";
         btn.rel = "noopener noreferrer";
-        btn.textContent = "Download";
+        btn.textContent = tHome("download");
       }
 
       const webappUrl = "/app/";
