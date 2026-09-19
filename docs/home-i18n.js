@@ -103,7 +103,7 @@
     "schemaWebsiteDescription": "Libreria e gestore self-hosted della collezione personale di videogiochi.",
     "schemaSoftwareDescription": "Server e web app self-hosted per catalogare e organizzare la tua collezione personale di videogiochi con metadati IGDB opzionali.",
     "logoAlt": "MyHomeGames — gestore self-hosted della libreria di videogiochi",
-    "subtitle": "Sistema di gestione della collezione personale di videogiochi",
+    "subtitle": "Gestisci la tua collezione di videogiochi",
     "ctaAccessWebApp": "🌐 Accedi alla Web App",
     "videoTitle": "Video di panoramica MyHomeGames",
     "aboutTitle": "📖 Informazioni su MyHomeGames",
