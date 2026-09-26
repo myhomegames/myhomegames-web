@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "it.vige.myhomegames",
+      "sha256_cert_fingerprints": [
+        "6C:C0:18:28:13:F5:16:26:73:F2:A9:26:AD:35:02:DD:F1:BA:FA:4C:90:65:D9:3F:0B:99:88:BE:15:7C:1C:80"
+      ]
+    }
+  }
+]
