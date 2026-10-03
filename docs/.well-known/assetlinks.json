@@ -7,7 +7,10 @@
       "namespace": "android_app",
       "package_name": "it.vige.myhomegames",
       "sha256_cert_fingerprints": [
-        "6C:C0:18:28:13:F5:16:26:73:F2:A9:26:AD:35:02:DD:F1:BA:FA:4C:90:65:D9:3F:0B:99:88:BE:15:7C:1C:80"
+        "6C:C0:18:28:13:F5:16:26:73:F2:A9:26:AD:35:02:DD:F1:BA:FA:4C:90:65:D9:3F:0B:99:88:BE:15:7C:1C:80",
+        "3B:0E:0D:4D:A3:B4:8A:40:BD:AC:08:46:42:2A:D8:C2:A0:F6:0A:73:E7:3E:58:17:CE:9B:61:63:5B:9C:32:7E",
+        "72:40:9D:3B:3B:3C:4D:F9:05:42:BA:8E:CC:F4:6D:1C:11:D1:D3:F2:A0:A2:7D:6C:A6:9B:5E:0D:72:95:E2:D6",
+        "50:61:C1:AC:5E:C2:79:65:F4:4B:CD:32:23:59:3A:13:65:7B:87:DB:BC:A5:FE:0F:DF:15:DC:56:70:1F:96:2F"
       ]
     }
   }
