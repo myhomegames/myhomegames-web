@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useOutletContext } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -67,15 +67,19 @@ export default function GameDetail({
   const [isSavingRating, setIsSavingRating] = useState(false);
   const [isManageInstallationModalOpen, setIsManageInstallationModalOpen] = useState(false);
   const editGame = useEditGame();
+  const editGameRef = useRef(editGame);
+  editGameRef.current = editGame;
 
-  // Sync localGame when game prop changes
+  // Sync localGame when the parent game changes. Do not depend on editGame:
+  // that object is new every render and would reset the detail back to the
+  // previous prop before a metadata reload is committed.
   useEffect(() => {
     setLocalGame(game);
-    // If edit modal is open and game changes, update selected game
-    if (editGame.isEditModalOpen && editGame.selectedGame?.id === game.id) {
-      editGame.openEditModal(game);
+    const modal = editGameRef.current;
+    if (modal.isEditModalOpen && String(modal.selectedGame?.id) === String(game.id)) {
+      modal.openEditModal(game);
     }
-  }, [game, editGame]);
+  }, [game]);
   
   const coverWidth = 256;
   const coverHeight = 384; // 256 * 1.5
@@ -170,12 +174,16 @@ export default function GameDetail({
           }
         }}
         onGameReload={(updatedGame) => {
-          setLocalGame(updatedGame);
-          // Dispatch event to update allGames in App.tsx
+          setLocalGame((prev) => ({
+            ...prev,
+            ...updatedGame,
+            id: String(updatedGame.id || prev.id),
+          }));
           window.dispatchEvent(new CustomEvent("gameUpdated", { detail: { game: updatedGame } }));
           if (onGameUpdate) {
             onGameUpdate(updatedGame);
           }
+          onRefetchGame?.();
         }}
         onGameDelete={onGameDelete}
         allCollections={allCollections}
