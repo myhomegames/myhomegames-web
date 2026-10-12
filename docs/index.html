@@ -675,6 +675,16 @@
               <span data-i18n="downloadEllipsis">Download…</span>
             </a>
           </div>
+          <p id="windows-store-install" hidden style="text-align: center; margin-top: 0.75rem">
+            <a
+              href="https://apps.microsoft.com/detail/9nr449qz8r8f"
+              target="_blank"
+              rel="noopener noreferrer"
+              style="color: #667eea; font-weight: 600"
+              data-i18n="downloadMicrosoftStore"
+              >Download from the Microsoft Store</a
+            >
+          </p>
           <p
             id="download-extra-links"
             style="
@@ -1220,6 +1230,10 @@
         const macPkg = document.getElementById("mac-package-install");
         if (macPkg) {
           macPkg.hidden = os !== "mac-arm64" && os !== "mac-x64";
+        }
+        const storeLink = document.getElementById("windows-store-install");
+        if (storeLink) {
+          storeLink.hidden = os !== "win";
         }
 
         try {
