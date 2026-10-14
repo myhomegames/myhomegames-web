@@ -992,20 +992,45 @@ function collectTvSearchLeftFocusables(): HTMLElement[] {
   ).filter((el) => isVisible(el) && !el.closest("[inert]"));
 }
 
-function collectTvSearchResultFocusables(): HTMLElement[] {
+/** Cover, then Play, then the ⋮ menu — one column of controls per result row. */
+function tvSearchResultRowControls(row: HTMLElement): HTMLElement[] {
+  const cover = row.querySelector<HTMLElement>(
+    ".games-list-cover[role='button'], .games-list-cover[tabindex]",
+  );
+  const play = row.querySelector<HTMLElement>(
+    ".search-result-play-button:not([disabled])",
+  );
+  const more = row.querySelector<HTMLElement>(
+    ".search-result-actions .dropdown-menu-button:not(.dropdown-menu-button--hidden-anchor)",
+  );
+  return [cover, play, more].filter(
+    (el): el is HTMLElement => !!el && isVisible(el) && !el.closest("[inert]"),
+  );
+}
+
+function collectTvSearchResultRows(): HTMLElement[][] {
   const root = document.querySelector<HTMLElement>(
     "[data-mhg-tv-search-page] .tv-search-page-right",
   );
   if (!root) return [];
-  return Array.from(
-    root.querySelectorAll<HTMLElement>(
-      [
-        ".games-list-cover[role='button']",
-        ".games-list-cover[tabindex]",
-        ".search-result-play-button",
-      ].join(","),
-    ),
-  ).filter((el) => isVisible(el) && !el.closest("[inert]"));
+  return Array.from(root.querySelectorAll<HTMLElement>(".search-results-list-item"))
+    .map(tvSearchResultRowControls)
+    .filter((row) => row.length > 0);
+}
+
+function collectTvSearchResultFocusables(): HTMLElement[] {
+  return collectTvSearchResultRows().flat();
+}
+
+function locateTvSearchResultControl(
+  el: HTMLElement,
+): { rows: HTMLElement[][]; row: number; col: number } | null {
+  const rows = collectTvSearchResultRows();
+  for (let row = 0; row < rows.length; row++) {
+    const col = rows[row]!.indexOf(el);
+    if (col >= 0) return { rows, row, col };
+  }
+  return null;
 }
 
 function tvSearchLeftFocusFrom(el: HTMLElement | null): HTMLElement | null {
@@ -1030,15 +1055,20 @@ function tvSearchLeftFocusFrom(el: HTMLElement | null): HTMLElement | null {
 
 function tvSearchResultFocusFrom(el: HTMLElement | null): HTMLElement | null {
   if (!el?.closest?.(".tv-search-page-right")) return null;
-  if (
-    el.classList.contains("games-list-cover") ||
-    el.classList.contains("search-result-play-button")
-  ) {
-    return el;
+  const row = el.closest(".search-results-list-item");
+  if (row) {
+    const controls = tvSearchResultRowControls(row as HTMLElement);
+    if (controls.includes(el)) return el;
+    for (const control of controls) {
+      if (control.contains(el)) return control;
+    }
   }
   return (
     (el.closest(".games-list-cover") as HTMLElement | null) ??
-    (el.closest(".search-result-play-button") as HTMLElement | null)
+    (el.closest(".search-result-play-button") as HTMLElement | null) ??
+    (el.closest(
+      ".search-result-actions .dropdown-menu-button",
+    ) as HTMLElement | null)
   );
 }
 
@@ -1047,11 +1077,13 @@ function pickNearestTvSearchResult(
   from: HTMLElement,
   results: HTMLElement[],
 ): HTMLElement | null {
-  if (results.length === 0) return null;
+  const covers = results.filter((el) => el.classList.contains("games-list-cover"));
+  const pool = covers.length > 0 ? covers : results;
+  if (pool.length === 0) return null;
   const fromY = center(from.getBoundingClientRect()).y;
   let best: HTMLElement | null = null;
   let bestScore = Number.POSITIVE_INFINITY;
-  for (const el of results) {
+  for (const el of pool) {
     const rect = el.getBoundingClientRect();
     const score = Math.abs(center(rect).y - fromY) + rect.left * 0.001;
     if (score < bestScore) {
@@ -3302,7 +3334,7 @@ export function installSmartTvRemoteKeys(
       return;
     }
 
-    if (zone === "chrome" || uiLayer) {
+    if (zone === "chrome" || uiLayer || isTvSearchPage()) {
       const active = document.activeElement as HTMLElement | null;
       const isActivatable =
         !!active &&
@@ -3916,7 +3948,7 @@ export function installSmartTvRemoteKeys(
         return;
       }
 
-      if (zone === "content") {
+      if (zone === "content" && !isTvSearchPage()) {
         if (direction === "left" || direction === "right") {
           if (isHorizontalLibraryStripMode()) {
             const stepped = stepLibraryStrip(direction === "right" ? 1 : -1);
@@ -4075,10 +4107,30 @@ export function installSmartTvRemoteKeys(
         }
 
         if (resultEl) {
-          const nextResult = pickNextInSet(resultItems, resultEl, direction);
-          if (nextResult) {
-            focusElement(nextResult);
-            return;
+          const located = locateTvSearchResultControl(resultEl);
+          if (located) {
+            const { rows, row, col } = located;
+            const controls = rows[row] ?? [];
+            if (direction === "right") {
+              const next = controls[col + 1];
+              if (next) focusElement(next);
+              return;
+            }
+            if (direction === "left" && col > 0) {
+              const prev = controls[col - 1];
+              if (prev) {
+                focusElement(prev);
+                return;
+              }
+            }
+            if (direction === "up" || direction === "down") {
+              const nextRow = rows[row + (direction === "down" ? 1 : -1)];
+              const next = nextRow?.[Math.min(col, nextRow.length - 1)];
+              if (next) {
+                focusElement(next);
+                return;
+              }
+            }
           }
           if (direction === "left") {
             const back =
@@ -4098,19 +4150,13 @@ export function installSmartTvRemoteKeys(
             (direction === "up" || direction === "down") &&
             nudgeScrollParentForDirection(resultEl, direction)
           ) {
+            const col = located?.col ?? 0;
+            const fromRow = located?.row ?? 0;
             window.requestAnimationFrame(() => {
-              const active = tvSearchResultFocusFrom(
-                document.activeElement instanceof HTMLElement
-                  ? document.activeElement
-                  : resultEl,
-              );
-              if (!active) return;
-              const retry = pickNextInSet(
-                collectTvSearchResultFocusables(),
-                active,
-                direction,
-              );
-              if (retry) focusElement(retry);
+              const rows = collectTvSearchResultRows();
+              const nextRow = rows[fromRow + (direction === "down" ? 1 : -1)];
+              const next = nextRow?.[Math.min(col, nextRow.length - 1)];
+              if (next) focusElement(next);
             });
             return;
           }
