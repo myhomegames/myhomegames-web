@@ -25,6 +25,7 @@ import {
   isBulkMetadataReloadInProgress,
 } from "../../../utils/bulkMetadataReloadContext";
 import type { GameItem, CollectionInfo } from "../../../types";
+import { gameItemFromApi } from "../../../utils/gameItemFromApi";
 
 type UseReloadGameParams = {
   gameId?: string;
@@ -49,45 +50,6 @@ type UseReloadGameReturn = {
 
 function mapReloadedCollection(raw: Record<string, unknown>): CollectionInfo {
   return collectionInfoFromApi(raw);
-}
-
-function mapReloadedGame(data: Record<string, unknown>): GameItem {
-  const optional = <T,>(value: T | null | undefined): T | undefined =>
-    value === null || value === undefined ? undefined : value;
-
-  return {
-    id: data.id as GameItem["id"],
-    title: String(data.title ?? ""),
-    summary: typeof data.summary === "string" ? data.summary : "",
-    cover: optional(typeof data.cover === "string" ? data.cover : undefined),
-    background: optional(typeof data.background === "string" ? data.background : undefined),
-    logo: optional(typeof data.logo === "string" ? data.logo : undefined),
-    day: optional(data.day as GameItem["day"]),
-    month: optional(data.month as GameItem["month"]),
-    year: optional(data.year as GameItem["year"]),
-    stars: optional(data.stars as GameItem["stars"]),
-    genre: optional(data.genre as GameItem["genre"]),
-    executables: optional(data.executables as GameItem["executables"]),
-    criticratings: optional(data.criticratings as GameItem["criticratings"]),
-    userratings: optional(data.userratings as GameItem["userratings"]),
-    themes: optional(data.themes as GameItem["themes"]),
-    platforms: optional(data.platforms as GameItem["platforms"]),
-    gameModes: optional(data.gameModes as GameItem["gameModes"]),
-    playerPerspectives: optional(data.playerPerspectives as GameItem["playerPerspectives"]),
-    websites: optional(data.websites as GameItem["websites"]),
-    ageRatings: optional(data.ageRatings as GameItem["ageRatings"]),
-    developers: optional(data.developers as GameItem["developers"]),
-    publishers: optional(data.publishers as GameItem["publishers"]),
-    franchise: optional(data.franchise as GameItem["franchise"]),
-    collection: optional(data.collection as GameItem["collection"]),
-    screenshots: optional(data.screenshots as GameItem["screenshots"]),
-    videos: optional(data.videos as GameItem["videos"]),
-    gameEngines: optional(data.gameEngines as GameItem["gameEngines"]),
-    keywords: optional(data.keywords as GameItem["keywords"]),
-    alternativeNames: optional(data.alternativeNames as GameItem["alternativeNames"]),
-    similarGames: optional(data.similarGames as GameItem["similarGames"]),
-    type: optional(data.type as GameItem["type"]),
-  };
 }
 
 export function useReloadGame({
@@ -176,7 +138,7 @@ export function useReloadGame({
 
         if (gameId) {
           if (onGameUpdate && data.game) {
-            onGameUpdate(mapReloadedGame(data.game));
+            onGameUpdate(gameItemFromApi(data.game as Record<string, unknown>));
           }
           setIsReloading(false);
           setActivityBusy(false);

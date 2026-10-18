@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { useTunnel } from "../contexts/TunnelContext";
 import { useServerDownload } from "../hooks/useServerDownload";
 import {
   isPhoneWithoutServerPackage,
@@ -63,6 +64,7 @@ function TelegramIcon() {
 
 export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePageProps) {
   const { t } = useTranslation();
+  const { featureEnabled, disconnect } = useTunnel();
   const { url, os, loading: downloadsLoading, platformSpecific } = useServerDownload();
   // Desktop browsers: always offer the server package when unreachable (localhost
   // or after Access login with no home tunnel yet). Phones/TVs have no package.
@@ -219,7 +221,7 @@ export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePage
           </div>
         </div>
 
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-4">
           <button
             type="button"
             className="inline-flex cursor-pointer items-center justify-center rounded-lg border-0 px-8 py-3.5 text-lg font-semibold text-white shadow-[0_4px_15px_rgba(102,126,234,0.4)] transition hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(102,126,234,0.6)] disabled:cursor-not-allowed disabled:opacity-60"
@@ -230,6 +232,17 @@ export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePage
           >
             {t("serverUnavailable.retry", "Retry connection")}
           </button>
+          {featureEnabled ? (
+            <button
+              type="button"
+              className="cursor-pointer border-0 bg-transparent p-0 text-base font-medium text-[#667eea] underline-offset-2 hover:underline"
+              onClick={() => {
+                void disconnect();
+              }}
+            >
+              {t("serverUnavailable.signOut", "Sign out")}
+            </button>
+          ) : null}
         </div>
       </main>
     </div>

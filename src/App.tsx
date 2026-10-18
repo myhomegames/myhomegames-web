@@ -34,6 +34,7 @@ import StreamPlayPage from "./pages/StreamPlayPage";
 import { shouldUseRemoteStreaming } from "./utils/playMode";
 
 import type { GameItem, CollectionItem } from "./types";
+import { gameItemFromApi } from "./utils/gameItemFromApi";
 import { buildApiUrl, buildCoverUrl, buildApiHeaders } from "./utils/api";
 import { reloadAllMetadataItems } from "./utils/metadataReload";
 import { API_BASE, getApiToken } from "./config";
@@ -1084,7 +1085,7 @@ function GameDetailPage({
   const { gameId } = useParams<{ gameId: string }>();
   const [game, setGame] = useState<GameItem | null>(null);
   const isDeletingLocallyRef = useRef(false);
-  const fetchingGameRef = useRef<boolean>(false);
+  const fetchGenerationRef = useRef(0);
   const lastGameIdRef = useRef<string | undefined>(undefined);
   const lastCoverRef = useRef<string | undefined>(undefined);
   const [coverTimestamp, setCoverTimestamp] = useState(() => Date.now());
@@ -1141,42 +1142,11 @@ function GameDetailPage({
       const updatedGame = customEvent.detail?.game;
       if (!updatedGame || !gameId) return;
       if (String(updatedGame.id) !== String(gameId)) return;
-      const parsed: GameItem = {
-        id: String(updatedGame.id),
-        title: updatedGame.title,
-        summary: updatedGame.summary,
-        cover: updatedGame.cover,
-        background: updatedGame.background,
-        logo: updatedGame.logo,
-        day: updatedGame.day,
-        month: updatedGame.month,
-        year: updatedGame.year,
-        stars: updatedGame.stars,
-        genre: updatedGame.genre,
-        criticratings: updatedGame.criticratings,
-        userratings: updatedGame.userratings,
-        executables: updatedGame.executables ?? null,
-        executableFileNames: updatedGame.executableFileNames ?? null,
-        themes: updatedGame.themes ?? undefined,
-        platforms: updatedGame.platforms ?? undefined,
-        gameModes: updatedGame.gameModes ?? undefined,
-        playerPerspectives: updatedGame.playerPerspectives ?? undefined,
-        websites: updatedGame.websites ?? undefined,
-        ageRatings: updatedGame.ageRatings ?? undefined,
-        developers: updatedGame.developers ?? undefined,
-        publishers: updatedGame.publishers ?? undefined,
-        franchise: updatedGame.franchise ?? undefined,
-        collection: updatedGame.collection ?? undefined,
-        series: updatedGame.series ?? updatedGame.collection ?? undefined,
-        screenshots: updatedGame.screenshots ?? undefined,
-        videos: updatedGame.videos ?? undefined,
-        gameEngines: updatedGame.gameEngines ?? undefined,
-        keywords: updatedGame.keywords ?? undefined,
-        alternativeNames: updatedGame.alternativeNames ?? undefined,
-        similarGames: updatedGame.similarGames ?? undefined,
-        type: updatedGame.type ?? undefined,
-      };
-      setGame(parsed);
+      setGame((prev) =>
+        prev
+          ? { ...prev, ...updatedGame, id: String(updatedGame.id || prev.id) }
+          : gameItemFromApi(updatedGame as unknown as Record<string, unknown>),
+      );
     };
     window.addEventListener("gameUpdated", handleGameUpdated as EventListener);
     return () => {
@@ -1189,7 +1159,6 @@ function GameDetailPage({
     if (!gameId) return;
 
     const refetchCurrentGame = () => {
-      fetchingGameRef.current = false;
       void fetchGame(gameId, { silent: true });
     };
 
@@ -1206,29 +1175,22 @@ function GameDetailPage({
   useEffect(() => {
     if (gameId && gameId !== lastGameIdRef.current) {
       lastGameIdRef.current = gameId;
-      fetchingGameRef.current = false; // Reset flag when gameId changes
-      // Always fetch from API to get background field
       fetchGame(gameId);
     }
   }, [gameId]);
 
   async function fetchGame(gameId: string, options?: { silent?: boolean }) {
-    // Prevent multiple simultaneous calls for the same game
-    if (fetchingGameRef.current) {
-      return;
-    }
-    
-    fetchingGameRef.current = true;
+    const generation = ++fetchGenerationRef.current;
     if (!options?.silent) {
       setLoading(true);
     }
     try {
-      // Fetch single game from dedicated endpoint
-        const url = buildApiUrlWithBase(`/games/${gameId}`);
+      const url = buildApiUrlWithBase(`/games/${gameId}`);
       const res = await fetch(url, {
         headers: buildApiHeaders({ Accept: "application/json" }),
       });
-      
+      if (generation !== fetchGenerationRef.current) return;
+
       if (!res.ok) {
         if (res.status === 404) {
           setGame(null);
@@ -1236,56 +1198,19 @@ function GameDetailPage({
         }
         throw new Error(`HTTP ${res.status}`);
       }
-      
+
       const found = await res.json();
-      const parsed: GameItem = {
-        id: String(found.id),
-        title: found.title,
-        summary: found.summary,
-        cover: found.cover,
-        background: found.background,
-        logo: found.logo,
-        day: found.day,
-        month: found.month,
-        year: found.year,
-        dateAdded: found.dateAdded ?? null,
-        dateInstalled: found.dateInstalled ?? null,
-        datePlayed: found.datePlayed ?? null,
-        stars: found.stars,
-        genre: found.genre,
-        criticratings: found.criticratings,
-        userratings: found.userratings,
-        executables: found.executables || null,
-        executableFileNames: found.executableFileNames || null,
-        themes: found.themes || null,
-        platforms: found.platforms || null,
-        gameModes: found.gameModes || null,
-        playerPerspectives: found.playerPerspectives || null,
-        websites: found.websites || null,
-        ageRatings: found.ageRatings || null,
-        developers: found.developers || null,
-        publishers: found.publishers || null,
-        franchise: found.franchise || null,
-        collection: found.collection || null,
-        series: found.series ?? found.collection ?? null,
-        screenshots: found.screenshots || null,
-        videos: found.videos || null,
-        gameEngines: found.gameEngines || null,
-        keywords: found.keywords || null,
-        alternativeNames: found.alternativeNames || null,
-        similarGames: found.similarGames || null,
-        type: found.type ?? null,
-      };
-      setGame(parsed);
+      if (generation !== fetchGenerationRef.current) return;
+      setGame(gameItemFromApi(found as Record<string, unknown>));
     } catch (err: any) {
+      if (generation !== fetchGenerationRef.current) return;
       const errorMessage = String(err.message || err);
       console.error("Error fetching game:", errorMessage);
       setGame(null);
     } finally {
-      if (!options?.silent) {
+      if (!options?.silent && generation === fetchGenerationRef.current) {
         setLoading(false);
       }
-      fetchingGameRef.current = false; // Reset flag when done
     }
   }
 
@@ -1315,9 +1240,15 @@ function GameDetailPage({
       coverUrl={buildCoverUrl(API_BASE, game.cover, true, coverTimestamp)}
       onPlay={onPlay}
       allCollections={allCollections}
-      onRefetchGame={() => fetchGame(gameId!)}
+      onRefetchGame={() => {
+        void fetchGame(gameId!, { silent: true });
+      }}
       onGameUpdate={(updatedGame) => {
-        setGame(updatedGame);
+        setGame((prev) =>
+          prev
+            ? { ...prev, ...updatedGame, id: String(updatedGame.id || prev.id) }
+            : updatedGame,
+        );
       }}
       onGameDelete={() => {
         isDeletingLocallyRef.current = true;

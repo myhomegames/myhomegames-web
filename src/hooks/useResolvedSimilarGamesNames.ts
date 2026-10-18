@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { buildApiHeaders } from "../utils/api";
-import { buildCatalogApiUrl } from "../utils/catalogApi";
+import { fetchSimilarGameDetailsByIds } from "./useSimilarGamesDetails";
 
 type SimilarGameEntry = { id: number; name: string };
 
@@ -16,14 +15,12 @@ function isNumericName(sg: SimilarGameEntry): boolean {
  * Fetches game names from IGDB for the given ids and returns a map id -> name.
  */
 async function fetchCatalogNamesByIds(ids: number[]): Promise<Record<string, string>> {
-  const url = buildCatalogApiUrl("/igdb/game-names-by-ids", { ids: ids.join(",") });
-  const res = await fetch(url, {
-    method: "GET",
-    headers: buildApiHeaders(),
-  });
-  if (!res.ok) return {};
-  const data = (await res.json()) as { names?: Record<string, string> };
-  return data.names ?? {};
+  const details = await fetchSimilarGameDetailsByIds(ids);
+  const names: Record<string, string> = {};
+  for (const [id, detail] of Object.entries(details)) {
+    if (detail.name) names[id] = detail.name;
+  }
+  return names;
 }
 
 /**
