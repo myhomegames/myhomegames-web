@@ -20,9 +20,14 @@ function nullable<T>(value: T | null | undefined): T | null {
   return value == null || value === "" ? null : value;
 }
 
+/** Optional GameItem fields are `T | undefined`, not `T | null`. */
+function optional<T>(value: T | null | undefined): T | undefined {
+  return value == null || value === "" ? undefined : value;
+}
+
 /** Same shape as GET /games/:id, so a metadata reload can replace the detail view in place. */
 export function gameItemFromApi(data: Record<string, unknown>): GameItem {
-  const collection = (data.collection as GameItem["collection"]) ?? null;
+  const collection = optional(data.collection as GameItem["collection"]);
   return {
     id: String(data.id ?? ""),
     title: typeof data.title === "string" ? data.title : "",
@@ -47,23 +52,23 @@ export function gameItemFromApi(data: Record<string, unknown>): GameItem {
     userratings: data.userratings as GameItem["userratings"],
     executables: nullable(data.executables as GameItem["executables"]),
     executableFileNames: nullable(data.executableFileNames as GameItem["executableFileNames"]),
-    themes: nullable(data.themes as GameItem["themes"]),
-    platforms: nullable(data.platforms as GameItem["platforms"]),
-    gameModes: nullable(data.gameModes as GameItem["gameModes"]),
-    playerPerspectives: nullable(data.playerPerspectives as GameItem["playerPerspectives"]),
-    websites: nullable(data.websites as GameItem["websites"]),
-    ageRatings: nullable(data.ageRatings as GameItem["ageRatings"]),
-    developers: nullable(data.developers as GameItem["developers"]),
-    publishers: nullable(data.publishers as GameItem["publishers"]),
-    franchise: nullable(data.franchise as GameItem["franchise"]),
+    themes: optional(data.themes as GameItem["themes"]),
+    platforms: optional(data.platforms as GameItem["platforms"]),
+    gameModes: optional(data.gameModes as GameItem["gameModes"]),
+    playerPerspectives: optional(data.playerPerspectives as GameItem["playerPerspectives"]),
+    websites: optional(data.websites as GameItem["websites"]),
+    ageRatings: optional(data.ageRatings as GameItem["ageRatings"]),
+    developers: optional(data.developers as GameItem["developers"]),
+    publishers: optional(data.publishers as GameItem["publishers"]),
+    franchise: optional(data.franchise as GameItem["franchise"]),
     collection,
-    series: (data.series as GameItem["series"]) ?? collection,
-    screenshots: nullable(data.screenshots as GameItem["screenshots"]),
-    videos: nullable(data.videos as GameItem["videos"]),
-    gameEngines: nullable(data.gameEngines as GameItem["gameEngines"]),
-    keywords: nullable(data.keywords as GameItem["keywords"]),
-    alternativeNames: nullable(data.alternativeNames as GameItem["alternativeNames"]),
-    similarGames: nullable(data.similarGames as GameItem["similarGames"]),
+    series: optional(data.series as GameItem["series"]) ?? collection,
+    screenshots: optional(data.screenshots as GameItem["screenshots"]),
+    videos: optional(data.videos as GameItem["videos"]),
+    gameEngines: optional(data.gameEngines as GameItem["gameEngines"]),
+    keywords: optional(data.keywords as GameItem["keywords"]),
+    alternativeNames: optional(data.alternativeNames as GameItem["alternativeNames"]),
+    similarGames: optional(data.similarGames as GameItem["similarGames"]),
     type: (data.type as GameItem["type"]) ?? null,
   };
 }
