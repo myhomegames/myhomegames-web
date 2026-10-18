@@ -19,7 +19,7 @@ import { useSkin } from "../contexts/SkinContext";
 import { useCollections } from "../contexts/CollectionsContext";
 import { useLibraryGames } from "../contexts/LibraryGamesContext";
 import { useTagLists } from "../contexts/TagListsContext";
-import { useSimilarGamesDetails } from "../hooks/useSimilarGamesDetails";
+import { rememberSimilarGameDetails, useSimilarGamesDetails } from "../hooks/useSimilarGamesDetails";
 import SimilarGamesList, { type SimilarGameDisplayItem } from "../components/games/SimilarGamesList";
 import type { CatalogGame } from "../types";
 import { formatCatalogGameDate } from "../utils/date";
@@ -96,6 +96,15 @@ export default function CatalogGameDetailPage() {
       setLoading(false);
     }
   }, [setLoading]);
+
+  useEffect(() => {
+    if (!game?.id || !game.name?.trim()) return;
+    rememberSimilarGameDetails(game.id, {
+      name: game.name,
+      cover: game.cover || undefined,
+      releaseDate: game.releaseDate,
+    });
+  }, [game]);
 
   useEffect(() => {
     const seeded = catalogGameFromRouteState(
