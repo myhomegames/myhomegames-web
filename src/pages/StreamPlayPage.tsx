@@ -290,17 +290,19 @@ export default function StreamPlayPage() {
           executableName,
         });
         const returnUrl = buildMoonlightReturnUrl(gameId);
+        const phoneLikeTv = isSmartTvBrowser() || isPhoneWithoutServerPackage();
         const finalStreamUrl = withMoonlightTvProfile(
           withMoonlightStopHook(streamUrl, stopUrl, returnUrl),
+          phoneLikeTv,
         );
         setMoonlightWebUrl(finalStreamUrl);
         setSunshineReachable(!!data.sunshineReachable);
         sessionStartedRef.current = true;
 
-        // Smart TVs and phones: leave MHG for a top-level Moonlight page.
-        // A popup opened after the launch request stays on this screen on mobile,
-        // and iframe WebRTC is unreliable on Tizen.
-        if (isSmartTvBrowser() || isPhoneWithoutServerPackage()) {
+        // Phones and smart TVs use the same Moonlight profile as the TV
+        // (WebRTC video element, 720p). Without it, Chrome on Android paints
+        // the first frame and stays there. Open that page in this tab.
+        if (phoneLikeTv) {
           stashPendingStreamStop({
             hostId: resolvedHostId,
             gameId,
