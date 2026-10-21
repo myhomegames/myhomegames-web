@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { getApiBase, getApiToken } from "../config";
 import { buildApiHeaders } from "../utils/api";
-import { isPhoneWithoutServerPackage } from "../utils/serverDownload";
 import { isSmartTvBrowser, withMoonlightTvProfile } from "../utils/smartTv";
 import {
   clearPendingStreamStop,
@@ -290,19 +289,16 @@ export default function StreamPlayPage() {
           executableName,
         });
         const returnUrl = buildMoonlightReturnUrl(gameId);
-        const phoneLikeTv = isSmartTvBrowser() || isPhoneWithoutServerPackage();
         const finalStreamUrl = withMoonlightTvProfile(
           withMoonlightStopHook(streamUrl, stopUrl, returnUrl),
-          phoneLikeTv,
         );
         setMoonlightWebUrl(finalStreamUrl);
         setSunshineReachable(!!data.sunshineReachable);
         sessionStartedRef.current = true;
 
-        // Phones and smart TVs use the same Moonlight profile as the TV
-        // (WebRTC video element, 720p). Without it, Chrome on Android paints
-        // the first frame and stays there. Open that page in this tab.
-        if (phoneLikeTv) {
+        // Smart TVs: leave MHG for a top-level Moonlight page (iframe WebRTC is poor on Tizen)
+        // and apply mhgProfile=tv for lower bitrate / websocket transport.
+        if (isSmartTvBrowser()) {
           stashPendingStreamStop({
             hostId: resolvedHostId,
             gameId,
