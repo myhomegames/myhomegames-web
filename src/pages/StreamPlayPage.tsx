@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { getApiBase, getApiToken } from "../config";
 import { buildApiHeaders } from "../utils/api";
+import { isPhoneWithoutServerPackage } from "../utils/serverDownload";
 import { isSmartTvBrowser, withMoonlightTvProfile } from "../utils/smartTv";
 import {
   clearPendingStreamStop,
@@ -296,9 +297,10 @@ export default function StreamPlayPage() {
         setSunshineReachable(!!data.sunshineReachable);
         sessionStartedRef.current = true;
 
-        // Smart TVs: leave MHG for a top-level Moonlight page (iframe WebRTC is poor on Tizen)
-        // and apply mhgProfile=tv for lower bitrate / websocket transport.
-        if (isSmartTvBrowser()) {
+        // Smart TVs and phones: leave MHG for a top-level Moonlight page.
+        // A popup opened after the launch request stays on this screen on mobile,
+        // and iframe WebRTC is unreliable on Tizen.
+        if (isSmartTvBrowser() || isPhoneWithoutServerPackage()) {
           stashPendingStreamStop({
             hostId: resolvedHostId,
             gameId,
