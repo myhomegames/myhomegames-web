@@ -84,30 +84,30 @@ export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePage
 
   return (
     <div
-      className="flex min-h-screen flex-col items-center px-4 py-8 text-[#333] sm:py-12"
+      className="min-h-screen text-[#333]"
       style={{
         fontFamily:
           '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+        lineHeight: 1.6,
         background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
       }}
     >
-      <header className="mb-6 text-center text-white sm:mb-8">
+      <div className="mx-auto w-full max-w-[1200px] px-8 py-8">
+      <header className="py-12 text-center text-white">
         <a href="https://myhomegames.vige.it/" className="inline-block">
           <img
             src={SITE_LOGO_URL}
             alt="MyHomeGames"
-            className="mx-auto h-auto w-full max-w-[min(100%,320px)] drop-shadow-[2px_2px_4px_rgba(0,0,0,0.2)] sm:max-w-[400px]"
+            className="mx-auto h-auto w-full max-w-[320px] drop-shadow-[2px_2px_4px_rgba(0,0,0,0.2)] md:max-w-[528px]"
           />
         </a>
       </header>
 
-      <main
-        className="w-full max-w-xl rounded-xl bg-white p-6 shadow-[0_10px_40px_rgba(0,0,0,0.2)] sm:p-10"
-      >
-        <h1 className="mb-4 border-b-[3px] border-[#667eea] pb-2 text-2xl font-semibold text-[#667eea] sm:text-[1.75rem]">
+      <main className="mt-8 w-full rounded-xl bg-white p-6 shadow-[0_10px_40px_rgba(0,0,0,0.2)] md:p-12">
+        <h1 className="mb-4 border-b-[3px] border-[#667eea] pb-2 text-[2rem] font-semibold text-[#667eea]">
           {t("serverUnavailable.title", "MyHomeGames server is not reachable")}
         </h1>
-        <p className="mb-6 text-base leading-relaxed text-[#333] sm:text-[1.1rem]">
+        <p className="mb-4 text-[1.1rem] leading-relaxed text-[#333]">
           {t(
             "serverUnavailable.message",
             "The web app cannot connect to the server. Install and start it, or verify it is running, then retry.",
@@ -116,42 +116,46 @@ export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePage
 
         {showDownload && (
           <div className="mb-8">
-            <p className="mb-3 text-base text-[#555] sm:text-[1.1rem]">
+            <p className="mb-4 text-[1.1rem] text-[#555]">
               {t("serverUnavailable.downloadHint", "Download the server for your platform:")}
             </p>
             {downloadsLoading ? (
-              <p className="text-sm text-[#777]">{t("common.loading", "Loading...")}</p>
+              <p className="text-[1.1rem] text-[#777]">{t("common.loading", "Loading...")}</p>
             ) : (
-              <div className="flex flex-col items-center gap-2">
-                <a
-                  className="inline-flex items-center justify-center rounded-lg px-8 py-3.5 text-center text-lg font-semibold text-white no-underline shadow-[0_4px_15px_rgba(245,87,108,0.4)] transition hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(245,87,108,0.6)]"
-                  style={{
-                    background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-                  }}
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {downloadLabel}
-                </a>
-                <a
-                  className="text-center text-sm font-medium text-[#667eea] underline-offset-2 hover:underline"
-                  href={SERVER_RELEASES_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {t("serverUnavailable.orBrowseReleases", "or browse the releases")}
-                </a>
+              <div>
+                <div className="my-8 flex flex-wrap items-center justify-center">
+                  <a
+                    className="inline-flex w-full items-center justify-center rounded-lg px-10 py-[1.2rem] text-center text-[1.3rem] font-semibold text-white no-underline shadow-[0_4px_15px_rgba(245,87,108,0.4)] transition hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(245,87,108,0.6)] md:mx-2 md:w-auto"
+                    style={{
+                      background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+                    }}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {downloadLabel}
+                  </a>
+                </div>
+                <p className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-center text-[1.1rem]">
+                  <a
+                    className="font-semibold text-[#667eea] underline"
+                    href={SERVER_RELEASES_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t("serverUnavailable.orBrowseReleases", "or browse the releases")}
+                  </a>
+                </p>
               </div>
             )}
           </div>
         )}
 
         <div className="mb-8">
-          <p className="mb-4 text-base text-[#555] sm:text-[1.1rem]">
+          <p className="mb-4 text-[1.1rem] text-[#555]">
             {t("serverUnavailable.supportHint", "Need help? Contact support:")}
           </p>
-          <div className="flex flex-wrap justify-center gap-x-8 gap-y-5 sm:justify-start">
+          <div className="flex flex-wrap items-start justify-center gap-x-8 gap-y-6">
             <a
               className="flex min-w-[5.5rem] max-w-[11rem] flex-col items-center gap-2 text-[#444] no-underline transition hover:-translate-y-0.5"
               href={mailtoHref}
@@ -221,10 +225,10 @@ export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePage
           </div>
         </div>
 
-        <div className="flex flex-col items-center gap-4">
+        <div className="my-8 flex flex-wrap items-center justify-center">
           <button
             type="button"
-            className="inline-flex cursor-pointer items-center justify-center rounded-lg border-0 px-8 py-3.5 text-lg font-semibold text-white shadow-[0_4px_15px_rgba(102,126,234,0.4)] transition hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(102,126,234,0.6)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex w-full cursor-pointer items-center justify-center rounded-lg border-0 px-8 py-4 text-[1.2rem] font-semibold text-white shadow-[0_4px_15px_rgba(102,126,234,0.4)] transition hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(102,126,234,0.6)] disabled:cursor-not-allowed disabled:opacity-60 md:mx-2 md:w-auto"
             style={{
               background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
             }}
@@ -232,19 +236,22 @@ export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePage
           >
             {t("serverUnavailable.retry", "Retry connection")}
           </button>
-          {featureEnabled ? (
+        </div>
+        {featureEnabled ? (
+          <p className="text-center text-[1.1rem]">
             <button
               type="button"
-              className="cursor-pointer border-0 bg-transparent p-0 text-base font-medium text-[#667eea] underline-offset-2 hover:underline"
+              className="cursor-pointer border-0 bg-transparent p-0 text-[1.1rem] font-semibold text-[#667eea] underline"
               onClick={() => {
                 void disconnect();
               }}
             >
               {t("serverUnavailable.signOut", "Sign out")}
             </button>
-          ) : null}
-        </div>
+          </p>
+        ) : null}
       </main>
+      </div>
     </div>
   );
 }
