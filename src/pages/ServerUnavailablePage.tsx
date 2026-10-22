@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useTunnel } from "../contexts/TunnelContext";
 import { useServerDownload } from "../hooks/useServerDownload";
@@ -82,9 +83,12 @@ export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePage
   );
   const mailtoHref = `mailto:${SUPPORT_EMAIL}?subject=${mailSubject}`;
 
-  return (
+  const puffButton =
+    "inline-flex w-full items-center justify-center border-0 px-8 py-4 text-center text-[1.2rem] font-bold uppercase tracking-[1px] text-white no-underline transition hover:-translate-y-[3px] md:w-auto md:px-12 md:py-6 md:text-[1.5rem]";
+
+  return createPortal(
     <div
-      className="min-h-screen text-[#333]"
+      className="fixed inset-0 z-50 overflow-y-auto text-[#333]"
       style={{
         fontFamily:
           '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
@@ -92,8 +96,9 @@ export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePage
         background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
       }}
     >
-      <div className="mx-auto w-full max-w-[1200px] px-8 py-8">
-      <header className="py-12 text-center text-white">
+      <div className="flex min-h-full w-full">
+      <div className="m-auto flex w-full max-w-[1200px] flex-col items-center px-8 py-8">
+      <header className="w-full py-12 text-center text-white">
         <a href="https://myhomegames.vige.it/" className="inline-block">
           <img
             src={SITE_LOGO_URL}
@@ -103,7 +108,7 @@ export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePage
         </a>
       </header>
 
-      <main className="mt-8 w-full rounded-xl bg-white p-6 shadow-[0_10px_40px_rgba(0,0,0,0.2)] md:p-12">
+      <main className="mt-8 w-full rounded-xl bg-white p-6 text-center shadow-[0_10px_40px_rgba(0,0,0,0.2)] md:p-12">
         <h1 className="mb-4 border-b-[3px] border-[#667eea] pb-2 text-[2rem] font-semibold text-[#667eea]">
           {t("serverUnavailable.title", "MyHomeGames server is not reachable")}
         </h1>
@@ -125,9 +130,11 @@ export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePage
               <div>
                 <div className="my-8 flex flex-wrap items-center justify-center">
                   <a
-                    className="inline-flex w-full items-center justify-center rounded-lg px-10 py-[1.2rem] text-center text-[1.3rem] font-semibold text-white no-underline shadow-[0_4px_15px_rgba(245,87,108,0.4)] transition hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(245,87,108,0.6)] md:mx-2 md:w-auto"
+                    className={`${puffButton} hover:shadow-[0_8px_30px_rgba(245,87,108,0.7)]`}
                     style={{
                       background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+                      borderRadius: 12,
+                      boxShadow: "0 6px 25px rgba(245, 87, 108, 0.5)",
                     }}
                     href={url}
                     target="_blank"
@@ -228,9 +235,11 @@ export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePage
         <div className="my-8 flex flex-wrap items-center justify-center">
           <button
             type="button"
-            className="inline-flex w-full cursor-pointer items-center justify-center rounded-lg border-0 px-8 py-4 text-[1.2rem] font-semibold text-white shadow-[0_4px_15px_rgba(102,126,234,0.4)] transition hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(102,126,234,0.6)] disabled:cursor-not-allowed disabled:opacity-60 md:mx-2 md:w-auto"
+            className={`${puffButton} cursor-pointer hover:shadow-[0_8px_30px_rgba(102,126,234,0.7)] disabled:cursor-not-allowed disabled:opacity-60`}
             style={{
               background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              borderRadius: 12,
+              boxShadow: "0 6px 25px rgba(102, 126, 234, 0.5)",
             }}
             onClick={onRetry}
           >
@@ -252,6 +261,8 @@ export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePage
         ) : null}
       </main>
       </div>
-    </div>
+      </div>
+    </div>,
+    document.body,
   );
 }
