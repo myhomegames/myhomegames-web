@@ -18,6 +18,202 @@ const SUPPORT_FACEBOOK_URL = "https://www.facebook.com/groups/1864095787557962";
 const SUPPORT_INSTAGRAM_URL = "https://www.instagram.com/myhomegames/";
 const SUPPORT_TELEGRAM_URL = "https://t.me/+0PutCvWJRSQwYjg0";
 const SITE_LOGO_URL = "https://myhomegames.vige.it/logo.png";
+const SITE_HOME_URL = "https://myhomegames.vige.it";
+const MICROSOFT_STORE_URL = "https://apps.microsoft.com/detail/9nr449qz8r8f";
+
+/* Skins inject an unlayered `* { margin: 0; padding: 0 }`, which beats Tailwind
+   utilities. Layout for this page lives here so the panel stays centered and
+   the buttons stay as wide as their label. */
+const RECONNECT_CSS = `
+.mhg-reconnect {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow-x: hidden;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  color: #333;
+  line-height: 1.35;
+  text-align: left;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+.mhg-reconnect, .mhg-reconnect * { box-sizing: border-box; }
+.mhg-reconnect p { margin: 0 0 1rem; line-height: 1.35; text-align: left; }
+.mhg-reconnect-wrap {
+  display: block;
+  width: 100%;
+  max-width: 1200px;
+  min-height: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 2rem;
+}
+.mhg-reconnect-logo {
+  display: block;
+  width: 100%;
+  max-width: 528px;
+  height: auto;
+  margin-left: auto;
+  margin-right: auto;
+}
+.mhg-reconnect-card {
+  width: 100%;
+  margin-top: 2rem;
+  padding: 3rem;
+  border-radius: 12px;
+  background: #fff;
+  text-align: left;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+.mhg-reconnect-title {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 3px solid #667eea;
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: left;
+  color: #667eea;
+}
+.mhg-reconnect-title svg { flex-shrink: 0; }
+.mhg-reconnect-text {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+  line-height: 1.35;
+  text-align: left;
+  color: #333;
+}
+.mhg-reconnect-muted {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+  line-height: 1.35;
+  text-align: left;
+  color: #555;
+}
+.mhg-reconnect-actions {
+  margin: 0;
+  padding: 2.5rem 0 1.5rem;
+  text-align: center;
+}
+.mhg-reconnect-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 1.2rem 2.5rem;
+  border: 0;
+  border-radius: 8px;
+  font-size: 1.3rem;
+  font-weight: 600;
+  line-height: 1.6;
+  letter-spacing: normal;
+  text-align: center;
+  text-decoration: none;
+  text-transform: none;
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.mhg-reconnect-btn:hover { transform: translateY(-2px); }
+.mhg-reconnect-btn-download {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
+}
+.mhg-reconnect-btn-download:hover { box-shadow: 0 6px 20px rgba(245, 87, 108, 0.6); }
+.mhg-reconnect-btn-retry {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+.mhg-reconnect-btn-retry:hover { box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6); }
+.mhg-reconnect-btn:disabled { cursor: not-allowed; opacity: 0.6; transform: none; }
+.mhg-reconnect p.mhg-reconnect-store,
+.mhg-reconnect p.mhg-reconnect-signout-row {
+  margin: 1.75rem 0 0;
+  text-align: center;
+}
+.mhg-reconnect p.mhg-reconnect-extra {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.35rem 1.25rem;
+  margin: 1.5rem 0 2.5rem;
+  text-align: center;
+}
+.mhg-reconnect-textlink {
+  margin: 0;
+  padding: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #667eea;
+  text-decoration: underline;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.mhg-reconnect-social {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1.5rem 2rem;
+  margin-top: 2rem;
+}
+.mhg-reconnect-social a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  min-width: 5.5rem;
+  max-width: 11rem;
+  color: #444;
+  text-decoration: none;
+}
+.mhg-reconnect-social span.mhg-reconnect-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 9999px;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+.mhg-reconnect-social span.mhg-reconnect-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #555;
+  text-align: center;
+}
+@media (max-width: 768px) {
+  .mhg-reconnect-wrap { padding: 1.5rem; }
+  .mhg-reconnect-logo { max-width: 320px; }
+  .mhg-reconnect-card { padding: 1.5rem; }
+  .mhg-reconnect-btn {
+    display: flex;
+    width: 100%;
+  }
+}
+`;
+
+function WarningIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="40" height="40" aria-hidden="true">
+      <path fill="#f5a524" d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
+    </svg>
+  );
+}
 
 function MailIcon() {
   return (
@@ -65,7 +261,7 @@ function TelegramIcon() {
 
 export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePageProps) {
   const { t } = useTranslation();
-  const { featureEnabled, disconnect } = useTunnel();
+  const { disconnect } = useTunnel();
   const { url, os, loading: downloadsLoading, platformSpecific } = useServerDownload();
   // Desktop browsers: always offer the server package when unreachable (localhost
   // or after Access login with no home tunnel yet). Phones/TVs have no package.
@@ -83,36 +279,50 @@ export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePage
   );
   const mailtoHref = `mailto:${SUPPORT_EMAIL}?subject=${mailSubject}`;
 
-  const puffButton =
-    "inline-flex w-full items-center justify-center border-0 px-8 py-4 text-center text-[1.2rem] font-bold uppercase tracking-[1px] text-white no-underline transition hover:-translate-y-[3px] md:w-auto md:px-12 md:py-6 md:text-[1.5rem]";
+  const installLink =
+    os === "mac-arm64" || os === "mac-x64"
+      ? {
+          href: `${SITE_HOME_URL}/install-homebrew.html`,
+          label: t("serverUnavailable.installBrew", "Install with Brew"),
+        }
+      : os === "linux-deb"
+        ? {
+            href: `${SITE_HOME_URL}/install-linux.html#apt`,
+            label: t("serverUnavailable.installApt", "Install with Apt"),
+          }
+        : os === "linux-rpm"
+          ? {
+              href: `${SITE_HOME_URL}/install-linux.html#yum-dnf`,
+              label: t("serverUnavailable.installYumDnf", "Install with Yum/Dnf"),
+            }
+          : os === "linux"
+            ? {
+                href: `${SITE_HOME_URL}/install-linux.html`,
+                label: t("serverUnavailable.installYumDnfApt", "Install with Yum/Dnf/Apt"),
+              }
+            : null;
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-50 overflow-y-auto text-[#333]"
-      style={{
-        fontFamily:
-          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-        lineHeight: 1.6,
-        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-      }}
-    >
-      <div className="flex min-h-full w-full">
-      <div className="m-auto flex w-full max-w-[1200px] flex-col items-center px-8 py-8">
-      <header className="w-full py-12 text-center text-white">
-        <a href="https://myhomegames.vige.it/" className="inline-block">
+    <div className="mhg-reconnect">
+      <style>{RECONNECT_CSS}</style>
+      <div className="mhg-reconnect-wrap">
+      <header style={{ width: "100%", padding: "3rem 0", textAlign: "center" }}>
+        <a href="https://myhomegames.vige.it/" style={{ display: "inline-block" }}>
           <img
             src={SITE_LOGO_URL}
             alt="MyHomeGames"
-            className="mx-auto h-auto w-full max-w-[320px] drop-shadow-[2px_2px_4px_rgba(0,0,0,0.2)] md:max-w-[528px]"
+            className="mhg-reconnect-logo"
+            style={{ filter: "drop-shadow(2px 2px 4px rgba(0,0,0,0.2))" }}
           />
         </a>
       </header>
 
-      <main className="mt-8 w-full rounded-xl bg-white p-6 text-center shadow-[0_10px_40px_rgba(0,0,0,0.2)] md:p-12">
-        <h1 className="mb-4 border-b-[3px] border-[#667eea] pb-2 text-[2rem] font-semibold text-[#667eea]">
-          {t("serverUnavailable.title", "MyHomeGames server is not reachable")}
+      <main className="mhg-reconnect-card">
+        <h1 className="mhg-reconnect-title">
+          <WarningIcon />
+          <span>{t("serverUnavailable.title", "MyHomeGames server is not reachable")}</span>
         </h1>
-        <p className="mb-4 text-[1.1rem] leading-relaxed text-[#333]">
+        <p className="mhg-reconnect-text">
           {t(
             "serverUnavailable.message",
             "The web app cannot connect to the server. Install and start it, or verify it is running, then retry.",
@@ -120,22 +330,17 @@ export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePage
         </p>
 
         {showDownload && (
-          <div className="mb-8">
-            <p className="mb-4 text-[1.1rem] text-[#555]">
+          <div>
+            <p className="mhg-reconnect-muted">
               {t("serverUnavailable.downloadHint", "Download the server for your platform:")}
             </p>
             {downloadsLoading ? (
-              <p className="text-[1.1rem] text-[#777]">{t("common.loading", "Loading...")}</p>
+              <p className="mhg-reconnect-muted">{t("common.loading", "Loading...")}</p>
             ) : (
               <div>
-                <div className="my-8 flex flex-wrap items-center justify-center">
+                <div className="mhg-reconnect-actions">
                   <a
-                    className={`${puffButton} hover:shadow-[0_8px_30px_rgba(245,87,108,0.7)]`}
-                    style={{
-                      background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-                      borderRadius: 12,
-                      boxShadow: "0 6px 25px rgba(245, 87, 108, 0.5)",
-                    }}
+                    className="mhg-reconnect-btn mhg-reconnect-btn-download"
                     href={url}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -143,14 +348,31 @@ export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePage
                     {downloadLabel}
                   </a>
                 </div>
-                <p className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-center text-[1.1rem]">
+                {os === "win" ? (
+                  <p className="mhg-reconnect-store">
+                    <a
+                      className="mhg-reconnect-textlink"
+                      href={MICROSOFT_STORE_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {t("serverUnavailable.downloadMicrosoftStore", "Download from the Microsoft Store")}
+                    </a>
+                  </p>
+                ) : null}
+                <p className="mhg-reconnect-extra">
+                  {installLink ? (
+                    <a className="mhg-reconnect-textlink" href={installLink.href}>
+                      {installLink.label}
+                    </a>
+                  ) : null}
                   <a
-                    className="font-semibold text-[#667eea] underline"
+                    className="mhg-reconnect-textlink"
                     href={SERVER_RELEASES_URL}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    {t("serverUnavailable.orBrowseReleases", "or browse the releases")}
+                    {t("serverUnavailable.viewAllReleases", "View all releases")}
                   </a>
                 </p>
               </div>
@@ -158,50 +380,33 @@ export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePage
           </div>
         )}
 
-        <div className="mb-8">
-          <p className="mb-4 text-[1.1rem] text-[#555]">
+        <div>
+          <p className="mhg-reconnect-muted">
             {t("serverUnavailable.supportHint", "Need help? Contact support:")}
           </p>
-          <div className="flex flex-wrap items-start justify-center gap-x-8 gap-y-6">
-            <a
-              className="flex min-w-[5.5rem] max-w-[11rem] flex-col items-center gap-2 text-[#444] no-underline transition hover:-translate-y-0.5"
-              href={mailtoHref}
-              title={SUPPORT_EMAIL}
-            >
+          <div className="mhg-reconnect-social">
+            <a href={mailtoHref} title={SUPPORT_EMAIL}>
               <span
-                className="flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_4px_14px_rgba(0,0,0,0.18)]"
+                className="mhg-reconnect-icon"
                 style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}
               >
                 <MailIcon />
               </span>
-              <span className="break-all text-center text-[0.8rem] font-semibold leading-snug text-[#555]">
+              <span className="mhg-reconnect-label" style={{ fontSize: "0.8rem", wordBreak: "break-all" }}>
                 {SUPPORT_EMAIL}
               </span>
             </a>
-            <a
-              className="flex w-[5.5rem] flex-col items-center gap-2 text-[#444] no-underline transition hover:-translate-y-0.5"
-              href={SUPPORT_FACEBOOK_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <span
-                className="flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_4px_14px_rgba(0,0,0,0.18)]"
-                style={{ background: "#1877f2" }}
-              >
+            <a href={SUPPORT_FACEBOOK_URL} target="_blank" rel="noopener noreferrer">
+              <span className="mhg-reconnect-icon" style={{ background: "#1877f2" }}>
                 <FacebookIcon />
               </span>
-              <span className="text-center text-[0.9rem] font-semibold leading-snug text-[#555]">
+              <span className="mhg-reconnect-label">
                 {t("serverUnavailable.supportFacebook", "Facebook")}
               </span>
             </a>
-            <a
-              className="flex w-[5.5rem] flex-col items-center gap-2 text-[#444] no-underline transition hover:-translate-y-0.5"
-              href={SUPPORT_INSTAGRAM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href={SUPPORT_INSTAGRAM_URL} target="_blank" rel="noopener noreferrer">
               <span
-                className="flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_4px_14px_rgba(0,0,0,0.18)]"
+                className="mhg-reconnect-icon"
                 style={{
                   background:
                     "radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285aeb 90%)",
@@ -209,58 +414,38 @@ export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePage
               >
                 <InstagramIcon />
               </span>
-              <span className="text-center text-[0.9rem] font-semibold leading-snug text-[#555]">
+              <span className="mhg-reconnect-label">
                 {t("serverUnavailable.supportInstagram", "Instagram")}
               </span>
             </a>
-            <a
-              className="flex w-[5.5rem] flex-col items-center gap-2 text-[#444] no-underline transition hover:-translate-y-0.5"
-              href={SUPPORT_TELEGRAM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <span
-                className="flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_4px_14px_rgba(0,0,0,0.18)]"
-                style={{ background: "#229ED9" }}
-              >
+            <a href={SUPPORT_TELEGRAM_URL} target="_blank" rel="noopener noreferrer">
+              <span className="mhg-reconnect-icon" style={{ background: "#229ED9" }}>
                 <TelegramIcon />
               </span>
-              <span className="text-center text-[0.9rem] font-semibold leading-snug text-[#555]">
+              <span className="mhg-reconnect-label">
                 {t("serverUnavailable.supportTelegram", "Telegram")}
               </span>
             </a>
           </div>
         </div>
 
-        <div className="my-8 flex flex-wrap items-center justify-center">
-          <button
-            type="button"
-            className={`${puffButton} cursor-pointer hover:shadow-[0_8px_30px_rgba(102,126,234,0.7)] disabled:cursor-not-allowed disabled:opacity-60`}
-            style={{
-              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-              borderRadius: 12,
-              boxShadow: "0 6px 25px rgba(102, 126, 234, 0.5)",
-            }}
-            onClick={onRetry}
-          >
+        <div className="mhg-reconnect-actions">
+          <button type="button" className="mhg-reconnect-btn mhg-reconnect-btn-retry" onClick={onRetry}>
             {t("serverUnavailable.retry", "Retry connection")}
           </button>
         </div>
-        {featureEnabled ? (
-          <p className="text-center text-[1.1rem]">
-            <button
-              type="button"
-              className="cursor-pointer border-0 bg-transparent p-0 text-[1.1rem] font-semibold text-[#667eea] underline"
-              onClick={() => {
-                void disconnect();
-              }}
-            >
-              {t("serverUnavailable.signOut", "Sign out")}
-            </button>
-          </p>
-        ) : null}
+        <p className="mhg-reconnect-signout-row">
+          <button
+            type="button"
+            className="mhg-reconnect-textlink"
+            onClick={() => {
+              void disconnect();
+            }}
+          >
+            {t("serverUnavailable.signOut", "Sign out")}
+          </button>
+        </p>
       </main>
-      </div>
       </div>
     </div>,
     document.body,
