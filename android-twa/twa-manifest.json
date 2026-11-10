@@ -20,8 +20,8 @@
     "path": "./android.keystore",
     "alias": "android"
   },
-  "appVersionCode": 10203,
-  "appVersionName": "1.2.3",
+  "appVersionCode": 10207,
+  "appVersionName": "1.2.7",
   "webManifestUrl": "https://myhomegames.vige.it/app/manifest.webmanifest",
   "fallbackType": "customtabs",
   "features": {},
@@ -32,7 +32,7 @@
   "isChromeOSOnly": false,
   "isMetaQuest": false,
   "fullScopeUrl": "https://myhomegames.vige.it/app/",
-  "minSdkVersion": 23,
+  "minSdkVersion": 24,
   "orientation": "any",
   "fingerprints": [],
   "additionalTrustedOrigins": [],
@@ -41,5 +41,5 @@
   "fileHandlers": [],
   "launchHandlerClientMode": "",
   "generatorApp": "bubblewrap-cli",
-  "appVersion": "1.2.3"
+  "appVersion": "1.2.7"
 }
