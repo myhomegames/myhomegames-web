@@ -229,7 +229,6 @@
     "supportTelegram": "Telegram",
     "supportMailSubject": "MyHomeGames 支持"
   },
-
   "search": {
     "noResults": "未找到术语 \"{{query}}\" 的结果",
     "viewAllResults": "查看所有结果 ({{count}})",
@@ -267,13 +266,25 @@
     "newGameTitlePlaceholder": "输入标题",
     "create": "创建",
     "creating": "创建中...",
+    "importFromFolder": "从文件夹导入",
+    "importFromFolderPath": "服务器上的文件夹路径",
+    "importFromFolderPlaceholder": "例如 ~/Games 或 /path/to/games",
+    "importFromFolderAction": "导入",
+    "importingFromFolder": "正在导入...",
+    "browseImportFolder": "浏览...",
+    "pickingImportFolder": "正在打开...",
+    "pickingImportFolderHint": "请在服务器电脑的系统对话框中选择文件夹…",
+    "importFromFolderPickPrompt": "选择包含游戏的文件夹",
+    "importFromFolderSummary": "已扫描 {{scanned}} · 已添加 {{added}} · 已在库中 {{exists}} · 错误 {{errors}}",
     "searchPlaceholder": "搜索...",
     "loading": "搜索中...",
     "noResults": "未找到",
     "typeToSearch": "至少输入 2 个字符进行搜索",
     "error": "搜索时出错",
     "new": "新",
-    "catalogSearchDisabled": "请在设置中启用目录搜索以搜索目录。"
+    "catalogSearchDisabled": "请在设置中启用目录搜索以搜索目录。",
+    "importFromFolderAiUsed": "AI：{{model}}",
+    "importFromFolderAiMissing": "AI 未启用（设置 OPENAI_API_KEY）"
   },
   "viewMode": {
     "grid": "网格视图",

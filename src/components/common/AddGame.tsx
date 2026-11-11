@@ -7,7 +7,7 @@ import { displayGameType } from "../../utils/gameType";
 import { isIgdbSearchQueryReady, searchIgdbGames } from "../../utils/igdbSearch";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useSkin } from "../../contexts/SkinContext";
-import { useCreateGame } from "./actions";
+import { useCreateGame, useImportFromFolder } from "./actions";
 import type { GameItem, CatalogGame } from "../../types";
 import Cover from "../games/Cover";
 import { isSmartTvBrowser } from "../../utils/smartTv";
@@ -26,7 +26,7 @@ export default function AddGame({
 }: AddGameProps) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { catalogSearchEnabled } = useSettings();
+  const { catalogSearchEnabled, aiFolderImportEnabled } = useSettings();
   const { activeSkinWeb } = useSkin();
   const ps3HeaderSheet = activeSkinWeb.libraryBarHeaderActions;
   const smartTv = isSmartTvBrowser();
@@ -50,7 +50,29 @@ export default function AddGame({
     },
     onError: () => {},
   });
+  const {
+    isImporting,
+    isPickingFolder,
+    importError,
+    pickImportFolder,
+    importFromFolder,
+  } = useImportFromFolder({
+    onImported: () => {
+      onClose();
+    },
+    onError: () => {},
+  });
   const createActionDisabled = !createTitle.trim() || isCreating;
+  const importFolderBusy = isImporting || isPickingFolder;
+
+  const handleImportFromFolder = async () => {
+    if (!aiFolderImportEnabled || importFolderBusy) return;
+    const picked = await pickImportFolder({
+      prompt: t("addGame.importFromFolderPickPrompt", "Select a folder with games"),
+    });
+    if (!picked) return;
+    await importFromFolder(picked);
+  };
   
   useEffect(() => {
     isOpenRef.current = isOpen;
@@ -113,6 +135,7 @@ export default function AddGame({
   useEffect(() => {
     if (!isOpen) {
       setSearchQuery("");
+      setCreateTitle("");
       setResults([]);
       setError(null);
       setIsSearching(false);
@@ -479,6 +502,38 @@ export default function AddGame({
               <div className="add-game-error add-game-create-error">{createError}</div>
             )}
           </div>
+
+          {aiFolderImportEnabled && (
+            <div className="add-game-create-from-scratch add-game-import-from-folder">
+              <div className="add-game-create-label">{t("addGame.importFromFolder")}</div>
+              <div className="add-game-create-row add-game-import-folder-row">
+                <button
+                  type="button"
+                  onClick={() => void handleImportFromFolder()}
+                  disabled={importFolderBusy}
+                  className="add-game-create-btn"
+                  data-mhg-tv-focus
+                >
+                  {isPickingFolder
+                    ? t("addGame.pickingImportFolder", "Opening...")
+                    : isImporting
+                      ? t("addGame.importingFromFolder", "Importing...")
+                      : t("addGame.importFromFolderAction", "Import")}
+                </button>
+              </div>
+              {isPickingFolder && (
+                <div className="add-game-import-summary">
+                  {t(
+                    "addGame.pickingImportFolderHint",
+                    "Choose a folder in the system dialog on the server computer…"
+                  )}
+                </div>
+              )}
+              {importError && (
+                <div className="add-game-error add-game-create-error">{importError}</div>
+              )}
+            </div>
+          )}
 
           {catalogSearchEnabled && error && (
             <div className="add-game-error">

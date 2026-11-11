@@ -165,6 +165,14 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
       fetchGames();
     };
 
+    const handleLibraryGamesUpdated = () => {
+      fetchGames();
+    };
+
+    const handleGamesImportedFromFolder = () => {
+      fetchGames();
+    };
+
     const handleLanguageChanged = () => {
       cacheWriteEnabledRef.current = false;
       writeLibraryGamesSessionCache([]);
@@ -175,12 +183,16 @@ export function LibraryGamesProvider({ children }: { children: ReactNode }) {
     window.addEventListener("gameDeleted", handleGameDeleted as EventListener);
     window.addEventListener("gameAdded", handleGameAdded as EventListener);
     window.addEventListener("metadataReloaded", handleMetadataReloaded);
+    window.addEventListener("libraryGamesUpdated", handleLibraryGamesUpdated);
+    window.addEventListener("gamesImportedFromFolder", handleGamesImportedFromFolder);
     window.addEventListener("mhg-language-changed", handleLanguageChanged);
     return () => {
       window.removeEventListener("gameUpdated", handleGameUpdated as EventListener);
       window.removeEventListener("gameDeleted", handleGameDeleted as EventListener);
       window.removeEventListener("gameAdded", handleGameAdded as EventListener);
       window.removeEventListener("metadataReloaded", handleMetadataReloaded);
+      window.removeEventListener("libraryGamesUpdated", handleLibraryGamesUpdated);
+      window.removeEventListener("gamesImportedFromFolder", handleGamesImportedFromFolder);
       window.removeEventListener("mhg-language-changed", handleLanguageChanged);
     };
   }, [fetchGames]);

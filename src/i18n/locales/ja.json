@@ -229,7 +229,6 @@
     "supportTelegram": "Telegram",
     "supportMailSubject": "MyHomeGames サポート"
   },
-
   "search": {
     "noResults": "用語 \"{{query}}\" の結果が見つかりません",
     "viewAllResults": "すべての結果を表示 ({{count}})",
@@ -267,13 +266,25 @@
     "newGameTitlePlaceholder": "タイトルを入力",
     "create": "作成",
     "creating": "作成中...",
+    "importFromFolder": "フォルダーからインポート",
+    "importFromFolderPath": "サーバー上のフォルダーパス",
+    "importFromFolderPlaceholder": "例: ~/Games または /path/to/games",
+    "importFromFolderAction": "インポート",
+    "importingFromFolder": "インポート中...",
+    "browseImportFolder": "参照...",
+    "pickingImportFolder": "開いています...",
+    "pickingImportFolderHint": "サーバー側のシステムダイアログでフォルダーを選んでください…",
+    "importFromFolderPickPrompt": "ゲームが入ったフォルダーを選択",
+    "importFromFolderSummary": "スキャン {{scanned}} · 追加 {{added}} · ライブラリ内 {{exists}} · エラー {{errors}}",
     "searchPlaceholder": "ゲームを検索...",
     "loading": "検索中...",
     "noResults": "ゲームが見つかりません",
     "typeToSearch": "検索するには少なくとも2文字入力してください",
     "error": "ゲームの検索中にエラーが発生しました",
     "new": "新規",
-    "catalogSearchDisabled": "カタログを検索するには、設定でカタログ検索を有効にしてください。"
+    "catalogSearchDisabled": "カタログを検索するには、設定でカタログ検索を有効にしてください。",
+    "importFromFolderAiUsed": "AI: {{model}}",
+    "importFromFolderAiMissing": "AIオフ（OPENAI_API_KEY を設定）"
   },
   "viewMode": {
     "grid": "グリッド表示",

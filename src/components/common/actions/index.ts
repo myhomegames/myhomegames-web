@@ -5,6 +5,7 @@ export { useUnlinkExecutable } from "./useUnlinkExecutable";
 export { useExecutable } from "./useExecutable";
 export { useAddGame } from "./useAddGame";
 export { useCreateGame } from "./useCreateGame";
+export { useImportFromFolder } from "./useImportFromFolder";
 export { useAddGameToCollection } from "./useAddGameToCollection";
 export { useAddGameToDeveloper } from "./useAddGameToDeveloper";
 export { useAddGameToPublisher } from "./useAddGameToPublisher";

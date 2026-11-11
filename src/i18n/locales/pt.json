@@ -229,7 +229,6 @@
     "supportTelegram": "Telegram",
     "supportMailSubject": "Suporte MyHomeGames"
   },
-
   "search": {
     "noResults": "Nenhum resultado encontrado para o termo \"{{query}}\"",
     "viewAllResults": "Ver todos os resultados ({{count}})",
@@ -267,13 +266,25 @@
     "newGameTitlePlaceholder": "Digite o título",
     "create": "Criar",
     "creating": "Criando...",
+    "importFromFolder": "Importar de uma pasta",
+    "importFromFolderPath": "Caminho da pasta no servidor",
+    "importFromFolderPlaceholder": "ex. ~/Games ou /caminho/para/jogos",
+    "importFromFolderAction": "Importar",
+    "importingFromFolder": "A importar...",
+    "browseImportFolder": "Procurar...",
+    "pickingImportFolder": "A abrir...",
+    "pickingImportFolderHint": "Escolha uma pasta na janela do sistema no computador do servidor…",
+    "importFromFolderPickPrompt": "Selecione uma pasta com jogos",
+    "importFromFolderSummary": "Analisados {{scanned}} · adicionados {{added}} · já na biblioteca {{exists}} · erros {{errors}}",
     "searchPlaceholder": "Pesquisar um jogo...",
     "loading": "Pesquisando...",
     "noResults": "Nenhum jogo encontrado",
     "typeToSearch": "Digite pelo menos 2 caracteres para pesquisar",
     "error": "Erro ao pesquisar jogos",
     "new": "Novo",
-    "catalogSearchDisabled": "Ative a pesquisa do catálogo nas Definições para pesquisar no catálogo."
+    "catalogSearchDisabled": "Ative a pesquisa do catálogo nas Definições para pesquisar no catálogo.",
+    "importFromFolderAiUsed": "IA: {{model}}",
+    "importFromFolderAiMissing": "IA desligada (defina OPENAI_API_KEY)"
   },
   "viewMode": {
     "grid": "Visualização em Grade",
