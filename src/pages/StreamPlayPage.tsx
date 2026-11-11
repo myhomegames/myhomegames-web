@@ -546,7 +546,7 @@ export default function StreamPlayPage() {
             title={iframeTitle}
             src={moonlightWebUrl}
             className="absolute inset-0 h-full w-full border-0 bg-black"
-            allow="autoplay; fullscreen; gamepad; microphone; camera; encrypted-media; display-capture"
+            allow="autoplay; fullscreen; gamepad; microphone; camera; encrypted-media; display-capture; pointer-lock; keyboard-map"
             allowFullScreen
             onLoad={handleIframeLoad}
           />
