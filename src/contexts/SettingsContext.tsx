@@ -23,7 +23,10 @@ interface SettingsContextType {
   setTwitchApiEnabled: (value: boolean) => void;
   /** True when IGDB API is enabled in server settings (credentials on API gateway). */
   catalogSearchEnabled: boolean;
-  /** True when server has OPENAI_API_KEY (or alias) for AI folder import. */
+  /**
+   * True when AI folder import is available.
+   * Local: server OPENAI_API_KEY. Tunnel: Worker gateway configured (key never sent to the browser).
+   */
   aiFolderImportEnabled: boolean;
   /** Sunshine + Moonlight Web remote play for non-local browsers. */
   remoteStreamingEnabled: boolean;
