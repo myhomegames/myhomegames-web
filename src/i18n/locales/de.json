@@ -284,7 +284,8 @@
     "new": "Neu",
     "catalogSearchDisabled": "Aktiviere die Katalogsuche in den Einstellungen, um den Katalog zu durchsuchen.",
     "importFromFolderAiUsed": "KI: {{model}}",
-    "importFromFolderAiMissing": "KI aus (OPENAI_API_KEY setzen)"
+    "importFromFolderAiMissing": "KI aus (OPENAI_API_KEY setzen)",
+    "importingFromFolderProgress": "Importiere… {{percent}}%"
   },
   "viewMode": {
     "grid": "Rasteransicht",

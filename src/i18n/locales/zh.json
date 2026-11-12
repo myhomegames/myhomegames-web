@@ -284,7 +284,8 @@
     "new": "新",
     "catalogSearchDisabled": "请在设置中启用目录搜索以搜索目录。",
     "importFromFolderAiUsed": "AI：{{model}}",
-    "importFromFolderAiMissing": "AI 未启用（设置 OPENAI_API_KEY）"
+    "importFromFolderAiMissing": "AI 未启用（设置 OPENAI_API_KEY）",
+    "importingFromFolderProgress": "正在导入… {{percent}}%"
   },
   "viewMode": {
     "grid": "网格视图",

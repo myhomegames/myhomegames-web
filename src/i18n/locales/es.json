@@ -284,7 +284,8 @@
     "new": "Nuevo",
     "catalogSearchDisabled": "Activa la búsqueda del catálogo en Ajustes para buscar en el catálogo.",
     "importFromFolderAiUsed": "IA: {{model}}",
-    "importFromFolderAiMissing": "IA desactivada (configura OPENAI_API_KEY)"
+    "importFromFolderAiMissing": "IA desactivada (configura OPENAI_API_KEY)",
+    "importingFromFolderProgress": "Importando… {{percent}}%"
   },
   "viewMode": {
     "grid": "Vista de Cuadrícula",

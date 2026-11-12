@@ -54,6 +54,7 @@ export default function AddGame({
     isImporting,
     isPickingFolder,
     importError,
+    importProgress,
     pickImportFolder,
     importFromFolder,
   } = useImportFromFolder({
@@ -64,6 +65,10 @@ export default function AddGame({
   });
   const createActionDisabled = !createTitle.trim() || isCreating;
   const importFolderBusy = isImporting || isPickingFolder;
+  const importPercent =
+    isImporting && importProgress != null
+      ? Math.max(0, Math.min(100, Math.round(importProgress.percent)))
+      : null;
 
   const handleImportFromFolder = async () => {
     if (!aiFolderImportEnabled || importFolderBusy) return;
@@ -517,7 +522,11 @@ export default function AddGame({
                   {isPickingFolder
                     ? t("addGame.pickingImportFolder", "Opening...")
                     : isImporting
-                      ? t("addGame.importingFromFolder", "Importing...")
+                      ? importPercent != null
+                        ? t("addGame.importingFromFolderProgress", "Importing… {{percent}}%", {
+                            percent: importPercent,
+                          })
+                        : t("addGame.importingFromFolder", "Importing...")
                       : t("addGame.importFromFolderAction", "Import")}
                 </button>
               </div>
@@ -527,6 +536,13 @@ export default function AddGame({
                     "addGame.pickingImportFolderHint",
                     "Choose a folder in the system dialog on the server computer…"
                   )}
+                </div>
+              )}
+              {isImporting && importPercent != null && (
+                <div className="add-game-import-summary" aria-live="polite">
+                  {t("addGame.importingFromFolderProgress", "Importing… {{percent}}%", {
+                    percent: importPercent,
+                  })}
                 </div>
               )}
               {importError && (

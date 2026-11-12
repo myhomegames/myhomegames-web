@@ -250,7 +250,6 @@
     "supportTelegram": "Telegram",
     "supportMailSubject": "MyHomeGames support"
   },
-
   "streamPlay": {
     "title": "Remote play",
     "launching": "Starting the game on your home PC…",
@@ -318,7 +317,8 @@
     "typeToSearch": "Type at least 2 characters to search",
     "error": "Error searching games",
     "new": "New",
-    "catalogSearchDisabled": "Enable catalog search in Settings to search the catalog."
+    "catalogSearchDisabled": "Enable catalog search in Settings to search the catalog.",
+    "importingFromFolderProgress": "Importing… {{percent}}%"
   },
   "viewMode": {
     "grid": "Grid View",

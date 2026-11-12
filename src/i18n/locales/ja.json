@@ -284,7 +284,8 @@
     "new": "新規",
     "catalogSearchDisabled": "カタログを検索するには、設定でカタログ検索を有効にしてください。",
     "importFromFolderAiUsed": "AI: {{model}}",
-    "importFromFolderAiMissing": "AIオフ（OPENAI_API_KEY を設定）"
+    "importFromFolderAiMissing": "AIオフ（OPENAI_API_KEY を設定）",
+    "importingFromFolderProgress": "インポート中… {{percent}}%"
   },
   "viewMode": {
     "grid": "グリッド表示",
