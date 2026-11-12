@@ -522,13 +522,16 @@ export default function AddGame({
                   {isPickingFolder
                     ? t("addGame.pickingImportFolder", "Opening...")
                     : isImporting
-                      ? importPercent != null
-                        ? t("addGame.importingFromFolderProgress", "Importing… {{percent}}%", {
-                            percent: importPercent,
-                          })
-                        : t("addGame.importingFromFolder", "Importing...")
+                      ? t("addGame.importingFromFolder", "Importing...")
                       : t("addGame.importFromFolderAction", "Import")}
                 </button>
+                {isImporting && importPercent != null && (
+                  <div className="add-game-import-progress" aria-live="polite">
+                    {t("addGame.importingFromFolderProgress", "Importing… {{percent}}%", {
+                      percent: importPercent,
+                    })}
+                  </div>
+                )}
               </div>
               {isPickingFolder && (
                 <div className="add-game-import-summary">
@@ -536,13 +539,6 @@ export default function AddGame({
                     "addGame.pickingImportFolderHint",
                     "Choose a folder in the system dialog on the server computer…"
                   )}
-                </div>
-              )}
-              {isImporting && importPercent != null && (
-                <div className="add-game-import-summary" aria-live="polite">
-                  {t("addGame.importingFromFolderProgress", "Importing… {{percent}}%", {
-                    percent: importPercent,
-                  })}
                 </div>
               )}
               {importError && (
