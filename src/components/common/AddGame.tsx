@@ -525,25 +525,39 @@ export default function AddGame({
                       ? t("addGame.importingFromFolder", "Importing...")
                       : t("addGame.importFromFolderAction", "Import")}
                 </button>
-                {isImporting && importPercent != null && (
-                  <div className="add-game-import-progress" aria-live="polite">
-                    {t("addGame.importingFromFolderProgress", "Importing… {{percent}}%", {
-                      percent: importPercent,
-                    })}
+                {(isPickingFolder ||
+                  (isImporting && importPercent != null) ||
+                  importError) && (
+                  <div
+                    className={
+                      importError && !importFolderBusy
+                        ? "add-game-import-status add-game-import-status-error"
+                        : "add-game-import-status"
+                    }
+                    aria-live="polite"
+                    title={
+                      importError && !importFolderBusy
+                        ? importError
+                        : importProgress?.label || undefined
+                    }
+                  >
+                    {importError && !importFolderBusy
+                      ? importError
+                      : isPickingFolder
+                        ? t(
+                            "addGame.pickingImportFolderHint",
+                            "Choose a folder in the system dialog on the server computer…"
+                          )
+                        : importProgress?.label
+                          ? `${importProgress.label} · ${importPercent ?? 0}%`
+                          : t(
+                              "addGame.importingFromFolderProgress",
+                              "Importing… {{percent}}%",
+                              { percent: importPercent ?? 0 }
+                            )}
                   </div>
                 )}
               </div>
-              {isPickingFolder && (
-                <div className="add-game-import-summary">
-                  {t(
-                    "addGame.pickingImportFolderHint",
-                    "Choose a folder in the system dialog on the server computer…"
-                  )}
-                </div>
-              )}
-              {importError && (
-                <div className="add-game-error add-game-create-error">{importError}</div>
-              )}
             </div>
           )}
 
