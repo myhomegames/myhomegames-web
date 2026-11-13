@@ -535,11 +535,6 @@ export default function AddGame({
                         : "add-game-import-status"
                     }
                     aria-live="polite"
-                    title={
-                      importError && !importFolderBusy
-                        ? importError
-                        : importProgress?.label || undefined
-                    }
                   >
                     {importError && !importFolderBusy
                       ? importError
