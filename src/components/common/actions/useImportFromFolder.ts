@@ -186,8 +186,58 @@ export type FolderImportProgress = {
   current: number;
   total: number;
   percent: number;
+  /** Client-built localized status line (or rate-limit wait message). */
   label?: string;
+  paths?: number;
+  chunks?: number;
+  games?: number;
+  cacheHits?: number;
+  apiCalls?: number;
 };
+
+function formatFolderImportProgressLabel(
+  t: TranslateFn,
+  progress: FolderImportProgress
+): string {
+  const phase = String(progress.phase || "");
+  if (phase === "rate-limit-wait" && progress.label) return progress.label;
+  if (phase === "scan") {
+    if (progress.paths != null || progress.chunks != null) {
+      return t("addGame.importProgressScanSkeleton", {
+        paths: Number(progress.paths) || 0,
+        chunks: Number(progress.chunks) || 0,
+      });
+    }
+    return t("addGame.importProgressScanning");
+  }
+  if (phase === "ai") {
+    return t("addGame.importProgressAi", {
+      current: Number(progress.current) || 0,
+      total: Number(progress.total) || 0,
+      games: Number(progress.games) || 0,
+      cache: Number(progress.cacheHits) || 0,
+      api: Number(progress.apiCalls) || 0,
+    });
+  }
+  if (phase === "import") {
+    return t("addGame.importProgressImport", {
+      current: Number(progress.current) || 0,
+      total: Number(progress.total) || 0,
+      games: Number(progress.games) || 0,
+      cache: Number(progress.cacheHits) || 0,
+      api: Number(progress.apiCalls) || 0,
+    });
+  }
+  if (phase === "partial") {
+    return t("addGame.importProgressPartial", {
+      games: Number(progress.games) || 0,
+    });
+  }
+  if (phase === "done") {
+    return t("addGame.importProgressDone");
+  }
+  return progress.label || t("addGame.importingFromFolder");
+}
 
 type UseImportFromFolderParams = {
   onImported?: (response: FolderImportResponse) => void;
@@ -211,7 +261,8 @@ type UseImportFromFolderReturn = {
 
 async function readFolderImportSse(
   res: Response,
-  onProgress: (progress: FolderImportProgress) => void
+  onProgress: (progress: FolderImportProgress) => void,
+  t: TranslateFn
 ): Promise<FolderImportResponse> {
   if (!res.body) {
     throw new Error("Missing response body for import stream");
@@ -253,13 +304,19 @@ async function readFolderImportSse(
     }
     if (eventName === "progress" && data && typeof data === "object") {
       const p = data as Partial<FolderImportProgress>;
-      onProgress({
+      const progress: FolderImportProgress = {
         phase: String(p.phase || ""),
         current: Number(p.current) || 0,
         total: Number(p.total) || 0,
         percent: Math.max(0, Math.min(100, Number(p.percent) || 0)),
-        label: typeof p.label === "string" ? p.label : undefined,
-      });
+        paths: Number.isFinite(p.paths) ? Number(p.paths) : undefined,
+        chunks: Number.isFinite(p.chunks) ? Number(p.chunks) : undefined,
+        games: Number.isFinite(p.games) ? Number(p.games) : undefined,
+        cacheHits: Number.isFinite(p.cacheHits) ? Number(p.cacheHits) : undefined,
+        apiCalls: Number.isFinite(p.apiCalls) ? Number(p.apiCalls) : undefined,
+      };
+      progress.label = formatFolderImportProgressLabel(t, progress);
+      onProgress(progress);
       return;
     }
     if (eventName === "done" && data && typeof data === "object") {
@@ -421,7 +478,7 @@ export function useImportFromFolder({
     }
 
     const json = isSse
-      ? await readFolderImportSse(res, setImportProgress)
+      ? await readFolderImportSse(res, setImportProgress, t)
       : ((await res.json()) as FolderImportResponse);
 
     if (!isSse && !res.ok) {
@@ -452,7 +509,13 @@ export function useImportFromFolder({
     setIsImporting(true);
     setImportError(null);
     setImportNotice(null);
-    setImportProgress({ phase: "scan", current: 0, total: 1, percent: 0 });
+    setImportProgress({
+      phase: "scan",
+      current: 0,
+      total: 1,
+      percent: 0,
+      label: t("addGame.importProgressScanning"),
+    });
     setLoading(true);
 
     let autoRetryAttempt = 0;
@@ -472,13 +535,27 @@ export function useImportFromFolder({
             percent: 0,
             label: t("addGame.importFromFolderResuming", "Resuming import…"),
           });
+        } else {
+          setImportProgress({
+            phase: "scan",
+            current: 0,
+            total: 1,
+            percent: 0,
+            label: t("addGame.importProgressScanning"),
+          });
         }
 
         try {
           const json = await runImportOnce(pathValue);
           if (cancelledRef.current || runIdRef.current !== runId) return null;
 
-          setImportProgress({ phase: "done", current: 1, total: 1, percent: 100 });
+          setImportProgress({
+            phase: "done",
+            current: 1,
+            total: 1,
+            percent: 100,
+            label: t("addGame.importProgressDone"),
+          });
           setLastImport(json);
           window.dispatchEvent(
             new CustomEvent("gamesImportedFromFolder", {
