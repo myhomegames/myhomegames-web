@@ -318,7 +318,12 @@
     "error": "Error searching games",
     "new": "New",
     "catalogSearchDisabled": "Enable catalog search in Settings to search the catalog.",
-    "importingFromFolderProgress": "Importing… {{percent}}%"
+    "importingFromFolderProgress": "Importing… {{percent}}%",
+    "importFromFolderPartial": "Partial import: {{count}} game(s) were added to your library. Run Import again on the same folder to continue.",
+    "importFromFolderPartialRateLimit": "Partial import: {{count}} game(s) were added to your library. AI rate limit reached — try again in about {{wait}}. Run Import again on the same folder to continue.",
+    "importFromFolderRateLimit": "AI rate limit reached — try again in about {{wait}}.",
+    "importFromFolderRateLimitResume": "AI rate limit reached — try again in about {{wait}}. Completed {{apiCalls}} API chunks this run; run Import again on the same folder to continue from cache.",
+    "importFromFolderFailed": "Failed to import from folder"
   },
   "viewMode": {
     "grid": "Grid View",

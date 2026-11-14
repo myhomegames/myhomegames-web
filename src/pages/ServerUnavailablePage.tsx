@@ -1,7 +1,9 @@
 import { createPortal } from "react-dom";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useTunnel } from "../contexts/TunnelContext";
 import { useServerDownload } from "../hooks/useServerDownload";
+import { suspendSkinCss } from "../skins/skinRuntime";
 import {
   isPhoneWithoutServerPackage,
   SERVER_OS_I18N_KEY,
@@ -263,6 +265,11 @@ export default function ServerUnavailablePage({ onRetry }: ServerUnavailablePage
   const { t } = useTranslation();
   const { disconnect } = useTunnel();
   const { url, os, loading: downloadsLoading, platformSpecific } = useServerDownload();
+
+  // Cached skin CSS (localStorage → #mhg-active-skin-bundle) is applied even when the
+  // home server is down and breaks this standalone reconnect UI.
+  useEffect(() => suspendSkinCss(), []);
+
   // Desktop browsers: always offer the server package when unreachable (localhost
   // or after Access login with no home tunnel yet). Phones/TVs have no package.
   const showDownload = !isPhoneWithoutServerPackage() && !isSmartTvBrowser();

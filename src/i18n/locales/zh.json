@@ -285,7 +285,12 @@
     "catalogSearchDisabled": "请在设置中启用目录搜索以搜索目录。",
     "importFromFolderAiUsed": "AI：{{model}}",
     "importFromFolderAiMissing": "AI 未启用（设置 OPENAI_API_KEY）",
-    "importingFromFolderProgress": "正在导入… {{percent}}%"
+    "importingFromFolderProgress": "正在导入… {{percent}}%",
+    "importFromFolderPartial": "部分导入：已将 {{count}} 个游戏添加到游戏库。请对同一文件夹再次点击“导入”以继续。",
+    "importFromFolderPartialRateLimit": "部分导入：已将 {{count}} 个游戏添加到游戏库。已达到 AI 限额 — 请约 {{wait}} 后再试。请对同一文件夹再次点击“导入”以继续。",
+    "importFromFolderRateLimit": "已达到 AI 限额 — 请约 {{wait}} 后再试。",
+    "importFromFolderRateLimitResume": "已达到 AI 限额 — 请约 {{wait}} 后再试。本次已完成 {{apiCalls}} 个 API 分块；请对同一文件夹再次点击“导入”以从缓存继续。",
+    "importFromFolderFailed": "从文件夹导入失败"
   },
   "viewMode": {
     "grid": "网格视图",

@@ -285,7 +285,12 @@
     "catalogSearchDisabled": "Aktiviere die Katalogsuche in den Einstellungen, um den Katalog zu durchsuchen.",
     "importFromFolderAiUsed": "KI: {{model}}",
     "importFromFolderAiMissing": "KI aus (OPENAI_API_KEY setzen)",
-    "importingFromFolderProgress": "Importiere… {{percent}}%"
+    "importingFromFolderProgress": "Importiere… {{percent}}%",
+    "importFromFolderPartial": "Teilimport: {{count}} Spiel(e) wurden zur Bibliothek hinzugefügt. Starte Import erneut für denselben Ordner, um fortzufahren.",
+    "importFromFolderPartialRateLimit": "Teilimport: {{count}} Spiel(e) wurden zur Bibliothek hinzugefügt. AI-Limit erreicht — erneut versuchen in etwa {{wait}}. Starte Import erneut für denselben Ordner, um fortzufahren.",
+    "importFromFolderRateLimit": "AI-Limit erreicht — erneut versuchen in etwa {{wait}}.",
+    "importFromFolderRateLimitResume": "AI-Limit erreicht — erneut versuchen in etwa {{wait}}. {{apiCalls}} API-Chunks in diesem Lauf abgeschlossen; starte Import erneut für denselben Ordner, um aus dem Cache fortzufahren.",
+    "importFromFolderFailed": "Import aus dem Ordner fehlgeschlagen"
   },
   "viewMode": {
     "grid": "Rasteransicht",

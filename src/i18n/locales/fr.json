@@ -285,7 +285,12 @@
     "catalogSearchDisabled": "Activez la recherche catalogue dans les Paramètres pour chercher dans le catalogue.",
     "importFromFolderAiUsed": "IA : {{model}}",
     "importFromFolderAiMissing": "IA désactivée (définir OPENAI_API_KEY)",
-    "importingFromFolderProgress": "Importation… {{percent}}%"
+    "importingFromFolderProgress": "Importation… {{percent}}%",
+    "importFromFolderPartial": "Import partiel : {{count}} jeu(x) ont été ajoutés à votre bibliothèque. Relancez Importer sur le même dossier pour continuer.",
+    "importFromFolderPartialRateLimit": "Import partiel : {{count}} jeu(x) ont été ajoutés à votre bibliothèque. Limite IA atteinte — réessayez dans environ {{wait}}. Relancez Importer sur le même dossier pour continuer.",
+    "importFromFolderRateLimit": "Limite IA atteinte — réessayez dans environ {{wait}}.",
+    "importFromFolderRateLimitResume": "Limite IA atteinte — réessayez dans environ {{wait}}. {{apiCalls}} lots API terminés dans cette session ; relancez Importer sur le même dossier pour continuer depuis le cache.",
+    "importFromFolderFailed": "Échec de l'import depuis le dossier"
   },
   "viewMode": {
     "grid": "Vue Grille",

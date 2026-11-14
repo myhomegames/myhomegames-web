@@ -285,7 +285,12 @@
     "catalogSearchDisabled": "カタログを検索するには、設定でカタログ検索を有効にしてください。",
     "importFromFolderAiUsed": "AI: {{model}}",
     "importFromFolderAiMissing": "AIオフ（OPENAI_API_KEY を設定）",
-    "importingFromFolderProgress": "インポート中… {{percent}}%"
+    "importingFromFolderProgress": "インポート中… {{percent}}%",
+    "importFromFolderPartial": "一部インポート: {{count}} 件のゲームをライブラリに追加しました。同じフォルダーで「インポート」を再実行して続行してください。",
+    "importFromFolderPartialRateLimit": "一部インポート: {{count}} 件のゲームをライブラリに追加しました。AIの上限に達しました — 約 {{wait}} 後に再試行してください。同じフォルダーで「インポート」を再実行して続行してください。",
+    "importFromFolderRateLimit": "AIの上限に達しました — 約 {{wait}} 後に再試行してください。",
+    "importFromFolderRateLimitResume": "AIの上限に達しました — 約 {{wait}} 後に再試行してください。この実行で {{apiCalls}} 件のAPIチャンクが完了しました。同じフォルダーで「インポート」を再実行するとキャッシュから続行できます。",
+    "importFromFolderFailed": "フォルダーからのインポートに失敗しました"
   },
   "viewMode": {
     "grid": "グリッド表示",

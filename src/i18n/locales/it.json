@@ -318,7 +318,12 @@
     "error": "Errore nella ricerca dei giochi",
     "new": "Nuovo",
     "catalogSearchDisabled": "Abilita la ricerca catalogo nelle Impostazioni per cercare nel catalogo.",
-    "importingFromFolderProgress": "Importazione… {{percent}}%"
+    "importingFromFolderProgress": "Importazione… {{percent}}%",
+    "importFromFolderPartial": "Importazione parziale: {{count}} gioco/i aggiunti alla libreria. Esegui di nuovo Importa sulla stessa cartella per continuare.",
+    "importFromFolderPartialRateLimit": "Importazione parziale: {{count}} gioco/i aggiunti alla libreria. Limite AI raggiunto — riprova tra circa {{wait}}. Esegui di nuovo Importa sulla stessa cartella per continuare.",
+    "importFromFolderRateLimit": "Limite AI raggiunto — riprova tra circa {{wait}}.",
+    "importFromFolderRateLimitResume": "Limite AI raggiunto — riprova tra circa {{wait}}. Completati {{apiCalls}} chunk API in questa sessione; esegui di nuovo Importa sulla stessa cartella per continuare dalla cache.",
+    "importFromFolderFailed": "Importazione dalla cartella non riuscita"
   },
   "viewMode": {
     "grid": "Vista Griglia",

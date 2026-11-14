@@ -54,11 +54,14 @@ export default function AddGame({
     isImporting,
     isPickingFolder,
     importError,
+    importNotice,
     importProgress,
     pickImportFolder,
     importFromFolder,
   } = useImportFromFolder({
-    onImported: () => {
+    onImported: (response) => {
+      // Keep the panel open on partial imports so the resume message stays visible.
+      if (response?.status === "partial") return;
       onClose();
     },
     onError: () => {},
@@ -69,6 +72,14 @@ export default function AddGame({
     isImporting && importProgress != null
       ? Math.max(0, Math.min(100, Math.round(importProgress.percent)))
       : null;
+  const importStatusText =
+    !importFolderBusy && importError
+      ? importError
+      : !importFolderBusy && importNotice
+        ? importNotice
+        : null;
+  const importStatusIsError = Boolean(importError && !importFolderBusy);
+  const importStatusIsNotice = Boolean(importNotice && !importError && !importFolderBusy);
 
   const handleImportFromFolder = async () => {
     if (!aiFolderImportEnabled || importFolderBusy) return;
@@ -527,17 +538,19 @@ export default function AddGame({
                 </button>
                 {(isPickingFolder ||
                   (isImporting && importPercent != null) ||
-                  importError) && (
+                  importStatusText) && (
                   <div
                     className={
-                      importError && !importFolderBusy
+                      importStatusIsError
                         ? "add-game-import-status add-game-import-status-error"
-                        : "add-game-import-status"
+                        : importStatusIsNotice
+                          ? "add-game-import-status add-game-import-status-notice"
+                          : "add-game-import-status"
                     }
                     aria-live="polite"
                   >
-                    {importError && !importFolderBusy
-                      ? importError
+                    {importStatusText
+                      ? importStatusText
                       : isPickingFolder
                         ? t(
                             "addGame.pickingImportFolderHint",
