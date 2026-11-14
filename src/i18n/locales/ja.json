@@ -290,6 +290,8 @@
     "importFromFolderPartialRateLimit": "一部インポート: {{count}} 件のゲームをライブラリに追加しました。AIの上限に達しました — 約 {{wait}} 後に再試行してください。同じフォルダーで「インポート」を再実行して続行してください。",
     "importFromFolderRateLimit": "AIの上限に達しました — 約 {{wait}} 後に再試行してください。",
     "importFromFolderRateLimitResume": "AIの上限に達しました — 約 {{wait}} 後に再試行してください。この実行で {{apiCalls}} 件のAPIチャンクが完了しました。同じフォルダーで「インポート」を再実行するとキャッシュから続行できます。",
+    "importFromFolderRateLimitWaiting": "AI上限 — {{wait}} 後に自動で再試行…",
+    "importFromFolderResuming": "インポートを再開中…",
     "importFromFolderFailed": "フォルダーからのインポートに失敗しました"
   },
   "viewMode": {

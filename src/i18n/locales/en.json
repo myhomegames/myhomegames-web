@@ -323,6 +323,8 @@
     "importFromFolderPartialRateLimit": "Partial import: {{count}} game(s) were added to your library. AI rate limit reached — try again in about {{wait}}. Run Import again on the same folder to continue.",
     "importFromFolderRateLimit": "AI rate limit reached — try again in about {{wait}}.",
     "importFromFolderRateLimitResume": "AI rate limit reached — try again in about {{wait}}. Completed {{apiCalls}} API chunks this run; run Import again on the same folder to continue from cache.",
+    "importFromFolderRateLimitWaiting": "AI rate limit — auto-retry in {{wait}}…",
+    "importFromFolderResuming": "Resuming import…",
     "importFromFolderFailed": "Failed to import from folder"
   },
   "viewMode": {

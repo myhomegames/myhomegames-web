@@ -323,6 +323,8 @@
     "importFromFolderPartialRateLimit": "Importazione parziale: {{count}} gioco/i aggiunti alla libreria. Limite AI raggiunto — riprova tra circa {{wait}}. Esegui di nuovo Importa sulla stessa cartella per continuare.",
     "importFromFolderRateLimit": "Limite AI raggiunto — riprova tra circa {{wait}}.",
     "importFromFolderRateLimitResume": "Limite AI raggiunto — riprova tra circa {{wait}}. Completati {{apiCalls}} chunk API in questa sessione; esegui di nuovo Importa sulla stessa cartella per continuare dalla cache.",
+    "importFromFolderRateLimitWaiting": "Limite AI — ripresa automatica tra {{wait}}…",
+    "importFromFolderResuming": "Ripresa importazione…",
     "importFromFolderFailed": "Importazione dalla cartella non riuscita"
   },
   "viewMode": {

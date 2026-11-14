@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { API_BASE } from "../../../config";
 import { buildApiUrl, buildApiHeaders } from "../../../utils/api";
@@ -6,6 +6,12 @@ import { useLoading } from "../../../contexts/LoadingContext";
 import { schedulePostGameImportLibraryRefresh } from "../../../utils/librarySyncEvents";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
+
+/** Auto-resume when the provider asks to wait at most this long (client-side). */
+const CLIENT_AUTO_RETRY_MAX_WAIT_MS = 5 * 60 * 1000;
+const CLIENT_AUTO_RETRY_MAX_ATTEMPTS = 12;
+/** Small buffer past the provider's suggested delay. */
+const CLIENT_AUTO_RETRY_BUFFER_MS = 1500;
 
 function formatWaitLabel(ms: number | null | undefined, fallbackText = ""): string {
   if (Number.isFinite(ms) && Number(ms) > 0) {
@@ -34,6 +40,38 @@ function isRateLimitPayload(payload: {
   if (code === "AI_RATE_LIMIT") return true;
   const text = String(payload.error || payload.aiError || payload.message || "");
   return /rate limit/i.test(text) || /tokens per day/i.test(text) || /try again in about/i.test(text);
+}
+
+function resolveRetryAfterMs(
+  ms: number | null | undefined,
+  fallbackText = ""
+): number | null {
+  if (Number.isFinite(ms) && Number(ms) > 0) return Math.floor(Number(ms));
+  const human = String(fallbackText || "").match(
+    /try again in about\s+(\d+)\s*h(?:\s*(\d+)\s*m)?|try again in about\s+(\d+)\s*m(?:\s*(\d+)\s*s)?|try again in about\s+(\d+)\s*s/i
+  );
+  if (!human) return null;
+  if (human[1] != null) {
+    const hours = Number(human[1]) || 0;
+    const mins = Number(human[2]) || 0;
+    return (hours * 3600 + mins * 60) * 1000;
+  }
+  if (human[3] != null) {
+    const mins = Number(human[3]) || 0;
+    const secs = Number(human[4]) || 0;
+    return (mins * 60 + secs) * 1000;
+  }
+  if (human[5] != null) return (Number(human[5]) || 0) * 1000;
+  return null;
+}
+
+function shouldAutoRetryRateLimit(retryAfterMs: number | null): boolean {
+  return (
+    retryAfterMs != null &&
+    Number.isFinite(retryAfterMs) &&
+    retryAfterMs > 0 &&
+    retryAfterMs <= CLIENT_AUTO_RETRY_MAX_WAIT_MS
+  );
 }
 
 function buildPartialImportNotice(t: TranslateFn, json: FolderImportResponse): string {
@@ -78,6 +116,10 @@ function buildImportErrorMessage(
     return t("addGame.importFromFolderRateLimit", { wait });
   }
   return String(payload.error || payload.message || t("addGame.importFromFolderFailed"));
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, Math.max(0, ms)));
 }
 
 class FolderImportStreamError extends Error {
@@ -265,6 +307,15 @@ export function useImportFromFolder({
   const [importNotice, setImportNotice] = useState<string | null>(null);
   const [importProgress, setImportProgress] = useState<FolderImportProgress | null>(null);
   const [lastImport, setLastImport] = useState<FolderImportResponse | null>(null);
+  const cancelledRef = useRef(false);
+  const runIdRef = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      cancelledRef.current = true;
+      runIdRef.current += 1;
+    };
+  }, []);
 
   const pickImportFolder = async (options?: {
     prompt?: string;
@@ -312,6 +363,79 @@ export function useImportFromFolder({
     }
   };
 
+  const waitForAutoRetry = async (
+    retryAfterMs: number,
+    runId: number
+  ): Promise<boolean> => {
+    const waitMs = Math.max(0, retryAfterMs) + CLIENT_AUTO_RETRY_BUFFER_MS;
+    const deadline = Date.now() + waitMs;
+    setLoading(false);
+    setImportError(null);
+    setImportNotice(null);
+    while (Date.now() < deadline) {
+      if (cancelledRef.current || runIdRef.current !== runId) return false;
+      const remaining = Math.max(0, deadline - Date.now());
+      setImportProgress({
+        phase: "rate-limit-wait",
+        current: 0,
+        total: 1,
+        percent: 0,
+        label: t("addGame.importFromFolderRateLimitWaiting", {
+          wait: formatWaitLabel(remaining),
+        }),
+      });
+      await sleep(Math.min(1000, remaining));
+    }
+    return !(cancelledRef.current || runIdRef.current !== runId);
+  };
+
+  const runImportOnce = async (
+    pathValue: string
+  ): Promise<FolderImportResponse> => {
+    const url = buildApiUrl(API_BASE, "/games/import-from-folder");
+    const res = await fetch(url, {
+      method: "POST",
+      headers: buildApiHeaders({
+        "Content-Type": "application/json",
+        Accept: "text/event-stream, application/json",
+      }),
+      body: JSON.stringify({ folderPath: pathValue, stream: true }),
+    });
+
+    const contentType = String(res.headers.get("content-type") || "").toLowerCase();
+    const isSse = contentType.includes("text/event-stream");
+
+    if (!res.ok && !isSse) {
+      const errorData = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        code?: string | null;
+        retryAfterMs?: number | null;
+        stats?: { apiCalls?: number } | null;
+      };
+      throw new FolderImportStreamError({
+        error: buildImportErrorMessage(t, errorData),
+        code: errorData.code || null,
+        retryAfterMs: errorData.retryAfterMs,
+        stats: errorData.stats || null,
+      });
+    }
+
+    const json = isSse
+      ? await readFolderImportSse(res, setImportProgress)
+      : ((await res.json()) as FolderImportResponse);
+
+    if (!isSse && !res.ok) {
+      throw new FolderImportStreamError({
+        error: (json as { error?: string })?.error,
+        code: (json as { code?: string })?.code,
+        retryAfterMs: (json as { retryAfterMs?: number })?.retryAfterMs,
+        stats: (json as { stats?: { apiCalls?: number } })?.stats,
+      });
+    }
+
+    return json;
+  };
+
   const importFromFolder = async (
     folderPath: string
   ): Promise<FolderImportResponse | null> => {
@@ -323,88 +447,121 @@ export function useImportFromFolder({
       return null;
     }
 
+    const runId = ++runIdRef.current;
+    cancelledRef.current = false;
     setIsImporting(true);
     setImportError(null);
     setImportNotice(null);
     setImportProgress({ phase: "scan", current: 0, total: 1, percent: 0 });
     setLoading(true);
 
+    let autoRetryAttempt = 0;
+
     try {
-      const url = buildApiUrl(API_BASE, "/games/import-from-folder");
-      const res = await fetch(url, {
-        method: "POST",
-        headers: buildApiHeaders({
-          "Content-Type": "application/json",
-          Accept: "text/event-stream, application/json",
-        }),
-        body: JSON.stringify({ folderPath: pathValue, stream: true }),
-      });
+      while (true) {
+        if (cancelledRef.current || runIdRef.current !== runId) return null;
 
-      const contentType = String(res.headers.get("content-type") || "").toLowerCase();
-      const isSse = contentType.includes("text/event-stream");
-
-      if (!res.ok && !isSse) {
-        const errorData = (await res.json().catch(() => ({}))) as {
-          error?: string;
-          code?: string | null;
-          retryAfterMs?: number | null;
-          stats?: { apiCalls?: number } | null;
-        };
-        const errorMsg = buildImportErrorMessage(t, errorData);
-        setImportError(errorMsg);
-        if (onError) onError(errorMsg);
-        return null;
-      }
-
-      const json = isSse
-        ? await readFolderImportSse(res, setImportProgress)
-        : ((await res.json()) as FolderImportResponse);
-
-      if (!isSse && !res.ok) {
-        const errorMsg = buildImportErrorMessage(t, {
-          error: (json as { error?: string })?.error,
-          code: (json as { code?: string })?.code,
-          retryAfterMs: (json as { retryAfterMs?: number })?.retryAfterMs,
-          stats: (json as { stats?: { apiCalls?: number } })?.stats,
-        });
-        setImportError(errorMsg);
-        if (onError) onError(errorMsg);
-        return null;
-      }
-
-      setImportProgress({ phase: "done", current: 1, total: 1, percent: 100 });
-      setLastImport(json);
-      window.dispatchEvent(
-        new CustomEvent("gamesImportedFromFolder", { detail: { summary: json.summary } })
-      );
-      schedulePostGameImportLibraryRefresh();
-      if (json.status === "partial") {
-        setImportNotice(buildPartialImportNotice(t, json));
-      } else {
+        setLoading(true);
+        setImportError(null);
         setImportNotice(null);
-      }
-      if (onImported) onImported(json);
-      return json;
-    } catch (error: unknown) {
-      const errorMsg =
-        error instanceof FolderImportStreamError
-          ? buildImportErrorMessage(t, {
-              error: error.message,
-              code: error.code,
-              retryAfterMs: error.retryAfterMs,
-              stats: error.stats,
+        if (autoRetryAttempt > 0) {
+          setImportProgress({
+            phase: "scan",
+            current: 0,
+            total: 1,
+            percent: 0,
+            label: t("addGame.importFromFolderResuming", "Resuming import…"),
+          });
+        }
+
+        try {
+          const json = await runImportOnce(pathValue);
+          if (cancelledRef.current || runIdRef.current !== runId) return null;
+
+          setImportProgress({ phase: "done", current: 1, total: 1, percent: 100 });
+          setLastImport(json);
+          window.dispatchEvent(
+            new CustomEvent("gamesImportedFromFolder", {
+              detail: { summary: json.summary },
             })
-          : error instanceof Error
-            ? buildImportErrorMessage(t, { error: error.message, message: error.message })
-            : t("addGame.importFromFolderFailed");
-      console.error("Error importing games from folder:", error);
-      setImportError(errorMsg);
-      if (onError) onError(errorMsg);
-      return null;
+          );
+          schedulePostGameImportLibraryRefresh();
+
+          if (json.status === "partial") {
+            const retryAfterMs = resolveRetryAfterMs(
+              json.summary?.retryAfterMs,
+              json.summary?.aiError || ""
+            );
+            const rateLimited = isRateLimitPayload({
+              aiErrorCode: json.summary?.aiErrorCode,
+              aiError: json.summary?.aiError,
+            });
+            if (
+              rateLimited &&
+              shouldAutoRetryRateLimit(retryAfterMs) &&
+              autoRetryAttempt < CLIENT_AUTO_RETRY_MAX_ATTEMPTS
+            ) {
+              if (onImported) onImported(json);
+              autoRetryAttempt += 1;
+              const ok = await waitForAutoRetry(retryAfterMs as number, runId);
+              if (!ok) return json;
+              continue;
+            }
+            setImportNotice(buildPartialImportNotice(t, json));
+          } else {
+            setImportNotice(null);
+          }
+          if (onImported) onImported(json);
+          return json;
+        } catch (error: unknown) {
+          if (cancelledRef.current || runIdRef.current !== runId) return null;
+
+          const streamErr =
+            error instanceof FolderImportStreamError ? error : null;
+          const retryAfterMs = streamErr
+            ? resolveRetryAfterMs(streamErr.retryAfterMs, streamErr.message)
+            : null;
+          if (
+            streamErr &&
+            isRateLimitPayload({
+              code: streamErr.code,
+              error: streamErr.message,
+            }) &&
+            shouldAutoRetryRateLimit(retryAfterMs) &&
+            autoRetryAttempt < CLIENT_AUTO_RETRY_MAX_ATTEMPTS
+          ) {
+            autoRetryAttempt += 1;
+            const ok = await waitForAutoRetry(retryAfterMs as number, runId);
+            if (!ok) return null;
+            continue;
+          }
+
+          const errorMsg =
+            streamErr
+              ? buildImportErrorMessage(t, {
+                  error: streamErr.message,
+                  code: streamErr.code,
+                  retryAfterMs: streamErr.retryAfterMs,
+                  stats: streamErr.stats,
+                })
+              : error instanceof Error
+                ? buildImportErrorMessage(t, {
+                    error: error.message,
+                    message: error.message,
+                  })
+                : t("addGame.importFromFolderFailed");
+          console.error("Error importing games from folder:", error);
+          setImportError(errorMsg);
+          if (onError) onError(errorMsg);
+          return null;
+        }
+      }
     } finally {
-      setIsImporting(false);
-      setImportProgress(null);
-      setLoading(false);
+      if (runIdRef.current === runId) {
+        setIsImporting(false);
+        setImportProgress(null);
+        setLoading(false);
+      }
     }
   };
 

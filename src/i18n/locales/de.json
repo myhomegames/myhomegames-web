@@ -290,6 +290,8 @@
     "importFromFolderPartialRateLimit": "Teilimport: {{count}} Spiel(e) wurden zur Bibliothek hinzugefügt. AI-Limit erreicht — erneut versuchen in etwa {{wait}}. Starte Import erneut für denselben Ordner, um fortzufahren.",
     "importFromFolderRateLimit": "AI-Limit erreicht — erneut versuchen in etwa {{wait}}.",
     "importFromFolderRateLimitResume": "AI-Limit erreicht — erneut versuchen in etwa {{wait}}. {{apiCalls}} API-Chunks in diesem Lauf abgeschlossen; starte Import erneut für denselben Ordner, um aus dem Cache fortzufahren.",
+    "importFromFolderRateLimitWaiting": "AI-Limit — automatischer Retry in {{wait}}…",
+    "importFromFolderResuming": "Import wird fortgesetzt…",
     "importFromFolderFailed": "Import aus dem Ordner fehlgeschlagen"
   },
   "viewMode": {

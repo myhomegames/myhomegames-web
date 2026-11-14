@@ -290,6 +290,8 @@
     "importFromFolderPartialRateLimit": "Importación parcial: se añadieron {{count}} juego(s) a tu biblioteca. Límite de IA alcanzado — inténtalo de nuevo en unos {{wait}}. Vuelve a pulsar Importar en la misma carpeta para continuar.",
     "importFromFolderRateLimit": "Límite de IA alcanzado — inténtalo de nuevo en unos {{wait}}.",
     "importFromFolderRateLimitResume": "Límite de IA alcanzado — inténtalo de nuevo en unos {{wait}}. Se completaron {{apiCalls}} fragmentos API en esta sesión; vuelve a pulsar Importar en la misma carpeta para continuar desde la caché.",
+    "importFromFolderRateLimitWaiting": "Límite de IA — reintento automático en {{wait}}…",
+    "importFromFolderResuming": "Reanudando importación…",
     "importFromFolderFailed": "Error al importar desde la carpeta"
   },
   "viewMode": {

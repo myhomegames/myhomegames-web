@@ -290,6 +290,8 @@
     "importFromFolderPartialRateLimit": "部分导入：已将 {{count}} 个游戏添加到游戏库。已达到 AI 限额 — 请约 {{wait}} 后再试。请对同一文件夹再次点击“导入”以继续。",
     "importFromFolderRateLimit": "已达到 AI 限额 — 请约 {{wait}} 后再试。",
     "importFromFolderRateLimitResume": "已达到 AI 限额 — 请约 {{wait}} 后再试。本次已完成 {{apiCalls}} 个 API 分块；请对同一文件夹再次点击“导入”以从缓存继续。",
+    "importFromFolderRateLimitWaiting": "已达到 AI 限额 — {{wait}} 后自动重试…",
+    "importFromFolderResuming": "正在恢复导入…",
     "importFromFolderFailed": "从文件夹导入失败"
   },
   "viewMode": {

@@ -556,13 +556,16 @@ export default function AddGame({
                             "addGame.pickingImportFolderHint",
                             "Choose a folder in the system dialog on the server computer…"
                           )
-                        : importProgress?.label
-                          ? `${importProgress.label} · ${importPercent ?? 0}%`
-                          : t(
-                              "addGame.importingFromFolderProgress",
-                              "Importing… {{percent}}%",
-                              { percent: importPercent ?? 0 }
-                            )}
+                        : importProgress?.phase === "rate-limit-wait" &&
+                            importProgress.label
+                          ? importProgress.label
+                          : importProgress?.label
+                            ? `${importProgress.label} · ${importPercent ?? 0}%`
+                            : t(
+                                "addGame.importingFromFolderProgress",
+                                "Importing… {{percent}}%",
+                                { percent: importPercent ?? 0 }
+                              )}
                   </div>
                 )}
               </div>
