@@ -3,54 +3,71 @@ import { useCollections } from "../../../contexts/CollectionsContext";
 import { useDevelopers } from "../../../contexts/DevelopersContext";
 import { usePublishers } from "../../../contexts/PublishersContext";
 import { useLibraryGames } from "../../../contexts/LibraryGamesContext";
-import { API_BASE } from "../../../config";
-import { buildApiUrl, buildApiHeaders } from "../../../utils/api";
+import {
+  collectionLikeHasPlayableInContext,
+  fetchCollectionLikeHasPlayableGame,
+  type CollectionLikePlayPath,
+} from "../../../utils/collectionLikePlay";
 
-export type CollectionLikeGamesPath = "collections" | "developers" | "publishers";
+export type CollectionLikeGamesPath = CollectionLikePlayPath;
 
 type UseCollectionHasPlayableGameReturn = {
   hasPlayableGame: boolean | null;
   isLoading: boolean;
 };
 
-function gameIdsMapForPath(
-  gamesPath: CollectionLikeGamesPath,
-  collectionGameIds: Map<string, string[]>,
-  developerGameIds: Map<string, string[]>,
-  publisherGameIds: Map<string, string[]>
-): Map<string, string[]> {
-  if (gamesPath === "developers") return developerGameIds;
-  if (gamesPath === "publishers") return publisherGameIds;
-  return collectionGameIds;
-}
-
 /**
- * Whether any game linked to a collection-like item has launch scripts.
- * Prefers context game-id maps + LibraryGamesContext; if the id is missing from
- * the map (e.g. hydrated sub-collection-likes), fetches `/:id/games` (disk-backed).
+ * Whether this collection-like (or a descendant) has a launchable game.
+ * Priority for play is handled at click time: direct games first, then childs.
  */
 export function useCollectionHasPlayableGame(
   collectionId: string | undefined,
   enabled: boolean = true,
   gamesPath: CollectionLikeGamesPath = "collections"
 ): UseCollectionHasPlayableGameReturn {
-  const { collectionGameIds, isLoading: collectionsLoading, getCollectionGameIds } = useCollections();
-  const { developerGameIds, isLoading: developersLoading } = useDevelopers();
-  const { publisherGameIds, isLoading: publishersLoading } = usePublishers();
+  const {
+    collections,
+    collectionGameIds,
+    isLoading: collectionsLoading,
+    getCollectionGameIds,
+  } = useCollections();
+  const { developers, developerGameIds, isLoading: developersLoading } = useDevelopers();
+  const { publishers, publisherGameIds, isLoading: publishersLoading } = usePublishers();
   const { games: allGames, isLoading: gamesLoading } = useLibraryGames();
   const [isLoadingGameIds, setIsLoadingGameIds] = useState(false);
   const [fetchedPlayable, setFetchedPlayable] = useState<boolean | null>(null);
 
-  const idsMap = gameIdsMapForPath(
-    gamesPath,
-    collectionGameIds,
-    developerGameIds,
-    publisherGameIds
-  );
-  const idKey = collectionId != null ? String(collectionId) : "";
-  const hasCachedIds = Boolean(idKey && idsMap.has(idKey));
+  const idsMap =
+    gamesPath === "developers"
+      ? developerGameIds
+      : gamesPath === "publishers"
+        ? publisherGameIds
+        : collectionGameIds;
 
-  // Collections: populate game-id map on demand (same as before).
+  const items =
+    gamesPath === "developers"
+      ? developers
+      : gamesPath === "publishers"
+        ? publishers
+        : collections;
+
+  const itemsById = useMemo(() => {
+    const map = new Map<string, { childs?: Array<string | number> }>();
+    for (const item of items) {
+      map.set(String(item.id), item);
+    }
+    return map;
+  }, [items]);
+
+  const libraryGamesById = useMemo(() => {
+    const map = new Map<string, { executables?: string[] | null }>();
+    for (const game of allGames) {
+      map.set(String(game.id), game);
+    }
+    return map;
+  }, [allGames]);
+
+  // Collections: populate game-id map on demand for the root id.
   useEffect(() => {
     if (!enabled || !collectionId || gamesPath !== "collections") {
       return;
@@ -73,18 +90,28 @@ export function useCollectionHasPlayableGame(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [collectionId, enabled, gamesPath, collectionsLoading, gamesLoading]);
 
-  // Developers/publishers (and any path still missing from the map): fetch games list.
+  const contextResult = useMemo(() => {
+    if (!enabled || !collectionId) return null;
+    return collectionLikeHasPlayableInContext(
+      collectionId,
+      idsMap,
+      itemsById,
+      libraryGamesById
+    );
+  }, [enabled, collectionId, idsMap, itemsById, libraryGamesById]);
+
+  // When context cannot decide (missing map entries / hydrated childs), walk the API.
   useEffect(() => {
     if (!enabled || !collectionId) {
       setFetchedPlayable(null);
       return;
     }
-    if (idsMap.has(String(collectionId))) {
+    if (contextResult !== null) {
       setFetchedPlayable(null);
       return;
     }
-    // Collections still loading via getCollectionGameIds above.
-    if (gamesPath === "collections") {
+    if (gamesPath === "collections" && !collectionGameIds.has(String(collectionId))) {
+      // Still waiting for getCollectionGameIds
       return;
     }
 
@@ -92,25 +119,9 @@ export function useCollectionHasPlayableGame(
     setIsLoadingGameIds(true);
     setFetchedPlayable(null);
 
-    const url = buildApiUrl(
-      API_BASE,
-      `/${gamesPath}/${encodeURIComponent(String(collectionId))}/games`
-    );
-    fetch(url, {
-      headers: buildApiHeaders({ Accept: "application/json" }),
-      cache: "no-store",
-    })
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then((json) => {
+    fetchCollectionLikeHasPlayableGame(gamesPath, collectionId)
+      .then((playable) => {
         if (cancelled) return;
-        const games = Array.isArray(json?.games) ? json.games : [];
-        const playable = games.some(
-          (g: { executables?: unknown }) =>
-            Array.isArray(g?.executables) && g.executables.length > 0
-        );
         setFetchedPlayable(playable);
         setIsLoadingGameIds(false);
       })
@@ -123,7 +134,7 @@ export function useCollectionHasPlayableGame(
     return () => {
       cancelled = true;
     };
-  }, [collectionId, enabled, gamesPath, idsMap, hasCachedIds]);
+  }, [collectionId, enabled, gamesPath, contextResult, collectionGameIds]);
 
   const result = useMemo(() => {
     if (!enabled || !collectionId) {
@@ -141,16 +152,8 @@ export function useCollectionHasPlayableGame(
       return { hasPlayableGame: null, isLoading: true };
     }
 
-    if (idsMap.has(String(collectionId))) {
-      const gameIds = idsMap.get(String(collectionId)) || [];
-      if (gameIds.length === 0) {
-        return { hasPlayableGame: false, isLoading: false };
-      }
-      const hasExecutables = gameIds.some((gameId) => {
-        const game = allGames.find((g) => String(g.id) === String(gameId));
-        return game && game.executables && game.executables.length > 0;
-      });
-      return { hasPlayableGame: hasExecutables, isLoading: false };
+    if (contextResult !== null) {
+      return { hasPlayableGame: contextResult, isLoading: false };
     }
 
     if (fetchedPlayable != null) {
@@ -162,8 +165,7 @@ export function useCollectionHasPlayableGame(
     collectionId,
     enabled,
     gamesPath,
-    idsMap,
-    allGames,
+    contextResult,
     collectionsLoading,
     developersLoading,
     publishersLoading,

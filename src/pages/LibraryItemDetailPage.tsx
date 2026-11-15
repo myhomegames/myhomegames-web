@@ -52,6 +52,7 @@ import {
   parseGamesListFromApiJson,
   type CollectionLikeSlideSection,
 } from "../utils/collectionLikeSectionGames";
+import { fetchFirstPlayableGameInCollectionLike } from "../utils/collectionLikePlay";
 import { isMainGameType } from "../utils/gameType";
 import { buildApiUrl, buildCoverUrl, buildApiHeaders } from "../utils/api";
 import { API_BASE, getApiToken } from "../config";
@@ -1054,14 +1055,7 @@ export default function LibraryItemDetailPage({
                 ? "developers"
                 : "publishers";
           try {
-            const url = buildApiUrl(API_BASE, `/${base}/${cid}/games`);
-            const res = await fetch(url, {
-              headers: buildApiHeaders({ Accept: "application/json" }),
-            });
-            if (!res.ok) return;
-            const json = await res.json();
-            const games = parseGamesFromJson(json);
-            const first = games.find((g) => g.executables && g.executables.length > 0);
+            const first = await fetchFirstPlayableGameInCollectionLike(base, cid);
             if (first) onPlay(first);
           } catch (e) {
             console.error(`Error fetching ${base} games:`, e);
