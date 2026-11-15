@@ -17,6 +17,7 @@ import {
 import { gameHasExecutableForPlatform, getExecutablesForPlatform } from "../../utils/gameExecutables";
 import { portraitCoverHeight } from "../../utils/coverPortrait";
 import { isSmartTvBrowser } from "../../utils/smartTv";
+import { useCollectionHasPlayableGame } from "../common/hooks/useCollectionHasPlayableGame";
 const VIRTUALIZATION_THRESHOLD = 100; // Use virtual scrolling when there are more than this many items
 /** Horizontal rails (Recommended / detail sliders): window covers once strips grow. */
 const HORIZONTAL_STRIP_VIRTUALIZATION_THRESHOLD_TV = 8;
@@ -183,6 +184,11 @@ export function GameListItem({
   const pseudo = parseCollectionLikePseudoGameId(game.id);
   const isPseudoCollectionLikeCard = Boolean(
     pseudo && collectionLikeResourceType && pseudo.resourceType === collectionLikeResourceType
+  );
+  const { hasPlayableGame: pseudoHasPlayableGame } = useCollectionHasPlayableGame(
+    isPseudoCollectionLikeCard && pseudo ? pseudo.childId : undefined,
+    Boolean(isPseudoCollectionLikeCard && onPlay && onPlayFirstInCollectionLike),
+    (pseudo?.resourceType as "collections" | "developers" | "publishers" | undefined) ?? "collections"
   );
 
   const suppressDetailNavigation =
@@ -364,7 +370,7 @@ export function GameListItem({
           suppressDetailNavigation
             ? false
             : isPseudoCollectionLikeCard
-              ? !!(onPlay && onPlayFirstInCollectionLike)
+              ? pseudoHasPlayableGame === true
               : platformIdForPlay
                 ? gameHasExecutableForPlatform(game, platformIdForPlay)
                 : !!(game.executables && game.executables.length > 0)
