@@ -1,6 +1,10 @@
 import { useMemo, useEffect, useState } from "react";
 import { useCollections } from "../../../contexts/CollectionsContext";
+import { useDevelopers } from "../../../contexts/DevelopersContext";
+import { usePublishers } from "../../../contexts/PublishersContext";
 import { useLibraryGames } from "../../../contexts/LibraryGamesContext";
+
+export type CollectionLikeGamesPath = "collections" | "developers" | "publishers";
 
 type UseCollectionHasPlayableGameReturn = {
   hasPlayableGame: boolean | null;
@@ -8,32 +12,34 @@ type UseCollectionHasPlayableGameReturn = {
 };
 
 /**
- * Hook to check if any game in a collection has executables.
- * Uses data from CollectionsContext and LibraryGamesContext to avoid API calls.
- * Loads game IDs on-demand if not already in context.
- * Returns null while loading, true if at least one game has executables, false otherwise.
+ * Whether any game linked to a collection-like item has launch scripts.
+ * Uses LibraryGamesContext executables (disk-backed via library list) plus the
+ * resource's game-id map so list covers stay aligned after script deletes.
  */
 export function useCollectionHasPlayableGame(
   collectionId: string | undefined,
-  enabled: boolean = true
+  enabled: boolean = true,
+  gamesPath: CollectionLikeGamesPath = "collections"
 ): UseCollectionHasPlayableGameReturn {
   const { collectionGameIds, isLoading: collectionsLoading, getCollectionGameIds } = useCollections();
+  const { developerGameIds, isLoading: developersLoading } = useDevelopers();
+  const { publisherGameIds, isLoading: publishersLoading } = usePublishers();
   const { games: allGames, isLoading: gamesLoading } = useLibraryGames();
   const [isLoadingGameIds, setIsLoadingGameIds] = useState(false);
 
-  // Load game IDs on-demand if not in context
   useEffect(() => {
-    if (!enabled || !collectionId || collectionsLoading || gamesLoading) {
+    if (!enabled || !collectionId || gamesPath !== "collections") {
+      return;
+    }
+    if (collectionsLoading || gamesLoading) {
       return;
     }
 
     const cached = collectionGameIds.get(String(collectionId));
     if (cached) {
-      // Already loaded, no need to fetch
       return;
     }
 
-    // Load game IDs on-demand
     setIsLoadingGameIds(true);
     getCollectionGameIds(collectionId)
       .then(() => {
@@ -43,35 +49,55 @@ export function useCollectionHasPlayableGame(
         setIsLoadingGameIds(false);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [collectionId, enabled, collectionsLoading, gamesLoading]);
+  }, [collectionId, enabled, gamesPath, collectionsLoading, gamesLoading]);
 
   const result = useMemo(() => {
     if (!enabled || !collectionId) {
       return { hasPlayableGame: null, isLoading: false };
     }
 
-    // If contexts are still loading, return loading state
-    if (collectionsLoading || gamesLoading || isLoadingGameIds) {
+    const resourceLoading =
+      gamesPath === "collections"
+        ? collectionsLoading
+        : gamesPath === "developers"
+          ? developersLoading
+          : publishersLoading;
+
+    if (resourceLoading || gamesLoading || isLoadingGameIds) {
       return { hasPlayableGame: null, isLoading: true };
     }
 
-    // Get game IDs for this collection from CollectionsContext
-    const gameIds = collectionGameIds.get(String(collectionId));
-    
+    const gameIds =
+      gamesPath === "collections"
+        ? collectionGameIds.get(String(collectionId))
+        : gamesPath === "developers"
+          ? developerGameIds.get(String(collectionId))
+          : publisherGameIds.get(String(collectionId));
+
     if (!gameIds || gameIds.length === 0) {
-      // Collection has no games or game IDs not yet loaded
       return { hasPlayableGame: false, isLoading: false };
     }
 
-    // Check if any of these games have executables using LibraryGamesContext
     const hasExecutables = gameIds.some((gameId) => {
       const game = allGames.find((g) => String(g.id) === String(gameId));
       return game && game.executables && game.executables.length > 0;
     });
 
     return { hasPlayableGame: hasExecutables, isLoading: false };
-  }, [collectionId, enabled, collectionGameIds, allGames, collectionsLoading, gamesLoading, isLoadingGameIds]);
+  }, [
+    collectionId,
+    enabled,
+    gamesPath,
+    collectionGameIds,
+    developerGameIds,
+    publisherGameIds,
+    allGames,
+    collectionsLoading,
+    developersLoading,
+    publishersLoading,
+    gamesLoading,
+    isLoadingGameIds,
+  ]);
 
   return result;
 }
-

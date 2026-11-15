@@ -96,10 +96,11 @@ export function CollectionListItem({
     return collection.cover ? buildCoverUrl(API_BASE, collection.cover, coverChanged) : "";
   }, [collection.cover, coverChanged, buildCoverUrl]);
   
-  // Check if any game in collection has executables (only for collections)
+  // Play only when at least one linked library game has launch scripts
   const { hasPlayableGame } = useCollectionHasPlayableGame(
     collection.id,
-    gamesPath === "collections"
+    !!onPlay,
+    gamesPath
   );
 
   const handlePlayClick = async () => {
@@ -188,7 +189,7 @@ export function CollectionListItem({
         showTitle={showTitle ?? collection.showTitle !== false}
         subtitle={showTitle === false ? undefined : subtitle}
         detail={true}
-        play={gamesPath === "collections" ? hasPlayableGame === true : !!onPlay}
+        play={hasPlayableGame === true}
         showBorder={true}
         longPressTarget={longPressTarget}
       />
