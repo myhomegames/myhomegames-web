@@ -131,6 +131,24 @@ export default function TagListPage({
     return () => el.removeEventListener("scroll", pinOuterScroll);
   }, [fixedFocalTags, isReady, items.length]);
 
+  // Bumped when import/tag sync creates new platforms (etc.) so covers/titles refetch
+  // without requiring a full page reload.
+  const [listReloadToken, setListReloadToken] = useState(0);
+
+  useEffect(() => {
+    const bump = () => setListReloadToken((n) => n + 1);
+    window.addEventListener("tagListUpdated", bump);
+    window.addEventListener("gamesImportedFromFolder", bump);
+    window.addEventListener("metadataReloaded", bump);
+    window.addEventListener("gameAdded", bump);
+    return () => {
+      window.removeEventListener("tagListUpdated", bump);
+      window.removeEventListener("gamesImportedFromFolder", bump);
+      window.removeEventListener("metadataReloaded", bump);
+      window.removeEventListener("gameAdded", bump);
+    };
+  }, []);
+
   useEffect(() => {
     if (!listResponseKey) {
       setServerItems(null);
@@ -204,7 +222,7 @@ export default function TagListPage({
       if (controller) controller.abort();
       if (timeoutId != null) clearTimeout(timeoutId);
     };
-  }, [listEndpoint, listResponseKey, routeBase]);
+  }, [listEndpoint, listResponseKey, routeBase, listReloadToken]);
 
   useEffect(() => {
     if (games.length === 0) {
@@ -231,7 +249,17 @@ export default function TagListPage({
 
     const resolvedItems = Array.from(valueSet).map((id) => {
       const match = serverMap.get(String(id));
-      return match || { id, title: id };
+      if (match) return match;
+      // New tags from import may appear in games before /platforms (etc.) is refetched.
+      // Keep a usable title + cover URL so the CDN/proxy cover can load without a full reload.
+      const labelFromContext =
+        tagKey && tagLabels[tagKey as keyof typeof tagLabels]?.get(String(id));
+      const endpoint = listEndpoint || routeBase;
+      return {
+        id,
+        title: labelFromContext || String(id),
+        cover: endpoint ? `${endpoint}/${id}/cover.webp` : undefined,
+      };
     });
 
     resolvedItems.sort((a, b) => {
@@ -244,7 +272,7 @@ export default function TagListPage({
     // This avoids an extra re-render that causes scroll flicker (like library/collections).
     if (pendingScrollRestoreRef.current !== null) return;
     setItems(resolvedItems);
-  }, [games, valueExtractor, resolveItemLabel, serverItems]);
+  }, [games, valueExtractor, resolveItemLabel, serverItems, tagKey, tagLabels, listEndpoint, routeBase]);
 
   const getRoute = useMemo(
     () => (item: TagItem) => `${routeBase}/${encodeURIComponent(item.id)}`,
