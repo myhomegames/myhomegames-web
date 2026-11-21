@@ -7,6 +7,7 @@ import Cover from "../games/Cover";
 import EditCollectionLikeModal, { type CollectionLikeResourceType } from "../collections/EditCollectionLikeModal";
 import AddCollectionLikeToCollectionLikeModal from "../collections/AddCollectionLikeToCollectionLikeModal";
 import { useCollectionHasPlayableGame } from "../common/hooks/useCollectionHasPlayableGame";
+import { fetchFirstPlayableGameInCollectionLike } from "../../utils/collectionLikePlay";
 import VirtualizedCollectionsList from "./VirtualizedCollectionsList";
 import FixedFocalCollectionsList from "./FixedFocalCollectionsList";
 import type { CollectionItem, CollectionInfo, GameItem } from "../../types";
@@ -96,41 +97,19 @@ export function CollectionListItem({
     return collection.cover ? buildCoverUrl(API_BASE, collection.cover, coverChanged) : "";
   }, [collection.cover, coverChanged, buildCoverUrl]);
   
-  // Check if any game in collection has executables (only for collections)
+  // Play only when at least one linked library game has launch scripts
   const { hasPlayableGame } = useCollectionHasPlayableGame(
     collection.id,
-    gamesPath === "collections"
+    !!onPlay,
+    gamesPath
   );
 
   const handlePlayClick = async () => {
     if (!onPlay) return;
-    
     try {
-      const url = buildApiUrl(API_BASE, `/${gamesPath}/${collection.id}/games`);
-      const res = await fetch(url, {
-        headers: buildApiHeaders({ Accept: "application/json" }),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        const games = json.games || [];
-        // Find the first game that has executables (for playing)
-        const gameWithExecutables = games.find((g: any) => g.executables && g.executables.length > 0);
-        if (gameWithExecutables) {
-          const gameItem: GameItem = {
-            id: gameWithExecutables.id,
-            title: gameWithExecutables.title,
-            summary: gameWithExecutables.summary || "",
-            cover: gameWithExecutables.cover,
-            day: gameWithExecutables.day || null,
-            month: gameWithExecutables.month || null,
-            year: gameWithExecutables.year || null,
-            stars: gameWithExecutables.stars || null,
-            genre: gameWithExecutables.genre || null,
-            executables: gameWithExecutables.executables || null,
-          };
-          onPlay(gameItem);
-        }
-      }
+      // Direct games first, then child collection-likes.
+      const game = await fetchFirstPlayableGameInCollectionLike(gamesPath, collection.id);
+      if (game) onPlay(game);
     } catch (err) {
       console.error("Error fetching collection games for play:", err);
     }
@@ -188,7 +167,7 @@ export function CollectionListItem({
         showTitle={showTitle ?? collection.showTitle !== false}
         subtitle={showTitle === false ? undefined : subtitle}
         detail={true}
-        play={gamesPath === "collections" ? hasPlayableGame === true : !!onPlay}
+        play={hasPlayableGame === true}
         showBorder={true}
         longPressTarget={longPressTarget}
       />

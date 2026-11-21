@@ -265,6 +265,8 @@ function syncTwaManifest({ host, origin, startPath, packageId }) {
   manifest.appVersionName = versionName;
   manifest.appVersion = versionName;
   manifest.appVersionCode = versionCode;
+  // Play automatic protection requires API 24+.
+  manifest.minSdkVersion = 24;
   manifest.signingKey = {
     path: "./android.keystore",
     alias: "android",

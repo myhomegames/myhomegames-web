@@ -25,3 +25,21 @@ export function applySkinCss(css: string): void {
     active && isServerSkinId(active) ? "server" : "none";
   syncSmartTvSelectionHover();
 }
+
+/**
+ * Temporarily disable the cached skin stylesheet (e.g. ServerUnavailablePage).
+ * Skin bundles reset global margin/padding and otherwise break standalone UI shells.
+ * Returns a restore function for useEffect cleanup.
+ */
+export function suspendSkinCss(): () => void {
+  const el = getSkinStyleElement();
+  const wasDisabled = el.disabled;
+  el.disabled = true;
+  document.documentElement.dataset.mhgUiOverlay = "reconnect";
+  return () => {
+    const current =
+      (document.getElementById(SKIN_STYLE_ELEMENT_ID) as HTMLStyleElement | null) || el;
+    if (current.isConnected) current.disabled = wasDisabled;
+    delete document.documentElement.dataset.mhgUiOverlay;
+  };
+}

@@ -5,6 +5,8 @@ export type DeferredLibraryRefreshOptions = {
   refreshPublishers?: boolean;
   refreshTags?: boolean;
   refreshRecommended?: boolean;
+  /** Refetch owned library games list (Libraries / home). */
+  refreshLibraryGames?: boolean;
   /** Delays (ms) before dispatching refresh events; default [100, 500] for async server cleanup. */
   delaysMs?: number[];
 };
@@ -16,6 +18,7 @@ function dispatchDeferredLibraryRefresh(options: DeferredLibraryRefreshOptions =
     refreshPublishers = false,
     refreshTags = false,
     refreshRecommended = false,
+    refreshLibraryGames = false,
   } = options;
 
   for (const collectionId of collectionIds) {
@@ -37,6 +40,9 @@ function dispatchDeferredLibraryRefresh(options: DeferredLibraryRefreshOptions =
   }
   if (refreshRecommended) {
     window.dispatchEvent(new CustomEvent("recommendedUpdated"));
+  }
+  if (refreshLibraryGames) {
+    window.dispatchEvent(new CustomEvent("libraryGamesUpdated"));
   }
 }
 
@@ -62,14 +68,15 @@ export function schedulePostGameDeleteLibraryRefresh(collectionIds: Array<string
   });
 }
 
-/** After POST /catalog/import-game or /games/create — recommended sections may rebuild async. */
+/** After POST /catalog/import-game, /games/create, or folder import — list + recommended may rebuild async. */
 export function schedulePostGameImportLibraryRefresh() {
   scheduleDeferredLibraryRefresh({
+    refreshLibraryGames: true,
     refreshRecommended: true,
     refreshTags: true,
     refreshDevelopers: true,
     refreshPublishers: true,
-    delaysMs: [150, 600, 1200],
+    delaysMs: [0, 150, 600, 1200],
   });
 }
 

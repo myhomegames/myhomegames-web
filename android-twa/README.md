@@ -185,7 +185,7 @@ See [`tizen/README.md`](../tizen/README.md).
 | Gradle / AGP fails on Java 21+ | Unsupported JDK | `export JAVA_HOME=…/openjdk@17` then re-run |
 | PWA validation fails | Host unreachable or bad icons | Check the live URL; or `--skip-pwa-validation` |
 | TWA shows URL bar | Missing / wrong asset links | Deploy `assetlinks.json` with the build fingerprint |
-| Play rejects upload | Wrong keystore / versionCode | Reuse the same keystore; bump `package.json` version (drives `appVersionCode`) |
+| Play rejects upload | Wrong keystore / versionCode / `minSdkVersion` | Reuse the same keystore; bump `package.json` version (drives `appVersionCode`); build sets `minSdkVersion` 24 for Play automatic protection |
 
 First Bubblewrap run may download the Android SDK into `~/.bubblewrap` and ask to
 accept licenses in some environments — re-run after setup completes.

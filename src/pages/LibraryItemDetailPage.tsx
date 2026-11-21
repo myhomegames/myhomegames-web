@@ -17,6 +17,7 @@ import { useTitleFilterQuery } from "../contexts/TitleFilterContext";
 import { useCatalogGamesForTag, type CatalogTagKey } from "../hooks/useCatalogGamesForTag";
 import GamesList from "../components/games/GamesList";
 import Cover from "../components/games/Cover";
+import { useCollectionHasPlayableGame } from "../components/common/hooks/useCollectionHasPlayableGame";
 import GameSummaryOverlay from "../components/games/GameSummaryOverlay";
 import LibrariesBar from "../components/layout/LibrariesBar";
 import StarRating from "../components/common/StarRating";
@@ -51,6 +52,7 @@ import {
   parseGamesListFromApiJson,
   type CollectionLikeSlideSection,
 } from "../utils/collectionLikeSectionGames";
+import { fetchFirstPlayableGameInCollectionLike } from "../utils/collectionLikePlay";
 import { isMainGameType } from "../utils/gameType";
 import { buildApiUrl, buildCoverUrl, buildApiHeaders } from "../utils/api";
 import { API_BASE, getApiToken } from "../config";
@@ -1053,14 +1055,7 @@ export default function LibraryItemDetailPage({
                 ? "developers"
                 : "publishers";
           try {
-            const url = buildApiUrl(API_BASE, `/${base}/${cid}/games`);
-            const res = await fetch(url, {
-              headers: buildApiHeaders({ Accept: "application/json" }),
-            });
-            if (!res.ok) return;
-            const json = await res.json();
-            const games = parseGamesFromJson(json);
-            const first = games.find((g) => g.executables && g.executables.length > 0);
+            const first = await fetchFirstPlayableGameInCollectionLike(base, cid);
             if (first) onPlay(first);
           } catch (e) {
             console.error(`Error fetching ${base} games:`, e);
@@ -1084,6 +1079,76 @@ export default function LibraryItemDetailPage({
         setTopBarRightActions={outletContext?.setTopBarRightActions}
       />
     </BackgroundManager>
+  );
+}
+
+/** Sub-collection-like cover: Play only when a linked game has launch scripts. */
+function SubCollectionLikeCoverCell({
+  col,
+  resourceType,
+  coverSize,
+  subtitle,
+  isActiveDetailChild,
+  onNavigate,
+  onPlayFirst,
+  onEdit,
+  onAddToCollection,
+  onRemoveFromParent,
+  allCollectionLikes,
+  onCollectionUpdate,
+}: {
+  col: CollectionItem;
+  resourceType: CollectionLikeResourceType;
+  coverSize: number;
+  subtitle?: string;
+  isActiveDetailChild: boolean;
+  onNavigate: () => void;
+  onPlayFirst?: (resourceType: string, id: string) => void | Promise<void>;
+  onEdit: () => void;
+  onAddToCollection: (parentId?: string) => void;
+  onRemoveFromParent: () => void;
+  allCollectionLikes: CollectionItem[];
+  onCollectionUpdate?: (updated: CollectionInfo) => void;
+}) {
+  const { hasPlayableGame } = useCollectionHasPlayableGame(
+    String(col.id),
+    !isActiveDetailChild && !!onPlayFirst,
+    resourceType
+  );
+  const showPlay = !isActiveDetailChild && hasPlayableGame === true;
+
+  return (
+    <Cover
+      title={col.title}
+      cover={col.cover}
+      width={coverSize}
+      height={coverSize * 1.5}
+      onClick={isActiveDetailChild ? undefined : onNavigate}
+      detailNavigationDisabled={isActiveDetailChild}
+      subtitle={subtitle}
+      play={showPlay}
+      onPlay={
+        showPlay && onPlayFirst
+          ? () => onPlayFirst(resourceType, String(col.id))
+          : undefined
+      }
+      onEdit={isActiveDetailChild ? undefined : onEdit}
+      onAddToCollection={onAddToCollection}
+      onRemoveFromParent={onRemoveFromParent}
+      sourceCollectionLike={col}
+      allCollectionLikes={allCollectionLikes}
+      collectionLikeResourceType={resourceType}
+      dropdownHorizontal={false}
+      dropdownToolTipDelay={200}
+      collectionId={resourceType === "collections" ? String(col.id) : undefined}
+      developerId={resourceType === "developers" ? String(col.id) : undefined}
+      publisherId={resourceType === "publishers" ? String(col.id) : undefined}
+      collectionTitle={col.title}
+      onCollectionUpdate={onCollectionUpdate}
+      showTitle={(col as { showTitle?: boolean }).showTitle !== false}
+      detail={true}
+      showBorder={true}
+    />
   );
 }
 
@@ -2250,44 +2315,27 @@ function LibraryItemDetailContent({
                                         ? { "data-mhg-collection-id": String(col.id) }
                                         : {})}
                                     >
-                                      <Cover
-                                        title={col.title}
-                                        cover={col.cover}
-                                        width={coverSize}
-                                        height={coverSize * 1.5}
-                                        onClick={isActiveDetailChild ? undefined : handleClick}
-                                        detailNavigationDisabled={isActiveDetailChild}
+                                      <SubCollectionLikeCoverCell
+                                        col={col}
+                                        resourceType={resourceType}
+                                        coverSize={coverSize}
                                         subtitle={
                                           (subCollectionDisplayCountById[String(col.id)] ?? col.gameCount) != null
                                             ? t("common.elements", { count: subCollectionDisplayCountById[String(col.id)] ?? col.gameCount })
                                             : undefined
                                         }
-                                        play={!isActiveDetailChild && !!onPlayFirstInCollectionLike}
-                                        onPlay={
-                                          isActiveDetailChild || !onPlayFirstInCollectionLike
-                                            ? undefined
-                                            : () => onPlayFirstInCollectionLike(resourceType, String(col.id))
-                                        }
-                                        onEdit={isActiveDetailChild ? undefined : () => openChildEditModal(col)}
+                                        isActiveDetailChild={isActiveDetailChild}
+                                        onNavigate={handleClick}
+                                        onPlayFirst={onPlayFirstInCollectionLike}
+                                        onEdit={() => openChildEditModal(col)}
                                         onAddToCollection={(parentId) => addChildToParent(col, parentId)}
                                         onRemoveFromParent={() => removeChildFromParent(String(col.id))}
-                                        sourceCollectionLike={col}
                                         allCollectionLikes={allCollectionLikes}
-                                        collectionLikeResourceType={resourceType}
-                                        dropdownHorizontal={false}
-                                        dropdownToolTipDelay={200}
-                                        collectionId={resourceType === "collections" ? String(col.id) : undefined}
-                                        developerId={resourceType === "developers" ? String(col.id) : undefined}
-                                        publisherId={resourceType === "publishers" ? String(col.id) : undefined}
-                                        collectionTitle={col.title}
                                         onCollectionUpdate={
                                           resourceType === "collections"
                                             ? (updated) => dispatchCollectionLikeUpdated(updated)
                                             : undefined
                                         }
-                                        showTitle={(col as any).showTitle !== false}
-                                        detail={true}
-                                        showBorder={true}
                                       />
                                     </div>
                                   );

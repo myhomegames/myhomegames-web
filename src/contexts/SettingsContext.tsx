@@ -23,6 +23,11 @@ interface SettingsContextType {
   setTwitchApiEnabled: (value: boolean) => void;
   /** True when IGDB API is enabled in server settings (credentials on API gateway). */
   catalogSearchEnabled: boolean;
+  /**
+   * True when AI folder import is available.
+   * Local: server OPENAI_API_KEY. Tunnel: Worker gateway configured (key never sent to the browser).
+   */
+  aiFolderImportEnabled: boolean;
   /** Sunshine + Moonlight Web remote play for non-local browsers. */
   remoteStreamingEnabled: boolean;
   /**
@@ -46,6 +51,7 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const { featureEnabled, statusLoaded, tunnelReady } = useTunnel();
   const [twitchApiEnabled, setTwitchApiEnabled] = useState(false);
+  const [aiFolderImportEnabled, setAiFolderImportEnabled] = useState(false);
   const [remoteStreamingEnabled, setRemoteStreamingEnabled] = useState(true);
   const [skinWeb, setSkinWeb] = useState<SkinWebManifest>(DEFAULT_SKIN_WEB_MANIFEST);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
@@ -72,6 +78,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           const data = await res.json();
           const serverApiEnabled = !!data.twitchApiEnabled;
           setTwitchApiEnabled(serverApiEnabled);
+          setAiFolderImportEnabled(!!data.aiFolderImportEnabled);
           setRemoteStreamingEnabled(data.remoteStreamingEnabled !== false);
           applySkinWeb(data.skinWeb);
           clearLegacyCatalogCredentialStorage();
@@ -152,6 +159,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         twitchApiEnabled,
         setTwitchApiEnabled,
         catalogSearchEnabled,
+        aiFolderImportEnabled,
         remoteStreamingEnabled,
         skinWeb,
         updateSkinWebFlags,

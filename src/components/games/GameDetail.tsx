@@ -42,6 +42,7 @@ import EditCollectionLikeModal from "../collections/EditCollectionLikeModal";
 import AddCollectionLikeToCollectionLikeModal from "../collections/AddCollectionLikeToCollectionLikeModal";
 import { parseCollectionLikePseudoGameId } from "../../utils/collectionLikePseudoGame";
 import { buildChildCollectionLikeSlideItems, parseGamesFromJson } from "../../utils/collectionChildSlideItems";
+import { fetchFirstPlayableGameInCollectionLike } from "../../utils/collectionLikePlay";
 type GameDetailProps = {
   game: GameItem;
   coverUrl: string;
@@ -539,16 +540,13 @@ function GameDetailContent({
     }
   };
 
-  const playFirstInCollection = async (_type: string, cid: string) => {
+  const playFirstInCollection = async (type: string, cid: string) => {
     try {
-      const url = buildApiUrl(API_BASE, `/collections/${encodeURIComponent(cid)}/games`);
-      const res = await fetch(url, {
-        headers: { Accept: "application/json", "X-Auth-Token": getApiToken() || "" },
-      });
-      if (!res.ok) return;
-      const json = await res.json();
-      const gamesList = parseGamesFromJson(json);
-      const first = gamesList.find((g) => g.executables && g.executables.length > 0);
+      const resourceType =
+        type === "developers" || type === "publishers" || type === "collections"
+          ? type
+          : "collections";
+      const first = await fetchFirstPlayableGameInCollectionLike(resourceType, cid);
       if (first) onPlay(first);
     } catch (e) {
       console.error("Error fetching collection games for play:", e);
