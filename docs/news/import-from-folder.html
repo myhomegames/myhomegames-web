@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Import from a folder — MyHomeGames News</title>
+    <meta
+      name="description"
+      content="Import from a folder: build your MyHomeGames library from disk dumps, ISOs, and unpacked installs."
+    />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://myhomegames.vige.it/news/import-from-folder.html" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><rect width="32" height="32" fill="%23FFD700" rx="4"/><text x="16" y="16" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="black" text-anchor="middle" dominant-baseline="middle">MY</text></svg>'
+    />
+    <script src="../home-i18n.js"></script>
+    <script>
+      (function () {
+        try {
+          if (!window.MHG_HOME_I18N) return;
+          var lang = window.MHG_HOME_I18N.resolveLang();
+          window.__MHG_HOME_LANG = lang;
+          document.documentElement.lang =
+            { en: "en", it: "it", es: "es", de: "de", fr: "fr", pt: "pt", ja: "ja", zh: "zh-CN" }[
+              lang
+            ] || lang;
+        } catch (_) {}
+      })();
+    </script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+          sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      header {
+        text-align: center;
+        color: white;
+        padding: 2rem 0 1rem;
+      }
+
+      header h1 {
+        font-size: 2rem;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        margin-bottom: 0.5rem;
+      }
+
+      .news-date {
+        font-size: 1.1rem;
+        opacity: 0.95;
+      }
+
+      .back-link {
+        display: inline-block;
+        margin-top: 1.25rem;
+        color: white;
+        text-decoration: underline;
+        opacity: 0.95;
+      }
+
+      .content {
+        background: white;
+        border-radius: 12px;
+        padding: 2.5rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        margin-top: 1.5rem;
+      }
+
+      .news-body h4 {
+        font-size: 1.35rem;
+        color: #764ba2;
+        margin-top: 1.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .news-body h4:first-child {
+        margin-top: 0;
+      }
+
+      .news-body p {
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+      }
+
+      code {
+        background: #f4f4f4;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-family: "Courier New", monospace;
+        font-size: 0.9em;
+      }
+
+      .news-source {
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid #eee;
+      }
+
+      .news-source a {
+        color: #667eea;
+        font-weight: 600;
+      }
+
+      footer {
+        text-align: center;
+        color: white;
+        padding: 2rem 0;
+        margin-top: 2rem;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          padding: 1rem;
+        }
+
+        header h1 {
+          font-size: 1.5rem;
+        }
+
+        .content {
+          padding: 1.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <p class="news-date">
+          <time datetime="2026-11-21" data-i18n="news1Date">21 November 2026</time>
+        </p>
+        <h1 data-i18n="news1Title">Import from a folder: build your library from disk</h1>
+        <a class="back-link" href="../" data-i18n="newsDetailBack">← Back to home</a>
+      </header>
+
+      <main class="content">
+        <div class="news-body" data-i18n-html="news1Body">
+          <p>
+            MyHomeGames is not a game store — it is a catalog of what you already own on disk.
+            <strong>Import from a folder</strong> is built for that: point at a directory (a DOS
+            collection, a Dreamcast scripts folder, a mix of ISOs and unpacked installs) and the
+            server scans it to add titles to your library with the right launchers.
+          </p>
+          <h4>What it does</h4>
+          <p>
+            Pick a folder and start the import. MyHomeGames walks the tree, finds installs and disc
+            images, and creates or updates game entries. You do not have to rename every COLC folder
+            or every AI130.iso by hand: when reliable hints exist — <code>file_id.diz</code>, README,
+            NFO, ISO volume metadata — the retail title comes from those signals, not from a bare
+            folder acronym.
+          </p>
+          <p>
+            If you keep both a disc image (<code>cd/….iso</code>) and an unpacked copy under
+            <code>games/…</code> for the same title, you get one library entry, not two — with launch
+            paths attached to both dumps when that makes sense.
+          </p>
+          <h4>Built for real dumps</h4>
+          <p>
+            Home collections are messy: thousands of WAVs, voice packs, sound drivers, language
+            subfolders. The scan keeps those as context for an install instead of turning every clip
+            or data file into a phantom “game.” What matters stays: executables, launch scripts,
+            ISO/CUE images, and the small text sidecars that name the title.
+          </p>
+          <p>
+            Mixed layouts work too: flat folders of <code>.sh</code>/<code>.bat</code> files, deep
+            trees like <code>dosprograms/games/…</code>, CDs and RIPs side by side. Existing launch
+            scripts can be re-attached to the right game even when the script name does not perfectly
+            match the folder, so remote play still opens the correct dump.
+          </p>
+          <h4>Official catalog, if you want it</h4>
+          <p>
+            With an external catalog connected, recognized titles can pick up official metadata
+            (cover, year, platforms). With the catalog off, import still creates entries from what is
+            on disk — no hard dependency on a third-party account.
+          </p>
+          <h4>Resume without starting over</h4>
+          <p>
+            On large collections, import shows progress and can finish across multiple runs on the
+            same folder. Work already done stays in a local cache: run Import again on the same path
+            and it continues instead of rescanning everything from scratch.
+          </p>
+          <h4>In short</h4>
+          <p>
+            <strong>Import from a folder</strong> matches how you actually keep games on a NAS or
+            external drive: one root, many dumps, one tidy catalog. Less manual renaming, fewer
+            ISO-vs-unpacked duplicates, launchers that point at the right files — and a library that
+            grows from your disk layout, not from typing titles one by one.
+          </p>
+        </div>
+        <p class="news-source">
+          <a
+            href="https://www.facebook.com/groups/1864095787557962/posts/2105741736726698"
+            rel="noopener noreferrer"
+            target="_blank"
+            data-i18n="news1Source"
+            >View on Facebook</a
+          >
+        </p>
+      </main>
+
+      <footer>
+        <p data-i18n="footerTagline">© 2026 MyHomeGames — Self-hosted game library catalog</p>
+      </footer>
+    </div>
+
+    <script>
+      (function () {
+        if (window.MHG_HOME_I18N) {
+          window.MHG_HOME_I18N.apply(window.__MHG_HOME_LANG || window.MHG_HOME_I18N.resolveLang());
+          if (window.MHG_HOME_I18N.t) {
+            document.title =
+              window.MHG_HOME_I18N.t("news1Title") + " — MyHomeGames";
+          }
+        }
+      })();
+    </script>
+  </body>
+</html>

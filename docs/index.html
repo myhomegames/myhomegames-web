@@ -489,46 +489,62 @@
         margin: 1rem 0;
       }
 
-      .news-item {
+      .news-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 1.25rem;
+        margin-top: 1.25rem;
+      }
+
+      .news-card {
+        aspect-ratio: 1 / 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
         background: #f8f9fa;
-        border-left: 4px solid #667eea;
-        border-radius: 8px;
-        padding: 1.5rem 1.75rem;
-        margin-top: 1rem;
+        border: 1px solid #e9ecef;
+        border-radius: 12px;
+        padding: 1.25rem;
+        text-decoration: none;
+        color: inherit;
+        box-shadow: 0 2px 10px rgba(102, 126, 234, 0.08);
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s,
+          border-color 0.2s;
       }
 
-      .news-meta {
-        font-size: 0.95rem;
+      .news-card:hover,
+      .news-card:focus-visible {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 22px rgba(102, 126, 234, 0.2);
+        border-color: #667eea;
+        outline: none;
+      }
+
+      .news-card-date {
+        font-size: 0.9rem;
         color: #6c757d;
-        margin-bottom: 0.35rem;
+        margin: 0 0 0.65rem;
       }
 
-      .news-item h3 {
-        margin-top: 0;
-        margin-bottom: 1rem;
-        font-size: 1.35rem;
-      }
-
-      .news-body h4 {
+      .news-card-title {
         font-size: 1.15rem;
         color: #764ba2;
-        margin-top: 1.25rem;
-        margin-bottom: 0.5rem;
+        margin: 0;
+        line-height: 1.35;
+        flex: 1;
+        display: -webkit-box;
+        -webkit-line-clamp: 5;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
       }
 
-      .news-body p:last-child {
-        margin-bottom: 0;
-      }
-
-      .news-source {
-        margin-top: 1.25rem;
-        margin-bottom: 0;
+      .news-card-link {
+        margin-top: 1rem;
         font-size: 1rem;
-      }
-
-      .news-source a {
-        color: #667eea;
         font-weight: 600;
+        color: #667eea;
       }
 
       footer {
@@ -634,76 +650,23 @@
       <div class="content">
         <section class="section" id="news" aria-labelledby="news-heading">
           <h2 id="news-heading" data-i18n="newsTitle">📰 News</h2>
-          <article class="news-item">
-            <p class="news-meta">
-              <time datetime="2026-11-21" data-i18n="news1Date">21 November 2026</time>
-            </p>
-            <h3 data-i18n="news1Title">
-              Import from a folder: build your library from disk
-            </h3>
-            <div class="news-body" data-i18n-html="news1Body">
-              <p>
-                MyHomeGames is not a game store — it is a catalog of what you already own on disk.
-                <strong>Import from a folder</strong> is built for that: point at a directory (a DOS
-                collection, a Dreamcast scripts folder, a mix of ISOs and unpacked installs) and the
-                server scans it to add titles to your library with the right launchers.
-              </p>
-              <h4>What it does</h4>
-              <p>
-                Pick a folder and start the import. MyHomeGames walks the tree, finds installs and
-                disc images, and creates or updates game entries. You do not have to rename every
-                COLC folder or every AI130.iso by hand: when reliable hints exist —
-                <code>file_id.diz</code>, README, NFO, ISO volume metadata — the retail title comes
-                from those signals, not from a bare folder acronym.
-              </p>
-              <p>
-                If you keep both a disc image (<code>cd/….iso</code>) and an unpacked copy under
-                <code>games/…</code> for the same title, you get one library entry, not two — with
-                launch paths attached to both dumps when that makes sense.
-              </p>
-              <h4>Built for real dumps</h4>
-              <p>
-                Home collections are messy: thousands of WAVs, voice packs, sound drivers, language
-                subfolders. The scan keeps those as context for an install instead of turning every
-                clip or data file into a phantom “game.” What matters stays: executables, launch
-                scripts, ISO/CUE images, and the small text sidecars that name the title.
-              </p>
-              <p>
-                Mixed layouts work too: flat folders of <code>.sh</code>/<code>.bat</code> files,
-                deep trees like <code>dosprograms/games/…</code>, CDs and RIPs side by side. Existing
-                launch scripts can be re-attached to the right game even when the script name does
-                not perfectly match the folder, so remote play still opens the correct dump.
-              </p>
-              <h4>Official catalog, if you want it</h4>
-              <p>
-                With an external catalog connected, recognized titles can pick up official metadata
-                (cover, year, platforms). With the catalog off, import still creates entries from
-                what is on disk — no hard dependency on a third-party account.
-              </p>
-              <h4>Resume without starting over</h4>
-              <p>
-                On large collections, import shows progress and can finish across multiple runs on
-                the same folder. Work already done stays in a local cache: run Import again on the
-                same path and it continues instead of rescanning everything from scratch.
-              </p>
-              <h4>In short</h4>
-              <p>
-                <strong>Import from a folder</strong> matches how you actually keep games on a NAS
-                or external drive: one root, many dumps, one tidy catalog. Less manual renaming,
-                fewer ISO-vs-unpacked duplicates, launchers that point at the right files — and a
-                library that grows from your disk layout, not from typing titles one by one.
-              </p>
-            </div>
-            <p class="news-source">
-              <a
-                href="https://www.facebook.com/groups/1864095787557962/posts/2105741736726698"
-                rel="noopener noreferrer"
-                target="_blank"
-                data-i18n="news1Source"
-                >View on Facebook</a
-              >
-            </p>
-          </article>
+          <div class="news-grid">
+            <a
+              class="news-card"
+              href="news/import-from-folder.html"
+              data-i18n-attr="aria-label:news1Title"
+            >
+              <div>
+                <p class="news-card-date">
+                  <time datetime="2026-11-21" data-i18n="news1Date">21 November 2026</time>
+                </p>
+                <h3 class="news-card-title" data-i18n="news1Title">
+                  Import from a folder: build your library from disk
+                </h3>
+              </div>
+              <span class="news-card-link" data-i18n="news1ReadMore">Read more</span>
+            </a>
+          </div>
         </section>
 
         <section class="section">
