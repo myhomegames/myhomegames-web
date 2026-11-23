@@ -218,17 +218,17 @@
 
       .cta-button {
         display: inline-block;
-        padding: 1.5rem 3rem;
+        padding: 1.25rem 2.5rem;
         background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         color: white;
         text-decoration: none;
         border-radius: 12px;
-        font-size: 1.5rem;
+        font-size: 1.35rem;
         font-weight: 700;
         transition:
           transform 0.2s,
           box-shadow 0.2s;
-        margin: 2rem 0;
+        margin: 0;
         box-shadow: 0 6px 25px rgba(245, 87, 108, 0.5);
         text-transform: uppercase;
         letter-spacing: 1px;
@@ -581,7 +581,7 @@
       }
     </style>
 
-    <script src="home-i18n.js?v=20261123d"></script>
+    <script src="home-i18n.js?v=20261123e"></script>
     <script>
       setTimeout(function () {
         if (!document.documentElement.hasAttribute("data-i18n-ready")) {
@@ -618,11 +618,6 @@
           />
         </h1>
         <p class="subtitle" data-i18n="subtitle">Personal video game collection management system</p>
-        <div style="margin-top: 2rem">
-          <a href="/app/" id="webapp-link" class="cta-button" data-i18n="ctaAccessWebApp">
-            🌐 Access Web App
-          </a>
-        </div>
       </header>
 
       <main id="main-content">
@@ -849,9 +844,14 @@
           </div>
           <h3 data-i18n="step2Title">2. Access the Web Application</h3>
           <p data-i18n="step2P1">
-            Once the server is running, access the web application using the button at the top of this page
-            or by visiting the web app URL directly. You can start managing your video game collection right away.
+            Once the server is running, open the web application with the button below or by visiting
+            the web app URL directly. You can start managing your video game collection right away.
           </p>
+          <div class="button-container" style="margin: 1.25rem 0 1.5rem">
+            <a href="/app/" id="webapp-link" class="cta-button" data-i18n="ctaAccessWebApp">
+              🌐 Access Web App
+            </a>
+          </div>
           <p data-i18n-html="step2P2">
             Sign in with your <strong>email address</strong>.
           </p>
