@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MyHomeGames 1.1.2 is out — MyHomeGames News</title>
+    <meta
+      name="description"
+      content="MyHomeGames 1.1.2: easier installs on Windows, Linux, and macOS, multilingual catalog, richer company data, skins, and tunnel updates."
+    />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://myhomegames.vige.it/news/release-1.1.2.html" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><rect width="32" height="32" fill="%23FFD700" rx="4"/><text x="16" y="16" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="black" text-anchor="middle" dominant-baseline="middle">MY</text></svg>'
+    />
+    <script src="../home-i18n.js?v=20261123d"></script>
+    <script>
+      (function () {
+        try {
+          if (!window.MHG_HOME_I18N) return;
+          var lang = window.MHG_HOME_I18N.resolveLang();
+          window.__MHG_HOME_LANG = lang;
+          document.documentElement.lang =
+            { en: "en", it: "it", es: "es", de: "de", fr: "fr", pt: "pt", ja: "ja", zh: "zh-CN" }[
+              lang
+            ] || lang;
+        } catch (_) {}
+      })();
+    </script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+          sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      header {
+        text-align: center;
+        color: white;
+        padding: 2rem 0 1rem;
+      }
+
+      header h1 {
+        font-size: 2rem;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        margin-bottom: 0.5rem;
+      }
+
+      .news-date {
+        font-size: 1.1rem;
+        opacity: 0.95;
+      }
+
+      .back-link {
+        display: inline-block;
+        margin-top: 1.25rem;
+        color: white;
+        text-decoration: underline;
+        opacity: 0.95;
+      }
+
+      .content {
+        background: white;
+        border-radius: 12px;
+        padding: 2.5rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        margin-top: 1.5rem;
+      }
+
+      .news-figure {
+        margin: 0 0 1.5rem;
+      }
+
+      .news-figure img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+      }
+
+      .news-body h4 {
+        font-size: 1.35rem;
+        color: #764ba2;
+        margin-top: 1.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .news-body h4:first-child {
+        margin-top: 0;
+      }
+
+      .news-body p {
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+      }
+
+      .news-body ul {
+        margin: 0 0 1rem 1.25rem;
+        font-size: 1.1rem;
+      }
+
+      .news-body li {
+        margin-bottom: 0.35rem;
+      }
+
+      .news-body a {
+        color: #667eea;
+        font-weight: 600;
+      }
+
+      code {
+        background: #f4f4f4;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-family: "Courier New", monospace;
+        font-size: 0.9em;
+      }
+
+      .news-source {
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid #eee;
+      }
+
+      .news-source a {
+        color: #667eea;
+        font-weight: 600;
+      }
+
+      footer {
+        text-align: center;
+        color: white;
+        padding: 2rem 0;
+        margin-top: 2rem;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          padding: 1rem;
+        }
+
+        header h1 {
+          font-size: 1.5rem;
+        }
+
+        .content {
+          padding: 1.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <p class="news-date">
+          <time datetime="2026-07-17" data-i18n="news4Date">17 July 2026</time>
+        </p>
+        <h1 data-i18n="news4Title">MyHomeGames 1.1.2 is out</h1>
+        <a class="back-link" href="../" data-i18n="newsDetailBack">← Back to home</a>
+      </header>
+
+      <main class="content">
+        <figure class="news-figure">
+          <img
+            src="images/release-1.1.2.jpg"
+            alt="MyHomeGames 1.1.2 release"
+            width="800"
+            height="400"
+            loading="lazy"
+            decoding="async"
+          />
+        </figure>
+        <div class="news-body" data-i18n-html="news4Body">
+          <p>
+            <strong>MyHomeGames 1.1.2</strong> is out — a server and web client update focused on
+            easier installs, richer catalog data, and smarter translations.
+          </p>
+          <h4>Install everywhere</h4>
+          <ul>
+            <li>Windows: unified package plus Microsoft Store publishing</li>
+            <li>Linux: APT/YUM packages via Cloudsmith (plus <code>.deb</code>, <code>.rpm</code>, and tarball)</li>
+            <li>macOS: <code>.pkg</code> installers (Apple Silicon and Intel) and Homebrew updates</li>
+            <li>
+              If you open the web app and the server is unreachable, you see a download link for
+              your platform
+            </li>
+          </ul>
+          <h4>Multilingual catalog</h4>
+          <ul>
+            <li>Summaries and keywords translated on the server in your settings language</li>
+            <li>Automatic translation on search, detail, IGDB import, and edit save</li>
+            <li>Less reliance on on-the-fly browser translation — text is stored in metadata</li>
+          </ul>
+          <h4>Richer developers and publishers</h4>
+          <ul>
+            <li>
+              Enriched IGDB company profiles: company size, legal name, country, status, and
+              formerly relations
+            </li>
+            <li>Shared company data, editable from developer/publisher views</li>
+            <li>More reliable parent/child company linking</li>
+          </ul>
+          <h4>Skins and updates</h4>
+          <ul>
+            <li>Installed skin version and server/web/skin compatibility</li>
+            <li>Update bell for official skins as well</li>
+            <li>Support for a collapsible library sidebar on narrow viewports</li>
+          </ul>
+          <h4>Clearer metadata reload</h4>
+          <ul>
+            <li>Bulk progress with tooltip, cancel, and resume after refresh</li>
+            <li>Per-item metadata reload (games, lists, and more)</li>
+            <li>Faster library cleanup and async recommended updates</li>
+          </ul>
+          <h4>Tunnel</h4>
+          <ul>
+            <li>On tunnel start, cloudflared auto-updates when needed</li>
+          </ul>
+          <p>
+            Get 1.1.2 from
+            <a
+              href="https://github.com/myhomegames/myhomegames-server/releases/tag/1.1.2"
+              rel="noopener noreferrer"
+              target="_blank"
+              >GitHub Releases</a
+            >
+            or open the
+            <a href="https://myhomegames.vige.it/app/" rel="noopener noreferrer" target="_blank"
+              >web app</a
+            >.
+          </p>
+        </div>
+        <p class="news-source">
+          <a
+            href="https://www.facebook.com/groups/1864095787557962/posts/1992286671405539"
+            rel="noopener noreferrer"
+            target="_blank"
+            data-i18n="news4Source"
+            >View on Facebook</a
+          >
+        </p>
+      </main>
+
+      <footer>
+        <p data-i18n="footerTagline">© 2026 MyHomeGames — Self-hosted game library catalog</p>
+      </footer>
+    </div>
+
+    <script>
+      (function () {
+        if (window.MHG_HOME_I18N) {
+          window.MHG_HOME_I18N.apply(window.__MHG_HOME_LANG || window.MHG_HOME_I18N.resolveLang());
+          if (window.MHG_HOME_I18N.t) {
+            document.title =
+              window.MHG_HOME_I18N.t("news4Title") + " — MyHomeGames";
+          }
+        }
+      })();
+    </script>
+  </body>
+</html>
