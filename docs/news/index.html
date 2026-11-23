@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>News — MyHomeGames</title>
+    <meta
+      name="description"
+      content="MyHomeGames news: product updates, releases, and announcements."
+    />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://myhomegames.vige.it/news/" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><rect width="32" height="32" fill="%23FFD700" rx="4"/><text x="16" y="16" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="black" text-anchor="middle" dominant-baseline="middle">MY</text></svg>'
+    />
+    <script src="../home-i18n.js?v=20261123f"></script>
+    <script>
+      (function () {
+        try {
+          if (!window.MHG_HOME_I18N) return;
+          var lang = window.MHG_HOME_I18N.resolveLang();
+          window.__MHG_HOME_LANG = lang;
+          document.documentElement.lang =
+            { en: "en", it: "it", es: "es", de: "de", fr: "fr", pt: "pt", ja: "ja", zh: "zh-CN" }[
+              lang
+            ] || lang;
+        } catch (_) {}
+      })();
+    </script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+          sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      header {
+        text-align: center;
+        color: white;
+        padding: 2rem 0 1rem;
+      }
+
+      header h1 {
+        font-size: 2rem;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        margin-bottom: 0.5rem;
+      }
+
+      .back-link {
+        display: inline-block;
+        margin-top: 1.25rem;
+        color: white;
+        text-decoration: underline;
+        opacity: 0.95;
+      }
+
+      .content {
+        background: white;
+        border-radius: 12px;
+        padding: 2.5rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        margin-top: 1.5rem;
+      }
+
+      .news-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 1.25rem;
+      }
+
+      .news-card {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 0;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 12px;
+        padding: 1rem 1.15rem;
+        text-decoration: none;
+        color: inherit;
+        box-shadow: 0 2px 10px rgba(102, 126, 234, 0.08);
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s,
+          border-color 0.2s;
+      }
+
+      .news-card:hover,
+      .news-card:focus-visible {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 22px rgba(102, 126, 234, 0.2);
+        border-color: #667eea;
+        outline: none;
+      }
+
+      .news-card-date {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin: 0 0 0.4rem;
+      }
+
+      .news-card-title {
+        font-size: 1.05rem;
+        color: #764ba2;
+        margin: 0;
+        line-height: 1.35;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      .news-card-link {
+        margin-top: 0.75rem;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #667eea;
+      }
+
+      footer {
+        text-align: center;
+        color: white;
+        padding: 2rem 0;
+        margin-top: 2rem;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          padding: 1rem;
+        }
+
+        header h1 {
+          font-size: 1.5rem;
+        }
+
+        .content {
+          padding: 1.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1 data-i18n="newsTitle">📰 News</h1>
+        <a class="back-link" href="../" data-i18n="newsListBack">← Back to home</a>
+      </header>
+
+      <main class="content">
+        <div class="news-grid">
+          <a
+            class="news-card"
+            href="import-from-folder.html"
+            data-i18n-attr="aria-label:news1Title"
+          >
+            <div>
+              <p class="news-card-date">
+                <time datetime="2026-11-21" data-i18n="news1Date">21 November 2026</time>
+              </p>
+              <h2 class="news-card-title" data-i18n="news1Title">
+                Import from a folder: build your library from disk
+              </h2>
+            </div>
+            <span class="news-card-link" data-i18n="readMore">Read more</span>
+          </a>
+          <a
+            class="news-card"
+            href="microsoft-store.html"
+            data-i18n-attr="aria-label:news2Title"
+          >
+            <div>
+              <p class="news-card-date">
+                <time datetime="2026-10-12" data-i18n="news2Date">12 October 2026</time>
+              </p>
+              <h2 class="news-card-title" data-i18n="news2Title">
+                MyHomeGames on the Microsoft Store for Windows
+              </h2>
+            </div>
+            <span class="news-card-link" data-i18n="readMore">Read more</span>
+          </a>
+          <a class="news-card" href="beta-testers.html" data-i18n-attr="aria-label:news3Title">
+            <div>
+              <p class="news-card-date">
+                <time datetime="2026-09-17" data-i18n="news3Date">17 September 2026</time>
+              </p>
+              <h2 class="news-card-title" data-i18n="news3Title">
+                Looking for beta testers for MyHomeGames
+              </h2>
+            </div>
+            <span class="news-card-link" data-i18n="readMore">Read more</span>
+          </a>
+          <a class="news-card" href="release-1.1.2.html" data-i18n-attr="aria-label:news4Title">
+            <div>
+              <p class="news-card-date">
+                <time datetime="2026-07-17" data-i18n="news4Date">17 July 2026</time>
+              </p>
+              <h2 class="news-card-title" data-i18n="news4Title">MyHomeGames 1.1.2 is out</h2>
+            </div>
+            <span class="news-card-link" data-i18n="readMore">Read more</span>
+          </a>
+        </div>
+      </main>
+
+      <footer>
+        <p data-i18n="footerTagline">© 2026 MyHomeGames — Self-hosted game library catalog</p>
+      </footer>
+    </div>
+
+    <script>
+      (function () {
+        if (window.MHG_HOME_I18N) {
+          window.MHG_HOME_I18N.apply(window.__MHG_HOME_LANG || window.MHG_HOME_I18N.resolveLang());
+          if (window.MHG_HOME_I18N.t) {
+            document.title = window.MHG_HOME_I18N.t("newsTitle") + " — MyHomeGames";
+          }
+        }
+      })();
+    </script>
+  </body>
+</html>
