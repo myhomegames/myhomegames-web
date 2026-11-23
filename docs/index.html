@@ -848,7 +848,14 @@
             the web app URL directly. You can start managing your video game collection right away.
           </p>
           <div class="button-container" style="margin: 1.25rem 0 1.5rem">
-            <a href="/app/" id="webapp-link" class="cta-button" data-i18n="ctaAccessWebApp">
+            <a
+              href="/app/"
+              id="webapp-link"
+              class="cta-button"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-i18n="ctaAccessWebApp"
+            >
               🌐 Access Web App
             </a>
           </div>
@@ -1390,7 +1397,11 @@
       const webappUrl = "/app/";
       const webappLink = document.getElementById("webapp-link");
       const webappLinkFooter = document.getElementById("webapp-link-footer");
-      if (webappLink) webappLink.href = webappUrl;
+      if (webappLink) {
+        webappLink.href = webappUrl;
+        webappLink.target = "_blank";
+        webappLink.rel = "noopener noreferrer";
+      }
       if (webappLinkFooter) webappLinkFooter.href = webappUrl;
       setupDownloadButton();
     </script>
