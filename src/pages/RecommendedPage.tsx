@@ -315,6 +315,16 @@ export default function RecommendedPage({
     [navigate, sections],
   );
 
+  const hasRecommendedContent = sectionsForDisplay.length > 0;
+  const emptyRecommendedMessage = useMemo(
+    () => (
+      <div className="centered-content h-full min-h-[400px]">
+        <div className="text-gray-400 text-center">{t("table.noGames")}</div>
+      </div>
+    ),
+    [t],
+  );
+
   useEffect(() => {
     if (!verticalStripsLayout || !isReady) return;
     const el = scrollContainerRef.current;
@@ -528,11 +538,11 @@ export default function RecommendedPage({
             ref={scrollContainerRef}
             className={`home-page-scroll-container recommended-page-scroll${
               verticalStripsLayout ? " recommended-page-scroll--strips-layout" : ""
-            }`}
+            }${!isFetching && !hasRecommendedContent ? " centered-content min-h-[400px]" : ""}`}
           >
             {!isFetching &&
-              (verticalStripsLayout ? (
-                stripRows.length > 0 ? (
+              (hasRecommendedContent ? (
+                verticalStripsLayout ? (
                   <div ref={stripsScrollRef} className="recommended-strips-column">
                     <FixedFocalRecommendedSectionsList
                       sections={stripRows}
@@ -540,16 +550,18 @@ export default function RecommendedPage({
                       onSectionClick={handleStripClick}
                     />
                   </div>
-                ) : null
+                ) : (
+                  <RecommendedHorizontalStrips
+                    sections={sectionsForDisplay}
+                    onGameClick={handleGameClick}
+                    onPlay={onPlay}
+                    onGameUpdate={handleGameUpdate}
+                    coverSize={coverSize}
+                    allCollections={allCollections}
+                  />
+                )
               ) : (
-                <RecommendedHorizontalStrips
-                  sections={sectionsForDisplay}
-                  onGameClick={handleGameClick}
-                  onPlay={onPlay}
-                  onGameUpdate={handleGameUpdate}
-                  coverSize={coverSize}
-                  allCollections={allCollections}
-                />
+                emptyRecommendedMessage
               ))}
           </div>
         </div>
@@ -564,11 +576,11 @@ export default function RecommendedPage({
         ref={scrollContainerRef}
         className={`home-page-scroll-container recommended-page-scroll${
           verticalStripsLayout ? " recommended-page-scroll--strips-layout" : ""
-        }`}
+        }${!isFetching && !hasRecommendedContent ? " centered-content min-h-[400px]" : ""}`}
       >
         {!isFetching &&
-          (verticalStripsLayout ? (
-            stripRows.length > 0 ? (
+          (hasRecommendedContent ? (
+            verticalStripsLayout ? (
               <div ref={stripsScrollRef} className="recommended-strips-column">
                 <FixedFocalRecommendedSectionsList
                   sections={stripRows}
@@ -576,21 +588,25 @@ export default function RecommendedPage({
                   onSectionClick={handleStripClick}
                 />
               </div>
-            ) : null
+            ) : (
+              <RecommendedHorizontalStrips
+                sections={sectionsForDisplay}
+                onGameClick={handleGameClick}
+                onPlay={onPlay}
+                onGameUpdate={handleGameUpdate}
+                coverSize={coverSize}
+                allCollections={allCollections}
+              />
+            )
           ) : (
-            <RecommendedHorizontalStrips
-              sections={sectionsForDisplay}
-              onGameClick={handleGameClick}
-              onPlay={onPlay}
-              onGameUpdate={handleGameUpdate}
-              coverSize={coverSize}
-              allCollections={allCollections}
-            />
+            emptyRecommendedMessage
           ))}
       </div>
     ),
     [
       isFetching,
+      hasRecommendedContent,
+      emptyRecommendedMessage,
       verticalStripsLayout,
       stripRows,
       sectionsForDisplay,
